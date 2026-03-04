@@ -73,8 +73,21 @@ function stripSectionMarkers(text) {
 
 function docId(node, kind, contextPath = []) {
     const name = node.name || "anonymous";
-    const pathPart = contextPath.length ? `${contextPath.join(".")}.` : "";
-    return `js:${kind}:${pathPart}${name}`;
+    const packageName = contextPath[0];
+    if (!packageName) {
+        return `js:${kind}:${name}`;
+    }
+    if (contextPath.length === 1) {
+        // node is a direct module of the package
+        return `js:${kind}:${packageName}/${name}`;
+    }
+    const modulePath = contextPath[1];
+    const moduleId = `${packageName}/${modulePath}`;
+    if (contextPath.length === 2) {
+        return `js:${kind}:${moduleId}#${name}`;
+    }
+    const memberPath = [...contextPath.slice(2), name].join(".");
+    return `js:${kind}:${moduleId}#${memberPath}`;
 }
 
 function textFromComment(comment) {

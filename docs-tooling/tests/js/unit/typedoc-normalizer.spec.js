@@ -386,7 +386,7 @@ describe("TypeDocNormalizer", () => {
         const fnNode = output.nodes.find((n) => n.name === "getResult");
         const returns = fnNode.signatures[0].returns;
         expect(returns.name).toBe("ResultType");
-        expect(returns.link).toBe("js:interface:vueda.api.ResultType");
+        expect(returns.link).toBe("js:interface:vueda/api#ResultType");
     });
 
     it("omits link on typeRef when reference id is not in the map", async () => {
