@@ -1,3 +1,8 @@
+/**
+ * @module theme/vueda-tailwind/display
+ * @description Tailwind CSS pass-through theme configuration for VUEDA Client display and read-only components.
+ */
+
 export default {
     DateRangeDisplay: {
         root: {

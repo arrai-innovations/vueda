@@ -1,3 +1,7 @@
+/**
+ * @module router/guards
+ * @description Vue Router navigation guards for enforcing authentication, group membership, and model info availability.
+ */
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { ModelInfoError, storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { storeUser } from "@vueda/stores/storeUser.js";

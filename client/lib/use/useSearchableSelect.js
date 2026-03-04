@@ -1,3 +1,7 @@
+/**
+ * @module use/useSearchableSelect
+ * @description Manages state and data-fetching for a searchable select widget, supporting pagination, debounced search, grouping, and lazy loading of remote options.
+ */
 import { deepUnref, loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";
@@ -41,6 +45,7 @@ import { computed, reactive, readonly, ref, toRef, unref, watch } from "vue";
  * @typedef {import("vue").UnwrapNestedRefs<WidgetSearchableSelectRawProps>} WidgetSearchableSelectProps
  */
 
+/** Vue component props definition for searchable-select components. Includes props for the target app and model, field and expand overrides, option value and label configuration, multiple selection, lazy loading, and grouping. */
 export const SEARCHABLE_SELECT_PROPS = {
     app: {
         type: String,
@@ -154,6 +159,8 @@ function groupBy(objects, groupKey) {
  * @typedef {import('vue').Reactive<WidgetSearchableSelectRaw>} WidgetSearchableSelect
  */
 /**
+ * Manages reactive state and behavior for a searchable select widget, including lazy loading, pagination, and virtual scrolling.
+ *
  * @param {WidgetSearchableSelectProps} props - The props for the widget searchable select.
  * @param {import('../use/useWidget.js').WidgetContext} widgetContext - The widget context.
  * @param {object} selectRef - The ref for the primevue select component.

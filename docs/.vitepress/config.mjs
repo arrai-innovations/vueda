@@ -411,6 +411,22 @@ const buildSectionSidebar = (sectionDir, sectionTitle) => {
     ];
 };
 
+const buildApiSubItems = (dirPath) => {
+    if (!fs.existsSync(dirPath)) {
+        return [];
+    }
+    return fs
+        .readdirSync(dirPath, { withFileTypes: true })
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".md") && entry.name !== "index.md")
+        .map((entry) => {
+            const filePath = path.join(dirPath, entry.name);
+            const { title, sidebarOrder } = readDocMeta(filePath);
+            return { text: title, link: toDocRoute(filePath), sidebarOrder };
+        })
+        .sort(sortDocs)
+        .map(({ text, link }) => ({ text, link }));
+};
+
 const buildApiSidebar = () => {
     if (!fs.existsSync(apiRoot)) {
         return [];
@@ -422,7 +438,7 @@ const buildApiSidebar = () => {
         .map((entry) => entry.name)
         .sort((a, b) => a.localeCompare(b));
 
-    return languageDirs.map((languageDir) => {
+    const languageGroups = languageDirs.map((languageDir) => {
         const languageRoot = path.join(apiRoot, languageDir);
         const languageIndexPath = path.join(languageRoot, "index.md");
         const languageTitle = fs.existsSync(languageIndexPath) ? readDocMeta(languageIndexPath).title : languageDir;
@@ -430,13 +446,16 @@ const buildApiSidebar = () => {
         const subdirectoryItems = fs
             .readdirSync(languageRoot, { withFileTypes: true })
             .filter((entry) => entry.isDirectory())
+            .filter((entry) => !fs.existsSync(path.join(languageRoot, `${entry.name}.md`)))
             .map((entry) => entry.name)
             .sort((a, b) => a.localeCompare(b))
             .map((subDirName) => {
-                const subDirIndexPath = path.join(languageRoot, subDirName, "index.md");
+                const subDirPath = path.join(languageRoot, subDirName);
+                const subDirIndexPath = path.join(subDirPath, "index.md");
                 const text = fs.existsSync(subDirIndexPath) ? readDocMeta(subDirIndexPath).title : subDirName;
                 const link = normalizeDocRoute(`/reference/api/${languageDir}/${subDirName}/`);
-                return { text, link };
+                const items = buildApiSubItems(subDirPath);
+                return items.length ? { text, link, collapsed: false, items } : { text, link };
             });
 
         const fileItems = fs
@@ -445,18 +464,37 @@ const buildApiSidebar = () => {
             .filter((entry) => entry.name !== "index.md")
             .map((entry) => {
                 const filePath = path.join(languageRoot, entry.name);
+                const stem = entry.name.slice(0, -".md".length);
                 const { title, sidebarOrder } = readDocMeta(filePath);
-                return { text: title, link: toDocRoute(filePath), sidebarOrder };
+                const link = toDocRoute(filePath);
+                const siblingDir = path.join(languageRoot, stem);
+                if (fs.existsSync(siblingDir) && fs.statSync(siblingDir).isDirectory()) {
+                    const items = buildApiSubItems(siblingDir);
+                    if (items.length) {
+                        return { text: title, link, collapsed: false, items, sidebarOrder };
+                    }
+                }
+                return { text: title, link, sidebarOrder };
             })
             .sort(sortDocs)
-            .map(({ text, link }) => ({ text, link }));
+            .map(({ text, link, collapsed, items }) =>
+                items !== undefined ? { text, link, collapsed, items } : { text, link },
+            );
 
         const overviewLink = normalizeDocRoute(`/reference/api/${languageDir}/`);
         return {
             text: languageTitle,
+            collapsed: true,
             items: [{ text: "Overview", link: overviewLink }, ...subdirectoryItems, ...fileItems],
         };
     });
+    return [
+        {
+            text: "Reference",
+            items: [{ text: "Overview", link: "/reference/" }],
+        },
+        ...languageGroups,
+    ];
 };
 
 const docsSidebar = {

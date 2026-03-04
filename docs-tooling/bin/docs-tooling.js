@@ -235,6 +235,14 @@ function addIndexPages(outputs) {
         if (outputs.has(indexPath)) {
             continue;
         }
+        // A Python package produces both foo.md (the module page) and foo/ (its
+        // member files). foo.md is always the canonical landing page for the module,
+        // regardless of how deeply nested the directory is, so skip generating a
+        // redundant foo/index.md in all cases where foo.md already exists.
+        const dirMdPath = dir === "." ? null : `${dir}.md`;
+        if (dirMdPath && outputs.has(dirMdPath)) {
+            continue;
+        }
         const children = Array.from(childrenSet).sort((a, b) => a.localeCompare(b));
         const title = titleForDir(dir === "." ? "" : dir);
         const lines = [];
@@ -242,6 +250,9 @@ function addIndexPages(outputs) {
         lines.push(`# ${title}`, "");
         for (const child of children) {
             if (child === "index.md") continue;
+            // When both foo.md and foo/ exist for the same module, link only to
+            // foo.md to avoid two identically-labelled entries in the index.
+            if (!child.endsWith(".md") && childrenSet.has(`${child}.md`)) continue;
             const label = child.endsWith(".md") ? child.replace(/\.md$/, "") : child;
             const linkTarget = child.endsWith(".md") ? `./${child}` : `./${child}/`;
             lines.push(`- [${label}](${linkTarget})`);

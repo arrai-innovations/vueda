@@ -1,4 +1,9 @@
 /**
+ * @module utils/constants
+ * @description Application-wide constants for cookie names, query-string parameters, and internal CRUD identifiers.
+ */
+
+/**
  * Name of the CSRF cookie, usually injected by the backend into a meta tag or cookie.
  * Used by `getCSRFToken()` for safe POST/PUT/PATCH/DELETE requests.
  */

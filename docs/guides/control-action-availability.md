@@ -124,12 +124,12 @@ After wiring action availability, verify the following behaviors:
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
 - JavaScript:
-    - {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}
-    - {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
-    - {@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}
-    - {@api js:function:@arrai-innovations/vueda.use/useFilteredActions.useFilteredActions}
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
-    - {@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}
+    - {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes}
+    - {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo}
+    - {@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName}
+    - {@api js:function:@arrai-innovations/vueda/use/useFilteredActions#useFilteredActions}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
 - Vue.js Components:
     - {@api vue:component:ViewActionRouter}

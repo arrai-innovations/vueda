@@ -15,7 +15,8 @@ import update from "lodash-es/update.js";
 import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
 
 /**
- * @module use/useForm.js - A composable function for handling form state.
+ * @module use/useForm
+ * @description A composable function for handling form state.
  */
 
 /**
@@ -27,6 +28,7 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  *
  * // *** Values & Initial State ***
  * @property {FieldValues} values - The form's values, referenced by lodash key path.
+ * @property {FieldValues} submittingValues - The form's values for submission, with ignored fields omitted.
  * @property {{[fieldName: string]: any}} initialValues - The form's initial values (used for resets).
  *
  * // *** Validation & Errors ***
@@ -49,6 +51,9 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * // *** Ignored Fields & Reset Behavior ***
  * @property {{[path: string]: string}} ignored - Fields ignored in validation/submission.
  * @property {boolean} anyIgnored - Whether any field has been ignored.
+ *
+ * // *** Dependency Management ***
+ * @property {{[path: string]: any}} dependencyValues - Resolved dependency values for fields registered via registerDependencyValues.
  */
 
 /**
@@ -518,8 +523,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *
  * // *** Form Reset & State Management ***
  * @property {() => void} reset - Reset the form to its initial values.
- * @property {() => FieldValues} formValues - Returns the form values, excluding ignored fields.
- * @property {(displayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error.
+ * @property {(displayFields: string[], arrayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error.
  *
  * // *** Value & Initial Value Handling ***
  * @property {(name: string, value: any) => void} updateValue - Update a field's value.
@@ -528,6 +532,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {(name: string) => void} deleteInitialValue - Delete a field's initial value.
  *
  * // *** Error & Message Handling ***
+ * @property {(name: string, childIndex?: number) => void} clearErrors - Clear all errors for a field, or a child's errors if childIndex is given.
  * @property {(name: string, code: string, message: string) => void} updateError - Update a field's error.
  * @property {(name: string, code?: string) => void} deleteError - Delete a field's error.
  * @property {(name: string, code: string, message: string) => void} updateMessage - Update a field's message.
@@ -563,6 +568,12 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *  Register a function to track validation.
  * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsValidHook -
  *  Unregister a validation tracking function.
+ *
+ * // *** Dependency Management ***
+ * @property {(fieldRef: import('vue').Ref<string>, dependencyPathsRef: import('vue').Ref<string[]>) => string} registerDependencyValues -
+ *  Register a field's dependency paths for reactive value tracking.
+ * @property {(registryId: string) => boolean} unregisterDependencyValues -
+ *  Unregister a field from dependency value tracking.
  */
 
 /**
@@ -607,7 +618,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *         }
  *         await submitToServer(formContext.values);
  *     } catch (e) {
- *         if (e isinstance FormValidationError) {
+ *         if (e instanceof FormValidationError) {
  *             formContext.handleServerFormValidationError(e);
  *             return;
  *         }

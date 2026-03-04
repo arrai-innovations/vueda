@@ -16,6 +16,9 @@ const KIND_MAP = {
 
 const repoRoot = getRepoRoot();
 
+const MIGRATION_RE = /\.migrations(\.|$)/;
+const isMigration = (fullname) => MIGRATION_RE.test(fullname);
+
 function nodeId(kind, fullname) {
     return `py:${kind}:${fullname}`;
 }
@@ -58,16 +61,10 @@ export class PdocNormalizer extends Normalizer {
         const byFullname = new Map();
 
         for (const doc of payload.docs) {
-            if (!doc.fullname) {
+            if (!doc.fullname || isMigration(doc.fullname)) {
                 continue;
             }
             byFullname.set(doc.fullname, doc);
-        }
-
-        for (const doc of payload.docs) {
-            if (!doc.fullname) {
-                continue;
-            }
 
             const kind = KIND_MAP[doc.kind] || "type";
             const id = nodeId(kind, doc.fullname);
@@ -141,11 +138,63 @@ export class PdocNormalizer extends Normalizer {
             }
         }
 
+        // Infer direct submodule parent-child relationships from dotted names,
+        // since pdoc always reports submodules: [] for all modules.
+        // Build a parent->direct-children map in O(n) by splitting on the last dot.
+        const parentToChildren = new Map();
+        for (const [fullname, doc] of byFullname) {
+            const kind = KIND_MAP[doc.kind] || "type";
+            if (kind !== "module") {
+                continue;
+            }
+            const lastDot = fullname.lastIndexOf(".");
+            if (lastDot === -1) {
+                continue;
+            }
+            const parentFullname = fullname.slice(0, lastDot);
+            if (!parentToChildren.has(parentFullname)) {
+                parentToChildren.set(parentFullname, []);
+            }
+            parentToChildren.get(parentFullname).push(fullname);
+        }
+
+        const inferredSubmoduleChildren = new Set();
+        for (const node of nodes) {
+            if (node.kind !== "module") {
+                continue;
+            }
+            const fullname = node.extensions?.pdoc?.fullname;
+            if (!fullname) {
+                continue;
+            }
+            const directChildren = parentToChildren.get(fullname);
+            if (!directChildren) {
+                continue;
+            }
+            for (const childFullname of directChildren) {
+                const childId = nodeId("module", childFullname);
+                if (!node.children) {
+                    node.children = [];
+                }
+                if (!node.children.includes(childId)) {
+                    node.children.push(childId);
+                    inferredSubmoduleChildren.add(childId);
+                }
+            }
+        }
+
+        // Sort inferred children for deterministic output across runs.
+        for (const node of nodes) {
+            if (node.children && node.children.length > 1) {
+                node.children.sort();
+            }
+        }
+
         for (const name of payload.module_names || []) {
             const rootDoc = byFullname.get(name);
             const rootKind = rootDoc ? KIND_MAP[rootDoc.kind] || "type" : "module";
             const rootId = nodeId(rootKind, name);
-            if (nodeIndex.has(rootId)) {
+            if (nodeIndex.has(rootId) && !inferredSubmoduleChildren.has(rootId)) {
                 roots.push(rootId);
             }
         }

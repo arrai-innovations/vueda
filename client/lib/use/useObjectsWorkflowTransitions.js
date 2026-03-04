@@ -1,3 +1,7 @@
+/**
+ * @module use/useObjectsWorkflowTransitions
+ * @description Fetches and tracks the available workflow transitions for a specific set of object primary keys, preserving deep reactivity across changes to app, model, or PKs.
+ */
 import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { getUsingVuedaWorkflow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
@@ -9,9 +13,9 @@ import { reactive, readonly, ref, toRef, unref, watch } from "vue";
 const usingVuedaWorkflow = getUsingVuedaWorkflow();
 
 /**
- * The raw instance of a useObjectsWorkflowTransitionsRaw object.
+ * The raw instance of a UseObjectsWorkflowTransitionsRaw object.
  *
- * @typedef {object} useObjectsWorkflowTransitionsRaw
+ * @typedef {object} UseObjectsWorkflowTransitionsRaw
  * @property {boolean} loading - True if the model choices are loading.
  * @property {Error} error - The error that occurred while loading the model choices.
  * @property {boolean} errored - True if an error occurred while loading the model choices.
@@ -22,7 +26,7 @@ const usingVuedaWorkflow = getUsingVuedaWorkflow();
 /**
  * The reactive useModelChoices instance.
  *
- * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<useObjectsWorkflowTransitionsRaw>>} useObjectsWorkflowTransitions
+ * @typedef {import('vue').DeepReadonly<import('vue').UnwrapNestedRefs<UseObjectsWorkflowTransitionsRaw>>} UseObjectsWorkflowTransitions
  */
 
 /**
@@ -34,7 +38,7 @@ const usingVuedaWorkflow = getUsingVuedaWorkflow();
  * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.
  * @param {import('vue').Ref<string|string[]>} pks - A ref containing the list of primary keys that is being watched.
  * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be reused.
- * @returns {useWorkflowRaw} An object containing objectTransitions.
+ * @returns {UseObjectsWorkflowTransitions} An object containing objectTransitions.
  */
 export function useObjectsWorkflowTransitions(app, model, pks, isActive) {
     if (!usingVuedaWorkflow) {

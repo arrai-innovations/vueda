@@ -158,14 +158,14 @@ With expand and field controls configured, verify the surface end-to-end:
 - REST:
     - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
-    - {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}
-    - {@api js:module:@arrai-innovations/vueda.use/useModelConfig}
-    - {@api js:function:@arrai-innovations/vueda.use/useModelConfig.useModelConfig}
-    - {@api js:module:@arrai-innovations/vueda.utils/objectCrud}
-    - {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectRetrieve}
-    - {@api js:property:@arrai-innovations/vueda.utils/constants.FIELDS_PARAM}
-    - {@api js:property:@arrai-innovations/vueda.utils/constants.EXPAND_PARAM}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
+    - {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig}
+    - {@api js:module:@arrai-innovations/vueda/use/useModelConfig}
+    - {@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig}
+    - {@api js:module:@arrai-innovations/vueda/utils/objectCrud}
+    - {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectRetrieve}
+    - {@api js:property:@arrai-innovations/vueda/utils/constants#FIELDS_PARAM}
+    - {@api js:property:@arrai-innovations/vueda/utils/constants#EXPAND_PARAM}
 - Vue.js Components:
     - {@api vue:component:ViewList}
     - {@api vue:component:DetailView}

@@ -154,6 +154,6 @@ After implementing nested writes, verify the following:
     - {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}
     - {@api py:class:vueda.core.viewsets.VuedaViewSet}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.use/useForm}
-    - {@api js:function:@arrai-innovations/vueda.use/useForm.useForm}
-    - {@api js:module:@arrai-innovations/vueda.use/useFormModel}
+    - {@api js:module:@arrai-innovations/vueda/use/useForm}
+    - {@api js:function:@arrai-innovations/vueda/use/useForm#useForm}
+    - {@api js:module:@arrai-innovations/vueda/use/useFormModel}

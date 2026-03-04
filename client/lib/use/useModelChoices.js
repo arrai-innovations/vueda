@@ -1,3 +1,7 @@
+/**
+ * @module use/useModelChoices
+ * @description Provides a reactive composable for fetching and tracking field-level model choices, preserving deep references across app, model, or field changes.
+ */
 import { keyDiff, useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";

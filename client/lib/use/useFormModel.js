@@ -1,3 +1,7 @@
+/**
+ * @module use/useFormModel
+ * @description Builds and provides a reactive form model state by combining server model info, client model config, and field/widget component mappings.
+ */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { buildForm } from "@vueda/utils/buildForm.js";
 import { choiceFieldMappings, defaultFieldMappings, manyFieldMappings } from "@vueda/utils/fieldMappings.js";

@@ -1,7 +1,6 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
 import { buildTypedocPathMap } from "../utils/path-map.js";
 import {
-    formatParameters,
     formatSource,
     linkToPath,
     normalizeTitle,
@@ -12,7 +11,34 @@ import {
     renderTable,
 } from "./markdown.js";
 
-function renderSignatures(node, filePath) {
+function memberRows(members) {
+    return members.map((m) => [m.name, m.type?.name || "", m.description || ""]);
+}
+
+function renderTypeRef(typeRef, index, filePath) {
+    if (!typeRef?.name) return "";
+    if (typeRef.link) {
+        const node = index.byId.get(typeRef.link);
+        if (node) {
+            const targetPath = index.pathMap.get(node.id);
+            if (targetPath) {
+                return linkToPath(typeRef.name, targetPath, filePath);
+            }
+        }
+    }
+    return renderCodeInline(typeRef.name);
+}
+
+function formatParametersTypedoc(parameters, index, filePath) {
+    return (parameters || []).map((param) => [
+        param.name || "",
+        renderTypeRef(param.type, index, filePath),
+        param.optional === true ? "no" : param.optional === false ? "yes" : "",
+        param.description || "",
+    ]);
+}
+
+function renderSignatures(node, index, filePath) {
     if (!node.signatures || !node.signatures.length) {
         return "";
     }
@@ -25,14 +51,19 @@ function renderSignatures(node, filePath) {
         const label = `${node.name}(${params})`;
         lines.push(renderCodeInline(label), "");
 
-        const paramRows = formatParameters(signature.parameters || []);
+        const paramRows = formatParametersTypedoc(signature.parameters || [], index, filePath);
         const paramTable = renderTable(["Name", "Type", "Required", "Description"], paramRows);
         if (paramTable) {
             lines.push(renderHeading(3, "Parameters"), "", paramTable, "");
         }
 
         if (signature.returns?.name) {
-            lines.push(renderHeading(3, "Returns"), "", renderCodeInline(signature.returns.name), "");
+            const returnsLines = [renderHeading(3, "Returns"), "", renderTypeRef(signature.returns, index, filePath)];
+            if (signature.returns.description) {
+                returnsLines.push("", signature.returns.description);
+            }
+            returnsLines.push("");
+            lines.push(...returnsLines);
         }
 
         if (signature.throws?.length) {
@@ -44,7 +75,7 @@ function renderSignatures(node, filePath) {
     return lines.join("\n");
 }
 
-function renderChildrenSections(node, index, pathMap, filePath) {
+function renderChildrenSections(node, index, filePath) {
     const children = index.childrenOf.get(node.id) || [];
     if (!children.length) {
         return "";
@@ -58,25 +89,85 @@ function renderChildrenSections(node, index, pathMap, filePath) {
 
     const lines = [];
 
+    const childLink = (child) => {
+        const link = linkToPath(child.name, index.pathMap.get(child.id), filePath);
+        const typeName = child.propertyType?.name;
+        const typeHint = typeName && typeName !== "object" ? ` \`${typeName}\`` : "";
+        if (!child.description) {
+            return typeHint ? `${link}${typeHint}` : link;
+        }
+        const collapsed = child.description
+            .replace(/```[\s\S]*?```/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+        const sentenceMatch = collapsed.match(/^.*?\.(?= |$)/);
+        const summary = sentenceMatch ? sentenceMatch[0] : collapsed;
+        return `${link}${typeHint} - ${summary}`;
+    };
+
     if (properties.length) {
         lines.push(renderHeading(2, "Properties"), "");
-        const items = properties.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
-        lines.push(renderList(items), "");
+        lines.push(renderList(properties.map(childLink)), "");
     }
 
     if (methods.length) {
         lines.push(renderHeading(2, "Methods"), "");
-        const items = methods.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
-        lines.push(renderList(items), "");
+        lines.push(renderList(methods.map(childLink)), "");
     }
 
     if (types.length) {
         lines.push(renderHeading(2, "Types"), "");
-        const items = types.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
-        lines.push(renderList(items), "");
+        for (const type of types) {
+            lines.push(renderHeading(3, linkToPath(type.name, index.pathMap.get(type.id), filePath)), "");
+            if (type.description) {
+                lines.push(type.description, "");
+            }
+            if (type.typeDefinition) {
+                lines.push(renderCodeInline(`${type.name} = ${type.typeDefinition.name}`), "");
+            }
+            if (type.members?.length) {
+                const table = renderTable(["Name", "Type", "Description"], memberRows(type.members));
+                if (table) lines.push(table, "");
+            }
+        }
     }
 
     return lines.join("\n");
+}
+
+function renderExamples(node) {
+    if (!node.examples || !node.examples.length) {
+        return "";
+    }
+    const lines = [renderHeading(2, "Examples"), ""];
+    for (const example of node.examples) {
+        const lang = example.lang || "";
+        lines.push("```" + lang);
+        lines.push((example.content || "").trimEnd());
+        lines.push("```");
+        lines.push("");
+    }
+    return lines.join("\n");
+}
+
+function renderTypeDefinition(node) {
+    if (!node.typeDefinition) {
+        return "";
+    }
+    return [renderHeading(2, "Type"), "", renderCodeInline(`${node.name} = ${node.typeDefinition.name}`), ""].join(
+        "\n",
+    );
+}
+
+function renderTypeMembers(node) {
+    if (!node.members || !node.members.length) {
+        return "";
+    }
+    const table = renderTable(["Name", "Type", "Description"], memberRows(node.members));
+    if (!table) {
+        return "";
+    }
+    return [renderHeading(2, "Properties"), "", table, ""].join("\n");
 }
 
 function renderSource(node) {
@@ -102,12 +193,31 @@ export function renderTypeDocNode(node, index, filePath) {
         lines.push(renderHeading(2, "Overview"), "", node.description, "");
     }
 
-    const signatureBlock = renderSignatures(node, filePath);
+    if (node.propertyType?.name) {
+        lines.push(renderHeading(2, "Type"), "", renderTypeRef(node.propertyType, index, filePath), "");
+    }
+
+    const signatureBlock = renderSignatures(node, index, filePath);
     if (signatureBlock) {
         lines.push(signatureBlock);
     }
 
-    const childrenBlock = renderChildrenSections(node, index, index.pathMap, filePath);
+    const examplesBlock = renderExamples(node);
+    if (examplesBlock) {
+        lines.push(examplesBlock);
+    }
+
+    const typeDefBlock = renderTypeDefinition(node);
+    if (typeDefBlock) {
+        lines.push(typeDefBlock);
+    }
+
+    const typeMembersBlock = renderTypeMembers(node);
+    if (typeMembersBlock) {
+        lines.push(typeMembersBlock);
+    }
+
+    const childrenBlock = renderChildrenSections(node, index, filePath);
     if (childrenBlock) {
         lines.push(childrenBlock);
     }

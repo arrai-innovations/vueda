@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeUser
+ * @description Pinia store for managing authentication state, including login, logout, password reset, and two-factor auth.
+ */
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
@@ -86,7 +90,7 @@ const authErrorResolver = (response, data) => {
  *
  * @example
  * ```js
- *   import { storeUser } from "vueda-client";
+ *   import { storeUser } from "@vueda";
  *   const user = storeUser();
  *
  *   user.loggedIn; // reactive boolean for login state, true if logged-in

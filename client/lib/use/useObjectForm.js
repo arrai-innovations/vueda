@@ -1,3 +1,7 @@
+/**
+ * @module use/useObjectForm
+ * @description Bridges a generic form context with an object instance, handling submission, redirection, and unsaved-change warnings.
+ */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
@@ -8,10 +12,6 @@ import omit from "lodash-es/omit.js";
 import { useToast } from "primevue/usetoast";
 import { computed, nextTick, reactive } from "vue";
 import { useRouter } from "vue-router";
-
-/**
- * @module use/useObjectForm.js
- */
 
 /**
  * @typedef {object} ObjectFormRawProps

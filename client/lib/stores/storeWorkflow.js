@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeWorkflow
+ * @description Pinia store for fetching and caching workflow states, available transitions, history, and executing transitions for model objects.
+ */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
@@ -42,6 +46,11 @@ export function setUsingVuedaWorkflow(value) {
     usingVuedaWorkflow = value;
 }
 
+/**
+ * Returns whether the vueda workflow module is active.
+ *
+ * @returns {boolean} True if workflow is active.
+ */
 export function getUsingVuedaWorkflow() {
     return usingVuedaWorkflow;
 }
@@ -205,11 +214,12 @@ const executeTransitionUrl = (result) => {
 
 /**
  * A pinia store for current workflow states, available transitions, and workflow histories for objects
- *  or possible states for models
- * Usage:
+ * or possible states for models.
+ *
+ * @example
  * ```js
  *     import { ref, unref, computed } from "vue";
- *     import { storeWorkflowStore } from "vueda-client";
+ *     import { storeWorkflowStore } from "@vueda";
  *     import { useArrayFind } from "@vueuse/core";
  *     const workflowStore = storeWorkflowStore();
  *

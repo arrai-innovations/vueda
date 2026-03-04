@@ -226,11 +226,11 @@ With all pieces in place, verify the surface end-to-end:
     - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
     - {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
 - JavaScript:
-    - {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes}
-    - {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo}
-    - {@api js:function:@arrai-innovations/vueda.router/routerComponent.setCrudComponents}
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
-    - {@api js:function:@arrai-innovations/vueda.router/getCrud.getCRUDForTo}
+    - {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes}
+    - {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo}
+    - {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
+    - {@api js:function:@arrai-innovations/vueda/router/getCrud#getCRUDForTo}
 - Vue.js Components:
     - {@api vue:component:ViewActionRouter}

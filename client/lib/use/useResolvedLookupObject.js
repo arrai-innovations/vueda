@@ -1,3 +1,7 @@
+/**
+ * @module use/useResolvedLookupObject
+ * @description Fetches and reactively tracks a single object via the injected lookup context, cancelling in-flight requests when parameters change or the scope is disposed.
+ */
 import { assignReactiveObject, useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -18,6 +22,7 @@ import { effectScope, inject, onScopeDispose, reactive, readonly, toRaw, toRef, 
  */
 
 /**
+ * Resolves a single object by pk via the parent lookup context, reactively tracking loading and error state.
  *
  * @param {import('vue').Ref<string>|string} app
  * @param {import('vue').Ref<string>|string} model

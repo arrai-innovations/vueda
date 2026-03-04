@@ -23,6 +23,7 @@ const KIND_MAP = new Map([
     [16384, "function"], // ConstructorSignature
     [65536, "type"],
     [262144, "property"], // Accessor
+    [2097152, "type"], // TypeAlias
 ]);
 
 const KIND_NAME_MAP = new Map([
@@ -43,19 +44,70 @@ const KIND_NAME_MAP = new Map([
     [16384, "ConstructorSignature"],
     [65536, "TypeLiteral"],
     [262144, "Accessor"],
+    [2097152, "TypeAlias"],
 ]);
+
+const ALLOWED_KINDS = new Set([
+    "module",
+    "namespace",
+    "class",
+    "interface",
+    "function",
+    "method",
+    "property",
+    "enum",
+    "type",
+]);
+
+function contentText(parts) {
+    return parts?.map((part) => part.text).join("") ?? "";
+}
+
+function stripSectionMarkers(text) {
+    return text
+        .split("\n")
+        .filter((line) => !/^\s*\/\/\s*\*{2,}/.test(line))
+        .join("\n")
+        .trim();
+}
 
 function docId(node, kind, contextPath = []) {
     const name = node.name || "anonymous";
-    const pathPart = contextPath.length ? `${contextPath.join(".")}.` : "";
-    return `js:${kind}:${pathPart}${name}`;
+    const packageName = contextPath[0];
+    if (!packageName) {
+        return `js:${kind}:${name}`;
+    }
+    if (contextPath.length === 1) {
+        // node is a direct module of the package
+        return `js:${kind}:${packageName}/${name}`;
+    }
+    const modulePath = contextPath[1];
+    const moduleId = `${packageName}/${modulePath}`;
+    if (contextPath.length === 2) {
+        return `js:${kind}:${moduleId}#${name}`;
+    }
+    const memberPath = [...contextPath.slice(2), name].join(".");
+    return `js:${kind}:${moduleId}#${memberPath}`;
 }
 
 function textFromComment(comment) {
-    if (!comment || !Array.isArray(comment.summary)) {
+    if (!comment) {
         return undefined;
     }
-    return comment.summary.map((part) => part.text).join("");
+    if (Array.isArray(comment.summary)) {
+        const text = stripSectionMarkers(contentText(comment.summary));
+        if (text) {
+            return text;
+        }
+    }
+    if (Array.isArray(comment.blockTags)) {
+        const descTag = comment.blockTags.find((tag) => tag.tag === "@description");
+        if (descTag) {
+            const text = contentText(descTag.content);
+            return text ? stripSectionMarkers(text) : undefined;
+        }
+    }
+    return undefined;
 }
 
 function typeToString(type) {
@@ -92,6 +144,12 @@ function typeToString(type) {
         return JSON.stringify(type.value);
     }
     if (type.type === "reflection") {
+        const sig = type.declaration?.signatures?.[0];
+        if (sig) {
+            const params = (sig.parameters || []).map((p) => `${p.name}: ${typeToString(p.type)}`).join(", ");
+            const ret = typeToString(sig.type);
+            return `(${params}) => ${ret}`;
+        }
         return "object";
     }
     if (type.name) {
@@ -139,12 +197,30 @@ function resolveKindName(node) {
     return KIND_NAME_MAP.get(node.kind);
 }
 
-function signatureFromNode(signature) {
+function examplesFromBlockTags(blockTags) {
+    if (!blockTags || !blockTags.length) {
+        return undefined;
+    }
+    const exampleTags = blockTags.filter((tag) => tag.tag === "@example");
+    if (!exampleTags.length) {
+        return undefined;
+    }
+    return exampleTags.map((tag) => {
+        const raw = contentText(tag.content);
+        const fenceMatch = raw.match(/^\s*```(\w*)\n([\s\S]*?)\n?```\s*$/);
+        if (fenceMatch) {
+            return compact({ lang: fenceMatch[1] || undefined, content: fenceMatch[2] });
+        }
+        return { content: raw.trim() };
+    });
+}
+
+function signatureFromNode(signature, typeRefFn = typeRef) {
     const parameters = (signature.parameters || []).map((param) =>
         compact({
             name: param.name,
             description: textFromComment(param.comment),
-            type: typeRef(param.type),
+            type: typeRefFn(param.type),
             optional: param.flags?.isOptional,
             default: param.defaultValue,
         }),
@@ -155,14 +231,25 @@ function signatureFromNode(signature) {
     const throwTags = blockTags.filter((tag) => tag.tag === "@throws");
     if (throwTags.length) {
         throws = throwTags.map((tag) => ({
-            name: tag.content?.map((part) => part.text).join("") || "Error",
+            name: contentText(tag.content) || "Error",
         }));
+    }
+
+    let returns = typeRefFn(signature.type);
+    const returnsTag = blockTags.find((tag) => tag.tag === "@returns");
+    const returnsText = contentText(returnsTag?.content).trim() || undefined;
+    if (returns?.name === "object" && signature.type?.type === "reflection") {
+        if (returnsText) {
+            returns = { name: returnsText };
+        }
+    } else if (returnsText && returns) {
+        returns = { ...returns, description: returnsText };
     }
 
     return compact({
         label: signature.name,
         parameters: parameters.length ? parameters : undefined,
-        returns: typeRef(signature.type),
+        returns,
         throws,
     });
 }
@@ -173,14 +260,77 @@ export class TypeDocNormalizer extends Normalizer {
             throw new Error("Invalid TypeDoc payload");
         }
 
+        const typedocIdMap = new Map();
+        const preVisit = (node, contextPath = []) => {
+            const kind = resolveKind(node);
+            typedocIdMap.set(node.id, docId(node, kind, contextPath));
+            if (Array.isArray(node.children)) {
+                const childContextPath = [...contextPath, node.name];
+                for (const child of node.children) {
+                    preVisit(child, childContextPath);
+                }
+            }
+        };
+        const rootContextPath = [payload.name || "project"];
+        for (const child of payload.children) {
+            preVisit(child, rootContextPath);
+        }
+
+        const resolveTypeRef = (type) => {
+            if (!type) return undefined;
+            const base = typeRef(type);
+            if (!base) return undefined;
+            if (type.type === "reference") {
+                const numericId = typeof type.target === "number" ? type.target : type.id;
+                if (numericId != null) {
+                    const canonicalId = typedocIdMap.get(numericId);
+                    if (canonicalId) {
+                        return { ...base, link: canonicalId };
+                    }
+                }
+            }
+            return base;
+        };
+
         const nodes = [];
         const roots = [];
 
         const visit = (node, contextPath = []) => {
             const kind = resolveKind(node);
             const id = docId(node, kind, contextPath);
-            const description = textFromComment(node.comment);
+            const description = textFromComment(node.comment) || textFromComment(node.signatures?.[0]?.comment);
             const source = sourceLocation(node.sources);
+
+            const nodeExamples = examplesFromBlockTags(node.comment?.blockTags) || [];
+            const sigExamples = Array.isArray(node.signatures)
+                ? node.signatures.flatMap((sig) => examplesFromBlockTags(sig.comment?.blockTags) || [])
+                : [];
+            const allExamples = [...nodeExamples, ...sigExamples];
+
+            let typeDefinition;
+            let nodeMembers;
+            if (kind === "type" && node.type) {
+                if (node.type.type === "reflection" && node.type.declaration?.children?.length) {
+                    nodeMembers = node.type.declaration.children.map((prop) =>
+                        compact({
+                            name: prop.name,
+                            kind: "property",
+                            type: resolveTypeRef(prop.type),
+                            description: textFromComment(prop.comment),
+                        }),
+                    );
+                } else {
+                    const typeName = typeToString(node.type);
+                    if (typeName && typeName !== "unknown") {
+                        typeDefinition = { name: typeName };
+                    }
+                }
+            }
+
+            let propertyType;
+            if ((kind === "property" || kind === "method") && node.type) {
+                propertyType = resolveTypeRef(node.type);
+            }
 
             const docNode = compact({
                 id,
@@ -188,7 +338,13 @@ export class TypeDocNormalizer extends Normalizer {
                 name: node.name,
                 description,
                 children: [],
-                signatures: Array.isArray(node.signatures) ? node.signatures.map(signatureFromNode) : undefined,
+                signatures: Array.isArray(node.signatures)
+                    ? node.signatures.map((sig) => signatureFromNode(sig, resolveTypeRef))
+                    : undefined,
+                members: nodeMembers,
+                typeDefinition,
+                propertyType,
+                examples: allExamples.length ? allExamples : undefined,
                 source,
                 extensions: {
                     typedoc: {
@@ -203,24 +359,13 @@ export class TypeDocNormalizer extends Normalizer {
             nodes.push(docNode);
 
             if (Array.isArray(node.children)) {
+                const childContextPath = [...contextPath, node.name];
                 for (const child of node.children) {
                     const childKind = resolveKind(child);
-                    const childId = docId(child, childKind, [...contextPath, node.name]);
-                    if (
-                        [
-                            "module",
-                            "namespace",
-                            "class",
-                            "interface",
-                            "function",
-                            "method",
-                            "property",
-                            "enum",
-                            "type",
-                        ].includes(childKind)
-                    ) {
+                    const childId = docId(child, childKind, childContextPath);
+                    if (ALLOWED_KINDS.has(childKind)) {
                         docNode.children.push(childId);
-                        visit(child, [...contextPath, node.name]);
+                        visit(child, childContextPath);
                     }
                 }
             }
@@ -232,22 +377,10 @@ export class TypeDocNormalizer extends Normalizer {
 
         for (const child of payload.children) {
             const kind = resolveKind(child);
-            if (
-                [
-                    "module",
-                    "namespace",
-                    "class",
-                    "interface",
-                    "function",
-                    "method",
-                    "property",
-                    "enum",
-                    "type",
-                ].includes(kind)
-            ) {
-                const id = docId(child, kind, [payload.name || "project"]);
+            if (ALLOWED_KINDS.has(kind)) {
+                const id = docId(child, kind, rootContextPath);
                 roots.push(id);
-                visit(child, [payload.name || "project"]);
+                visit(child, rootContextPath);
             }
         }
 

@@ -128,8 +128,8 @@ After implementing column totals, verify:
     - {@api py:class:vueda.core.pagination.VUEDAPageNumberPagination}
     - {@api py:function:vueda.core.pagination.VUEDAPageNumberPagination.get_paginated_response}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.utils/listCrud}
-    - {@api js:function:@arrai-innovations/vueda.utils/listCrud.singlePagePaginatedListCrudAdaptor}
-    - {@api js:function:@arrai-innovations/vueda.utils/listCrud.allPagePaginatedListCrudAdaptor}
+    - {@api js:module:@arrai-innovations/vueda/utils/listCrud}
+    - {@api js:function:@arrai-innovations/vueda/utils/listCrud#singlePagePaginatedListCrudAdaptor}
+    - {@api js:function:@arrai-innovations/vueda/utils/listCrud#allPagePaginatedListCrudAdaptor}
 - Vue.js Components:
     - {@api vue:component:ViewList}

@@ -59,7 +59,7 @@ The viewset-level gate for all workflow endpoints is `vueda_workflow.read_workfl
 
 ## Client {@term Action Namespace} Overlay
 
-On the client, workflow transitions extend the action namespace that drives route admission and view resolution. The {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} route guard assembles the admissible action set from the model-info `model_actions` and workflow permitted transition codes. Transition codes are treated as action identifiers alongside standard CRUDL action names.
+On the client, workflow transitions extend the action namespace that drives route admission and view resolution. The {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} route guard assembles the admissible action set from the model-info `model_actions` and workflow permitted transition codes. Transition codes are treated as action identifiers alongside standard CRUDL action names.
 
 This means a transition with code `approve` is admissible in the same way that `update` or `destroy` is admissible; the route guard checks membership in the combined set without distinguishing between CRUDL actions and transition codes. `ViewActionRouter` resolves transition codes to `ViewWorkflowTransition`, while standard CRUDL codes resolve to their built-in view components.
 
@@ -99,4 +99,4 @@ The workflow store caches both successful transition lists and fetch errors per 
 - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/}
 - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
 - {@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}
-- {@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}
+- {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
