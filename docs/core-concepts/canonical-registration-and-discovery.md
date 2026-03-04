@@ -31,8 +31,7 @@ Only certain transitions between states are valid:
 
 - Unregistered to serializer-only, via `register_serializer`.
 - Unregistered to fully registered, via `register`.
-- Serializer-only to fully registered, via `register` (upgrading the existing entry).
-- Fully registered to anything else is **illegal**. Attempting to register a different canonical serializer for an already-registered model fails at startup.
+- Multiple registrations for a single model is **illegal**. Attempting to register a canonical serializer for an already-registered model fails at startup.
 
 The canonical serializer is unique per model. Two Django apps cannot register different serializers for the same model. The system enforces this as a startup constraint: the error surfaces immediately when the application boots, not at runtime when a request happens to hit the conflict.
 
@@ -69,9 +68,7 @@ This pattern is consistent across VUEDA's own modules: `vueda.vdq`, `vueda.user`
 
 ## How Model-Info Uses the Registry
 
-The model-info viewset does not perform ORM introspection or scan installed apps. Its list and `detail` endpoints are derived exclusively from the set of registered models. If the registry is empty, model-info returns an empty list. If a specific model is requested that is not in the registry, model-info returns a 404.
-
-These 404s can only be distinguished by the content they return. Fetching a model that doesn't exist will return JSON data about the error. A hit to a nonexistent URL will return a not found error as HTML.
+The model-info viewset does not perform ORM introspection or scan installed apps. Its list and `detail` endpoints are derived exclusively from the set of registered models. If the registry is empty, model-info returns an empty list. If a specific model is requested that is not in the registry, model-info returns a 404. 404s for unregistered models will be JSON, returned by the model-info viewset. 404s for nonexistent URLs never reach Django and will be HTML, served by whatever web server sits in front of it.
 
 ## Client Discovery and the Trust Boundary
 
@@ -87,7 +84,7 @@ The client does not distinguish between "unregistered" and "nonexistent." Both p
 
 **Registration at import time** can cause content-type resolution failures or ordering-dependent import errors. These surface as startup crashes that may be difficult to diagnose because the error messages reference content types or models that appear to be correctly defined. The fix is always to move registration into `AppConfig.ready()`.
 
-**Duplicate canonical serializers** fail at startup. If two apps each attempt to register a different serializer as the canonical serializer for the same model, the second registration call raises an error. The only case where this would work is if the first registration call is to `register_serializer` and the second to `register`, which causes the registration to be upgraded to include the viewset.
+**Duplicate canonical serializers** fail at startup. If there are multiple attempts to register a serializer as the canonical serializer for the same model, the second registration call raises an error.
 
 **Cached 404 errors on the client** block discovery of models that are registered after the client has loaded. There is no automatic cache invalidation for this case; a page reload is required.
 
