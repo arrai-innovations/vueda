@@ -23,7 +23,7 @@ A model exists in exactly one of three registration states:
 
 **Unregistered**: the model is invisible to model-info and the client. It may have a Django model class, migrations, database tables, and even serializers or viewsets defined in code, but none of that matters until registration occurs.
 
-**Serializer-only**: the model is visible in model-info with field, expand, and permission metadata. It will have empty action, filter, and ordering metadata. This state exists to support metadata consumers that only need field shapes; for example, when the client needs to resolve field types for a related model referenced through an expand, but that related model does not need its own {@term CRUDL} surface. Expands metadata is provided to allow expansion through this model into other models that may be registered fully or serializer only.
+**Serializer-only**: the model is visible in model-info with field, expand, and permission metadata. It will have empty action, filter, and ordering metadata. This state exists to support metadata consumers that only need field shapes; for example, when the client needs to resolve field types for a related model referenced through an expand, but that related model does not need its own {@term CRUDL} surface. Expand metadata is provided to allow expansion through this model into other models that may be registered fully or serializer only.
 
 **Fully registered** (serializer + viewset): the model is visible with complete metadata, including fields, expands, actions, filters, ordering, and permissions. This is the state required for the client to generate a functional UI surface for the model, with routes, forms, and views.
 
