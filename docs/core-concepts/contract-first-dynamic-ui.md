@@ -10,7 +10,7 @@ status: draft
 VUEDA's client does not contain hand-wired knowledge of which models exist, what fields they have, or what actions are available. Everything is generated from the server metadata. The server defines the contract; the client renders it mechanically.
 The client derives that contract from {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}, so this explanation treats {@term Model Info} as the single runtime source of truth.
 
-This page explains how that derivation works: what the client does with metadata, what constraints it operates under, and why the result is deterministic. For what the metadata surface contains and what each section means, see [Server-Client Metadata Contract](./server-client-metadata-contract). For how models enter the metadata surface in the first place, see [Canonical Registration and Model Discovery](./canonical-registration-and-discovery).
+This page explains how that derivation works: what the client does with metadata, what constraints it operates under, and how the result is deterministic. For what the metadata surface contains and what each section means, see [Server-Client Metadata Contract](./server-client-metadata-contract). For how models enter the metadata surface in the first place, see [Canonical Registration and Model Discovery](./canonical-registration-and-discovery).
 
 ## The Architectural Thesis
 
@@ -26,7 +26,7 @@ Three claims define the contract-first architecture:
 
 The server defines the authoritative contract surface. The client consumes it but does not contribute to it.
 
-The [metadata contract](./server-client-metadata-contract) provides field schema (types, constraints, read-only markers), the action surface (CRUDL operations plus extras, filtered by user permissions), the expand graph (nested relations and their field shapes), filtering and ordering capabilities, and the permission envelope (codenames visible to the requesting user). All of this is derived from canonical serializer and viewset definitions; it reflects what the server actually enforces, not a separate declaration layer. If a field is read-only in the serializer, it is read-only in the metadata, and the client renders it as read-only.
+The [metadata contract](./server-client-metadata-contract) provides field schema (types, constraints, read-only markers), the action surface (CRUDL operations plus extras, filtered by user permissions), the expand graph (nested relations and their field shapes), filtering and ordering capabilities, and the permission envelope (codenames visible to the requesting user). All of this is derived from model/field definitions, canonical serializer and viewset definitions, and filtersets; it reflects what the server actually enforces, not a separate declaration layer. If a field is read-only in the serializer, it is read-only in the metadata, and the client renders it as read-only.
 
 The client normalizes server metadata into a stable internal shape used throughout the UI generation layer. This normalization is a translation step, not an authority step. The client strips prefixes, restructures for convenient access, and identifies the primary key field, but it neither adds nor removes contract semantics. What the server says, the client preserves.
 
@@ -42,7 +42,7 @@ Router guards block navigation until this intersection is computed. If a user na
 
 ### Field and Widget Resolution
 
-Field and widget resolution is type-driven. The server provides type identifiers per field (`type_serializer`, `type_model`); the client maps these deterministically to Field and Widget components through a static mapping table.
+Field and widget resolution is type-driven. The server provides type identifiers per field (`type_serializer`, `type_model`, `type_db`); the client maps these deterministically to Field and Widget components through a static mapping table.
 
 Field components handle the structural concerns of a form field: layout, label placement, error display, and help text. Widget components handle input mechanisms such as text input, dropdowns, date pickers, checkboxes, and so on. The separation means the same widget can appear in different field layouts, and the same field structure can host different widgets, depending on the metadata and configuration.
 
