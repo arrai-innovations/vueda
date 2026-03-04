@@ -107,8 +107,8 @@ Configuration failures surface at different points in the application lifecycle 
 - {@api py:function:vueda.core.config.load_toml}
 - {@api py:module:vueda.core.patch_django}
 - {@api py:module:vueda.core.permissions}
-- {@api js:module:@arrai-innovations/vueda.utils/constants}
-- {@api js:module:@arrai-innovations/vueda.utils/actionMap}
-- {@api js:module:@arrai-innovations/vueda.utils/csrf}
-- {@api js:module:@arrai-innovations/vueda.utils/connectionHostname}
-- {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
+- {@api js:module:@arrai-innovations/vueda/utils/constants}
+- {@api js:module:@arrai-innovations/vueda/utils/actionMap}
+- {@api js:module:@arrai-innovations/vueda/utils/csrf}
+- {@api js:module:@arrai-innovations/vueda/utils/connectionHostname}
+- {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}

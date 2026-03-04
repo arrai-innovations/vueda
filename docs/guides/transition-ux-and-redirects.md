@@ -23,7 +23,7 @@ The objective is a transition UX where:
 
 Before you begin:
 
-Action routing is configured via {@api js:function:@arrai-innovations/vueda.router/makeCrud.makeCRUDRoutes} with the {@api js:function:@arrai-innovations/vueda.router/guards.requireModelInfo} guard. See [Control Action Availability in the UI](./control-action-availability) for the route guard wiring.
+Action routing is configured via {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} with the {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} guard. See [Control Action Availability in the UI](./control-action-availability) for the route guard wiring.
 
 The model's workflow (if applicable) is configured with states, transitions, and permissions. Transitions must have valid string `code` properties; the route guard and action router both use `code` as the routing identifier.
 
@@ -119,8 +119,8 @@ After implementing transition UX, verify the following:
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.stores/storeWorkflow}
-    - {@api js:function:@arrai-innovations/vueda.use/useWorkflowTransitions.useWorkflowTransitions}
-    - {@api js:function:@arrai-innovations/vueda.utils/actionMap.getActionName}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
+    - {@api js:function:@arrai-innovations/vueda/use/useWorkflowTransitions#useWorkflowTransitions}
+    - {@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName}
 - Vue.js Components:
     - {@api vue:component:ViewWorkflowTransition}

@@ -97,6 +97,6 @@ Default model-config generation uses the normalized metadata to derive field set
 - {@api py:class:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin}
 - {@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}
 - {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
-- {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
-- {@api js:property:@arrai-innovations/vueda.utils/constants.FIELDS_PARAM}
-- {@api js:property:@arrai-innovations/vueda.utils/constants.EXPAND_PARAM}
+- {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
+- {@api js:property:@arrai-innovations/vueda/utils/constants#FIELDS_PARAM}
+- {@api js:property:@arrai-innovations/vueda/utils/constants#EXPAND_PARAM}

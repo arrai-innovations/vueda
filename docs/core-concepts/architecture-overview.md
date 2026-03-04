@@ -27,7 +27,7 @@ The server is organized into four responsibility layers. Each layer builds on th
 
 The client is a Vue single-page application that generates its UI entirely from server metadata. It is organized into four layers, each consuming the output of the one above it.
 
-**Metadata consumption.** Pinia stores fetch, normalize, and cache the server contract. {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo} holds the server-derived field, action, filter, and permission metadata. {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig} merges those defaults with client-side overrides. Together, they produce the configuration that all downstream layers consume.
+**Metadata consumption.** Pinia stores fetch, normalize, and cache the server contract. {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo} holds the server-derived field, action, filter, and permission metadata. {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig} merges those defaults with client-side overrides. Together, they produce the configuration that all downstream layers consume.
 
 **Routing and gating.** Router guards load metadata before allowing navigation. Route entry is blocked until model-info is available and the requested action is confirmed present, which is determined by intersecting server-advertised actions, client config restrictions, and workflow transition codes. No view renders without its contract being satisfied.
 
@@ -113,6 +113,6 @@ Client-side visibility decisions (e.g., hiding a button or disabling a field) im
     - {@api py:module:vueda.info.viewsets}
     - {@api py:module:vueda.core.default_settings}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelConfig}
-    - {@api js:module:@arrai-innovations/vueda.router/guards}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
+    - {@api js:module:@arrai-innovations/vueda/router/guards}

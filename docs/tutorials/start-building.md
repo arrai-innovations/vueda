@@ -619,7 +619,7 @@ app.mount("#the-app");
 export default app;
 ```
 
-{@api js:function:@arrai-innovations/vueda.utils/listCrud.setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda.utils/objectCrud.setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUDL operation. {@api js:function:@arrai-innovations/vueda.theme/register.setPrimeVuePreset} syncs the active PrimeVue preset into VUEDA's theme system. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each plugin.
+{@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUDL operation. {@api js:function:@arrai-innovations/vueda/theme/register#setPrimeVuePreset} syncs the active PrimeVue preset into VUEDA's theme system. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each plugin.
 
 ### Add a Sign-In View
 
@@ -653,7 +653,7 @@ function login({ formValues }) {
 </template>
 ```
 
-{@api vue:component:AuthorizingForm} handles form state, watches {@api js:function:@arrai-innovations/vueda.stores/storeUser.storeUser} for login, and redirects to the `welcome` route on success. {@api vue:component:FieldString} and {@api vue:component:WidgetInput} register fields in the form context so their values are collected into `formValues` on submit. See [Build Auth Views](/guides/build-auth-views) for more on auth view patterns.
+{@api vue:component:AuthorizingForm} handles form state, watches {@api js:function:@arrai-innovations/vueda/stores/storeUser#storeUser} for login, and redirects to the `welcome` route on success. {@api vue:component:FieldString} and {@api vue:component:WidgetInput} register fields in the form context so their values are collected into `formValues` on submit. See [Build Auth Views](/guides/build-auth-views) for more on auth view patterns.
 
 ### Add a Welcome View
 
@@ -705,11 +705,11 @@ export default defineConfig({
 });
 ```
 
-{@api js:function:@arrai-innovations/vueda.vite.vuedaViteConfig} accepts an `extraAliases` option that is merged into the Vite `resolve.alias` config. Any aliases you add here are available in your application imports.
+{@api js:function:@arrai-innovations/vueda/vite#vuedaViteConfig} accepts an `extraAliases` option that is merged into the Vite `resolve.alias` config. Any aliases you add here are available in your application imports.
 
 ### Configure CRUDL View Resolution and Routes
 
-The scaffolded router calls {@api js:function:@arrai-innovations/vueda.router/routerComponent.setCrudComponents} with an empty object and has no routes for `sign-in` or `welcome`. Replace `client/src/router/index.js` with:
+The scaffolded router calls {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents} with an empty object and has no routes for `sign-in` or `welcome`. Replace `client/src/router/index.js` with:
 
 ```javascript
 import { requireInitialized } from "@vueda/router/guards.js";
@@ -827,7 +827,7 @@ Open `http://localhost:5173` in your browser.
 
 ### Customize with Model Config
 
-The built-in views render every field the serializer exposes. To adjust which fields appear, set sort defaults, or reorder columns without building custom views, use {@api js:function:@arrai-innovations/vueda.stores/storeModelConfig.storeModelConfig}.
+The built-in views render every field the serializer exposes. To adjust which fields appear, set sort defaults, or reorder columns without building custom views, use {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig}.
 
 Create `client/src/setupModelConfig.js`:
 

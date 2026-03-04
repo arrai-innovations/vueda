@@ -127,8 +127,8 @@ After implementing the serializer split, verify:
     - {@api py:function:vueda.info.registration.register_serializer}
     - {@api py:class:vueda.info.serializers.ModelInfoSerializer}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}
-    - {@api js:module:@arrai-innovations/vueda.use/useObjectForm}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
+    - {@api js:module:@arrai-innovations/vueda/use/useObjectForm}
 - Vue.js Components:
     - {@api vue:component:ViewCreate}
     - {@api vue:component:ViewUpdate}

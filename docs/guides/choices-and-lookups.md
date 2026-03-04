@@ -80,7 +80,7 @@ Filter choice responses follow the same `{label, value}` structure as field choi
 
 ## Client Fetch Strategy
 
-The client loads choices through two coordinated layers: {@api js:module:@arrai-innovations/vueda.stores/storeModelChoices} for state management and deduplication, and {@api js:module:@arrai-innovations/vueda.use/useModelChoices} for reactive fetching with intent controls.
+The client loads choices through two coordinated layers: {@api js:module:@arrai-innovations/vueda/stores/storeModelChoices} for state management and deduplication, and {@api js:module:@arrai-innovations/vueda/use/useModelChoices} for reactive fetching with intent controls.
 
 ### `useModelChoices` configuration
 
@@ -157,9 +157,9 @@ With choice loading wired, verify these behaviors:
     - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
     - {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.stores/storeModelChoices}
-    - {@api js:function:@arrai-innovations/vueda.stores/storeModelChoices.storeModelChoices}
-    - {@api js:module:@arrai-innovations/vueda.use/useModelChoices}
-    - {@api js:function:@arrai-innovations/vueda.use/useModelChoices.useModelChoices}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeModelChoices}
+    - {@api js:function:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices}
+    - {@api js:module:@arrai-innovations/vueda/use/useModelChoices}
+    - {@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices}
 - Vue.js Components:
     - {@api vue:component:FilterComponent}

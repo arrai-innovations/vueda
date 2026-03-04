@@ -83,13 +83,13 @@ The cancellation architecture produces several characteristic failure patterns.
 
 ## Relevant Implementation Surface
 
-- {@api js:function:@arrai-innovations/vueda.utils/fetchSupport.fetchHelper}
-- {@api js:type:@arrai-innovations/vueda.utils/fetchSupport.CancellablePromise}
-- {@api js:type:@arrai-innovations/vueda.utils/fetchSupport.MaybeCancellablePromise}
-- {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectCreate}
-- {@api js:function:@arrai-innovations/vueda.utils/objectCrud.defaultObjectDelete}
-- {@api js:function:@arrai-innovations/vueda.utils/listCrud.singlePagePaginatedListCrudAdaptor}
-- {@api js:function:@arrai-innovations/vueda.utils/listCrud.allPagePaginatedListCrudAdaptor}
-- {@api js:function:@arrai-innovations/vueda.use/useLookupContext.useLookupContext}
-- {@api js:function:@arrai-innovations/vueda.use/useResolvedLookupObject.useResolvedLookupObject}
-- {@api js:function:@arrai-innovations/vueda.use/useWarnings.useWarnings}
+- {@api js:function:@arrai-innovations/vueda/utils/fetchSupport#fetchHelper}
+- {@api js:type:@arrai-innovations/vueda/utils/fetchSupport#CancellablePromise}
+- {@api js:type:@arrai-innovations/vueda/utils/fetchSupport#MaybeCancellablePromise}
+- {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectCreate}
+- {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectDelete}
+- {@api js:function:@arrai-innovations/vueda/utils/listCrud#singlePagePaginatedListCrudAdaptor}
+- {@api js:function:@arrai-innovations/vueda/utils/listCrud#allPagePaginatedListCrudAdaptor}
+- {@api js:function:@arrai-innovations/vueda/use/useLookupContext#useLookupContext}
+- {@api js:function:@arrai-innovations/vueda/use/useResolvedLookupObject#useResolvedLookupObject}
+- {@api js:function:@arrai-innovations/vueda/use/useWarnings#useWarnings}

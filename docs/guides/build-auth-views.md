@@ -297,10 +297,10 @@ After building auth views, verify the following:
     - {@api vue:component:FieldString}
     - {@api vue:component:WidgetInput}
 - JavaScript:
-    - {@api js:module:@arrai-innovations/vueda.stores/storeUser}
-    - {@api js:module:@arrai-innovations/vueda.use/useField}
-    - {@api js:module:@arrai-innovations/vueda.use/useWidget}
-    - {@api js:module:@arrai-innovations/vueda.use/useForm}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeUser}
+    - {@api js:module:@arrai-innovations/vueda/use/useField}
+    - {@api js:module:@arrai-innovations/vueda/use/useWidget}
+    - {@api js:module:@arrai-innovations/vueda/use/useForm}
 - REST:
     - {@api rest:endpoint:POST:/vueda.user/login/}
     - {@api rest:endpoint:POST:/vueda.user/logout/}
