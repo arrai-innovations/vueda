@@ -1,6 +1,6 @@
 /**
  * @module theme/vueda-tailwind/views
- * @description Tailwind CSS pass-through theme configuration for vueda-client page and view-level components.
+ * @description Tailwind CSS pass-through theme configuration for VUEDA Client page and view-level components.
  */
 
 export default {

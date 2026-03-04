@@ -90,7 +90,7 @@ const authErrorResolver = (response, data) => {
  *
  * @example
  * ```js
- *   import { storeUser } from "vueda-client";
+ *   import { storeUser } from "@vueda";
  *   const user = storeUser();
  *
  *   user.loggedIn; // reactive boolean for login state, true if logged-in

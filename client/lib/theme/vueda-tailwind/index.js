@@ -1,6 +1,6 @@
 /**
  * @module theme/vueda-tailwind
- * @description Aggregated Tailwind CSS pass-through theme configuration for all vueda-client components.
+ * @description Aggregated Tailwind CSS pass-through theme configuration for all VUEDA Client components.
  */
 import display from "@vueda/theme/vueda-tailwind/display/index.js";
 import form from "@vueda/theme/vueda-tailwind/form/index.js";

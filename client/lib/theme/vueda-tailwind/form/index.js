@@ -1,6 +1,6 @@
 /**
  * @module theme/vueda-tailwind/form
- * @description Tailwind CSS pass-through theme configuration for vueda-client form layout and field-set components.
+ * @description Tailwind CSS pass-through theme configuration for VUEDA Client form layout and field-set components.
  */
 
 export default {

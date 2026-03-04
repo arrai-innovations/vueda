@@ -29,7 +29,7 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
  *
  * Usage:
  * ```js
- *   import { storeDarkMode } from "vueda-client";
+ *   import { storeDarkMode } from "@vueda";
  *   const darkMode = storeDarkMode();
  *
  *   darkMode.isDark; // reactive boolean for dark mode, true if dark mode is enabled

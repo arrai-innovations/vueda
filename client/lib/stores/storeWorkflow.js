@@ -219,7 +219,7 @@ const executeTransitionUrl = (result) => {
  * @example
  * ```js
  *     import { ref, unref, computed } from "vue";
- *     import { storeWorkflowStore } from "vueda-client";
+ *     import { storeWorkflowStore } from "@vueda";
  *     import { useArrayFind } from "@vueuse/core";
  *     const workflowStore = storeWorkflowStore();
  *

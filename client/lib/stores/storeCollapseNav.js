@@ -29,7 +29,7 @@ const collapseNavLocalStorageKey = "collapseNav";
  *
  * Usage:
  * ```js
- *   import { storeCollapseNav } from "vueda-client";
+ *   import { storeCollapseNav } from "@vueda";
  *   const collapseNav = storeCollapseNav();
  *
  *   collapseNav.isCollapsed; // reactive boolean for collapsed nav, true if nav is collapsed
