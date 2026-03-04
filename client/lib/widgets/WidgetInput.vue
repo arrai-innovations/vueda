@@ -16,12 +16,17 @@ import InputText from "primevue/inputtext";
 import Password from "primevue/password";
 import { computed, useSlots } from "vue";
 
+/**
+ * A versatile text-input widget that switches between PrimeVue InputText, Password, InputNumber,
+ * InputOtp, and InputMask based on the `type` prop, wrapped with a label and optional prefix/suffix addons.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** The input variant to render: `"text"`, `"password"`, `"number"`, `"otp"`, or `"mask"`. */
     type: {
         type: String,
         default: "text",
@@ -57,6 +62,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
             <template #default="{ class: labelControlClass }">
                 <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-input-inner">
                     <component :is="$slots.prefix || $slots.suffix ? InputGroup : EmptyComponent">
+                        <!-- Content rendered as a leading addon inside an InputGroup wrapper. -->
                         <slot v-if="$slots.prefix" name="prefix" />
                         <component
                             :is="inputComponent"
@@ -74,6 +80,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                             @blur="widgetContext.blur"
                             @focus="widgetContext.focus"
                         />
+                        <!-- Content rendered as a trailing addon inside an InputGroup wrapper. -->
                         <slot v-if="$slots.suffix" name="suffix" />
                     </component>
                 </div>

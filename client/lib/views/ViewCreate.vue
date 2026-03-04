@@ -17,6 +17,10 @@ import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import Button from "primevue/button";
 import { computed, inject, onMounted, reactive, toRef } from "vue";
 
+/**
+ * Form view for creating a new model instance, including a page title, a sticky submit button
+ * bar, and a FormModel that renders the configured fields.
+ */
 defineOptions({
     inheritAttrs: false,
 });

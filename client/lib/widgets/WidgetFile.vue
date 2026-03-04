@@ -11,16 +11,22 @@ import Button from "primevue/button";
 import FileUpload from "primevue/fileupload";
 import { computed, useSlots } from "vue";
 
+/**
+ * A file-upload widget that displays an existing file as a labelled download link with remove and
+ * download actions, and falls back to a file-uploader input when no file is selected.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** MIME type filter passed to the file input (e.g. `"image/*"` or `".pdf"`). */
     accept: {
         type: String,
         default: "*",
     },
+    /** Maximum allowed file size in bytes. */
     maxFileSize: {
         type: Number,
         default: 1000000,
@@ -86,6 +92,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                         </div>
                     </div>
                     <div v-else>
+                        <!-- Replaces the default PrimeVue FileUpload component; receives `disabled`, `invalid`, `aria-labelledby`, and an `uploader` event handler. -->
                         <slot
                             v-bind="omit($attrs, 'value')"
                             :aria-labelledby="widgetContext.state.widgetId"

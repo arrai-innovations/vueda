@@ -10,6 +10,12 @@ import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, toRef, unref } from "vue";
 
+/**
+ * Editable detail view that loads a model instance, presents it in a form, and submits changes
+ * back to the server on save.
+ */
+defineOptions({});
+
 const props = defineProps({
     app: {
         type: String,

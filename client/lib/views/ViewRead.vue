@@ -5,6 +5,10 @@ import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { inject, reactive } from "vue";
 
+/**
+ * Read-only detail view that fetches and displays a single model instance identified by its
+ * primary key.
+ */
 defineOptions({
     inheritAttrs: false,
 });

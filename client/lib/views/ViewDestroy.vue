@@ -4,6 +4,10 @@ import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
+/**
+ * View that permanently deletes one or more model instances, presenting a confirmation form via
+ * ModelActionForm before executing the delete action.
+ */
 defineOptions({
     inheritAttrs: false,
 });

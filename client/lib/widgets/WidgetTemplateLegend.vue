@@ -8,6 +8,10 @@ import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/
 import pick from "lodash-es/pick.js";
 import { useSlots } from "vue";
 
+/**
+ * A read-only widget that displays a legend of available `$variable` substitution tags, rendered
+ * as a labelled list with click-to-copy tag values; the default slot can replace the entire list.
+ */
 defineOptions({
     inheritAttrs: false,
 });
@@ -39,6 +43,7 @@ const availableLabelSlotNames = getWidgetSlotsComputed(slots);
                     :class="combineClasses(theme('inner'), labelControlClass)"
                     data-qa="widget-template-legend-inner"
                 >
+                    <!-- Replaces the default tag list; receives the current widget `value` as a slot prop. -->
                     <slot name="default" :value="widgetContext.state.combinedValue">
                         <div v-if="widgetContext.state.combinedValue">
                             <p>These are the replacement tags available in text fields below:</p>

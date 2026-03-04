@@ -14,6 +14,10 @@ import { useToast } from "primevue/usetoast";
 import { computed, inject, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
 
+/**
+ * View that lists the available workflow transitions for one or more model instances and allows
+ * the user to select and execute a transition.
+ */
 defineOptions({
     inheritAttrs: false,
 });

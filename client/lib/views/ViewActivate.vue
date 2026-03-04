@@ -13,6 +13,10 @@ import { getDetailUrl } from "@vueda/utils/urls.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import { computed, inject, reactive, toRef } from "vue";
 
+/**
+ * View that activates one or more model instances by sending a PATCH request to the activate
+ * endpoint, then presents a confirmation form via ModelActionForm.
+ */
 defineOptions({
     inheritAttrs: false,
 });

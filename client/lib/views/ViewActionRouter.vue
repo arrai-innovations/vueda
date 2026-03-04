@@ -11,6 +11,12 @@ import ViewWorkflowTransition from "@vueda/views/ViewWorkflowTransition.vue";
 import { computedAsync } from "@vueuse/core";
 import { ref, toRef, watch } from "vue";
 
+/**
+ * Resolves the correct view component for a given model action at runtime, delegating to CRUD
+ * views, workflow transition views, or dynamically imported custom action views as appropriate.
+ */
+defineOptions({});
+
 const props = defineProps({
     app: {
         type: String,

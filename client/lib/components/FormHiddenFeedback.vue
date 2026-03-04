@@ -62,11 +62,15 @@ import Button from "primevue/button";
 import Popover from "primevue/popover";
 import { inject, onMounted, ref, unref, useAttrs } from "vue";
 
+/**
+ * Compact feedback indicator button that reveals validation errors, warnings, and help text in a popover when clicked.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...FORM_HIDDEN_FEEDBACK_PROPS,
+    /** Field name used to identify which field's feedback to display when no field context is injected. */
     name: {
         type: String,
         default: undefined,
@@ -156,6 +160,7 @@ const togglePopover = (e) => {
             </form-help-text>
         </div>
     </popover>
+    <!-- Replaces the default feedback indicator button; receives `buttonClass`, `class`, `hasErrors`, `hasHelp`, `hasWarnings`, and a click handler as slot props. -->
     <slot
         :button-class="theme('button')"
         :class="combineClasses(theme('root'), $attrs.class)"

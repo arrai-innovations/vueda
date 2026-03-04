@@ -9,12 +9,24 @@ import { FilterModelSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
 import IsObject from "lodash-es/isObject.js";
 import { computed, inject, watch } from "vue";
 
+/**
+ * Composite field that renders a pair of sub-fields for the lower and upper
+ * boundaries of a range, deriving their field names from the parent field name
+ * combined with the configured suffixes. Validates that the lower bound does
+ * not exceed the upper bound.
+ */
+defineOptions({});
 const props = defineProps({
     ...FIELD_PROPS,
+    /** The data type of the range boundaries (e.g. "number" or "date"). */
     type: {
         type: String,
         default: "number",
     },
+    /**
+     * A two-element array of suffixes appended to the field name to produce the
+     * lower and upper boundary field names; must be provided in lower, upper order.
+     */
     suffixes: {
         type: Array,
         default: () => ["lower", "upper"],
@@ -82,6 +94,7 @@ watch(
                 {{ fieldContext.state.label }}
             </label>
         </div>
+        <!-- Override the default form-level chores (e.g. non-field errors) rendered above the range sub-fields. -->
         <slot name="field-set-level-chores">
             <form-chores :variant="null">
                 <template
