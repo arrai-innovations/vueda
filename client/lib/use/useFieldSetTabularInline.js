@@ -10,8 +10,10 @@ import { useBreakpoints } from "@vueuse/core";
 import merge from "lodash-es/merge.js";
 import { computed, reactive, readonly, toRefs } from "vue";
 
+/** Vue component props definition for tabular inline field-set components. Inherits all props from FIELD_SET_INLINE_PROPS for use in table-style repeatable child-row layouts. */
 export const FIELD_SET_TABULAR_INLINE_PROPS = { ...FIELD_SET_INLINE_PROPS };
 
+/** Array of Vue event names emitted by tabular inline field-set components. Pass to the `emits` option of a tabular inline field-set component. */
 export const FIELD_SET_TABULAR_INLINE_EMITS = [...FIELD_EMITS];
 
 /**

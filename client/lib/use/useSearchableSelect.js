@@ -45,6 +45,7 @@ import { computed, reactive, readonly, ref, toRef, unref, watch } from "vue";
  * @typedef {import("vue").UnwrapNestedRefs<WidgetSearchableSelectRawProps>} WidgetSearchableSelectProps
  */
 
+/** Vue component props definition for searchable-select components. Includes props for the target app and model, field and expand overrides, option value and label configuration, multiple selection, lazy loading, and grouping. */
 export const SEARCHABLE_SELECT_PROPS = {
     app: {
         type: String,

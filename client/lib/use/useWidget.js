@@ -6,6 +6,7 @@ import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js
 import isEqual from "lodash-es/isEqual.js";
 import { computed, inject, onUnmounted, provide, reactive, readonly, ref, toRef, unref, watch } from "vue";
 
+/** Vue component props definition for widget components. Spread into component options to include standard widget identification, display, validation, value handling, disabled behavior, and field context props. */
 export const WIDGET_PROPS = {
     // *** Identification & Metadata ***
     name: {
@@ -78,6 +79,7 @@ export const WIDGET_PROPS = {
     },
 };
 
+/** Array of Vue event names emitted by widget components. Pass to the `emits` option of a widget component. */
 export const WIDGET_EMITS = ["update:modelValue"];
 
 /**

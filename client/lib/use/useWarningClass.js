@@ -6,6 +6,7 @@ import { getPrimeVuePreset } from "@vueda/theme/register.js";
 import { usePassThrough } from "primevue/passthrough";
 import { computed, ref, watchEffect } from "vue";
 
+/** Vue component props definition for components that pass through PrimeVue passthrough options. Includes pt, mergeSections, and mergeProps props for controlling how passthrough objects are merged. */
 export const PASSTHROUGH_OPTION_PROPS = {
     pt: {
         type: Object,

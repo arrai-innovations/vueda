@@ -1,6 +1,7 @@
 <script>
 import { computed } from "vue";
 
+/** Vue component props definition for FormHiddenFeedback components. Includes props for help text, errors, warnings, manual invalid and warning state overrides, and layout options. */
 export const FORM_HIDDEN_FEEDBACK_PROPS = {
     help: {
         type: String,
@@ -35,6 +36,7 @@ export const FORM_HIDDEN_FEEDBACK_PROPS = {
         default: false,
     },
 };
+/** Array of slot names provided by FormHiddenFeedback, covering customizable icons for help, errors, and warnings, a button slot, and a general feedback slot. */
 export const FORM_HIDDEN_FEEDBACK_SLOTS = [
     "feedback-help-icon",
     "feedback-error-icon",

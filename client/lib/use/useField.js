@@ -12,6 +12,7 @@ import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, onUnmounted, provide, reactive, readonly, toRef, unref, watch } from "vue";
 
+/** Vue component props definition for field components. Spread into component options to include standard field identification, validation, display, value handling, and form context behavior props. */
 export const FIELD_PROPS = {
     // *** Identification & Metadata ***
     name: { type: String, required: true },
@@ -39,6 +40,7 @@ export const FIELD_PROPS = {
     contextless: { type: Boolean, default: false },
 };
 
+/** Array of Vue event names emitted by field components. Pass to the `emits` option of a field component. */
 export const FIELD_EMITS = ["update:modelValue"];
 
 /**

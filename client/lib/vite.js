@@ -82,7 +82,8 @@ const generateAliasesForLinkedPackage = (
 };
 
 /**
- * Returns a Vite plugin configuration object with aliases, runtime helpers, and optional symlink fixes for vueda.
+ * Returns a Vite config fragment for vueda, covering `define`, `resolve.alias`, and (optionally) `optimizeDeps`.
+ * Spread the result into your Vite `defineConfig` or merge it with `mergeConfig`.
  *
  * @param {object} [options] - Configuration options.
  * @param {string} [options.root] - The project root directory. Defaults to process.cwd().
@@ -92,7 +93,7 @@ const generateAliasesForLinkedPackage = (
  * @param {string[]} [options.excludePackages] - Packages to exclude from aliasing.
  * @param {object} [options.extraAliases] - Additional aliases to include.
  * @param {object} [options.optimizeDeps] - Vite optimizeDeps overrides.
- * @returns {object} The Vite plugin configuration.
+ * @returns {import('vite').UserConfig} A partial Vite config fragment.
  */
 export const vuedaViteConfig = (options = {}) => {
     const {

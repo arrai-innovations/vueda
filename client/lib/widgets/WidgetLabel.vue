@@ -2,13 +2,16 @@
 import { FORM_HIDDEN_FEEDBACK_PROPS, FORM_HIDDEN_FEEDBACK_SLOTS } from "@vueda/components/FormHiddenFeedback.vue";
 import { computed } from "vue";
 
+/** Array of slot names used exclusively by WidgetLabel itself, not including slots delegated to FormHiddenFeedback. */
 export const ONLY_WIDGET_LABEL_SLOTS = ["label", "feedback"];
+/** Array of all slot names supported by WidgetLabel components, combining the label-specific slots with the feedback slots from FormHiddenFeedback. */
 export const WIDGET_LABEL_SLOTS = [...ONLY_WIDGET_LABEL_SLOTS, ...FORM_HIDDEN_FEEDBACK_SLOTS];
 export const getWidgetSlotsComputed = (slots) => {
     return computed(() => {
         return WIDGET_LABEL_SLOTS.filter((slotName) => slots[slotName]);
     });
 };
+/** Vue component props definition for WidgetLabel components. Extends FormHiddenFeedback props with label, hidden, card layout, label tag, required tag, and skip-feedback props. */
 export const WIDGET_LABEL_PROPS = {
     ...FORM_HIDDEN_FEEDBACK_PROPS,
     label: {

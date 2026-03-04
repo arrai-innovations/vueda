@@ -58,6 +58,7 @@ const emptyFieldObject = (state) => {
     return emptyObject;
 };
 
+/** Vue component props definition for inline field-set components. Extends FIELD_PROPS with field override maps, visibility controls, and theme override support for repeatable child-row layouts. */
 export const FIELD_SET_INLINE_PROPS = {
     ...FIELD_PROPS,
     fieldComponents: {

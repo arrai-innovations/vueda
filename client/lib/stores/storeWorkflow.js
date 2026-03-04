@@ -214,8 +214,9 @@ const executeTransitionUrl = (result) => {
 
 /**
  * A pinia store for current workflow states, available transitions, and workflow histories for objects
- *  or possible states for models
- * Usage:
+ * or possible states for models.
+ *
+ * @example
  * ```js
  *     import { ref, unref, computed } from "vue";
  *     import { storeWorkflowStore } from "vueda-client";
