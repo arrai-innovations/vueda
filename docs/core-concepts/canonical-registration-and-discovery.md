@@ -23,7 +23,7 @@ A model exists in exactly one of three registration states:
 
 **Unregistered**: the model is invisible to model-info and the client. It may have a Django model class, migrations, database tables, and even serializers or viewsets defined in code, but none of that matters until registration occurs.
 
-**Serializer-only**: the model is visible in model-info with field, expands, and permission metadata. It will have empty action, filter, and ordering metadata. This state exists to support metadata consumers that only need field shapes; for example, when the client needs to resolve field types for a related model referenced through an expand, but that related model does not need its own {@term CRUDL} surface. Expands metadata is provided, to allow expansion through this model into other models that may be register fully or serializer only.
+**Serializer-only**: the model is visible in model-info with field, expand, and permission metadata. It will have empty action, filter, and ordering metadata. This state exists to support metadata consumers that only need field shapes; for example, when the client needs to resolve field types for a related model referenced through an expand, but that related model does not need its own {@term CRUDL} surface. Expands metadata is provided to allow expansion through this model into other models that may be registered fully or serializer only.
 
 **Fully registered** (serializer + viewset): the model is visible with complete metadata, including fields, expands, actions, filters, ordering, and permissions. This is the state required for the client to generate a functional UI surface for the model, with routes, forms, and views.
 
@@ -56,6 +56,7 @@ Performing registration at import time or module scope risks content-type resolu
 class MyAppConfig(AppConfig):
     def ready(self):
         from vueda.info.registration import register
+        from vueda.info.registration import register_serializer
         from .serializers import InlineExpandedModelSerializer
         from .serializers import MyModelSerializer
         from .viewsets import MyModelViewSet
@@ -70,7 +71,7 @@ This pattern is consistent across VUEDA's own modules: `vueda.vdq`, `vueda.user`
 
 The model-info viewset does not perform ORM introspection or scan installed apps. Its list and `detail` endpoints are derived exclusively from the set of registered models. If the registry is empty, model-info returns an empty list. If a specific model is requested that is not in the registry, model-info returns a 404.
 
-These 404s can only be distinguished by the content they return. A non existing model will return json data about the error. A hit to a nonexistent url will return html.
+These 404s can only be distinguished by the content they return. Fetching a model that doesn't exist will return JSON data about the error. A hit to a nonexistent URL will return a not found error as HTML.
 
 ## Client Discovery and the Trust Boundary
 
@@ -86,7 +87,7 @@ The client does not distinguish between "unregistered" and "nonexistent." Both p
 
 **Registration at import time** can cause content-type resolution failures or ordering-dependent import errors. These surface as startup crashes that may be difficult to diagnose because the error messages reference content types or models that appear to be correctly defined. The fix is always to move registration into `AppConfig.ready()`.
 
-**Duplicate canonical serializers** fail at startup. If two apps each attempt to register a different serializer as the canonical serializer for the same model, the second registration call raises an error. The only case where this would work, is if the first registration call is to `register_serializer` and the second to `register`, which causes the registation to be upgraded to include the viewset.
+**Duplicate canonical serializers** fail at startup. If two apps each attempt to register a different serializer as the canonical serializer for the same model, the second registration call raises an error. The only case where this would work is if the first registration call is to `register_serializer` and the second to `register`, which causes the registration to be upgraded to include the viewset.
 
 **Cached 404 errors on the client** block discovery of models that are registered after the client has loaded. There is no automatic cache invalidation for this case; a page reload is required.
 
