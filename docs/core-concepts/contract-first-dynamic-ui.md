@@ -7,7 +7,7 @@ status: draft
 
 # Contract-First Dynamic UI
 
-VUEDA's client does not contain hand-wired knowledge of which models exist, what fields they have, or what actions are available. All UI structure is generated at runtime from server metadata, including routes, forms, field components, widget selection, and action visibility. The server defines the contract; the client renders it mechanically.
+VUEDA's client does not contain hand-wired knowledge of which models exist, what fields they have, or what actions are available. Everything is generated from the server metadata. The server defines the contract; the client renders it mechanically.
 The client derives that contract from {@api js:module:@arrai-innovations/vueda.stores/storeModelInfo}, so this explanation treats {@term Model Info} as the single runtime source of truth.
 
 This page explains how that derivation works: what the client does with metadata, what constraints it operates under, and why the result is deterministic. For what the metadata surface contains and what each section means, see [Server-Client Metadata Contract](./server-client-metadata-contract). For how models enter the metadata surface in the first place, see [Canonical Registration and Model Discovery](./canonical-registration-and-discovery).
