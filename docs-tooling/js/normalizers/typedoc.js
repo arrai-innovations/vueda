@@ -47,6 +47,30 @@ const KIND_NAME_MAP = new Map([
     [2097152, "TypeAlias"],
 ]);
 
+const ALLOWED_KINDS = new Set([
+    "module",
+    "namespace",
+    "class",
+    "interface",
+    "function",
+    "method",
+    "property",
+    "enum",
+    "type",
+]);
+
+function contentText(parts) {
+    return parts?.map((part) => part.text).join("") ?? "";
+}
+
+function stripSectionMarkers(text) {
+    return text
+        .split("\n")
+        .filter((line) => !/^\s*\/\/\s*\*{2,}/.test(line))
+        .join("\n")
+        .trim();
+}
+
 function docId(node, kind, contextPath = []) {
     const name = node.name || "anonymous";
     const pathPart = contextPath.length ? `${contextPath.join(".")}.` : "";
@@ -57,15 +81,8 @@ function textFromComment(comment) {
     if (!comment) {
         return undefined;
     }
-    function stripSectionMarkers(text) {
-        return text
-            .split("\n")
-            .filter((line) => !/^\s*\/\/\s*\*{2,}/.test(line))
-            .join("\n")
-            .trim();
-    }
     if (Array.isArray(comment.summary)) {
-        const text = stripSectionMarkers(comment.summary.map((part) => part.text).join(""));
+        const text = stripSectionMarkers(contentText(comment.summary));
         if (text) {
             return text;
         }
@@ -73,7 +90,7 @@ function textFromComment(comment) {
     if (Array.isArray(comment.blockTags)) {
         const descTag = comment.blockTags.find((tag) => tag.tag === "@description");
         if (descTag) {
-            const text = descTag.content?.map((part) => part.text).join("") || undefined;
+            const text = contentText(descTag.content);
             return text ? stripSectionMarkers(text) : undefined;
         }
     }
@@ -176,7 +193,7 @@ function examplesFromBlockTags(blockTags) {
         return undefined;
     }
     return exampleTags.map((tag) => {
-        const raw = tag.content?.map((part) => part.text).join("") || "";
+        const raw = contentText(tag.content);
         const fenceMatch = raw.match(/^\s*```(\w*)\n([\s\S]*?)\n?```\s*$/);
         if (fenceMatch) {
             return compact({ lang: fenceMatch[1] || undefined, content: fenceMatch[2] });
@@ -201,17 +218,13 @@ function signatureFromNode(signature, typeRefFn = typeRef) {
     const throwTags = blockTags.filter((tag) => tag.tag === "@throws");
     if (throwTags.length) {
         throws = throwTags.map((tag) => ({
-            name: tag.content?.map((part) => part.text).join("") || "Error",
+            name: contentText(tag.content) || "Error",
         }));
     }
 
     let returns = typeRefFn(signature.type);
     const returnsTag = blockTags.find((tag) => tag.tag === "@returns");
-    const returnsText =
-        returnsTag?.content
-            ?.map((part) => part.text)
-            .join("")
-            .trim() || undefined;
+    const returnsText = contentText(returnsTag?.content).trim() || undefined;
     if (returns?.name === "object" && signature.type?.type === "reflection") {
         if (returnsText) {
             returns = { name: returnsText };
@@ -239,13 +252,15 @@ export class TypeDocNormalizer extends Normalizer {
             const kind = resolveKind(node);
             typedocIdMap.set(node.id, docId(node, kind, contextPath));
             if (Array.isArray(node.children)) {
+                const childContextPath = [...contextPath, node.name];
                 for (const child of node.children) {
-                    preVisit(child, [...contextPath, node.name]);
+                    preVisit(child, childContextPath);
                 }
             }
         };
+        const rootContextPath = [payload.name || "project"];
         for (const child of payload.children) {
-            preVisit(child, [payload.name || "project"]);
+            preVisit(child, rootContextPath);
         }
 
         const resolveTypeRef = (type) => {
@@ -331,24 +346,13 @@ export class TypeDocNormalizer extends Normalizer {
             nodes.push(docNode);
 
             if (Array.isArray(node.children)) {
+                const childContextPath = [...contextPath, node.name];
                 for (const child of node.children) {
                     const childKind = resolveKind(child);
-                    const childId = docId(child, childKind, [...contextPath, node.name]);
-                    if (
-                        [
-                            "module",
-                            "namespace",
-                            "class",
-                            "interface",
-                            "function",
-                            "method",
-                            "property",
-                            "enum",
-                            "type",
-                        ].includes(childKind)
-                    ) {
+                    const childId = docId(child, childKind, childContextPath);
+                    if (ALLOWED_KINDS.has(childKind)) {
                         docNode.children.push(childId);
-                        visit(child, [...contextPath, node.name]);
+                        visit(child, childContextPath);
                     }
                 }
             }
@@ -360,22 +364,10 @@ export class TypeDocNormalizer extends Normalizer {
 
         for (const child of payload.children) {
             const kind = resolveKind(child);
-            if (
-                [
-                    "module",
-                    "namespace",
-                    "class",
-                    "interface",
-                    "function",
-                    "method",
-                    "property",
-                    "enum",
-                    "type",
-                ].includes(kind)
-            ) {
-                const id = docId(child, kind, [payload.name || "project"]);
+            if (ALLOWED_KINDS.has(kind)) {
+                const id = docId(child, kind, rootContextPath);
                 roots.push(id);
-                visit(child, [payload.name || "project"]);
+                visit(child, rootContextPath);
             }
         }
 

@@ -11,6 +11,10 @@ import {
     renderTable,
 } from "./markdown.js";
 
+function memberRows(members) {
+    return members.map((m) => [m.name, m.type?.name || "", m.description || ""]);
+}
+
 function renderTypeRef(typeRef, index, filePath) {
     if (!typeRef?.name) return "";
     if (typeRef.link) {
@@ -71,7 +75,7 @@ function renderSignatures(node, index, filePath) {
     return lines.join("\n");
 }
 
-function renderChildrenSections(node, index, pathMap, filePath) {
+function renderChildrenSections(node, index, filePath) {
     const children = index.childrenOf.get(node.id) || [];
     if (!children.length) {
         return "";
@@ -86,7 +90,7 @@ function renderChildrenSections(node, index, pathMap, filePath) {
     const lines = [];
 
     const childLink = (child) => {
-        const link = linkToPath(child.name, pathMap.get(child.id), filePath);
+        const link = linkToPath(child.name, index.pathMap.get(child.id), filePath);
         const typeName = child.propertyType?.name;
         const typeHint = typeName && typeName !== "object" ? ` \`${typeName}\`` : "";
         if (!child.description) {
@@ -114,7 +118,7 @@ function renderChildrenSections(node, index, pathMap, filePath) {
     if (types.length) {
         lines.push(renderHeading(2, "Types"), "");
         for (const type of types) {
-            lines.push(renderHeading(3, linkToPath(type.name, pathMap.get(type.id), filePath)), "");
+            lines.push(renderHeading(3, linkToPath(type.name, index.pathMap.get(type.id), filePath)), "");
             if (type.description) {
                 lines.push(type.description, "");
             }
@@ -122,8 +126,7 @@ function renderChildrenSections(node, index, pathMap, filePath) {
                 lines.push(renderCodeInline(`${type.name} = ${type.typeDefinition.name}`), "");
             }
             if (type.members?.length) {
-                const rows = type.members.map((m) => [m.name, m.type?.name || "", m.description || ""]);
-                const table = renderTable(["Name", "Type", "Description"], rows);
+                const table = renderTable(["Name", "Type", "Description"], memberRows(type.members));
                 if (table) lines.push(table, "");
             }
         }
@@ -160,8 +163,7 @@ function renderTypeMembers(node) {
     if (!node.members || !node.members.length) {
         return "";
     }
-    const rows = node.members.map((m) => [m.name, m.type?.name || "", m.description || ""]);
-    const table = renderTable(["Name", "Type", "Description"], rows);
+    const table = renderTable(["Name", "Type", "Description"], memberRows(node.members));
     if (!table) {
         return "";
     }
@@ -215,7 +217,7 @@ export function renderTypeDocNode(node, index, filePath) {
         lines.push(typeMembersBlock);
     }
 
-    const childrenBlock = renderChildrenSections(node, index, index.pathMap, filePath);
+    const childrenBlock = renderChildrenSections(node, index, filePath);
     if (childrenBlock) {
         lines.push(childrenBlock);
     }
