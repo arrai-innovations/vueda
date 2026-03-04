@@ -7,15 +7,15 @@ status: draft
 
 # Configuration Surface and Defaults
 
-VUEDA's runtime behaviour depends on configuration surfaces that span the server and client. Server defaults assemble Django settings, framework configuration, and VUEDA-specific values into a single dict. An env-adapter contract governs how required keys are read and validated at startup. Wire-level query parameter names form a shared namespace that both server and client must agree on. {@term Permission Mapping} is patched into Django at import time. On the client side, model configuration defaults are derived from server-emitted metadata, and a small set of Vite environment variables governs CSRF and connection behaviour.
+VUEDA's runtime behaviour depends on configuration surfaces that span the server and client. Server defaults assemble Django settings, framework configuration, and VUEDA-specific values into a single dict. An env-adapter contract governs how required keys are read and validated at startup. Wire-level query parameter names form a shared namespace that both server and client must agree on. On the client side, model configuration defaults are derived from server-emitted metadata, and a small set of Vite environment variables governs CSRF and connection behaviour.
 
-This page explains each configuration surface, the authority boundaries between them, and the failure modes that emerge when configuration is missing, mistyped, or out of sync. This is not a catalogue of every setting or a how-to for overriding defaults: the authoritative list of settings is the source code of `get_defaults` and `get_production_defaults`, and the API reference documents individual functions and modules. For the client-side store that consumes model-info to build config objects, see [Reactive Data Flow](./reactive-data-flow). For how query parameters interact with filtering and ordering, see [Filtering and Ordering Semantics](./filtering-and-ordering-semantics). For the permission codename vocabulary, see [Permission Model](./permission-model).
+This page explains each configuration surface, the authority boundaries between them, and the failure modes that emerge when configuration is missing, mistyped, or out of sync. This is not a catalogue of every setting or a how-to for overriding defaults: the authoritative list of default settings is the source code of `get_defaults` and `get_production_defaults`, and the API reference documents individual functions and modules. For the client-side store that consumes model-info to build config objects, see [Reactive Data Flow](./reactive-data-flow). For how query parameters interact with filtering and ordering, see [Filtering and Ordering Semantics](./filtering-and-ordering-semantics). For the permission codename vocabulary, see [Permission Model](./permission-model).
 
 ## Configuration Authority Boundaries
 
 Configuration authority is divided across four layers, each with a different scope and override model.
 
-The server defaults layer (`get_defaults` and `get_production_defaults`) defines the baseline. It reads values from an env adapter, computes derived settings, and returns a dict that projects assume as the starting point. This layer is the single point where VUEDA-specific defaults are established: query parameter names, permission classes, middleware stacks, security cookie flags, and installed apps. Projects consume these defaults and may override individual keys, but the defaults layer defines the contract shape that runtime code depends on.
+The server defaults layer (`get_defaults` and `get_production_defaults`) defines the baseline. It reads values from an env adapter, computes derived settings, and returns a dict that projects assume as the starting point. This layer is the single point where VUEDA-specific defaults are established: query parameter names, permission names, permission classes, middleware stacks, security cookie flags, and installed apps. Projects consume these defaults and may override individual keys, but the defaults layer defines the contract shape that runtime code depends on.
 
 The env adapter layer sits beneath defaults and governs how raw configuration values are read from the environment. The adapter is a protocol; any object that satisfies the `EnvLike` typing contract will work. The concrete implementation shipped with VUEDA is `TomlEnv`, which reads from a TOML file and optionally overlays process environment variables. The env adapter is responsible for type coercion (booleans, integers, lists, URLs) and for enforcing required-key semantics. Missing required keys and invalid type conversions are raised as exceptions at read time.
 
@@ -53,11 +53,15 @@ These short, single-letter names are a deliberate departure from DRF's upstream 
 
 ## Permission Codename Mapping Lifecycle
 
-VUEDA replaces Django's default permission codename vocabulary with {@term CRUDL} names: `create`, `read`, `update`, `delete`, and `list` instead of `add`, `view`, `change`, and `delete`. This remapping is implemented as a monkey-patch applied at module import time.
+VUEDA replaces Django's default permission codename vocabulary with {@term CRUDL} names: `create`, `read`, `update`, `delete`, and `list` instead of `add`, `view`, `change`, and `delete`. This remapping is implemented as a monkey-patch applied at module import time. A setting ({@term Permission Mapping}) exists, so these names can be specified per project.
 
-`vueda.core.patch_django` reads `settings.PERMISSION_NAMES_MAPPING` when it is first imported and caches the mapping. It then patches Django's `get_permission_codename` function and built-in permission generation to use the cached mapping. Because the mapping is captured at import time, any mutation of `PERMISSION_NAMES_MAPPING` after the patch module has been imported is not observed. The VUEDA defaults set `PERMISSION_NAMES_MAPPING` in `get_defaults`, so under normal startup ordering, the mapping is in place before the patch module runs.
+In order for any changed permission names to take affect before permissions are created/used in migrations, and before permissions are created post migrate, we need to monkey-patch django at the bottom of the projects settings file. Perhaps one day there will be a better location for this to occur.
 
-The consequence of this lifecycle is that import ordering matters. If `vueda.core.patch_django` is imported before `PERMISSION_NAMES_MAPPING` is finalized in Django settings, the patch module captures an incomplete or absent mapping. For example, by a third-party app that imports it during its own `AppConfig.ready()` before VUEDA's settings are applied. The symptom is permissions being created and checked under unexpected codenames, which can cause silent authorization failures. For the full permission evaluation model, see [Permission Model](./permission-model).
+`vueda.core.patch_django` reads `settings.PERMISSION_NAMES_MAPPING` when it is first imported and caches the mapping. It then patches Django's `get_permission_codename` function and `get_builtin_permissions` function to use the cached mapping. Modifying this setting later in code (too late), will cause permissions to exist in the database with the original django permission names, which will cause issues when you are looking for the `create_order` permission, but it was created as `add_order`. This can cause unexpected authorization failures.
+
+If you need to make changes to this setting, you should import the defaults, override the permission names, and then import the monkey-patch at the bottom of the settings file. As long as this is done in this order, no issues should arise.
+
+The consequence of this lifecycle is that if `vueda.core.patch_django` is imported before `PERMISSION_NAMES_MAPPING` is finalized in your settings, the patch module captures an incomplete or absent mapping. For example, by a third-party app that imports it during its own `AppConfig.ready()` before VUEDA's settings are applied. For the full permission evaluation model, see [Permission Model](./permission-model).
 
 ## Client ModelConfig Derivation and Cache
 
@@ -95,7 +99,7 @@ Configuration failures surface at different points in the application lifecycle 
 
 **Client CSRF env missing.** When `VITE_CSRF_COOKIE_NAME` is unset, the CSRF utility constructs headers with an undefined cookie name. The server's CSRF middleware returns a `403` for unsafe HTTP methods. This failure is particularly confusing because `GET` requests work normally, so the application appears functional until the first mutation.
 
-**Model-info PK omission in config derivation.** `getDefaultFromModelInfo` expects `modelInfo.pk` to be present when computing default field lists. If PK is missing (because the server serializer omits it), the PK field is not excluded from display and submit field defaults, which causes it to appear in forms and list columns where it would normally be hidden.
+**Model-info PK omission in config derivation.** `getDefaultFromModelInfo` expects `modelInfo.pk` to be present when computing default field lists. If the pk field is missing (because the server serializer omits it), the client will throw errors, because the pk field is required.
 
 ## Relevant Implementation Surface
 
