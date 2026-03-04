@@ -121,7 +121,7 @@ export function formatParameters(parameters) {
     return (parameters || []).map((param) => [
         param.name || "",
         labelFromType(param.type) || "",
-        param.optional === true ? "no" : param.optional === false ? "yes" : "",
+        param.optional ? "no" : "yes",
         param.description || "",
     ]);
 }
