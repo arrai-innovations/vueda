@@ -88,7 +88,7 @@ The client does not distinguish between "unregistered" and "nonexistent." Both p
 
 **Cached 404 errors on the client** block discovery of models that are registered after the client has loaded. There is no automatic cache invalidation for this case; a page reload is required.
 
-**Registry accessor mutations** have no effect. The registry's accessor functions return defensive copies. Code that retrieves a registration entry and modifies it will not change the actual registry state. The registry is effectively immutable after startup, unless you modify \_registry directly, which is not advised.
+**Registry accessor mutations** have no effect. The registry's accessor functions return defensive copies. Code that retrieves a registration entry and modifies it will not change the actual registry state. The registry is effectively immutable after startup.
 
 ## Relevant Implementation Surface
 

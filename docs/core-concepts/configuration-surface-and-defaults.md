@@ -55,7 +55,7 @@ These short, single-letter names are a deliberate departure from DRF's upstream 
 
 VUEDA replaces Django's default permission codename vocabulary with {@term CRUDL} names: `create`, `read`, `update`, `delete`, and `list` instead of `add`, `view`, `change`, and `delete`. This remapping is implemented as a monkey-patch applied at module import time. A setting ({@term Permission Mapping}) exists, so these names can be specified per project.
 
-In order for any changed permission names to take effect before permissions are created/used in migrations, and before permissions are created by `post_migrate`, we need to monkey-patch Django at the bottom of the project's `settings` file. Perhaps one day there will be a better location for this to occur.
+In order for any changed permission names to take effect before permissions are created/used in migrations, and before permissions are created by `post_migrate`, we need to monkey-patch Django at the bottom of the project's `settings` file.
 
 `vueda.core.patch_django` reads `settings.PERMISSION_NAMES_MAPPING` when it is first imported and caches the mapping. It then patches Django's `get_permission_codename` function and `get_builtin_permissions` function to use the cached mapping. Modifying this setting later in code (too late), will cause permissions to exist in the database with the original django permission names, which will cause issues when you are looking for the `create_order` permission, but it was created as `add_order`. This can cause unexpected authorization failures.
 
