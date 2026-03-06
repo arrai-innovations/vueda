@@ -121,6 +121,7 @@ export function formatParameters(parameters) {
     return (parameters || []).map((param) => [
         param.name || "",
         labelFromType(param.type) || "",
+        // TypeDoc serializes flags sparsely, so missing optional means "required".
         param.optional ? "no" : "yes",
         param.description || "",
     ]);

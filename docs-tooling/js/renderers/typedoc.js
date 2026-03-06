@@ -33,6 +33,7 @@ function formatParametersTypedoc(parameters, index, filePath) {
     return (parameters || []).map((param) => [
         param.name || "",
         renderTypeRef(param.type, index, filePath),
+        // TypeDoc serializes isOptional only when true, so undefined is required.
         param.optional ? "no" : "yes",
         param.description || "",
     ]);
