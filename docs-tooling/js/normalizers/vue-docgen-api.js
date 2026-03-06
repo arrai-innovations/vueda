@@ -216,6 +216,48 @@ export function findSpreadIdentifiersInCall(source, callName, openChar, closeCha
 }
 
 /**
+ * Find all identifier names that are called as functions in source.
+ * Returns a deduplicated list (e.g. `foo(` yields `"foo"`).
+ *
+ * @param {string} source
+ * @returns {string[]}
+ */
+export function findCalledIdentifiers(source) {
+    const ids = new Set();
+    const re = /\b([\w$]+)\s*\(/g;
+    let m;
+    while ((m = re.exec(source)) !== null) ids.add(m[1]);
+    return [...ids];
+}
+
+/**
+ * Extract all values of `@tagName value` from the JSDoc block immediately
+ * preceding `defineOptions(` in a setup script block.
+ *
+ * @param {string} setupSource - Content of a `<script setup>` block
+ * @param {string} tagName - Tag name without `@`
+ * @returns {string[]}
+ */
+export function findComponentTagValues(setupSource, tagName) {
+    const defineOptionsMatch = /\bdefineOptions\s*\(/.exec(setupSource);
+    if (!defineOptionsMatch) return [];
+
+    const before = setupSource.slice(0, defineOptionsMatch.index);
+    const allJsdocs = [...before.matchAll(/\/\*\*([\s\S]*?)\*\//g)];
+    const lastJsdoc = allJsdocs.at(-1);
+    if (!lastJsdoc) return [];
+
+    const gap = before.slice(lastJsdoc.index + lastJsdoc[0].length);
+    if (/\S/.test(gap)) return [];
+
+    const tagPattern = new RegExp(`@${tagName}\\s+(\\S+)`, "g");
+    const values = [];
+    let m;
+    while ((m = tagPattern.exec(lastJsdoc[0])) !== null) values.push(m[1]);
+    return values;
+}
+
+/**
  * Find named import metadata for a local identifier in source.
  * Handles `import { A, B as C } from 'path'` patterns.
  *
@@ -224,7 +266,8 @@ export function findSpreadIdentifiersInCall(source, callName, openChar, closeCha
  * @returns {{ importPath: string, importedName: string, localName: string }|null}
  */
 export function findImportPath(source, identifier) {
-    const re = /import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/g;
+    // Match both `import { Named }` and `import Default, { Named }` (or `import * as Ns, { Named }`)
+    const re = /import\s+(?:[\w$*][^{]*,\s*)?\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/g;
     let m;
     while ((m = re.exec(source)) !== null) {
         const specifiers = m[1]
@@ -458,6 +501,138 @@ function parseEmitsEntries(arrContent) {
 }
 
 /**
+ * Parse slot name entries from the content between the outer `[` and `]` of a slot array.
+ * Handles string literals, JSDoc comments, and `...IDENTIFIER` spread elements.
+ *
+ * @param {string} arrContent - Content between the outer brackets (not including them)
+ * @param {Function|null} nestedResolver - Called with an identifier name for spread elements; returns entries array or null
+ * @returns {{ name: string, description?: string }[]}
+ */
+function parseSlotArrayEntries(arrContent, nestedResolver = null) {
+    const entries = [];
+    let i = 0;
+    let pendingJsdoc;
+
+    while (i < arrContent.length) {
+        const ch = arrContent[i];
+
+        if (/\s/.test(ch)) {
+            i++;
+            continue;
+        }
+
+        if (ch === "/" && arrContent[i + 1] === "/") {
+            while (i < arrContent.length && arrContent[i] !== "\n") i++;
+            continue;
+        }
+
+        if (ch === "/" && arrContent[i + 1] === "*") {
+            const isJsdoc = arrContent[i + 2] === "*";
+            const end = arrContent.indexOf("*/", i + 2);
+            if (end === -1) break;
+            if (isJsdoc) {
+                pendingJsdoc =
+                    arrContent
+                        .slice(i + 3, end)
+                        .replace(/^\s*\*\s?/gm, "")
+                        .trim() || undefined;
+            }
+            i = end + 2;
+            continue;
+        }
+
+        // Spread element: ...IDENTIFIER
+        if (ch === "." && arrContent[i + 1] === "." && arrContent[i + 2] === ".") {
+            i += 3;
+            const idMatch = /^([\w$]+)/.exec(arrContent.slice(i));
+            if (idMatch) {
+                i += idMatch[1].length;
+                if (nestedResolver) {
+                    const nestedEntries = nestedResolver(idMatch[1]);
+                    if (nestedEntries) entries.push(...nestedEntries);
+                }
+            }
+            pendingJsdoc = undefined;
+            continue;
+        }
+
+        // String literal (slot name)
+        if (ch === '"' || ch === "'") {
+            const q = ch;
+            let j = i + 1;
+            while (j < arrContent.length && arrContent[j] !== q) {
+                if (arrContent[j] === "\\") j++;
+                j++;
+            }
+            const slotName = arrContent.slice(i + 1, j);
+            entries.push(compact({ name: slotName, description: pendingJsdoc }));
+            pendingJsdoc = undefined;
+            i = j + 1;
+            continue;
+        }
+
+        if (ch === ",") {
+            i++;
+            continue;
+        }
+        i++;
+    }
+
+    return entries;
+}
+
+/**
+ * Parse a constant as a slot name array without requiring a `@vueda-spread` annotation.
+ * Used for resolving named slot constants referenced by `@vueda-spread slots IDENTIFIER`.
+ *
+ * @param {string} source - Source code to search in
+ * @param {string} identifier - Name of the exported constant to find
+ * @param {Function|null} nestedResolver - Called with an identifier name for nested spreads; returns entries array or null
+ * @returns {{ kind: 'slots', entries: Array }|null}
+ */
+export function parseSlotConstant(source, identifier, nestedResolver = null) {
+    const exportPattern = new RegExp(`export\\s+const\\s+${identifier}\\s*=\\s*`);
+    const exportMatch = exportPattern.exec(source);
+    if (!exportMatch) return null;
+
+    const valueStart = exportMatch.index + exportMatch[0].length;
+    if (source[valueStart] !== "[") return null;
+
+    const closePos = findBalancedEnd(source, valueStart, "[", "]");
+    if (closePos === -1) return null;
+
+    const entries = parseSlotArrayEntries(source.slice(valueStart + 1, closePos), nestedResolver);
+    return { kind: "slots", entries };
+}
+
+/**
+ * Find an exported function constant annotated with `@vueda-spread slots IDENTIFIER`.
+ * Returns the annotation metadata without resolving the named constant.
+ *
+ * @param {string} source - Source code to search in
+ * @param {string} identifier - Name of the exported function constant to find
+ * @returns {{ kind: 'slots', constantName: string }|null}
+ */
+export function parseSpreadFunctionAnnotation(source, identifier) {
+    const exportPattern = new RegExp(`export\\s+const\\s+${identifier}\\s*=\\s*`);
+    const exportMatch = exportPattern.exec(source);
+    if (!exportMatch) return null;
+
+    const before = source.slice(0, exportMatch.index);
+    const allJsdocs = [...before.matchAll(/\/\*\*([\s\S]*?)\*\//g)];
+    const lastJsdoc = allJsdocs.at(-1);
+    if (!lastJsdoc) return null;
+
+    const gap = before.slice(lastJsdoc.index + lastJsdoc[0].length);
+    if (/\S/.test(gap)) return null;
+
+    const kindMatch = lastJsdoc[0].match(/@vueda-spread\s+slots\s+([\w$]+)/);
+    if (!kindMatch) return null;
+
+    return { kind: "slots", constantName: kindMatch[1] };
+}
+
+/**
  * Parse a spread constant from source, checking for `@vueda-spread` annotation.
  *
  * @param {string} source - Source code to search in
@@ -528,6 +703,23 @@ export class VueDocgenNormalizer extends Normalizer {
         const nodes = [];
         const roots = [];
 
+        // Pre-build a map of component name -> resolved slots for @vueda-slot-forward lookups.
+        const extractedSlotMap = new Map();
+        for (const file of payload.files) {
+            for (const component of file.components || []) {
+                const name =
+                    component.displayName ||
+                    component.exportName ||
+                    path.basename(file.filePath, path.extname(file.filePath));
+                const rawSlots = (component.slots || []).map(resolveSlotFromDescription);
+                const hasResolved = rawSlots.some((s) => !isExpressionArtifactSlotName(s.name));
+                extractedSlotMap.set(
+                    name,
+                    hasResolved ? rawSlots.filter((s) => !isExpressionArtifactSlotName(s.name)) : rawSlots,
+                );
+            }
+        }
+
         for (const file of payload.files) {
             const filePath = file.filePath;
             for (const component of file.components || []) {
@@ -592,17 +784,66 @@ export class VueDocgenNormalizer extends Normalizer {
                     nodes.push(eventNode);
                 }
 
+                // Inject slots from @vueda-spread slots and @vueda-slot-forward annotations.
+                const spreadSlotEntries = this._resolveComponentSlotSpreads(filePath);
+                const forwardedSlotEntries = this._resolveComponentSlotForwards(filePath, extractedSlotMap);
+                const injectedSlotNames = new Set();
+
+                const makeSlotNode = (slot, extensions) => {
+                    const slotNodeId = slotId(id, slot.name);
+                    return compact({
+                        id: slotNodeId,
+                        kind: "slot",
+                        name: slot.name,
+                        description: slot.description || undefined,
+                        signatures: [
+                            compact({
+                                label: slot.scoped ? "scoped" : "slot",
+                                parameters: (slot.bindings || []).map((binding) =>
+                                    compact({
+                                        name: binding.name,
+                                        description: binding.description || undefined,
+                                    }),
+                                ),
+                            }),
+                        ],
+                        source: sourceFile ? { file: sourceFile } : undefined,
+                        extensions: {
+                            vueDocgen: { scoped: slot.scoped || false, bindings: slot.bindings || [], ...extensions },
+                        },
+                    });
+                };
+
+                for (const entry of spreadSlotEntries) {
+                    if (injectedSlotNames.has(entry.name)) continue;
+                    injectedSlotNames.add(entry.name);
+                    const slotNode = makeSlotNode(entry, { fromSpread: true });
+                    node.children.push(slotNode.id);
+                    nodes.push(slotNode);
+                }
+
+                for (const entry of forwardedSlotEntries) {
+                    if (injectedSlotNames.has(entry.name)) continue;
+                    injectedSlotNames.add(entry.name);
+                    const slotNode = makeSlotNode(entry, { fromForward: true });
+                    node.children.push(slotNode.id);
+                    nodes.push(slotNode);
+                }
+
                 // When vue-docgen sees `<!-- @slot real-name Description -->` before a
                 // dynamic-name <slot>, it attaches the comment as the slot's description.
                 // Resolve the real name from the description, then suppress remaining
-                // expression artifacts if any resolved slots are present.
+                // expression artifacts if any resolved slots are present (including spread/forwarded).
                 const resolvedSlots = (component.slots || []).map(resolveSlotFromDescription);
-                const hasResolvedSlots = resolvedSlots.some((s) => !isExpressionArtifactSlotName(s.name));
+                const hasResolvedSlots =
+                    resolvedSlots.some((s) => !isExpressionArtifactSlotName(s.name)) || injectedSlotNames.size > 0;
                 const slotsToRender = hasResolvedSlots
                     ? resolvedSlots.filter((s) => !isExpressionArtifactSlotName(s.name))
                     : resolvedSlots;
 
                 for (const slot of slotsToRender) {
+                    // Skip slots already injected via spread or forward.
+                    if (injectedSlotNames.has(slot.name)) continue;
                     const slotNodeId = slotId(id, slot.name);
                     const slotNode = compact({
                         id: slotNodeId,
@@ -781,5 +1022,152 @@ export class VueDocgenNormalizer extends Normalizer {
         // No further nesting (one level deep only)
         const result = parseSpreadConstant(parseSource, constantIdentifier, null);
         return result ? result.entries : null;
+    }
+
+    /**
+     * Resolve slot entries injected via `@vueda-spread slots IDENTIFIER` on called functions.
+     *
+     * @param {string} filePath
+     * @returns {object[]} Slot entry objects `{ name, description? }`
+     */
+    _resolveComponentSlotSpreads(filePath) {
+        if (!filePath) return [];
+
+        let componentSource;
+        try {
+            const abs = path.isAbsolute(filePath) ? filePath : path.resolve(this._repoRoot, filePath);
+            componentSource = this._readFile(abs);
+        } catch {
+            return [];
+        }
+
+        const setupSource = extractScriptBlock(componentSource, true);
+        if (!setupSource) return [];
+
+        const absFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(this._repoRoot, filePath);
+        const calledIds = findCalledIdentifiers(setupSource);
+        const entries = [];
+
+        for (const identifier of calledIds) {
+            const result = this._resolveSlotSpreadFunction(identifier, absFilePath, componentSource);
+            if (result) entries.push(...result);
+        }
+
+        return entries;
+    }
+
+    /**
+     * Resolve slot entries for a called function annotated with `@vueda-spread slots IDENTIFIER`.
+     *
+     * @param {string} identifier - Local name of the called function
+     * @param {string} componentAbsPath
+     * @param {string} componentFullSource
+     * @returns {object[]|null}
+     */
+    _resolveSlotSpreadFunction(identifier, componentAbsPath, componentFullSource) {
+        const importMatch = findImportPath(componentFullSource, identifier);
+        if (!importMatch || !importMatch.importPath.startsWith("@vueda/")) return null;
+
+        const funcAbsPath = resolveVuedaPath(importMatch.importPath, this._repoRoot);
+        let funcSource;
+        try {
+            funcSource = this._readFile(funcAbsPath);
+        } catch {
+            return null;
+        }
+
+        const isVue = funcAbsPath.endsWith(".vue");
+        const parseSource = isVue ? extractScriptBlock(funcSource, false) : funcSource;
+
+        const annotation = parseSpreadFunctionAnnotation(parseSource, importMatch.importedName);
+        if (!annotation) return null;
+
+        return this._resolveSlotConstantEntries(annotation.constantName, funcAbsPath, funcSource);
+    }
+
+    /**
+     * Resolve slot entries for a named slot constant (no annotation required on the constant).
+     *
+     * @param {string} identifier - Constant name
+     * @param {string} fileAbsPath - Absolute path of the file containing the constant
+     * @param {string} fileFullSource - Full source of that file
+     * @returns {object[]|null}
+     */
+    _resolveSlotConstantEntries(identifier, fileAbsPath, fileFullSource) {
+        const isVue = fileAbsPath.endsWith(".vue");
+        const parseSource = isVue ? extractScriptBlock(fileFullSource, false) : fileFullSource;
+
+        const nestedResolver = (nestedId) => this._resolveNestedSlotConstant(nestedId, fileAbsPath, fileFullSource);
+        const result = parseSlotConstant(parseSource, identifier, nestedResolver);
+        return result ? result.entries : null;
+    }
+
+    /**
+     * Resolve a one-level-deep nested slot constant spread (e.g. `...FORM_HIDDEN_FEEDBACK_SLOTS`).
+     *
+     * @param {string} identifier
+     * @param {string} parentAbsPath
+     * @param {string} parentFullSource
+     * @returns {object[]|null}
+     */
+    _resolveNestedSlotConstant(identifier, parentAbsPath, parentFullSource) {
+        const importMatch = findImportPath(parentFullSource, identifier);
+
+        let constantSource;
+        let constantAbsPath;
+        let constantIdentifier = identifier;
+
+        if (importMatch) {
+            if (!importMatch.importPath.startsWith("@vueda/")) return null;
+            constantAbsPath = resolveVuedaPath(importMatch.importPath, this._repoRoot);
+            constantIdentifier = importMatch.importedName;
+            try {
+                constantSource = this._readFile(constantAbsPath);
+            } catch {
+                return null;
+            }
+        } else {
+            constantAbsPath = parentAbsPath;
+            constantSource = parentFullSource;
+        }
+
+        const isVue = constantAbsPath.endsWith(".vue");
+        const parseSource = isVue ? extractScriptBlock(constantSource, false) : constantSource;
+
+        // No further nesting
+        const result = parseSlotConstant(parseSource, constantIdentifier, null);
+        return result ? result.entries : null;
+    }
+
+    /**
+     * Resolve slot entries forwarded via `@vueda-slot-forward ComponentName` in the component JSDoc.
+     *
+     * @param {string} filePath
+     * @param {Map<string, object[]>} extractedSlotMap - Pre-built map of component name -> resolved slots
+     * @returns {object[]}
+     */
+    _resolveComponentSlotForwards(filePath, extractedSlotMap) {
+        if (!filePath) return [];
+
+        let componentSource;
+        try {
+            const abs = path.isAbsolute(filePath) ? filePath : path.resolve(this._repoRoot, filePath);
+            componentSource = this._readFile(abs);
+        } catch {
+            return [];
+        }
+
+        const setupSource = extractScriptBlock(componentSource, true);
+        if (!setupSource) return [];
+
+        const componentNames = findComponentTagValues(setupSource, "vueda-slot-forward");
+        const entries = [];
+
+        for (const name of componentNames) {
+            const slots = extractedSlotMap.get(name) || [];
+            entries.push(...slots);
+        }
+
+        return entries;
     }
 }

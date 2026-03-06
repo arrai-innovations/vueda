@@ -1,9 +1,13 @@
 import {
     VueDocgenNormalizer,
     extractScriptBlock,
+    findCalledIdentifiers,
+    findComponentTagValues,
     findImportPath,
     findSpreadIdentifiersInCall,
+    parseSlotConstant,
     parseSpreadConstant,
+    parseSpreadFunctionAnnotation,
     resolveVuedaPath,
 } from "../../../js/normalizers/vue-docgen-api.js";
 import { assertCanonical } from "../../../js/utils/validate-canonical.js";
@@ -766,5 +770,389 @@ describe("VueDocgenNormalizer — slots", () => {
         ]);
         expect(slots).toHaveLength(1);
         expect(slots[0].name).toBe("filter-clear-button");
+    });
+});
+
+// ---------------------------------------------------------------------------
+// findCalledIdentifiers
+// ---------------------------------------------------------------------------
+
+describe("findCalledIdentifiers", () => {
+    it("returns identifiers that appear as function calls", () => {
+        const source = `
+const a = foo(x);
+const b = bar(y, z);
+`;
+        const result = findCalledIdentifiers(source);
+        expect(result).toContain("foo");
+        expect(result).toContain("bar");
+    });
+
+    it("deduplicates repeated calls", () => {
+        const result = findCalledIdentifiers("foo(); foo(); bar();");
+        expect(result.filter((id) => id === "foo")).toHaveLength(1);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// findComponentTagValues
+// ---------------------------------------------------------------------------
+
+describe("findComponentTagValues", () => {
+    it("extracts a single tag value from JSDoc before defineOptions", () => {
+        const source = `
+/**
+ * Component description.
+ *
+ * @vueda-slot-forward DetailView
+ */
+defineOptions({ name: "ViewRead" });
+`;
+        expect(findComponentTagValues(source, "vueda-slot-forward")).toEqual(["DetailView"]);
+    });
+
+    it("extracts multiple occurrences of the same tag", () => {
+        const source = `
+/**
+ * @vueda-slot-forward DetailView
+ * @vueda-slot-forward ActionForm
+ */
+defineOptions({});
+`;
+        expect(findComponentTagValues(source, "vueda-slot-forward")).toEqual(["DetailView", "ActionForm"]);
+    });
+
+    it("returns empty array when defineOptions is absent", () => {
+        const source = `/** @vueda-slot-forward Foo */\nconst x = 1;`;
+        expect(findComponentTagValues(source, "vueda-slot-forward")).toEqual([]);
+    });
+
+    it("returns empty array when there is no JSDoc immediately before defineOptions", () => {
+        const source = `const x = 1;\ndefineOptions({});`;
+        expect(findComponentTagValues(source, "vueda-slot-forward")).toEqual([]);
+    });
+
+    it("returns empty array when the tag is absent", () => {
+        const source = `/** Description. */\ndefineOptions({});`;
+        expect(findComponentTagValues(source, "vueda-slot-forward")).toEqual([]);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// parseSlotConstant
+// ---------------------------------------------------------------------------
+
+describe("parseSlotConstant", () => {
+    it("parses a flat slot name array", () => {
+        const src = `export const MY_SLOTS = ["label", "feedback"];`;
+        const result = parseSlotConstant(src, "MY_SLOTS");
+        expect(result).not.toBeNull();
+        expect(result.kind).toBe("slots");
+        expect(result.entries.map((e) => e.name)).toEqual(["label", "feedback"]);
+    });
+
+    it("returns null when the constant is not found", () => {
+        expect(parseSlotConstant(`export const OTHER = ["x"];`, "MY_SLOTS")).toBeNull();
+    });
+
+    it("returns null when the constant value is not an array", () => {
+        expect(parseSlotConstant(`export const MY_SLOTS = {};`, "MY_SLOTS")).toBeNull();
+    });
+
+    it("resolves nested spread elements via nestedResolver", () => {
+        const src = `
+export const CHILD_SLOTS = ["child-a"];
+export const PARENT_SLOTS = [...CHILD_SLOTS, "parent-b"];
+`;
+        const nestedResolver = (id) => {
+            const r = parseSlotConstant(src, id);
+            return r ? r.entries : null;
+        };
+        const result = parseSlotConstant(src, "PARENT_SLOTS", nestedResolver);
+        expect(result.entries.map((e) => e.name)).toEqual(["child-a", "parent-b"]);
+    });
+
+    it("preserves JSDoc descriptions on slot name entries", () => {
+        const src = `
+export const MY_SLOTS = [
+    /** Override the label. */
+    "label",
+    "feedback",
+];
+`;
+        const result = parseSlotConstant(src, "MY_SLOTS");
+        expect(result.entries[0].description).toBe("Override the label.");
+        expect(result.entries[1].description).toBeUndefined();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// parseSpreadFunctionAnnotation
+// ---------------------------------------------------------------------------
+
+describe("parseSpreadFunctionAnnotation", () => {
+    it("returns annotation when function has @vueda-spread slots IDENTIFIER", () => {
+        const src = `
+/**
+ * Returns active slot names.
+ *
+ * @vueda-spread slots WIDGET_LABEL_SLOTS
+ */
+export const getWidgetSlotsComputed = (slots) => {
+    return computed(() => WIDGET_LABEL_SLOTS.filter((s) => slots[s]));
+};
+`;
+        const result = parseSpreadFunctionAnnotation(src, "getWidgetSlotsComputed");
+        expect(result).not.toBeNull();
+        expect(result.kind).toBe("slots");
+        expect(result.constantName).toBe("WIDGET_LABEL_SLOTS");
+    });
+
+    it("returns null when annotation is absent", () => {
+        const src = `
+/** No annotation here. */
+export const getWidgetSlotsComputed = (slots) => slots;
+`;
+        expect(parseSpreadFunctionAnnotation(src, "getWidgetSlotsComputed")).toBeNull();
+    });
+
+    it("returns null when identifier is not found", () => {
+        const src = `
+/**
+ * @vueda-spread slots WIDGET_LABEL_SLOTS
+ */
+export const otherFn = () => {};
+`;
+        expect(parseSpreadFunctionAnnotation(src, "getWidgetSlotsComputed")).toBeNull();
+    });
+
+    it("returns null when JSDoc is not immediately before the export", () => {
+        const src = `
+/**
+ * @vueda-spread slots WIDGET_LABEL_SLOTS
+ */
+const intermediate = 1;
+export const getWidgetSlotsComputed = (slots) => slots;
+`;
+        expect(parseSpreadFunctionAnnotation(src, "getWidgetSlotsComputed")).toBeNull();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// @vueda-spread slots: integration (VueDocgenNormalizer)
+// ---------------------------------------------------------------------------
+
+describe("VueDocgenNormalizer — @vueda-spread slots", () => {
+    const COMP_PATH = "/fake/client/lib/widgets/WidgetInput.vue";
+    const LABEL_PATH = "/fake/client/lib/widgets/WidgetLabel.vue";
+    const FEEDBACK_PATH = "/fake/client/lib/components/FormHiddenFeedback.vue";
+
+    const compSource = `
+<script setup>
+import { getWidgetSlotsComputed } from '@vueda/widgets/WidgetLabel.vue';
+const availableLabelSlotNames = getWidgetSlotsComputed(slots);
+defineOptions({ name: "WidgetInput" });
+</script>
+`;
+
+    const labelSource = `
+<script>
+import { FORM_HIDDEN_FEEDBACK_SLOTS } from '@vueda/components/FormHiddenFeedback.vue';
+
+export const ONLY_WIDGET_LABEL_SLOTS = ["label", "feedback"];
+export const WIDGET_LABEL_SLOTS = [...ONLY_WIDGET_LABEL_SLOTS, ...FORM_HIDDEN_FEEDBACK_SLOTS];
+/**
+ * Returns active slot names.
+ *
+ * @vueda-spread slots WIDGET_LABEL_SLOTS
+ */
+export const getWidgetSlotsComputed = (slots) => {
+    return WIDGET_LABEL_SLOTS.filter((s) => slots[s]);
+};
+</script>
+`;
+
+    const feedbackSource = `
+<script>
+export const FORM_HIDDEN_FEEDBACK_SLOTS = [
+    "feedback-help-icon",
+    "feedback-error-icon",
+];
+</script>
+`;
+
+    const fileMap = {
+        [COMP_PATH]: compSource,
+        [LABEL_PATH]: labelSource,
+        [FEEDBACK_PATH]: feedbackSource,
+    };
+
+    it("injects slot nodes from the annotated function's named constant", async () => {
+        const normalizer = makeNormalizerWithFiles(fileMap);
+        const output = normalizer.normalize(componentPayload("client/lib/widgets/WidgetInput.vue", { slots: [] }));
+
+        await assertCanonical(output);
+
+        const slotNodes = output.nodes.filter((n) => n.kind === "slot");
+        const slotNames = slotNodes.map((n) => n.name);
+
+        expect(slotNames).toContain("label");
+        expect(slotNames).toContain("feedback");
+        expect(slotNames).toContain("feedback-help-icon");
+        expect(slotNames).toContain("feedback-error-icon");
+    });
+
+    it("marks injected slots with fromSpread: true in extensions", () => {
+        const normalizer = makeNormalizerWithFiles(fileMap);
+        const output = normalizer.normalize(componentPayload("client/lib/widgets/WidgetInput.vue", { slots: [] }));
+
+        const labelSlot = output.nodes.find((n) => n.kind === "slot" && n.name === "label");
+        expect(labelSlot.extensions.vueDocgen.fromSpread).toBe(true);
+    });
+
+    it("does not duplicate slots that are also declared inline", () => {
+        const normalizer = makeNormalizerWithFiles(fileMap);
+        const output = normalizer.normalize(
+            componentPayload("client/lib/widgets/WidgetInput.vue", {
+                slots: [{ name: "label", scoped: false, bindings: [] }],
+            }),
+        );
+
+        const labelSlots = output.nodes.filter((n) => n.kind === "slot" && n.name === "label");
+        expect(labelSlots).toHaveLength(1);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// @vueda-slot-forward: integration (VueDocgenNormalizer)
+// ---------------------------------------------------------------------------
+
+describe("VueDocgenNormalizer — @vueda-slot-forward", () => {
+    const DETAIL_PATH = "/fake/client/lib/components/DetailView.vue";
+    const VIEW_PATH = "/fake/client/lib/views/ViewRead.vue";
+
+    const detailPayloadSlots = [
+        { name: "extra-buttons", scoped: false, bindings: [] },
+        { name: "submit-button", scoped: true, bindings: [{ name: "onSubmit" }] },
+    ];
+
+    const viewSource = `
+<script setup>
+/**
+ * Read-only detail view.
+ *
+ * @vueda-slot-forward DetailView
+ */
+defineOptions({ name: "ViewRead" });
+</script>
+`;
+
+    it("injects slot nodes from the forwarded component", async () => {
+        const normalizer = makeNormalizerWithFiles({ [VIEW_PATH]: viewSource, [DETAIL_PATH]: "<script></script>" });
+        const payload = {
+            sourceDir: "client/lib",
+            files: [
+                {
+                    filePath: "client/lib/components/DetailView.vue",
+                    components: [{ displayName: "DetailView", props: [], events: [], slots: detailPayloadSlots }],
+                },
+                {
+                    filePath: "client/lib/views/ViewRead.vue",
+                    components: [{ displayName: "ViewRead", props: [], events: [], slots: [] }],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+
+        await assertCanonical(output);
+
+        const viewComp = output.nodes.find((n) => n.kind === "component" && n.name === "ViewRead");
+        const viewSlots = output.nodes.filter((n) => n.kind === "slot" && viewComp.children.includes(n.id));
+        const slotNames = viewSlots.map((n) => n.name);
+
+        expect(slotNames).toContain("extra-buttons");
+        expect(slotNames).toContain("submit-button");
+    });
+
+    it("marks forwarded slots with fromForward: true in extensions", async () => {
+        const normalizer = makeNormalizerWithFiles({ [VIEW_PATH]: viewSource, [DETAIL_PATH]: "<script></script>" });
+        const payload = {
+            sourceDir: "client/lib",
+            files: [
+                {
+                    filePath: "client/lib/components/DetailView.vue",
+                    components: [{ displayName: "DetailView", props: [], events: [], slots: detailPayloadSlots }],
+                },
+                {
+                    filePath: "client/lib/views/ViewRead.vue",
+                    components: [{ displayName: "ViewRead", props: [], events: [], slots: [] }],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+        const viewComp = output.nodes.find((n) => n.kind === "component" && n.name === "ViewRead");
+        const extraButtons = output.nodes.find(
+            (n) => n.kind === "slot" && n.name === "extra-buttons" && viewComp.children.includes(n.id),
+        );
+        expect(extraButtons.extensions.vueDocgen.fromForward).toBe(true);
+    });
+
+    it("supports multiple @vueda-slot-forward tags", () => {
+        const multiForwardSource = `
+<script setup>
+/**
+ * @vueda-slot-forward DetailView
+ * @vueda-slot-forward ActionForm
+ */
+defineOptions({ name: "AuthorizingForm" });
+</script>
+`;
+        const normalizer = makeNormalizerWithFiles({
+            "/fake/client/lib/views/AuthorizingForm.vue": multiForwardSource,
+            [DETAIL_PATH]: "<script></script>",
+            "/fake/client/lib/components/ActionForm.vue": "<script></script>",
+        });
+        const payload = {
+            sourceDir: "client/lib",
+            files: [
+                {
+                    filePath: "client/lib/components/DetailView.vue",
+                    components: [
+                        {
+                            displayName: "DetailView",
+                            props: [],
+                            events: [],
+                            slots: [{ name: "extra-buttons", scoped: false, bindings: [] }],
+                        },
+                    ],
+                },
+                {
+                    filePath: "client/lib/components/ActionForm.vue",
+                    components: [
+                        {
+                            displayName: "ActionForm",
+                            props: [],
+                            events: [],
+                            slots: [{ name: "confirm-message", scoped: false, bindings: [] }],
+                        },
+                    ],
+                },
+                {
+                    filePath: "client/lib/views/AuthorizingForm.vue",
+                    components: [{ displayName: "AuthorizingForm", props: [], events: [], slots: [] }],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+        const comp = output.nodes.find((n) => n.kind === "component" && n.name === "AuthorizingForm");
+        const slotNames = output.nodes
+            .filter((n) => n.kind === "slot" && comp.children.includes(n.id))
+            .map((n) => n.name);
+
+        expect(slotNames).toContain("extra-buttons");
+        expect(slotNames).toContain("confirm-message");
     });
 });
