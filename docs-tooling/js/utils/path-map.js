@@ -166,8 +166,6 @@ export function buildVueDocgenPathMap(bundle) {
     for (const node of bundle.nodes || []) {
         if (node.kind === "component") {
             pathMap.set(node.id, vueDocgenComponentPath(node));
-            pathMap.set(`${node.id}:slots`, vueDocgenSlotsPath(node));
-            pathMap.set(`${node.id}:events`, vueDocgenEventsPath(node));
         }
     }
     return pathMap;
