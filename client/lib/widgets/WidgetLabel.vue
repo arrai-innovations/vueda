@@ -6,6 +6,12 @@ import { computed } from "vue";
 export const ONLY_WIDGET_LABEL_SLOTS = ["label", "feedback"];
 /** Array of all slot names supported by WidgetLabel components, combining the label-specific slots with the feedback slots from FormHiddenFeedback. */
 export const WIDGET_LABEL_SLOTS = [...ONLY_WIDGET_LABEL_SLOTS, ...FORM_HIDDEN_FEEDBACK_SLOTS];
+/**
+ * Returns a computed ref of the active slot names from WIDGET_LABEL_SLOTS.
+ * Components that call this function expose all widget label slots to their consumers.
+ *
+ * @vueda-spread slots WIDGET_LABEL_SLOTS
+ */
 export const getWidgetSlotsComputed = (slots) => {
     return computed(() => {
         return WIDGET_LABEL_SLOTS.filter((slotName) => slots[slotName]);

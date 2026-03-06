@@ -13,6 +13,8 @@ import { useRoute, useRouter } from "vue-router";
  * Renders a page-level authentication form with a title, subtitle, and action slot.
  * Handles reauthentication redirects and MFA pending-flow detection automatically,
  * delegating the actual form submission to an inner ActionForm.
+ *
+ * @vueda-slot-forward ActionForm
  */
 defineOptions({});
 

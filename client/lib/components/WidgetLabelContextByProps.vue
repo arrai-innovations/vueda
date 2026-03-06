@@ -12,8 +12,9 @@ import { computed, inject, provide, reactive, toRef, toRefs, useAttrs } from "vu
  * from a surrounding form context. Used inside tabular inline field sets where
  * each cell must resolve its label, help text, and validation state from the
  * field value path rather than from injected context.
+ *
+ * @vueda-slot-forward WidgetLabel
  */
-
 defineOptions({
     inheritAttrs: false,
 });

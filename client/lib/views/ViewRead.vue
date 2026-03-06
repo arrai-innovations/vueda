@@ -8,6 +8,8 @@ import { inject, reactive } from "vue";
 /**
  * Read-only detail view that fetches and displays a single model instance identified by its
  * primary key.
+ *
+ * @vueda-slot-forward DetailView
  */
 defineOptions({
     inheritAttrs: false,

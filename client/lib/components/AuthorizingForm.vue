@@ -10,6 +10,8 @@ import { useRoute, useRouter } from "vue-router";
 
 /**
  * Authentication wrapper that monitors login state and redirects the user after a successful sign-in, rendering a header, subtitle, and delegating to ActionForm for the actual credential form.
+ *
+ * @vueda-slot-forward ActionForm
  */
 defineOptions({});
 

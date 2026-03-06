@@ -9,6 +9,8 @@ import { reactive, useSlots } from "vue";
 /**
  * Form that allows an authenticated user to change their password by providing their current
  * password and confirming the new one.
+ *
+ * @vueda-slot-forward AuthForm
  */
 defineOptions({});
 

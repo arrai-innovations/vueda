@@ -20,6 +20,9 @@ import { computed, inject, onMounted, reactive, toRef } from "vue";
 /**
  * Form view for creating a new model instance, including a page title, a sticky submit button
  * bar, and a FormModel that renders the configured fields.
+ *
+ * @vueda-slot-forward PageTitle
+ * @vueda-slot-forward FormModel
  */
 defineOptions({
     inheritAttrs: false,

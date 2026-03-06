@@ -5,6 +5,8 @@ import DetailView from "@vueda/components/DetailView.vue";
  * Deprecated alias for DetailView. Use DetailView directly instead.
  * This component passes all props, attrs, and slots through to DetailView unchanged,
  * and emits a one-time deprecation warning in development builds.
+ *
+ * @vueda-slot-forward DetailView
  */
 defineOptions({});
 

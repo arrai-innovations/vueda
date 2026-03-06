@@ -17,6 +17,8 @@ import { useRoute } from "vue-router";
  * available filterable fields from the server configuration, displays a
  * `FilterComponent` for each one, and exposes a Clear Filters button. Active
  * filter parameters are kept in sync with the URL query string via a `v-model`.
+ *
+ * @vueda-slot-forward FilterComponent
  */
 defineOptions({});
 

@@ -13,6 +13,8 @@ import { computed, inject, reactive, toRef, unref } from "vue";
 /**
  * Editable detail view that loads a model instance, presents it in a form, and submits changes
  * back to the server on save.
+ *
+ * @vueda-slot-forward DetailView
  */
 defineOptions({});
 
