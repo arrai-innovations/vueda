@@ -674,6 +674,22 @@ describe("VueDocgenNormalizer — slots", () => {
         expect(slot.signatures[0].parameters[0].name).toBe("applyFilter");
     });
 
+    it("preserves binding description in slot parameters when present", () => {
+        const slots = normalizeSlots([
+            {
+                name: "row",
+                scoped: true,
+                bindings: [{ name: "item", description: "The row data object." }, { name: "index" }],
+            },
+        ]);
+        expect(slots).toHaveLength(1);
+        const params = slots[0].signatures[0].parameters;
+        expect(params[0].name).toBe("item");
+        expect(params[0].description).toBe("The row data object.");
+        expect(params[1].name).toBe("index");
+        expect(params[1].description).toBeUndefined();
+    });
+
     it("extracts real slot name from description when vue-docgen attaches @slot comment to artifact slot", () => {
         // vue-docgen attaches `<!-- @slot real-name Description -->` as the description
         // of the adjacent <slot :name="expression"> element.

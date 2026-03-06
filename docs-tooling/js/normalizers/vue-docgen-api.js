@@ -575,9 +575,12 @@ export class VueDocgenNormalizer extends Normalizer {
                         signatures: [
                             compact({
                                 label: slot.scoped ? "scoped" : "slot",
-                                parameters: (slot.bindings || []).map((binding) => ({
-                                    name: binding.name,
-                                })),
+                                parameters: (slot.bindings || []).map((binding) =>
+                                    compact({
+                                        name: binding.name,
+                                        description: binding.description || undefined,
+                                    }),
+                                ),
                             }),
                         ],
                         source: sourceFile ? { file: sourceFile } : undefined,
