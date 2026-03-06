@@ -11,6 +11,16 @@ import Button from "primevue/button";
 import Divider from "primevue/divider";
 import { toRef, watch } from "vue";
 
+/**
+ * A stacked inline fieldset for editing a single related object (one-to-one
+ * style). Renders a divider with a title, an optional Create button when no
+ * value is present, and a single stacked-inline row when a value exists.
+ * Supports show/hide toggling and auto-creates the initial object when the
+ * field is required or `autoCreateWhenEmpty` is set.
+ */
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     ...FIELD_SET_INLINE_PROPS,
     /** When true, automatically creates an empty inline object if none exists and field objects are available. */
@@ -23,17 +33,6 @@ const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
 const logger = useDevLogger({ fieldContext: fieldSetContext });
 const theme = useTheme("FieldSetStackedInline", props);
-/**
- * A stacked inline fieldset for editing a single related object (one-to-one
- * style). Renders a divider with a title, an optional Create button when no
- * value is present, and a single stacked-inline row when a value exists.
- * Supports show/hide toggling and auto-creates the initial object when the
- * field is required or `autoCreateWhenEmpty` is set.
- */
-
-defineOptions({
-    inheritAttrs: false,
-});
 const fieldSetInline = useFieldSetInline({
     props,
     emit,
