@@ -113,6 +113,39 @@ When making changes, suggest Changelog entries if they impact consumers or publi
 
 ---
 
+## API Documentation Annotations
+
+The docs pipeline (`docs-tooling/`) picks up two custom annotations from `client/lib/` source files. Use them when adding or updating components.
+
+### `@vueda-spread` on shared prop/emit constants (JS files)
+
+When a composable exports a constant that components spread into `props` or `emits`, mark it with `@vueda-spread props` or `@vueda-spread emits` in its JSDoc block. The normalizer injects those entries into every component that spreads the constant.
+
+```js
+/**
+ * Props shared by all field components.
+ *
+ * @vueda-spread props
+ */
+export const FIELD_PROPS = {
+    /** The field name. */
+    name: { type: String, required: true },
+};
+```
+
+Add a JSDoc line comment (`/** ... */`) above each prop or emit entry. Those comments become the member descriptions in the rendered API reference.
+
+### `<!-- @slot name Description -->` for dynamic slots (Vue SFC templates)
+
+vue-docgen-api cannot statically read dynamic slot names (`:name="someExpression"`). Place an HTML comment immediately before any such `<slot>` element:
+
+```html
+<!-- @slot filter-clear-button Replaces the clear button inside the filter form. -->
+<slot :name="resolvedSlotNames.clearButton.name" />
+```
+
+The format is `<!-- @slot <kebab-case-name> <description> -->`. Use the consumer-facing API name, not the internal expression. For static slot names (`name="foo"`), vue-docgen picks up the name automatically; the comment is only needed for dynamic names.
+
 ## Test Structure & Isolation
 
 - Use `scopedIt(...)` from `@tests/unit/utils.js` in place of `it(...)` for all tests involving Vue components, reactivity, lifecycle hooks, or injections. This runs tests in a fresh `effectScope()` to prevent state leakage.
