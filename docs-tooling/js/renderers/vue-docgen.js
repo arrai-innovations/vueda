@@ -22,6 +22,12 @@ function renderProps(node) {
     return [renderHeading(2, "Props"), "", table, ""].join("\n");
 }
 
+function renderSlotFallbacks(slot) {
+    const fallbacks = slot.extensions?.vueDocgen?.fallbacks;
+    if (!fallbacks?.length) return null;
+    return `Also accepted: ${fallbacks.map(renderCodeInline).join(", ")}.`;
+}
+
 function renderSlots(node, index, filePath, pathMap) {
     const slots = (index.childrenOf.get(node.id) || []).filter((child) => child.kind === "slot");
     if (!slots.length) {
@@ -44,6 +50,8 @@ function renderSlots(node, index, filePath, pathMap) {
             lines.push(renderHeading(3, renderCodeInline(slot.name)));
             const scoped = slot.extensions?.vueDocgen?.scoped;
             lines.push("", scoped ? "Scoped slot." : "Slot.", "");
+            const fallbackLine = renderSlotFallbacks(slot);
+            if (fallbackLine) lines.push(fallbackLine, "");
             const signature = slot.signatures?.[0];
             const bindings = formatBindings(signature?.parameters || []);
             const table = renderTable(["Name", "Description"], bindings);
@@ -141,8 +149,13 @@ function renderSlotsPage(node, index) {
 
     for (const slot of slots) {
         lines.push(renderHeading(2, renderCodeInline(slot.name)));
+        if (slot.description) {
+            lines.push("", escapeText(slot.description), "");
+        }
         const scoped = slot.extensions?.vueDocgen?.scoped;
         lines.push("", scoped ? "Scoped slot." : "Slot.", "");
+        const fallbackLine = renderSlotFallbacks(slot);
+        if (fallbackLine) lines.push(fallbackLine, "");
         const signature = slot.signatures?.[0];
         const bindings = formatBindings(signature?.parameters || []);
         const table = renderTable(["Name", "Description"], bindings);

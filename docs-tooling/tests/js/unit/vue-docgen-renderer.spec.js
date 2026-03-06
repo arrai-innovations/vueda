@@ -189,6 +189,43 @@ describe("renderVueDocgenBundle — component page content", () => {
         expect(page).toContain("header");
     });
 
+    it("slots sub-page shows Also accepted line when slot has fallbacks", () => {
+        const payload = {
+            sourceDir: "client/lib",
+            files: [
+                {
+                    filePath: "client/lib/components/Qux.vue",
+                    components: [
+                        {
+                            displayName: "Qux",
+                            props: [],
+                            slots: [
+                                // Bracket-form annotation: artifact name resolved via description
+                                {
+                                    name: "resolvedSlotNames.btn.name",
+                                    description: "[toggle-button, fieldset-toggle-button] Toggles visibility.",
+                                    scoped: false,
+                                    bindings: [],
+                                },
+                                // Extra described slot to push past the sub-page threshold
+                                { name: "header", description: "Page header.", scoped: false, bindings: [] },
+                            ],
+                            events: [],
+                            tags: {},
+                            sourceFiles: [],
+                        },
+                    ],
+                },
+            ],
+        };
+        const outputs = buildOutputs(payload);
+        const page = outputs.get("vue/components/Qux/slots.md");
+        expect(page).toBeDefined();
+        expect(page).toContain("Also accepted:");
+        expect(page).toContain("`fieldset-toggle-button`");
+        expect(page).toContain("Toggles visibility.");
+    });
+
     it("component page frontmatter includes id, kind, and source fields", () => {
         const outputs = buildOutputs(sparsePayload);
         const page = outputs.get("vue/components/Foo.md");

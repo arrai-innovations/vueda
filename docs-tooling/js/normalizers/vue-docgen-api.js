@@ -58,16 +58,53 @@ function isExpressionArtifactSlotName(name) {
 }
 
 /**
- * When vue-docgen encounters `<!-- @slot real-name Description text -->` immediately
- * before a `<slot :name="expression">` element, it attaches the comment text as the
- * slot's description. The canonical name is the first word of that description.
+ * When vue-docgen encounters `<!-- @slot ... -->` immediately before a
+ * `<slot :name="expression">` element, it attaches the comment text as the
+ * slot's description. Two syntaxes are supported:
  *
- * If the slot has an expression-artifact name and its description starts with a
- * kebab-case token, return a new slot object with the extracted name and trimmed
- * description. Otherwise return the slot unchanged.
+ * Bracket form (with optional fallbacks):
+ *   `<!-- @slot [primary-name, fallback1, fallback2] Description text -->`
+ *   The first item is the canonical name; remaining items are fallback slot
+ *   names accepted by the same slot outlet. An empty bracket list `[]` is
+ *   a parse error.
+ *
+ * Bare form (backward-compatible, no fallbacks):
+ *   `<!-- @slot primary-name Description text -->`
+ *
+ * Returns a new slot object with the resolved name, trimmed description, and
+ * (bracket form only) a `fallbacks` array. Returns the slot unchanged when the
+ * description does not match either form.
  */
 function resolveSlotFromDescription(slot) {
-    if (!isExpressionArtifactSlotName(slot.name) || !slot.description) {
+    if (!slot.description) {
+        return slot;
+    }
+
+    // Bracket form: [name, fallback1, fallback2] Description
+    // Parsed unconditionally — works for both dynamic (artifact-name) and static slots.
+    const bracketMatch = slot.description.match(/^\[([^\]]*)\](?:\s+([\s\S]*))?$/);
+    if (bracketMatch) {
+        const items = bracketMatch[1]
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        if (!items.length) {
+            throw new Error(
+                `@slot annotation has empty brackets []: "${slot.description}". Provide at least one slot name.`,
+            );
+        }
+        const [name, ...fallbacks] = items;
+        return {
+            ...slot,
+            name,
+            description: bracketMatch[2] || undefined,
+            fallbacks: fallbacks.length ? fallbacks : undefined,
+        };
+    }
+
+    // Bare form: name Description
+    // Only resolves for expression-artifact slot names.
+    if (!isExpressionArtifactSlotName(slot.name)) {
         return slot;
     }
     const match = slot.description.match(/^([a-z][a-z0-9-]*)(?:\s+([\s\S]*))?$/);
@@ -588,6 +625,7 @@ export class VueDocgenNormalizer extends Normalizer {
                             vueDocgen: {
                                 scoped: slot.scoped,
                                 bindings: slot.bindings || [],
+                                ...(slot.fallbacks ? { fallbacks: slot.fallbacks } : {}),
                             },
                         },
                     });

@@ -132,16 +132,25 @@ export const FIELD_EMITS = {
 
 Each prop or emit entry should carry a JSDoc line comment (`/** ... */`) directly above it. The normalizer uses those comments as the member descriptions in the generated API docs.
 
-### `<!-- @slot name Description -->` (Vue SFC templates)
+### `<!-- @slot ... -->` (Vue SFC templates)
 
-vue-docgen-api cannot statically resolve dynamic slot names (expressions like `:name="resolvedSlotNames.clearButton.name"`). Place an HTML comment in the form `<!-- @slot slot-name Description -->` immediately before the `<slot>` element. The normalizer extracts the first word after `@slot` as the canonical slot name and the remainder as the slot description.
+vue-docgen-api cannot statically resolve dynamic slot names (expressions like `:name="resolvedSlotNames.clearButton.name"`). Place an HTML comment immediately before the `<slot>` element. Two syntaxes are supported:
+
+**Bare form** (single name, no fallbacks):
 
 ```html
 <!-- @slot filter-clear-button Replaces the clear button inside the filter form. -->
 <slot :name="resolvedSlotNames.clearButton.name" />
 ```
 
-Use the consumer-facing API name (kebab-case), not the internal resolver expression.
+**Bracket form** (first name is canonical, remaining names are fallback slot names accepted by the same outlet):
+
+```html
+<!-- @slot [filter-clear-button, filter-clear-button(filterName)] Replaces the clear button inside the filter form. -->
+<slot :name="resolvedSlotNames.clearButton.name" />
+```
+
+The bracket form also works on static slots when you want to document fallbacks. An empty bracket list `[]` is a parse error. Use the consumer-facing API name (kebab-case), not the internal resolver expression.
 
 ## Tests
 

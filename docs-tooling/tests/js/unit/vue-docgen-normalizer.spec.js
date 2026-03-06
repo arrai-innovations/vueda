@@ -706,6 +706,52 @@ describe("VueDocgenNormalizer — slots", () => {
         expect(slots[0].description).toBe("Replaces the clear-filter button.");
     });
 
+    it("extracts slot name and fallbacks from bracket form annotation", () => {
+        const slots = normalizeSlots([
+            {
+                name: "resolvedSlotNames.button.name",
+                description:
+                    "[toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Button to toggle visibility.",
+                scoped: false,
+                bindings: [],
+            },
+        ]);
+        expect(slots).toHaveLength(1);
+        expect(slots[0].name).toBe("toggle-button");
+        expect(slots[0].description).toBe("Button to toggle visibility.");
+        expect(slots[0].extensions.vueDocgen.fallbacks).toEqual([
+            "fieldset-toggle-button",
+            "field(fieldName)toggle-button",
+        ]);
+    });
+
+    it("treats single-item bracket form the same as bare form (no fallbacks)", () => {
+        const slots = normalizeSlots([
+            {
+                name: "resolvedSlotNames.button.name",
+                description: "[toggle-button] Button to toggle visibility.",
+                scoped: false,
+                bindings: [],
+            },
+        ]);
+        expect(slots).toHaveLength(1);
+        expect(slots[0].name).toBe("toggle-button");
+        expect(slots[0].extensions.vueDocgen.fallbacks).toBeUndefined();
+    });
+
+    it("throws when bracket list is empty", () => {
+        expect(() =>
+            normalizeSlots([
+                {
+                    name: "resolvedSlotNames.button.name",
+                    description: "[] Description.",
+                    scoped: false,
+                    bindings: [],
+                },
+            ]),
+        ).toThrow("empty brackets");
+    });
+
     it("suppresses unresolved artifact slots when resolved slots are present via description extraction", () => {
         // Simulates a component where some slots have @slot annotations (description extraction
         // produces real names) and one generic pass-through slot has no description.
