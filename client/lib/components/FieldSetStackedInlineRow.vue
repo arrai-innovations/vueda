@@ -100,6 +100,7 @@ const remainingSlotNames = computed(() => {
             >
                 <template v-for="action in fieldSetContextState.actions">
                     <template v-if="action.fieldName === 'destroy'">
+                        <!-- @slot destroy-button Button used to delete a new (unsaved) inline row. Also accepts fieldset-destroy-button for a fieldset-level override. -->
                         <slot
                             v-if="!pk"
                             :action="action"
@@ -114,6 +115,7 @@ const remainingSlotNames = computed(() => {
                         >
                             <Button label="Delete" text @click="onDelete" />
                         </slot>
+                        <!-- @slot destroy-checkbox Checkbox used to mark an existing inline row for deletion. Also accepts fieldset-destroy-checkbox for a fieldset-level override. -->
                         <slot
                             v-else
                             :skip-feedback="true"
@@ -144,6 +146,7 @@ const remainingSlotNames = computed(() => {
                         </slot>
                     </template>
                     <template v-else>
+                        <!-- @slot item-action-button Button for a non-destroy row action. Also accepts fieldset-item-action-button for a fieldset-level override. -->
                         <slot
                             :name="fieldSetSlotNames['item-action-button'].name"
                             v-bind="{

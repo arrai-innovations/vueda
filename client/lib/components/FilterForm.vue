@@ -47,6 +47,7 @@ const remainingSlotNames = computed(() => {
 <template>
     <form @submit.prevent="applyFilter">
         <div :class="theme('outer')">
+            <!-- @slot filter-form-header Header area at the top of the filter form. Also accepts filter-form-header(filterName) for a filter-specific override. -->
             <slot :name="resolvedSlotNames.header.name" :class="theme('heading')" :filter-label="filterLabel">
                 <h1 :class="theme('heading')">Filter by {{ filterLabel }}</h1>
             </slot>
@@ -55,6 +56,7 @@ const remainingSlotNames = computed(() => {
                     <slot :name="slotName" v-bind="slotProps" />
                 </template>
             </field-renderer>
+            <!-- @slot filter-form-submit-button Submit button for the filter form. Also accepts filter-form-submit-button(filterName) for a filter-specific override. -->
             <slot
                 label="Apply"
                 :filter-name="filterName"

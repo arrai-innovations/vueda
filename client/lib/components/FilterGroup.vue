@@ -156,6 +156,7 @@ const theme = useTheme("FilterGroup", props);
     <div :class="theme('root')">
         <div :class="theme('filtersWrapper')">
             <template v-for="(filter, index) in validFilterables" :key="index">
+                <!-- @slot filter-component Replaces a single filter component in the group. Also accepts filter-component(filterName) for a filter-specific override. -->
                 <slot
                     v-if="resolvers[filter]"
                     :filter="filter"

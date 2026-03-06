@@ -293,6 +293,7 @@ watch(
 <template>
     <div>
         <ButtonGroup size="small">
+            <!-- @slot filter-clear-button Replaces the clear-filter button shown when a filter value is active. Also accepts filter-clear-button(filterName) for a filter-specific override. -->
             <slot
                 :class="theme('clearButton')"
                 :do-toggle="doToggle"
@@ -314,6 +315,7 @@ watch(
                     @click.prevent="removeFilter"
                 >
                     <template #icon>
+                        <!-- @slot filter-clear-button-icon Icon inside the clear-filter button. Also accepts filter-clear-button-icon(filterName) for a filter-specific override. -->
                         <slot
                             class="p-button-icon p-button-icon-left"
                             :filter-details="filterDetails"
@@ -328,6 +330,7 @@ watch(
                     </template>
                 </Button>
             </slot>
+            <!-- @slot filter-dropdown-button Replaces the dropdown trigger button for this filter. Also accepts filter-dropdown-button(filterName) for a filter-specific override. -->
             <slot
                 :class="theme('dropdownButton')"
                 :filter-details="filterDetails"
@@ -352,6 +355,7 @@ watch(
                     <template #default>
                         <!-- primevue passes nothing via their button default slot... -->
                         <!-- when using the default slot, they don't render the icon slot... -->
+                        <!-- @slot filter-dropdown-button-icon Icon inside the dropdown button, shown when no filter value is set. Also accepts filter-dropdown-button-icon(filterName) for a filter-specific override. -->
                         <slot
                             v-if="!hasFilterValue"
                             class="p-button-icon p-button-icon-left"
@@ -364,6 +368,7 @@ watch(
                         >
                             <span class="p-button-icon p-button-icon-left"> ➕ </span>
                         </slot>
+                        <!-- @slot filter-dropdown-button-label Label text inside the dropdown button. Also accepts filter-dropdown-button-label(filterName) for a filter-specific override. -->
                         <slot
                             class="p-button-label"
                             :filter-details="filterDetails"
@@ -377,6 +382,7 @@ watch(
                                 {{ computedFilterLabel }}
                             </span>
                         </slot>
+                        <!-- @slot filter-dropdown-button-suffix Suffix indicator (expand/collapse arrow) inside the dropdown button. Also accepts filter-dropdown-button-suffix(filterName) for a filter-specific override. -->
                         <slot
                             class="p-button-label"
                             :filter-details="filterDetails"
@@ -394,6 +400,7 @@ watch(
                 </Button>
             </slot>
         </ButtonGroup>
+        <!-- @slot filter-form-popover Replaces the popover element that wraps the filter form. Also accepts filter-form-popover(filterName) for a filter-specific override. -->
         <slot
             :class="theme('formPopover')"
             :filter-details="filterDetails"
@@ -410,6 +417,7 @@ watch(
                 :filter-name="filterName"
                 :has-filter-value="hasFilterValue"
             >
+                <!-- @slot filter-form Replaces the filter form body inside the popover. Also accepts filter-form(filterName) for a filter-specific override. -->
                 <slot
                     :apply-filter="onApplyFilter"
                     :filter-details="filterDetails"

@@ -612,6 +612,7 @@ const columnOptions = computed(() => {
                         v-for="actionName in targetlessActions"
                         :key="getCRUDName({ app: app, model: model, view: actionName })"
                     >
+                        <!-- @slot targetless-action-button Replaces an individual targetless action button. Also accepts button as a generic fallback. -->
                         <slot :name="targetlessActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
                             <link-model-view v-bind="buttonSlotProps[actionName]" />
                         </slot>
@@ -622,6 +623,7 @@ const columnOptions = computed(() => {
                 <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
                     <div :class="theme('actionButtonGroupBar')" data-qa="view-list-action-buttons">
                         <template v-for="actionName in bulkActions" :key="actionName">
+                            <!-- @slot bulk-action-button Replaces an individual bulk action button. Also accepts button as a generic fallback. -->
                             <slot :name="bulkActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
                                 <link-model-view
                                     button
@@ -631,6 +633,7 @@ const columnOptions = computed(() => {
                             </slot>
                         </template>
                         <template v-for="actionName in availableTransitions" :key="actionName">
+                            <!-- @slot workflow-action-button Replaces an individual workflow/transition action button. Also accepts button as a generic fallback. -->
                             <slot :name="workflowActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
                                 <link-model-view
                                     button

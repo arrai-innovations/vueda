@@ -92,6 +92,7 @@ watch(
                 }"
             >
                 <div v-if="fieldSetInline.state.hidable" data-qa="field-set-singular-stacked-inline-header-toggle">
+                    <!-- @slot toggle-button Button to show or hide the inline fieldset. Also accepts fieldset-toggle-button or field(fieldName)toggle-button for more specific overrides. -->
                     <slot
                         :class="theme('toggleButton')"
                         :field-props="fieldSetInline.state.computedFieldProps"
@@ -108,11 +109,13 @@ watch(
                     </slot>
                 </div>
                 <div :class="theme('title')" data-qa="field-set-singular-stacked-inline-title">
+                    <!-- @slot title Replaces the fieldset title/label. Also accepts fieldset-title or field(fieldName)title for more specific overrides. -->
                     <slot :name="fieldSetInline.resolvedSlotNames['title'].name">
                         {{ fieldSetContext.state.label }}
                     </slot>
                 </div>
                 <div :class="theme('actionBar')" data-qa="field-set-singular-stacked-inline-action-bar">
+                    <!-- @slot create-button Button to add a new inline row. Also accepts fieldset-create-button or field(fieldName)create-button for more specific overrides. -->
                     <slot
                         v-if="fieldSetInline.state.showCreateButton && !fieldSetContext.state.value"
                         :class="theme('createButton')"
@@ -126,6 +129,7 @@ watch(
                     </slot>
                 </div>
             </Divider>
+            <!-- @slot field-set-level-chores Replaces the form-level validation chores block for this fieldset. Also accepts fieldset-field-set-level-chores or field(fieldName)field-set-level-chores for more specific overrides. -->
             <slot :name="fieldSetInline.resolvedSlotNames['field-set-level-chores'].name">
                 <form-chores :variant="null">
                     <template
