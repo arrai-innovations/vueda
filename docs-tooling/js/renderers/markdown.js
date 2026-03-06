@@ -60,7 +60,7 @@ function escapeTableCell(value) {
     if (value === null || value === undefined) {
         return "";
     }
-    return String(value).replace(/\|/g, "\\|");
+    return String(value).replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
 }
 
 export function renderTable(headers, rows) {

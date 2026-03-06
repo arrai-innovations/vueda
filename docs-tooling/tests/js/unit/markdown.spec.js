@@ -109,6 +109,12 @@ describe("renderTable", () => {
         const result = renderTable(["X"], [["a|b"]]);
         expect(result).toContain("a\\|b");
     });
+
+    it("collapses newlines in cell values to a single space", () => {
+        const result = renderTable(["X"], [["first line\nsecond line"]]);
+        expect(result).toContain("first line second line");
+        expect(result).not.toContain("\n\n");
+    });
 });
 
 describe("renderList", () => {
