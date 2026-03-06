@@ -22,22 +22,27 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name whose instances will be deactivated. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key or array of primary keys identifying the instances to deactivate. */
     pk: {
         type: [String, Array],
         required: true,
     },
+    /** Visual variant passed through to the underlying action form. */
     variant: {
         type: String,
         default: "default",
     },
+    /** Additional CSS classes applied to the outer wrapper element. */
     outerClass: {
         type: [String, Array, Object],
         default: () => [],

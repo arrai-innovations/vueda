@@ -26,42 +26,52 @@ defineOptions({
 });
 
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name used to resolve API endpoints and configuration. */
     model: {
         type: String,
         required: true,
     },
+    /** View variant key used to select the model configuration for this view. */
     variant: {
         type: String,
         default: "default",
     },
+    /** Variant key forwarded to the inner FormModel component. */
     formModelVariant: {
         type: String,
         default: "default",
     },
+    /** CSS class(es) applied to the root element. */
     class: {
         type: [String, Array, Object],
         default: () => [],
     },
+    /** Extra props merged into the FormModel component, taking precedence over model-config defaults. */
     formProps: {
         type: Object,
         default: () => ({}),
     },
+    /** Extra props forwarded to every field component rendered inside the form. */
     fieldProps: {
         type: Object,
         default: () => ({}),
     },
+    /** Extra props forwarded to every widget component rendered inside the form. */
     widgetProps: {
         type: Object,
         default: () => ({}),
     },
+    /** Field names included in the create submission payload; falls back to the model config's submitFields. */
     submitFields: {
         type: Array,
         default: undefined,
     },
+    /** Named view to redirect to after a successful create submission. */
     redirectAfter: {
         type: String,
         default: "update",

@@ -12,42 +12,58 @@ import Button from "primevue/button";
 import { computed, effectScope, reactive, readonly, ref, useSlots, watch } from "vue";
 import { useRoute } from "vue-router";
 
+/**
+ * Renders a row of filter controls for a model list view. It fetches the
+ * available filterable fields from the server configuration, displays a
+ * `FilterComponent` for each one, and exposes a Clear Filters button. Active
+ * filter parameters are kept in sync with the URL query string via a `v-model`.
+ */
+defineOptions({});
+
 const params = defineModel({
     type: Object,
     required: true,
 });
 
 const props = defineProps({
+    /** Django app label used to fetch the filter configuration from the server. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name used to fetch the filter configuration from the server. */
     model: {
         type: String,
         required: true,
     },
+    /** View name used to fetch the filter configuration from the server. */
     view: {
         type: String,
         required: true,
     },
+    /** List of field names to show as filters; overrides the server-provided list when set. */
     filterables: {
         type: Array,
         description: "A list of the filterables to show in the filter form.",
         default: null,
     },
+    /** Per-field filter detail overrides merged with server-provided configuration. */
     filterableDetails: {
         type: Object,
         description: "A dictionary of overriding filterable details.",
         default: null,
     },
+    /** Initial values for each filter form, keyed by filter name. */
     filterFormsValues: {
         type: Object,
         default: () => ({}),
     },
+    /** When true, the filter group is in an error state, enabling error display. */
     errored: {
         type: Boolean,
         default: false,
     },
+    /** Error object to display; only rendered when it is a `ListFilterError` instance. */
     error: {
         type: Object,
         default: null,
@@ -156,7 +172,7 @@ const theme = useTheme("FilterGroup", props);
     <div :class="theme('root')">
         <div :class="theme('filtersWrapper')">
             <template v-for="(filter, index) in validFilterables" :key="index">
-                <!-- @slot filter-component Replaces a single filter component in the group. Also accepts filter-component(filterName) for a filter-specific override. -->
+                <!-- @slot [filter-component, filter-component(filterName)] Replaces a single filter component in the group. -->
                 <slot
                     v-if="resolvers[filter]"
                     :filter="filter"

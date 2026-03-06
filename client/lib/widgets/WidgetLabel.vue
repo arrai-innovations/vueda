@@ -53,6 +53,11 @@ export const WIDGET_LABEL_PROPS = {
 };
 </script>
 <script setup>
+/**
+ * A layout wrapper that renders a label element, the slotted control, and an optional hidden
+ * feedback indicator below it. Used internally by all widget components to provide consistent
+ * label, required-marker, and validation feedback rendering.
+ */
 import FormHiddenFeedback from "@vueda/components/FormHiddenFeedback.vue";
 import { getFormHiddenFeedbackSlotsComputed } from "@vueda/components/FormHiddenFeedback.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
@@ -68,10 +73,12 @@ defineOptions({
 const props = defineProps({
     ...WIDGET_LABEL_PROPS,
     ...THEME_OVERRIDE_PROPS,
+    /** The `id` attribute applied to the label element. */
     id: {
         type: String,
         default: undefined,
     },
+    /** The `for` attribute linking the label to its associated input by ID. */
     for: {
         type: String,
         default: undefined,

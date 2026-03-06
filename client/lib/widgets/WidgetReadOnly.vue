@@ -12,29 +12,42 @@ import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import { computed, effectScope, reactive, toRef, unref, useSlots, watch } from "vue";
 
+/**
+ * Renders a field value as non-editable text, with optional prefix and suffix strings.
+ * When `app` and `model` props are provided, the raw foreign-key value is resolved to a
+ * human-readable name and rendered as a link to the related record's detail view.
+ */
+defineOptions({});
+
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** Django app label used to resolve the foreign-key value to a display name and link. */
     app: {
         type: String,
         default: undefined,
     },
+    /** Django model name used to resolve the foreign-key value to a display name and link. */
     model: {
         type: String,
         default: undefined,
     },
+    /** Pre-fetched related object; used instead of a lookup when already available. */
     foreignKeyObj: {
         type: Object,
         default: undefined,
     },
+    /** When true, shows a loading indicator instead of the resolved value. */
     loading: {
         type: Boolean,
         default: false,
     },
+    /** Static text prepended to the displayed value. */
     prefix: {
         type: String,
         default: "",
     },
+    /** Static text appended to the displayed value. */
     suffix: {
         type: String,
         default: "",

@@ -3,6 +3,13 @@ import NavigationItem from "@vueda/components/NavigationItem.vue";
 import { useNavigation } from "@vueda/use/useNavigation.js";
 import { reactive } from "vue";
 
+/**
+ * Renders a full navigation menu from a user configuration object containing
+ * apps, models, and custom routes. Delegates individual item rendering to
+ * NavigationItem and uses `useNavigation` to build the navigation tree.
+ */
+defineOptions({});
+
 const userConfig = reactive({
     apps: [
         {

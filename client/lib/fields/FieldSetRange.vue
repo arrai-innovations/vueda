@@ -94,7 +94,7 @@ watch(
                 {{ fieldContext.state.label }}
             </label>
         </div>
-        <!-- Override the default form-level chores (e.g. non-field errors) rendered above the range sub-fields. -->
+        <!-- @slot [field-set-level-chores] Override the form-level validation chores block rendered above the range sub-fields. -->
         <slot name="field-set-level-chores">
             <form-chores :variant="null">
                 <template

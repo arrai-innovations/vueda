@@ -8,20 +8,32 @@ import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, onMounted, useAttrs, useSlots } from "vue";
 
+/**
+ * Renders the auxiliary UI for a form field: help text, validation errors, and
+ * warning messages. It resolves the field name and messages from either injected
+ * form/field context or explicit props, and renders nothing when there is
+ * nothing to display.
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Field name used to look up errors, warnings, and help text when no form or field context is injected. */
     name: {
         type: String,
         default: undefined,
     },
+    /** Help text to display below the field, overriding any help text from an injected field context. */
     help: {
         type: String,
         default: undefined,
     },
+    /** Errors to display, keyed by code. */
     errors: {
         type: Object,
         default: null,
         description: "Errors to display, keyed by code.",
     },
+    /** Warnings to display, keyed by code. */
     warnings: {
         type: Object,
         default: null,

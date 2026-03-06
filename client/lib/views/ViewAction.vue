@@ -13,34 +13,47 @@ import Button from "primevue/button";
 import { computed, inject, toRef, useSlots } from "vue";
 import { useRouter } from "vue-router";
 
+/**
+ * Full-page view for executing a model action. Renders a page title with a "Go Back" button and embeds a
+ * ModelActionForm for the specified app, model, and action. Accepts an optional primary key and initial form
+ * values to pre-populate the form.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name the action belongs to. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key(s) of the object(s) to act on; pass an array for multi-object actions. */
     pk: {
         type: [String, Number, Array],
         default: undefined,
     },
+    /** Name of the action to execute. */
     action: {
         type: String,
         required: true,
     },
+    /** Page title override; defaults to a formatted combination of the action and model names. */
     title: {
         type: String,
         default: undefined,
     },
+    /** Additional CSS classes applied to the root element. */
     class: {
         type: [String, Array, Object],
         default: () => [],
     },
+    /** Initial field values pre-populated into the action form. */
     initialFormValues: {
         type: Object,
         default: undefined,

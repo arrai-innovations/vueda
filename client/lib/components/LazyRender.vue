@@ -2,6 +2,13 @@
 import { useIntersectionObserver } from "@vueuse/core";
 import { ref } from "vue";
 
+/**
+ * Defers rendering its default slot until the component scrolls into the viewport,
+ * using an IntersectionObserver. Before the content is visible, a placeholder slot
+ * is rendered instead, allowing callers to supply a skeleton or spacer.
+ */
+defineOptions({});
+
 const target = ref(null);
 const isVisible = ref(false);
 

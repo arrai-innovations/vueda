@@ -7,16 +7,25 @@ import { WIDGET_LABEL_PROPS } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
 import { computed, inject, provide, reactive, toRef, toRefs, useAttrs } from "vue";
 
+/**
+ * Wraps WidgetLabel with widget context derived from explicit props rather than
+ * from a surrounding form context. Used inside tabular inline field sets where
+ * each cell must resolve its label, help text, and validation state from the
+ * field value path rather than from injected context.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** Tabular inline field set configuration, used to resolve label and validation state per row. */
     fieldSetTabularInline: {
         type: Object,
         default: () => ({}),
     },
+    /** Dot-separated path to the field value within the form model, used as the widget name. */
     fieldValuePath: {
         type: String,
         required: true,

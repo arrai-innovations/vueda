@@ -22,18 +22,22 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name whose workflow transitions will be listed. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key or array of primary keys of the instances to transition. */
     pk: {
         type: [String, Array],
         required: true,
     },
+    /** Additional CSS classes applied to the root element. */
     class: {
         type: [String, Array, Object],
         default: () => [],

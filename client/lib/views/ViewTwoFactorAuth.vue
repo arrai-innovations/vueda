@@ -12,6 +12,13 @@ import { useToast } from "primevue/usetoast";
 import { computed, onBeforeUnmount, reactive, ref, toRef, useSlots, watch } from "vue";
 import { useRouter } from "vue-router";
 
+/**
+ * Two-factor authentication challenge view presented after initial login. Lets the user select an available
+ * verification method (TOTP, SMS, email, or recovery code), request a code to be sent for applicable methods
+ * (with a 60-second resend cooldown), and submit the code to complete authentication.
+ */
+defineOptions({});
+
 const formProps = reactive({
     initialValues: {
         code: "",

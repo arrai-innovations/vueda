@@ -10,24 +10,33 @@ import pick from "lodash-es/pick.js";
 import RadioButton from "primevue/radiobutton";
 import { computed, useSlots } from "vue";
 
+/**
+ * Renders a group of radio buttons from a static `options` array, with a shared accessible label.
+ * Each radio button and its label are individually slottable for custom rendering.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** Static array of options to display as radio buttons. */
     options: {
         type: Array,
         required: true,
     },
+    /** Key on each option object used as the displayed label. */
     optionLabel: {
         type: String,
         default: "label",
     },
+    /** Key on each option object used as the submitted value. */
     optionValue: {
         type: String,
         default: "value",
     },
+    /** Callback invoked when any radio button in the group receives focus. */
     onFocus: {
         type: Function,
         default: () => {},

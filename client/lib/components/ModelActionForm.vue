@@ -17,50 +17,68 @@ import startCase from "lodash-es/startCase.js";
 import { computed, inject, toRef, unref, useSlots } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+/**
+ * Wraps `ActionForm` to execute a named action (such as delete or a custom
+ * bulk operation) against one or more model instances. It displays the
+ * selected objects, a confirmation message, and handles submission, dry-run
+ * validation, and post-action redirect to the appropriate list or detail view.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name the action targets. */
     model: {
         type: String,
         required: true,
     },
+    /** Action identifier (e.g. `"delete"` or a custom action name) sent to the server. */
     action: {
         type: String,
         required: true,
     },
+    /** Human-readable action name shown in confirmation and result messages; defaults to a title-cased version of `action`. */
     actionVerboseName: {
         type: String,
         default: undefined,
     },
+    /** Toast summary shown on successful action completion; auto-generated from the action and model name if omitted. */
     actionSuccessSummary: {
         type: String,
         default: undefined,
     },
+    /** Toast summary shown when the action fails; auto-generated from the action and model name if omitted. */
     actionErrorSummary: {
         type: String,
         default: undefined,
     },
+    /** Confirmation message shown to the user before submitting; auto-generated from the action and model name if omitted. */
     confirmMessage: {
         type: String,
         default: undefined,
     },
+    /** Reactive fetch state object providing the list of selected objects and their data. */
     fetchState: {
         type: Object,
         default: undefined,
     },
+    /** Optional function to transform form values before they are sent in the request body. */
     transformSubmitDataFn: {
         type: Function,
         default: undefined,
     },
+    /** HTTP method used for the action request (ignored for destroy actions, which always use DELETE). */
     requestMethod: {
         type: String,
         default: "PUT",
     },
+    /** When true, performs a dry-run validation request before the final submission. */
     enableDryRun: {
         type: Boolean,
         default: true,
@@ -189,6 +207,7 @@ const dryRun = computed(
         </template>
         <template #action-form-inner="{ combinedLoading }">
             <div :class="theme('selectedObjects')" data-qa="action-form-selected-objects">
+                <!-- @slot [selected-objects] Override the list of selected objects shown above the confirmation form. -->
                 <slot
                     :loading="combinedLoading"
                     name="selected-objects"
@@ -218,6 +237,7 @@ const dryRun = computed(
                                     :warning="false"
                                 >
                                     <template #link-item="linkItemSlotProps">
+                                        <!-- @slot [link-item] Override the link rendered for each selected object in the default list. -->
                                         <slot name="link-item" v-bind="linkItemSlotProps" />
                                     </template>
                                 </widget-read-only>
@@ -228,9 +248,11 @@ const dryRun = computed(
                 </slot>
             </div>
             <div :class="theme('message')" data-qa="action-form-message">
+                <!-- @slot [confirm-error-message] Override the error message shown when the action has validation errors. -->
                 <slot v-if="formContext.state.anyError" name="confirm-error-message">
                     <p>Please see the error message above.</p>
                 </slot>
+                <!-- @slot [confirm-message] Override the confirmation prompt shown before submitting. -->
                 <slot v-else name="confirm-message">
                     <p>{{ computedConfirmMessage }}</p>
                 </slot>

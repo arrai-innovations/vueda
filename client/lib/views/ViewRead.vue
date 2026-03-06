@@ -14,14 +14,17 @@ defineOptions({
 });
 
 defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name used to resolve API endpoints and configuration. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key of the object instance to fetch and display. */
     pk: {
         type: String,
         required: true,

@@ -10,6 +10,12 @@ import FileUpload from "primevue/fileupload";
 import Image from "primevue/image";
 import { useSlots } from "vue";
 
+/**
+ * An image upload widget that shows a file picker when no image is selected and a preview with a
+ * remove button once one has been chosen. The widget value is the raw File object selected by the
+ * user.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });

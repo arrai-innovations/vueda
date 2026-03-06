@@ -18,18 +18,22 @@ import { ref, toRef, watch } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name whose action should be resolved. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key(s) forwarded to the resolved action view. */
     pk: {
         type: [String, Number, Array],
         default: "",
     },
+    /** Name of the action to resolve and render. */
     action: {
         type: String,
         required: true,

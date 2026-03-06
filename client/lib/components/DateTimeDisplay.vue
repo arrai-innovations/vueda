@@ -4,32 +4,46 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { DateTime } from "luxon";
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from "vue";
 
+/**
+ * Displays a datetime value (ISO string, JS Date, or Luxon DateTime) in absolute, relative,
+ * inline, or break format, with an optional tooltip showing the complementary representation.
+ * The relative label updates automatically every minute (and every second for very recent times).
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** The datetime value to display, accepted as an ISO string, JS Date, or Luxon DateTime. */
     value: {
         type: [String, Object, Date], // ISO string, luxon DateTime object or js Date
         default: "",
     },
+    /** Display layout: `"inline"`, `"break"`, `"absolute"`, `"relative"`, `"default"`, or a custom Luxon format string/object. */
     format: {
         type: [String, Object],
         default: "inline",
     },
+    /** Luxon format string or options object used for the tooltip when a custom format is active. */
     tooltipFormat: {
         type: [String, Object],
         description: "When using a custom format, this format will be used for the tooltip.",
         default: "default",
     },
+    /** Whether to include the time portion in absolute date output. */
     showTime: {
         type: Boolean,
         default: true,
     },
+    /** Whether to show the complementary representation as a tooltip on hover. */
     showTooltip: {
         type: Boolean,
         default: true,
     },
+    /** When true, renders without a wrapping div so the output is inline in the document flow. */
     inline: {
         type: Boolean,
         default: false,
     },
+    /** Whether to display the relative time label alongside the absolute date. */
     showRelative: {
         type: Boolean,
         default: true,
