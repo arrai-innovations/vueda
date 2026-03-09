@@ -15,31 +15,51 @@ The architecture cleanly splits authority: the server owns data integrity, permi
 
 The server is organized into four responsibility layers. Each layer builds on the one below it, and everything above the base layer inherits its guarantees without opting in.
 
-**Domain infrastructure** (`vueda.core`) defines the base model, serializer, and viewset contracts that all domain modules inherit. This layer establishes transactional boundaries (all writes within a request are atomic), the permission-evaluation order, an input-validation policy (unknown fields are rejected), and routing conventions. A domain module that extends `VuedaModel`, `VuedaSerializer`, and `VuedaViewSet` inherits all of these behaviours. A module that does not extend them opts out of the integration entirely.
+### Domain infrastructure
 
-**Metadata and discovery** (`vueda.info`) exposes canonical registration and model-info endpoints. This is the bridge between server-side model definitions and client-side UI generation. It derives field shapes, available actions, filtering and ordering capabilities, and permission lists from whatever the domain infrastructure layer defines. Without this layer, the client has no contract to consume. The metadata and discovery layer is covered in detail in [Canonical Registration and Model Discovery](./canonical-registration-and-discovery) and [Server-Client Metadata Contract](./server-client-metadata-contract).
+(`vueda.core`) defines the base model, serializer, and viewset contracts that all domain modules inherit. This layer establishes transactional boundaries (all writes within a request are atomic), the permission-evaluation order, an input-validation policy (unknown fields are rejected), and routing conventions. A domain module that extends `VuedaModel`, `VuedaSerializer`, and `VuedaViewSet` inherits all of these behaviours.
 
-**Stateful lifecycle** (`vueda.workflow`, `vueda.vdq`) encodes state machines and asynchronous dispatch workflows. Workflow transitions are enforced server-side and reflected in metadata; available actions change based on the object's state. The dispatch queue (VDQ) delegates long-running work, such as email and SMS delivery, to a worker process while maintaining state visibility through the same workflow mechanism.
+(`vueda.history`) defines the base model, serializer, and viewset for objects that require audit history. These base classes inherit the corresponding `vueda.core` base classes and incorporate the use of simple history to provide audit history. A domain module that extends `VuedaHistoryModel`, `VuedaHistorySerializer`, and `VuedaHistoryViewSet` inherits all of these behaviours and those from their corresponding `vueda.core` base classes.
 
-**Cross-cutting concerns** (`vueda.user`, `vueda.history`) handle authentication, session management, TOTP two-factor authentication, and audit history. These cut across all domain modules but do not define the architectural shape; they are consumed by the layers above.
+A module that does not extend the `vueda.core` or `vueda.history` base classes, opts out of the integration entirely.
+
+### Metadata and discovery
+
+(`vueda.info`) exposes canonical registration and model-info endpoints. This is the bridge between server-side model definitions and client-side UI generation. It derives field shapes, available actions, filtering and ordering capabilities, and permission lists from whatever the domain infrastructure layer defines. Without this layer, the client has no contract to consume. The metadata and discovery layer is covered in detail in [Canonical Registration and Model Discovery](./canonical-registration-and-discovery) and [Server-Client Metadata Contract](./server-client-metadata-contract).
+
+### Stateful lifecycle
+
+(`vueda.workflow`, `vueda.vdq`) encodes state machines and asynchronous dispatch workflows. Workflow transitions are enforced server-side and reflected in metadata; available actions change based on the object's state. The dispatch queue (VDQ) delegates potentially long-running work, such as email and SMS delivery, to a worker process while maintaining state visibility through the same workflow mechanism.
+
+### Cross-cutting concerns
+
+(`vueda.user`, `vueda.history`) handle authentication, session management, TOTP two-factor authentication, and audit history. These cut across all domain modules but do not define the architectural shape; they are consumed by the layers above.
 
 ## Client Responsibility Layers
 
 The client is a Vue single-page application that generates its UI entirely from server metadata. It is organized into four layers, each consuming the output of the one above it.
 
-**Metadata consumption.** Pinia stores fetch, normalize, and cache the server contract. {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo} holds the server-derived field, action, filter, and permission metadata. {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig} merges those defaults with client-side overrides. Together, they produce the configuration that all downstream layers consume.
+### Metadata consumption.
 
-**Routing and gating.** Router guards load metadata before allowing navigation. Route entry is blocked until model-info is available and the requested action is confirmed present, which is determined by intersecting server-advertised actions, client config restrictions, and workflow transition codes. No view renders without its contract being satisfied.
+Pinia stores fetch, normalize, and cache the server contract. {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo} holds the server-derived field, action, filter, ordering, and permission metadata. {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig} merges those defaults with client-side overrides. Together, they produce the configuration that all downstream layers consume.
 
-**UI generation.** Composables and builders translate metadata into reactive form models. Field types map to Field components; field properties map to Widget components; props are merged from metadata defaults, config overrides, and component-level props. The form lifecycle (values, errors, touched state, modification tracking) is managed through composables and symbol-based injection.
+### Routing and gating.
 
-**Rendering.** View components (`ViewList`, `ViewCreate`, `ViewRead`, `ViewUpdate`) and the `ViewActionRouter` consume the generated form models and render them using PrimeVue-based widgets. Custom action views are loaded dynamically by naming convention. The derivation pipeline from metadata to rendered UI is covered in [Contract-First Dynamic UI](./contract-first-dynamic-ui).
+Router guards load metadata before allowing navigation. Route entry is blocked until model-info is available and the requested action is confirmed present, which is determined by intersecting server-advertised actions, client config restrictions, and workflow transition codes. No view renders without its contract being satisfied.
+
+### UI generation.
+
+Composables and builders translate metadata into reactive form models. Field types map to Field components; field properties map to Widget components; props are merged from metadata defaults, config overrides, and component-level props. The form lifecycle (values, errors, touched state, modification tracking) is managed through composables and symbol-based injection.
+
+### Rendering.
+
+View components (`ViewList`, `ViewCreate`, `ViewRead`, `ViewUpdate`) and the `ViewActionRouter` consume the generated form models and render them using PrimeVue-based widgets. Custom action views are loaded dynamically by naming convention. The derivation pipeline from metadata to rendered UI is covered in [Contract-First Dynamic UI](./contract-first-dynamic-ui).
 
 ## Runtime Topology
 
 Three processes make up the runtime system. They share a database and cache but are otherwise isolated.
 
-The **web process** (WSGI) handles all synchronous request/response work: CRUD operations, metadata queries, workflow transitions, authentication, and webhook ingestion. All database writes in a request are wrapped in a transaction (`ATOMIC_REQUESTS`). Any unhandled exception causes the entire request to roll back. No partial writes persist.
+The **web process** (WSGI) handles all synchronous request/response work: CRUDL operations, metadata queries, workflow transitions, authentication, and webhook ingestion. All database writes in a request are wrapped in a transaction (`ATOMIC_REQUESTS`). Any unhandled exception causes the entire request to roll back. No partial writes persist.
 
 The **worker process** (Celery) handles asynchronous dispatch: email delivery, SMS delivery, and periodic status checks. Workers share the same database, cache, and Django settings as the web process, but they do not have access to HTTP request context or middleware. State changes to worker tasks follow the same workflow transition rules as the web process; there is no separate permission model for background work. However, because workers lack request context, any logic that depends on the current user or session must be passed explicitly rather than inferred from middleware.
 

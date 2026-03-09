@@ -93,8 +93,6 @@ The resolution order means that the `crudComponents` registry takes priority ove
 
 **Toast service assumed present.** `requireModelInfo` and `requireGroups` access `instance.config.globalProperties.$toast.add(...)` without null-checking. If the PrimeVue toast service is not registered on the Vue app instance, the guard throws a `TypeError` during evaluation, aborting navigation with an unhandled error rather than a redirect.
 
-**Legacy `routerActions` ignored with warning.** The deprecated `config.routerActions` property (note the extra `r`) is detected and produces a one-time console warning, but it has no effect on action filtering. Code that sets `routerActions` expecting it to restrict navigation will find that all server-advertised actions remain navigable. The correct property is `routeActions`.
-
 **`routeActions` filtering does not normalize action names.** The `routeActions` array is compared against canonical model-info action names directly. Using UI route names (such as `read`) in `routeActions` will fail to match the corresponding canonical name (`retrieve`), causing the guard to emit an "Action Not Found" toast and redirect even though the action exists in model-info. The `routeActions` array must use server-canonical names.
 
 **Strict workflow transition shape.** The guard requires every transition object to have a string `code` property. A transition entry with a missing or non-string `code` causes the guard to throw an error immediately rather than treating the entry as unavailable. The error message identifies the malformed transition, but the symptom is that navigation to any action on that model fails; the exception occurs during allowlist computation, before any individual action is checked.

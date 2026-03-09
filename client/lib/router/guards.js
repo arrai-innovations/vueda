@@ -9,8 +9,6 @@ import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
-let warnedAboutRouterActions = false;
-
 /**
  * Convert transition objects into route-action identifiers.
  * Transition `code` is the canonical machine identifier; `name` is display text only.
@@ -298,12 +296,6 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
             pinia,
         );
         let actions = infoStore.actions.map((action) => action.name);
-        if ("routerActions" in configStore && configStore.routerActions !== undefined && !warnedAboutRouterActions) {
-            warnedAboutRouterActions = true;
-            console.warn(
-                "requireModelInfo: config.routerActions is deprecated and ignored. Use config.routeActions instead.",
-            );
-        }
         if (Array.isArray(configStore.routeActions)) {
             actions = actions.filter((action) => configStore.routeActions.includes(action));
         }

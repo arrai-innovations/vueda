@@ -189,25 +189,6 @@ describe("lib/router/guards.js", () => {
         expect(result).toEqual({ name: "nf" });
     });
 
-    scopedIt("requireModelInfo warns once for legacy routerActions and ignores it", async () => {
-        fetchWorkflowTransition.mockResolvedValue([]);
-        fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }, { name: "create" }] });
-        getConfig.mockResolvedValue({ routerActions: ["list"] });
-        const router = { resolve: vi.fn((r) => r) };
-        const toast = { add: vi.fn() };
-        const instance = { config: { globalProperties: { $toast: toast } } };
-
-        const createRoute = { params: { app: "a", model: "b", action: "create" }, fullPath: "/a/b/create" };
-        const listRoute = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
-
-        await expect(guards.requireModelInfo(instance, { name: "nf" }, createRoute, router, {})).resolves.toBe(true);
-        await expect(guards.requireModelInfo(instance, { name: "nf" }, listRoute, router, {})).resolves.toBe(true);
-        expect(warnSpy).toHaveBeenCalledTimes(1);
-        expect(warnSpy).toHaveBeenCalledWith(
-            "requireModelInfo: config.routerActions is deprecated and ignored. Use config.routeActions instead.",
-        );
-    });
-
     scopedIt("requireRecentAuth fetches status when unknown and allows access", async () => {
         const router = { resolve: vi.fn((r) => r) };
         const to = { fullPath: "/secure" };
