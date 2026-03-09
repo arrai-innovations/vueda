@@ -118,6 +118,56 @@ The server validates `f` and `e` query parameters on both `list` and `retrieve` 
 
 **Expanded nested serializers** omit `available_actions` by default in their response payloads. This means an expanded relation will include its field data but not its per-object action availability. If the client needs action information for an expanded object, a separate retrieve request is required.
 
+## Multi-level Field and Expand Data
+
+When requesting multiple levels of field and expand data, there are a number of ways to do this. The following examples show the requested and returned data. The examples use the following models and assume that Person can expand Pet and Pet can expand Toy.
+
+```python
+class Person(VuedaModel):
+    name = CharField()
+
+class Pet(VuedaModel):
+    owner = ForeignKey(Person, related_name="pets")
+    name = CharField()
+
+class Toy(VuedaModel):
+    pet = ForeignKey(Pet, related_name="toys")
+    name = CharField()
+```
+
+There may be multiple ways to request the data you want. The client automatically adds fields of "id" and "available_actions" for the main model. It is possible to add a wildcard ("\*" or "~all") alongside field names, to fetch all fields. These two examples would return the same results:
+
+```python
+# request data
+{"f": "id,available_actions,*"}
+{"f": "id,available_actions,name,pets"}
+# response.data
+{"id": 1, "name": "John Smith", "pets": [1], "available_actions": [...]}
+```
+
+The client adds "id" and "available_actions" for the main model, but it doesn't do this for an expanded model. So, you will need to specify that yourself, in one of these ways:
+
+```python
+# request data
+{"f": "id,available_actions,pets.*", "e": "*"}
+{"f": "id,available_actions,pets.*", "e": "pets"}
+{"f": "id,available_actions,pets.id,pets.available_actions", "e": "*"}
+{"f": "id,available_actions,pets.id,pets.available_actions", "e": "pets"}
+# response.data
+{"id": 1, "pets": [{"id": 1, "name": "Spot", "toys": [1], "available_actions": [...]}], "available_actions": [...]}
+```
+
+If you fail to add "id" on an expanded model, then you will receive data without it, like the following:
+
+```python
+# request data
+{"e": "pets.*", "f": "id,available_actions,pets.name,pets.toys.name"}
+# response.data
+{"id": 1, "available_actions": [...], "pets": [{"name": "Spot", "toys": [{"name": "Rubber Bone"}]}]}
+```
+
+To include the `id` field, the request must have all fields specified by using a wildcard (`*`, `~all`), or include `id` in the requested fields, like `pets.id` or `pets.toys.id`.
+
 ## Verification Checklist
 
 With expand and field controls configured, verify the surface end-to-end:
