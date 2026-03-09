@@ -122,7 +122,7 @@ export class OpenApiNormalizer extends Normalizer {
                             name: param.name,
                             description: param.description,
                             type: schemaToTypeRef(param.schema),
-                            optional: param.required === false,
+                            optional: param.required !== true,
                             default: param.schema?.default,
                         }),
                     );
