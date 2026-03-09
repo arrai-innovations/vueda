@@ -112,7 +112,8 @@ export class OpenApiNormalizer extends Normalizer {
         for (const [pathKey, methods] of Object.entries(payload.paths || {})) {
             for (const [method, operation] of Object.entries(methods || {})) {
                 const id = endpointId(method, pathKey);
-                const description = operation.summary || operation.description;
+                const summary = operation.summary || undefined;
+                const description = operation.description || undefined;
 
                 const parameters = [];
 
@@ -187,6 +188,7 @@ export class OpenApiNormalizer extends Normalizer {
                     id,
                     kind: "endpoint",
                     name: operation.operationId || `${method.toUpperCase()} ${pathKey}`,
+                    displayName: summary,
                     description,
                     signatures: [
                         compact({
