@@ -48,7 +48,7 @@ def debug_stack_exception_handler(exc, context):
     if response is None:
         # the exception was not handled by the default exception handler
         response = Response(
-            {},
+            {"detail": "Internal server error."},
             status=500,
         )
 
