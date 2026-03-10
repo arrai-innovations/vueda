@@ -203,8 +203,14 @@ class VuedaResetPasswordView(GenericAPIView):
         if not pk or not token:
             return Response({"detail": "Missing parameters."}, status=drf_status.HTTP_400_BAD_REQUEST)
 
-        uid = hashids.decode(pk)[0]
-        user = get_user_model().objects.get(pk=uid)
+        try:
+            uid = hashids.decode(pk)[0]
+            user = get_user_model().objects.get(pk=uid)
+        except (IndexError, get_user_model().DoesNotExist):
+            return Response(
+                {"detail": "This token is invalid or has already been used."},
+                status=drf_status.HTTP_400_BAD_REQUEST,
+            )
 
         if token_validator.check_token(user, token):
             return Response({"detail": "Token is valid."}, status=drf_status.HTTP_200_OK)
@@ -226,8 +232,15 @@ class VuedaResetPasswordView(GenericAPIView):
         pk = serializer.data["pk"]
         token = serializer.data["token"]
 
-        uid = hashids.decode(pk)[0]
-        user = get_user_model().objects.get(pk=uid)
+        try:
+            uid = hashids.decode(pk)[0]
+            user = get_user_model().objects.get(pk=uid)
+        except (IndexError, get_user_model().DoesNotExist):
+            non_field_error_key = api_settings.NON_FIELD_ERRORS_KEY
+            return Response(
+                {non_field_error_key: ["This token is invalid or has already been used."]},
+                status=400,
+            )
 
         if token_validator.check_token(user, token):
             password_validation.validate_password(password, user)

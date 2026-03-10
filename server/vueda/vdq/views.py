@@ -52,7 +52,7 @@ def validate_twilio_request(f):
     return decorated_function
 
 
-@conditional_extend_schema_decorator(responses={204: None})
+@conditional_extend_schema_decorator(responses={204: None, 403: None})
 @method_decorator(validate_twilio_request, name="dispatch")
 @method_decorator(csrf_exempt, name="dispatch")
 class TwilioSMSWebhook(APIView):

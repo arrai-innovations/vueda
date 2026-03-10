@@ -86,6 +86,10 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 "WorkflowPermissionError",
                 fields={"detail": serializers.CharField()},
             ),
+            404: conditional_inline_serializer(
+                "WorkflowNotFoundError",
+                fields={"detail": serializers.CharField()},
+            ),
         },
     )
     @action(detail=True, methods=["get"], url_path=r"object-state/(?P<object_id>[^/.]+)")

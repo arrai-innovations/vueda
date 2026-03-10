@@ -140,13 +140,13 @@ export function renderOpenApiBundle(bundle) {
         if (node.kind !== "endpoint") continue;
         const filePath = pathMap.get(node.id);
         if (!filePath) continue;
-        const groupDir = path.dirname(filePath);
+        const groupDir = path.posix.dirname(filePath);
         if (!endpointsByGroup.has(groupDir)) endpointsByGroup.set(groupDir, []);
         endpointsByGroup.get(groupDir).push(node);
     }
     for (const [groupDir, endpoints] of endpointsByGroup) {
-        const groupName = groupDir.split("/").pop();
-        const groupIndexPath = `${groupDir}/index.md`;
+        const groupName = path.posix.basename(groupDir);
+        const groupIndexPath = path.posix.join(groupDir, "index.md");
         endpoints.sort((a, b) => (a.displayName || a.name).localeCompare(b.displayName || b.name));
         outputs.set(groupIndexPath, renderEndpointGroupIndex(groupName, endpoints, pathMap, groupIndexPath));
     }
