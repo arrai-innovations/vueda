@@ -15,6 +15,7 @@ from rest_framework import status as drf_status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
+from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.history.serializers.users import WhoIsSerializer
 from vueda.user.views import WhoIsView as CoreWhoIsView
 from vueda.workflow.views import WorkflowView
@@ -41,6 +42,7 @@ class WhoIsView(CoreWhoIsView):
         ).get(pk=self.request.user.pk)
 
 
+@conditional_extend_schema_decorator(summary="Get object history", description="")
 class GetObjectHistoryView(WorkflowView):
     def get(self, request, *args, **kwargs):
         user = request.user

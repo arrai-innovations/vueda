@@ -592,6 +592,7 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
         return queryset.filter(pk__in=allowed_ids)
 
     def destroy(self, request, **kwargs):
+        """Delete one or more objects."""
         pk = kwargs.get("pk")
         dry_run = request.headers.get(DRY_RUN_HEADER, "false").lower() == "true"
         if pk:
