@@ -76,7 +76,7 @@ class BadRequestException(APIException):
 
 
 def page_not_found(request, exception, *args, **kwargs):
-    return JsonResponse({"error": "Not Found (404)"}, status=HTTP_404_NOT_FOUND)
+    return JsonResponse({"detail": "Not found."}, status=HTTP_404_NOT_FOUND)
 
 
 def _get_error_details(data, default_code=None, is_warning=False):
