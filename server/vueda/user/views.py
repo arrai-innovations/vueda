@@ -403,7 +403,8 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": ["Unable to find the permission for the group you want to delete."],
-                }
+                },
+                status=400,
             )
 
         group = Group.objects.filter(pk=group_id).first()
@@ -412,7 +413,8 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": ["Unable to find the group to delete."],
-                }
+                },
+                status=400,
             )
 
         group_name = group.name
@@ -449,7 +451,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": [str(e)],
-                }
+                },
+                status=400,
             )
 
     def _post(self, request, *args, **kwargs):
@@ -481,7 +484,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": errors,
-                }
+                },
+                status=400,
             )
 
         permission = Permission.objects.filter(pk=permission_id).first()
@@ -490,7 +494,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": ["Unable to find the permission for the group you want to change."],
-                }
+                },
+                status=400,
             )
 
         if group_id is None:  # New Group
@@ -505,7 +510,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                         "errors": [
                             f"You already have an association between &quot;{group_name}&quot; and this permission."
                         ],
-                    }
+                    },
+                    status=400,
                 )
 
             permission.group_set.add(group)
@@ -530,7 +536,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": ["Unable to find the group to change."],
-                }
+                },
+                status=400,
             )
         group_name_old = group.name
         group.name = group_name
@@ -542,7 +549,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                         "errors": [
                             f"You already have an association between &quot;{group_name}&quot; and this permission."
                         ],
-                    }
+                    },
+                    status=400,
                 )
 
             group.save()
