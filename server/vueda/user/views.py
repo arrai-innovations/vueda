@@ -53,6 +53,7 @@ from django.views.decorators.debug import sensitive_variables
 from django.views.generic import TemplateView
 from django.views.generic.detail import SingleObjectMixin
 from hashids import Hashids
+from rest_framework import serializers
 from rest_framework import status
 from rest_framework import status as drf_status
 from rest_framework.decorators import api_view
@@ -68,6 +69,8 @@ from rest_framework.views import APIView
 from vueda.core.db import Array
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.open_api import conditional_extend_schema_decorator
+from vueda.core.open_api import conditional_inline_serializer
+from vueda.core.open_api import conditional_open_api_types
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.adapters import get_adapter
@@ -586,23 +589,34 @@ class AllAuthAdapterDispatchMixin:
         raise VuedaValidationError(errors)
 
 
-@conditional_extend_schema_decorator(summary="Log in")
+@conditional_extend_schema_decorator(summary="Log in", responses={200: conditional_open_api_types().OBJECT})
 class AllAuthLoginView(AllAuthAdapterDispatchMixin, LoginView, VuedaAllAuthViewAdapter):
     pass
 
 
-@conditional_extend_schema_decorator(summary="Verify two-factor authentication")
+@conditional_extend_schema_decorator(
+    summary="Verify two-factor authentication", responses={200: conditional_open_api_types().OBJECT}
+)
 class AllAuthTwoFactorAuthView(AllAuthAdapterDispatchMixin, AuthenticateView, VuedaAllAuthViewAdapter):
     pass
 
 
-@conditional_extend_schema_decorator(summary="Re-authenticate")
+@conditional_extend_schema_decorator(summary="Re-authenticate", responses={200: conditional_open_api_types().OBJECT})
 class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView, VuedaAllAuthViewAdapter):
     pass
 
 
-@conditional_extend_schema_decorator(methods=["GET"], summary="List available TOTP delivery methods")
-@conditional_extend_schema_decorator(methods=["POST"], summary="Send a TOTP code")
+@conditional_extend_schema_decorator(
+    methods=["GET"],
+    summary="List available TOTP delivery methods",
+    responses={
+        200: conditional_inline_serializer(
+            "TotpMethodsResponse",
+            fields={"methods": serializers.ListField(child=serializers.CharField())},
+        )
+    },
+)
+@conditional_extend_schema_decorator(methods=["POST"], summary="Send a TOTP code", responses={204: None})
 @api_view(["GET", "POST"])
 @permission_classes([Authenticating])
 def totp_code(request):
