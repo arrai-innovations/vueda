@@ -118,43 +118,40 @@ class VuedaForgotPasswordView(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        try:
-            email = request.data.get("email", None)
-            active_user = (
-                get_user_model()
-                .objects.filter(
-                    **{
-                        "email__iexact": email,
-                        "is_active": True,
-                    }
-                )
-                .first()
-            )
-            if (
-                active_user is not None
-                and active_user.has_usable_password()
-                and _unicode_ci_compare(email, active_user.email)
-            ):
-                cache_key = f"password-forgot-cooldown:{email.lower()}"
-                if cache.get(cache_key):
-                    return Response(
-                        {"result": "error", "message": "You must wait before requesting another password reset."},
-                        status=drf_status.HTTP_429_TOO_MANY_REQUESTS,
-                    )
-
-                url = active_user.generate_reset_url()
-                context = {
-                    "user": active_user,
-                    "reset_url": url,
+        email = request.data.get("email", None)
+        active_user = (
+            get_user_model()
+            .objects.filter(
+                **{
+                    "email__iexact": email,
+                    "is_active": True,
                 }
-                get_adapter().send_mail(email, active_user.name, "forgot_password", context)
-                cache.set(cache_key, True, timeout=60)
-            else:
-                return Response({"email": ["Email not found or user is inactive. "]}, status=400)
-        except Exception as e:
-            return Response({"result": "error", "message": str(e)}, content_type="application/json", status=500)
+            )
+            .first()
+        )
+        if (
+            active_user is not None
+            and active_user.has_usable_password()
+            and _unicode_ci_compare(email, active_user.email)
+        ):
+            cache_key = f"password-forgot-cooldown:{email.lower()}"
+            if cache.get(cache_key):
+                return Response(
+                    {"detail": "You must wait before requesting another password reset."},
+                    status=drf_status.HTTP_429_TOO_MANY_REQUESTS,
+                )
 
-        return Response({"result": "success", "message": "Forgot Password Email Sent"}, content_type="application/json")
+            url = active_user.generate_reset_url()
+            context = {
+                "user": active_user,
+                "reset_url": url,
+            }
+            get_adapter().send_mail(email, active_user.name, "forgot_password", context)
+            cache.set(cache_key, True, timeout=60)
+        else:
+            return Response({"email": ["Email not found or user is inactive. "]}, status=400)
+
+        return Response(status=drf_status.HTTP_204_NO_CONTENT)
 
 
 @conditional_extend_schema_decorator(
@@ -171,18 +168,16 @@ class VuedaResetPasswordView(GenericAPIView):
         pk = request.query_params.get("pk")
         token = request.query_params.get("token")
         if not pk or not token:
-            return Response(
-                {"result": "invalid", "error": "Missing parameters."}, status=drf_status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": "Missing parameters."}, status=drf_status.HTTP_400_BAD_REQUEST)
 
         uid = hashids.decode(pk)[0]
         user = get_user_model().objects.get(pk=uid)
 
         if token_validator.check_token(user, token):
-            return Response({"result": "success", "message": "Token is valid."}, status=drf_status.HTTP_200_OK)
+            return Response({"detail": "Token is valid."}, status=drf_status.HTTP_200_OK)
         else:
             return Response(
-                {"result": "invalid", "message": "This token is invalid or has already been used."},
+                {"detail": "This token is invalid or has already been used."},
                 status=drf_status.HTTP_400_BAD_REQUEST,
             )
 
@@ -191,37 +186,31 @@ class VuedaResetPasswordView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        try:
-            token_validator = Sha3PasswordResetTokenGenerator()
-            hashids = Hashids(min_length=16)
+        token_validator = Sha3PasswordResetTokenGenerator()
+        hashids = Hashids(min_length=16)
 
-            password = serializer.data["password"]
-            pk = serializer.data["pk"]
-            token = serializer.data["token"]
+        password = serializer.data["password"]
+        pk = serializer.data["pk"]
+        token = serializer.data["token"]
 
-            uid = hashids.decode(pk)[0]
-            user = get_user_model().objects.get(pk=uid)
+        uid = hashids.decode(pk)[0]
+        user = get_user_model().objects.get(pk=uid)
 
-            if token_validator.check_token(user, token):
-                password_validation.validate_password(password, user)
+        if token_validator.check_token(user, token):
+            password_validation.validate_password(password, user)
 
-                user.set_password(password)
-                user.save()
+            user.set_password(password)
+            user.save()
 
-            else:
-                non_field_error_key = api_settings.NON_FIELD_ERRORS_KEY
+        else:
+            non_field_error_key = api_settings.NON_FIELD_ERRORS_KEY
 
-                return Response(
-                    {non_field_error_key: ["This token is invalid or has already been used."]},
-                    status=400,
-                )
+            return Response(
+                {non_field_error_key: ["This token is invalid or has already been used."]},
+                status=400,
+            )
 
-        except Exception as e:
-            return Response({"result": "error", "message": str(e)}, status=500)
-
-        return Response(
-            {"result": "success", "message": "Password Updated."},
-        )
+        return Response(status=drf_status.HTTP_204_NO_CONTENT)
 
 
 @conditional_extend_schema_decorator(
