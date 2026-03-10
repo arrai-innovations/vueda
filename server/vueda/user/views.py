@@ -586,18 +586,23 @@ class AllAuthAdapterDispatchMixin:
         raise VuedaValidationError(errors)
 
 
+@conditional_extend_schema_decorator(summary="Log in")
 class AllAuthLoginView(AllAuthAdapterDispatchMixin, LoginView, VuedaAllAuthViewAdapter):
     pass
 
 
+@conditional_extend_schema_decorator(summary="Verify two-factor authentication")
 class AllAuthTwoFactorAuthView(AllAuthAdapterDispatchMixin, AuthenticateView, VuedaAllAuthViewAdapter):
     pass
 
 
+@conditional_extend_schema_decorator(summary="Re-authenticate")
 class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView, VuedaAllAuthViewAdapter):
     pass
 
 
+@conditional_extend_schema_decorator(methods=["GET"], summary="List available TOTP delivery methods")
+@conditional_extend_schema_decorator(methods=["POST"], summary="Send a TOTP code")
 @api_view(["GET", "POST"])
 @permission_classes([Authenticating])
 def totp_code(request):
