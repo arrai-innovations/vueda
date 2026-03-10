@@ -17,6 +17,8 @@ from rest_framework.response import Response
 
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.open_api import conditional_extend_schema_decorator
+from vueda.core.open_api import conditional_open_api_types
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import HasWorkflowModelMixin
@@ -141,6 +143,12 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         instance = self.get_object()
         return Response(list(instance.available_transitions(request.user).order_by("name").values("code", "name")))
 
+    @conditional_extend_schema_decorator(
+        responses={
+            200: conditional_open_api_types().OBJECT,
+            400: conditional_open_api_types().OBJECT,
+        },
+    )
     @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[^/.]+))?")
     def execute_transition(self, request, *args, **kwargs):
         transition_code = request.data.get("transition_code")

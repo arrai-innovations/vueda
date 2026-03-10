@@ -110,6 +110,17 @@ class WhoIsView(RetrieveAPIView):
 
 @conditional_extend_schema_decorator(
     summary="Forgot password",
+    responses={
+        204: None,
+        400: conditional_inline_serializer(
+            "ForgotPasswordValidationError",
+            fields={"email": serializers.ListField(child=serializers.CharField())},
+        ),
+        429: conditional_inline_serializer(
+            "ForgotPasswordRateLimitError",
+            fields={"detail": serializers.CharField()},
+        ),
+    },
 )
 class VuedaForgotPasswordView(GenericAPIView):
     serializer_class = ForgotPasswordSerializer
@@ -155,7 +166,29 @@ class VuedaForgotPasswordView(GenericAPIView):
 
 
 @conditional_extend_schema_decorator(
+    methods=["GET"],
+    summary="Validate reset token",
+    responses={
+        200: conditional_inline_serializer(
+            "ResetTokenValid",
+            fields={"detail": serializers.CharField()},
+        ),
+        400: conditional_inline_serializer(
+            "ResetTokenInvalid",
+            fields={"detail": serializers.CharField()},
+        ),
+    },
+)
+@conditional_extend_schema_decorator(
+    methods=["POST"],
     summary="Reset password",
+    responses={
+        204: None,
+        400: conditional_inline_serializer(
+            "ResetPasswordValidationError",
+            fields={"non_field_errors": serializers.ListField(child=serializers.CharField())},
+        ),
+    },
 )
 class VuedaResetPasswordView(GenericAPIView):
     serializer_class = ResetPasswordSerializer
