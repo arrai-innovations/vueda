@@ -15,6 +15,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from vueda.core.decorators import action
+from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.viewsets import VuedaReadOnlyViewSet
@@ -60,6 +61,7 @@ class DefaultSentItemViewSet(VuedaReadOnlyViewSet):
     filterset_class = SentQueueFilterSet
     permit_list_expands = ["anymail", "sender", "receiver", "sms"]
 
+    @conditional_extend_schema_decorator(summary="Resend sent item(s)")
     @atomic
     @action(detail=True, bulk=True, methods=["post"])
     def resend(self, request, *args, **kwargs):
