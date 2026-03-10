@@ -180,7 +180,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         else:
             object_ids = request.data.get("object_ids", [])
             if not isinstance(object_ids, list):
-                return Response({"error": "object_ids must be a list of primary keys."}, status=400)
+                raise VuedaValidationError({"object_ids": ["Must be a list of primary keys."]})
             response_data = {}
             error = {}
             with transaction.atomic():
