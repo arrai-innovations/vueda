@@ -71,6 +71,15 @@ describe("lib/utils/fetchSupport.js", () => {
         );
     });
 
+    scopedIt("fetchHelper resolves undefined for 204 responses", async () => {
+        const res = new Response(null, { status: 204 });
+        global.fetch = vi.fn().mockResolvedValue(res);
+
+        const result = await fetchHelper("/api", {}, "fetch");
+
+        expect(result).toBeUndefined();
+    });
+
     scopedIt("fetchHelper rejects with FetchError on failure", async () => {
         const res = new Response(JSON.stringify({ error: true }), { status: 500, statusText: "Error" });
         global.fetch = vi.fn().mockResolvedValue(res);
