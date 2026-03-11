@@ -129,7 +129,7 @@ class VuedaForgotPasswordView(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email = request.data.get("email", None)
+        email = serializer.validated_data["email"]
         active_user = (
             get_user_model()
             .objects.filter(
