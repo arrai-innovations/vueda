@@ -3,12 +3,13 @@ import { mount } from "@vue/test-utils";
 import ShellResizableHandle from "@vueda/shell/resizable/ShellResizableHandle.vue";
 import ShellResizablePanel from "@vueda/shell/resizable/ShellResizablePanel.vue";
 import ShellResizablePanelGroup from "@vueda/shell/resizable/ShellResizablePanelGroup.vue";
-import { defineComponent, h } from "vue";
 
 // SplitterPanel and SplitterResizeHandle require injection from a parent SplitterGroup.
 // Stub the underlying Reka splitter primitives so each wrapper can be tested in isolation.
+// Vue imports must live inside the factory because vi.mock is hoisted before top-level imports initialize.
 vi.mock("reka-ui", async (importOriginal) => {
     const actual = await importOriginal();
+    const { defineComponent, h } = await import("vue");
     const makePassthrough = (name, tag = "div") =>
         defineComponent({
             name,

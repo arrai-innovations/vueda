@@ -1,5 +1,5 @@
 <script setup>
-import { buttonVariants } from "@vueda/controls/ui/button";
+import { buttonVariants } from "@vueda/controls/button";
 import { cn } from "@vueda/utils/cn.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ChevronRightIcon } from "lucide-vue-next";
@@ -11,7 +11,7 @@ import { PaginationLast, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
-    /** @type {import('@vueda/controls/ui/button').ButtonVariants['size']} */
+    /** @type {import('@vueda/controls/button').ButtonVariants['size']} */
     size: { type: String, default: "default" },
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },

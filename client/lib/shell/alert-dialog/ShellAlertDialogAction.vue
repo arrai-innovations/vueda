@@ -1,5 +1,5 @@
 <script setup>
-import { buttonVariants } from "@vueda/controls/ui/button";
+import { buttonVariants } from "@vueda/controls/button";
 import { cn } from "@vueda/utils/cn.js";
 import { reactiveOmit } from "@vueuse/core";
 import { AlertDialogAction } from "reka-ui";

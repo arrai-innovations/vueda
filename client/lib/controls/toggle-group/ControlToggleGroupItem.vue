@@ -1,5 +1,5 @@
 <script setup>
-import { toggleVariants } from "@vueda/controls/ui/toggle";
+import { toggleVariants } from "@vueda/controls/toggle";
 import { cn } from "@vueda/utils/cn.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ToggleGroupItem, useForwardProps } from "reka-ui";

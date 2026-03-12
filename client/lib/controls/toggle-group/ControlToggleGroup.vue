@@ -12,9 +12,9 @@ defineOptions({});
 const props = defineProps({
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
-    /** @type {import('class-variance-authority').VariantProps<typeof import('@vueda/controls/ui/toggle').toggleVariants>['variant']} */
+    /** @type {import('class-variance-authority').VariantProps<typeof import('@vueda/controls/toggle').toggleVariants>['variant']} */
     variant: { type: String, default: undefined },
-    /** @type {import('class-variance-authority').VariantProps<typeof import('@vueda/controls/ui/toggle').toggleVariants>['size']} */
+    /** @type {import('class-variance-authority').VariantProps<typeof import('@vueda/controls/toggle').toggleVariants>['size']} */
     size: { type: String, default: undefined },
     /** The gap spacing between items (0 = flush/no-gap). */
     spacing: { type: Number, default: 0 },
