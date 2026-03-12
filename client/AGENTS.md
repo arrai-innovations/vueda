@@ -11,23 +11,21 @@ To get started:
 - Install dependencies with:
 
     ```bash
-    npm install
+    pnpm install
     ```
-
-In the Codex environment, dependencies are already installed using `npm install --dev`.
 
 - Run tests:
 
     ```bash
-    npm test run
+    pnpm -C client test run
     ```
 
-By default, npm test launches vitest in watch mode. The run argument disables watch mode for single-pass execution.
+By default, `pnpm -C client test` launches vitest in watch mode. The `run` argument disables watch mode for single-pass execution.
 
 - View coverage:
 
     ```bash
-    npm run coverage
+    pnpm -C client run coverage
     ```
 
 - This project uses **Vite** as its development server and bundler.
@@ -38,21 +36,15 @@ By default, npm test launches vitest in watch mode. The run argument disables wa
 
 Scripts defined in `package.json`:
 
-- **test** - `npx --no-install vitest`
+- **test** - `pnpx --no-install vitest`
 
-- **coverage** - `npm test -- run --coverage`
+- **coverage** - `pnpm -C client test -- run --coverage`
 
 - **docs** - (placeholder for future JSDoc generation)
 
-- **eslint** - `npx eslint --fix .`
+- **eslint** - `pnpm -C client eslint --fix .`
 
-- **prettier** - `npx prettier --write .`
-
----
-
-## Git Hooks
-
-Git hooks are managed by **lefthook** at the repo root. See `lefthook.yml` for the current hook behavior.
+- **prettier** - `pnpm -C client prettier --write .`
 
 ---
 
@@ -184,7 +176,29 @@ The first name in the bracket list is the canonical slot name; remaining names a
 
 Use the consumer-facing API name, not the internal expression. For static slot names (`name="foo"`) with no fallbacks, vue-docgen picks up the name automatically and no annotation is needed.
 
-## Test Structure & Isolation
+---
+
+## JSDoc Type Style
+
+When writing TypeScript types in JSDoc contexts, prefer literal syntax over utility generics.
+
+**Arrays:** Use bracket syntax instead of `Array<T>`. For complex element types (function signatures, unions), wrap the element type in parentheses:
+
+```js
+/** @type {string[]} */
+/** @type {(() => void)[]} */
+/** @type {(string | number)[]} */
+```
+
+**Objects:** Use index signature syntax instead of `Record<K, V>`:
+
+```js
+/** @type {{ [key: string]: Foo }} */
+```
+
+---
+
+## Test Structure and Isolation
 
 - Use `scopedIt(...)` from `@tests/unit/utils.js` in place of `it(...)` for all tests involving Vue components, reactivity, lifecycle hooks, or injections. This runs tests in a fresh `effectScope()` to prevent state leakage.
 
@@ -194,29 +208,21 @@ Use the consumer-facing API name, not the internal expression. For static slot n
 
 ---
 
-## Efficient Test Execution in Codex
+## Test Execution
 
-**Why** - The full suite takes ~50 s in the Codex runner. Tight feedback loops keep the agent responsive while still guarding against regressions.
+For fast feedback during development, run only the spec file you are currently working on:
 
-1. **Work in the spec you just touched.**
-   Disable watch mode and run only that file:
+```bash
+pnpm -C client test run tests/unit/lib/components/MyComponent.spec.js
+```
 
-    ```bash
-    # Example: run a single spec
-    npm test run tests/unit/lib/components/MyComponent.spec.js
-    ```
+Multiple files or a glob may be passed if the feature spans more than one spec.
 
-- You may pass multiple files or a glob if the feature spans more than one.
-- Avoid `npm test` (without `run`) in Codex - it enters watch mode and never exits.
+Run the full suite before marking a task complete or opening a PR:
 
-2. **Run the full suite only once the feature is green**
-   (e.g. before marking the task complete or opening a PR):
-
-    ```bash
-    npm test run
-    ```
-
-This keeps individual test iterations sub-second, while ensuring the library remains stable before code review or CI.
+```bash
+pnpm -C client test run
+```
 
 ---
 
@@ -224,10 +230,8 @@ This keeps individual test iterations sub-second, while ensuring the library rem
 
 Running less than the full suite with coverage is **not recommended**, due to how coverage is collected by `istanbul` and `v8`.
 
-In particular, spec files that dynamically import components (e.g. for mocking) may not produce reliable coverage output in isolation. This limitation is outside this project's control, but it means coverage for a single file is often misleading.
-
-If your task involves coverage, run the full suite:
+Spec files that dynamically import components (e.g. for mocking) may not produce reliable coverage output in isolation. Coverage for a single file is often misleading. Always run the full suite for coverage:
 
 ```bash
-npm run coverage
+pnpm -C client run coverage
 ```
