@@ -17,7 +17,7 @@ parameters:
         default: false
 
 executors:
-    python311:
+    python311-pg:
         docker:
             - image: cimg/python:3.11
             - image: cimg/postgres:15.12
@@ -69,7 +69,7 @@ workflows:
         jobs:
             - pytest/pytest:
                   name: server-pytest
-                  executor: python311
+                  executor: python311-pg
                   context: arrai-global
                   wd: server
                   pytest_args: --cov -n2 --dist loadgroup

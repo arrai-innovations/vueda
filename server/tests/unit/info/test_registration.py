@@ -146,12 +146,9 @@ class TestRegistration:
             serializer_class = ProductSerializer
 
         info.register_serializer(ProductSerializer)
-        info.register(ProductSerializer, ProductViewSet)
-
-        assert len(_registry) == 1
-        for registered_item in _registry.values():
-            assert registered_item["serializer"] == ProductSerializer
-            assert registered_item["viewset"] == ProductViewSet
+        with pytest.raises(ValueError) as exc_info:
+            info.register(ProductSerializer, ProductViewSet)
+        assert "is already registered." in str(exc_info.value)
 
     def test_register_serializer_after_register(self):
         from tests.models import Product
