@@ -11,9 +11,9 @@ import { computed, effectScope, markRaw, shallowReadonly, unref } from "vue";
  * @typedef {object} FieldRendererProps
  * @property {string} formModelName - The fully-qualified name of the field in the form model.
  * @property {import('@vueda/use/useFormModel.js').UseFormModelState} formModel - The reactive form model instance.
- * @property {object} [objectGridFieldSlotProps] - Slot props passed from an ObjectGrid when rendering inline.
- * @property {object} [fieldsetStackedInlineProps] - Slot props used for stacked inline rendering.
- * @property {object} [fieldProps] - Additional field-level props.
+ * @property {{ [key: string]: unknown }} [objectGridFieldSlotProps] - Slot props passed from an ObjectGrid when rendering inline.
+ * @property {{ [key: string]: unknown }} [fieldsetStackedInlineProps] - Slot props used for stacked inline rendering.
+ * @property {{ [key: string]: unknown }} [fieldProps] - Additional field-level props.
  * @property {boolean} [hidden] - Whether to hide the widget from rendering.
  * @property {boolean} isFilter - Whether to this was used with a filter model.
  */
@@ -24,9 +24,9 @@ import { computed, effectScope, markRaw, shallowReadonly, unref } from "vue";
  * @property {import('vue').ComputedRef<import('vue').ComponentInternalInstance>} widgetComponent - The widget component.
  * @property {import('vue').ComputedRef<string>} fieldSlotName - The field slot name.
  * @property {import('vue').ComputedRef<string>} widgetSlotName - The widget slot name.
- * @property {import('vue').ComputedRef<object>} fieldProps - The field props.
- * @property {import('vue').ComputedRef<object>} widgetProps - The widget props.
- * @property {import('vue').ComputedRef<object>} fieldDetail - The field detail.
+ * @property {import('vue').ComputedRef<{ [key: string]: unknown }>} fieldProps - The field props.
+ * @property {import('vue').ComputedRef<{ [key: string]: unknown }>} widgetProps - The widget props.
+ * @property {import('vue').ComputedRef<{ [key: string]: unknown }>} fieldDetail - The field detail.
  * @property {import('vue').ComputedRef<string>} fieldValuePath - The field value path.
  * @property {import('vue').ComputedRef<string>} fieldDefaultSlotName - The field default slot name.
  * @property {import('vue').ComputedRef<string>} widgetDefaultSlotName - The widget default slot name.
@@ -46,7 +46,7 @@ import { computed, effectScope, markRaw, shallowReadonly, unref } from "vue";
  *  - Auto-naming the field input for context or standalone usage
  *
  * @param {FieldRendererProps} props - The props from the FieldRenderer component.
- * @param {Record<string, any>} attrs - Raw `useAttrs()` output (e.g. class, id, etc.).
+ * @param {{ [key: string]: any }} attrs - Raw `useAttrs()` output (e.g. class, id, etc.).
  * @param {import('vue').Slots} slots - Raw `useSlots()` output, for detecting scoped slot names.
  * @param {FieldContext | null} [fieldSetContext] - The injected field context if inside a fieldset; used to compute full path names.
  * @returns {import('vue').Readonly<FieldRendererRawInstance>} - The reactive field renderer instance.

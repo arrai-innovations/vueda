@@ -642,7 +642,7 @@ export const filterFieldMapping = {
 /**
  * Merge custom field mappings into the default set used for forms.
  *
- * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
+ * @param {{ [key: string]: unknown }} customMappings - Additional mappings keyed by field type.
  * @returns {typeof defaultFieldMappings} The updated default field mappings.
  * @example
  * ```js
@@ -663,7 +663,7 @@ export function mergeDefaultFieldMappings(customMappings) {
 /**
  * Merge custom field mappings used when building filter forms.
  *
- * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
+ * @param {{ [key: string]: unknown }} customMappings - Additional mappings keyed by field type.
  * @returns {typeof filterFieldMapping} The updated filter field mappings.
  * @example
  * ```js
@@ -679,7 +679,7 @@ export function mergeFilterFieldMapping(customMappings) {
 /**
  * Merge custom field mappings used for many-to-many selections.
  *
- * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
+ * @param {{ [key: string]: unknown }} customMappings - Additional mappings keyed by field type.
  * @returns {typeof manyFieldMappings} The updated many-to-many field mappings.
  * @example
  * ```js

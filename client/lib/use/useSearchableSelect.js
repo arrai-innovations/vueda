@@ -34,7 +34,7 @@ import { computed, reactive, readonly, ref, toRef, unref, watch } from "vue";
  * @property {boolean} multiple - Whether to allow multiple selections.
  * @property {string} placeholder - The placeholder text for the select.
  * @property {boolean} readonly - Whether the select is readonly.
- * @property {object} extraParams - Extra parameters to pass to the API.
+ * @property {{ [key: string]: unknown }} extraParams - Extra parameters to pass to the API.
  * @property {function} getExtraParams - A function to get extra parameters.
  * @property {boolean} grouped - Whether to group the options.
  * @property {string} groupBy - The field to group the options by.
@@ -152,7 +152,7 @@ function groupBy(objects, groupKey) {
  * @property {import('vue').ComputedRef<any>} placeholder - The placeholder text for the select.
  * @property {import('vue').ComputedRef<any>} query - The search query.
  * @property {import('vue').ComputedRef<any>} selectedLabel - The label of the selected option, to display when closed but not readonly.
- * @property {object} virtualScrollerOptions - The options for the virtual scroller.
+ * @property {{ [key: string]: unknown }} virtualScrollerOptions - The options for the virtual scroller.
  */
 
 /**
@@ -163,7 +163,7 @@ function groupBy(objects, groupKey) {
  *
  * @param {WidgetSearchableSelectProps} props - The props for the widget searchable select.
  * @param {import('../use/useWidget.js').WidgetContext} widgetContext - The widget context.
- * @param {object} selectRef - The ref for the primevue select component.
+ * @param {import('vue').Ref<{ virtualScroller?: { scrollTo: (options: { top: number }) => void } } | null>} selectRef - The ref for the primevue select component.
  * @returns {WidgetSearchableSelect} - The instance of the widget searchable select.
  */
 export function useSearchableSelect(props, widgetContext, selectRef) {

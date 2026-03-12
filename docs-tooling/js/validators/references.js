@@ -125,7 +125,7 @@ export const scanFileRefs = (content) => {
  * @param {string[]} options.files - markdown files to scan
  * @param {string} options.apiRoot - path to docs/reference/api
  * @param {string} options.glossaryFile - path to docs/reference/glossary.md
- * @returns {{ errors: Array<{ file: string, line: number, message: string }>, apiIndexSize: number, glossaryIndexSize: number }}
+ * @returns {{ errors: { file: string, line: number, message: string }[], apiIndexSize: number, glossaryIndexSize: number }}
  */
 export const validateReferences = ({ files, apiRoot, glossaryFile }) => {
     const apiIndex = buildApiIndex(apiRoot);

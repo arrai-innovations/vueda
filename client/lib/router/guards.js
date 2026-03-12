@@ -13,7 +13,7 @@ import isEmpty from "lodash-es/isEmpty.js";
  * Convert transition objects into route-action identifiers.
  * Transition `code` is the canonical machine identifier; `name` is display text only.
  *
- * @param {Array<{code?: string, name?: string}>} transitions
+ * @param {{code?: string, name?: string}[]} transitions
  * @returns {string[]}
  */
 function getTransitionActionCodes(transitions) {
