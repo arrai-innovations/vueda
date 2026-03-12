@@ -21,18 +21,18 @@ This package contains internal tooling that extracts, normalizes, and renders AP
 - `tests/`: Vitest and pytest coverage for tooling.
 - `.generated/`: intermediate artifacts from extract/normalize steps.
 
-## Commit Message Style
+## Test Execution
 
-We use a custom commitlint configuration based on [Conventional Commits](https://www.conventionalcommits.org/). It is customized to have the following valid types:
+For fast feedback during development, run only the spec file you are currently working on:
 
-```
-build, ci, chore, content, docs, feat, fix, perf, refactor, remove, revert, style, test, wip
-```
-
-**Example**:
-
-```
-fix(cli): correct normalize output routing
+```bash
+pnpm -C docs-tooling test -- tests/js/validators/references.test.js
 ```
 
-The scope should reference the affected filename (sans extension), module, or concern.
+Multiple files or a glob may be passed if the change spans more than one spec.
+
+Run the full suite before marking a task complete or opening a PR:
+
+```bash
+pnpm -C docs-tooling test
+```
