@@ -1,0 +1,12 @@
+{
+    "$schema": "https://shadcn-vue.com/schema.json",
+    "style": "default",
+    "tailwind": {
+        "config": "tests/tailwind.css",
+        "cssVariables": true
+    },
+    "aliases": {
+        "components": "@vueda/controls",
+        "utils": "@vueda/utils"
+    }
+}
