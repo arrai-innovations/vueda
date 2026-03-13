@@ -51,8 +51,9 @@ import { useRoute, useRouter } from "vue-router";
 
 /**
  * Full-page list view for a Django model. Renders a paginated, sortable, and searchable data grid with support
- * for column hiding, filter groups, bulk actions, targetless actions, and workflow transitions. Persists sort
- * order, visible columns, and active filters across page visits via the list preference store.
+ * for column hiding, filter groups, bulk actions, targetless actions, workflow transitions, column totals, and
+ * switching between paginated and show-all display. Persists sort order, visible columns, and active filters
+ * across page visits via the list preference store.
  */
 
 defineOptions({
@@ -88,51 +89,6 @@ const props = defineProps({
     calculatedObjectsRules: {
         type: Object,
         default: () => ({}),
-    },
-    /** Theme variant applied to the root element. */
-    variant: {
-        type: String,
-        default: "default",
-    },
-    /** CSS class(es) applied to the outermost wrapper element. */
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the page title header area. */
-    headerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the page title text element. */
-    titleClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the loading indicator. */
-    loadingClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the targetless/bulk action bar. */
-    listActionsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to each individual action button in the list action bar. */
-    listActionClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the per-row detail action bar. */
-    detailActionsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to each individual action button in the detail action bar. */
-    detailActionClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
     /** Additional query parameters merged into every API request. */
     params: {
