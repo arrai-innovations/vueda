@@ -53,7 +53,6 @@ class ProductViewSet(VuedaHistoryViewSet):
 class OptionTypeViewSet(VuedaViewSet):
     queryset = my_models.OptionType.objects.all()
     serializer_class = my_serializers.OptionTypeSerializer
-    ordering_fields = ["name"]
 
 
 class ProductOptionViewSet(VuedaHistoryViewSet):

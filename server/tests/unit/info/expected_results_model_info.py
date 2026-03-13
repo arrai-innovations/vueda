@@ -658,6 +658,9 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": [
+                {"name": "code", "type": "alpha"},
+                {"name": "formatted_name", "type": "alpha"},
+                {"name": "id", "type": "numeric"},
                 {"name": "name", "type": "alpha"},
             ],
             "expected_permissions": [
