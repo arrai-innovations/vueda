@@ -14,11 +14,6 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    /** Additional CSS class(es) applied to the title `<h1>` element. */
-    titleClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
     /** When `true`, a loading spinner is shown inline after the title text. */
     loading: {
         type: Boolean,
