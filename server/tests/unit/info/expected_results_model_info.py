@@ -482,10 +482,26 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "text",
                     "label": "Name",
-                    "lookup_exprs": [
-                        "exact",
-                        "contains",
+                    "lookup_exprs": ["exact"],
+                    "max_length": 255,
+                    "required": False,
+                    "type_db": "CharField",
+                    "type_model": "CharField",
+                    "type_filter": "CharField",
+                    "validators": [
+                        {
+                            "code": "null_characters_not_allowed",
+                            "message": "Null characters are not allowed.",
+                        },
                     ],
+                },
+                "name_icontains": {
+                    "choices": False,
+                    "empty_value": "",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "Name (contains)",
+                    "lookup_exprs": ["icontains"],
                     "max_length": 255,
                     "required": False,
                     "type_db": "CharField",
@@ -1600,7 +1616,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "text",
                     "label": "Last modified",
-                    "lookup_exprs": [],
+                    "lookup_exprs": ["exact"],
                     "suffixes": [
                         "after",
                         "before",
@@ -1622,9 +1638,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "select",
                     "label": "Product quantity",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "model": "cart",
                     "null_label": None,
                     "null_value": "null",
@@ -1645,9 +1659,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "select",
                     "label": "Product name",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "model": "cart",
                     "null_label": None,
                     "null_value": "null",
@@ -2604,9 +2616,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "select",
                     "label": "Shipping Method",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "null_label": None,
                     "null_value": "null",
                     "required": False,
@@ -3831,9 +3841,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "select",
                     "label": "Disabled",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "required": False,
                     "type_db": "BooleanField",
                     "type_model": "BooleanField",
@@ -3851,9 +3859,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "select",
                     "label": "Distributor name",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "model": "product",
                     "null_label": None,
                     "null_value": "null",
@@ -3883,9 +3889,7 @@ EXPECTED_RESULTS = [
                     ],
                     "input_type": "text",
                     "label": "Last Ordered",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "required": False,
                     "type_db": "DateField",
                     "type_model": "DateField",
@@ -3897,10 +3901,26 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "text",
                     "label": "Name",
-                    "lookup_exprs": [
-                        "exact",
-                        "contains",
+                    "lookup_exprs": ["exact"],
+                    "max_length": 255,
+                    "required": False,
+                    "validators": [
+                        {
+                            "code": "null_characters_not_allowed",
+                            "message": "Null characters are not allowed.",
+                        },
                     ],
+                    "type_db": "CharField",
+                    "type_model": "CharField",
+                    "type_filter": "CharField",
+                },
+                "name_icontains": {
+                    "choices": False,
+                    "empty_value": "",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "Name (contains)",
+                    "lookup_exprs": ["icontains"],
                     "max_length": 255,
                     "required": False,
                     "validators": [
@@ -3943,9 +3963,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "select",
                     "label": "Special Care",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "model": "specialcare",
                     "null_label": None,
                     "null_value": "null",
@@ -3965,9 +3983,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "select",
                     "label": "Tangible Type",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "model": "tangibletype",
                     "null_label": None,
                     "null_value": "null",
@@ -4922,9 +4938,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "select",
                     "label": "Disabled",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "required": False,
                     "type_db": "BooleanField",
                     "type_model": "BooleanField",
@@ -4936,10 +4950,26 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "text",
                     "label": "Name",
-                    "lookup_exprs": [
-                        "exact",
-                        "contains",
+                    "lookup_exprs": ["exact"],
+                    "max_length": 255,
+                    "required": False,
+                    "validators": [
+                        {
+                            "code": "null_characters_not_allowed",
+                            "message": "Null characters are not allowed.",
+                        },
                     ],
+                    "type_db": "CharField",
+                    "type_model": "CharField",
+                    "type_filter": "CharField",
+                },
+                "name_icontains": {
+                    "choices": False,
+                    "empty_value": "",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "Name (contains)",
+                    "lookup_exprs": ["icontains"],
                     "max_length": 255,
                     "required": False,
                     "validators": [
@@ -4960,9 +4990,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "number",
                     "label": "Quantity Available",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "required": False,
@@ -4980,7 +5008,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "number",
                     "label": "Price",
-                    "lookup_exprs": [],
+                    "lookup_exprs": ["exact"],
                     "max_digits": 12,
                     "suffixes": [
                         "min",
@@ -4997,10 +5025,26 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "text",
                     "label": "SKU",
-                    "lookup_exprs": [
-                        "exact",
-                        "contains",
+                    "lookup_exprs": ["exact"],
+                    "max_length": 255,
+                    "required": False,
+                    "validators": [
+                        {
+                            "code": "null_characters_not_allowed",
+                            "message": "Null characters are not allowed.",
+                        },
                     ],
+                    "type_db": "CharField",
+                    "type_model": "CharField",
+                    "type_filter": "CharField",
+                },
+                "sku_icontains": {
+                    "choices": False,
+                    "empty_value": "",
+                    "hidden": False,
+                    "input_type": "text",
+                    "label": "SKU (contains)",
+                    "lookup_exprs": ["icontains"],
                     "max_length": 255,
                     "required": False,
                     "validators": [
@@ -5873,9 +5917,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "number",
                     "label": "Cost",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "max_digits": 12,
                     "suffixes": [
                         "min",
@@ -5898,9 +5940,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "select",
                     "label": "Is added",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "required": True,
                     "type_db": "BooleanField",
                     "type_model": "BooleanField",
@@ -5916,9 +5956,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "number",
                     "label": "Margin",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "max_digits": 12,
                     "suffixes": [
                         "min",
@@ -5939,9 +5977,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "number",
                     "label": "Price",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "max_digits": 12,
                     "suffixes": [
                         "min",
@@ -5961,9 +5997,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "number",
                     "label": "Quantity",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "suffixes": [
                         "min",
                         "max",
@@ -5991,9 +6025,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "select",
                     "label": "Reason",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "model": "inventoryrecordreason",
                     "null_label": None,
                     "null_value": "null",
@@ -6011,9 +6043,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "input_type": "text",
                     "label": "When",
-                    "lookup_exprs": [
-                        "exact",
-                    ],
+                    "lookup_exprs": ["exact"],
                     "suffixes": [
                         "after",
                         "before",

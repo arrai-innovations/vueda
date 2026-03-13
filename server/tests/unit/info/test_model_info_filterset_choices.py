@@ -376,5 +376,5 @@ class TestModelInfoFiltersetChoices:
         assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
         assert response.data["detail"] == (
             "Invalid filter 'invalid_filterset_field'. Valid filters are disabled, "
-            "distributor, id, last_ordered, name, quantity, special_care, tangible_type."
+            "distributor, id, last_ordered, name, name_icontains, quantity, special_care, tangible_type."
         )
