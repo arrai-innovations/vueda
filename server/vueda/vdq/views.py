@@ -21,6 +21,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from vueda.core.open_api import conditional_extend_schema_decorator
+from vueda.core.open_api import conditional_open_api_types
 from vueda.vdq.handlers import TwilioQueueItemHandler
 from vueda.vdq.models import AnyMailQueueItemAttachment
 from vueda.vdq.models import QueueItem
@@ -50,6 +52,7 @@ def validate_twilio_request(f):
     return decorated_function
 
 
+@conditional_extend_schema_decorator(responses={204: None, 403: None})
 @method_decorator(validate_twilio_request, name="dispatch")
 @method_decorator(csrf_exempt, name="dispatch")
 class TwilioSMSWebhook(APIView):
@@ -84,6 +87,7 @@ class TwilioSMSWebhook(APIView):
         return Response(status=204)
 
 
+@conditional_extend_schema_decorator(responses={200: conditional_open_api_types().BINARY})
 class PrivateAttachmentView(APIView):
     permission_classes = [IsAuthenticated]
 

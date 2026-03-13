@@ -74,6 +74,11 @@ export const fetchHelper = (
             signal: controller.signal,
         })
             .then(async (response) => {
+                if (response.ok && emptyResponseCodes.has(response.status)) {
+                    resolve(emptyResponseValue);
+                    return;
+                }
+
                 const responseData = await getJsonOrText(response);
                 if (!response.ok) {
                     if (emptyResponseCodes.has(response.status) && emptyResponseValue !== undefined) {

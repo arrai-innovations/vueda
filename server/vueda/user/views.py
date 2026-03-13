@@ -53,6 +53,7 @@ from django.views.decorators.debug import sensitive_variables
 from django.views.generic import TemplateView
 from django.views.generic.detail import SingleObjectMixin
 from hashids import Hashids
+from rest_framework import serializers
 from rest_framework import status
 from rest_framework import status as drf_status
 from rest_framework.decorators import api_view
@@ -68,6 +69,8 @@ from rest_framework.views import APIView
 from vueda.core.db import Array
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.open_api import conditional_extend_schema_decorator
+from vueda.core.open_api import conditional_inline_serializer
+from vueda.core.open_api import conditional_open_api_types
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.adapters import get_adapter
@@ -107,6 +110,17 @@ class WhoIsView(RetrieveAPIView):
 
 @conditional_extend_schema_decorator(
     summary="Forgot password",
+    responses={
+        204: None,
+        400: conditional_inline_serializer(
+            "ForgotPasswordValidationError",
+            fields={"email": serializers.ListField(child=serializers.CharField())},
+        ),
+        429: conditional_inline_serializer(
+            "ForgotPasswordRateLimitError",
+            fields={"detail": serializers.CharField()},
+        ),
+    },
 )
 class VuedaForgotPasswordView(GenericAPIView):
     serializer_class = ForgotPasswordSerializer
@@ -115,47 +129,66 @@ class VuedaForgotPasswordView(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        try:
-            email = request.data.get("email", None)
-            active_user = (
-                get_user_model()
-                .objects.filter(
-                    **{
-                        "email__iexact": email,
-                        "is_active": True,
-                    }
-                )
-                .first()
-            )
-            if (
-                active_user is not None
-                and active_user.has_usable_password()
-                and _unicode_ci_compare(email, active_user.email)
-            ):
-                cache_key = f"password-forgot-cooldown:{email.lower()}"
-                if cache.get(cache_key):
-                    return Response(
-                        {"result": "error", "message": "You must wait before requesting another password reset."},
-                        status=drf_status.HTTP_429_TOO_MANY_REQUESTS,
-                    )
-
-                url = active_user.generate_reset_url()
-                context = {
-                    "user": active_user,
-                    "reset_url": url,
+        email = serializer.validated_data["email"]
+        active_user = (
+            get_user_model()
+            .objects.filter(
+                **{
+                    "email__iexact": email,
+                    "is_active": True,
                 }
-                get_adapter().send_mail(email, active_user.name, "forgot_password", context)
-                cache.set(cache_key, True, timeout=60)
-            else:
-                return Response({"email": ["Email not found or user is inactive. "]}, status=400)
-        except Exception as e:
-            return Response({"result": "error", "message": str(e)}, content_type="application/json", status=500)
+            )
+            .first()
+        )
+        if (
+            active_user is not None
+            and active_user.has_usable_password()
+            and _unicode_ci_compare(email, active_user.email)
+        ):
+            cache_key = f"password-forgot-cooldown:{email.lower()}"
+            if cache.get(cache_key):
+                return Response(
+                    {"detail": "You must wait before requesting another password reset."},
+                    status=drf_status.HTTP_429_TOO_MANY_REQUESTS,
+                )
 
-        return Response({"result": "success", "message": "Forgot Password Email Sent"}, content_type="application/json")
+            url = active_user.generate_reset_url()
+            context = {
+                "user": active_user,
+                "reset_url": url,
+            }
+            get_adapter().send_mail(email, active_user.name, "forgot_password", context)
+            cache.set(cache_key, True, timeout=60)
+        else:
+            return Response({"email": ["Email not found or user is inactive. "]}, status=400)
+
+        return Response(status=drf_status.HTTP_204_NO_CONTENT)
 
 
 @conditional_extend_schema_decorator(
+    methods=["GET"],
+    summary="Validate reset token",
+    responses={
+        200: conditional_inline_serializer(
+            "ResetTokenValid",
+            fields={"detail": serializers.CharField()},
+        ),
+        400: conditional_inline_serializer(
+            "ResetTokenInvalid",
+            fields={"detail": serializers.CharField()},
+        ),
+    },
+)
+@conditional_extend_schema_decorator(
+    methods=["POST"],
     summary="Reset password",
+    responses={
+        204: None,
+        400: conditional_inline_serializer(
+            "ResetPasswordValidationError",
+            fields={"non_field_errors": serializers.ListField(child=serializers.CharField())},
+        ),
+    },
 )
 class VuedaResetPasswordView(GenericAPIView):
     serializer_class = ResetPasswordSerializer
@@ -168,18 +201,22 @@ class VuedaResetPasswordView(GenericAPIView):
         pk = request.query_params.get("pk")
         token = request.query_params.get("token")
         if not pk or not token:
+            return Response({"detail": "Missing parameters."}, status=drf_status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uid = hashids.decode(pk)[0]
+            user = get_user_model().objects.get(pk=uid)
+        except (IndexError, get_user_model().DoesNotExist):
             return Response(
-                {"result": "invalid", "error": "Missing parameters."}, status=drf_status.HTTP_400_BAD_REQUEST
+                {"detail": "This token is invalid or has already been used."},
+                status=drf_status.HTTP_400_BAD_REQUEST,
             )
 
-        uid = hashids.decode(pk)[0]
-        user = get_user_model().objects.get(pk=uid)
-
         if token_validator.check_token(user, token):
-            return Response({"result": "success", "message": "Token is valid."}, status=drf_status.HTTP_200_OK)
+            return Response({"detail": "Token is valid."}, status=drf_status.HTTP_200_OK)
         else:
             return Response(
-                {"result": "invalid", "message": "This token is invalid or has already been used."},
+                {"detail": "This token is invalid or has already been used."},
                 status=drf_status.HTTP_400_BAD_REQUEST,
             )
 
@@ -188,37 +225,38 @@ class VuedaResetPasswordView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        token_validator = Sha3PasswordResetTokenGenerator()
+        hashids = Hashids(min_length=16)
+
+        password = serializer.data["password"]
+        pk = serializer.data["pk"]
+        token = serializer.data["token"]
+
         try:
-            token_validator = Sha3PasswordResetTokenGenerator()
-            hashids = Hashids(min_length=16)
-
-            password = serializer.data["password"]
-            pk = serializer.data["pk"]
-            token = serializer.data["token"]
-
             uid = hashids.decode(pk)[0]
             user = get_user_model().objects.get(pk=uid)
+        except (IndexError, get_user_model().DoesNotExist):
+            non_field_error_key = api_settings.NON_FIELD_ERRORS_KEY
+            return Response(
+                {non_field_error_key: ["This token is invalid or has already been used."]},
+                status=400,
+            )
 
-            if token_validator.check_token(user, token):
-                password_validation.validate_password(password, user)
+        if token_validator.check_token(user, token):
+            password_validation.validate_password(password, user)
 
-                user.set_password(password)
-                user.save()
+            user.set_password(password)
+            user.save()
 
-            else:
-                non_field_error_key = api_settings.NON_FIELD_ERRORS_KEY
+        else:
+            non_field_error_key = api_settings.NON_FIELD_ERRORS_KEY
 
-                return Response(
-                    {non_field_error_key: ["This token is invalid or has already been used."]},
-                    status=400,
-                )
+            return Response(
+                {non_field_error_key: ["This token is invalid or has already been used."]},
+                status=400,
+            )
 
-        except Exception as e:
-            return Response({"result": "error", "message": str(e)}, status=500)
-
-        return Response(
-            {"result": "success", "message": "Password Updated."},
-        )
+        return Response(status=drf_status.HTTP_204_NO_CONTENT)
 
 
 @conditional_extend_schema_decorator(
@@ -400,7 +438,8 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": ["Unable to find the permission for the group you want to delete."],
-                }
+                },
+                status=400,
             )
 
         group = Group.objects.filter(pk=group_id).first()
@@ -409,7 +448,8 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": ["Unable to find the group to delete."],
-                }
+                },
+                status=400,
             )
 
         group_name = group.name
@@ -446,7 +486,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": [str(e)],
-                }
+                },
+                status=400,
             )
 
     def _post(self, request, *args, **kwargs):
@@ -478,7 +519,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": errors,
-                }
+                },
+                status=400,
             )
 
         permission = Permission.objects.filter(pk=permission_id).first()
@@ -487,7 +529,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": ["Unable to find the permission for the group you want to change."],
-                }
+                },
+                status=400,
             )
 
         if group_id is None:  # New Group
@@ -502,7 +545,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                         "errors": [
                             f"You already have an association between &quot;{group_name}&quot; and this permission."
                         ],
-                    }
+                    },
+                    status=400,
                 )
 
             permission.group_set.add(group)
@@ -527,7 +571,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                 {
                     "state": "erred",
                     "errors": ["Unable to find the group to change."],
-                }
+                },
+                status=400,
             )
         group_name_old = group.name
         group.name = group_name
@@ -539,7 +584,8 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                         "errors": [
                             f"You already have an association between &quot;{group_name}&quot; and this permission."
                         ],
-                    }
+                    },
+                    status=400,
                 )
 
             group.save()
@@ -586,18 +632,34 @@ class AllAuthAdapterDispatchMixin:
         raise VuedaValidationError(errors)
 
 
+@conditional_extend_schema_decorator(summary="Log in", responses={200: conditional_open_api_types().OBJECT})
 class AllAuthLoginView(AllAuthAdapterDispatchMixin, LoginView, VuedaAllAuthViewAdapter):
     pass
 
 
+@conditional_extend_schema_decorator(
+    summary="Verify two-factor authentication", responses={200: conditional_open_api_types().OBJECT}
+)
 class AllAuthTwoFactorAuthView(AllAuthAdapterDispatchMixin, AuthenticateView, VuedaAllAuthViewAdapter):
     pass
 
 
+@conditional_extend_schema_decorator(summary="Re-authenticate", responses={200: conditional_open_api_types().OBJECT})
 class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView, VuedaAllAuthViewAdapter):
     pass
 
 
+@conditional_extend_schema_decorator(
+    methods=["GET"],
+    summary="List available TOTP delivery methods",
+    responses={
+        200: conditional_inline_serializer(
+            "TotpMethodsResponse",
+            fields={"methods": serializers.ListField(child=serializers.CharField())},
+        )
+    },
+)
+@conditional_extend_schema_decorator(methods=["POST"], summary="Send a TOTP code", responses={204: None})
 @api_view(["GET", "POST"])
 @permission_classes([Authenticating])
 def totp_code(request):

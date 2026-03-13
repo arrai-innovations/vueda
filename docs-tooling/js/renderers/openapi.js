@@ -12,6 +12,7 @@ import {
     renderHeading,
     renderTable,
 } from "./markdown.js";
+import path from "node:path";
 
 function renderEndpoint(node, index, pathMap, filePath) {
     const lines = [];
@@ -89,6 +90,7 @@ function renderSchema(node, filePath) {
 
 export function renderOpenApiNode(node, index, pathMap, filePath) {
     const frontmatter = renderFrontmatter({
+        title: node.displayName,
         id: node.id,
         kind: node.kind,
         source: "openapi",
@@ -96,7 +98,7 @@ export function renderOpenApiNode(node, index, pathMap, filePath) {
 
     const lines = [];
     lines.push(frontmatter);
-    lines.push(renderHeading(1, normalizeTitle(node.name)), "");
+    lines.push(renderHeading(1, normalizeTitle(node.displayName || node.name)), "");
 
     if (node.kind === "endpoint") {
         lines.push(renderEndpoint(node, index, pathMap, filePath));
@@ -105,6 +107,21 @@ export function renderOpenApiNode(node, index, pathMap, filePath) {
     }
 
     return { filePath, content: lines.join("\n").trimEnd() + "\n" };
+}
+
+function renderEndpointGroupIndex(groupName, endpoints, pathMap, groupIndexPath) {
+    const id = `rest:index:${groupName}`;
+    const lines = [
+        renderFrontmatter({ title: groupName, id, kind: "index", source: "openapi" }),
+        renderHeading(1, groupName),
+        "",
+    ];
+    for (const node of endpoints) {
+        const label = node.displayName || node.name;
+        lines.push(`- ${linkToPath(label, pathMap.get(node.id), groupIndexPath)}`);
+    }
+    lines.push("");
+    return lines.join("\n").trimEnd() + "\n";
 }
 
 export function renderOpenApiBundle(bundle) {
@@ -117,5 +134,22 @@ export function renderOpenApiBundle(bundle) {
         const { content } = renderOpenApiNode(node, index, pathMap, filePath);
         outputs.set(filePath, content);
     }
+
+    const endpointsByGroup = new Map();
+    for (const node of bundle.nodes) {
+        if (node.kind !== "endpoint") continue;
+        const filePath = pathMap.get(node.id);
+        if (!filePath) continue;
+        const groupDir = path.posix.dirname(filePath);
+        if (!endpointsByGroup.has(groupDir)) endpointsByGroup.set(groupDir, []);
+        endpointsByGroup.get(groupDir).push(node);
+    }
+    for (const [groupDir, endpoints] of endpointsByGroup) {
+        const groupName = path.posix.basename(groupDir);
+        const groupIndexPath = path.posix.join(groupDir, "index.md");
+        endpoints.sort((a, b) => (a.displayName || a.name).localeCompare(b.displayName || b.name));
+        outputs.set(groupIndexPath, renderEndpointGroupIndex(groupName, endpoints, pathMap, groupIndexPath));
+    }
+
     return outputs;
 }

@@ -99,4 +99,63 @@ describe("renderOpenApiBundle", () => {
             expect(page).toContain('source: "openapi"');
         }
     });
+
+    it("endpoint page H1 falls back to operation ID when no summary", () => {
+        const outputs = buildOutputs();
+        const page = outputs.get("rest/widgets/widgets_retrieve.md");
+        expect(page).toContain("# widgets_retrieve");
+    });
+
+    it("endpoint page H1 uses summary (displayName) when available", () => {
+        const payloadWithSummary = {
+            openapi: "3.0.3",
+            info: { title: "Test API", version: "0.1.0" },
+            paths: {
+                "/widgets/{id}": {
+                    get: {
+                        operationId: "widgets_retrieve",
+                        summary: "Retrieve a widget",
+                        description: "Fetch a widget by its ID.",
+                        responses: { 200: { description: "OK" } },
+                    },
+                },
+            },
+        };
+        const bundle = new OpenApiNormalizer().normalize(payloadWithSummary);
+        const outputs = renderOpenApiBundle(bundle);
+        const page = outputs.get("rest/widgets/widgets_retrieve.md");
+        expect(page).toContain("# Retrieve a widget");
+        expect(page).toContain('title: "Retrieve a widget"');
+    });
+
+    it("generates a group index page for each endpoint group", () => {
+        const outputs = buildOutputs();
+        expect(outputs.has("rest/widgets/index.md")).toBe(true);
+    });
+
+    it("group index page uses displayName as link label when available", () => {
+        const payloadWithSummary = {
+            openapi: "3.0.3",
+            info: { title: "Test API", version: "0.1.0" },
+            paths: {
+                "/widgets/{id}": {
+                    get: {
+                        operationId: "widgets_retrieve",
+                        summary: "Retrieve a widget",
+                        responses: { 200: { description: "OK" } },
+                    },
+                },
+            },
+        };
+        const bundle = new OpenApiNormalizer().normalize(payloadWithSummary);
+        const outputs = renderOpenApiBundle(bundle);
+        const indexPage = outputs.get("rest/widgets/index.md");
+        expect(indexPage).toContain("Retrieve a widget");
+    });
+
+    it("group index page falls back to operation ID when no summary", () => {
+        const outputs = buildOutputs();
+        const indexPage = outputs.get("rest/widgets/index.md");
+        expect(indexPage).toContain("widgets_retrieve");
+    });
 });
