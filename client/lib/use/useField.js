@@ -38,11 +38,11 @@ export const FIELD_PROPS = {
     required: { type: Boolean, default: null },
     /** Error message shown when a required field is left empty. */
     requiredMessage: { type: String, default: "This field is required." },
-    /** Custom function that determines whether the field should be required based on dependency values. */
+    /** Custom function called with resolved field dependency values; determines whether the field should be required. */
     shouldRequireFn: { type: Function, default: null },
-    /** Custom function that checks whether a value violates the required rule; defaults to rejecting null, undefined, empty string, false, and 0. */
+    /** Custom function called with the current field value; checks whether the value violates the required rule. Defaults to rejecting null, undefined, empty string, false, and 0. */
     isRequiredViolation: { type: Function, default: null },
-    /** Custom validation function; should return true when valid or an error message string when invalid. */
+    /** Custom validation function called with the current field value and resolved field dependency values; should return true when valid or an error message string when invalid. */
     validate: { type: Function, default: null },
 
     // *** Display ***
