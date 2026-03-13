@@ -8,10 +8,8 @@ import pick from "lodash-es/pick.js";
 import { computed, inject, provide, reactive, toRef, toRefs, useAttrs } from "vue";
 
 /**
- * Wraps WidgetLabel with widget context derived from explicit props rather than
- * from a surrounding form context. Used inside tabular inline field sets where
- * each cell must resolve its label, help text, and validation state from the
- * field value path rather than from injected context.
+ * Tabular inline column header label. Synthesizes a widget context from props
+ * since column headers have no rendered widget of their own.
  *
  * @vueda-slot-forward WidgetLabel
  */
