@@ -18,7 +18,7 @@ import { computed, useSlots } from "vue";
 
 /**
  * A versatile text-input widget that switches between PrimeVue InputText, Password, InputNumber,
- * InputOtp, and InputMask based on the `type` prop, wrapped with a label and optional prefix/suffix addons.
+ * InputOtp, and InputMask based on the `type` prop, with optional prefix/suffix addons.
  */
 defineOptions({
     inheritAttrs: false,
