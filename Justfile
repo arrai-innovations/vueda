@@ -24,6 +24,24 @@ test-docs-tooling-js:
 test-docs-tooling-py:
   cd {{justfile_directory()}}/docs-tooling && uv run --group test --no-sync pytest
 
+coverage:
+  pnpx concurrently -n server,client,docs-tooling -c green,cyan,magenta "just coverage-server" "just coverage-client" "just coverage-docs-tooling"
+
+coverage-server:
+  cd {{justfile_directory()}}/server && uv run --no-sync pytest --cov
+
+coverage-client:
+  cd {{justfile_directory()}}/client && pnpm coverage
+
+coverage-docs-tooling:
+  pnpx concurrently -n js,py -c cyan,green "just coverage-docs-tooling-js" "just coverage-docs-tooling-py"
+
+coverage-docs-tooling-js:
+  pnpm -C {{justfile_directory()}}/docs-tooling coverage
+
+coverage-docs-tooling-py:
+  cd {{justfile_directory()}}/docs-tooling && uv run --group test --no-sync pytest --cov
+
 check:
   pnpx concurrently -n ruff,eslint,prettier -c green,cyan,magenta "just check-ruff" "just check-eslint" "just check-prettier"
 
