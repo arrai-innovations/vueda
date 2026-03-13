@@ -6,7 +6,7 @@ import omit from "lodash-es/omit.js";
 
 /**
  * Field component for boolean values. Provides a slot-based rendering surface
- * and validates that the value is a boolean (or null when nullable).
+ * and warns in development if the value is not a boolean (or null when nullable).
  */
 defineOptions({
     inheritAttrs: false,
