@@ -25,24 +25,35 @@ This repo uses two workspace managers, both rooted here:
 
 ### Command naming pattern
 
-Most commands follow a hierarchical naming pattern: `<verb>` runs all packages in
-parallel; `<verb>-<package>` runs one package. For packages that contain both a JS
-and a Python component (`docs-tooling`), a further `<verb>-<package>-js` /
-`<verb>-<package>-py` split exists.
+`test` and `coverage` follow a `<verb>-<package>` pattern: `<verb>` runs all
+packages in parallel; `<verb>-<package>` runs one package. For packages that
+contain both a JS and a Python component (`docs-tooling`), a further
+`<verb>-<package>-js` / `<verb>-<package>-py` split exists.
+
+`check` and `fix` split by tool rather than package: `<verb>-<tool>`.
 
 Packages: `server`, `client`, `docs-tooling` (and its sub-targets `docs-tooling-js`, `docs-tooling-py`).
 
-Verbs and their sub-targets:
+`test` and `coverage` sub-targets:
 
 | Verb | server | client | docs-tooling-js | docs-tooling-py |
 |------|--------|--------|-----------------|-----------------|
-| `test` | `pytest` | `pnpm test` | `vitest run` | `pytest` |
-| `coverage` | `pytest --cov` | `pnpm coverage` | `vitest run --coverage` | `pytest --cov` |
-| `check` | `ruff check` | `eslint` + `prettier` (check) | | |
-| `fix` | `ruff check --fix` + `ruff format` | `eslint --fix` + `prettier --write` | | |
+| `test` | `test-server` | `test-client` | `test-docs-tooling-js` | `test-docs-tooling-py` |
+| `coverage` | `coverage-server` | `coverage-client` | `coverage-docs-tooling-js` | `coverage-docs-tooling-py` |
 
-So, for example, `just test-client`, `just coverage-server`, and
-`just coverage-docs-tooling-py` are all valid commands derivable from this pattern.
+`check` and `fix` sub-targets:
+
+| Recipe | Runs |
+|--------|------|
+| `check-ruff` | `ruff check` (server + docs-tooling) |
+| `check-eslint` | `eslint` check (client) |
+| `check-prettier` | `prettier` check (client) |
+| `fix-ruff` | `ruff check --fix` + `ruff format` |
+| `fix-eslint` | `eslint --fix` (client) |
+| `fix-prettier` | `prettier --write` (client) |
+
+So, for example, `just test-client`, `just coverage-server`,
+`just coverage-docs-tooling-py`, and `just check-eslint` are all valid commands.
 
 ## Commit Message Style
 
