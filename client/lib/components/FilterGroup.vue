@@ -181,7 +181,6 @@ const theme = useTheme("FilterGroup", props);
                 >
                     <filter-component
                         :filter-details="filterContext?.filterableDetails[filter] ?? {}"
-                        :filter-form-values="filterFormsValues[filter]"
                         :filter-name="filter"
                         :errored="filterError?.erroredFilters?.includes(filter)"
                         :index="index"

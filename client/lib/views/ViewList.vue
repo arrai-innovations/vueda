@@ -680,7 +680,6 @@ const columnOptions = computed(() => {
                 :view="viewName"
                 :error="instanceList.state.error"
                 :errored="instanceList.state.errored"
-                :filter-forms-values="props.filterFormsValues"
                 :filterable-details="props.filterableDetails"
                 :filterables="props.filterables"
                 @filter-change="emit('filter-change', $event)"
