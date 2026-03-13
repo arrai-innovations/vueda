@@ -17,7 +17,7 @@ import { computed, inject, reactive, ref, toRef, useSlots, watch } from "vue";
 import { useRouter } from "vue-router";
 
 /**
- * Paginated list view showing the django-simple-history audit trail for a specific model instance,
+ * Paginated list view showing the history audit trail for a specific model instance,
  * displaying field-level changes with old and new values in a table or card layout.
  *
  * @vueda-slot-forward PaginationComponent
