@@ -35,6 +35,7 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("name", models.CharField(max_length=255)),
+                ("description", models.CharField(max_length=1024)),
                 (
                     "formatted_name",
                     models.GeneratedField(
@@ -87,14 +88,6 @@ class Migration(migrations.Migration):
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("code", models.CharField(db_index=True, max_length=255, unique=True)),
                 ("field_that_contains_the_name", models.CharField(blank=True, max_length=255)),
-                (
-                    "formatted_name",
-                    models.GeneratedField(
-                        db_persist=True,
-                        expression=models.F("field_that_contains_the_name"),
-                        output_field=models.CharField(),
-                    ),
-                ),
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
@@ -142,6 +135,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
+                "ordering": ["customer__user__name"],
             },
         ),
         migrations.CreateModel(
@@ -230,6 +224,7 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID")),
                 ("name", models.CharField(max_length=255)),
+                ("description", models.CharField(max_length=1024)),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField(db_index=True)),
                 ("history_change_reason", models.CharField(max_length=100, null=True)),
@@ -422,6 +417,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
+                "ordering": ["name"],
                 "unique_together": {("distributor", "name")},
             },
         ),
@@ -571,23 +567,10 @@ class Migration(migrations.Migration):
                     "product_option",
                     models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.productoption"),
                 ),
-                (
-                    "formatted_name",
-                    models.GeneratedField(
-                        db_persist=True,
-                        expression=django.db.models.functions.text.Concat(
-                            models.Value(" - "),
-                            django.db.models.functions.comparison.Cast(
-                                models.F("quantity"), output_field=models.CharField()
-                            ),
-                            models.Value("x "),
-                        ),
-                        output_field=models.CharField(),
-                    ),
-                ),
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
+                "default_related_name": "order_items",
                 "verbose_name": "ORDER item",
                 "verbose_name_plural": "ORDER items",
             },
@@ -626,21 +609,6 @@ class Migration(migrations.Migration):
                 (
                     "product_option",
                     models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.productoption"),
-                ),
-                (
-                    "formatted_name",
-                    models.GeneratedField(
-                        db_persist=True,
-                        expression=django.db.models.functions.text.Concat(
-                            models.Value(" - "),
-                            models.Value(" "),
-                            django.db.models.functions.comparison.Cast(
-                                models.F("quantity"), output_field=models.CharField()
-                            ),
-                            models.Value("x "),
-                        ),
-                        output_field=models.CharField(),
-                    ),
                 ),
             ],
             options={
@@ -731,23 +699,29 @@ class Migration(migrations.Migration):
                     "product_option",
                     models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.productoption"),
                 ),
-                (
-                    "formatted_name",
-                    models.GeneratedField(
-                        db_persist=True,
-                        expression=django.db.models.functions.text.Concat(
-                            django.db.models.functions.comparison.Cast(
-                                models.F("quantity"), output_field=models.CharField()
-                            ),
-                            models.Value("x "),
-                        ),
-                        output_field=models.CharField(),
-                    ),
-                ),
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "cart_items",
+            },
+        ),
+        migrations.CreateModel(
+            name="PackingBox",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=255)),
+                ("depth", models.DecimalField(decimal_places=4, max_digits=12)),
+                ("height", models.DecimalField(decimal_places=4, max_digits=12)),
+                ("width", models.DecimalField(decimal_places=4, max_digits=12)),
+                ("carrying_weight", models.DecimalField(decimal_places=4, max_digits=12)),
+                ("in_stock", models.BooleanField(db_default=False)),
+                ("number_in_stock", models.IntegerField(db_default=0)),
+            ],
+            options={
+                "verbose_name": "Packing Box",
+                "verbose_name_plural": "Packing Boxes",
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
         migrations.RunPython(make_sure_permissions_exist, reverse_code=migrations.RunPython.noop),
