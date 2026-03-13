@@ -20,7 +20,7 @@ import { computed, inject, onUnmounted, provide, reactive, readonly, toRef, unre
  */
 export const FIELD_PROPS = {
     // *** Identification & Metadata ***
-    /** The field name, used as the path to look up and store the value in the form model. */
+    /** The field name, used as the path to look up and store the value in the form state. */
     name: { type: String, required: true },
     /** The name of the form model for configuration lookup; inherits from form context when omitted. */
     formModelName: { type: String, default: undefined },
