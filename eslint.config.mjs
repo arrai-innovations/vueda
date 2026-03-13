@@ -123,7 +123,7 @@ const eslintConfig = [
         files: ["client/lib/**/*.vue", "docs/**/*.vue"],
         ...vueConfig,
     },
-{
+    {
         name: "tests",
         files: ["client/tests/**/*.{js,cjs,mjs}", "docs-tooling/tests/**/*.{js,cjs,mjs}"],
         plugins: {
