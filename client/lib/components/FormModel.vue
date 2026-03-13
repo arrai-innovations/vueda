@@ -219,31 +219,6 @@ const props = defineProps({
         default: undefined,
         description: "A map of field paths to props, as overrides.",
     },
-    /** CSS class applied to the root wrapper element. */
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class applied to the fields container element. */
-    fieldsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class applied to each individual field wrapper. */
-    fieldClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class applied to the slot area rendered before the fields list. */
-    beforeFieldsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class applied to the slot area rendered after the fields list. */
-    afterFieldsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
     ...THEME_OVERRIDE_PROPS,
 });
 const theme = useTheme("FormModel", props);
