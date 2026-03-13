@@ -361,7 +361,7 @@ class TestStoreProductViewSet:
         )
         assert (
             str(response.data["distributor.brands"][0]["message"])
-            == "Invalid field.  Valid fields are available_actions, current_history_id, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.current_history_id, distributor.first_history_entry, distributor.formatted_name, distributor.history, distributor.id, distributor.last_history_entry, distributor.name, first_history_entry, formatted_name, future_sale_dates, history, id, internal_comments, last_history_entry, last_ordered, last_ten_order_betweens, name, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
+            == "Invalid field.  Valid fields are available_actions, current_history_id, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.current_history_id, distributor.description, distributor.first_history_entry, distributor.formatted_name, distributor.history, distributor.id, distributor.last_history_entry, distributor.name, first_history_entry, formatted_name, future_sale_dates, history, id, internal_comments, last_history_entry, last_ordered, last_ten_order_betweens, name, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
         assert "history" not in response.data, f"response.data: {response.data}"
 
