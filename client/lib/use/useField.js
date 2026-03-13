@@ -22,7 +22,7 @@ export const FIELD_PROPS = {
     // *** Identification & Metadata ***
     /** The field name, used as the path to look up and store the value in the form state. */
     name: { type: String, required: true },
-    /** The name of the form model for configuration lookup; inherits from form context when omitted. */
+    /** The name of the form model for configuration lookup; usually provided by a parent field renderer. */
     formModelName: { type: String, default: undefined },
     /** Other fields whose server errors should be cleared when this field's value changes. */
     /* v8 ignore next 1 */
