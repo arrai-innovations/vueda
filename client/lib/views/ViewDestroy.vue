@@ -27,16 +27,6 @@ const props = defineProps({
         type: [String, Array],
         required: true,
     },
-    /** Visual variant passed through to the underlying action form. */
-    variant: {
-        type: String,
-        default: "default",
-    },
-    /** Additional CSS classes applied to the outer wrapper element. */
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
 });
 
 const { modelConfig, handleDelete, instanceList } = useViewDestroy(props);
