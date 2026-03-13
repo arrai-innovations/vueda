@@ -20,11 +20,6 @@ import { computed, effectScope, onMounted, reactive, toRef, useSlots, watch } fr
 defineOptions({});
 
 const props = defineProps({
-    /** Field name used as the card title in card layout mode. */
-    titleFieldName: {
-        type: String,
-        default: "",
-    },
     /** Ordered array of row objects to render. */
     objectsInOrder: {
         type: Array,
