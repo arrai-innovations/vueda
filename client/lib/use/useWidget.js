@@ -14,31 +14,31 @@ import { computed, inject, onUnmounted, provide, reactive, readonly, ref, toRef,
  */
 export const WIDGET_PROPS = {
     // *** Identification & Metadata ***
-    /** The widget name; inherits from the surrounding field context when omitted. */
+    /** The widget name; falls back to the field context value when omitted. */
     name: {
         type: String,
         default: undefined,
     },
 
     // *** Display ***
-    /** The label displayed next to the widget; inherits from the surrounding field context when omitted. */
+    /** The label displayed next to the widget; falls back to the field context value when omitted. */
     label: {
         type: String,
         default: undefined,
     },
-    /** Help text displayed alongside the widget; inherits from the surrounding field context when omitted. */
+    /** Help text displayed alongside the widget; falls back to the field context value when omitted. */
     help: {
         type: String,
         default: undefined,
     },
-    /** Whether the widget is read-only; inherits from the surrounding field context when omitted. */
+    /** Whether the widget is read-only; falls back to the field context value when omitted. */
     readOnly: {
         type: Boolean,
         default: false,
     },
 
     // *** Validation ***
-    /** Whether the widget is required; inherits from the surrounding field context when undefined. */
+    /** Whether the widget is required; falls back to the field context value when undefined. */
     required: {
         type: Boolean,
         default: undefined, // let the default from field context take over
