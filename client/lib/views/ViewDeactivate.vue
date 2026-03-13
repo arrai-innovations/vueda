@@ -15,8 +15,8 @@ import isEmpty from "lodash-es/isEmpty.js";
 import { computed, inject, reactive, toRef } from "vue";
 
 /**
- * View that deactivates one or more model instances by sending a PATCH request to the deactivate
- * endpoint, then presents a confirmation form via ModelActionForm.
+ * View that renders a confirmation form for the deactivate action via ModelActionForm, then sends
+ * a PATCH request to the deactivate endpoint when the user confirms.
  */
 defineOptions({
     inheritAttrs: false,
@@ -36,16 +36,6 @@ const props = defineProps({
     pk: {
         type: [String, Array],
         required: true,
-    },
-    /** Visual variant passed through to the underlying action form. */
-    variant: {
-        type: String,
-        default: "default",
-    },
-    /** Additional CSS classes applied to the outer wrapper element. */
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
 });
 
