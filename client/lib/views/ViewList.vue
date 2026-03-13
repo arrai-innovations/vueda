@@ -112,11 +112,6 @@ const props = defineProps({
             },
         ],
     },
-    /** Initial values for each filter form, keyed by filter name. */
-    filterFormsValues: {
-        type: Object,
-        default: () => ({}),
-    },
     /** List of field names to show as filters; overrides the server-provided list when set. */
     filterables: {
         type: Array,

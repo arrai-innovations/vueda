@@ -55,11 +55,6 @@ const props = defineProps({
         description: "A dictionary of overriding filterable details.",
         default: null,
     },
-    /** Initial values for each filter form, keyed by filter name. */
-    filterFormsValues: {
-        type: Object,
-        default: () => ({}),
-    },
     /** When true, the filter group is in an error state, enabling error display. */
     errored: {
         type: Boolean,
