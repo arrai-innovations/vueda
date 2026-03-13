@@ -105,51 +105,6 @@ const props = defineProps({
         default: () => [],
         description: "Field names that are sorted. Prefix each with `-` for descending on that field.",
     },
-    /** CSS class(es) applied to the outermost wrapper element. */
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the table header row group. */
-    headerGroupClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to each data row. */
-    rowClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the table header element. */
-    headerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the table row group. */
-    rowGroupClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to each card wrapper element in card layout. */
-    cardClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to each table cell. */
-    cellClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the header area of each card. */
-    cardHeaderClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to each cell within a card. */
-    cardCellClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
     /** Name of the field used as the primary key for row identity. */
     pkKey: {
         type: String,
