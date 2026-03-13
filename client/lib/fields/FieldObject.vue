@@ -5,7 +5,7 @@ import { watchIfDev } from "@vueda/utils/dev.js";
 import omit from "lodash-es/omit.js";
 
 /**
- * Field component for plain object values. Warns in development when the bound value is not a non-array object.
+ * Field component for plain object values. Warns in development when the value is not a plain object.
  */
 
 defineOptions({
