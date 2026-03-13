@@ -5,9 +5,9 @@ import { watchIfDev } from "@vueda/utils/dev.js";
 import omit from "lodash-es/omit.js";
 
 /**
- * Field component for duration values represented as plain objects. Validates
- * that the value is an object (not an array) and exposes step and unit hints
- * for the rendering widget.
+ * Field component for duration values represented as plain objects. Warns in
+ * development if the value is not a plain object, and exposes step and unit
+ * hints for the rendering widget.
  */
 defineOptions({
     inheritAttrs: false,
