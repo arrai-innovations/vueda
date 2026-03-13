@@ -11,19 +11,29 @@ import ViewWorkflowTransition from "@vueda/views/ViewWorkflowTransition.vue";
 import { computedAsync } from "@vueuse/core";
 import { ref, toRef, watch } from "vue";
 
+/**
+ * Resolves the correct view component for a given model action at runtime, delegating to CRUD
+ * views, workflow transition views, or dynamically imported custom action views as appropriate.
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name whose action should be resolved. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key(s) forwarded to the resolved action view. */
     pk: {
         type: [String, Number, Array],
         default: "",
     },
+    /** Name of the action to resolve and render. */
     action: {
         type: String,
         required: true,

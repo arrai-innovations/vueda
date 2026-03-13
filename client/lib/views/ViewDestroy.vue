@@ -4,29 +4,28 @@ import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
+/**
+ * View that presents a confirmation form and displays a list of selected items to be deleted via
+ * ModelActionForm, then sends a DELETE request when the user confirms.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name whose instances will be permanently deleted. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key or array of primary keys identifying the instances to delete. */
     pk: {
         type: [String, Array],
         required: true,
-    },
-    variant: {
-        type: String,
-        default: "default",
-    },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
 });
 

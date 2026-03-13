@@ -6,35 +6,52 @@ import { computed } from "vue";
 export const ONLY_WIDGET_LABEL_SLOTS = ["label", "feedback"];
 /** Array of all slot names supported by WidgetLabel components, combining the label-specific slots with the feedback slots from FormHiddenFeedback. */
 export const WIDGET_LABEL_SLOTS = [...ONLY_WIDGET_LABEL_SLOTS, ...FORM_HIDDEN_FEEDBACK_SLOTS];
+/**
+ * Returns a computed ref of the active slot names from WIDGET_LABEL_SLOTS.
+ * Components that call this function expose all widget label slots to their consumers.
+ *
+ * @vueda-spread slots WIDGET_LABEL_SLOTS
+ */
 export const getWidgetSlotsComputed = (slots) => {
     return computed(() => {
         return WIDGET_LABEL_SLOTS.filter((slotName) => slots[slotName]);
     });
 };
-/** Vue component props definition for WidgetLabel components. Extends FormHiddenFeedback props with label, hidden, card layout, label tag, required tag, and skip-feedback props. */
+/**
+ * Vue component props definition for WidgetLabel components. Extends FormHiddenFeedback props with
+ * label, hidden, card layout, label tag, required tag, and skip-feedback props.
+ *
+ * @vueda-spread props
+ */
 export const WIDGET_LABEL_PROPS = {
     ...FORM_HIDDEN_FEEDBACK_PROPS,
+    /** The label text; falls back to the label from the surrounding widget context when omitted. */
     label: {
         type: String,
         description: "The label when not in context of a widget",
         default: undefined,
     },
+    /** When true, hides the label and feedback widget. */
     hidden: {
         type: Boolean,
         default: false,
     },
+    /** When true, applies card layout styling to the label and feedback area. */
     isCardLayout: {
         type: Boolean,
         default: false,
     },
+    /** HTML tag used to render the label element. */
     labelTag: {
         type: String,
         default: "label",
     },
+    /** HTML tag used to render the required indicator. */
     requiredTag: {
         type: String,
         default: "span",
     },
+    /** When true, omits the hidden feedback indicator button from the label. */
     skipFeedback: {
         type: Boolean,
         default: false,
@@ -42,6 +59,11 @@ export const WIDGET_LABEL_PROPS = {
 };
 </script>
 <script setup>
+/**
+ * A layout wrapper that renders a label element, the slotted control, and an optional hidden
+ * feedback indicator below it. Used internally by all widget components to provide consistent
+ * label, required-marker, and validation feedback rendering.
+ */
 import FormHiddenFeedback from "@vueda/components/FormHiddenFeedback.vue";
 import { getFormHiddenFeedbackSlotsComputed } from "@vueda/components/FormHiddenFeedback.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
@@ -57,10 +79,12 @@ defineOptions({
 const props = defineProps({
     ...WIDGET_LABEL_PROPS,
     ...THEME_OVERRIDE_PROPS,
+    /** The `id` attribute applied to the label element. */
     id: {
         type: String,
         default: undefined,
     },
+    /** The `for` attribute linking the label to its associated input by ID. */
     for: {
         type: String,
         default: undefined,

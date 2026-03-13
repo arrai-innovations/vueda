@@ -11,6 +11,11 @@ import PrimevueTextarea from "primevue/textarea";
 // don't shadow html element names
 import { useSlots } from "vue";
 
+/**
+ * Renders a multi-line text input (PrimeVue Textarea) with auto-resize, a label, and validation state.
+ * Integrates with the vueda widget system for field state management.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });

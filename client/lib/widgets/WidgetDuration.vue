@@ -10,24 +10,34 @@ import pick from "lodash-es/pick.js";
 import InputNumber from "primevue/inputnumber";
 import { computed, reactive, ref, useSlots } from "vue";
 
+/**
+ * A duration input widget that renders separate numeric spinners for days, hours, minutes, and
+ * seconds. Each time unit can be shown or hidden independently via props; the combined value is
+ * stored as an object with the corresponding numeric fields.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** When true, renders the days spinner. */
     showDays: {
         type: Boolean,
         default: false,
     },
+    /** When true, renders the hours spinner. */
     showHours: {
         type: Boolean,
         default: false,
     },
+    /** When true, renders the minutes spinner. */
     showMinutes: {
         type: Boolean,
         default: true,
     },
+    /** When true, renders the seconds spinner. */
     showSeconds: {
         type: Boolean,
         default: false,

@@ -19,6 +19,13 @@ import { watch } from "vue";
 
 const logger = useDevLogger();
 
+/**
+ * A tabular inline fieldset for editing a list of related objects in a
+ * grid layout. Renders rows through an `ObjectsGrid`, adapts between table
+ * and card views based on breakpoint, and provides Create, Delete, and
+ * custom item-action buttons alongside optional show/hide toggling.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
@@ -77,6 +84,7 @@ watch(
                 }"
             >
                 <div v-if="fieldSetTabularInline.state.hidable" data-qa="field-set-tabular-inline-header-toggle">
+                    <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Button to show or hide the tabular inline fieldset. -->
                     <slot
                         :class="fieldSetTabularInline.theme('toggleButton')"
                         :field-props="fieldSetTabularInline.state.computedFieldProps"
@@ -93,11 +101,13 @@ watch(
                     </slot>
                 </div>
                 <div :class="fieldSetTabularInline.theme('title')" data-qa="field-set-tabular-inline-title">
+                    <!-- @slot [title, fieldset-title, field(fieldName)title] Replaces the fieldset title/label. -->
                     <slot :name="fieldSetTabularInline.resolvedSlotNames['title'].name">
                         {{ fieldSetTabularInline.fieldSetContext.state.label }}
                     </slot>
                 </div>
                 <div :class="fieldSetTabularInline.theme('actionBar')" data-qa="field-set-tabular-inline-action-bar">
+                    <!-- @slot [create-button, fieldset-create-button, field(fieldName)create-button] Button to add a new tabular inline row, shown in the header. -->
                     <slot
                         v-if="
                             fieldSetTabularInline.state.isTable &&
@@ -119,6 +129,7 @@ watch(
                     </slot>
                 </div>
             </Divider>
+            <!-- @slot [field-set-level-chores] Replaces the form-level validation chores block rendered above the rows. -->
             <slot name="field-set-level-chores">
                 <form-chores :variant="null">
                     <template
@@ -153,6 +164,7 @@ watch(
                     :key="fieldObj.name"
                     #[`header(${fieldObj.name})`]="headerSlotProps"
                 >
+                    <!-- @slot [header(fieldName)] Override the header label cell for a specific column. -->
                     <slot :name="`header(${fieldObj.name})`" v-bind="headerSlotProps">
                         <div :class="headerSlotProps.class" :data-card-header="headerSlotProps['data-card-header']">
                             <widget-label-context-by-props
@@ -165,6 +177,7 @@ watch(
                     </slot>
                 </template>
                 <template #[`field(item-action-bar)`]="objectGridFieldSlotProps">
+                    <!-- @slot [item-action-bar] Override the action bar cell rendered in each row. -->
                     <slot name="item-action-bar">
                         <div
                             v-if="fieldSetTabularInline.state.actions?.length"
@@ -173,6 +186,7 @@ watch(
                         >
                             <template v-for="action in fieldSetTabularInline.state.actions">
                                 <template v-if="action.fieldName === 'destroy'">
+                                    <!-- @slot [destroy-button, fieldset-destroy-button, field(fieldName)destroy-button] Button to delete a new (unsaved) tabular inline row. -->
                                     <slot
                                         v-if="!objectGridFieldSlotProps.pk"
                                         :action="action"
@@ -197,6 +211,7 @@ watch(
                                             "
                                         />
                                     </slot>
+                                    <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox, field(fieldName)destroy-checkbox] Checkbox to mark an existing tabular inline row for deletion. -->
                                     <slot
                                         v-else
                                         :action="action"
@@ -245,6 +260,7 @@ watch(
                                     </slot>
                                 </template>
                                 <template v-else>
+                                    <!-- @slot [item-action-button, fieldset-item-action-button, field(fieldName)item-action-button] Button for a non-destroy row action in the tabular inline. -->
                                     <slot
                                         :name="fieldSetTabularInline.resolvedSlotNames['item-action-button'].name"
                                         v-bind="{
@@ -316,6 +332,7 @@ watch(
                         data-qa="field-set-tabular-inline-create-row"
                         role="row"
                     >
+                        <!-- @slot [create-button-inline, fieldset-create-button-inline, field(fieldName)create-button-inline] Inline create button shown as a card-layout row. -->
                         <slot
                             :class="fieldSetTabularInline.theme('inLineCreateButton')"
                             :field-props="fieldSetTabularInline.state.computedFieldProps"

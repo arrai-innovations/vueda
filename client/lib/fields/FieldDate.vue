@@ -6,16 +6,22 @@ import omit from "lodash-es/omit.js";
 import { DateTime } from "luxon";
 import { computed, watch } from "vue";
 
+/**
+ * Field component for date values (YYYY-MM-DD). Enforces optional minimum and
+ * maximum date bounds and validates that the value is a valid ISO date string.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 
 const props = defineProps({
     ...FIELD_PROPS,
+    /** The latest date allowed; accepts a Date object or an ISO date string. */
     maxValue: {
         type: [Date, String],
         default: undefined,
     },
+    /** The earliest date allowed; accepts a Date object or an ISO date string. */
     minValue: {
         type: [Date, String],
         default: undefined,
@@ -98,6 +104,7 @@ watchIfDev(
 
 <template>
     <div :class="$attrs.class" data-qa="field-date">
+        <!-- Renders the date input widget; receives field-attrs (non-class inherited attributes) and field-props. -->
         <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>

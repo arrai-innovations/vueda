@@ -8,30 +8,42 @@ import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
 import omit from "lodash-es/omit.js";
 import { computed, ref, toRef } from "vue";
 
+/**
+ * Renders a select, multi-select, or radio widget populated with choices fetched from a Django model.
+ * Choices are loaded lazily: the API request is deferred until the field is focused or already has a value.
+ * Pass the `type` prop to choose between `select`, `multiSelect`, and `radio` presentations.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** Django app label for the model whose choices this widget loads. */
     fieldApp: {
         type: String,
         required: true,
     },
+    /** Django model name used to resolve the choices endpoint. */
     fieldModel: {
         type: String,
         required: true,
     },
+    /** Field name on the model whose choices are fetched. */
     fieldName: {
         type: String,
         required: true,
     },
+    /** Widget presentation variant: `"select"`, `"multiSelect"`, or `"radio"`. */
     type: {
         type: String,
         required: true,
     },
+    /** The currently selected value, bound with `v-model`. */
     modelValue: {
         type: [String, Number, Array],
         default: undefined,
     },
+    /** When true, fetches choices in filter mode (may relax required-field constraints). */
     isFilter: {
         type: Boolean,
         default: false,

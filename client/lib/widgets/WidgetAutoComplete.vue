@@ -15,34 +15,46 @@ import pick from "lodash-es/pick.js";
 import AutoComplete from "primevue/autocomplete";
 import { computed, reactive, ref, toRef, unref, useAttrs, useSlots, watch } from "vue";
 
+/**
+ * An autocomplete widget that fetches options from a vueda model endpoint and lets the user search
+ * and select a single related object. The stored value is the resolved primary key (or a configured
+ * field) of the selected record.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** Django app label of the model to fetch autocomplete options from. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name to fetch autocomplete options from. */
     model: {
         type: String,
         required: true,
     },
+    /** Additional field names to include in the API request alongside the option label, value, and PK fields. */
     modelFields: {
         type: Array,
         default: () => [],
     },
+    /** Field name on each result object used as the displayed label in the dropdown. */
     optionLabel: {
         type: String,
         description: "The field to use as the label for the options",
         default: "formatted_name",
     },
+    /** Field name whose value is stored as the widget output; `"USE_PK"` resolves to the model's primary key. */
     optionValue: {
         type: String,
         description: "The field to use as the value for the options, and the returned value",
         default: "USE_PK",
     },
+    /** Field name used as the label for the currently selected value when the dropdown is closed; falls back to `optionLabel`. */
     displayLabel: {
         type: String,
         description: "The field to use as the label for the selected value",

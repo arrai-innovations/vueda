@@ -14,22 +14,30 @@ import { useToast } from "primevue/usetoast";
 import { computed, inject, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
 
+/**
+ * View that lists the available workflow transitions for one or more model instances and allows
+ * the user to select and execute a transition.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name whose workflow transitions will be listed. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key or array of primary keys of the instances to transition. */
     pk: {
         type: [String, Array],
         required: true,
     },
+    /** Additional CSS classes applied to the root element. */
     class: {
         type: [String, Array, Object],
         default: () => [],

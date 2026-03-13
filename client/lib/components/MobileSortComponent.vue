@@ -7,25 +7,39 @@ import Select from "primevue/select";
 import { computed } from "vue";
 import { VueDraggableNext as draggable } from "vue-draggable-next";
 
+/**
+ * A mobile-optimized sort control that presents a bottom drawer where users can add, reorder, and remove sort fields.
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Whether the sort drawer is open. */
     visible: {
         type: Boolean,
         default: false,
     },
+    /** Array of field names that can be added as sort criteria. */
     sortables: {
         type: Array,
         default: () => [],
     },
+    /** Currently active sort fields; prefix a field name with `-` to indicate descending order. */
     sorted: {
         type: Array,
         default: () => [],
     },
+    /** Map of field name to field metadata (e.g. `{ label }`) used to derive human-readable labels. */
     fieldDetails: {
         type: Object,
         default: () => ({}),
     },
 });
-const emit = defineEmits(["update:visible", "update:sorted"]);
+const emit = defineEmits([
+    /** Emitted when the drawer open/close state changes. */
+    "update:visible",
+    /** Emitted when the active sort array changes. */
+    "update:sorted",
+]);
 const internalVisible = computed({
     get: () => props.visible,
     set: (value) => {
@@ -82,6 +96,7 @@ const sortedCountBadge = computed(() => (sortedCount.value ? String(sortedCount.
 const theme = useTheme("MobileSortComponent", props);
 </script>
 <template>
+    <!-- Button that opens the sort drawer; receives `label`, `size`, `severity`, and `badge` as slot props. -->
     <slot
         name="toggle-drawer-button"
         label="sort"
@@ -120,6 +135,7 @@ const theme = useTheme("MobileSortComponent", props);
                 >
                     <div v-for="item in computedSorted" :key="item.field" :class="theme('draggableItem')">
                         <div :class="theme('draggableItemInner')">
+                            <!-- Drag handle shown for each sort row; receives `class` and `text` as slot props. -->
                             <slot name="drag-handle" :class="theme('dragHandle')" text="⋮⋮">
                                 <span :class="theme('dragHandle')">⋮⋮</span>
                             </slot>
@@ -149,6 +165,7 @@ const theme = useTheme("MobileSortComponent", props);
                             </Select>
                         </div>
                         <div :class="theme('sortInlineActionBar')">
+                            <!-- Button that toggles sort direction for a row; receives `label`, `text`, `size`, and a click handler as slot props. -->
                             <slot
                                 name="toggle-order-button"
                                 :label="item.descending ? '⬇️' : '⬆️'"
@@ -163,6 +180,7 @@ const theme = useTheme("MobileSortComponent", props);
                                     size="small"
                                     @click="toggleDirection(item.index)"
                                 >
+                                    <!-- Icon rendered inside the toggle-order button; receives `field`, `sorted`, `index`, `descending`, and `ascending` as slot props. -->
                                     <slot
                                         name="sort-icon"
                                         :field="item.field"
@@ -176,6 +194,7 @@ const theme = useTheme("MobileSortComponent", props);
                                     </slot>
                                 </Button>
                             </slot>
+                            <!-- Button that removes a sort row; receives `label`, `severity`, `text`, `index`, and a click handler as slot props. -->
                             <slot
                                 name="remove-sort-button"
                                 label="x"
@@ -200,6 +219,7 @@ const theme = useTheme("MobileSortComponent", props);
             </div>
             <div v-else class="text-sm text-surface-500">No Sorting applied. Click 'Add Sort' to begin</div>
             <div :class="theme('actionBar')">
+                <!-- Button that appends the first available field as a new sort criterion; receives `label`, `severity`, `disabled`, `size`, and a click handler as slot props. -->
                 <slot
                     name="add-sort-button"
                     data-qa="sort-component-add-button"
@@ -217,6 +237,7 @@ const theme = useTheme("MobileSortComponent", props);
                         @click="addSortable"
                     />
                 </slot>
+                <!-- Button that clears all active sort criteria; receives `severity`, `text`, `label`, `disabled`, `size`, and a click handler as slot props. -->
                 <slot
                     name="clear-sort-button"
                     severity="secondary"

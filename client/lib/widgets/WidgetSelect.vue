@@ -11,20 +11,28 @@ import pick from "lodash-es/pick.js";
 import Select from "primevue/select";
 import { computed, ref, useAttrs, useSlots } from "vue";
 
+/**
+ * Renders a single-value dropdown (PrimeVue Select) populated from a static `options` array, with a label and validation state.
+ * Integrates with the vueda widget system for field state management including disabled and invalid states.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** Static array of options to display in the dropdown. */
     options: {
         type: Array,
         required: true,
     },
+    /** Key on each option object used as the displayed label. */
     optionLabel: {
         type: String,
         default: "label",
     },
+    /** Key on each option object used as the submitted value. */
     optionValue: {
         type: String,
         default: "value",

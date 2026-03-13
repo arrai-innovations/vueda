@@ -12,124 +12,110 @@ import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
 import { computed, effectScope, onMounted, reactive, toRef, useSlots, watch } from "vue";
 
+/**
+ * Renders a list of objects as either a table or a card grid depending on the
+ * current breakpoint. Supports sorting, skeleton loading rows, field-level slot
+ * overrides, and per-field class customization.
+ */
+defineOptions({});
+
 const props = defineProps({
-    titleFieldName: {
-        type: String,
-        default: "",
-    },
+    /** Ordered array of row objects to render. */
     objectsInOrder: {
         type: Array,
         default: () => [],
         required: false,
     },
+    /** Map of related object keys to their data, passed to each cell slot. */
     relatedObjects: {
         type: Object,
         default: () => ({}),
     },
+    /** Map of calculated object keys to their data, passed to each cell slot. */
     calculatedObjects: {
         type: Object,
         default: () => ({}),
     },
+    /** Ordered list of field names (or field descriptor objects) to render as columns. */
     fields: {
         type: Array,
         required: true,
     },
+    /** Map of field names to CSS class(es) applied in both table and card layouts. */
     fieldClasses: {
         type: Object,
         default: () => ({}),
     },
+    /** Map of field names to CSS class(es) applied only in table layout. */
     tableFieldClasses: {
         type: Object,
         default: () => ({}),
     },
+    /** Map of field names to CSS class(es) applied only in card layout. */
     cardFieldClasses: {
         type: Object,
         default: () => ({}),
     },
+    /** Extra props passed to each field slot via the slot binding. */
     fieldProps: {
         type: Object,
         default: () => ({}),
         description: "Extra props to pass to field slots.",
     },
+    /** Map of field names to CSS class(es) applied to header cells in both layouts. */
     headerClasses: {
         type: Object,
         default: () => ({}),
     },
+    /** Map of field names to CSS class(es) applied to header cells only in table layout. */
     tableHeaderClasses: {
         type: Object,
         default: () => ({}),
     },
+    /** Map of field names to CSS class(es) applied to header cells only in card layout. */
     cardHeaderClasses: {
         type: Object,
         default: () => ({}),
     },
+    /** When true, renders skeleton rows; when false, renders data rows; when undefined, inferred from objectsInOrder. */
     loading: {
         type: Boolean,
         default: undefined,
     },
+    /** Text displayed when the grid has no rows to show. */
     emptyText: {
         type: String,
         default: "No records found.",
     },
+    /** Tailwind breakpoint at which the layout switches from card to table view. */
     tableBreakpoint: {
         type: String,
         default: "md",
         description: "When to switch to table layout.",
     },
+    /** Field names that are sortable; clicking their headers emits a sort event. */
     sortables: {
         type: Array,
         default: () => [],
         description: "Field names that can be sorted.",
     },
+    /** Currently active sort fields; prefix with `-` for descending order. */
     sorted: {
         type: Array,
         default: () => [],
         description: "Field names that are sorted. Prefix each with `-` for descending on that field.",
     },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    headerGroupClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    rowClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    headerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    rowGroupClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    cardClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    cellClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    cardHeaderClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    cardCellClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
+    /** Name of the field used as the primary key for row identity. */
     pkKey: {
         type: String,
         default: "id",
     },
+    /** Function that returns a CSS class for alternating (even) columns, or null to disable. */
     evenColumn: {
         type: Function,
         default: () => null,
     },
+    /** Number of skeleton rows to render while loading. */
     skeletonRows: {
         type: Number,
         default: 25,
@@ -254,6 +240,7 @@ watch(
                                 :field="field"
                             >
                                 <template #label="slotProps">
+                                    <!-- @slot [header(fieldName)] Override the header label cell for a specific field column. -->
                                     <slot
                                         :key="field?.name || `column-index-${columnIndex}`"
                                         :name="slotNameResolvers[field?.name]?.header?.name"
@@ -276,6 +263,7 @@ watch(
                                     <slot :name="slotNameResolvers[field?.name]?.header?.name" v-bind="slotProps" />
                                 </template>
                                 <template #sort-icon="slotProps">
+                                    <!-- @slot [sortIcon(fieldName)] Override the sort direction icon for a specific field column. -->
                                     <slot :name="slotNameResolvers[field?.name]?.sortIcon?.name" v-bind="slotProps" />
                                 </template>
                             </objects-grid-table-header>
@@ -358,6 +346,7 @@ watch(
                                         <slot :name="slotNameResolvers[field?.name]?.header?.name" v-bind="slotProps" />
                                     </template>
                                     <template #value="slotProps">
+                                        <!-- @slot [field(fieldName)] Override the body cell content for a specific field column. -->
                                         <slot :name="slotNameResolvers[field?.name]?.field?.name" v-bind="slotProps" />
                                     </template>
                                 </objects-grid-card-cell>
@@ -388,6 +377,7 @@ watch(
                         </template>
                     </component>
                 </div>
+                <!-- @slot [row-after-objects] Content appended after all data rows in the grid body. -->
                 <slot :class="[theme('bodyRow')]" name="row-after-objects" />
             </div>
         </div>

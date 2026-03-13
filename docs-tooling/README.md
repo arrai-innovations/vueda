@@ -98,6 +98,60 @@ If you prefer the curated bootstrap flow:
 $ just bootstrap
 ```
 
+## Source Annotations
+
+The vue-docgen normalizer recognizes two custom annotation conventions in `client/lib/` source files.
+
+### `@vueda-spread` (JS composables)
+
+When a composable exports a constant that other components spread into their `props` or `emits` options, annotate its JSDoc block with `@vueda-spread props` or `@vueda-spread emits`. The normalizer reads the annotation and injects those prop or emit entries into every component that spreads the constant.
+
+```js
+/**
+ * Standard props shared by all field components.
+ *
+ * @vueda-spread props
+ */
+export const FIELD_PROPS = {
+    /** The field name. */
+    name: { type: String, required: true },
+    // ...
+};
+```
+
+```js
+/**
+ * Standard emits shared by all field components.
+ *
+ * @vueda-spread emits
+ */
+export const FIELD_EMITS = {
+    // ...
+};
+```
+
+Each prop or emit entry should carry a JSDoc line comment (`/** ... */`) directly above it. The normalizer uses those comments as the member descriptions in the generated API docs.
+
+### `<!-- @slot ... -->` (Vue SFC templates)
+
+vue-docgen-api cannot statically resolve dynamic slot names (expressions like `:name="resolvedSlotNames.clearButton.name"`). Place an HTML comment immediately before the `<slot>` element. Two syntaxes are supported:
+
+**Bare form** (single name, no fallbacks):
+
+```html
+<!-- @slot filter-clear-button Replaces the clear button inside the filter form. -->
+<slot :name="resolvedSlotNames.clearButton.name" />
+```
+
+**Bracket form** (first name is canonical, remaining names are fallback slot names accepted by the same outlet):
+
+```html
+<!-- @slot [filter-clear-button, filter-clear-button(filterName)] Replaces the clear button inside the filter form. -->
+<slot :name="resolvedSlotNames.clearButton.name" />
+```
+
+The bracket form also works on static slots when you want to document fallbacks. An empty bracket list `[]` is a parse error. Use the consumer-facing API name (kebab-case), not the internal resolver expression.
+
 ## Tests
 
 JavaScript (Vitest):

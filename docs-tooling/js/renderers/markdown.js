@@ -60,7 +60,7 @@ function escapeTableCell(value) {
     if (value === null || value === undefined) {
         return "";
     }
-    return String(value).replace(/\|/g, "\\|");
+    return String(value).replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
 }
 
 export function renderTable(headers, rows) {
@@ -121,7 +121,8 @@ export function formatParameters(parameters) {
     return (parameters || []).map((param) => [
         param.name || "",
         labelFromType(param.type) || "",
-        param.optional === true ? "no" : param.optional === false ? "yes" : "",
+        // TypeDoc serializes flags sparsely, so missing optional means "required".
+        param.optional ? "no" : "yes",
         param.description || "",
     ]);
 }

@@ -4,11 +4,18 @@ import { useClipboard } from "@vueuse/core";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 
+/**
+ * Displays a text value alongside a button that copies it to the clipboard and shows a toast notification on success.
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** The text value to display and copy to the clipboard. */
     text: {
         type: String,
         required: true,
     },
+    /** Toast notification config shown after copying; a string is used as the summary, an object is merged with default toast options. Defaults to `"<text> copied"`. */
     toast: {
         type: [String, Object],
         default: null,
@@ -45,9 +52,11 @@ const theme = useTheme("ClickToCopyText", props);
 
 <template>
     <div :class="theme('root')">
+        <!-- Renders the text value; receives `text` as a slot prop. -->
         <slot name="text" :text="text">
             {{ text }}
         </slot>
+        <!-- Renders the copy button; receives `onClick`, `label`, `severity`, `rounded`, `variant`, `size`, `text`, and `copied` as slot props. -->
         <slot name="copy-button" v-bind="slotProps">
             <Button v-bind="slotProps" />
         </slot>

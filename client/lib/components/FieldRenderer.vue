@@ -6,6 +6,13 @@ import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, reactive, toRef, unref, useAttrs, useSlots } from "vue";
 
+/**
+ * Resolves and renders a single form field and its widget for a given
+ * `formModelName` key. It reads the field and widget components, props, and
+ * slot configuration from a `formModel` context object, then composes them
+ * into the correct layout with override slots passed through from the parent.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
@@ -83,6 +90,7 @@ const fieldInnerClass = theme("fieldInner");
 </script>
 
 <template>
+    <!-- @slot [field(fieldName)] Override the entire rendered output for a specific field; receives all field and widget context as bindings. -->
     <slot
         :field-class="fieldClass"
         :field-component="fieldComponent"
@@ -100,6 +108,7 @@ const fieldInnerClass = theme("fieldInner");
                 <slot :name="slotName" v-bind="fieldSlotProps || {}" />
             </template>
             <template #default>
+                <!-- @slot [field(fieldName)default] Override the default field body (anchor link + widget wrapper) for a specific field. -->
                 <slot
                     :field-class="fieldClass"
                     :field-component="fieldComponent"
@@ -114,6 +123,7 @@ const fieldInnerClass = theme("fieldInner");
                 >
                     <a :name="fieldValuePath" />
                     <div :class="fieldInnerClass" data-qa="field-renderer-field-inner">
+                        <!-- @slot [widget(fieldName)] Override the entire widget area for a specific field. -->
                         <slot
                             :field-class="fieldClass"
                             :field-component="fieldComponent"
@@ -131,6 +141,7 @@ const fieldInnerClass = theme("fieldInner");
                                     <slot :name="slotName" v-bind="widgetSlotProps || {}" />
                                 </template>
                                 <template v-if="$slots[widgetDefaultSlotName]" #default="widgetSlotProps">
+                                    <!-- @slot [widget(fieldName)default] Override the widget's default slot content for a specific field. -->
                                     <slot :name="widgetDefaultSlotName" v-bind="widgetSlotProps" />
                                 </template>
                             </component>

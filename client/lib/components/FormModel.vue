@@ -1,4 +1,11 @@
 <script setup>
+import FieldRenderer from "@vueda/components/FieldRenderer.vue";
+import FormChores from "@vueda/components/FormChores.vue";
+import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
+import { useFormModel } from "@vueda/use/useFormModel.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { computed, useSlots } from "vue";
+
 /**
  * This component is a form model that renders fields based on the configuration for the model.
  *
@@ -137,94 +144,80 @@
  * **Note:** The same principles apply to `field(fieldName)` slots when customizing field components.
  * ```
  */
-import FieldRenderer from "@vueda/components/FieldRenderer.vue";
-import FormChores from "@vueda/components/FormChores.vue";
-import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import { useFormModel } from "@vueda/use/useFormModel.js";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed, useSlots } from "vue";
 
 defineOptions({
     inheritAttrs: false,
 });
 
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name to render a form for. */
     model: {
         type: String,
         required: true,
     },
+    /** View identifier used to select view-specific form configuration; uses the default configuration when omitted. */
     view: {
         type: String,
         default: undefined,
         description: "If set, use view specific configuration for the form, otherwise use the default configuration.",
     },
+    /** Field names to render; overrides the configuration default for this view. */
     fields: {
         type: Array,
         default: undefined,
         description: "The fields to render in the form, if not wanting to use the configuration default for this view.",
     },
+    /** Field names to render in expanded (inline) mode. */
     expand: {
         type: Array,
         default: undefined,
         description: "The fields to render in the form, expanded.",
     },
+    /** Visual variant passed to the theme system to select an alternate form style. */
     variant: {
         type: String,
         default: "default",
     },
+    /** Map of field paths to async functions returning an override field component. */
     fieldComponents: {
         type: Object,
         default: undefined,
         description: "A map of field paths to async fns returning field component, as overrides.",
     },
+    /** Map of field paths to additional props passed to the field component. */
     fieldProps: {
         type: Object,
         default: undefined,
         description: "A map of field paths to props, as overrides.",
     },
+    /** Map of field paths to field detail overrides merged with server configuration. */
     fieldDetails: {
         type: Object,
         default: undefined,
         description: "A map of field paths to field details, as overrides.",
     },
+    /** Map of expand field paths to detail overrides. */
     expandDetails: {
         type: Object,
         default: undefined,
         description: "Any overriding expand information by field path.",
     },
+    /** Map of field paths to async functions returning an override widget component. */
     widgetComponents: {
         type: Object,
         default: undefined,
         description: "A map of field paths to async fns returning widget component, as overrides.",
     },
+    /** Map of field paths to additional props passed to the widget component. */
     widgetProps: {
         type: Object,
         default: undefined,
         description: "A map of field paths to props, as overrides.",
-    },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    fieldsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    fieldClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    beforeFieldsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    afterFieldsClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
     ...THEME_OVERRIDE_PROPS,
 });

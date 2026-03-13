@@ -8,9 +8,18 @@ import { watchIfDev } from "@vueda/utils/dev.js";
 import Button from "primevue/button";
 import { computed, useAttrs } from "vue";
 
+/**
+ * A field that manages a list of values by rendering one instance of
+ * `manyComponent` per entry. Provides Add and Remove buttons so users can
+ * grow or shrink the list, and the first entry is always required while
+ * subsequent entries are optional.
+ */
+defineOptions({});
+
 const attrs = useAttrs();
 const props = defineProps({
     ...FIELD_PROPS,
+    /** The component used to render each individual entry in the list. */
     manyComponent: {
         type: Object,
         required: true,
@@ -54,17 +63,20 @@ const theme = useTheme("FieldSetMany", props);
 <template>
     <div data-qa="field-set-many">
         <div :class="theme('header')">
+            <!-- @slot [label] Override the field label. -->
             <slot :field-label="fieldContext.state.label" :field-name="fieldContext.state.name" name="label">
                 <label :class="theme('label')" :for="fieldContext.state.name">
                     {{ fieldContext.state.label }}
                 </label>
             </slot>
+            <!-- @slot [add] Override the add button. -->
             <slot name="add" @click="onAdd">
                 <Button label="add" @click="onAdd"></Button>
             </slot>
         </div>
         <div v-if="fieldProps?.length">
             <template v-for="(fieldProp, index) in fieldProps" :key="index">
+                <!-- @slot [field(fieldName)] Override the rendered row for a specific field entry. -->
                 <slot :name="`field(${fieldProp.name})`" v-bind="{ fieldProps, index }">
                     <div :class="theme('row')">
                         <div :class="theme('component')">
@@ -73,6 +85,7 @@ const theme = useTheme("FieldSetMany", props);
                             </component>
                         </div>
                         <div v-if="index">
+                            <!-- @slot [destroy] Override the delete button for a row. -->
                             <slot name="destroy" @click="onDestroy(index)">
                                 <Button icon="pi pi-times" rounded @click="onDestroy(index)" />
                             </slot>

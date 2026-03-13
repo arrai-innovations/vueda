@@ -1,5 +1,6 @@
 import {
     escapeText,
+    formatParameters,
     linkToId,
     linkToPath,
     normalizeTitle,
@@ -109,6 +110,12 @@ describe("renderTable", () => {
         const result = renderTable(["X"], [["a|b"]]);
         expect(result).toContain("a\\|b");
     });
+
+    it("collapses newlines in cell values to a single space", () => {
+        const result = renderTable(["X"], [["first line\nsecond line"]]);
+        expect(result).toContain("first line second line");
+        expect(result).not.toContain("\n\n");
+    });
 });
 
 describe("renderList", () => {
@@ -164,5 +171,17 @@ describe("normalizeTitle", () => {
     it("returns 'Untitled' for null or undefined", () => {
         expect(normalizeTitle(null)).toBe("Untitled");
         expect(normalizeTitle(undefined)).toBe("Untitled");
+    });
+});
+
+describe("formatParameters", () => {
+    it("treats missing optional as required for sparse TypeDoc flags", () => {
+        const rows = formatParameters([
+            { name: "a", optional: true, type: { name: "number" } },
+            { name: "b", optional: undefined, type: { name: "number" } },
+        ]);
+
+        expect(rows[0][2]).toBe("no");
+        expect(rows[1][2]).toBe("yes");
     });
 });

@@ -6,6 +6,13 @@ import { stringSimilarity } from "string-similarity-js";
 import { inject, ref, toRef, watch } from "vue";
 import { useRoute } from "vue-router";
 
+/**
+ * Error page displayed when a requested model action route does not exist. Shows the unrecognized app, model,
+ * and action name, then uses string-similarity scoring to suggest the closest valid action routes as navigation
+ * links.
+ */
+defineOptions({});
+
 const route = useRoute();
 
 const app = toRef(route.params, "app");

@@ -5,19 +5,28 @@ import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { inject, reactive } from "vue";
 
+/**
+ * Read-only detail view that fetches and displays a single model instance identified by its
+ * primary key.
+ *
+ * @vueda-slot-forward DetailView
+ */
 defineOptions({
     inheritAttrs: false,
 });
 
 defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name used to resolve API endpoints and configuration. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key of the object instance to fetch and display. */
     pk: {
         type: String,
         required: true,
