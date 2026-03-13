@@ -27,7 +27,7 @@ const props = defineProps({
     /** CSS fallback string injected via noscript for browsers without JS. */
     noScriptCssFallback: { type: String, default: undefined },
     /** The default value when uncontrolled. */
-    defaultValue: { default: undefined },
+    defaultValue: { type: String, default: undefined },
     /** A function to transform pasted text before applying it. */
     pasteTransformer: { type: Function, default: undefined },
 });
