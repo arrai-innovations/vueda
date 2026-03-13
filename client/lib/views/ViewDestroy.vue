@@ -5,8 +5,8 @@ import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
 /**
- * View that permanently deletes one or more model instances, presenting a confirmation form via
- * ModelActionForm before executing the delete action.
+ * View that presents a confirmation form and displays a list of selected items to be deleted via
+ * ModelActionForm, then sends a DELETE request when the user confirms.
  */
 defineOptions({
     inheritAttrs: false,
