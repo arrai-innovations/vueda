@@ -460,3 +460,90 @@ class TestVuedaRankedDescriptionFilter:
             format="json",
         )
         assert response.data["totalRecords"] == 4, f"response.data: {response.data}"  # noqa: PLR2004
+
+
+@pytest.mark.django_db
+class TestVuedaSearchFilterDistinct:
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductM2MSearchViewSet)
+
+    def test_m2m_search_deduplicates_results(self, test_data, api_client, settings):
+        """Searching across an M2M field calls distinct() to prevent duplicate results.
+
+        Two products each have three special_care entries: perishable, temperature_controlled,
+        and fragile. Searching for 'Perishable Fragile' matches two special_care entries
+        per product via the M2M join. Without distinct(), each product would appear twice
+        in the result set (once per matching special_care row). The must_call_distinct path
+        in VuedaSearchFilterBackend deduplicates back to one row per product.
+        """
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search"
+
+        user = test_data.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("store.product-list"),
+            data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Perishable Fragile"},
+            format="json",
+        )
+
+        # Two products have both "perishable" and "fragile" special_care entries.
+        # Without distinct(), each would appear twice (once per matching M2M row).
+        # The combined_rank is the same for each.
+        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+        result_names = frozenset(x["name"] for x in response.data["results"])
+        assert result_names == frozenset({"Square Cookies For Squares", "Shaped Cookies For Drapes"})
+
+    def test_m2m_ordering_search_deduplicates_results(self, test_data, api_client, settings):
+        """Searching across an M2M field calls distinct() to prevent duplicate results.
+
+        Two products each have three special_care entries: perishable, temperature_controlled,
+        and fragile. Searching for 'Perishable Fragile' matches two special_care entries
+        per product via the M2M join. Without distinct(), each product would appear twice
+        in the result set (once per matching special_care row). The must_call_distinct path
+        in VuedaSearchFilterBackend deduplicates back to one row per product.
+        """
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search"
+
+        user = test_data.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("store.product-list"),
+            data={
+                settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Perishable Fragile",
+                settings.REST_FRAMEWORK["ORDERING_PARAM"]: "formatted_name",
+            },
+            format="json",
+        )
+
+        # Two products have both "perishable" and "fragile" special_care entries.
+        # Without distinct(), each would appear twice (once per matching M2M row).
+        # The combined_rank is the same for each.
+        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+        result_names = [x["name"] for x in response.data["results"]]
+        assert result_names == ["Shaped Cookies For Drapes", "Square Cookies For Squares"]
+
+        response = api_client.get(
+            reverse("store.product-list"),
+            data={
+                settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Perishable Fragile",
+                settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-formatted_name",
+            },
+            format="json",
+        )
+
+        # Two products have both "perishable" and "fragile" special_care entries.
+        # Without distinct(), each would appear twice (once per matching M2M row).
+        # The combined_rank is the same for each.
+        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+        result_names = [x["name"] for x in response.data["results"]]
+        assert result_names == ["Square Cookies For Squares", "Shaped Cookies For Drapes"]

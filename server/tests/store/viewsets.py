@@ -159,6 +159,10 @@ class InventoryRecordViewSet(VuedaViewSet):
     ordering_fields = ["when", "reason", "quantity"]
 
 
+class ProductM2MSearchViewSet(ProductViewSet):
+    search_fields = ["V:special_care__field_that_contains_the_name"]
+
+
 class PackingBoxViewSet(VuedaViewSet):
     queryset = my_models.PackingBox.objects.all()
     serializer_class = my_serializers.PackingBoxSerializer

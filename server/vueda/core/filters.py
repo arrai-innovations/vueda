@@ -229,14 +229,6 @@ class VuedaSearchFilterBackend(SearchFilter):
             ]
             annotations["deterministic_score"] = reduce(operator.add, det_scores, models.Value(0))
 
-        # final combined rank and ordering
-        if annotations:
-            # sum every numeric annotation into combined_rank
-            annotations["combined_rank"] = reduce(operator.add, [models.F(k) for k in annotations])
-            queryset = queryset.annotate(**annotations).filter(combined_rank__gte=self.search_threshold)
-            if not request.query_params.get(api_settings.ORDERING_PARAM):
-                queryset = queryset.order_by("-combined_rank")
-
         # strip custom prefixes so model opts.get_field doesn't choke
         search_fields = list(
             OrderedSet(search_fields)
@@ -245,12 +237,41 @@ class VuedaSearchFilterBackend(SearchFilter):
             | OrderedSet(ranked_fields)
             | OrderedSet(trigram_fields)
         )
-
         # De-dupe if necessary (for M2M or joins)
         # A combination of what is in drf and django.contrib.admin.
         # We can't use a base_queryset as drf does, because we would lose the ordering by ranking.
         mcd = self.must_call_distinct(queryset, search_fields)
-        if mcd:
+
+        ordering = request.query_params.get(api_settings.ORDERING_PARAM)
+
+        # final combined rank and ordering
+        if annotations:
+            # sum every numeric annotation into combined_rank
+            annotations["combined_rank"] = reduce(operator.add, [models.F(k) for k in annotations])
+            if mcd:
+                if not ordering:
+                    queryset = (
+                        queryset.annotate(**annotations)
+                        .order_by("-combined_rank", "pk")
+                        .distinct("combined_rank", "pk")
+                        .filter(combined_rank__gte=self.search_threshold)
+                    )
+                else:
+                    # Get each item in ordering, so we can pass it into order by and distinct
+                    ordering_items = [x.strip() for x in ordering.split(",")]
+                    distinct_items = [x[1:] if x.startswith("-") else x for x in ordering_items]
+                    queryset = (
+                        queryset.annotate(**annotations)
+                        .order_by(*ordering_items, "pk")
+                        .distinct(*distinct_items, "pk")
+                        .filter(combined_rank__gte=self.search_threshold)
+                    )
+            else:
+                queryset = queryset.annotate(**annotations).filter(combined_rank__gte=self.search_threshold)
+            if not ordering:
+                queryset = queryset.order_by("-combined_rank")
+
+        if mcd and not annotations:
             queryset = queryset.distinct()
 
         return queryset
