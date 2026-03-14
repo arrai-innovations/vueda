@@ -13,25 +13,31 @@ This page explains the authority at each boundary, the metadata shapes that flow
 
 ## Contract Boundary and Authority
 
-The filtering and ordering contract begins at the canonical registered viewset. Model-info metadata does not derive filter and ordering information solely from serializer fields; it also reads `filterset_class` and `ordering_fields` from the registered viewset. If a model has no registered viewset (only a serializer), its `model_filtering` and `model_ordering` metadata are empty. The viewset is the single authority for what filters and ordering fields a model exposes.
+The filtering and ordering contract begins at the canonical registered viewset. Model-info metadata does not derive filter and ordering information solely from serializer fields; it also reads `filterset_class` and `ordering_fields` from the registered viewset. If a model has no registered viewset (only a serializer), its `model_filtering` metadata is empty and `model_ordering` metadata will be retrieved from the model if a default ordering exists, otherwise it will also be empty.
 
-This authority boundary means that adding a field to a serializer does not automatically make it filterable or sortable. Filtering requires an entry in the viewset's `filterset_class`, and ordering requires an entry in `ordering_fields`. The metadata serializer projects what the viewset declares; it does not infer capabilities from the data model.
+This authority boundary means that adding a field to the serializer does not automatically make it filterable. Filtering requires an entry in the viewset's `filterset_class`. Adding a field to the serializer can make it automatically sortable, providing no `ordering_fields` are defined on the viewset. This reflects the functionality in Django Rest Framework. If `ordering_fields` are defined, then an entry is required in `ordering_fields` to make that field sortable. The metadata projects what is declared; it does not infer capabilities from the data model.
 
 ## Metadata Projection for Ordering and Filtering
 
 The {@term Model Info} endpoint projects viewset declarations into structured metadata that clients consume.
 
-Ordering metadata (`model_ordering`) is a list of descriptors, each containing a `name` (the ordering field identifier) and a `type` (the field type classification). The list is derived from the canonical viewset's `ordering_fields`. When no canonical viewset exists, `model_ordering` is empty.
+Ordering metadata (`model_ordering`) is structured into three items (`model_default`, `viewset_default`, and `viewset_fields`). Every field that a model can be ordered by is contained within the `viewset_fields` metadata. If a default ordering is not set up on the model or viewset, or no orderable fields are set up on the viewset, then those items will contain an empty list. When no canonical viewset exists, `model_default` is the only item that can contain data. If any data does exist, each item in the list of metadata will contain:
 
-Filtering metadata (`model_filtering`) is richer. Each filter entry includes the filter field name, its type, the list of `lookup_exprs` (lookup expressions such as `in`, `exact`, `contains`), `suffixes` (such as `min` and `max` or `after` and `before`), and choice metadata when the filter field has a bounded value set. {@term Lookup} expressions are always presented as a list, even when only one expression is available. This consistent shape simplifies client parsing; consumers do not need to distinguish between single-expression and multi-expression filters.
+- **`name`**: the name of the field that is orderable or is specified as part of the default ordering.
+- **`type`**: the field type classification, which is one of `alpha`, `boolean`, `date`, `datetime`, `numeric`, or `time`.
+- **`nulls_first`**: optionally in the data if the ordering is an expression and has nulls first.
+- **`nulls_last`**: optionally in the data if the ordering is an expression and has nulls last.
+- **`ascending`**: only contained in the model and viewset defaults, which can be true or false.
+
+Filtering metadata (`model_filtering`) is richer. Each filter entry includes the filter field name, its type, the list of `lookup_exprs` (lookup expressions such as `exact`, `icontains`, `gte`), and choice metadata when the filter field has a bounded value set. {@term Lookup} expressions are always presented as a list, even when only one expression is available. This consistent shape simplifies client parsing; consumers do not need to distinguish between single-expression and multi-expression filters.
 
 Filters that are excluded or disabled in the filterset class are omitted from the metadata projection. The metadata represents only the active, usable filter surface.
 
-Choice metadata for filters follows a bifurcated shape. Static choices (enumeration values defined on the field or filter) are serialized as `{label, value}` entries with values normalized to strings. Queryset-based choices (choices backed by a related model's rows) are encoded as `choices: true` plus `app_label`, `model`, and `filterset_name` identifiers, which the client uses to fetch choices dynamically through a separate endpoint.
+Choice metadata for filters follows a two part shape. Static choices (enumeration values defined on the field or filter) are serialized as `{label, value}` entries with values normalized to strings. Queryset-based choices (choices backed by a related model's rows) are encoded as `choices: true` plus `app_label`, `model`, and `filterset_name` identifiers, which the client uses to fetch choices dynamically through a separate endpoint, due to the potential for a high volume of data.
 
 ## Query Namespace and Validation Boundary
 
-`list` endpoints enforce strict query parameter validation. The accepted query key namespace is the union of: declared filter field names, suffix-derived keys (filter field name plus suffix), framework-level parameters (`s`, `o`, `p`, `ps`, `e`, `f`, `om`), and any keys derived from the filterset's lookup expression configuration. Any query key outside this namespace is rejected with an HTTP 400 response containing a field-keyed validation error: `"Invalid query parameter.  Valid filters are ..."`.
+`list` endpoints enforce strict query parameter validation. The accepted query key namespace is the union of: declared filter field names, suffix-derived keys (filter field name plus lookup expression suffix), framework-level parameters (`s`, `o`, `p`, `ps`, `e`, `f`, `om`), and any keys derived from the filterset's lookup expression configuration. Any query key outside this namespace is rejected with an HTTP 400 response containing a field-keyed validation error: `"Invalid query parameter.  Valid filters are ..."`.
 
 This strict validation is a deliberate departure from upstream DRF, which typically ignores unknown query parameters. VUEDA treats unknown query keys as invalid contract usage rather than silently discarding them. The benefit is that typos and stale client code produce immediate, diagnosable errors rather than returning unfiltered results silently. The cost is that any query parameter not declared in the filterset or framework defaults is an error, which can be surprising when integrating with external tools that append their own query parameters.
 
@@ -39,13 +45,15 @@ Validation runs when the viewset has a `filterset_class`. If no filterset class 
 
 ## Search Contract Surface
 
-Search is a distinct sub-surface of `list` queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: custom lookup prefixes and ranked search.
+Search is a distinct sub-surface of `list` queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: trigram similarity and ranked search.
 
-The standard DRF search prefixes (`^` for starts-with, `=` for exact, `@` for full-text, `$` for regex) are available. VUEDA adds three additional prefixes: `#` for trigram similarity, `~` for an alternative similarity mode, and `V:` for VUEDA-specific ranked search fields.
+The standard DRF search prefixes (`^` for starts-with, `=` for exact, `@` for full-text, `$` for regex) are available. VUEDA adds three additional prefixes: `#` for trigram similarity, `~` for trigram word similarity, and `V:` for VUEDA-specific ranked search fields.
 
-When at least one search field uses the `V:` prefix, the search backend switches to ranked-search mode. In this mode, the backend computes a `combined_rank` by combining full-text search rank, trigram similarity, and word-boundary match scores. Results are filtered by a `search_threshold` and, when no explicit ordering parameter is provided, ordered by `-combined_rank` (best match first). This ranking is suppressed when the user provides an explicit `o` (ordering) parameter, since explicit ordering takes precedence over relevance ranking.
+When at least one search field uses the `V:` prefix, the search backend switches to ranked-search mode. In this mode, the backend computes a `combined_rank` by combining full-text search rank, trigram similarity, and word-boundary match scores. Results are filtered by a `search_threshold` and, when no explicit ordering parameter is provided, ordered by `-combined_rank` (best match first). This ranking is suppressed when the user provides an explicit `o` (ordering) parameter, since explicit ordering takes precedence over relevance ranking. Duplicate results will be removed from ranked results.
+[
+When at least one search field uses the `#` prefix, the search backend switches to use trigram similarity. In this mode, the backend combines the search term into a single search term, because that is required for trigram similarity.
 
-When no search fields use the `V:` prefix, the backend falls back to standard DRF `SearchFilter` behaviour. The `V:` prefix is the boundary between deterministic lookups and ranked search; its presence or absence changes the query execution strategy.
+When no search fields use the `V:` or `#` prefix, the backend falls back to standard DRF `SearchFilter` behaviour. The `V:` prefix is the boundary between deterministic lookups and ranked search; its presence or absence changes the query execution strategy.]()
 
 ## Filter Choices and Permission Surfaces
 
