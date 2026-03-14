@@ -1,4 +1,9 @@
 /**
+ * @module utils/filterLookups
+ * @description Defines the list of Django ORM filter expressions available for building filter UIs.
+ */
+
+/**
  * The filter expressions available for filtering.
  * @typedef {object} FilterExpression
  * @property {string} label - The verbose name of the expression.

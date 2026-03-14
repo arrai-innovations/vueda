@@ -11,6 +11,12 @@ import Button from "primevue/button";
 import Divider from "primevue/divider";
 import { watch } from "vue";
 
+/**
+ * A stacked inline fieldset for editing a list of related objects. Renders
+ * each object as a separate stacked row beneath a divider header, with Create
+ * and optional toggle buttons. Supports show/hide toggling and row deletion.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
@@ -59,6 +65,7 @@ watch(
                 }"
             >
                 <div v-if="fieldSetInline.state.hidable" data-qa="field-set-stacked-inline-header-toggle">
+                    <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Button to show or hide the inline fieldset. -->
                     <slot
                         :class="theme('toggleButton')"
                         :field-props="fieldSetInline.state.computedFieldProps"
@@ -75,11 +82,13 @@ watch(
                     </slot>
                 </div>
                 <div :class="theme('title')" data-qa="field-set-stacked-inline-title">
+                    <!-- @slot [title, fieldset-title, field(fieldName)title] Replaces the fieldset title/label. -->
                     <slot :name="fieldSetInline.resolvedSlotNames['title'].name">
                         {{ fieldSetContext.state.label }}
                     </slot>
                 </div>
                 <div :class="theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
+                    <!-- @slot [create-button, fieldset-create-button, field(fieldName)create-button] Button to add a new inline row. -->
                     <slot
                         v-if="fieldSetInline.state.showCreateButton"
                         :class="theme('createButton')"
@@ -93,6 +102,7 @@ watch(
                     </slot>
                 </div>
             </Divider>
+            <!-- @slot [field-set-level-chores, fieldset-field-set-level-chores, field(fieldName)field-set-level-chores] Replaces the form-level validation chores block for this fieldset. -->
             <slot :name="fieldSetInline.resolvedSlotNames['field-set-level-chores'].name">
                 <form-chores :variant="null">
                     <template

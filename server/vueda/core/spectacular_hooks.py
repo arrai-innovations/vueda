@@ -1,3 +1,12 @@
+"""drf-spectacular preprocessing and postprocessing hooks for schema customization."""
+
+__all__ = (
+    "ExpandParam",
+    "postprocess_schema_components",
+    "preprocessing_hooks",
+    "register_cart_with_model_info",
+)
+
 # Do not include the tests folder in the API Documentation.
 from django.conf import settings
 

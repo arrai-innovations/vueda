@@ -1,0 +1,33 @@
+from pathlib import Path
+
+from vueda.core.config import TomlEnv, load_toml
+from vueda.core.default_settings import get_defaults
+
+
+ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
+APPS_DIR = ROOT_DIR / "{{ python_package }}"
+
+env = TomlEnv(
+    {
+        **load_toml(ROOT_DIR / "config.toml"),
+        **load_toml(ROOT_DIR / "config.local.toml"),
+    }
+)
+
+locals().update(get_defaults(env))
+
+# WARNING: LocMemCache is per-process. ASGI servers (gunicorn, uvicorn, daphne) run
+# multiple worker processes with isolated caches. Configure a shared cache backend
+# (e.g. Redis, Memcached) for anything beyond single-process local development.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "vueda-cache",
+    }
+}
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+# Imported after get_defaults() so PERMISSION_NAMES_MAPPING is already set. If you
+# override PERMISSION_NAMES_MAPPING in a child settings module (e.g. local.py,
+# production.py), re-import patch_django there after the customization.
+from vueda.core import patch_django  # noqa: F401

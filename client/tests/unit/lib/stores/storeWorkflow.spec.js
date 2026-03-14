@@ -49,7 +49,7 @@ describe("lib/store/storeWorkflow.js", () => {
     });
 
     scopedIt("fetchWorkflowTransition resolves empty array when workflow disabled", async () => {
-        storeWorkflowModule.setUsingVuedaWorkFlow(false);
+        storeWorkflowModule.setUsingVuedaWorkflow(false);
         const store = storeWorkflow();
 
         const result = await store.fetchWorkflowTransition("app", "model");
@@ -117,9 +117,6 @@ describe("lib/store/storeWorkflow.js", () => {
         mockedFetchHelper.mockResolvedValue(stateData);
         const store = storeWorkflow();
         const key = getAppModelDotName({ app: "app", model: "model" });
-        store.objectStates[key] = {};
-        store.promises.objectStates[key] = {};
-        store.errors.objectStates[key] = {};
 
         const result = await store.fetchObjectState("app", "model", "1");
         expect(result).toBeUndefined();
@@ -130,15 +127,29 @@ describe("lib/store/storeWorkflow.js", () => {
         expect(mockedFetchHelper).not.toHaveBeenCalled();
     });
 
+    scopedIt("fetchObjectState initializes per-model containers on cold call", async () => {
+        mockedFetchHelper.mockResolvedValue({ state: { code: "draft" } });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+
+        expect(store.objectStates[key]).toBeUndefined();
+        expect(store.promises.objectStates[key]).toBeUndefined();
+        expect(store.errors.objectStates[key]).toBeUndefined();
+
+        await expect(store.fetchObjectState("app", "model", "1")).resolves.toBeUndefined();
+
+        expect(store.objectStates[key]).toBeTypeOf("object");
+        expect(store.promises.objectStates[key]).toBeTypeOf("object");
+        expect(store.errors.objectStates[key]).toBeTypeOf("object");
+        expect(store.promises.objectStates[key]["1"]).toBeUndefined();
+    });
+
     scopedIt("fetchObjectTransitions stores and caches transitions", async () => {
         const transitionData = { transitions: [{ code: "t", name: "T" }] };
         mockedFetchHelper.mockResolvedValue(transitionData);
         const store = storeWorkflow();
         store.initializeObjectTransitions("app", "model");
         const key = getAppModelDotName({ app: "app", model: "model" });
-        // initializeObjectTransitions does not create this.promises.objectStates
-        // but fetchObjectTransitions mistakenly deletes from it
-        store.promises.objectStates[key] = {};
 
         const result = await store.fetchObjectTransitions("app", "model", "1");
         expect(result).toBeUndefined();
@@ -149,14 +160,22 @@ describe("lib/store/storeWorkflow.js", () => {
         expect(mockedFetchHelper).not.toHaveBeenCalled();
     });
 
+    scopedIt("fetchObjectTransitions clears in-flight promise entry", async () => {
+        mockedFetchHelper.mockResolvedValue({ transitions: [] });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+        expect(store.promises.objectTransitions[key]).toBeUndefined();
+
+        await expect(store.fetchObjectTransitions("app", "model", "1")).resolves.toBeUndefined();
+        expect(store.promises.objectTransitions[key]).toBeTypeOf("object");
+        expect(store.promises.objectTransitions[key]["1"]).toBeUndefined();
+    });
+
     scopedIt("fetchObjectHistory stores and caches history", async () => {
         const historyData = { history: [{ code: "a" }] };
         mockedFetchHelper.mockResolvedValue(historyData);
         const store = storeWorkflow();
         const key = getAppModelDotName({ app: "app", model: "model" });
-        store.objectHistories[key] = {};
-        store.promises.objectHistories[key] = {};
-        store.errors.objectHistories[key] = {};
 
         const result = await store.fetchObjectHistory("app", "model", "1");
         expect(result).toBeUndefined();
@@ -167,9 +186,26 @@ describe("lib/store/storeWorkflow.js", () => {
         expect(mockedFetchHelper).not.toHaveBeenCalled();
     });
 
+    scopedIt("fetchObjectHistory initializes per-model containers on cold call", async () => {
+        mockedFetchHelper.mockResolvedValue({ history: [] });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+
+        expect(store.objectHistories[key]).toBeUndefined();
+        expect(store.promises.objectHistories[key]).toBeUndefined();
+        expect(store.errors.objectHistories[key]).toBeUndefined();
+
+        await expect(store.fetchObjectHistory("app", "model", "1")).resolves.toBeUndefined();
+
+        expect(store.objectHistories[key]).toBeTypeOf("object");
+        expect(store.promises.objectHistories[key]).toBeTypeOf("object");
+        expect(store.errors.objectHistories[key]).toBeTypeOf("object");
+        expect(store.promises.objectHistories[key]["1"]).toBeUndefined();
+    });
+
     scopedIt("executeTransition updates state and pushes route", async () => {
         const response = {
-            new_state: { state: { code: "closed" } },
+            new_state: { code: "closed", name: "Closed" },
             new_transitions: [{ code: "reopen", name: "Reopen" }],
         };
         mockedFetchHelper.mockResolvedValue(response);
@@ -182,14 +218,14 @@ describe("lib/store/storeWorkflow.js", () => {
 
         await store.executeTransition("app", "model", "1", "close", router, mapping);
 
-        expect(store.objectStates[key]["1"].state.code).toBe("closed");
+        expect(store.objectStates[key]["1"].code).toBe("closed");
         expect(store.objectTransitions[key]["1"].transitions).toEqual(response.new_transitions);
         expect(router.push).toHaveBeenCalledWith("/closed");
     });
 
     scopedIt("executeTransition adds Dry-Run header when performing dry run", async () => {
         mockedFetchHelper.mockResolvedValue({
-            new_state: { state: { code: "closed" } },
+            new_state: { code: "closed", name: "Closed" },
             new_transitions: [],
         });
         const store = storeWorkflow();
@@ -201,6 +237,22 @@ describe("lib/store/storeWorkflow.js", () => {
 
         const options = mockedFetchHelper.mock.calls[0][1];
         expect(options.headers["Dry-Run"]).toBe("true");
+    });
+
+    scopedIt("executeTransition still supports legacy nested state code mapping", async () => {
+        mockedFetchHelper.mockResolvedValue({
+            new_state: { state: { code: "closed" } },
+            new_transitions: [],
+        });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+        store.objectStates[key] = { 1: {} };
+        store.objectTransitions[key] = { 1: {} };
+        const router = { push: vi.fn() };
+
+        await store.executeTransition("app", "model", "1", "close", router, { closed: "/closed" });
+
+        expect(router.push).toHaveBeenCalledWith("/closed");
     });
 
     scopedIt("initializeObjectTransitions creates structures", () => {

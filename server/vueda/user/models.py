@@ -1,3 +1,16 @@
+"""User models and managers for VUEDA authentication with TOTP support."""
+
+__all__ = (
+    "TWO_FACTOR_AUTHENTICATION_OPTIONS",
+    "AbstractVUEDAUser",
+    "AbstractVUEDAUserMeta",
+    "AbstractVUEDAUserWithHistory",
+    "GroupChange",
+    "TOTPDevice",
+    "VUEDAUserManager",
+    "VUEDAUserWithHistoryManager",
+)
+
 from urllib.parse import urljoin
 
 from allauth.mfa.models import Authenticator
@@ -15,12 +28,14 @@ from simple_history.models import HistoricalRecords
 
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.models import BaseModelMeta
-from vueda.core.models import VuedaBaseModel
+from vueda.core.models import VuedaModel
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.mixins import VUEDAPermissionsMixin
 
 
 class VUEDAUserManager(UserManager):
+    """User manager that uses email as the unique identifier instead of username."""
+
     use_in_migrations = True
 
     def _create_user(self, email, password, **extra_fields):
@@ -37,10 +52,12 @@ class VUEDAUserManager(UserManager):
         return user
 
     def create_user(self, email, password=None, **extra_fields):
+        """Create and save a regular (non-superuser) account."""
         extra_fields.setdefault("is_superuser", False)
         return self._create_user(email, password, **extra_fields)
 
     def create_superuser(self, email, password=None, **extra_fields):
+        """Create and save a superuser account. Raises ``ValueError`` if ``is_superuser`` is not ``True``."""
         extra_fields.setdefault("is_superuser", True)
 
         if extra_fields.get("is_superuser") is not True:
@@ -50,6 +67,11 @@ class VUEDAUserManager(UserManager):
 
 
 class VUEDAUserWithHistoryManager(VUEDAUserManager):
+    """
+    Extends ``VUEDAUserManager`` to annotate each user with their most recent
+    ``simple-history`` record ID (``current_history_id``).
+    """
+
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.annotate(
@@ -62,6 +84,8 @@ class VUEDAUserWithHistoryManager(VUEDAUserManager):
 
 
 class AbstractVUEDAUserMeta(BaseModelMeta):
+    """Shared ``Meta`` options for all VUEDA user models: ordering, GIN indexes, and extra permissions."""
+
     ordering = ("-date_joined",)
     default_related_name = "users"
     permissions = [
@@ -114,7 +138,8 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, VUEDAPermissions
     def __str__(self):
         return f"{self.email}"
 
-    def send_welcome_email(self):
+    def send_welcome_email(self) -> None:
+        """Send a welcome email with a password-reset link to the user's email address."""
         from vueda.user.adapters import get_adapter
 
         url = self.generate_reset_url()
@@ -142,6 +167,11 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, VUEDAPermissions
 
 
 class AbstractVUEDAUserWithHistory(AbstractVUEDAUser):
+    """
+    Extends ``AbstractVUEDAUser`` with a ``simple-history`` audit trail.
+    Use this as the base when you need a full change history on user records.
+    """
+
     objects = VUEDAUserWithHistoryManager()
 
     history = HistoricalRecords(related_name="history_records", inherit=True)
@@ -202,7 +232,13 @@ TWO_FACTOR_AUTHENTICATION_OPTIONS = [
 ]
 
 
-class TOTPDevice(VuedaBaseModel):
+class TOTPDevice(VuedaModel):
+    """
+    Stores a two-factor authentication device for a user. Links a ``django-allauth``
+    ``Authenticator`` to a user and records the delivery method (TOTP app, SMS, or email)
+    along with the relevant contact detail (phone number or email address).
+    """
+
     authenticator = models.ForeignKey(Authenticator, on_delete=models.CASCADE, related_name="device")
     method = models.CharField(max_length=255, choices=TWO_FACTOR_AUTHENTICATION_OPTIONS)
     user = models.ForeignKey(
@@ -225,6 +261,8 @@ class TOTPDevice(VuedaBaseModel):
                 name="uniq_authenticator_method_user",
             ),
         ]
+        ordering = ["method"]
 
-    def get_formatted_name(self):
+    def get_formatted_name(self) -> str:
+        """Return the human-readable label for the authentication method."""
         return self.get_method_display()

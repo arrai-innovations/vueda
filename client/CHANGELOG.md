@@ -2,7 +2,20 @@
 
 _Actions potentially required by implementers are marked with italics._
 
-## v2.0.4 (unreleased)
+## v2.0.5 (unreleased)
+
+### Breaking Changes
+
+- **makeCrud**:
+    - `makeCRUDRoutes` now requires `actionRedirect` (e.g. `{ name: "not-found" }`) so missing model/action guard paths cannot attempt to resolve a null redirect.
+      _If you were relying on the previous default, pass an explicit redirect route that is not gated by `requireModelInfo` to avoid redirect loops._
+
+### Features
+
+- **DetailView**:
+    - Added `DetailView` as the canonical base component for `read` and `update` detail flows.
+    - `DetailedView` is now deprecated and will be removed in the next major release.
+      _If you import `@vueda/components/DetailedView.vue`, switch to `@vueda/components/DetailView.vue`._
 
 ### Fixes
 

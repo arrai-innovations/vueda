@@ -1,0 +1,6 @@
+{
+    "entryPointStrategy": "expand",
+    "entryPoints": ["../client/lib"],
+    "tsconfig": "typedoc.tsconfig.json",
+    "json": ".generated/typedoc.json"
+}

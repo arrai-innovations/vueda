@@ -14,7 +14,7 @@ from tests.unit.info.utils import create_test_data
 from vueda import info
 
 
-class TestData(BaseTestUserMixin, BaseTestGroupMixin):
+class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
@@ -158,7 +158,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
 class TestModelInfoSerializer:
     @pytest.fixture
     def test_data(self):
-        return TestData()
+        return VuedaTestData()
 
     @staticmethod
     def register_viewsets():
@@ -166,12 +166,12 @@ class TestModelInfoSerializer:
         info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
         info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
         info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
-        info.register_serializer(store_serializers.OptionTypeSerializer)
+        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
         info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
         info.register(store_serializers.CartSerializer, store_viewsets.CartViewSet)
         info.register(store_serializers.CartItemSerializer, store_viewsets.CartItemViewSet)
         info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
-        info.register(store_serializers.OrderItemSerializer, store_viewsets.OrderItemViewSet)
+        info.register_serializer(store_serializers.OrderItemSerializer)
         info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
         info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)

@@ -1,3 +1,10 @@
+"""URL configuration for the vueda.user app."""
+
+__all__ = (
+    "urlpatterns",
+    "user_patterns",
+)
+
 from allauth.headless.urls import urlpatterns as allauth_urlpatterns
 from dj_rest_auth.views import LogoutView
 from dj_rest_auth.views import PasswordChangeView
@@ -33,12 +40,12 @@ if settings.DEBUG:
     from django.contrib.auth import views as django_views
 
     urlpatterns += [
-        path("local-login/", django_views.LoginView.as_view(), name="local-login"),
-        path("local-logout/", django_views.LogoutView.as_view(), name="local-logout"),
-        path("permissions/overview/", views.PermissionOverviewView.as_view(), name="permission-overview"),
-        path("permissions/save/", views.PermissionSaveView.as_view(), name="permission-save"),
+        path("vueda.user/dev-login/", django_views.LoginView.as_view(), name="dev-login"),
+        path("vueda.user/dev-logout/", django_views.LogoutView.as_view(), name="dev-logout"),
+        path("vueda.user/permissions/overview/", views.PermissionOverviewView.as_view(), name="permission-overview"),
+        path("vueda.user/permissions/save/", views.PermissionSaveView.as_view(), name="permission-save"),
         path(
-            "permissions/delete/<int:permission_id>/<int:group_id>/",
+            "vueda.user/permissions/delete/<int:permission_id>/<int:group_id>/",
             views.PermissionDeleteView.as_view(),
             name="permission-delete",
         ),

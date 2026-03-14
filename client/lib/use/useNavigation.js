@@ -1,3 +1,7 @@
+/**
+ * @module use/useNavigation
+ * @description Builds and reactively maintains a navigation tree from a user configuration by fetching model info and config for each app and model.
+ */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo";

@@ -1,7 +1,15 @@
+"""DRF ViewSet for listing and executing workflow transitions."""
+
+__all__ = (
+    "PERMISSION_NAMES_MAPPING",
+    "WorkflowViewSet",
+)
+
 from django.conf import settings
 from django.db import transaction
 from django.http import Http404
 from rest_framework import mixins
+from rest_framework import serializers
 from rest_framework import status as drf_status
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
@@ -10,6 +18,9 @@ from rest_framework.response import Response
 
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.open_api import conditional_extend_schema_decorator
+from vueda.core.open_api import conditional_inline_serializer
+from vueda.core.open_api import conditional_open_api_types
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import HasWorkflowModelMixin
@@ -55,6 +66,32 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             raise PermissionDenied("You do not have permission to perform this action.")
         return super().check_permissions(request)
 
+    @conditional_extend_schema_decorator(
+        summary="Get object state",
+        responses={
+            200: conditional_inline_serializer(
+                "ObjectStateResponse",
+                fields={
+                    "state": conditional_inline_serializer(
+                        "ObjectState",
+                        fields={
+                            "code": serializers.CharField(),
+                            "name": serializers.CharField(),
+                        },
+                    ),
+                    "current_history_id": serializers.IntegerField(required=False),
+                },
+            ),
+            403: conditional_inline_serializer(
+                "WorkflowPermissionError",
+                fields={"detail": serializers.CharField()},
+            ),
+            404: conditional_inline_serializer(
+                "WorkflowNotFoundError",
+                fields={"detail": serializers.CharField()},
+            ),
+        },
+    )
     @action(detail=True, methods=["get"], url_path=r"object-state/(?P<object_id>[^/.]+)")
     def object_state(self, request, *args, **kwargs):
         user = request.user
@@ -89,6 +126,23 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             response_data["current_history_id"] = current_history_id
         return Response(response_data)
 
+    @conditional_extend_schema_decorator(
+        summary="Get permitted transitions",
+        responses={
+            200: conditional_inline_serializer(
+                "TransitionEntry",
+                fields={
+                    "code": serializers.CharField(),
+                    "name": serializers.CharField(),
+                },
+                many=True,
+            ),
+            403: conditional_inline_serializer(
+                "WorkflowPermissionError",
+                fields={"detail": serializers.CharField()},
+            ),
+        },
+    )
     @action(detail=True, methods=["get"])
     def permitted_transitions(self, request, *args, **kwargs):
         try:
@@ -105,7 +159,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                     "permission__codename",
                 )
             ]
-            if workflow_permissions and not user.has_perms(workflow_permissions):
+            if not workflow_permissions or not user.has_perms(workflow_permissions):
                 raise PermissionDenied(
                     f"User {user.get_username()!r} does not have workflow permissions for {workflow.content_type!r}"
                 )
@@ -129,11 +183,30 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         result = transitions.filter(pk__in=permitted_ids).order_by("name").values("code", "name")
         return Response(list(result))
 
+    @conditional_extend_schema_decorator(
+        summary="Get object transitions",
+        responses={
+            200: conditional_inline_serializer(
+                "TransitionEntry",
+                fields={
+                    "code": serializers.CharField(),
+                    "name": serializers.CharField(),
+                },
+                many=True,
+            ),
+        },
+    )
     @action(detail=True, methods=["get"], url_path=r"object-transitions/(?P<object_id>[^/.]+)")
     def object_transitions(self, request, *args, **kwargs):
         instance = self.get_object()
         return Response(list(instance.available_transitions(request.user).order_by("name").values("code", "name")))
 
+    @conditional_extend_schema_decorator(
+        responses={
+            200: conditional_open_api_types().OBJECT,
+            400: conditional_open_api_types().OBJECT,
+        },
+    )
     @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[^/.]+))?")
     def execute_transition(self, request, *args, **kwargs):
         transition_code = request.data.get("transition_code")
@@ -173,7 +246,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         else:
             object_ids = request.data.get("object_ids", [])
             if not isinstance(object_ids, list):
-                return Response({"error": "object_ids must be a list of primary keys."}, status=400)
+                raise VuedaValidationError({"object_ids": ["Must be a list of primary keys."]})
             response_data = {}
             error = {}
             with transaction.atomic():

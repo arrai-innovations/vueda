@@ -1,3 +1,20 @@
+"""Serializer base classes combining flex-fields, nested writes, and validation."""
+
+__all__ = (
+    "EmailSettingsBaseSerializer",
+    "ExcludeFieldsSerializerMixin",
+    "FlexFieldsWriteableNestedSerializerMixin",
+    "MakeReadonly",
+    "NoExtraFieldsSerializerMixin",
+    "PrimaryKeyListSerializer",
+    "VuedaExpandableFieldsSerializerMixin",
+    "VuedaHistorySerializer",
+    "VuedaLookupSerializer",
+    "VuedaReadonlyListSerializer",
+    "VuedaReadonlySerializer",
+    "VuedaSerializer",
+)
+
 import inspect
 
 import drf_writable_nested
@@ -14,6 +31,8 @@ from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
 
 
 class PrimaryKeyListSerializer(serializers.Serializer):
+    """Validates a ``pks`` body field containing a non-empty list of integer primary keys."""
+
     pks = serializers.ListField(
         child=serializers.IntegerField(error_messages={"invalid": "Primary keys must be valid integers."}),
         allow_empty=False,
@@ -158,6 +177,12 @@ class ExcludeFieldsSerializerMixin:
 
 
 class VuedaExpandableFieldsSerializerMixin:
+    """
+    Serializer mixin that builds structured metadata about expandable fields for the
+    ``/info/`` meta-API and OpenAPI schema. Automatically omits ``available_actions``
+    from nested expand representations.
+    """
+
     def _get_expanded_field_names(
         self,
         expand_fields: list[str],
@@ -173,7 +198,8 @@ class VuedaExpandableFieldsSerializerMixin:
 
         return super()._get_expanded_field_names(expand_fields, omit_fields, sparse_fields, next_level_omits)
 
-    def get_expandable_fields(self):
+    def get_expandable_fields(self) -> list:
+        """Return a list of expand descriptors used by the ``/info/`` meta-API."""
         from vueda.info.serializers import ModelInfoSerializer
 
         meta = self.Meta if hasattr(self, "Meta") else None
@@ -253,7 +279,8 @@ class VuedaExpandableFieldsSerializerMixin:
 
         return expands_data
 
-    def get_model_fields_data(self, serializer):
+    def get_model_fields_data(self, serializer) -> dict:
+        """Return field metadata for schema generation. Override in subclasses to provide data."""
         return {}
 
     def get_schema_operation_parameters(self, operation_id, parameters):  # pragma: no cover
@@ -339,6 +366,12 @@ class VuedaSerializer(
     FlexFieldsWriteableNestedSerializerMixin,
     serializers.ModelSerializer,
 ):
+    """
+    Standard serializer base for all VUEDA models. Combines extra-field rejection,
+    flex-fields expansion, writable nested relations, and an ``available_actions``
+    field that exposes permitted actions for the current user.
+    """
+
     available_actions = AvailableActionsField()
 
     class Meta:
@@ -347,6 +380,8 @@ class VuedaSerializer(
 
 
 class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
+    """``VuedaSerializer`` extended with audit-history fields from ``simple-history``."""
+
     class Meta(SimpleHistorySerializerMixin.Meta, VuedaSerializer.Meta):
         expandable_fields = VuedaSerializer.Meta.expandable_fields.copy()
         expandable_fields.update(SimpleHistorySerializerMixin.Meta.expandable_fields)
@@ -354,12 +389,19 @@ class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
 
 
 class VuedaLookupSerializer(VuedaSerializer):
+    """``VuedaSerializer`` pre-configured for ``Lookup`` subclasses with ``id``, ``code``, and ``name`` fields."""
+
     class Meta(VuedaSerializer.Meta):
         fields = ["id", "code", "name", "formatted_name"] + VuedaSerializer.Meta.fields
 
 
 # TODO: Create a test that uses the readonly serializers
 class MakeReadonly(serializers.SerializerMetaclass):
+    """
+    Metaclass that hides ``create`` and ``update`` on any serializer class it is applied to.
+    Used internally by ``VuedaReadonlySerializer`` and ``VuedaReadonlyListSerializer``.
+    """
+
     # __new__ is taken from https://stackoverflow.com
     #   /questions/23181442/how-to-hide-remove-some-methods-in-inherited-class-in-python#answer-23182583
     def __new__(cls, cls_name, cls_bases, cls_dict):
@@ -383,6 +425,8 @@ class MakeReadonly(serializers.SerializerMetaclass):
 
 
 class VuedaReadonlyListSerializer(serializers.ListSerializer, metaclass=MakeReadonly):
+    """List serializer that disables ``create`` and ``update``. Used as the list class for ``VuedaReadonlySerializer``."""
+
     __excluded__ = ("create", "update")
 
     def validate_empty_values(self, data):
@@ -390,6 +434,12 @@ class VuedaReadonlyListSerializer(serializers.ListSerializer, metaclass=MakeRead
 
 
 class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
+    """
+    Read-only variant of ``VuedaSerializer``. Disables ``create`` and ``update``,
+    and marks all fields as read-only. Use for nested expansions that must not be
+    written through the parent serializer.
+    """
+
     __excluded__ = ("create", "update")
 
     class Meta(VuedaSerializer.Meta):
@@ -418,6 +468,12 @@ class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
 
 
 class EmailSettingsBaseSerializer(VuedaSerializer):
+    """
+    Serializer base for ``EmailTemplateBase`` subclasses. Uses ``TemplatedTextField``
+    for subject and body (supports Django template syntax) and ``TemplateTagsDataField``
+    for the preview legend.
+    """
+
     subject = TemplatedTextField()
     body = TemplatedTextField()
     preview_tag_data = TemplateTagsDataField(label="Legend")

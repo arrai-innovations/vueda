@@ -1,3 +1,7 @@
+"""Django form widget for rendering and parsing native array inputs."""
+
+__all__ = ("BaseArrayWidget",)
+
 from collections.abc import Iterable
 from copy import deepcopy
 

@@ -1,6 +1,6 @@
-# Agent Guidelines: `vueda-client`
+# Agent Guidelines: `@arrai-innovations/vueda`
 
-This repository contains **`vueda-client`**, an internal Vue 3 component library built with **Vite**. Consuming projects use an alias `@vueda` that resolves directly to the `lib/` source directory. This allows customization developers to import uncompiled components and composables.
+This directory contains **`@arrai-innovations/vueda`**, a Vue 3 component library built with **Vite**. Consuming projects use an alias `@vueda` that resolves directly to the `lib/` source directory. This allows customization developers to import uncompiled components and composables.
 
 ---
 
@@ -42,8 +42,6 @@ Scripts defined in `package.json`:
 
 - **coverage** - `npm test -- run --coverage`
 
-- **prepare** - `npx --no-install husky`
-
 - **docs** - (placeholder for future JSDoc generation)
 
 - **eslint** - `npx eslint --fix .`
@@ -54,17 +52,7 @@ Scripts defined in `package.json`:
 
 ## Git Hooks
 
-This project uses **husky** with **lint-staged**. On each commit:
-
-- `eslint` and `prettier` run on staged `.js`, `.ts`, and `.vue` files.
-
-- `doctoc` updates Markdown tables of contents.
-
-- `prettier` formats staged supported file types.
-
-- `.circleci/config.yml` is validated with `circleci config validate`.
-
-- Commit messages are checked with `commitlint`.
+Git hooks are managed by **lefthook** at the repo root. See `lefthook.yml` for the current hook behavior.
 
 ---
 
@@ -124,6 +112,77 @@ When making changes, suggest Changelog entries if they impact consumers or publi
 ```
 
 ---
+
+## API Documentation Annotations
+
+The docs pipeline (`docs-tooling/`) picks up two custom annotations from `client/lib/` source files. Use them when adding or updating components.
+
+### Component description (Vue SFCs)
+
+Every Vue SFC in `client/lib/` should have a JSDoc block that describes what the component does. Place it **after** the imports and **immediately before `defineOptions()`**. vue-docgen-api reads the description from the JSDoc that directly precedes `defineOptions()` — a JSDoc placed before the imports will be silently ignored.
+
+Always include `defineOptions()` even when you have no options to set; it provides the required anchor for the description comment.
+
+```vue
+<script setup>
+import { ... } from "...";
+
+/**
+ * One to three sentences describing what this component does.
+ */
+defineOptions({
+    inheritAttrs: false, // only when needed
+});
+```
+
+Prop descriptions use inline JSDoc above each key inside `defineProps({...})`:
+
+```js
+const props = defineProps({
+    /** The field name. */
+    name: { type: String, required: true },
+});
+```
+
+### `@vueda-spread` on shared prop/emit constants (JS files)
+
+When a composable exports a constant that components spread into `props` or `emits`, mark it with `@vueda-spread props` or `@vueda-spread emits` in its JSDoc block. The normalizer injects those entries into every component that spreads the constant.
+
+```js
+/**
+ * Props shared by all field components.
+ *
+ * @vueda-spread props
+ */
+export const FIELD_PROPS = {
+    /** The field name. */
+    name: { type: String, required: true },
+};
+```
+
+Add a JSDoc line comment (`/** ... */`) above each prop or emit entry. Those comments become the member descriptions in the rendered API reference.
+
+### `<!-- @slot ... -->` for dynamic slots (Vue SFC templates)
+
+vue-docgen-api cannot statically read dynamic slot names (`:name="someExpression"`). Place an HTML comment immediately before any such `<slot>` element.
+
+**Bare form** (no fallbacks):
+
+```html
+<!-- @slot filter-clear-button Replaces the clear button inside the filter form. -->
+<slot :name="resolvedSlotNames.clearButton.name" />
+```
+
+**Bracket form** (with fallback slot names):
+
+```html
+<!-- @slot [filter-clear-button, filter-clear-button(filterName)] Replaces the clear button inside the filter form. -->
+<slot :name="resolvedSlotNames.clearButton.name" />
+```
+
+The first name in the bracket list is the canonical slot name; remaining names are fallbacks accepted by the same outlet. An empty bracket list `[]` is a parse error. The bracket form also works on static slots when you want to document fallbacks alongside an already-named slot.
+
+Use the consumer-facing API name, not the internal expression. For static slot names (`name="foo"`) with no fallbacks, vue-docgen picks up the name automatically and no annotation is needed.
 
 ## Test Structure & Isolation
 

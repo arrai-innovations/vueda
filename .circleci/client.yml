@@ -1,163 +1,155 @@
 version: 2.1
 
 orbs:
-  github: arrai/github@5.0.0
-  lintinator: arrai/lintinator@2.1.1
-  utils: arrai/utils@1.21.1
+    github: arrai/github@5.0.0
+    lintinator: arrai/lintinator@2.1.1
+    utils: arrai/utils@1.21.1
 
 parameters:
-  run-client-workflows:
-   type: boolean
-   default: false
-  run-server-workflows:
-    type: boolean
-    default: false
+    run-client-workflows:
+        type: boolean
+        default: false
+    run-server-workflows:
+        type: boolean
+        default: false
 
 executors:
-  node-lts:
-    docker:
-      - image: cimg/node:lts
+    node-lts:
+        docker:
+            - image: cimg/node:lts
 
 jobs:
-  client-verify-release-version:
-    executor: node-lts
-    resource_class: small
-    steps:
-      - checkout
-      - run:
-          name: Check that the tag version matches the release.
-          command: |
-            if [[ "$CIRCLE_TAG" != client-v* ]]; then
-              echo "Tag $CIRCLE_TAG is not a client release tag."
-              exit 1
-            fi
-            PACKAGE_VERSION=$(jq -r '.version' client/package.json)
-            TAG_VERSION="${CIRCLE_TAG#client-v}"
-            if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
-              echo "Git tag ($CIRCLE_TAG) does not match the package version (v$PACKAGE_VERSION)"
-              exit 1
-            fi
+    client-verify-release-version:
+        executor: node-lts
+        resource_class: small
+        steps:
+            - checkout
+            - run:
+                  name: Check that the tag version matches the release.
+                  command: |
+                      if [[ "$CIRCLE_TAG" != client-v* ]]; then
+                        echo "Tag $CIRCLE_TAG is not a client release tag."
+                        exit 1
+                      fi
+                      PACKAGE_VERSION=$(jq -r '.version' client/package.json)
+                      TAG_VERSION="${CIRCLE_TAG#client-v}"
+                      if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+                        echo "Git tag ($CIRCLE_TAG) does not match the package version (v$PACKAGE_VERSION)"
+                        exit 1
+                      fi
 
-  client-test:
-    executor: node-lts
-    resource_class: medium+
-    steps:
-      - checkout
-      - utils/add_npm_config
-      - run:
-          name: Install Dependencies
-          command: pnpm install
-      - run:
-          name: Run Tests
-          command: pnpm -C client test
+    client-test:
+        executor: node-lts
+        resource_class: medium+
+        steps:
+            - checkout
+            - utils/add_npm_config
+            - run:
+                  name: Install Dependencies
+                  command: pnpm install
+            - run:
+                  name: Run Tests
+                  command: pnpm -C client test
 
-  client-publish:
-    executor: node-lts
-    resource_class: small
-    steps:
-      - checkout
-      - utils/add_npm_config
-      - run:
-          name: Install Dependencies
-          command: pnpm install
-      - run:
-          name: Publish
-          command: |
-            cd client
-            pnpm publish --no-git-checks
+    client-publish:
+        executor: node-lts
+        resource_class: small
+        steps:
+            - checkout
+            - utils/add_npm_config
+            - run:
+                  name: Install Dependencies
+                  command: pnpm install
+            - run:
+                  name: Publish
+                  command: |
+                      cd client
+                      pnpm publish --no-git-checks
 
 workflows:
-  client-test:
-    jobs:
-      - client-test:
-          name: client-test
-          context:
-            - arrai-global
-          filters:
-            branches:
-              only: /.*/
-            tags:
-              only: /^client-v.*/
-      - client-verify-release-version:
-          name: client-verify-release-version
-          filters:
-            tags:
-              only: /^client-v.*/
-            branches:
-              ignore: /.*/
-      - client-publish:
-          name: client-publish
-          context: arrai-private-package-publishing
-          requires:
-            - client-verify-release-version
-          filters:
-            tags:
-              only: /^client-v.*/
-            branches:
-              ignore: /.*/
-      - github/create_release:
-          name: client-release-on-github
-          context: arrai-global
-          requires:
-            - client-publish
-          filters:
-            tags:
-              only: /^client-v.*/
-            branches:
-              ignore: /.*/
+    client-test:
+        jobs:
+            - client-test:
+                  name: client-test
+                  context:
+                      - arrai-global
+                  filters:
+                      branches:
+                          only: /.*/
+                      tags:
+                          only: /^client-v.*/
+            - client-verify-release-version:
+                  name: client-verify-release-version
+                  filters:
+                      tags:
+                          only: /^client-v.*/
+                      branches:
+                          ignore: /.*/
+            - client-publish:
+                  name: client-publish
+                  context: arrai-private-package-publishing
+                  requires:
+                      - client-verify-release-version
+                  filters:
+                      tags:
+                          only: /^client-v.*/
+                      branches:
+                          ignore: /.*/
+            - github/create_release:
+                  name: client-release-on-github
+                  context: arrai-global
+                  requires:
+                      - client-publish
+                  filters:
+                      tags:
+                          only: /^client-v.*/
+                      branches:
+                          ignore: /.*/
 
-  lint:
-    jobs:
-      - lintinator/lint_python_fixed_ip:
-          name: lint
-          context: arrai-global
-          executor: lintinator/python311
-          hooks: prettier eslint doctoc
-          hook_manager: lefthook
-          install_deps: false
-          setup:
-            - utils/add_npm_config
-            - run:
-                name: Install tooling
-                command: |
-                  if ! [ -x "$(command -v uv)" ]; then
-                    curl -LsSf https://astral.sh/uv/install.sh | bash
-                  fi
-                  export COREPACK_HOME="$HOME/.local/share/corepack"
-                  export PATH="$HOME/.local/bin:$PATH"
-                  printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
-                  chmod +x "$HOME/.local/bin/pnpm"
-                  corepack pnpm --version
-                  corepack pnpm install --no-frozen-lockfile
-                  uv sync --all-groups --all-packages
-          filters:
-            branches:
-              only:
-                - main
-      - lintinator/lint_python:
-          name: lint-no-badge
-          context: arrai-global
-          executor: lintinator/python311
-          hooks: prettier eslint doctoc
-          hook_manager: lefthook
-          create_badges: false
-          install_deps: false
-          setup:
-            - utils/add_npm_config
-            - run:
-                name: Install tooling
-                command: |
-                  if ! [ -x "$(command -v uv)" ]; then
-                    curl -LsSf https://astral.sh/uv/install.sh | bash
-                  fi
-                  export COREPACK_HOME="$HOME/.local/share/corepack"
-                  export PATH="$HOME/.local/bin:$PATH"
-                  printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
-                  chmod +x "$HOME/.local/bin/pnpm"
-                  corepack pnpm --version
-                  corepack pnpm install --no-frozen-lockfile
-                  uv sync --all-groups --all-packages
-          filters:
-            branches:
-              ignore:
-                - main
+    client-lint:
+        jobs:
+            - lintinator/lint_python_fixed_ip:
+                  name: client-lint
+                  context: arrai-global
+                  executor: lintinator/python311
+                  hooks: prettier eslint md-toc
+                  hook_manager: lefthook
+                  install_deps: true
+                  setup:
+                      - utils/add_npm_config
+                      - run:
+                            name: Ensure pnpm command is available
+                            command: |
+                                mkdir -p "$HOME/.local/bin"
+                                printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
+                                chmod +x "$HOME/.local/bin/pnpm"
+                                echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+                                export PATH="$HOME/.local/bin:$PATH"
+                                pnpm --version
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - lintinator/lint_python:
+                  name: client-lint-no-badge
+                  context: arrai-global
+                  executor: lintinator/python311
+                  hooks: prettier eslint md-toc
+                  hook_manager: lefthook
+                  create_badges: false
+                  install_deps: true
+                  setup:
+                      - utils/add_npm_config
+                      - run:
+                            name: Ensure pnpm command is available
+                            command: |
+                                mkdir -p "$HOME/.local/bin"
+                                printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
+                                chmod +x "$HOME/.local/bin/pnpm"
+                                echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+                                export PATH="$HOME/.local/bin:$PATH"
+                                pnpm --version
+                  filters:
+                      branches:
+                          ignore:
+                              - main

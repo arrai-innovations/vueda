@@ -1,3 +1,10 @@
+"""URL router wiring for the workflow API endpoints."""
+
+__all__ = (
+    "urlpatterns",
+    "workflow_router",
+)
+
 from vueda.core.routers import ContentTypeRouter
 from vueda.workflow.viewsets import WorkflowViewSet
 

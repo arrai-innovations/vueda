@@ -1,3 +1,7 @@
+/**
+ * @module use/useObject404
+ * @description Watches an object instance for 404 errors and converts them into user-friendly error objects with a list-view redirect.
+ */
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { watch } from "vue";

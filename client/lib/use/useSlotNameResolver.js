@@ -1,3 +1,7 @@
+/**
+ * @module use/useSlotNameResolver
+ * @description Resolves the most specific matching slot name from a prioritised list of candidates against the slots currently passed to a component.
+ */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { computed, effectScope, reactive, readonly } from "vue";
 import { useSlots } from "vue";
@@ -11,12 +15,8 @@ import { useSlots } from "vue";
  */
 
 /**
- * @typedef {
- *     string[]|
- *     import('vue').Ref<string[]>|
- *     import('vue').Ref<import('vue').Ref<string>[]>|
- *     import('vue').Ref<string>[]
- * } SlotNamesInOrderOfPrecedence - The slot names to check for, in order of precedence.
+ * @typedef {(string[]|import('vue').Ref<string[]>|import('vue').Ref<import('vue').Ref<string>[]>|import('vue').Ref<string>[])} SlotNamesInOrderOfPrecedence
+ *  - The slot names to check for, in order of precedence.
  */
 
 /**

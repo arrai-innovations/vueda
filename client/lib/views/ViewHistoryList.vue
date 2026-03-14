@@ -16,30 +16,42 @@ import Button from "primevue/button";
 import { computed, inject, reactive, ref, toRef, useSlots, watch } from "vue";
 import { useRouter } from "vue-router";
 
+/**
+ * Paginated list view showing the history audit trail for a specific model instance,
+ * displaying field-level changes with old and new values in a table or card layout.
+ *
+ * @vueda-slot-forward PaginationComponent
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name used to resolve API endpoints and configuration. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key of the instance whose history is displayed. */
     pk: {
         type: String,
         required: true,
     },
+    /** Query parameter name used to track the current page in the URL. */
     pageKey: {
         type: String,
         default: "p",
     },
+    /** Tailwind breakpoint at which the layout switches from card to table view. */
     tableBreakpoint: {
         type: String,
         default: "lg",
     },
+    /** Ordered list of field names to display as columns in the history table. */
     fields: {
         type: Array,
         default: () => [
@@ -54,14 +66,17 @@ const props = defineProps({
             "new",
         ],
     },
+    /** When true, shows a control that lets the user load all history pages at once. */
     allowShowAllPages: {
         type: Boolean,
         default: true,
     },
+    /** When true, always fetches and displays all history pages without requiring user interaction. */
     alwaysShowAllPages: {
         type: Boolean,
         default: false,
     },
+    /** When true, displays the total number of history records in the pagination bar. */
     showTotalRecordNum: {
         type: Boolean,
         default: true,

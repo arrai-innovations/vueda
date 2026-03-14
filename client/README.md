@@ -1,54 +1,43 @@
-# vueda-client
+# VUEDA Client
 
-![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
+<!--prettier-ignore-start-->
+<!--TOC-->
 
-[![code style: prettier][]][prettier] ![tests][] [![coverage: status][]][coverage] ![eslint][] ![audit][]
+- [VUEDA Client](#vueda-client)
+  - [About](#about)
+  - [Install](#install)
+  - [Usage](#usage)
+    - [JSDocs](#jsdocs)
+    - [Forms](#forms)
+    - [CRUD Operation Views](#crud-operation-views)
+    - [Dynamic Routing](#dynamic-routing)
+    - [Authentication](#authentication)
+    - [Navigation](#navigation)
+    - [Permissions](#permissions)
+    - [Theming](#theming)
+    - [Customization](#customization)
+  - [Development](#development)
+    - [Environment](#environment)
+    - [Running Locally](#running-locally)
+    - [Testing](#testing)
+      - [Running Tests](#running-tests)
+      - [Writing Tests](#writing-tests)
+      - [Coverage](#coverage)
+    - [Reporting Bugs](#reporting-bugs)
+    - [Getting my changes into the main branch](#getting-my-changes-into-the-main-branch)
+    - [Making a Release](#making-a-release)
+    - [Changelog](#changelog)
 
-<!-- prettier-ignore-start -->
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [About](#about)
-- [Install](#install)
-- [Usage](#usage)
-  - [JSDocs](#jsdocs)
-  - [Forms](#forms)
-  - [CRUD Operation Views](#crud-operation-views)
-  - [Dynamic Routing](#dynamic-routing)
-  - [Authentication](#authentication)
-  - [Navigation](#navigation)
-  - [Permissions](#permissions)
-  - [Theming](#theming)
-  - [Customization](#customization)
-- [Development](#development)
-  - [Environment](#environment)
-  - [Running Locally](#running-locally)
-  - [Testing](#testing)
-    - [Running Tests](#running-tests)
-    - [Writing Tests](#writing-tests)
-    - [Coverage](#coverage)
-  - [Reporting Bugs](#reporting-bugs)
-  - [Getting my changes into the main branch](#getting-my-changes-into-the-main-branch)
-  - [Making a Release](#making-a-release)
-  - [Changelog](#changelog)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-<!-- prettier-ignore-end -->
+<!--TOC-->
+<!--prettier-ignore-end-->
 
 ## About
 
-[vueda-client] offers a dynamic Vue.js frontend framework, tailored
-for seamless integration with Django REST Framework backends and designed to
-complement [vueda-server]. This client library enables rapid development of
-reactive user interfaces in Django-Vue projects. It features components and
-composables for efficient form handling, CRUD operations, and dynamic routing.
-These tools allow client-side configuration and leverage server-supplied model
-and field metadata to drive forms, fields, views, and routes dynamically.
-Prioritizing developer flexibility, [vueda-client] provides extensive
-customization and theming options for its default components. It also includes
-authentication, navigation, and permission management features, all
-crafted to integrate smoothly with the corresponding backend
-services of [vueda-server].
+VUEDA Client is a Vue 3 component library that consumes the API provided by
+[VUEDA Server](../server/README.md). It provides components and composables for
+form handling, CRUD views, and dynamic routing, driven by server-supplied model
+and field metadata. It also includes authentication, navigation, permission
+management, and theming support.
 
 ## Install
 
@@ -115,16 +104,17 @@ services of [vueda-server].
 Clone the repository and install the dependencies:
 
 ```console
-$ git clone git://github.com/arrai-innovations/vueda-client.git
-$ cd vueda-client
-[vueda-client]$ npm install --include=dev
+$ git clone https://github.com/arrai-innovations/vueda.git
+$ cd vueda
+[vueda]$ cd client
+[client]$ npm install --include=dev
 ```
 
-Installing without dev dependencies will not work as husky is a dev dependency and is called in prepare.
+Install with dev dependencies so local linting and test tooling are available.
 
 ### Running Locally
 
-As a library, `vueda-client` is not intended to be run as a standalone application.
+As a library, VUEDA Client is not intended to be run as a standalone application.
 It is designed to be integrated into a Vue.js project, where it will be served by the Django backend.
 However, you can use the example server & client to run the library locally.
 
@@ -146,24 +136,24 @@ However, you can use the example server & client to run the library locally.
     $ git clone https://github.com/arrai-innovations/vueda-example-server.git
     ```
 4. Install the dependencies:
-5. ```console
-   $ cd vueda-example-server
-   [vueda-example-server]$ npm install
-   [vueda-example-server]$ pipenv install
-   ```
-6. Use the local version of `vueda-client` in the example client:
     ```console
-    [vueda-example-client]$ npm link ../vueda-client
+    $ cd vueda-example-server
+    [vueda-example-server]$ npm install
+    [vueda-example-server]$ pipenv install
     ```
-7. Use the local version of `vueda-server` in the example server:
+5. Use the local version of VUEDA Client in the example client:
     ```console
-    [vueda-example-server]$ pipenv run pip install -e ../vueda-server
+    [vueda-example-client]$ npm link ../vueda/client
     ```
-8. Run the server:
+6. Use the local version of VUEDA Server in the example server:
+    ```console
+    [vueda-example-server]$ pipenv run pip install -e ../vueda/server
+    ```
+7. Run the server:
     ```console
     [vueda-example-server]$ pipenv run ./guincorn.sh
     ```
-9. Run the client:
+8. Run the client:
     ```console
     [vueda-example-client]$ npm run dev
     ```
@@ -178,7 +168,7 @@ $ npm run test
 
 #### Writing Tests
 
-[vueda-client] has unit tests for its components and composables. These tests are written using the [@testing-library/vue] library. The tests are located in the `tests` directory. The tests run using [vitest].
+VUEDA Client has unit tests for its components and composables. These tests are written using the [@testing-library/vue] library. The tests are located in the `tests` directory. The tests run using [vitest].
 
 #### Coverage
 
@@ -213,14 +203,5 @@ If you want your changes OK'd before making a pull request, you can create an is
 
 See [CHANGELOG.md](./CHANGELOG.md) for a complete list of changes by version.
 
-[prettier]: https://github.com/prettier/prettier
-[code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
-[coverage]: https://docs.arrai.dev/vueda-client/artifacts/main/coverage_tests/
-[coverage: status]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.coverage.svg
-[eslint]: https://docs.arrai.dev/vueda-client/artifacts/main/eslint.svg
-[audit]: https://docs.arrai.dev/vueda-client/artifacts/main/npm-audit.svg
-[tests]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.svg
-[vueda-client]: https://github.com/arrai-innovations/vueda-client
-[vueda-server]: https://github.com/arrai-innovations/vueda-server
 [@testing-library/vue]: https://github.com/testing-library/vue-testing-library
 [vitest]: https://github.com/vitest-dev/vitest

@@ -1,3 +1,7 @@
+/**
+ * @module use/useField
+ * @description Provides reactive field context including value tracking, validation, required-state, and server error handling for individual form fields.
+ */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -8,34 +12,63 @@ import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, onUnmounted, provide, reactive, readonly, toRef, unref, watch } from "vue";
 
+/**
+ * Vue component props definition for field components. Spread into component options to include
+ * standard field identification, validation, display, value handling, and form context behavior props.
+ *
+ * @vueda-spread props
+ */
 export const FIELD_PROPS = {
     // *** Identification & Metadata ***
+    /** The field name, used as the path to look up and store the value in the form state. */
     name: { type: String, required: true },
+    /** The name of the form model for configuration lookup; usually provided by a parent field renderer. */
     formModelName: { type: String, default: undefined },
-    /* v8 ignore next 2 */
+    /** Other fields whose server errors should be cleared when this field's value changes. */
+    /* v8 ignore next 1 */
     clearServerErrorDependents: { type: Array, default: () => [] },
+    /** Other field paths this field depends on; their values are passed to validation and required functions. */
+    /* v8 ignore next 1 */
     validationDependencies: { type: Array, default: () => [] },
+    /** Whether the field is read-only; disables editing and skips required validation. */
     readOnly: { type: Boolean, default: false },
 
     // *** Validation ***
+    /** Whether the field is required. */
     required: { type: Boolean, default: null },
+    /** Error message shown when a required field is left empty. */
     requiredMessage: { type: String, default: "This field is required." },
+    /** Custom function called with resolved field dependency values; determines whether the field should be required. */
     shouldRequireFn: { type: Function, default: null },
+    /** Custom function called with the current field value; checks whether the value violates the required rule. Defaults to rejecting null, undefined, empty string, false, and 0. */
     isRequiredViolation: { type: Function, default: null },
+    /** Custom validation function called with the current field value and resolved field dependency values; should return true when valid or an error message string when invalid. */
     validate: { type: Function, default: null },
 
     // *** Display ***
+    /** The label shown next to the field; defaults to the field name when omitted. */
     label: { type: String, default: null },
+    /** Help text displayed alongside the field. */
     help: { type: String, default: "" },
 
     // *** Value Handling ***
+    /** The field's external model value; used only in contextless mode (v-model binding). */
     modelValue: { type: [String, Number, Boolean, Array, Object], default: undefined },
 
     // *** Form Context Behavior ***
+    /** When true, the field ignores any surrounding form context and manages its own state. */
     contextless: { type: Boolean, default: false },
 };
 
-export const FIELD_EMITS = ["update:modelValue"];
+/**
+ * Array of Vue event names emitted by field components. Pass to the `emits` option of a field component.
+ *
+ * @vueda-spread emits
+ */
+export const FIELD_EMITS = [
+    /** Emitted when the field value changes. */
+    "update:modelValue",
+];
 
 /**
  * Determines whether a value would **violate a required field rule**.
@@ -191,6 +224,15 @@ export function isUnsetValue(value) {
 
 const defaultRequiredMessage = "This field is required.";
 const defaultValidationFailedMessage = "Validation Failed";
+const reservedServerCode = "server";
+const reservedServerCodeError =
+    'Error code "server" is reserved for server-originated validation and cannot be set from local validation. Use a non-reserved code (e.g. "validate" or custom) for client validation.';
+
+const validateNonReservedCode = (code) => {
+    if (code === reservedServerCode) {
+        throw new Error(reservedServerCodeError);
+    }
+};
 
 /* v8 ignore start */
 /**
@@ -563,6 +605,7 @@ export function useField(props, emit) {
 
         // *** Error Handling ***
         updateError: (code, errorMessage) => {
+            validateNonReservedCode(code);
             const fc = unref(formContext);
             if (fc) {
                 fc.updateError(state.name, code, errorMessage);
@@ -598,6 +641,7 @@ export function useField(props, emit) {
 
         // *** Messages ***
         updateMessage: (code, message) => {
+            validateNonReservedCode(code);
             const fc = unref(formContext);
             if (fc) {
                 fc.updateMessage(state.name, code, message);

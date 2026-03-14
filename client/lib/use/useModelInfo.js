@@ -1,3 +1,7 @@
+/**
+ * @module use/useModelInfo
+ * @description Provides a reactive, deep-referenced model info object that updates when the app or model changes without breaking existing reactive references.
+ */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";

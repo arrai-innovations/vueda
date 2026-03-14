@@ -1,3 +1,7 @@
+"""Serializers for rendering historical record diffs."""
+
+__all__ = ("DynamicHistoricalSerializer",)
+
 from vueda.history.serializers.mixins import HistoricalModelSerializerMixin
 
 

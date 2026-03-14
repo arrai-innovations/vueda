@@ -1,3 +1,13 @@
+"""AllAuth and user adapters for email and SMS notification delivery."""
+
+__all__ = (
+    "DefaultUserAdapter",
+    "VuedaAllAuthAccountAdapter",
+    "VuedaAllAuthHeadlessAdapter",
+    "VuedaAllAuthMFAAdapter",
+    "get_adapter",
+)
+
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.mfa.adapter import DefaultMFAAdapter
@@ -20,7 +30,7 @@ from vueda.vdq.schedulers import add_sms
 
 class VuedaAllAuthHeadlessAdapter(DefaultHeadlessAdapter):
     """
-    Adapter for Vueda AllAuth integration.
+    Adapter for VUEDA AllAuth integration.
     """
 
     def user_as_dataclass(self, user):

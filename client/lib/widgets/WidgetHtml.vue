@@ -8,10 +8,17 @@ import pick from "lodash-es/pick.js";
 import Editor from "primevue/editor";
 import { useSlots } from "vue";
 
+/**
+ * A rich-text editor widget backed by PrimeVue's Editor (Quill). Stores and emits HTML string
+ * content, and accepts an optional `editorHeight` prop to control the editor's visible area.
+ */
+defineOptions({});
+
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
     ...THEME_OVERRIDE_PROPS,
+    /** CSS height value applied to the Quill editor's content area (e.g. `"320px"`). */
     editorHeight: {
         type: String,
         default: "auto",

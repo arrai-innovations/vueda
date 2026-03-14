@@ -1,3 +1,7 @@
+/**
+ * @module use/useLeaveUnload
+ * @description Warns the user via a confirmation dialog when they attempt to navigate away or close the tab while there are unsaved form changes.
+ */
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { onMounted, onUnmounted, unref } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";

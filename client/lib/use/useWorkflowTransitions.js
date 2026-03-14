@@ -1,5 +1,9 @@
+/**
+ * @module use/useWorkflowTransitions
+ * @description Fetches and reactively tracks the available workflow transitions for a given app and model.
+ */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
-import { getUsingVuedaWorkFlow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
+import { getUsingVuedaWorkflow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import { reactive, readonly, ref, toRef, unref, watch } from "vue";
@@ -28,7 +32,7 @@ import { reactive, readonly, ref, toRef, unref, watch } from "vue";
  * @returns {WorkflowTransitions} An object containing transitions.
  */
 export function useWorkflowTransitions(app, model, isActive) {
-    if (!getUsingVuedaWorkFlow()) {
+    if (!getUsingVuedaWorkflow()) {
         // for testing purposes, check at setup time.
         return readonly(
             reactive({

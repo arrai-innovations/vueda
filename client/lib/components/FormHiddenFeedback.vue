@@ -1,40 +1,54 @@
 <script>
 import { computed } from "vue";
 
+/**
+ * Vue component props definition for FormHiddenFeedback components. Includes props for help
+ * text, errors, warnings, manual invalid and warning state overrides, and layout options.
+ *
+ * @vueda-spread props
+ */
 export const FORM_HIDDEN_FEEDBACK_PROPS = {
+    /** Help text displayed in the feedback popover. */
     help: {
         type: String,
         default: undefined,
     },
+    /** Errors to display, keyed by code. */
     errors: {
         type: Object,
         default: null,
         description: "Errors to display, keyed by code.",
     },
+    /** Warnings to display, keyed by code. */
     warnings: {
         type: Object,
         default: null,
         description: "Warnings to display, keyed by code.",
     },
+    /** Manually set the invalid state; defaults to true when errors are present. */
     invalid: {
         type: Boolean,
         description: "Manually set the invalid state, defaults to if there are errors.",
         default: undefined,
     },
+    /** Manually set the warning state; defaults to true when warnings are present. */
     warning: {
         type: Boolean,
         description: "Manually set the warning state, defaults to if there are warnings.",
         default: undefined,
     },
+    /** When true, the feedback indicator is not rendered. */
     hidden: {
         type: Boolean,
         default: false,
     },
+    /** When true, applies card layout styling to the feedback popover. */
     isCardLayout: {
         type: Boolean,
         default: false,
     },
 };
+/** Array of slot names provided by FormHiddenFeedback, covering customizable icons for help, errors, and warnings, a button slot, and a general feedback slot. */
 export const FORM_HIDDEN_FEEDBACK_SLOTS = [
     "feedback-help-icon",
     "feedback-error-icon",
@@ -60,11 +74,15 @@ import Button from "primevue/button";
 import Popover from "primevue/popover";
 import { inject, onMounted, ref, unref, useAttrs } from "vue";
 
+/**
+ * Compact feedback indicator button that reveals validation errors, warnings, and help text in a popover when clicked.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...FORM_HIDDEN_FEEDBACK_PROPS,
+    /** Field name used to identify which field's feedback to display when no field context is injected. */
     name: {
         type: String,
         default: undefined,
@@ -154,6 +172,7 @@ const togglePopover = (e) => {
             </form-help-text>
         </div>
     </popover>
+    <!-- Replaces the default feedback indicator button; receives `buttonClass`, `class`, `hasErrors`, `hasHelp`, `hasWarnings`, and a click handler as slot props. -->
     <slot
         :button-class="theme('button')"
         :class="combineClasses(theme('root'), $attrs.class)"

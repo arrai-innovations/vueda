@@ -11,12 +11,12 @@ from django.db.models.functions import Cast
 
 from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
-from vueda.core.models import VuedaBaseModel
-from vueda.history.models import VuedaHistoryBaseModel
+from vueda.core.models import VuedaModel
+from vueda.history.models import VuedaHistoryModel
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class Customer(HasWorkflowModelMixin, VuedaHistoryBaseModel):
+class Customer(HasWorkflowModelMixin, VuedaHistoryModel):
     user = models.OneToOneField(get_user_model(), on_delete=models.PROTECT)
 
     formatted_name = None
@@ -35,7 +35,7 @@ class CustomerData(models.Model):
         db_table = "customer_data"
 
 
-class Distributor(VuedaHistoryBaseModel):
+class Distributor(VuedaHistoryModel):
     name = models.CharField(max_length=255)
 
     class Meta(BaseModelMeta):
@@ -46,18 +46,18 @@ class TangibleType(Lookup):
     pass
 
 
-class SpecialCare(VuedaBaseModel):
+class SpecialCare(VuedaModel):
     code = models.CharField(max_length=255, unique=True, db_index=True)
     field_that_contains_the_name = models.CharField(max_length=255, blank=True)
 
     formatted_name = None
     formatted_name_lookup_expression = "field_that_contains_the_name"
 
-    class Meta(VuedaBaseModel.Meta):
+    class Meta(VuedaModel.Meta):
         pass
 
 
-class Product(VuedaHistoryBaseModel):
+class Product(VuedaHistoryModel):
     distributor = models.ForeignKey(Distributor, on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
     disabled = models.BooleanField(db_default=False)
@@ -74,6 +74,7 @@ class Product(VuedaHistoryBaseModel):
     quantity = models.IntegerField(db_default=0)
 
     class Meta(BaseModelMeta):
+        ordering = ["name"]
         unique_together = [
             ["distributor", "name"],
         ]
@@ -83,7 +84,7 @@ class OptionType(Lookup):
     pass
 
 
-class ProductOption(VuedaHistoryBaseModel):
+class ProductOption(VuedaHistoryModel):
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     option_type = models.ForeignKey(OptionType, null=True, on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
@@ -97,7 +98,7 @@ class ProductOption(VuedaHistoryBaseModel):
         default_related_name = "product_options"
 
 
-class Cart(VuedaBaseModel):
+class Cart(VuedaModel):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
     last_modified = models.DateTimeField(auto_now=True)
     reserved_delivery_time = models.DateTimeField(null=True)
@@ -106,7 +107,7 @@ class Cart(VuedaBaseModel):
 
     formatted_name = None
 
-    class Meta(VuedaBaseModel.Meta):
+    class Meta(VuedaModel.Meta):
         ordering = [F("expected_delivery_time").asc(nulls_first=True)]
 
     def get_formatted_name(self):
@@ -114,7 +115,7 @@ class Cart(VuedaBaseModel):
             return self.customer.user.email
 
 
-class CartItem(VuedaBaseModel):
+class CartItem(VuedaModel):
     cart = models.ForeignKey(Cart, on_delete=models.PROTECT)
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)
     quantity = models.IntegerField(db_default=0)
@@ -122,7 +123,7 @@ class CartItem(VuedaBaseModel):
     formatted_name = None
     formatted_name_lookup_expression = "data__formatted_name"
 
-    class Meta(VuedaBaseModel.Meta):
+    class Meta(VuedaModel.Meta):
         default_related_name = "cart_items"
 
 
@@ -139,7 +140,7 @@ class OrderState(Lookup):
     pass
 
 
-class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryBaseModel):
+class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryModel):
     order_number = models.DecimalField(max_digits=7, decimal_places=0)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
@@ -165,7 +166,7 @@ class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryBaseModel):
         return last_order_number + 1
 
 
-class OrderItem(VuedaBaseModel):
+class OrderItem(VuedaModel):
     customer_order = models.ForeignKey(CustomerOrder, on_delete=models.PROTECT)
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)
     quantity = models.IntegerField(
@@ -175,7 +176,8 @@ class OrderItem(VuedaBaseModel):
     formatted_name = None
     formatted_name_lookup_expression = "data__formatted_name"
 
-    class Meta(VuedaBaseModel.Meta):
+    class Meta(VuedaModel.Meta):
+        default_related_name = "order_items"
         verbose_name = "ORDER item"
         verbose_name_plural = "ORDER items"
 
@@ -189,12 +191,12 @@ class OrderItemData(models.Model):
         db_table = "order_item_data"
 
 
-class InventoryRecordReason(VuedaBaseModel):
+class InventoryRecordReason(VuedaModel):
     name = models.CharField(max_length=255, verbose_name="Reason")
     code = models.CharField(max_length=255, db_index=True)
     is_added_reason = models.BooleanField(db_index=True)
 
-    class Meta(VuedaBaseModel.Meta):
+    class Meta(VuedaModel.Meta):
         default_related_name = "inventory_record_reason"
         unique_together = ("code", "is_added_reason")
         verbose_name = "inventory entry reason"
@@ -202,7 +204,7 @@ class InventoryRecordReason(VuedaBaseModel):
 
 
 # No history on inventory, since we only add records.
-class InventoryRecord(VuedaBaseModel):
+class InventoryRecord(VuedaModel):
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
     quantity = models.IntegerField(db_default=0, validators=[StepValueValidator(6)])
@@ -236,7 +238,7 @@ class InventoryRecord(VuedaBaseModel):
     formatted_name = None
     formatted_name_lookup_expression = "data__formatted_name"
 
-    class Meta(VuedaBaseModel.Meta):
+    class Meta(VuedaModel.Meta):
         verbose_name = "inventory entry"
         verbose_name_plural = "inventory entries"
 
@@ -250,7 +252,7 @@ class InventoryRecordData(models.Model):
         db_table = "inventory_record_data"
 
 
-class PackingBox(VuedaBaseModel):
+class PackingBox(VuedaModel):
     name = models.CharField(max_length=255)
 
     depth = models.DecimalField(max_digits=12, decimal_places=4)
@@ -263,6 +265,6 @@ class PackingBox(VuedaBaseModel):
     formatted_name = None
     formatted_name_lookup_expression = "name"
 
-    class Meta(VuedaBaseModel.Meta):
+    class Meta(VuedaModel.Meta):
         verbose_name = "Packing Box"
         verbose_name_plural = "Packing Boxes"

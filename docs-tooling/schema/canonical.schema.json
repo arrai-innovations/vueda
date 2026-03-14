@@ -1,0 +1,173 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://vueda.dev/schemas/docs-tooling/canonical.schema.json",
+    "title": "DocBundle",
+    "type": "object",
+    "required": ["schemaVersion", "source", "nodes", "roots"],
+    "additionalProperties": false,
+    "properties": {
+        "schemaVersion": {
+            "type": "string"
+        },
+        "source": {
+            "type": "string",
+            "enum": ["openapi", "pdoc", "typedoc", "vue-docgen"]
+        },
+        "meta": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "title": { "type": "string" },
+                "version": { "type": "string" },
+                "sourcePath": { "type": "string" }
+            }
+        },
+        "nodes": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/DocNode" }
+        },
+        "roots": {
+            "type": "array",
+            "items": { "type": "string" }
+        }
+    },
+    "$defs": {
+        "DocNode": {
+            "type": "object",
+            "required": ["id", "kind", "name"],
+            "additionalProperties": false,
+            "properties": {
+                "id": { "type": "string" },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "module",
+                        "namespace",
+                        "class",
+                        "interface",
+                        "function",
+                        "method",
+                        "property",
+                        "component",
+                        "prop",
+                        "slot",
+                        "event",
+                        "type",
+                        "enum",
+                        "api",
+                        "endpoint",
+                        "request",
+                        "response",
+                        "schema"
+                    ]
+                },
+                "name": { "type": "string" },
+                "displayName": { "type": "string" },
+                "description": { "type": "string" },
+                "children": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "signatures": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/Signature" }
+                },
+                "members": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/Member" }
+                },
+                "examples": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/Example" }
+                },
+                "tags": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "typeDefinition": { "$ref": "#/$defs/TypeRef" },
+                "propertyType": { "$ref": "#/$defs/TypeRef" },
+                "source": { "$ref": "#/$defs/SourceLocation" },
+                "extensions": {
+                    "type": "object"
+                }
+            }
+        },
+        "Signature": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "label": { "type": "string" },
+                "parameters": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/Parameter" }
+                },
+                "returns": { "$ref": "#/$defs/TypeRef" },
+                "throws": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/TypeRef" }
+                }
+            }
+        },
+        "Parameter": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "type": { "$ref": "#/$defs/TypeRef" },
+                "optional": { "type": "boolean" },
+                "default": { "type": "string" }
+            }
+        },
+        "Member": {
+            "type": "object",
+            "required": ["name", "kind"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string" },
+                "kind": {
+                    "type": "string",
+                    "enum": ["property", "field", "prop"]
+                },
+                "description": { "type": "string" },
+                "type": { "$ref": "#/$defs/TypeRef" },
+                "required": { "type": "boolean" },
+                "default": { "type": "string" },
+                "readonly": { "type": "boolean" }
+            }
+        },
+        "Example": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "label": { "type": "string" },
+                "lang": { "type": "string" },
+                "content": { "type": "string" }
+            }
+        },
+        "TypeRef": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "kind": {
+                    "type": "string",
+                    "enum": ["primitive", "array", "object", "union", "enum", "reference"]
+                },
+                "link": { "type": "string" }
+            }
+        },
+        "SourceLocation": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "file": { "type": "string" },
+                "line": { "type": "number" },
+                "url": { "type": "string" }
+            }
+        }
+    }
+}

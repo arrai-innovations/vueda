@@ -4,23 +4,23 @@
 }
 
 body {
-    background-color: light-dark(#FFF, #000);
+    background-color: light-dark(#fff, #000);
 }
 
 body,
 .helptext {
-    color: light-dark(#000, #FFF);
+    color: light-dark(#000, #fff);
 }
 
 .warnings {
-    background-color: #FF0;
+    background-color: #ff0;
     border-color: #000;
     color: #000;
 }
 
 button,
 .button {
-    color: #FFF;
+    color: #fff;
 }
 
 .button-save {
@@ -30,7 +30,7 @@ button,
 .button-add,
 .button-add-inline,
 .button-edit {
-    background-color: #E14A01;
+    background-color: #e14a01;
 }
 
 .button-overview {
@@ -38,7 +38,7 @@ button,
 }
 
 .button-top {
-    background-color: #0077F6;
+    background-color: #0077f6;
 }
 
 .button-delete,
@@ -48,55 +48,55 @@ button,
 
 .disabled input,
 .disabled select {
-    background-color: light-dark(#FFF8, #222128);
-    border-color: light-dark(#4448, #75747A);
-    color: light-dark(#6D6D6D, #75747A);
+    background-color: light-dark(#fff8, #222128);
+    border-color: light-dark(#4448, #75747a);
+    color: light-dark(#6d6d6d, #75747a);
 }
 
 .disabled.chrome input,
 .disabled.chrome select {
-    background-color: light-dark(#FFFFFFA6, #3B3B3B);
+    background-color: light-dark(#ffffffa6, #3b3b3b);
     border-color: light-dark(#4448, #626262);
     color: light-dark(#505050, #767676);
 }
 
 .sticky-1 {
-    background-color: light-dark(#FFF, #000);
+    background-color: light-dark(#fff, #000);
 }
 
 .formset,
 .sticky-2,
 .sticky-2:after {
-    background-color: light-dark(#DFDFDF, #202020);
+    background-color: light-dark(#dfdfdf, #202020);
 }
 
 .sticky-3,
 .sticky-3:after,
 .inlines .formset.workflow-permissions .odd {
-    background-color: light-dark(#CFCFCF, #303030);
+    background-color: light-dark(#cfcfcf, #303030);
 }
 
 .workflow_permissions,
 .sticky-edit-workflow-permissions,
 .sticky-edit-workflow-permissions:after {
-    background-color: light-dark(#BFBFBF, #404040);
+    background-color: light-dark(#bfbfbf, #404040);
 }
 
 .inlines .formset.workflow-permissions,
 .inlines .formset.workflow-permissions .even {
-    background-color: light-dark(#AFAFAF, #505050);
+    background-color: light-dark(#afafaf, #505050);
 }
 
 .sticky-edit-initial_state {
-    background-color: light-dark(#FFA377, #381200);
+    background-color: light-dark(#ffa377, #381200);
 }
 
 .inlines .formset.initial_state {
-    background-color: light-dark(#FF8449, #4F1A00);
+    background-color: light-dark(#ff8449, #4f1a00);
 }
 
 .state_title {
-    color: #5B0096;
+    color: #5b0096;
 }
 
 .states,
@@ -109,7 +109,7 @@ button,
 .inlines .formset.states .odd,
 .inlines .formset.state-permissions .odd,
 .inlines .formset.transition-permissions .odd {
-    background-color: light-dark(#D1A6FF, #3B007B);
+    background-color: light-dark(#d1a6ff, #3b007b);
 }
 
 .state_permissions,
@@ -119,11 +119,11 @@ button,
 .inlines .formset.state-permissions .even,
 .inlines .formset.transition-permissions,
 .inlines .formset.transition-permissions .even {
-    background-color: light-dark(#CC7DFF, #5B0096);
+    background-color: light-dark(#cc7dff, #5b0096);
 }
 
 .transition_title {
-    color: #009B5B;
+    color: #009b5b;
 }
 
 .transitions,
@@ -133,7 +133,7 @@ button,
 .sticky-edit-transition-sources:after,
 .inlines .formset.transitions .odd,
 .inlines .formset.transition-sources .odd {
-    background-color: light-dark(#A6FFD1, #007B3B);
+    background-color: light-dark(#a6ffd1, #007b3b);
 }
 
 .transition_permissions,
@@ -141,27 +141,27 @@ button,
 .inlines .formset.transitions .even,
 .inlines .formset.transition-sources,
 .inlines .formset.transition-sources .even {
-    background-color: light-dark(#7FFFCA, #009B5B);
+    background-color: light-dark(#7fffca, #009b5b);
 }
 
 .msg {
-    border-color: light-dark(#000, #FFF);
+    border-color: light-dark(#000, #fff);
 }
 
 .msg.info {
-    background-color: #8FF;
+    background-color: #8ff;
     color: #000;
 }
 
 .errorlist,
 .msg.error {
     background-color: #900;
-    color: #FFF;
+    color: #fff;
 }
 
 /* Attributes */
 body {
-    font-family: 'Source Sans Pro', sans-serif;
+    font-family: "Source Sans Pro", sans-serif;
     font-size: 1.1rem;
     overflow-y: scroll;
 }
@@ -237,10 +237,15 @@ body {
 }
 
 code {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "JetBrains Mono", monospace;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-weight: normal;
     margin: 0;
 }
@@ -396,7 +401,6 @@ input[type="checkbox"]:after {
 .formset .extra_field {
     display: none;
 }
-
 
 .formset > * {
     flex: 1 50%;

@@ -1,3 +1,7 @@
+"""AppConfig for the vueda.release application."""
+
+__all__ = ("ReleaseConfig",)
+
 from django.apps import AppConfig
 
 from vueda.info import register

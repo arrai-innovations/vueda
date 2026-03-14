@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeCollapseNav
+ * @description Pinia store for tracking and persisting the navigation sidebar collapsed/expanded state via localStorage.
+ */
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
 import { defineStore } from "pinia";
@@ -25,7 +29,7 @@ const collapseNavLocalStorageKey = "collapseNav";
  *
  * Usage:
  * ```js
- *   import { storeCollapseNav } from "vueda-client";
+ *   import { storeCollapseNav } from "@vueda";
  *   const collapseNav = storeCollapseNav();
  *
  *   collapseNav.isCollapsed; // reactive boolean for collapsed nav, true if nav is collapsed

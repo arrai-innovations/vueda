@@ -2,10 +2,10 @@
 version: 2.1
 
 jobs:
-  no-op:
-    type: no-op
+    no-op:
+        type: no-op
 
 workflows:
-  no-op:
-    jobs:
-       - no-op
+    no-op:
+        jobs:
+            - no-op

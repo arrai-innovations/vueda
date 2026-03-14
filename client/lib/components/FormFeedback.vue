@@ -10,32 +10,43 @@ import isObject from "lodash-es/isObject.js";
 import Message from "primevue/message";
 import { inject, reactive, toRef, watch } from "vue";
 
+/**
+ * Renders form or field validation messages sourced from injected form/field context or from the `messages` prop, displaying each entry as a PrimeVue Message component.
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Whether to display field errors (`"error"`) or non-error messages (`"message"`). */
     type: {
         type: String,
         default: "error",
         validator: (value) => ["error", "message"].includes(value),
     },
+    /** Explicit messages to display (keyed by code), bypassing context-derived messages. */
     messages: {
         type: Object,
         default: null,
         description: "Messages to display, keyed by code.",
     },
+    /** Size variant forwarded to the PrimeVue Message component. */
     size: {
         type: String,
         default: "small",
         validator: (value) => ["small", "large", null].includes(value),
     },
+    /** Visual variant forwarded to the PrimeVue Message component. */
     variant: {
         type: String,
         default: "simple",
         validator: (value) => ["simple", "outlined", null].includes(value),
     },
+    /** Severity override forwarded to the PrimeVue Message component; defaults to `"error"` or `"warn"` based on `type`. */
     severity: {
         type: String,
         default: null,
         validator: (value) => ["error", "warn", "help", "success", "info", "contrast", null].includes(value),
     },
+    /** When `true`, message strings containing HTML are rendered as HTML. */
     allowHtml: {
         type: Boolean,
         default: true,
@@ -93,6 +104,11 @@ const theme = useTheme(
 );
 const renderDetail = (data) => {
     const detail = data.detail;
+    if (typeof detail !== "string") {
+        throw new Error(
+            "Structured feedback object must include a string 'detail' template (e.g. { detail: '...', ... }).",
+        );
+    }
     return detail.replace(/\$\{(\w+)\}/g, (_, key) => {
         const value = data[key];
         if (Array.isArray(value)) {
@@ -110,6 +126,7 @@ const renderDetail = (data) => {
             :class="theme('messages')"
             data-qa="form-feedback-messages"
         >
+            <!-- Replaces the entire message row; receives `message`, `type`, and `attrs` as slot props. -->
             <slot name="default" v-bind="{ message, type, attrs: $attrs }">
                 <Message
                     v-for="line in Array.isArray(message) ? message : [message]"

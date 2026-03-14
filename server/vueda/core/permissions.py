@@ -1,3 +1,11 @@
+"""Object-level and row-level permission classes for CRUDL and workflow integration."""
+
+__all__ = (
+    "DEFAULT",
+    "BaseRowLevelPermissions",
+    "ObjectPermissions",
+)
+
 from django.conf import settings
 from django.db.models import Q
 from rest_framework import exceptions
@@ -22,7 +30,7 @@ class ObjectPermissions(DjangoObjectPermissions):
     }
     view_action = None
 
-    def has_permission(self, request, view):
+    def has_permission(self, request, view) -> bool:
         """
         Bypasses model-level permissions check for models with workflow state permissions,
         delegating the decision to object-level permissions if applicable.
@@ -51,12 +59,13 @@ class ObjectPermissions(DjangoObjectPermissions):
         self.view_action = view.action
         return super().has_permission(request, view)
 
-    def has_object_permission(self, request, view, obj):
+    def has_object_permission(self, request, view, obj) -> bool:
+        """Records the current view action then delegates to DjangoObjectPermissions."""
         # set the view action for use in get_required_object_permissions
         self.view_action = getattr(view, "action", None)
         return super().has_object_permission(request, view, obj)
 
-    def get_required_permissions(self, method, model_cls):
+    def get_required_permissions(self, method, model_cls) -> list[str]:
         """
         Allow dynamic permissions based on the view action, for callables in perms_map.
         """
@@ -68,7 +77,7 @@ class ObjectPermissions(DjangoObjectPermissions):
         called = [perm(self.view_action) if callable(perm) else perm for perm in self.perms_map[method]]
         return [perm % kwargs for perm in called if perm]
 
-    def get_required_object_permissions(self, method, model_cls):
+    def get_required_object_permissions(self, method, model_cls) -> list[str]:
         """
         Allow dynamic permissions based on the view action, for callables in perms_map, for object permissions.
         """
@@ -79,6 +88,14 @@ DEFAULT = object()
 
 
 class BaseRowLevelPermissions:
+    """
+    Base class for row-level permission checks. Subclass this on a model's inner
+    ``RowLevelPermissions`` class to restrict which rows a user can read, modify, or delete.
+
+    All methods return ``None`` by default (no opinion). Return ``True`` to grant, ``False``
+    to deny, or a ``Q`` object (queryset methods) to filter rows.
+    """
+
     @classmethod
     def check_instance(cls, model, obj, perm, user, perm_type) -> bool | None:
         """
@@ -99,6 +116,36 @@ class BaseRowLevelPermissions:
         Return of Q means we need to filter the rows based on the row level permissions.
         """
         # users should implement this method
+        if user.is_superuser:
+            return None
+        return None
+
+    @classmethod
+    def check_instance_workflow(cls, model, obj, perm, user, perm_type, grant_or_deny) -> bool | None:
+        """
+        Row-level check that is workflow-aware. Only called when the object is under workflow.
+        Receives grant_or_deny (None/True/False) from state permission resolution.
+        Runs AFTER check_instance and can override any prior decision, including state deny.
+        """
+        if user.is_superuser:
+            return None
+        return None
+
+    @classmethod
+    def check_queryset_workflow(
+        cls, queryset, perm, user, perm_type, state_denied_annotation, state_granted_annotation
+    ) -> Q | bool | None:
+        """
+        Queryset-level filter that is workflow-aware. Only called when the model is under workflow.
+        The queryset is pre-annotated with state permission info.
+        Use F(state_denied_annotation) / F(state_granted_annotation) in Q expressions.
+
+        Returns:
+            None  - no workflow-specific opinion, preserve prior filtering
+            Q     - ANDed with the current queryset
+            True  - no additional restriction
+            False - empty queryset
+        """
         if user.is_superuser:
             return None
         return None

@@ -1,3 +1,7 @@
+/**
+ * @module utils/fetchSupport
+ * @description Low-level fetch helper that decodes responses and wraps failures in typed errors.
+ */
 import { FetchError } from "@vueda/utils/errors.js";
 
 /**
@@ -70,6 +74,11 @@ export const fetchHelper = (
             signal: controller.signal,
         })
             .then(async (response) => {
+                if (response.ok && emptyResponseCodes.has(response.status)) {
+                    resolve(emptyResponseValue);
+                    return;
+                }
+
                 const responseData = await getJsonOrText(response);
                 if (!response.ok) {
                     if (emptyResponseCodes.has(response.status) && emptyResponseValue !== undefined) {

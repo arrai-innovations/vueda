@@ -1,3 +1,13 @@
+"""Model registration for the meta-info API, mapping models to serializers and viewsets."""
+
+__all__ = (
+    "get_all_registrations",
+    "get_registered_content_types",
+    "get_registration",
+    "register",
+    "register_serializer",
+)
+
 import logging
 import sys
 from copy import deepcopy
@@ -30,14 +40,11 @@ def register(canonical_serializer, canonical_viewset=None):
         if model is None:
             raise ImproperlyConfigured(
                 "Unable to determine the content type for while registering "
-                f"{decorated_canonical_viewset} and {canonical_serializer}.  Either a model needs to be "
-                "defined in the serializer Meta or a queryset needs to be defined on the viewset."
+                f"{canonical_serializer}.  A model needs to be defined in the serializer Meta."
             )
 
         key = f"{model._meta.app_label}.{model._meta.model_name}"
-        # If the registered serializer doesn't have a viewset, then
-        # we want to overwrite the data so it includes the viewset.
-        if key in _registry and _registry[key]["viewset"] is not None:
+        if key in _registry:
             raise ValueError(f"{key} is already registered.")
 
         _registry[key] = {

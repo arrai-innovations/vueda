@@ -1,0 +1,43 @@
+bootstrap:
+  cd {% raw %}{{justfile_directory()}}{% endraw %} && pnpm install
+  pnpm -C {% raw %}{{justfile_directory()}}{% endraw %} exec lefthook install
+  cd {% raw %}{{justfile_directory()}}{% endraw %} && uv sync --all-groups --all-packages
+
+check:
+  pnpx concurrently -n server,client -c green,cyan "just check-server" "just check-client"
+
+check-server:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync ruff check . && uv run --no-sync ruff format --check .
+
+check-client:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/client && pnpm run lint && pnpm run format
+
+fix:
+  pnpx concurrently -n server,client -c green,cyan "just fix-server" "just fix-client"
+
+fix-server:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync ruff check --fix . && uv run --no-sync ruff format .
+
+fix-client:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/client && pnpm run eslint && pnpm run prettier
+
+test:
+  pnpx concurrently -n server,client -c green,cyan "just test-server" "just test-client"
+
+test-server:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync pytest
+
+test-client:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/client && pnpm test run
+
+manage *args:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync python manage.py {% raw %}{{args}}{% endraw %}
+
+serve:
+  pnpx concurrently -n server,client -c green,cyan "just serve-server" "just serve-client"
+
+serve-server:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind {{ bind_ip }}:{{ server_port }}
+
+serve-client:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/client && pnpm run dev

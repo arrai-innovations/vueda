@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeWorkflow
+ * @description Pinia store for fetching and caching workflow states, available transitions, history, and executing transitions for model objects.
+ */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
@@ -8,19 +12,47 @@ import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
 import { unref } from "vue";
 
-let usingVuedaWorkFlow = true;
+let usingVuedaWorkflow = true;
 
 /**
- * Set the usingVuedaWorkFlow value.
+ * Ensure nested store maps exist for a particular app.model key.
  *
- * @param {boolean} value - The value to set usingVuedaWorkFlow to.
+ * Some workflow fetch paths store per-object results under a two-level key:
+ * `bucket[appModelKey][objectPk]`. These containers must exist before indexing.
+ *
+ * @param {any} store
+ * @param {string} key
+ * @param {"objectStates"|"objectTransitions"|"objectHistories"} bucket
+ * @private
  */
-export function setUsingVuedaWorkFlow(value) {
-    usingVuedaWorkFlow = value;
+const ensureWorkflowObjectBucket = (store, key, bucket) => {
+    if (!store[bucket][key]) {
+        store[bucket][key] = {};
+    }
+    if (!store.promises[bucket][key]) {
+        store.promises[bucket][key] = {};
+    }
+    if (!store.errors[bucket][key]) {
+        store.errors[bucket][key] = {};
+    }
+};
+
+/**
+ * Set the usingVuedaWorkflow value.
+ *
+ * @param {boolean} value - The value to set usingVuedaWorkflow to.
+ */
+export function setUsingVuedaWorkflow(value) {
+    usingVuedaWorkflow = value;
 }
 
-export function getUsingVuedaWorkFlow() {
-    return usingVuedaWorkFlow;
+/**
+ * Returns whether the vueda workflow module is active.
+ *
+ * @returns {boolean} True if workflow is active.
+ */
+export function getUsingVuedaWorkflow() {
+    return usingVuedaWorkflow;
 }
 
 /**
@@ -182,11 +214,12 @@ const executeTransitionUrl = (result) => {
 
 /**
  * A pinia store for current workflow states, available transitions, and workflow histories for objects
- *  or possible states for models
- * Usage:
+ * or possible states for models.
+ *
+ * @example
  * ```js
  *     import { ref, unref, computed } from "vue";
- *     import { storeWorkflowStore } from "vueda-client";
+ *     import { storeWorkflowStore } from "@vueda";
  *     import { useArrayFind } from "@vueuse/core";
  *     const workflowStore = storeWorkflowStore();
  *
@@ -239,7 +272,7 @@ export const storeWorkflow = defineStore("workflow", {
                     new Error("storeWorkflow.fetchWorkflowTransition: app and model must be provided"),
                 );
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 /** @type {Promise<WorkflowTransition[]>} */
                 return Promise.resolve([]);
             }
@@ -290,7 +323,7 @@ export const storeWorkflow = defineStore("workflow", {
             if (!app || !model) {
                 return Promise.reject(new Error("storeWorkflow.fetchModelStates: app and model must be provided"));
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
@@ -336,10 +369,11 @@ export const storeWorkflow = defineStore("workflow", {
                     new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
                 );
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
+            ensureWorkflowObjectBucket(this, key, "objectStates");
             const existing = this.objectStates[key][objectPk];
             const cachedError = this.errors.objectStates[key]?.[objectPk];
             if (existing) {
@@ -382,11 +416,12 @@ export const storeWorkflow = defineStore("workflow", {
                     new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
                 );
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
 
             const key = getAppModelDotName({ app, model });
+            ensureWorkflowObjectBucket(this, key, "objectTransitions");
             const existing = this.objectTransitions[key][objectPk];
             const cachedError = this.errors.objectTransitions[key]?.[objectPk];
             if (existing) {
@@ -418,7 +453,7 @@ export const storeWorkflow = defineStore("workflow", {
                         throw e;
                     })
                     .finally(() => {
-                        delete this.promises.objectStates[key][objectPk];
+                        delete this.promises.objectTransitions[key][objectPk];
                     });
             }
             return this.promises.objectTransitions[key][objectPk];
@@ -429,10 +464,11 @@ export const storeWorkflow = defineStore("workflow", {
                     new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
                 );
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
+            ensureWorkflowObjectBucket(this, key, "objectHistories");
             const existing = this.objectHistories[key][objectPk];
             const cachedError = this.errors.objectHistories[key]?.[objectPk];
             if (existing) {
@@ -479,7 +515,7 @@ export const storeWorkflow = defineStore("workflow", {
                     ),
                 );
             }
-            if (!usingVuedaWorkFlow) {
+            if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
             let body = { transition_code: transitionCode };
@@ -518,8 +554,9 @@ export const storeWorkflow = defineStore("workflow", {
                     return data;
                 })
                 .finally(() => {
-                    if (router && stateToRoute && responseData?.new_state?.state?.code in stateToRoute) {
-                        router.push(stateToRoute[responseData.new_state.state.code]);
+                    const stateCode = responseData?.new_state?.code ?? responseData?.new_state?.state?.code;
+                    if (router && stateToRoute && stateCode && stateCode in stateToRoute) {
+                        router.push(stateToRoute[stateCode]);
                     }
                 });
 

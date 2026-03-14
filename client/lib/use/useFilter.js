@@ -1,3 +1,7 @@
+/**
+ * @module use/useFilter
+ * @description Builds and manages reactive filter form state, mapping model fields to their appropriate filter widgets and providing the filter context to child components.
+ */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { buildForm } from "@vueda/utils/buildForm.js";
 import { filterFieldMapping } from "@vueda/utils/fieldMappings.js";

@@ -4,13 +4,20 @@ import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
 import { computed, toRef, watch } from "vue";
 
+/**
+ * Field component for decimal (numeric string or number) values. Enforces
+ * optional minimum, maximum, and step constraints.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...FIELD_PROPS,
+    /** The maximum numeric value allowed. */
     maxValue: { type: Number, default: undefined },
+    /** The minimum numeric value allowed. */
     minValue: { type: Number, default: undefined },
+    /** The value must be a multiple of this step. */
     step: { type: Number, default: undefined },
 });
 const emit = defineEmits([...FIELD_EMITS]);
@@ -100,6 +107,7 @@ watch(
 
 <template>
     <div :class="$attrs.class" data-qa="field-decimal">
+        <!-- Renders the decimal input widget; receives field-attrs (non-class inherited attributes) and field-props. -->
         <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>

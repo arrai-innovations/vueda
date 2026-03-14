@@ -9,7 +9,7 @@ from django.db.models.functions import Extract
 from django.db.models.functions import LPad
 
 from vueda.core.permissions import BaseRowLevelPermissions
-from vueda.history.models import VuedaHistoryBaseModel
+from vueda.history.models import VuedaHistoryModel
 from vueda.user.models import AbstractVUEDAUser
 
 
@@ -18,7 +18,7 @@ class User(AbstractVUEDAUser):
         default_related_name = "users"
 
 
-class Employee(VuedaHistoryBaseModel):
+class Employee(VuedaHistoryModel):
     user = models.ForeignKey("User", on_delete=models.CASCADE)
     employee_number = models.CharField(max_length=255)
 
@@ -28,11 +28,11 @@ class Employee(VuedaHistoryBaseModel):
         db_persist=True,
     )
 
-    class Meta(VuedaHistoryBaseModel.Meta):
+    class Meta(VuedaHistoryModel.Meta):
         default_related_name = "employees"
 
 
-class Timesheet(VuedaHistoryBaseModel):
+class Timesheet(VuedaHistoryModel):
     period_start = models.DateField()
     period_end = models.DateField()
     employee = models.ForeignKey("Employee", on_delete=models.CASCADE)
@@ -60,8 +60,9 @@ class Timesheet(VuedaHistoryBaseModel):
         db_persist=True,
     )
 
-    class Meta(VuedaHistoryBaseModel.Meta):
+    class Meta(VuedaHistoryModel.Meta):
         default_related_name = "timesheets"
+        ordering = ["period_start", "employee__employee_number"]
 
     def __str__(self):
         return (
@@ -69,7 +70,7 @@ class Timesheet(VuedaHistoryBaseModel):
         )
 
 
-class TimesheetEntry(VuedaHistoryBaseModel):
+class TimesheetEntry(VuedaHistoryModel):
     timesheet = models.ForeignKey("Timesheet", on_delete=models.CASCADE)
     date = models.DateField()
     hours = models.DecimalField(max_digits=5, decimal_places=2)
@@ -89,17 +90,19 @@ class TimesheetEntry(VuedaHistoryBaseModel):
         db_persist=True,
     )
 
-    class Meta(VuedaHistoryBaseModel.Meta):
+    class Meta(VuedaHistoryModel.Meta):
         default_related_name = "timesheet_entries"
+        ordering = ["date"]
 
 
-class Product(VuedaHistoryBaseModel):
+class Product(VuedaHistoryModel):
     name = models.CharField(max_length=255)
     available_for_sale = models.BooleanField(db_default=True)
     buzz_words = ArrayField(models.CharField(max_length=255, blank=True), null=True)
 
-    class Meta(VuedaHistoryBaseModel.Meta):
+    class Meta(VuedaHistoryModel.Meta):
         default_related_name = "products"
+        ordering = ["name"]
 
     class RowLevelPermissions(BaseRowLevelPermissions):
         @classmethod

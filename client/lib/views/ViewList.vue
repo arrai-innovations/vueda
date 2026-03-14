@@ -49,79 +49,59 @@ import {
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+/**
+ * Full-page list view for a Django model. Renders a paginated, sortable, and searchable data grid with support
+ * for column hiding, filter groups, bulk actions, targetless actions, workflow transitions, column totals, and
+ * switching between paginated and show-all display. Persists sort order, visible columns, and active filters
+ * across page visits via the list preference store.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name used to resolve API endpoints and configuration. */
     model: {
         type: String,
         required: true,
     },
+    /** Field names to include as list columns; uses the model config default when empty. */
     listFields: {
         type: Array,
         default: () => [],
     },
+    /** Map of field names to display configuration overrides (label, component, etc.). */
     displayFields: {
         type: Object,
         default: () => ({}),
     },
+    /** Rules mapping related object keys to fetch data alongside each list row. */
     relatedObjectsRules: {
         type: Object,
         default: () => ({}),
     },
+    /** Rules mapping calculated object keys to derive computed data alongside each list row. */
     calculatedObjectsRules: {
         type: Object,
         default: () => ({}),
     },
-    variant: {
-        type: String,
-        default: "default",
-    },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    headerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    titleClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    loadingClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    listActionsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    listActionClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    detailActionsClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    detailActionClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
+    /** Additional query parameters merged into every API request. */
     params: {
         type: Object,
         default: () => ({}),
     },
     // as long as there are no collisions, $attrs can be used to pass through any other props to objects-grid
+    /** Tailwind breakpoint at which the layout switches from card to table view. */
     tableBreakpoint: {
         type: String,
         default: "lg",
     },
+    /** Extra synthetic field objects appended to the field list (e.g. the `selected_` checkbox column). */
     extraFieldObjects: {
         type: Array,
         default: () => [
@@ -132,30 +112,32 @@ const props = defineProps({
             },
         ],
     },
-    filterFormsValues: {
-        type: Object,
-        default: () => ({}),
-    },
+    /** List of field names to show as filters; overrides the server-provided list when set. */
     filterables: {
         type: Array,
         default: undefined,
     },
+    /** Per-field filter detail overrides merged with server-provided configuration. */
     filterableDetails: {
         type: Object,
         default: () => ({}),
     },
+    /** When true, shows a control that lets the user load all pages at once. */
     allowShowAllPages: {
         type: Boolean,
         default: true,
     },
+    /** When true, always fetches and displays all pages without requiring user interaction. */
     alwaysShowAllPages: {
         type: Boolean,
         default: false,
     },
+    /** When true, displays the total record count in the pagination bar. */
     showTotalRecordNum: {
         type: Boolean,
         default: true,
     },
+    /** When true, shows a column-visibility selector so users can hide individual columns. */
     allowColumnHiding: {
         type: Boolean,
         default: false,
@@ -612,6 +594,7 @@ const columnOptions = computed(() => {
                         v-for="actionName in targetlessActions"
                         :key="getCRUDName({ app: app, model: model, view: actionName })"
                     >
+                        <!-- @slot [targetless-action-button, button] Replaces an individual targetless action button. -->
                         <slot :name="targetlessActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
                             <link-model-view v-bind="buttonSlotProps[actionName]" />
                         </slot>
@@ -622,6 +605,7 @@ const columnOptions = computed(() => {
                 <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
                     <div :class="theme('actionButtonGroupBar')" data-qa="view-list-action-buttons">
                         <template v-for="actionName in bulkActions" :key="actionName">
+                            <!-- @slot [bulk-action-button, button] Replaces an individual bulk action button. -->
                             <slot :name="bulkActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
                                 <link-model-view
                                     button
@@ -631,6 +615,7 @@ const columnOptions = computed(() => {
                             </slot>
                         </template>
                         <template v-for="actionName in availableTransitions" :key="actionName">
+                            <!-- @slot [workflow-action-button, button] Replaces an individual workflow/transition action button. -->
                             <slot :name="workflowActionButtonSlotName.name" v-bind="buttonSlotProps[actionName]">
                                 <link-model-view
                                     button
@@ -695,7 +680,6 @@ const columnOptions = computed(() => {
                 :view="viewName"
                 :error="instanceList.state.error"
                 :errored="instanceList.state.errored"
-                :filter-forms-values="props.filterFormsValues"
                 :filterable-details="props.filterableDetails"
                 :filterables="props.filterables"
                 @filter-change="emit('filter-change', $event)"

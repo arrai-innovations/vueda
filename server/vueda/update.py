@@ -1,3 +1,33 @@
+"""Interactive update workflow for vueda-server deployments."""
+
+__all__ = (
+    "ExitWithCode",
+    "all_steps",
+    "ask",
+    "ask_tag",
+    "backup",
+    "configure_django_settings",
+    "detect_package_manager",
+    "echo_and_eval",
+    "echo_and_eval_with_cwd",
+    "find_manage_py",
+    "find_repo_root",
+    "get_tag",
+    "install",
+    "migrate",
+    "orange_char",
+    "orange_input",
+    "post",
+    "print_trace",
+    "pull",
+    "run",
+    "static",
+    "temp_terminal_width",
+    "text_wrapper",
+    "update_for_main",
+    "wrap_text",
+)
+
 import argparse
 import os
 import shutil

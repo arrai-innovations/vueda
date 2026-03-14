@@ -1,3 +1,12 @@
+"""DRF routers with app-namespaced routes, bulk actions, and content type lookups."""
+
+__all__ = (
+    "ContentTypeChoicesRouter",
+    "ContentTypeRouter",
+    "IncludeAppInRouteNameRouter",
+    "VuedaRouter",
+)
+
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.routers import DynamicRoute
 from rest_framework.routers import Route

@@ -1,3 +1,7 @@
+"""View decorators for user authentication concerns."""
+
+__all__ = ("ensure_csrf_token",)
+
 from functools import wraps
 
 from django.conf import settings

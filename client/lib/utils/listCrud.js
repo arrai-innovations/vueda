@@ -1,3 +1,7 @@
+/**
+ * @module utils/listCrud
+ * @description VUEDA-specific list CRUD adaptors for single-page, all-page, and bulk-delete operations.
+ */
 import { CancellablePromise, cancellableFetch, deepUnref, setListCrud } from "@arrai-innovations/reactive-helpers";
 import { PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
@@ -254,6 +258,9 @@ export function defaultObjectsDelete({ target, pks, dryRun }) {
     );
 }
 
+/**
+ * Installs the default list CRUD adaptor (single-page paginated list and bulk delete).
+ */
 export function setupDefaultListCrud() {
     setListCrud({
         list: singlePagePaginatedListCrudAdaptor,

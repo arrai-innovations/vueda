@@ -13,6 +13,7 @@ logs
 *.local
 .vscode/*
 !.vscode/extensions.json
+.eslintcache
 .idea
 .DS_Store
 *.suo
@@ -20,3 +21,15 @@ logs
 *.njsproj
 *.sln
 *.sw?
+site/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+docs/api/
+docs/reference/api/
+docs/public/api/server/
+docs/public/api/client/
+docs/public/api/schema.yml
+docs/public/api/rest.html
+docs/.generated/
+# docs-tooling generated outputs
+docs-tooling/.generated/

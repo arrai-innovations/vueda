@@ -1,3 +1,7 @@
+/**
+ * @module use/useFieldSetInline
+ * @description Manages an inline field-set (repeatable child rows) within a form, handling row addition, deletion, reordering, and slot resolution.
+ */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { FIELD_PROPS } from "@vueda/use/useField.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
@@ -54,6 +58,7 @@ const emptyFieldObject = (state) => {
     return emptyObject;
 };
 
+/** Vue component props definition for inline field-set components. Extends FIELD_PROPS with field override maps, visibility controls, and theme override support for repeatable child-row layouts. */
 export const FIELD_SET_INLINE_PROPS = {
     ...FIELD_PROPS,
     fieldComponents: {
@@ -246,16 +251,14 @@ const refFn = (state, el) => {
  */
 
 /**
- * @typedef {
- *   import('@vueda/use/useField.js').FieldContextRawProps &
- *   import('@vueda/use/useTheme.js').ThemeRawProps &
- *   import('@vueda/use/useFormModel.js').UseFormModelRawOverridableProps
- * } FieldSetInlineRawProps
- * @property {import('@vueda/stores/storeModelInfo.js').FieldInfo[]} [fieldObjects] - A list of field / action configuration objects.
- * @property {boolean} [visible] - Whether the fieldset is visible.
- * @property {boolean} [hidable] - Whether the fieldset can be hidden.
- * @property {string} [hiddenByDefault] - Should the fieldset be hidden by default? Can be 'always', 'never', or a VUEDA breakpoint threshold, at or above the fieldset is shown by default.
- * @property {boolean} [showCreateButton] - Whether to show the create button.
+ * @typedef {import('@vueda/use/useField.js').FieldContextRawProps & import('@vueda/use/useTheme.js').ThemeRawProps &
+ *   import('@vueda/use/useFormModel.js').UseFormModelRawOverridableProps & {
+ *     fieldObjects?: import('@vueda/stores/storeModelInfo.js').FieldInfo[],
+ *     visible?: boolean,
+ *     hidable?: boolean,
+ *     hiddenByDefault?: string,
+ *     showCreateButton?: boolean
+ *   }} FieldSetInlineRawProps
  */
 
 /**
@@ -278,6 +281,7 @@ const refFn = (state, el) => {
  * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} resolvedSlotNames - The resolved slot
  *  name instances by original slot name.
  * @property {BoundDoCreate} doCreate - The method to create a new object in the fieldset.
+ * @property {() => {[fieldName: string]: any}} getEmptyFieldObject - Returns an empty object with initial values for each field.
  * @property {BoundHandleSelected} handleSelected - The method to handle selected items.
  * @property {BoundRefFn} refFn - The method to add a reference to an item.
  * @property {BoundRemoveObject} removeObject - The method to remove an object from the fieldset.

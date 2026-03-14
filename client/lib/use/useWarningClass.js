@@ -1,18 +1,30 @@
-// useWarningClass.js
+/**
+ * @module use/useWarningClass
+ * @description Applies a warning CSS class via PrimeVue passthrough while preserving any externally supplied passthrough options.
+ */
 import { getPrimeVuePreset } from "@vueda/theme/register.js";
 import { usePassThrough } from "primevue/passthrough";
 import { computed, ref, watchEffect } from "vue";
 
+/**
+ * Vue component props definition for components that pass through PrimeVue passthrough options.
+ * Includes pt, mergeSections, and mergeProps props for controlling how passthrough objects are merged.
+ *
+ * @vueda-spread props
+ */
 export const PASSTHROUGH_OPTION_PROPS = {
+    /** PrimeVue passthrough options object for customizing component internals. */
     pt: {
         type: Object,
         /* v8 ignore next 1 */
         default: () => ({}),
     },
+    /** Whether to merge passthrough sections with the preset sections. */
     mergeSections: {
         type: Boolean,
         default: true,
     },
+    /** Whether to merge passthrough HTML attributes with existing attributes. */
     mergeProps: {
         type: Boolean,
         default: true,
@@ -24,7 +36,8 @@ export const PASSTHROUGH_OPTION_PROPS = {
  *  passthroughs.
  *
  * @param {import("vue").PropType<PassthroughOptions>} props - The props for the passthrough.
- * @param {import("@vueda/use/useWidget.js").WidgetState} widgetState - The widget context.
+ * @param {import("@vueda/use/useWidget.js").WidgetContextState} widgetState - The widget context state.
+ * @returns {import('vue').Ref<object>} A ref containing the resolved PrimeVue passthrough options.
  */
 export function useWarningClass(props, widgetState) {
     const basePreset = getPrimeVuePreset();

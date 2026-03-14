@@ -1,19 +1,45 @@
+"""ViewSet base classes with atomic transactions, row-level filtering, and flex-fields."""
+
+__all__ = (
+    "PERMISSION_NAMES_MAPPING",
+    "AtomicCreateModelViewSetMixin",
+    "AtomicDestroyModelViewSetMixin",
+    "AtomicModelViewSet",
+    "AtomicModelViewSetMixin",
+    "AtomicUpdateModelViewSetMixin",
+    "DeactivateActionViewSetMixin",
+    "FlexFieldsMixin",
+    "ListRowLevelViewSetMixin",
+    "NoExtraFieldsForViewSetMixin",
+    "PerActionSerializerMixin",
+    "VuedaHistoryViewSet",
+    "VuedaReadOnlyViewSet",
+    "VuedaViewSet",
+)
+
+import warnings
+
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.db.models import Sum
+from rest_flex_fields import WILDCARD_VALUES
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import viewsets as drf_viewsets
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.exceptions import NotAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.serializers import ListSerializer
 
 from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.serializers import PrimaryKeyListSerializer
+from vueda.core.utils import sort_by_dot_count_alphabetically
 from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
 
@@ -21,18 +47,24 @@ PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
 class AtomicCreateModelViewSetMixin(drf_viewsets.mixins.CreateModelMixin):
+    """Wraps the DRF ``create`` action in a database transaction."""
+
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
             return super().create(request, *args, **kwargs)
 
 
 class AtomicUpdateModelViewSetMixin(drf_viewsets.mixins.UpdateModelMixin):
+    """Wraps the DRF ``update`` and ``partial_update`` actions in a database transaction."""
+
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
             return super().update(request, *args, **kwargs)
 
 
 class AtomicDestroyModelViewSetMixin(drf_viewsets.mixins.DestroyModelMixin):
+    """Wraps the DRF ``destroy`` action in a database transaction."""
+
     def destroy(self, request, *args, **kwargs):
         with transaction.atomic():
             return super().destroy(request, *args, **kwargs)
@@ -41,6 +73,8 @@ class AtomicDestroyModelViewSetMixin(drf_viewsets.mixins.DestroyModelMixin):
 class AtomicModelViewSetMixin(
     AtomicCreateModelViewSetMixin, AtomicUpdateModelViewSetMixin, AtomicDestroyModelViewSetMixin
 ):
+    """Combines all three atomic write mixins: create, update, and destroy."""
+
     pass
 
 
@@ -64,27 +98,87 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
 
     column_totals: list[str] = []
 
-    def apply_row_level_filter(self, queryset):
+    def apply_row_level_filter(self, queryset, perm_type="list"):
+        """
+        Apply row-level and workflow-aware queryset filters for the given ``perm_type``.
+        Calls ``RowLevelPermissions.check_queryset`` and, when the model has a workflow,
+        also annotates state permission info and calls ``check_queryset_workflow``.
+        """
         model = queryset.model
         row_level_permissions = getattr(model, "RowLevelPermissions", None)
 
-        permission_list_name = "list"
-        if "list" in PERMISSION_NAMES_MAPPING:
-            permission_list_name = PERMISSION_NAMES_MAPPING["list"]
+        permission_name = perm_type
+        if perm_type in PERMISSION_NAMES_MAPPING:
+            permission_name = PERMISSION_NAMES_MAPPING[perm_type]
+
+        perm = f"{model._meta.app_label}.{permission_name}_{model._meta.model_name}"
 
         if row_level_permissions is not None:
             optional_q = row_level_permissions.check_queryset(
                 queryset,
-                f"{model._meta.app_label}.{permission_list_name}_{model._meta.model_name}",
+                perm,
                 self.request.user,
-                "list",
+                perm_type,
             )
             if isinstance(optional_q, Q):
-                return queryset.filter(optional_q)
-            if optional_q is False:
+                queryset = queryset.filter(optional_q)
+            elif optional_q is False:
                 return queryset.none()
-            # else, optional_q is None, so we don't filter
-            # or optional_q is True, so we don't filter
+            # else, optional_q is None or True, so we don't filter
+
+            # Layer 4: workflow-aware queryset filtering
+            if "vueda.workflow" in settings.INSTALLED_APPS:
+                from vueda.workflow.models import HasWorkflowModelMixin
+                from vueda.workflow.models import StatePermission
+                from vueda.workflow.models import Workflow
+
+                if issubclass(model, HasWorkflowModelMixin):
+                    workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
+                    if workflow:
+                        from django.contrib.contenttypes.models import ContentType
+                        from django.db.models import Exists
+                        from django.db.models import OuterRef
+
+                        codename = perm.split(".")[-1]
+                        content_type = ContentType.objects.get_for_model(model)
+                        user = self.request.user
+
+                        state_denied = Exists(
+                            StatePermission.objects.filter(
+                                state=OuterRef("object_states_proxy__state"),
+                                permission__codename=codename,
+                                permission__content_type=content_type,
+                                group__in=user.groups.all(),
+                                grant_or_deny=False,
+                            )
+                        )
+                        state_granted = Exists(
+                            StatePermission.objects.filter(
+                                state=OuterRef("object_states_proxy__state"),
+                                permission__codename=codename,
+                                permission__content_type=content_type,
+                                group__in=user.groups.all(),
+                                grant_or_deny=True,
+                            )
+                        )
+                        queryset = queryset.annotate(
+                            _state_denied=state_denied,
+                            _state_granted=state_granted,
+                        )
+
+                        workflow_q = row_level_permissions.check_queryset_workflow(
+                            queryset,
+                            perm,
+                            user,
+                            perm_type,
+                            "_state_denied",
+                            "_state_granted",
+                        )
+                        if isinstance(workflow_q, Q):
+                            queryset = queryset.filter(workflow_q)
+                        elif workflow_q is False:
+                            return queryset.none()
+
         return queryset
 
     def get_column_info(self, queryset):
@@ -121,12 +215,85 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         # end code from drf
 
 
+def get_recursive_expands_and_fields(serializer, depth, max_depth):
+    max_depth = min((max_depth, settings.REST_FLEX_FIELDS["MAXIMUM_EXPANSION_DEPTH"]))
+
+    valid_expands = set()
+    valid_wildcard_expands = set()
+    valid_fields = set()
+    valid_wildcard_fields = set()
+
+    if depth < max_depth:
+        if hasattr(serializer, "fields"):
+            valid_fields.update(serializer.fields.keys())
+
+        permitted_expands = None
+        if "permitted_expands" in serializer.context and hasattr(serializer, "_flex_options_rep_only"):
+            permitted_expands = frozenset(serializer.context["permitted_expands"])
+
+        if hasattr(serializer, "Meta") and hasattr(serializer.Meta, "expandable_fields"):
+            if permitted_expands is not None and not permitted_expands:
+                return (
+                    valid_expands,
+                    valid_wildcard_expands,
+                    valid_fields,
+                    valid_wildcard_fields,
+                )  # No permitted expands
+
+            for value in WILDCARD_VALUES:
+                valid_wildcard_fields.add(value)
+                valid_wildcard_expands.add(value)
+
+            for field_name, serializer_data in serializer.Meta.expandable_fields.items():
+                if permitted_expands is not None and field_name not in permitted_expands:
+                    continue
+
+                valid_fields.add(field_name)
+                valid_expands.add(field_name)
+
+                serializer_settings = {}
+                if isinstance(serializer_data, tuple):  # rest_flex_fields only tests for tuple.
+                    child_serializer, serializer_settings = serializer_data
+                else:
+                    child_serializer = serializer_data
+
+                if isinstance(child_serializer, str):
+                    child_serializer = serializer._get_serializer_class_from_lazy_string(child_serializer)
+
+                child_serializer = child_serializer(**serializer_settings)
+
+                if isinstance(child_serializer, ListSerializer):
+                    child_serializer = child_serializer.child
+
+                child_valid_expands, child_valid_wildcard_expands, child_valid_fields, child_valid_wildcard_fields = (
+                    get_recursive_expands_and_fields(child_serializer, depth + 1, max_depth)
+                )
+
+                for child_expand in child_valid_expands:
+                    if child_expand:
+                        valid_expands.add(f"{field_name}.{child_expand}")
+
+                for child_expand in child_valid_wildcard_expands:
+                    if child_expand:
+                        valid_wildcard_expands.add(f"{field_name}.{child_expand}")
+
+                for child_field in child_valid_fields:
+                    if child_field:
+                        valid_fields.add(f"{field_name}.{child_field}")
+
+                for child_field in child_valid_wildcard_fields:
+                    if child_field:
+                        valid_wildcard_fields.add(f"{field_name}.{child_field}")
+
+    return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
+
+
 class NoExtraFieldsForViewSetMixin:
     """
     Mixin for DRF ViewSets to validate query parameters against filter and serializer fields.
-    It returns a 500 error for any query parameter that is not recognized as a valid field or
-    an explicitly allowed extra field. It handles validation for both filter class fields and
-    fields specified in REST Flex Fields settings.
+    It raises a VuedaValidationError (400) for any query parameter that is not recognized as a
+    valid field or an explicitly allowed extra field. It handles validation for both filter class
+    fields and fields specified in REST Flex Fields settings.
     """
 
     @staticmethod
@@ -142,24 +309,47 @@ class NoExtraFieldsForViewSetMixin:
         )
 
     @staticmethod
-    def validate_flex_expand_param(request, serializer):
+    def validate_flex_expand_and_field_param(request, serializer):
+        submitted_fields = submitted_expand_fields = valid_expands = valid_fields = frozenset()
+
+        if (
+            settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params
+            or settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params
+        ):
+            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["FIELDS_PARAM"]))
+            submitted_expand_fields = frozenset(
+                serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"])
+            )
+            max_depth = (
+                max(
+                    [field.count(".") for field in submitted_fields]
+                    + [field.count(".") for field in submitted_expand_fields]
+                )
+                + 1
+            )
+            valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = (
+                get_recursive_expands_and_fields(serializer, 0, max_depth)
+            )
+
+        if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
+            extra_keys = submitted_fields - (valid_fields | valid_wildcard_fields)
+            if extra_keys:
+                errors = {}
+                for extra_key in extra_keys:
+                    errors[extra_key] = [
+                        {
+                            "message": ErrorDetail(
+                                string=f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}. Or use a wildcard to specify all: {', '.join(sorted(valid_wildcard_fields, key=sort_by_dot_count_alphabetically))}",
+                                code="invalid",
+                            ),
+                            "code": "invalid",
+                        }
+                    ]
+
+                return Response(errors, status=400)
+
         if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
-            valid_fields = set(serializer.fields.keys())
-            # If the serializer Meta does not have permit_retrieve_expand or permit_list_expand defined, which gets
-            # added to the serializer context as permitted_expands, then _flex_options_rep_only["expand"] becomes
-            # the list of expand that was passed from the client, regardless of each expand param existing or not.
-            # So, we can't trust that _flex_options_rep_only["expand"] in that situation, and instead need to look
-            # at the expandable_fields set up in the Meta.
-            valid_expands = []
-            if "permitted_expands" in serializer.context:
-                if hasattr(serializer, "_flex_options_rep_only"):
-                    valid_fields.update(serializer._flex_options_rep_only["expand"])
-                    valid_expands = serializer.context["permitted_expands"]
-            elif hasattr(serializer.Meta, "expandable_fields"):
-                valid_fields.update(serializer.Meta.expandable_fields)
-                valid_expands = serializer.Meta.expandable_fields
-            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"]))
-            extra_keys = submitted_fields - valid_fields
+            extra_keys = submitted_expand_fields - (valid_expands | valid_wildcard_expands)
             if extra_keys:
                 errors = {}
                 for extra_key in extra_keys:
@@ -168,7 +358,7 @@ class NoExtraFieldsForViewSetMixin:
                             "message": ErrorDetail(
                                 string="Invalid expands. "
                                 + (
-                                    f"Permitted expands are {', '.join(valid_expands)}."
+                                    f"Permitted expands are {', '.join(sorted(valid_expands))}. Or use a wildcard to expand all: {', '.join(sorted(valid_wildcard_expands, key=sort_by_dot_count_alphabetically))}"
                                     if valid_expands
                                     else "No expands are permitted."
                                 ),
@@ -180,37 +370,10 @@ class NoExtraFieldsForViewSetMixin:
 
                 return Response(errors, status=400)
 
-    @staticmethod
-    def validate_flex_field_param(request, serializer):
-        if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
-            valid_fields = set(serializer.fields.keys())
-            if hasattr(serializer, "_flex_options_rep_only"):
-                valid_fields.update(serializer._flex_options_rep_only["fields"])
-            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["FIELDS_PARAM"]))
-            extra_keys = submitted_fields - valid_fields
-            if extra_keys:
-                errors = {}
-                for extra_key in extra_keys:
-                    errors[extra_key] = [
-                        {
-                            "message": ErrorDetail(
-                                string=f"Invalid field.  Valid fields are {', '.join(serializer.get_fields())}.",
-                                code="invalid",
-                            ),
-                            "code": "invalid",
-                        }
-                    ]
-
-                return Response(errors, status=400)
-
     def retrieve(self, request, *args, **kwargs):
         serializer = self.get_serializer()
 
-        results = self.validate_flex_field_param(request, serializer)
-        if results is not None:
-            return results
-
-        results = self.validate_flex_expand_param(request, serializer)
+        results = self.validate_flex_expand_and_field_param(request, serializer)
         if results is not None:
             return results
 
@@ -218,7 +381,7 @@ class NoExtraFieldsForViewSetMixin:
 
     def list(self, request, *args, **kwargs):
         """
-        if you provide fields to filter by that are not filtered by the filter class, you get a 500 error
+        If you provide fields to filter by that are not filtered by the filter class, you get a 400 error.
         """
         if hasattr(self, "filterset_class"):
             fields = set()
@@ -235,19 +398,18 @@ class NoExtraFieldsForViewSetMixin:
                     fields.add(f"{filter_name}__{filter_obj.lookup_expr}")
             # pagination and expanding are allowed
             fields.update(self.get_extra_allowed_fields())
-            for key in request.query_params:
-                if key not in fields:
-                    return Response(
-                        {"detail": f"Invalid query parameter: '{key}'"},
-                        status=500,
-                    )
+            extra_keys = set(request.query_params) - fields
+            if extra_keys:
+                valid_filters = sorted(fields - set(self.get_extra_allowed_fields()))
+                raise VuedaValidationError(
+                    {
+                        key: [f"Invalid query parameter.  Valid filters are {', '.join(valid_filters)}."]
+                        for key in extra_keys
+                    }
+                )
         serializer = self.get_serializer()
 
-        results = self.validate_flex_field_param(request, serializer)
-        if results is not None:
-            return results
-
-        results = self.validate_flex_expand_param(request, serializer)
+        results = self.validate_flex_expand_and_field_param(request, serializer)
         if results is not None:
             return results
 
@@ -387,12 +549,50 @@ class DeactivateActionViewSetMixin:
 
 
 class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
+    """
+    Full CRUD ViewSet for VUEDA models. Extends DRF's ``ModelViewSet`` with:
+
+    - Flex-fields expansion (``FlexFieldsMixin``)
+    - Query-parameter validation against filter and serializer fields (``NoExtraFieldsForViewSetMixin``)
+    - Row-level and workflow-aware list filtering (``ListRowLevelViewSetMixin``)
+    - Bulk delete with dry-run support
+    - Override ``destroy_validation`` to add pre-delete business rules.
+    """
+
     detail_args = ["pk"]
 
-    def destroy_validation(self, objs):
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if issubclass(cls, drf_viewsets.ReadOnlyModelViewSet):
+            warnings.warn(
+                f"{cls.__module__}.{cls.__name__} inherits from both VuedaViewSet and ReadOnlyModelViewSet. "
+                "Use VuedaReadOnlyViewSet for read-only endpoints.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
+    def destroy_validation(self, objs) -> None:
+        """
+        Override to validate objects before deletion. Raise ``VuedaValidationError``
+        to prevent deletion. Called for both single-object and bulk-delete requests.
+        """
         return None
 
+    def apply_object_permission_filter(self, queryset):
+        """
+        Keep only objects the current request can access at object-permission level.
+        """
+        allowed_ids = []
+        for instance in queryset:
+            try:
+                self.check_object_permissions(self.request, instance)
+            except (NotAuthenticated, PermissionDenied):
+                continue
+            allowed_ids.append(instance.pk)
+        return queryset.filter(pk__in=allowed_ids)
+
     def destroy(self, request, **kwargs):
+        """Delete one or more objects."""
         pk = kwargs.get("pk")
         dry_run = request.headers.get(DRY_RUN_HEADER, "false").lower() == "true"
         if pk:
@@ -409,6 +609,8 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
         queryset = self.get_queryset()
         queryset = queryset.filter(pk__in=pks)
+        queryset = self.apply_row_level_filter(queryset, perm_type="delete")
+        queryset = self.apply_object_permission_filter(queryset)
         if len(pks) != queryset.count():
             found_pks = set(queryset.values_list("pk", flat=True))
             missing_pks = set(pks) - found_pks
@@ -436,4 +638,31 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
 
 class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
+    """``VuedaViewSet`` extended with ``simple-history`` audit endpoints."""
+
     pass
+
+
+class VuedaReadOnlyViewSet(
+    FlexFieldsMixin,
+    NoExtraFieldsForViewSetMixin,
+    ListRowLevelViewSetMixin,
+    viewsets.ReadOnlyModelViewSet,
+):
+    """
+    Read-only ViewSet for VUEDA models. Provides ``list`` and ``retrieve`` only,
+    with the same flex-fields, query-parameter validation, and row-level filtering
+    as ``VuedaViewSet``.
+    """
+
+    detail_args = ["pk"]
+
+    def get_allowed_extra_actions(self, request, *, instance=None):
+        """
+        Override this function to change if a user is allowed to do a certain action.
+        """
+        allowed_actions = set()
+        for extra_action in self.get_extra_actions():
+            allowed_actions.add(extra_action.url_name)
+
+        return allowed_actions

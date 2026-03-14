@@ -1,3 +1,7 @@
+/**
+ * @module use/useTheme
+ * @description Resolves and caches component theme classes by merging the default theme with inherited and local overrides.
+ */
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
@@ -9,7 +13,15 @@ import { computed, effectScope, getCurrentInstance, inject, provide, toRef, unre
 
 let defaultTheme = vuedaTailwind;
 
+/**
+ * Vue component props definition for components that accept a theme override prop.
+ * Spread into component options to allow callers to supply a partial theme object that
+ * is merged with the component's default theme.
+ *
+ * @vueda-spread props
+ */
 export const THEME_OVERRIDE_PROPS = {
+    /** A partial theme object merged with the component's default theme; accepts a Tailwind class string, class array, or theme object. */
     themeOverride: {
         type: [String, Object, Array],
         default: null,

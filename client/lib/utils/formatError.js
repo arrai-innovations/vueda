@@ -1,3 +1,7 @@
+/**
+ * @module utils/formatError
+ * @description Formats one or more error objects into a human-readable string, including stack traces in development.
+ */
 import { combineErrors } from "@vueda/utils/errors.js";
 import inspect from "browser-util-inspect";
 

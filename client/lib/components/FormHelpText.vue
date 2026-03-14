@@ -5,26 +5,36 @@ import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import Message from "primevue/message";
 import { computed, inject, reactive, toRef } from "vue";
 
+/**
+ * Renders a help text message for a form field, sourcing the text from the `help` prop or the injected field context.
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Help text to display; falls back to the field context's `help` if empty. */
     help: {
         type: String,
         default: "",
     },
+    /** Size variant forwarded to the PrimeVue Message component. */
     size: {
         type: String,
         default: "small",
         validator: (value) => ["small", "large", null].includes(value),
     },
+    /** Visual variant forwarded to the PrimeVue Message component. */
     variant: {
         type: String,
         default: "simple",
         validator: (value) => ["simple", "outlined", null].includes(value),
     },
+    /** Severity forwarded to the PrimeVue Message component. */
     severity: {
         type: String,
         default: "info",
         validator: (value) => ["error", "warn", "primary", "success", "info", "contrast", null].includes(value),
     },
+    /** When `true`, help text containing HTML is rendered as HTML. */
     allowHtml: {
         type: Boolean,
         default: true,
@@ -45,6 +55,7 @@ const theme = useTheme(
 </script>
 <template>
     <div :class="theme('root')">
+        <!-- Replaces the default help message display; receives `attrs` and `help` as slot props. -->
         <slot :attrs="$attrs" :help="computedHelp">
             <Message
                 v-if="computedHelp?.length"

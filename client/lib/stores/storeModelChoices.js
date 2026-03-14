@@ -1,3 +1,7 @@
+/**
+ * @module stores/storeModelChoices
+ * @description Pinia store for fetching and caching field-level choice lists for Django model fields and filters.
+ */
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { PAGE_SIZE_PARAM } from "@vueda/utils/constants.js";
@@ -32,37 +36,12 @@ const modelFilterChoicesUrl = (app, model, field) =>
 /**
  * A store for lookup choices for a particular model field.
  *
- * @typedef {import('pinia').store<{
- *     choices: {
- *        [appModelDotName: string]: {
- *            [fieldPath: string]: {
- *
- *            },
- *        },
- *     },
- *     filterChoices: {
- *        [appModelDotName: string]: {
- *            [fieldPath: string]: {
- *
- *            },
- *        },
- *     },
- *     promises: {
- *         [appModelDotName: string]: {
- *             [fieldPath: string]: {
- *
- *             },
- *         },
- *     }
- *         filterPromises: {
- *         [appModelDotName: string]: {
- *             [fieldPath: string]: {
- *
- *             },
- *         },
- *     }
- *
- * }>}
+ * @typedef {import('pinia').Store<{
+ *     choices: { [appModelDotName: string]: { [fieldPath: string]: unknown } },
+ *     filterChoices: { [appModelDotName: string]: { [fieldPath: string]: unknown } },
+ *     promises: { [appModelDotName: string]: { [fieldPath: string]: Promise<unknown> } },
+ *     filterPromises: { [appModelDotName: string]: { [fieldPath: string]: Promise<unknown> } },
+ * }, {}, {}>} ModelChoicesStore
  */
 export const storeModelChoices = defineStore("modelChoices", {
     state: () => ({

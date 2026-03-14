@@ -1,3 +1,13 @@
+"""Custom exception handler and validation error classes with warning support."""
+
+__all__ = (
+    "BadRequestException",
+    "VuedaValidationError",
+    "debug_stack_exception_handler",
+    "get_error_details_as_warning",
+    "page_not_found",
+)
+
 import logging
 from traceback import format_exception
 from traceback import format_exception_only
@@ -29,7 +39,8 @@ def debug_stack_exception_handler(exc, context):
     """
     Custom exception handler which adds the exception class name to the response.
     """
-    if isinstance(exc, VuedaValidationError) and isinstance(exc.detail, list):
+    # switched to ValidationError, because rest flex fields raises ValidationError("Expansion depth exceeded")
+    if isinstance(exc, ValidationError) and isinstance(exc.detail, list):
         # VuedaValidationErrors raise as a list are non-field errors
         exc.detail = {api_settings.NON_FIELD_ERRORS_KEY: exc.detail}
 
@@ -37,7 +48,7 @@ def debug_stack_exception_handler(exc, context):
     if response is None:
         # the exception was not handled by the default exception handler
         response = Response(
-            {},
+            {"detail": "Internal server error."},
             status=500,
         )
 
@@ -65,7 +76,7 @@ class BadRequestException(APIException):
 
 
 def page_not_found(request, exception, *args, **kwargs):
-    return JsonResponse({"error": "Not Found (404)"}, status=HTTP_404_NOT_FOUND)
+    return JsonResponse({"detail": "Not found."}, status=HTTP_404_NOT_FOUND)
 
 
 def _get_error_details(data, default_code=None, is_warning=False):

@@ -3,19 +3,30 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { DateTime } from "luxon";
 import { computed } from "vue";
 
+/**
+ * Displays a formatted date range from a start and end value (ISO strings or Luxon DateTimes).
+ * Renders a single date when both values fall on the same day, and omits redundant year or month
+ * segments when the range stays within the same month or year.
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Start of the date range as an ISO string or Luxon DateTime. */
     start: {
         type: [String, Object],
         required: true,
     },
+    /** End of the date range as an ISO string or Luxon DateTime. */
     end: {
         type: [String, Object],
         required: true,
     },
+    /** Whether to include the time when both dates fall on the same day. */
     showTime: {
         type: Boolean,
         default: false,
     },
+    /** BCP 47 locale tag used to format the displayed date segments. */
     locale: {
         type: String,
         default: "en-CA",

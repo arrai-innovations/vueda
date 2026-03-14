@@ -1,6 +1,28 @@
+/**
+ * @module utils/fieldMappings
+ * @description Default mappings from DRF serializer field types to Vue field components and widget components.
+ */
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import merge from "lodash-es/merge.js";
 
+/**
+ * Describes how a DRF serializer field type maps to a Vue field component and widget.
+ *
+ * @typedef {object} FieldMappingEntry
+ * @property {import('vue').Component|null} component - The field component, or null if none.
+ * @property {import('vue').Component|null} widget - The widget component, or null if none.
+ * @property {object} [fieldProps] - Extra props forwarded to the field component.
+ * @property {object} [widgetProps] - Extra props forwarded to the widget component.
+ * @property {import('vue').Component} [manyComponent] - Component for many-field wrappers.
+ * @property {import('vue').Component} [manyWidget] - Widget for many-field wrappers.
+ * @property {object} [manyWidgetProps] - Extra props for the many-field widget.
+ * @property {import('vue').Component} [boundaryComponent] - Component for range field boundaries.
+ * @property {import('vue').Component} [boundaryWidget] - Widget for range field boundaries.
+ * @property {object} [boundaryWidgetProps] - Extra props for the range boundary widget.
+ * @property {boolean} [default] - Whether this is the default mapping for its serializer field type.
+ */
+
+/** @type {{[fieldType: string]: {[componentVariant: string]: FieldMappingEntry}}} */
 export const defaultFieldMappings = {
     BooleanField: {
         BooleanField: {
@@ -294,6 +316,7 @@ export const defaultFieldMappings = {
         },
     },
 };
+/** @type {{[fieldType: string]: {[componentVariant: string]: FieldMappingEntry}}} */
 export const choiceFieldMappings = {
     BooleanField: {
         BooleanField: { widget: availableWidgets.WidgetRadio, manyWidget: availableWidgets.WidgetRadio, default: true },
@@ -377,6 +400,7 @@ export const choiceFieldMappings = {
         },
     },
 };
+/** @type {{[fieldType: string]: {[componentVariant: string]: FieldMappingEntry}}} */
 export const manyFieldMappings = {
     BooleanField: {
         BooleanField: {
@@ -553,6 +577,11 @@ export const manyFieldMappings = {
         },
     },
 };
+/**
+ * Field-to-component mappings for filter form fields.
+ *
+ * @type {{[fieldType: string]: FieldMappingEntry}}
+ */
 export const filterFieldMapping = {
     BooleanField: {
         component: availableFields.FieldBoolean,
@@ -615,6 +644,17 @@ export const filterFieldMapping = {
  *
  * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
  * @returns {typeof defaultFieldMappings} The updated default field mappings.
+ * @example
+ * ```js
+ * import MyCustomField from '@/components/MyCustomField.vue';
+ * import MyCustomWidget from '@/components/MyCustomWidget.vue';
+ *
+ * mergeDefaultFieldMappings({
+ *     MyCustomField: {
+ *         MyCustomField: { component: MyCustomField, widget: MyCustomWidget, default: true },
+ *     },
+ * });
+ * ```
  */
 export function mergeDefaultFieldMappings(customMappings) {
     return merge(defaultFieldMappings, customMappings);
@@ -625,6 +665,12 @@ export function mergeDefaultFieldMappings(customMappings) {
  *
  * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
  * @returns {typeof filterFieldMapping} The updated filter field mappings.
+ * @example
+ * ```js
+ * mergeFilterFieldMapping({
+ *     MyCustomField: { component: MyCustomField, widget: MyCustomWidget },
+ * });
+ * ```
  */
 export function mergeFilterFieldMapping(customMappings) {
     return merge(filterFieldMapping, customMappings);
@@ -635,6 +681,14 @@ export function mergeFilterFieldMapping(customMappings) {
  *
  * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
  * @returns {typeof manyFieldMappings} The updated many-to-many field mappings.
+ * @example
+ * ```js
+ * mergeManyFieldMappings({
+ *     MyCustomField: {
+ *         MyCustomField: { widget: MyCustomWidget, fieldProps: { manyComponent: MyCustomField }, default: true },
+ *     },
+ * });
+ * ```
  */
 export function mergeManyFieldMappings(customMappings) {
     return merge(manyFieldMappings, customMappings);

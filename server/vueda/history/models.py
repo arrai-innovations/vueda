@@ -1,3 +1,11 @@
+"""Model base classes and managers for django-simple-history integration."""
+
+__all__ = (
+    "SimpleHistoryManager",
+    "SimpleHistoryModelMixin",
+    "VuedaHistoryModel",
+)
+
 from django.db import models
 from django.db.models import Max
 from django.db.models import OuterRef
@@ -5,7 +13,7 @@ from django.db.models import Subquery
 from simple_history.models import HistoricalRecords
 
 from vueda.core.models import BaseModelMeta
-from vueda.core.models import VuedaBaseModel
+from vueda.core.models import VuedaModel
 
 
 class SimpleHistoryManager(models.Manager):
@@ -29,6 +37,6 @@ class SimpleHistoryModelMixin(models.Model):
         abstract = True
 
 
-class VuedaHistoryBaseModel(SimpleHistoryModelMixin, VuedaBaseModel):
+class VuedaHistoryModel(SimpleHistoryModelMixin, VuedaModel):
     class Meta(BaseModelMeta):
         abstract = True

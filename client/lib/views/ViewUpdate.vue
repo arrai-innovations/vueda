@@ -1,6 +1,6 @@
 <script setup>
 import { useObject } from "@arrai-innovations/reactive-helpers";
-import DetailedView from "@vueda/components/DetailedView.vue";
+import DetailView from "@vueda/components/DetailView.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -10,23 +10,36 @@ import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, toRef, unref } from "vue";
 
+/**
+ * Editable detail view that loads a model instance, presents it in a form, and submits changes
+ * back to the server on save.
+ *
+ * @vueda-slot-forward DetailView
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name used to resolve API endpoints and configuration. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key of the object instance to fetch and edit. */
     pk: {
         type: String,
         required: true,
     },
+    /** Field names included in the update submission payload; falls back to the model config's submitFields. */
     submitFields: {
         type: Array,
         default: undefined,
     },
+    /** Named view to redirect to after a successful update; `null` stays on the current page. */
     redirectAfter: {
         type: String,
         default: null, // meaning "stay here"
@@ -109,7 +122,7 @@ const objectForm = useObjectForm({
 useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, toRef(props, "pk"), objectForm.state);
 </script>
 <template>
-    <detailed-view
+    <detail-view
         v-model="formContextProps.initialValues"
         :app="app"
         :model="model"
@@ -126,5 +139,5 @@ useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, viewName, t
         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
             <slot :name="slot" v-bind="slotProps || {}" />
         </template>
-    </detailed-view>
+    </detail-view>
 </template>

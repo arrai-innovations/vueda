@@ -1,5 +1,11 @@
 <script setup>
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
+
+/**
+ * Full-page loading placeholder that displays a centered spinner. Use it as a route-level fallback while
+ * async data or components are being resolved.
+ */
+defineOptions({});
 </script>
 
 <template>

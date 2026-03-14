@@ -19,7 +19,7 @@ from vueda import info
 from vueda.core.routers import IncludeAppInRouteNameRouter
 
 
-class TestData(BaseTestUserMixin, BaseTestGroupMixin):
+class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create = {
         "Customer": [
             ("contenttypes", "ContentType", "read"),
@@ -41,7 +41,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
 class TestModelInfoErrs:
     @pytest.fixture
     def test_data(self):
-        return TestData()
+        return VuedaTestData()
 
     @staticmethod
     def setup_router_and_registry():

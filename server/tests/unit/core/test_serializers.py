@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ValidationError
 
@@ -12,9 +13,14 @@ from tests.models import Employee
 from tests.models import Timesheet
 from tests.serializers import TimesheetSerializer
 from tests.serializers import TimesheetSerializerExclude
+from tests.store import serializers as store_serializers
+from tests.store import viewsets as store_viewsets
+from tests.unit.info.test_model_info import VuedaTestData
 from tests.utils import FakeRequest
 from tests.utils import FakeView
+from vueda import info
 from vueda.core.serializers import PrimaryKeyListSerializer
+from vueda.core.viewsets import get_recursive_expands_and_fields
 
 
 @pytest.mark.django_db
@@ -216,6 +222,247 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         self.assert_response(response, 400)
         assert "invalid_field_name" in response.data
         assert "period_start" not in response.data
+
+
+@pytest.mark.django_db
+class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
+        info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
+        info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
+        info.register_serializer(store_serializers.OrderItemSerializer)
+
+    @override_settings(
+        REST_FLEX_FIELDS={
+            "EXPAND_PARAM": "e",
+            "FIELDS_PARAM": "f",
+            "OMIT_PARAM": "om",
+            "MAXIMUM_EXPANSION_DEPTH": 2,
+        },
+    )
+    def test_limits_depth_to_default(self, api_client, test_data):
+        serializer = store_serializers.CustomerOrderSerializer()
+        valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
+            serializer, 0, 10
+        )
+
+        actual_depth = (
+            max(
+                [field.count(".") for field in valid_expands]
+                + [field.count(".") for field in valid_wildcard_expands]
+                + [field.count(".") for field in valid_fields]
+                + [field.count(".") for field in valid_wildcard_fields]
+            )
+            + 1
+        )
+
+        assert actual_depth == 2  # noqa PLR2004
+
+    def test_valid_expands_and_fields_two_deep(self, api_client, test_data):
+        serializer = store_serializers.CustomerOrderSerializer()
+        valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
+            serializer, 0, 2
+        )
+
+        assert valid_expands == {
+            "customer",
+            "customer.dict_data",
+            "customer.first_history_entry",
+            "customer.history",
+            "customer.last_history_entry",
+            "customer.single_value",
+            "customer.user",
+            "first_history_entry",
+            "history",
+            "last_history_entry",
+            "order_items",
+            "order_items.customer_order",
+            "order_items.product_option",
+            "order_state",
+        }
+
+        assert valid_wildcard_expands == {
+            "*",
+            "~all",
+            "customer.*",
+            "customer.~all",
+            "order_items.*",
+            "order_items.~all",
+            "order_state.*",
+            "order_state.~all",
+        }
+
+        assert valid_fields == {
+            "available_actions",
+            "current_history_id",
+            "customer",
+            "customer.dict_data",
+            "customer.first_history_entry",
+            "customer.history",
+            "customer.id",
+            "customer.last_history_entry",
+            "customer.single_value",
+            "customer.user",
+            "first_history_entry",
+            "formatted_name",
+            "history",
+            "id",
+            "last_history_entry",
+            "order_items",
+            "order_items.customer_order",
+            "order_items.id",
+            "order_items.product_option",
+            "order_items.quantity",
+            "order_number",
+            "order_state",
+            "order_state.id",
+            "order_state.code",
+            "order_state.name",
+            "shipping_method",
+            "when",
+        }
+
+        assert valid_wildcard_fields == {
+            "*",
+            "~all",
+            "customer.*",
+            "customer.~all",
+            "order_items.*",
+            "order_items.~all",
+            "order_state.*",
+            "order_state.~all",
+        }
+
+    def test_valid_expands_and_fields_three_deep(self, api_client, test_data):
+        serializer = store_serializers.CustomerOrderSerializer()
+        valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
+            serializer, 0, 3
+        )
+
+        assert valid_expands == {
+            "customer",
+            "customer.dict_data",
+            "customer.first_history_entry",
+            "customer.history",
+            "customer.last_history_entry",
+            "customer.single_value",
+            "customer.user",
+            "customer.user.groups",
+            "first_history_entry",
+            "history",
+            "last_history_entry",
+            "order_items",
+            "order_items.customer_order",
+            "order_items.customer_order.customer",
+            "order_items.customer_order.first_history_entry",
+            "order_items.customer_order.history",
+            "order_items.customer_order.last_history_entry",
+            "order_items.customer_order.order_items",
+            "order_items.customer_order.order_state",
+            "order_items.product_option",
+            "order_items.product_option.first_history_entry",
+            "order_items.product_option.history",
+            "order_items.product_option.last_history_entry",
+            "order_items.product_option.option_type",
+            "order_items.product_option.product",
+            "order_state",
+        }
+
+        assert valid_wildcard_expands == {
+            "*",
+            "~all",
+            "customer.*",
+            "customer.~all",
+            "customer.user.*",
+            "customer.user.~all",
+            "order_items.*",
+            "order_items.~all",
+            "order_items.customer_order.*",
+            "order_items.customer_order.~all",
+            "order_items.product_option.*",
+            "order_items.product_option.~all",
+            "order_state.*",
+            "order_state.~all",
+        }
+
+        assert valid_fields == {
+            "available_actions",
+            "current_history_id",
+            "customer",
+            "customer.dict_data",
+            "customer.first_history_entry",
+            "customer.history",
+            "customer.id",
+            "customer.last_history_entry",
+            "customer.single_value",
+            "customer.user",
+            "customer.user.email",
+            "customer.user.groups",
+            "customer.user.id",
+            "customer.user.name",
+            "first_history_entry",
+            "formatted_name",
+            "history",
+            "id",
+            "last_history_entry",
+            "order_items",
+            "order_items.customer_order",
+            "order_items.customer_order.customer",
+            "order_items.customer_order.first_history_entry",
+            "order_items.customer_order.history",
+            "order_items.customer_order.id",
+            "order_items.customer_order.last_history_entry",
+            "order_items.customer_order.order_items",
+            "order_items.customer_order.order_number",
+            "order_items.customer_order.order_state",
+            "order_items.customer_order.when",
+            "order_items.id",
+            "order_items.product_option",
+            "order_items.product_option.disabled",
+            "order_items.product_option.first_history_entry",
+            "order_items.product_option.gtin",
+            "order_items.product_option.history",
+            "order_items.product_option.id",
+            "order_items.product_option.last_history_entry",
+            "order_items.product_option.name",
+            "order_items.product_option.option_type",
+            "order_items.product_option.price",
+            "order_items.product_option.product",
+            "order_items.product_option.sku",
+            "order_items.quantity",
+            "order_number",
+            "order_state",
+            "order_state.id",
+            "order_state.code",
+            "order_state.name",
+            "shipping_method",
+            "when",
+        }
+
+        assert valid_wildcard_fields == {
+            "*",
+            "~all",
+            "customer.*",
+            "customer.~all",
+            "customer.user.*",
+            "customer.user.~all",
+            "order_items.*",
+            "order_items.~all",
+            "order_items.customer_order.*",
+            "order_items.customer_order.~all",
+            "order_items.product_option.*",
+            "order_items.product_option.~all",
+            "order_state.*",
+            "order_state.~all",
+        }
 
 
 @pytest.mark.django_db

@@ -7,7 +7,7 @@ bootstrap: # for development environment setup
   cd {{justfile_directory()}} && uv sync --all-groups --all-packages
 
 test:
-  pnpx concurrently -n server,client -c green,cyan "just test-server" "just test-client"
+  pnpx concurrently -n server,client,docs-tooling -c green,cyan,magenta "just test-server" "just test-client" "just test-docs-tooling"
 
 test-server:
   cd {{justfile_directory()}}/server && uv run --no-sync pytest
@@ -15,20 +15,73 @@ test-server:
 test-client:
   cd {{justfile_directory()}}/client && pnpm test
 
+test-docs-tooling:
+  pnpx concurrently -n js,py -c cyan,green "just test-docs-tooling-js" "just test-docs-tooling-py"
+
+test-docs-tooling-js:
+  pnpm -C {{justfile_directory()}}/docs-tooling test
+
+test-docs-tooling-py:
+  cd {{justfile_directory()}}/docs-tooling && uv run --group test --no-sync pytest
+
 check:
-  pnpx concurrently -n server,client -c green,cyan "just check-server" "just check-client"
+  pnpx concurrently -n ruff,eslint,prettier -c green,cyan,magenta "just check-ruff" "just check-eslint" "just check-prettier"
 
-check-server:
-  cd {{justfile_directory()}}/server && uv run --no-sync ruff check .
+check-ruff:
+  cd {{justfile_directory()}} && uv run --group dev --no-sync ruff check server docs-tooling/py scripts
 
-check-client:
-  cd {{justfile_directory()}}/client && pnpm run lint && pnpm run format
+check-eslint:
+  cd {{justfile_directory()}} && pnpm run lint:eslint
+
+check-prettier:
+  cd {{justfile_directory()}} && pnpm run lint:prettier
 
 fix:
-  pnpx concurrently -n server,client -c green,cyan "just fix-server" "just fix-client"
+  pnpx concurrently -n ruff,eslint,prettier -c green,cyan,magenta "just fix-ruff" "just fix-eslint" "just fix-prettier"
 
-fix-server:
-  cd {{justfile_directory()}}/server && uv run --no-sync ruff check --fix . && uv run --no-sync ruff format .
+fix-ruff:
+  cd {{justfile_directory()}} && uv run --group dev --no-sync ruff check --fix server docs-tooling/py scripts && uv run --group dev --no-sync ruff format server docs-tooling/py scripts
 
-fix-client:
-  cd {{justfile_directory()}}/client && pnpm run eslint && pnpm run prettier
+fix-eslint:
+  cd {{justfile_directory()}} && pnpm run fix:eslint
+
+fix-prettier:
+  cd {{justfile_directory()}} && pnpm run fix:prettier
+
+manage *args:
+  cd {{justfile_directory()}}/server && uv run --no-sync python manage.py {{args}}
+
+# VUEDA Documentation
+docs-rebuild:
+  rm -rf {{justfile_directory()}}/docs/.vitepress/.temp {{justfile_directory()}}/docs/.vitepress/cache
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress build
+
+docs-serve:
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8000
+
+docs-extract:
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js extract
+
+docs-normalize:
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js normalize
+
+docs-render:
+  rm -rf {{justfile_directory()}}/docs/reference/api
+  mkdir -p {{justfile_directory()}}/docs/reference/api
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+
+docs-api:
+  just docs-extract
+  just docs-normalize
+  just docs-render
+
+docs:
+  just docs-api
+  just docs-serve
+
+docs-validate:
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js validate
+
+docs-build:
+  just docs-api
+  just docs-rebuild

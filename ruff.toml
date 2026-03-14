@@ -1,0 +1,69 @@
+line-length = 120
+target-version = "py311"
+exclude = [
+    ".circleci",
+    ".git",
+    ".github",
+]
+
+[lint]
+select = [
+    "A",
+    "B0",
+    "C4",
+    "C90",
+    "DJ",
+    "E",
+    "W",
+    "F",
+    "FIX",
+    "G",
+    "I",
+    "INP",
+    "N",
+    "PLC",
+    "PLE",
+    "PLR2004",
+    "Q",
+    "RUF",
+    "SIM",
+    "T10",
+    "T20",
+    "TID",
+    "UP",
+]
+ignore = [
+    "E501",
+    "F811",
+    "FIX002",
+    "PLC0415",
+    "RUF005",
+    "RUF012",
+    "RUF021",
+    "SIM105",
+    "SIM108",
+]
+
+[lint.per-file-ignores]
+"server/tests/*" = [
+    "DJ008",
+    "SIM",
+    "T201",
+]
+"server/vueda/__main__.py" = [
+    "T201",
+]
+"scripts/*" = [
+    "T201",
+]
+
+[lint.isort]
+known-first-party = [
+    "vueda",
+    "tests",
+]
+force-single-line = true
+lines-after-imports = 2
+
+[lint.mccabe]
+max-complexity = 20

@@ -139,7 +139,7 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
 ]
 
 
-class TestData(BaseTestUserMixin, BaseTestGroupMixin):
+class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
@@ -226,7 +226,7 @@ class TestData(BaseTestUserMixin, BaseTestGroupMixin):
 class TestModelInfoFiltersetChoices:
     @pytest.fixture
     def test_data(self):
-        return TestData()
+        return VuedaTestData()
 
     @staticmethod
     def register_viewsets():
@@ -239,9 +239,29 @@ class TestModelInfoFiltersetChoices:
         info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
         info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
-        info.register(store_serializers.OrderItemSerializer, store_viewsets.OrderItemViewSet)
+        info.register_serializer(store_serializers.OrderItemSerializer)
         info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
         info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+
+    @staticmethod
+    def assert_choice_value_contract(response_data, expected_choices, context):
+        """
+        Filter-choice responses always include a serialized `value` field.
+        The serializer contract is CharField, so runtime values are expected as strings.
+        """
+        response_values_by_label = {result["label"]: result["value"] for result in response_data["results"]}
+        for expected_choice in expected_choices:
+            label = expected_choice["label"]
+            msg = f"{context} -> label={label!r}"
+            assert label in response_values_by_label, msg
+
+            response_value = response_values_by_label[label]
+            assert isinstance(response_value, str), f"{msg} -> value should be str, got {type(response_value).__name__}"
+
+            if "value" in expected_choice and expected_choice["value"] is not None:
+                assert response_value == expected_choice["value"], (
+                    f"{msg} -> expected value={expected_choice['value']!r}, got {response_value!r}"
+                )
 
     @pytest.mark.parametrize(
         "app_label, model_name, field_name, expected_choices, expected_empty_value",
@@ -289,6 +309,7 @@ class TestModelInfoFiltersetChoices:
                 assert frozenset(result["label"] for result in response.data["results"]) == frozenset(
                     result["label"] for result in expected_choices
                 ), msg
+                self.assert_choice_value_contract(response.data, expected_choices, msg)
                 if expected_empty_value is not None:
                     msg = f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_empty_value"
                     assert response.data["results"][0]["value"] == expected_empty_value, msg
@@ -332,6 +353,7 @@ class TestModelInfoFiltersetChoices:
         assert frozenset(result["label"] for result in response.data["results"]) == frozenset(
             result["label"] for result in expected_choices
         ), msg
+        self.assert_choice_value_contract(response.data, expected_choices, msg)
 
     def test_info_choices_filter_list_invalid_field(self, test_data, api_client):
         user = test_data.users["test_admin@example.com"]

@@ -9,6 +9,13 @@ import Message from "primevue/message";
 import { useToast } from "primevue/usetoast";
 import { computed, ref, watch } from "vue";
 
+/**
+ * Account security page for managing two-factor authentication recovery codes. Displays the user's unused
+ * recovery codes (when a TOTP device is configured) with options to copy, download, or print them, and
+ * provides a button to generate a fresh set of codes.
+ */
+defineOptions({});
+
 const toast = useToast();
 const userStore = storeUser();
 const isActive = useIsActive();

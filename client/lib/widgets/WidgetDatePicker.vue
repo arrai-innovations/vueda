@@ -37,24 +37,34 @@ const formats = {
     ],
 };
 
+/**
+ * A date, time, or datetime picker widget backed by PrimeVue's DatePicker. Handles ISO string
+ * conversion, range selection, manual text entry with debounced parsing, and optional min/max
+ * date constraints.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** Controls single, multiple, or range date selection; defaults to range when the field value is an array. */
     selectionMode: {
         type: String,
         default: undefined,
     },
+    /** ISO date string (`yyyy-MM-dd`) that sets the earliest selectable date. */
     minDate: {
         type: String,
         default: undefined,
     },
+    /** ISO date string (`yyyy-MM-dd`) that sets the latest selectable date. */
     maxDate: {
         type: String,
         default: undefined,
     },
+    /** Optional function to transform a JS Date before it is serialized to an ISO string. */
     customDateConverter: {
         type: Function,
         default: undefined,

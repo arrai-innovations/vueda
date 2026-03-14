@@ -1,3 +1,11 @@
+"""History-aware user serializers that extend the core user serializers."""
+
+__all__ = (
+    "UserHistoricalSerializer",
+    "UserSerializer",
+    "WhoIsSerializer",
+)
+
 from rest_framework import serializers
 
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin

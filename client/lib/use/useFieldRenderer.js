@@ -1,3 +1,7 @@
+/**
+ * @module use/useFieldRenderer
+ * @description Computes the resolved components, props, slot names, and theme for rendering a field and widget pair inside a FieldRenderer component.
+ */
 import { mergeTheme } from "@vueda/use/useTheme.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import omit from "lodash-es/omit.js";

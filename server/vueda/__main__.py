@@ -1,3 +1,12 @@
+"""Entry point for the `vueda` CLI command."""
+
+__all__ = (
+    "main",
+    "setup_django_settings_module",
+    "version",
+    "version_for_main",
+)
+
 import argparse
 import os
 import sys
@@ -46,7 +55,7 @@ def setup_django_settings_module():
 def main():
     parser = argparse.ArgumentParser(
         prog="vueda",
-        description="Vueda CLI Interface",
+        description="VUEDA CLI Interface",
     )
 
     subparsers = parser.add_subparsers(

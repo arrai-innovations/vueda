@@ -1,3 +1,7 @@
+/**
+ * @module use/useFilterForm
+ * @description Manages reactive filter form values, translating field-type-specific initial values and range fields into URL-ready query parameters.
+ */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
@@ -60,11 +64,11 @@ const FilterFieldMappings = {
 /**
  * @typedef {object} UseFilterFieldProps
  * @property {string} filterName - The name for the filter.
- * @property {{filterName: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
+ * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
  */
 
 /**
- * @typedef {object} useFilterFieldRawState
+ * @typedef {object} UseFilterFieldRawState
  * @property {{[fieldName: string]: any}} initialValues - The form's initial values
  * @property {boolean} array - Indicates if the filter is an array type.
  * @property {boolean} range - Indicates if the filter is a range type.
@@ -75,11 +79,11 @@ const FilterFieldMappings = {
  * It determines the field's default value and any extra filter configuration (like whether it's a range or an array),
  *
  * @param {UseFilterFieldProps} props - Props that include the filter name and filter metadata.
- * @returns {Readonly<useFilterFieldRawState>} - A readonly reactive object containing the initial values and filter configuration.
+ * @returns {Readonly<UseFilterFieldRawState>} - A readonly reactive object containing the initial values and filter configuration.
  */
 export function useFilterField(props, queryValue) {
     const state = reactive(
-        /** @type {useFilterFieldRawState} */ {
+        /** @type {UseFilterFieldRawState} */ {
             array: false,
             range: false,
             initialValues: {},

@@ -14,29 +14,28 @@ import { getDetailUrl } from "@vueda/utils/urls.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import { computed, inject, reactive, toRef } from "vue";
 
+/**
+ * View that renders a confirmation form for the deactivate action via ModelActionForm, then sends
+ * a PATCH request to the deactivate endpoint when the user confirms.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name whose instances will be deactivated. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key or array of primary keys identifying the instances to deactivate. */
     pk: {
         type: [String, Array],
         required: true,
-    },
-    variant: {
-        type: String,
-        default: "default",
-    },
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
 });
 

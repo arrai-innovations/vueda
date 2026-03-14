@@ -1,3 +1,7 @@
+"""DRF ViewSet for managing user TOTP authentication devices."""
+
+__all__ = ("TOTPDeviceViewSet",)
+
 import base64
 from types import SimpleNamespace
 
@@ -6,6 +10,7 @@ from allauth.mfa.models import Authenticator
 from allauth.mfa.totp.internal import auth as totp_auth
 from allauth.mfa.totp.internal import flows as totp_flows
 from django.db.transaction import atomic
+from rest_framework import serializers
 from rest_framework import status as drf_status
 from rest_framework.mixins import DestroyModelMixin
 from rest_framework.permissions import IsAuthenticated
@@ -16,6 +21,9 @@ from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
 from vueda.core.decorators import recent_auth_required
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.open_api import conditional_extend_schema_decorator
+from vueda.core.open_api import conditional_inline_serializer
+from vueda.core.open_api import conditional_open_api_types
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.viewsets import VuedaViewSet
 from vueda.user.adapters import get_adapter as vueda_get_adapter
@@ -46,6 +54,13 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
             .first()
         )
 
+    @conditional_extend_schema_decorator(
+        summary="Set up TOTP device",
+        responses={
+            200: conditional_open_api_types().OBJECT,
+            400: conditional_open_api_types().OBJECT,
+        },
+    )
     @atomic
     @recent_auth_required
     @action(detail=False, methods=["post"])
@@ -103,6 +118,16 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
 
         return Response(status=drf_status.HTTP_200_OK)
 
+    @conditional_extend_schema_decorator(
+        summary="Activate TOTP device",
+        responses={
+            201: conditional_inline_serializer(
+                "TOTPActivateResponse",
+                fields={"detail": serializers.CharField()},
+            ),
+            400: conditional_open_api_types().OBJECT,
+        },
+    )
     @atomic
     @recent_auth_required
     @action(detail=False, methods=["post"])
@@ -146,6 +171,10 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
             TOTPDevice.objects.create(authenticator=authenticator, method=device_type, user=request.user)
         return Response({"detail": "TOTP setup complete"}, status=drf_status.HTTP_201_CREATED)
 
+    @conditional_extend_schema_decorator(
+        summary="Delete TOTP device",
+        responses={204: None},
+    )
     @atomic
     @recent_auth_required
     def destroy(self, request, *args, **kwargs):

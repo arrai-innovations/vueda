@@ -5,15 +5,25 @@ import { watchIfDev } from "@vueda/utils/dev.js";
 import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
 
+/**
+ * Field component for range values stored as a plain object with lower and
+ * upper boundary keys. Validates that the value contains the expected keys
+ * defined by rangeSuffix.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...FIELD_PROPS,
+    /** The data type of the range boundaries (e.g. "date" or "number"). */
     type: {
         type: String,
         default: "date",
     },
+    /**
+     * A two-element array of key suffixes used to identify the lower and upper
+     * boundaries in the value object.
+     */
     rangeSuffix: {
         type: Array,
         default: () => ["lower", "upper"],
@@ -45,6 +55,7 @@ watchIfDev(
 </script>
 <template>
     <div :class="$attrs.class" data-qa="field-range">
+        <!-- Renders the range input widget; receives field-attrs (non-class inherited attributes) and field-props. -->
         <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>

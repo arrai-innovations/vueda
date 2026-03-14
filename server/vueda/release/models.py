@@ -1,9 +1,13 @@
+"""Models for release notes in the vueda.release app."""
+
+__all__ = ("ReleaseNote",)
+
 from django.db import models
 
-from vueda.core.models import VuedaBaseModel
+from vueda.core.models import VuedaModel
 
 
-class ReleaseNote(VuedaBaseModel):
+class ReleaseNote(VuedaModel):
     title = models.CharField(default="", max_length=255)
     notes = models.TextField(default="")
     date = models.DateTimeField(auto_now_add=True)

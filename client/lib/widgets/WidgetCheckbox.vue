@@ -10,6 +10,11 @@ import pick from "lodash-es/pick.js";
 import ToggleSwitch from "primevue/toggleswitch";
 import { useSlots } from "vue";
 
+/**
+ * A boolean toggle widget rendered as a toggle switch. Integrates with the widget context to
+ * provide label, validation state, and disabled/read-only behavior.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });

@@ -1,23 +1,32 @@
 <script setup>
-import DetailedView from "@vueda/components/DetailedView.vue";
+import DetailView from "@vueda/components/DetailView.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { inject, reactive } from "vue";
 
+/**
+ * Read-only detail view that fetches and displays a single model instance identified by its
+ * primary key.
+ *
+ * @vueda-slot-forward DetailView
+ */
 defineOptions({
     inheritAttrs: false,
 });
 
 defineProps({
+    /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name used to resolve API endpoints and configuration. */
     model: {
         type: String,
         required: true,
     },
+    /** Primary key of the object instance to fetch and display. */
     pk: {
         type: String,
         required: true,
@@ -38,7 +47,7 @@ useForm(formContextProps);
 </script>
 
 <template>
-    <detailed-view
+    <detail-view
         v-model="formContextProps.initialValues"
         :app="app"
         :model="model"
@@ -53,5 +62,5 @@ useForm(formContextProps);
         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
             <slot :name="slot" v-bind="slotProps || {}" />
         </template>
-    </detailed-view>
+    </detail-view>
 </template>

@@ -1,0 +1,250 @@
+version: 2.1
+
+orbs:
+    pytest: arrai/pytest@9.1.1
+    utils: arrai/utils@1.21.1
+
+parameters:
+    run-docs-workflows:
+        type: boolean
+        default: false
+
+executors:
+    python311:
+        docker:
+            - image: cimg/python:3.11
+    python311-node:
+        docker:
+            - image: cimg/python:3.11-node
+
+jobs:
+    docs-tooling-test-js:
+        parameters:
+            create_badges:
+                type: boolean
+                default: true
+        executor: python311-node
+        resource_class: medium
+        circleci_ip_ranges: true
+        steps:
+            - checkout
+            - utils/add_ssh_config
+            - run:
+                  name: Ensure pnpm command is available
+                  command: |
+                      mkdir -p "$HOME/.local/bin"
+                      printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
+                      chmod +x "$HOME/.local/bin/pnpm"
+                      echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+                      export PATH="$HOME/.local/bin:$PATH"
+                      pnpm --version
+            - utils/add_npm_config
+            - restore_cache:
+                  keys:
+                      - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Install Node Dependencies
+                  command: pnpm install
+            - save_cache:
+                  paths:
+                      - ~/.local/share/pnpm/store
+                  key: pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Run JS Tests with Coverage
+                  command: pnpm -C docs-tooling run coverage
+            - utils/rsync_folder:
+                  when: always
+                  folder: docs-tooling/coverage/
+                  remote_folder: ${CIRCLE_BRANCH}/coverage_${CIRCLE_JOB}
+                  host: docs
+            - when:
+                  condition: <<parameters.create_badges>>
+                  steps:
+                      - utils/make_status_shield:
+                            when: on_fail
+                            status: errors
+                            color: red
+                            logo: Node.js
+                      - utils/make_status_shield:
+                            when: on_success
+                            status: passed
+                            color: brightgreen
+                            logo: Node.js
+                      - utils/rsync_file:
+                            when: always
+                            file: ~/status.svg
+                            remote_file: ${CIRCLE_BRANCH}/${CIRCLE_JOB}.svg
+                            host: docs
+                      - run:
+                            name: Create coverage report
+                            when: always
+                            command: |
+                                jq 'if (.total.branches.pct | type) == "number" and (.total.statements.pct | type) == "number" then ((.total.branches.pct + .total.statements.pct) / 2) else 0 end | floor' docs-tooling/coverage/coverage-summary.json > /tmp/.coveragep
+                      - utils/make_coverage_shield:
+                            when: always
+                            link: https://${DOCS_HOST}/${CIRCLE_PROJECT_REPONAME}/artifacts/${CIRCLE_BRANCH}/coverage_${CIRCLE_JOB}/
+                      - utils/rsync_file:
+                            when: always
+                            file: /tmp/coverage.svg
+                            remote_file: ${CIRCLE_BRANCH}/${CIRCLE_JOB}.coverage.svg
+                            host: docs
+
+    docs-validate:
+        executor: python311-node
+        resource_class: medium
+        circleci_ip_ranges: true
+        steps:
+            - checkout
+            - run:
+                  name: Install Python Dependencies
+                  command: uv sync --all-groups --all-packages --frozen
+            - run:
+                  name: Ensure pnpm command is available
+                  command: |
+                      mkdir -p "$HOME/.local/bin"
+                      printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
+                      chmod +x "$HOME/.local/bin/pnpm"
+                      echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+                      export PATH="$HOME/.local/bin:$PATH"
+                      pnpm --version
+            - utils/add_npm_config
+            - restore_cache:
+                  keys:
+                      - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Install Node Dependencies
+                  command: pnpm install
+            - save_cache:
+                  paths:
+                      - ~/.local/share/pnpm/store
+                  key: pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Copy Configuration
+                  command: cp server/config.circleci.toml server/config.local.toml
+            - run:
+                  name: Extract and Normalize API Documentation
+                  command: |
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js extract
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js normalize
+            - run:
+                  name: Render API Documentation
+                  command: |
+                      rm -rf docs/reference/api
+                      mkdir -p docs/reference/api
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+            - run:
+                  name: Validate Documentation References
+                  command: |
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js validate
+    docs-publish:
+        executor: python311-node
+        resource_class: medium
+        circleci_ip_ranges: true
+        steps:
+            - checkout
+            - utils/add_ssh_config:
+                  hostname: tools.arrai.dev
+                  host: tools.arrai.dev
+            - add_ssh_keys:
+                  fingerprints:
+                      - "SHA256:NfqZXcPtWKzH+WVKDsNH5WGNzaBA30iyp5iYQgXjG0M"
+            - run:
+                  name: Install Python Dependencies
+                  command: uv sync --all-groups --all-packages --frozen
+            - run:
+                  name: Ensure pnpm command is available
+                  command: |
+                      mkdir -p "$HOME/.local/bin"
+                      printf '%s\n' '#!/usr/bin/env bash' 'exec corepack pnpm "$@"' > "$HOME/.local/bin/pnpm"
+                      chmod +x "$HOME/.local/bin/pnpm"
+                      echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+                      export PATH="$HOME/.local/bin:$PATH"
+                      pnpm --version
+            - utils/add_npm_config
+            - restore_cache:
+                  keys:
+                      - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Install Node Dependencies
+                  command: pnpm install
+            - save_cache:
+                  paths:
+                      - ~/.local/share/pnpm/store
+                  key: pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
+            - run:
+                  name: Copy Configuration
+                  command: cp server/config.circleci.toml server/config.local.toml
+            - run:
+                  name: Extract API Documentation
+                  command: |
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js extract
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js normalize
+            - run:
+                  name: Render API Documentation
+                  command: |
+                      rm -rf docs/reference/api
+                      mkdir -p docs/reference/api
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+            - run:
+                  name: Build VitePress Site
+                  command: |
+                      rm -rf docs/.vitepress/.temp docs/.vitepress/cache
+                      cd docs && VITEPRESS_BASE="/vueda/documentation/$CIRCLE_TAG/" pnpm exec vitepress build
+            - run:
+                  name: Stage Documentation for Deploy
+                  command: |
+                      mkdir -p -m 0750 publish/$CIRCLE_TAG/
+                      cp -r site/* publish/$CIRCLE_TAG/
+            - utils/rsync_folder:
+                  when: on_success
+                  folder: ~/project/publish/
+                  remote_folder: /
+                  delete: false
+                  host: tools.arrai.dev
+
+workflows:
+    docs-publish:
+        jobs:
+            - docs-tooling-test-js:
+                  name: docs-tooling-test-js
+                  context: arrai-global
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - docs-tooling-test-js:
+                  name: docs-tooling-test-js-no-badge
+                  context: arrai-global
+                  create_badges: false
+                  filters:
+                      tags:
+                          only: /.*/
+                      branches:
+                          ignore:
+                              - main
+            - pytest/pytest:
+                  name: docs-tooling-test-py
+                  context: arrai-global
+                  executor: python311
+                  wd: docs-tooling
+                  env_type: uv
+                  filters:
+                      branches:
+                          only: /.*/
+                      tags:
+                          only: /^docs-v.*/
+            - docs-validate:
+                  name: docs-validate
+                  context: arrai-global
+            - docs-publish:
+                  name: docs-publish
+                  context: arrai-global
+                  requires:
+                      - docs-validate
+                      - docs-tooling-test-js-no-badge
+                      - docs-tooling-test-py
+                  filters:
+                      tags:
+                          only: /^docs-v.*/
+                      branches:
+                          ignore: /.*/

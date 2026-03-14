@@ -15,7 +15,8 @@ import update from "lodash-es/update.js";
 import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
 
 /**
- * @module use/useForm.js - A composable function for handling form state.
+ * @module use/useForm
+ * @description A composable function for handling form state.
  */
 
 /**
@@ -27,6 +28,7 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  *
  * // *** Values & Initial State ***
  * @property {FieldValues} values - The form's values, referenced by lodash key path.
+ * @property {FieldValues} submittingValues - The form's values for submission, with ignored fields omitted.
  * @property {{[fieldName: string]: any}} initialValues - The form's initial values (used for resets).
  *
  * // *** Validation & Errors ***
@@ -49,6 +51,9 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * // *** Ignored Fields & Reset Behavior ***
  * @property {{[path: string]: string}} ignored - Fields ignored in validation/submission.
  * @property {boolean} anyIgnored - Whether any field has been ignored.
+ *
+ * // *** Dependency Management ***
+ * @property {{[path: string]: any}} dependencyValues - Resolved dependency values for fields registered via registerDependencyValues.
  */
 
 /**
@@ -123,6 +128,16 @@ function validateMessage(message) {
     }
 }
 
+const RESERVED_SERVER_CODE = "server";
+
+const validateReservedServerCode = (code, allowReservedServerCode = false) => {
+    if (!allowReservedServerCode && code === RESERVED_SERVER_CODE) {
+        throw new Error(
+            'Error code "server" is reserved for server-originated validation and cannot be set from local validation. Use a non-reserved code (e.g. "validate" or custom) for client validation.',
+        );
+    }
+};
+
 /**
  *
  * @param {'error'|'message'} kind - The kind of error or message to update.
@@ -132,10 +147,11 @@ function validateMessage(message) {
  * @param {string} message - The message to update.
  * @private
  */
-const updateErrorOrMessage = (kind, state, name, code, message) => {
+const updateErrorOrMessage = (kind, state, name, code, message, allowReservedServerCode = false) => {
     validateName(name);
     validateCode(code);
     validateMessage(message);
+    validateReservedServerCode(code, allowReservedServerCode);
     const collection = kind === "error" ? state.errors : state.messages;
     const anyFlagKey = kind === "error" ? "anyError" : "anyMessage";
     if (!isEqual(collection[name]?.[code], message)) {
@@ -341,10 +357,10 @@ const handleServerFormValidationError = (state, error) => {
     const messages = error.messages;
     const errors = error.errors;
     for (const [name, message] of Object.entries(messages)) {
-        updateMessage(state, name, "server", message);
+        updateErrorOrMessage("message", state, name, RESERVED_SERVER_CODE, message, true);
     }
     for (const [name, error] of Object.entries(errors)) {
-        updateError(state, name, "server", error);
+        updateErrorOrMessage("error", state, name, RESERVED_SERVER_CODE, error, true);
     }
 };
 
@@ -371,6 +387,8 @@ const clearServerErrors = (state, name, clearServerErrorDependents = []) => {
     deleteError(state, name, "server");
     deleteMessage(state, name, "server");
 
+    // Intentionally one-hop clearing: each recursive call omits dependents, so we do not
+    // traverse a dependent graph (and cannot loop on A<->B dependent declarations).
     for (const dep of clearServerErrorDependents) {
         let resolvedName = dep;
         if (dep.includes("$parent") && name.includes(".")) {
@@ -505,8 +523,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *
  * // *** Form Reset & State Management ***
  * @property {() => void} reset - Reset the form to its initial values.
- * @property {() => FieldValues} formValues - Returns the form values, excluding ignored fields.
- * @property {(displayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error.
+ * @property {(displayFields: string[], arrayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error.
  *
  * // *** Value & Initial Value Handling ***
  * @property {(name: string, value: any) => void} updateValue - Update a field's value.
@@ -515,6 +532,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {(name: string) => void} deleteInitialValue - Delete a field's initial value.
  *
  * // *** Error & Message Handling ***
+ * @property {(name: string, childIndex?: number) => void} clearErrors - Clear all errors for a field, or a child's errors if childIndex is given.
  * @property {(name: string, code: string, message: string) => void} updateError - Update a field's error.
  * @property {(name: string, code?: string) => void} deleteError - Delete a field's error.
  * @property {(name: string, code: string, message: string) => void} updateMessage - Update a field's message.
@@ -550,6 +568,12 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *  Register a function to track validation.
  * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundUnregisterHook} unregisterIsValidHook -
  *  Unregister a validation tracking function.
+ *
+ * // *** Dependency Management ***
+ * @property {(fieldRef: import('vue').Ref<string>, dependencyPathsRef: import('vue').Ref<string[]>) => string} registerDependencyValues -
+ *  Register a field's dependency paths for reactive value tracking.
+ * @property {(registryId: string) => boolean} unregisterDependencyValues -
+ *  Unregister a field from dependency value tracking.
  */
 
 /**
@@ -594,7 +618,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *         }
  *         await submitToServer(formContext.values);
  *     } catch (e) {
- *         if (e isinstance FormValidationError) {
+ *         if (e instanceof FormValidationError) {
  *             formContext.handleServerFormValidationError(e);
  *             return;
  *         }

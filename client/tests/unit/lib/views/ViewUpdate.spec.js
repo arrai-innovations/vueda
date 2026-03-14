@@ -30,18 +30,18 @@ vi.mock("@vueda/use/useWarnings.js", () => ({
     useWarnings: mockedUseWarnings,
 }));
 
-let detailedViewEmit;
-const DetailedViewStub = defineComponent({
-    name: "DetailedViewStub",
+let detailViewEmit;
+const DetailViewStub = defineComponent({
+    name: "DetailViewStub",
     props: ["modelValue", "app", "model", "pk", "viewName", "submitFields", "objectForm"],
     emits: ["update:modelValue", "form-context", "form-object", "loading", "object"],
     setup(props, { emit, attrs, slots }) {
-        detailedViewEmit = emit;
+        detailViewEmit = emit;
         return () =>
             h(
                 "div",
                 {
-                    "data-qa": "detailed-view",
+                    "data-qa": "detail-view",
                     "data-app": props.app,
                     "data-model": props.model,
                     "data-pk": props.pk,
@@ -55,8 +55,8 @@ const DetailedViewStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/DetailedView.vue", () => ({
-    default: DetailedViewStub,
+vi.mock("@vueda/components/DetailView.vue", () => ({
+    default: DetailViewStub,
 }));
 
 vi.mock("vue", async () => {
@@ -69,7 +69,7 @@ let ViewUpdate, vue, modelConfig;
 
 beforeEach(async () => {
     vue = await vi.importActual("vue");
-    detailedViewEmit = undefined;
+    detailViewEmit = undefined;
     modelConfig = vue.reactive({
         loading: vue.ref(false),
         error: vue.ref(null),
@@ -103,7 +103,7 @@ scopedIt("does not call useLookupContext when lookup context exists", () => {
     expect(mockedUseLookupContext).not.toHaveBeenCalled();
 });
 
-scopedIt("passes props to DetailedView and forwards events", async () => {
+scopedIt("passes props to DetailView and forwards events", async () => {
     mockedInject.mockReturnValueOnce({});
     const wrapper = mount(ViewUpdate, {
         props: { app: "myApp", model: "myModel", pk: "5", submitFields: ["name"], redirectAfter: "read" },
@@ -111,7 +111,7 @@ scopedIt("passes props to DetailedView and forwards events", async () => {
         slots: { default: "<span>default</span>", extra: "<span>extra</span>" },
     });
 
-    const dv = wrapper.find('[data-qa="detailed-view"]');
+    const dv = wrapper.find('[data-qa="detail-view"]');
     expect(dv.attributes("data-app")).toBe("myApp");
     expect(dv.attributes("data-model")).toBe("myModel");
     expect(dv.attributes("data-pk")).toBe("5");
@@ -122,10 +122,10 @@ scopedIt("passes props to DetailedView and forwards events", async () => {
     expect(dv.find('[data-slot="default"]').text()).toBe("default");
     expect(dv.find('[data-slot="extra"]').text()).toBe("extra");
 
-    detailedViewEmit("loading", true);
-    detailedViewEmit("object", { id: 5 });
-    detailedViewEmit("form-object", { foo: "bar" });
-    detailedViewEmit("form-context", { baz: 1 });
+    detailViewEmit("loading", true);
+    detailViewEmit("object", { id: 5 });
+    detailViewEmit("form-object", { foo: "bar" });
+    detailViewEmit("form-context", { baz: 1 });
     await wrapper.vm.$nextTick();
 
     expect(wrapper.emitted("loading")[0]).toEqual([true]);

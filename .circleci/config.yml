@@ -3,19 +3,63 @@ version: 2.1
 setup: true
 
 orbs:
-  path-filtering: circleci/path-filtering@3.0.0
+    continuation: circleci/continuation@1.0.0
+    path-filtering: circleci/path-filtering@3.0.0
 
 workflows:
-  detect-code-changes:
-    jobs:
-      - path-filtering/filter:
-          name: detect-code-changes
-          mapping: |
-              client/.* run-client-workflows true .circleci/client.yml
-              server/.* run-server-workflows true .circleci/server.yml
-          base-revision: main
-          config-path: .circleci/no-changes.yml
-          filters:
-            tags:
-              only:
-                - /.*/
+    docs-publish-on-tag:
+        jobs:
+            - continuation/continue:
+                  name: docs-publish-on-tag
+                  configuration_path: .circleci/docs.yml
+                  parameters: '{"run-docs-workflows": true}'
+                  filters:
+                      tags:
+                          only: /^docs-v.*/
+                      branches:
+                          ignore: /.*/
+    client-publish-on-tag:
+        jobs:
+            - continuation/continue:
+                  name: client-publish-on-tag
+                  configuration_path: .circleci/client.yml
+                  parameters: '{"run-client-workflows": true}'
+                  filters:
+                      tags:
+                          only: /^client-v.*/
+                      branches:
+                          ignore: /.*/
+    server-publish-on-tag:
+        jobs:
+            - continuation/continue:
+                  name: server-publish-on-tag
+                  configuration_path: .circleci/server.yml
+                  parameters: '{"run-server-workflows": true}'
+                  filters:
+                      tags:
+                          only: /^server-v.*/
+                      branches:
+                          ignore: /.*/
+    detect-code-changes:
+        jobs:
+            - path-filtering/filter:
+                  name: detect-code-changes
+                  mapping: |
+                      client/.* run-client-workflows true .circleci/client.yml
+                      server/.* run-server-workflows true .circleci/server.yml
+                      docs/.* run-docs-workflows true .circleci/docs.yml
+                      docs-tooling/.* run-docs-workflows true .circleci/docs.yml
+                      templates/.*/client/.* run-client-workflows true .circleci/client.yml
+                      templates/.*/server/.* run-server-workflows true .circleci/server.yml
+                      templates/.*/copier\.yml run-client-workflows true .circleci/client.yml
+                      templates/.*/copier\.yml run-server-workflows true .circleci/server.yml
+                      templates/.*/(README\.md|package\.json\.jinja|pnpm-workspace\.yaml\.jinja|lefthook\.yml|pyproject\.toml\.jinja) run-client-workflows true .circleci/client.yml
+                      templates/.*/(README\.md|package\.json\.jinja|pnpm-workspace\.yaml\.jinja|lefthook\.yml|pyproject\.toml\.jinja) run-server-workflows true .circleci/server.yml
+                  base-revision: main
+                  config-path: .circleci/no-changes.yml
+                  filters:
+                      tags:
+                          ignore:
+                              - /^docs-v.*/
+                              - /^client-v.*/
+                              - /^server-v.*/

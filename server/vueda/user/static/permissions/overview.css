@@ -1,5 +1,5 @@
 body {
-    font-family: 'Source Sans Pro', sans-serif;
+    font-family: "Source Sans Pro", sans-serif;
     font-size: 1.1rem;
     background-color: #101010;
     color: #b0b0b0;
@@ -7,10 +7,12 @@ body {
 }
 
 code {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "JetBrains Mono", monospace;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     font-weight: normal;
     margin: 0;
     padding: 0.5rem 1rem;
@@ -44,8 +46,8 @@ button {
     font-size: 1.5rem;
     line-height: 2rem;
     padding: 0.5rem;
-    background-color: #0077F6;
-    color: #FFFFFF;
+    background-color: #0077f6;
+    color: #ffffff;
     border: none;
     cursor: pointer;
     pointer-events: all;
@@ -56,7 +58,7 @@ button {
 }
 
 .button-add {
-    background-color: #E14A01;
+    background-color: #e14a01;
 }
 
 .button-save {
@@ -158,7 +160,6 @@ body {
     align-items: stretch;
 }
 
-
 .somewhere {
     padding: 0.5rem 1rem;
     gap: 1rem;
@@ -177,10 +178,9 @@ body {
     text-align: center;
     font-size: 1rem;
     background-color: #303050;
-    border-color: #FEFEFE;
+    border-color: #fefefe;
     color: #f0f0f0;
 }
-
 
 .permission:nth-child(odd) {
     background-color: #484848;

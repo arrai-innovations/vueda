@@ -1,0 +1,9 @@
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import { vuedaViteConfig } from "@arrai-innovations/vueda/lib/vite.js";
+
+export default defineConfig({
+  plugins: [vue()],
+  ...vuedaViteConfig(),
+});
+

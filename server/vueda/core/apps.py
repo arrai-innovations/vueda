@@ -1,3 +1,7 @@
+"""Django AppConfig for the vueda.core package."""
+
+__all__ = ("CoreConfig",)
+
 from django.apps import AppConfig
 
 

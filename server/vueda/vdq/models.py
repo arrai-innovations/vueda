@@ -1,4 +1,29 @@
+"""Django models for queue items, attachments, and messaging details in the VDQ."""
+
 from __future__ import annotations
+
+
+__all__ = (
+    "SEND_METHOD_CHOICES",
+    "AbstractEmailQueueItem",
+    "AbstractEmailQueueItemReceiver",
+    "AbstractQueueItemAttachment",
+    "AnyMailQueueItem",
+    "AnyMailQueueItemAttachment",
+    "AnyMailQueueItemReceiverCc",
+    "AnyMailQueueItemReceiverReplyTo",
+    "AnyMailQueueItemReceiverTo",
+    "BaseReceiver",
+    "BaseSender",
+    "QueueItem",
+    "QueueItemOrigin",
+    "Receiver",
+    "SMSQueueItem",
+    "Sender",
+    "SentItem",
+    "SentItemManager",
+    "validate_mimetype",
+)
 
 import mimetypes
 
@@ -17,13 +42,13 @@ from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 
 from vueda.core.models import BaseModelMeta
-from vueda.core.models import VuedaBaseModel
+from vueda.core.models import VuedaModel
 from vueda.vdq.celery import cancel_task
 from vueda.vdq.constants import QUEUE_ITEM_DONE_STATES
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class BaseSender(VuedaBaseModel):
+class BaseSender(VuedaModel):
     email = models.EmailField(blank=True)
     name = models.CharField(max_length=255, blank=True, default="")
     cell = PhoneNumberField(null=True)
@@ -32,7 +57,7 @@ class BaseSender(VuedaBaseModel):
         abstract = True
 
 
-class BaseReceiver(VuedaBaseModel):
+class BaseReceiver(VuedaModel):
     email = models.EmailField(blank=True)
     name = models.CharField(max_length=255, blank=True, default="")
     cell = PhoneNumberField(null=True)
@@ -57,7 +82,7 @@ SEND_METHOD_CHOICES = (
 )
 
 
-class QueueItem(VuedaBaseModel, HasWorkflowModelMixin):
+class QueueItem(VuedaModel, HasWorkflowModelMixin):
     sender = models.ForeignKey(
         swapper.get_model_name("vueda_vdq", "Sender"),
         on_delete=models.PROTECT,
@@ -110,10 +135,7 @@ class QueueItem(VuedaBaseModel, HasWorkflowModelMixin):
                     attachment.attachment.delete(save=True)
 
     def allow_transition(self, transition, user=None):
-        if transition in self.available_transitions(user=user):
-            is_cancel_or_retry = transition.code in ("retry", "cancel")
-            return not (self.method == "email" and self.workflow.code == "delayed" and is_cancel_or_retry)
-        return False
+        return transition in self.available_transitions(user=user)
 
     def on_transition(self, transition, user=None, dry_run=False):
         if transition.code in ("retry", "cancel") and self.task_id:

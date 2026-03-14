@@ -1,3 +1,19 @@
+"""Workflow state machine models: workflows, states, transitions, permissions, and object state tracking."""
+
+__all__ = (
+    "HasWorkflowModelMixin",
+    "InitialState",
+    "ObjectState",
+    "ObjectStateProxy",
+    "State",
+    "StatePermission",
+    "Transition",
+    "TransitionPermission",
+    "TransitionSource",
+    "Workflow",
+    "WorkflowPermission",
+)
+
 from collections.abc import Iterable
 
 from django.contrib.auth import get_user_model
@@ -41,7 +57,8 @@ class Workflow(SimpleHistoryModelMixin, Lookup):
     def __str__(self):
         return f"name: {self.name}, code: {self.code}"
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
+        """Snapshot ``historical_app_label`` and ``historical_model`` before saving."""
         self.historical_app_label = self.content_type.app_label
         self.historical_model = self.content_type.model
 
@@ -493,20 +510,24 @@ class HasWorkflowModelMixin(models.Model):
 
     @classmethod
     def get_content_type(cls) -> ContentType:
+        """Return the ``ContentType`` for this model class. Result is cached by Django."""
         # get_for_model() is cached
         return ContentType.objects.get_for_model(cls)
 
     @property
     def workflow(self) -> Workflow | None:
+        """Return the ``Workflow`` configured for this model, or ``None`` if none exists."""
         return Workflow.objects.filter(content_type=self.get_content_type()).first()
 
     @property
     def object_state(self) -> ObjectState | None:
+        """Return the ``ObjectState`` record for this instance, or ``None`` if not yet created."""
         osp = self.object_states_proxy.first()
         return osp and osp.object_state
 
     @property
     def workflow_state(self) -> State | None:
+        """Return the current ``State`` for this instance, or ``None`` if no state exists."""
         object_state = self.object_state
         return object_state and object_state.state
 
@@ -551,14 +572,13 @@ class HasWorkflowModelMixin(models.Model):
         Returns available transitions for a list of objects.
         """
         workflow = Workflow.objects.get(content_type=cls.get_content_type())
-        if user is not None and user.has_perms(
-            [
-                ".".join(permission_parts)
-                for permission_parts in workflow.workflow_permissions.values_list(
-                    "permission__content_type__app_label", "permission__codename"
-                )
-            ]
-        ):
+        workflow_permissions = [
+            ".".join(permission_parts)
+            for permission_parts in workflow.workflow_permissions.values_list(
+                "permission__content_type__app_label", "permission__codename"
+            )
+        ]
+        if user is not None and (not workflow_permissions or not user.has_perms(workflow_permissions)):
             raise PermissionDenied(
                 f"User {user.get_username()!r} does not have workflow permissions for {cls.get_content_type()!r}"
             )
@@ -603,16 +623,23 @@ class HasWorkflowModelMixin(models.Model):
     def check_state_permission(
         self, perm: str, groups: Iterable[str] | Iterable[int] | QuerySet["Group"]
     ) -> bool | None:
-        # for our state are there any StatePermissions related to this permission?
-        state_permission = StatePermission.objects.filter(
+        """
+        Check whether the object's current state grants or denies ``perm`` for any of ``groups``.
+        Returns ``True`` (grant), ``False`` (deny), or ``None`` (no state rule applies).
+        When multiple rules match, deny takes precedence over grant.
+        """
+        # If multiple group rules match, deny takes precedence over grant.
+        matching_rules = StatePermission.objects.filter(
             state=self.workflow_state,
             permission__codename=perm.split(".")[-1],
             permission__content_type=self.get_content_type(),
             group__in=groups,
-        ).first()
-        if state_permission is None:
-            return None
-        return state_permission.grant_or_deny
+        ).values_list("grant_or_deny", flat=True)
+        if any(rule is False for rule in matching_rules):
+            return False
+        if any(rule is True for rule in matching_rules):
+            return True
+        return None
 
     def check_transition_permission(self, transition: Transition, user: User | None = None) -> bool:
         """
@@ -641,6 +668,7 @@ class HasWorkflowModelMixin(models.Model):
         return transition in self.available_transitions(user=user)
 
     def get_transition(self, transition_code: str) -> Transition:
+        """Return the ``Transition`` with the given code in this object's workflow. Raises ``Transition.DoesNotExist`` if not found."""
         try:
             return Transition.objects.get(
                 workflow=self.workflow,
@@ -694,7 +722,12 @@ class HasWorkflowModelMixin(models.Model):
             return transition.target, self.object_state.history.latest().history_id
         return transition.target, None
 
-    def fast_transition(self, transition_code):
+    def fast_transition(self, transition_code: str) -> None:
+        """
+        Apply a transition without permission checks. Raises ``InvalidTransitionError``
+        if the transition is not available from the current state, unless the
+        ``TransitionSource`` is marked ``ignored``, in which case ``on_transition_ignored`` is called.
+        """
         transition: Transition = self.get_transition(transition_code)
         transitions = self.fast_available_transitions()
         if transition not in transitions:

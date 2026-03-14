@@ -1,3 +1,7 @@
+/**
+ * @module use/useWindowShortcut
+ * @description Registers keyboard shortcuts on the window, handling platform-specific modifier keys for macOS and Windows.
+ */
 import os from "platform-detect/os.mjs";
 import { effectScope, onActivated, onDeactivated, onMounted, toRef, unref, watchEffect } from "vue";
 

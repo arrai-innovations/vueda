@@ -1,3 +1,7 @@
+"""DRF permission class for users mid-MFA login stage."""
+
+__all__ = ("Authenticating",)
+
 from allauth.account.stages import LoginStageController
 from allauth.mfa.internal.constants import LoginStageKey
 from rest_framework.permissions import BasePermission

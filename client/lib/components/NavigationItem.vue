@@ -1,5 +1,11 @@
 <script setup>
+/**
+ * Renders a single navigation item as a list element. If the item has a link
+ * it renders a router-link; otherwise it renders a plain span. Recursively
+ * renders child items when the item has children.
+ */
 defineProps({
+    /** The navigation item to render, including its name, optional link, and optional children. */
     item: {
         type: Object,
         required: true,
