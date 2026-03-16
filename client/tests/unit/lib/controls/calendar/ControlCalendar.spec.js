@@ -15,6 +15,16 @@ import ControlCalendarPrevButton from "@vueda/controls/calendar/ControlCalendarP
 
 // CalendarRoot and all calendar sub-primitives require internal CalendarRoot context.
 // Stub them as passthrough divs so each ControlCalendar* wrapper can be tested in isolation.
+vi.mock("reka-ui/date", async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        createYear: () => [],
+        createYearRange: () => [],
+        toDate: () => new Date("2026-03-01"),
+    };
+});
+
 vi.mock("reka-ui", async (importOriginal) => {
     const actual = await importOriginal();
     const { defineComponent, h } = await import("vue");
@@ -27,11 +37,18 @@ vi.mock("reka-ui", async (importOriginal) => {
         });
     return {
         ...actual,
+        useDateFormatter: () => ({ custom: () => "Mar 2026" }),
         CalendarRoot: defineComponent({
             name: "CalendarRoot",
             setup(_, { slots, attrs }) {
                 return () =>
-                    h("div", attrs, slots.default ? slots.default({ grid: [], weekDays: [], date: {} }) : undefined);
+                    h(
+                        "div",
+                        attrs,
+                        slots.default
+                            ? slots.default({ grid: [], weekDays: [], date: { month: 3, year: 2026 } })
+                            : undefined,
+                    );
             },
         }),
         CalendarCell: makePassthrough("CalendarCell"),
@@ -68,6 +85,32 @@ describe("lib/controls/calendar/ControlCalendar.vue", () => {
         scopedIt("merges custom class", () => {
             const wrapper = mount(ControlCalendar, { props: { class: "my-calendar" } });
             expect(wrapper.find('[data-slot="calendar"]').classes()).toContain("my-calendar");
+        });
+    });
+
+    describe("ControlCalendar layout variants", () => {
+        scopedIt("renders default heading when no layout is set", () => {
+            const wrapper = mount(ControlCalendar);
+            expect(wrapper.find('[data-slot="calendar-heading"]').exists()).toBe(true);
+            expect(wrapper.find('[data-slot="native-select"]').exists()).toBe(false);
+        });
+
+        scopedIt("renders month and year selects with layout=month-and-year", () => {
+            const wrapper = mount(ControlCalendar, { props: { layout: "month-and-year" } });
+            expect(wrapper.find('[data-slot="calendar-heading"]').exists()).toBe(false);
+            expect(wrapper.findAll('[data-slot="native-select"]').length).toBe(2);
+        });
+
+        scopedIt("renders month select with layout=month-only", () => {
+            const wrapper = mount(ControlCalendar, { props: { layout: "month-only" } });
+            expect(wrapper.find('[data-slot="calendar-heading"]').exists()).toBe(false);
+            expect(wrapper.findAll('[data-slot="native-select"]').length).toBe(1);
+        });
+
+        scopedIt("renders year select with layout=year-only", () => {
+            const wrapper = mount(ControlCalendar, { props: { layout: "year-only" } });
+            expect(wrapper.find('[data-slot="calendar-heading"]').exists()).toBe(false);
+            expect(wrapper.findAll('[data-slot="native-select"]').length).toBe(1);
         });
     });
 

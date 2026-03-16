@@ -6,6 +6,7 @@ import ControlInputGroupButton from "@vueda/controls/input-group/ControlInputGro
 import ControlInputGroupInput from "@vueda/controls/input-group/ControlInputGroupInput.vue";
 import ControlInputGroupText from "@vueda/controls/input-group/ControlInputGroupText.vue";
 import ControlInputGroupTextarea from "@vueda/controls/input-group/ControlInputGroupTextarea.vue";
+import { defineComponent } from "vue";
 
 vi.mock("reka-ui", async (importOriginal) => {
     const actual = await importOriginal();
@@ -84,6 +85,34 @@ describe("lib/controls/input-group/ControlInputGroup.vue", () => {
                 slots: { default: "<span>icon</span>" },
             });
             expect(wrapper.find("span").exists()).toBe(true);
+        });
+
+        scopedIt("click on addon focuses the sibling input", async () => {
+            const focusSpy = vi.spyOn(HTMLInputElement.prototype, "focus");
+            const wrapper = mount(
+                defineComponent({
+                    components: { ControlInputGroupAddon },
+                    template: `<div><ControlInputGroupAddon /><input /></div>`,
+                }),
+                { attachTo: document.body },
+            );
+            await wrapper.find('[data-slot="input-group-addon"]').trigger("click");
+            expect(focusSpy).toHaveBeenCalled();
+            focusSpy.mockRestore();
+        });
+
+        scopedIt("click on a button inside addon does not focus the input", async () => {
+            const focusSpy = vi.spyOn(HTMLInputElement.prototype, "focus");
+            const wrapper = mount(
+                defineComponent({
+                    components: { ControlInputGroupAddon },
+                    template: `<div><ControlInputGroupAddon><button>x</button></ControlInputGroupAddon><input /></div>`,
+                }),
+                { attachTo: document.body },
+            );
+            await wrapper.find("button").trigger("click");
+            expect(focusSpy).not.toHaveBeenCalled();
+            focusSpy.mockRestore();
         });
     });
 
