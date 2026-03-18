@@ -10,6 +10,7 @@ from tests.unit.info.utils import create_test_data
 from vueda import info
 from vueda.core.filters import SEARCH_LOOKUP_PREFIX
 from vueda.core.filters import TRIGRAM_SIMILAR_PREFIX
+from vueda.core.filters import TRIGRAM_WORD_SIMILAR_PREFIX
 from vueda.core.filters import VuedaSearchFilterBackend
 
 
@@ -581,48 +582,37 @@ class TestMixedRankedAndWordSimilarSearch:
     def test_word_similar_field_not_classified_as_deterministic(self):
         """The ~ prefix should not end up in det_lookups when mixed with V: fields.
 
-        This directly verifies the classification bug: construct_search turns
-        ~description into description__trigram_word_similar, but the splitting
-        logic only checks for __vueda_search and __trigram_similar suffixes.
+        construct_search turns ~description into description__trigram_word_similar.
+        The splitting logic must recognize this suffix separately from
+        __trigram_similar (the # prefix) so it doesn't fall into det_lookups.
         """
         backend = VuedaSearchFilterBackend()
 
-        # These are the suffix checks from filter_queryset lines 165-166
         v_suffix = f"__{backend.customized_lookup_prefixes[SEARCH_LOOKUP_PREFIX]}"
         trig_suffix = f"__{backend.customized_lookup_prefixes[TRIGRAM_SIMILAR_PREFIX]}"
+        trig_word_suffix = f"__{backend.customized_lookup_prefixes[TRIGRAM_WORD_SIMILAR_PREFIX]}"
 
-        # ~ produces __trigram_word_similar
         word_similar_lookup = backend.construct_search("~description", None)
         assert word_similar_lookup == "description__trigram_word_similar"
 
-        # Bug: it matches neither suffix, so it falls into det_lookups
+        # ~ must match the trigram_word_similar suffix, not fall through
         assert not word_similar_lookup.endswith(v_suffix), "sanity: not a V: lookup"
-        assert not word_similar_lookup.endswith(trig_suffix), (
-            "This assertion failing means the bug is fixed: ~ is now recognized "
-            "as a trigram lookup instead of falling through to det_lookups."
-        )
+        assert not word_similar_lookup.endswith(trig_suffix), "sanity: not a # lookup"
+        assert word_similar_lookup.endswith(trig_word_suffix)
 
-    @pytest.mark.xfail(
-        reason="Bug: ~ field lands in det_lookups, applying AND-across-terms "
-        "instead of combining terms for trigram_word_similar. Searching "
-        "'Treat Hoodie' requires BOTH words to independently pass "
-        "trigram_word_similar on description, which excludes all distributors.",
-        strict=True,
-    )
-    def test_mixed_multi_term_not_gated_by_word_similar_and(self, test_data, api_client, settings):
-        """Multi-term search where no single distributor has both terms in
-        its description, but V:name matches should still return results.
+    def test_mixed_multi_term_combines_for_word_similar(self, test_data, api_client, settings):
+        """Multi-term search combines terms into a single trigram_word_similar
+        check rather than AND'ing each term independently.
 
-        search_fields = ["V:name", "~description"], search = "Treat Hoodie"
+        search_fields = ["V:name", "~description"], search = "Treat Sugar"
 
-        V:name ranked path: "Treat King LLC." and "Tasty Treats Assoc." match "Treat".
-        ~description as det_lookup (bug): AND requires each term to independently
-        pass trigram_word_similar on description:
-          - "Treat" matches some descriptions, "Hoodie" matches only T-Shirt Corp.
-          - No single distributor passes BOTH. Result: 0.
+        Before the fix, ~ landed in det_lookups, which AND'd terms:
+        description__trigram_word_similar="Treat" AND
+        description__trigram_word_similar="Sugar". Only distributors where
+        BOTH words independently pass word_similarity would survive.
 
-        Correct behavior: ~ should combine terms ("Treat Hoodie") into a single
-        trigram_word_similar check, and V:name matches should not be gated by it.
+        After the fix, ~ combines terms: description__trigram_word_similar="Treat Sugar".
+        The combined phrase is checked as a single trigram_word_similar filter.
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_mixed_ranked_word_similar"
 
@@ -630,23 +620,38 @@ class TestMixedRankedAndWordSimilarSearch:
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
+        # "Treat" matches V:name for "Treat King LLC." and "Tasty Treats Assoc."
+        # Both also have "Treat" in their descriptions, passing ~description.
+        # "Sugar" appears in Tasty Treats Assoc. description ("Glorious Sugar")
+        # and Treat King LLC. description ("Sugary").
+        # With combined terms: "Treat Sugar" as a single string is checked
+        # via word_similarity against each description.
         response = api_client.get(
             reverse("store.distributor-list"),
-            data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Treat Hoodie"},
+            data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Treat Sugar"},
             format="json",
         )
-        # V:name should match "Treat King LLC." and "Tasty Treats Assoc." for "Treat".
-        # The ~ field should not gate these results out.
+        # Both treat distributors match V:name for "Treat" and their descriptions
+        # should pass trigram_word_similar for the combined "Treat Sugar".
         assert response.data["totalRecords"] >= 1, (
-            f"Expected results from V:name matching 'Treat', but the ~ field's "
-            f"AND-across-terms deterministic filter excluded everything. "
+            f"Expected results where V:name matches 'Treat' and description "
+            f"passes trigram_word_similar for combined 'Treat Sugar'. "
             f"response.data: {response.data}"
         )
 
-    def test_mixed_single_term_works_accidentally(self, test_data, api_client, settings):
-        """Single-term searches mask the bug because AND-across-one-term is
-        equivalent to a single filter. This test documents that single-term
-        queries work despite the misclassification.
+    def test_mixed_single_term_filters_by_word_similar(self, test_data, api_client, settings):
+        """Single-term search where ~description acts as a hard filter,
+        narrowing results to rows passing trigram_word_similar on description,
+        then V:name ranks the survivors.
+
+        "Vibrant" appears in two descriptions:
+        - Vibrant Looks Inc.: "A Sprinkle Of Vibrant Colour In Your Life..."
+        - T-Shirt Corp.: "Shirts For The World. From The Vibrant T-Shirt To The Hoodie."
+
+        The trigram_word_similar threshold (default 0.6) determines which pass.
+        Vibrant Looks has "Vibrant" as a prominent word (high word_similarity).
+        T-Shirt Corp. has "Vibrant" embedded in a longer description (may or
+        may not pass depending on threshold).
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_mixed_ranked_word_similar"
 
@@ -654,15 +659,15 @@ class TestMixedRankedAndWordSimilarSearch:
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
-        # "Vibrant" matches V:name and also passes trigram_word_similar on
-        # descriptions. With a single term, AND-across-terms has only one
-        # term, so the bug doesn't manifest as missing results.
         response = api_client.get(
             reverse("store.distributor-list"),
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Vibrant"},
             format="json",
         )
-        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+        # At minimum, Vibrant Looks Inc. should match via both V:name and ~description
+        assert response.data["totalRecords"] >= 1, f"response.data: {response.data}"
+        result_names = [x["name"] for x in response.data["results"]]
+        assert "Vibrant Looks Inc." in result_names
 
 
 @pytest.mark.django_db

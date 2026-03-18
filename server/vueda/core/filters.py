@@ -164,16 +164,23 @@ class VuedaSearchFilterBackend(SearchFilter):
         # split out our VUEDA-prefixed lookups
         v_prefix = f"__{self.customized_lookup_prefixes[SEARCH_LOOKUP_PREFIX]}"
         trig_prefix = f"__{self.customized_lookup_prefixes[TRIGRAM_SIMILAR_PREFIX]}"
+        trig_word_prefix = f"__{self.customized_lookup_prefixes[TRIGRAM_WORD_SIMILAR_PREFIX]}"
 
         v_lookups = [lookup for lookup in orm_lookups if lookup.endswith(v_prefix)]
         trig_lookups = [lookup for lookup in orm_lookups if lookup.endswith(trig_prefix)]
+        trig_word_lookups = [lookup for lookup in orm_lookups if lookup.endswith(trig_word_prefix)]
 
         ranked_fields = [lookup[: -len(v_prefix)] for lookup in v_lookups]
         trigram_fields = [lookup[: -len(trig_prefix)] for lookup in trig_lookups]
+        trigram_word_fields = [lookup[: -len(trig_word_prefix)] for lookup in trig_word_lookups]
 
-        det_lookups = [lookup for lookup in orm_lookups if lookup not in v_lookups and lookup not in trig_lookups]
+        det_lookups = [
+            lookup
+            for lookup in orm_lookups
+            if lookup not in v_lookups and lookup not in trig_lookups and lookup not in trig_word_lookups
+        ]
 
-        if not ranked_fields and not trigram_fields:
+        if not ranked_fields and not trigram_fields and not trigram_word_fields:
             # no custom lookups, defer to base class behavior for deterministic lookups
             return super().filter_queryset(request, queryset, view)
 
@@ -206,9 +213,9 @@ class VuedaSearchFilterBackend(SearchFilter):
                 annotations["iregex_score"] = word_scores[0]
 
         # trigram similar: combine all search terms into one and filter DRF-style (OR across fields)
-        if trig_lookups:
+        if trig_lookups or trig_word_lookups:
             combined_term = " ".join(search_terms)
-            conditions = [models.Q(**{lookup: combined_term}) for lookup in trig_lookups]
+            conditions = [models.Q(**{lookup: combined_term}) for lookup in trig_lookups + trig_word_lookups]
             queryset = queryset.filter(reduce(operator.or_, conditions))
 
         # deterministic filtering and artificial rank boost
@@ -234,8 +241,10 @@ class VuedaSearchFilterBackend(SearchFilter):
             OrderedSet(search_fields)
             - OrderedSet(f"{SEARCH_LOOKUP_PREFIX}{f}" for f in ranked_fields)
             - OrderedSet(f"{TRIGRAM_SIMILAR_PREFIX}{f}" for f in trigram_fields)
+            - OrderedSet(f"{TRIGRAM_WORD_SIMILAR_PREFIX}{f}" for f in trigram_word_fields)
             | OrderedSet(ranked_fields)
             | OrderedSet(trigram_fields)
+            | OrderedSet(trigram_word_fields)
         )
         # De-dupe if necessary (for M2M or joins)
         # A combination of what is in drf and django.contrib.admin.
