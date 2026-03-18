@@ -163,6 +163,12 @@ class ProductM2MSearchViewSet(ProductViewSet):
     search_fields = ["V:special_care__field_that_contains_the_name"]
 
 
+class DistributorMixedRankedAndWordSimilarViewSet(DistributorViewSet):
+    """Mixes V: (ranked) and ~ (trigram word similar) prefixes to expose a classification bug."""
+
+    search_fields = ["V:name", "~description"]
+
+
 class PackingBoxViewSet(VuedaViewSet):
     queryset = my_models.PackingBox.objects.all()
     serializer_class = my_serializers.PackingBoxSerializer

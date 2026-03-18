@@ -8,6 +8,9 @@ from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.utils import create_test_data
 from vueda import info
+from vueda.core.filters import SEARCH_LOOKUP_PREFIX
+from vueda.core.filters import TRIGRAM_SIMILAR_PREFIX
+from vueda.core.filters import VuedaSearchFilterBackend
 
 
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -547,3 +550,171 @@ class TestVuedaSearchFilterDistinct:
         assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
         result_names = [x["name"] for x in response.data["results"]]
         assert result_names == ["Square Cookies For Squares", "Shaped Cookies For Drapes"]
+
+
+@pytest.mark.django_db
+class TestMixedRankedAndWordSimilarSearch:
+    """Tests for mixing V: (ranked) and ~ (trigram word similar) search prefixes.
+
+    Bug: filter_queryset only splits out V: (__vueda_search) and # (__trigram_similar)
+    prefixed lookups. The ~ prefix produces __trigram_word_similar, which doesn't
+    match either suffix check, so it falls into det_lookups. This causes two problems:
+
+    1. The ~ field is filtered with AND-across-terms instead of combining terms
+       into a single trigram_word_similar check.
+    2. It receives a flat deterministic_score boost (10 per match) instead of
+       contributing actual similarity scores to combined_rank.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(
+            store_serializers.DistributorSerializer,
+            store_viewsets.DistributorMixedRankedAndWordSimilarViewSet,
+        )
+
+    def test_word_similar_field_not_classified_as_deterministic(self):
+        """The ~ prefix should not end up in det_lookups when mixed with V: fields.
+
+        This directly verifies the classification bug: construct_search turns
+        ~description into description__trigram_word_similar, but the splitting
+        logic only checks for __vueda_search and __trigram_similar suffixes.
+        """
+        backend = VuedaSearchFilterBackend()
+
+        # These are the suffix checks from filter_queryset lines 165-166
+        v_suffix = f"__{backend.customized_lookup_prefixes[SEARCH_LOOKUP_PREFIX]}"
+        trig_suffix = f"__{backend.customized_lookup_prefixes[TRIGRAM_SIMILAR_PREFIX]}"
+
+        # ~ produces __trigram_word_similar
+        word_similar_lookup = backend.construct_search("~description", None)
+        assert word_similar_lookup == "description__trigram_word_similar"
+
+        # Bug: it matches neither suffix, so it falls into det_lookups
+        assert not word_similar_lookup.endswith(v_suffix), "sanity: not a V: lookup"
+        assert not word_similar_lookup.endswith(trig_suffix), (
+            "This assertion failing means the bug is fixed: ~ is now recognized "
+            "as a trigram lookup instead of falling through to det_lookups."
+        )
+
+    @pytest.mark.xfail(
+        reason="Bug: ~ field lands in det_lookups, applying AND-across-terms "
+        "instead of combining terms for trigram_word_similar. Searching "
+        "'Treat Hoodie' requires BOTH words to independently pass "
+        "trigram_word_similar on description, which excludes all distributors.",
+        strict=True,
+    )
+    def test_mixed_multi_term_not_gated_by_word_similar_and(self, test_data, api_client, settings):
+        """Multi-term search where no single distributor has both terms in
+        its description, but V:name matches should still return results.
+
+        search_fields = ["V:name", "~description"], search = "Treat Hoodie"
+
+        V:name ranked path: "Treat King LLC." and "Tasty Treats Assoc." match "Treat".
+        ~description as det_lookup (bug): AND requires each term to independently
+        pass trigram_word_similar on description:
+          - "Treat" matches some descriptions, "Hoodie" matches only T-Shirt Corp.
+          - No single distributor passes BOTH. Result: 0.
+
+        Correct behavior: ~ should combine terms ("Treat Hoodie") into a single
+        trigram_word_similar check, and V:name matches should not be gated by it.
+        """
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_mixed_ranked_word_similar"
+
+        user = test_data.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("store.distributor-list"),
+            data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Treat Hoodie"},
+            format="json",
+        )
+        # V:name should match "Treat King LLC." and "Tasty Treats Assoc." for "Treat".
+        # The ~ field should not gate these results out.
+        assert response.data["totalRecords"] >= 1, (
+            f"Expected results from V:name matching 'Treat', but the ~ field's "
+            f"AND-across-terms deterministic filter excluded everything. "
+            f"response.data: {response.data}"
+        )
+
+    def test_mixed_single_term_works_accidentally(self, test_data, api_client, settings):
+        """Single-term searches mask the bug because AND-across-one-term is
+        equivalent to a single filter. This test documents that single-term
+        queries work despite the misclassification.
+        """
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_mixed_ranked_word_similar"
+
+        user = test_data.users["test_admin@example.com"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        # "Vibrant" matches V:name and also passes trigram_word_similar on
+        # descriptions. With a single term, AND-across-terms has only one
+        # term, so the bug doesn't manifest as missing results.
+        response = api_client.get(
+            reverse("store.distributor-list"),
+            data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Vibrant"},
+            format="json",
+        )
+        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+
+
+@pytest.mark.django_db
+class TestM2MDistinctOrderByTiebreaker:
+    """Tests that the pk tiebreaker in order_by is preserved after distinct.
+
+    Bug: when mcd=True and no explicit ordering, lines ~253-258 set
+    .order_by("-combined_rank", "pk") for DISTINCT ON, but line ~272
+    unconditionally replaces it with .order_by("-combined_rank"), dropping
+    the pk tiebreaker. Rows with identical combined_rank get undefined order.
+    """
+
+    @pytest.mark.xfail(
+        reason="Bug: line ~272 of filters.py unconditionally sets "
+        ".order_by('-combined_rank'), overwriting the "
+        ".order_by('-combined_rank', 'pk') set on line ~255 for DISTINCT ON.",
+        strict=True,
+    )
+    def test_mcd_no_ordering_preserves_pk_tiebreaker(self):
+        """Directly verify the final ORDER BY clause includes pk when
+        mcd=True and no explicit ordering parameter is provided.
+
+        The bug is on line ~272 of filters.py: the unconditional
+        queryset.order_by("-combined_rank") overwrites the
+        .order_by("-combined_rank", "pk") set on line ~255 for the
+        DISTINCT ON path.
+        """
+        from unittest.mock import MagicMock
+        from unittest.mock import patch
+
+        from tests.store.models import Product
+
+        backend = VuedaSearchFilterBackend()
+        queryset = Product.objects.all()
+
+        # Mock request with a search term but no ordering param
+        request = MagicMock()
+        request.query_params = {"s": "test"}
+
+        # Mock view with M2M search field (triggers must_call_distinct=True)
+        view = MagicMock()
+        view.search_fields = ["V:special_care__field_that_contains_the_name"]
+
+        with patch.object(backend, "must_call_distinct", return_value=True):
+            result_qs = backend.filter_queryset(request, queryset, view)
+
+        # Django's query.order_by contains the ORM-level ordering fields.
+        # Line ~255 sets .order_by("-combined_rank", "pk"), but line ~272
+        # overwrites it with .order_by("-combined_rank") only.
+        order_by = result_qs.query.order_by
+        assert "pk" in order_by or "-pk" in order_by, (
+            f"ORDER BY should contain pk tiebreaker for deterministic ordering "
+            f"with DISTINCT ON, but line ~272 overwrites the order_by and drops it. "
+            f"query.order_by: {order_by}"
+        )
