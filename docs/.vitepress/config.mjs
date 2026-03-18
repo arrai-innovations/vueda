@@ -523,7 +523,7 @@ export default defineConfig({
     lastUpdated: true,
     base,
     outDir: "../site",
-    srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md"],
+    srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md", "**/README.md"],
     head: [
         ["link", { rel: "icon", href: `${base}assets/logo-cube.svg` }],
         [
