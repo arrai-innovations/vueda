@@ -680,12 +680,6 @@ class TestM2MDistinctOrderByTiebreaker:
     the pk tiebreaker. Rows with identical combined_rank get undefined order.
     """
 
-    @pytest.mark.xfail(
-        reason="Bug: line ~272 of filters.py unconditionally sets "
-        ".order_by('-combined_rank'), overwriting the "
-        ".order_by('-combined_rank', 'pk') set on line ~255 for DISTINCT ON.",
-        strict=True,
-    )
     def test_mcd_no_ordering_preserves_pk_tiebreaker(self):
         """Directly verify the final ORDER BY clause includes pk when
         mcd=True and no explicit ordering parameter is provided.

@@ -277,7 +277,7 @@ class VuedaSearchFilterBackend(SearchFilter):
                     )
             else:
                 queryset = queryset.annotate(**annotations).filter(combined_rank__gte=self.search_threshold)
-            if not ordering:
+            if not ordering and not mcd:
                 queryset = queryset.order_by("-combined_rank")
 
         if mcd and not annotations:
