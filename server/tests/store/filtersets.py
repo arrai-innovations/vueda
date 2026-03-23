@@ -96,16 +96,6 @@ class CartFilterSet(VuedaFilterSet):
         ]
 
 
-class OrderItemFilterSet(VuedaFilterSet):
-    quantity = test_filters.CustomRangeFilter(field_name="quantity", label="Quantity")
-
-    class Meta:
-        model = my_models.OrderItem
-        fields = [
-            "quantity",
-        ]
-
-
 class InventoryRecordFilterSet(VuedaFilterSet):
     when = rest_framework.DateTimeFromToRangeFilter(field_name="when", label="When")
     is_added = rest_framework.BooleanFilter(field_name="is_added", label="Is added", lookup_expr="exact", required=True)
