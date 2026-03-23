@@ -650,7 +650,9 @@ EXPECTED_RESULTS = [
             "expected_ordering": {
                 "model_default": [],
                 "viewset_default": [],
-                "viewset_fields": [],
+                "viewset_fields": [
+                    {"name": "name", "type": "alpha"},
+                ],
             },
             "expected_permissions": [
                 {"codename": "create_optiontype", "name": "Can create option type"},
@@ -4013,7 +4015,9 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "model_default": [],
+                "model_default": [
+                    {"name": "name", "type": "alpha", "ascending": True},
+                ],
                 "viewset_default": [],
                 "viewset_fields": [
                     {"name": "distributor__name", "type": "alpha"},
@@ -5327,11 +5331,7 @@ EXPECTED_RESULTS = [
             "expected_ordering": {
                 "model_default": [],
                 "viewset_default": [],
-                "viewset_fields": [
-                    {"name": "customer_order__order_number", "type": "numeric"},
-                    {"name": "product_option__name", "type": "alpha"},
-                    {"name": "quantity", "type": "numeric"},
-                ],
+                "viewset_fields": [],
             },
             "expected_permissions": [
                 {"codename": "create_orderitem", "name": "Can create ORDER item"},
