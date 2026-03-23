@@ -5329,7 +5329,9 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "model_default": [],
+                "model_default": [
+                    {"name": "product_option__product__name", "type": "alpha", "ascending": True},
+                ],
                 "viewset_default": [],
                 "viewset_fields": [],
             },

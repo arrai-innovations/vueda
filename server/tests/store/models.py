@@ -180,6 +180,7 @@ class OrderItem(VuedaModel):
         default_related_name = "order_items"
         verbose_name = "ORDER item"
         verbose_name_plural = "ORDER items"
+        ordering = ["product_option__product__name"]
 
 
 class OrderItemData(models.Model):

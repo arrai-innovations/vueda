@@ -499,10 +499,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
         if viewset is None:
-            return ordering_data
+            model = instance.model_class()
 
-        queryset = viewset().get_queryset()
-        model = queryset.model
+        else:
+            queryset = viewset().get_queryset()
+            model = queryset.model
 
         if model._meta.ordering:
             for order_by in model._meta.ordering:
