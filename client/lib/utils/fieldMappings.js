@@ -34,14 +34,14 @@ export const defaultFieldMappings = {
     CharField: {
         CharField: {
             component: availableFields.FormField,
-            widget: availableWidgets.WidgetInput,
-            fieldProps: { validation: "text" },
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { validation: "text", ownsLayout: true },
             default: true,
         },
         TextField: {
             component: availableFields.FormField,
-            widget: availableWidgets.WidgetTextarea,
-            fieldProps: { validation: "text" },
+            widget: availableWidgets.WidgetTextTextarea,
+            fieldProps: { validation: "text", ownsLayout: true },
         },
     },
     DateField: {
