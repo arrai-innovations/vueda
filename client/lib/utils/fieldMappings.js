@@ -329,7 +329,13 @@ export const defaultFieldMappings = {
 /** @type {{[fieldType: string]: {[componentVariant: string]: FieldMappingEntry}}} */
 export const choiceFieldMappings = {
     BooleanField: {
-        BooleanField: { widget: availableWidgets.WidgetRadio, manyWidget: availableWidgets.WidgetRadio, default: true },
+        BooleanField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetRadioGroup,
+            fieldProps: { ownsLayout: true },
+            manyWidget: availableWidgets.WidgetRadioGroup,
+            default: true,
+        },
     },
     CharField: {
         CharField: {
