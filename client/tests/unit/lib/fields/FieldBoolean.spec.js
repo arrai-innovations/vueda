@@ -48,6 +48,12 @@ describe("lib/fields/FieldBoolean.vue", () => {
         expect(warnSpy).not.toHaveBeenCalled();
     });
 
+    scopedIt("warns for null when nullable is false", async () => {
+        mountWithValue(null);
+        await vue.nextTick();
+        expect(warnSpy).toHaveBeenCalledWith("Expected value to be a boolean, got:", null);
+    });
+
     scopedIt("allows null when nullable and warns on later invalid value", async () => {
         const { fieldContext } = mountWithValue(null, { props: { nullable: true } });
         await vue.nextTick();

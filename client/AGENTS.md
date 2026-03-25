@@ -199,6 +199,101 @@ When writing TypeScript types in JSDoc contexts, prefer literal syntax over util
 
 ---
 
+## Composable and Utility JSDoc
+
+The rules above cover Vue SFCs. The following additional conventions apply to all `.js` files under `lib/use/` and `lib/utils/`.
+
+### Module header
+
+Every file opens with a `@module` tag matching its import path, followed by a `@description`:
+
+```js
+/**
+ * @module use/useField
+ * @description Provides reactive field context including value tracking, validation, and error management.
+ */
+```
+
+### Typedefs
+
+Define a `@typedef` for every non-trivial object or options bag that crosses a function boundary. Use `@property` entries for each member. Mark optional properties with brackets:
+
+```js
+/**
+ * @typedef {object} TextValidationOptions
+ * @property {number} [maxLength] - Maximum character count.
+ * @property {number} [minLength] - Minimum character count.
+ * @property {string} [patternRegex] - Regex the value must match after the field is touched.
+ */
+```
+
+Group properties with plain-text section headers when the typedef has more than ~8 members:
+
+```js
+/**
+ * @typedef {object} FieldContextRawState
+ *
+ * Identification and metadata.
+ * @property {import('vue').ComputedRef<string>} name - The field name.
+ * ...
+ *
+ * Validation state.
+ * @property {import('vue').ComputedRef<boolean>} required - Whether the field is required.
+ * ...
+ */
+```
+
+### Reactive return types
+
+Composables that return reactive state should document the unwrapped shape using the three-tier pattern established by `useField`:
+
+1. `*RawState` typedef with `ComputedRef<T>` / `Ref<T>` property types (the shape before `reactive()` wrapping).
+2. `*State` typedef as `import('vue').UnwrapNestedRefs<*RawState>` (the shape consumers interact with).
+3. `*Context` typedef combining `state` with any methods.
+
+When a composable does not return state (only produces side effects like registering watches), document `@returns {void}` explicitly.
+
+### Function signatures
+
+Every exported function has `@param` and `@returns` tags. Use inline import paths for Vue and internal types:
+
+```js
+/**
+ * Registers reactive text validation watches on a field context.
+ *
+ * @param {import('@vueda/use/useField.js').FieldContext} fieldContext - The field context to validate against.
+ * @param {TextValidationOptions} options - Constraint configuration.
+ * @returns {void}
+ */
+export function useTextValidation(fieldContext, options) { ... }
+```
+
+### Provide/inject annotations
+
+Annotate `provide()` calls with `/** @type {TypeName} */` on the context object. Annotate `inject()` calls with the expected type including null:
+
+```js
+/** @type {import('@vueda/use/useField.js').FieldContext|null} */
+const fieldContext = inject(FieldContextSymbol, null);
+```
+
+### Private/unexported functions
+
+Private helpers do not appear in generated API docs, but they benefit from `@param`/`@returns` type annotations for IDE inference (autocomplete, hover tooltips, inline errors). Prose descriptions are optional; bare types are enough:
+
+```js
+/**
+ * @param {string|Date} raw
+ * @returns {import('luxon').DateTime|null}
+ */
+function parseToDate(raw) { ... }
+```
+
+Complete type annotations also position the codebase for future `.d.ts` generation from JSDoc.
+
+---
+
+
 ## Test Structure and Isolation
 
 - Use `scopedIt(...)` from `@tests/unit/utils.js` in place of `it(...)` for all tests involving Vue components, reactivity, lifecycle hooks, or injections. This runs tests in a fresh `effectScope()` to prevent state leakage.

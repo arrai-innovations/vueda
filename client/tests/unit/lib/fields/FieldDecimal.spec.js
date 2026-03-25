@@ -77,15 +77,14 @@ describe("lib/fields/FieldDecimal.vue", () => {
         expect(warnSpy).toHaveBeenCalled();
     });
 
-    scopedIt("stepScaleFactor defaults to 1 when step missing", () => {
-        const wrapper = mount(FieldDecimal);
-        expect(wrapper.vm.stepScaleFactor).toBe(1);
+    scopedIt("clears step error when step prop is missing", () => {
+        mount(FieldDecimal);
+        expect(deleteError).toHaveBeenCalledWith("step");
         expect(updateError).not.toHaveBeenCalled();
     });
 
-    scopedIt("stepScaleFactor returns 1 for integer steps", () => {
-        const wrapper = mount(FieldDecimal, { props: { step: 2 } });
-        expect(wrapper.vm.stepScaleFactor).toBe(1);
+    scopedIt("clears step error for integer step with null value", () => {
+        mount(FieldDecimal, { props: { step: 2 } });
         expect(deleteError).toHaveBeenCalledWith("step");
         expect(updateError).not.toHaveBeenCalled();
     });
