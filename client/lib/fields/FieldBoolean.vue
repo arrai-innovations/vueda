@@ -20,18 +20,19 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
-useDevTypeGuard(fieldContext, (value) => {
-    if (value === undefined) {
+useDevTypeGuard(
+    fieldContext,
+    (value) => {
+        if (props.nullable && value === null) {
+            return null;
+        }
+        if (typeof value !== "boolean") {
+            return `Expected value to be a boolean${props.nullable ? " or null" : ""}, got:`;
+        }
         return null;
-    }
-    if (props.nullable && value === null) {
-        return null;
-    }
-    if (typeof value !== "boolean") {
-        return `Expected value to be a boolean${props.nullable ? " or null" : ""}, got:`;
-    }
-    return null;
-});
+    },
+    { includeNull: true },
+);
 </script>
 <template>
     <div :class="$attrs.class" data-qa="field-boolean">

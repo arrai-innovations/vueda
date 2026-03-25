@@ -43,9 +43,16 @@ describe("lib/use/validation/useDevTypeGuard.js", () => {
         expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    scopedIt("checks null values", async () => {
+    scopedIt("skips null values by default", async () => {
         const ctx = makeFieldContext(null);
-        useDevTypeGuard(ctx, () => "null should still be checked");
+        useDevTypeGuard(ctx, () => "should not fire");
+        await nextTick();
+        expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    scopedIt("checks null values when includeNull is true", async () => {
+        const ctx = makeFieldContext(null);
+        useDevTypeGuard(ctx, () => "null should still be checked", { includeNull: true });
         await nextTick();
         expect(warnSpy).toHaveBeenCalledWith("null should still be checked", null);
     });
