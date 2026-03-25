@@ -10,6 +10,7 @@ import { defineAsyncComponent } from "vue";
 
 /** @type {{[fieldComponentName:string]: FieldComponent}} */
 export const availableFields = {
+    FormField: defineAsyncComponent(async () => (await import("@vueda/fields/FormField.vue")).default),
     FieldArray: defineAsyncComponent(async () => (await import("@vueda/fields/FieldArray.vue")).default),
     FieldBoolean: defineAsyncComponent(async () => (await import("@vueda/fields/FieldBoolean.vue")).default),
     FieldDate: defineAsyncComponent(async () => (await import("@vueda/fields/FieldDate.vue")).default),

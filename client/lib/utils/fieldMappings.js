@@ -32,8 +32,17 @@ export const defaultFieldMappings = {
         },
     },
     CharField: {
-        CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput, default: true },
-        TextField: { component: availableFields.FieldString, widget: availableWidgets.WidgetTextarea },
+        CharField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetInput,
+            fieldProps: { validation: "text" },
+            default: true,
+        },
+        TextField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetTextarea,
+            fieldProps: { validation: "text" },
+        },
     },
     DateField: {
         DateField: { component: availableFields.FieldDate, widget: availableWidgets.WidgetDatePicker, default: true },
