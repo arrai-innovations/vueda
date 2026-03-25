@@ -26,8 +26,9 @@ import merge from "lodash-es/merge.js";
 export const defaultFieldMappings = {
     BooleanField: {
         BooleanField: {
-            component: availableFields.FieldBoolean,
-            widget: availableWidgets.WidgetCheckbox,
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetToggle,
+            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
