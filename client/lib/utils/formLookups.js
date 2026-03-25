@@ -68,6 +68,9 @@ export const availableWidgets = {
     WidgetInputNumber: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetInputNumber.vue")).default),
     WidgetModel: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetModel.vue")).default),
     WidgetMultiSelect: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetMultiSelect.vue")).default),
+    WidgetNativeSelect: defineAsyncComponent(
+        async () => (await import("@vueda/widgets/WidgetNativeSelect.vue")).default,
+    ),
     WidgetRadio: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRadio.vue")).default),
     WidgetRadioGroup: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRadioGroup.vue")).default),
     WidgetReadOnly: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetReadOnly.vue")).default),
