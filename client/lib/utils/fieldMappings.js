@@ -135,13 +135,13 @@ export const defaultFieldMappings = {
         },
     },
     IPAddressField: {
-        IPAddressField: { component: availableFields.FieldIP, widget: availableWidgets.WidgetIP, default: true },
-        GenericIPAddressField: { component: availableFields.FieldIP, widget: availableWidgets.WidgetIP },
+        IPAddressField: { component: availableFields.FieldIP, widget: availableWidgets.WidgetUnmapped, default: true },
+        GenericIPAddressField: { component: availableFields.FieldIP, widget: availableWidgets.WidgetUnmapped },
     },
     JSONField: {
         JSONField: {
             component: availableFields.FieldObject,
-            widget: availableWidgets.WidgetJSON,
+            widget: availableWidgets.WidgetUnmapped,
             fieldProps: {},
             default: true,
         },
@@ -526,18 +526,18 @@ export const manyFieldMappings = {
     },
     IPAddressField: {
         IPAddressField: {
-            widget: availableWidgets.WidgetIP,
+            widget: availableWidgets.WidgetUnmapped,
             fieldProps: { manyComponent: availableFields.FieldIP },
             default: true,
         },
         GenericIPAddressField: {
-            widget: availableWidgets.WidgetIP,
+            widget: availableWidgets.WidgetUnmapped,
             fieldProps: { manyComponent: availableFields.FieldIP },
         },
     },
     JSONField: {
         JSONField: {
-            widget: availableWidgets.WidgetJSON,
+            widget: availableWidgets.WidgetUnmapped,
             fieldProps: { manyComponent: availableFields.FieldObject },
             default: true,
         },
