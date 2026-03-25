@@ -10,7 +10,7 @@ import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
 import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
-import { computed, inject, onUnmounted, provide, reactive, readonly, toRef, unref, watch } from "vue";
+import { computed, inject, onUnmounted, provide, reactive, readonly, ref, toRef, unref, useId, watch } from "vue";
 
 /**
  * Vue component props definition for field components. Spread into component options to include
@@ -87,6 +87,7 @@ export function defaultIsRequiredViolation(value) {
  * @typedef {object} FieldContextRawState
  *
  * // *** Identification & Metadata ***
+ * @property {Readonly<import('vue').Ref<string>>} fieldId - A stable, SSR-safe identifier for the field's primary control element.
  * @property {import('vue').ComputedRef<string>} name - The name of the field. This is the path to look up the value of the field in the form context.
  * @property {import('vue').ComputedRef<string>} [formModelName] - The name of the form model for configuration lookup.
  * @property {import('vue').ComputedRef<string[]>} clearServerErrorDependents - The clearServerErrorDependents for the field.
@@ -279,6 +280,7 @@ const setupFieldPropsForTest = (props, localFormContext) => {
  * @returns {FieldContext} The field context object.
  */
 export function useField(props, emit) {
+    const id = useId();
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const rawFormContext = inject(FormContextSymbol, null);
     const formContext = computed(() => (!props.contextless ? unref(rawFormContext) : null));
@@ -336,6 +338,7 @@ export function useField(props, emit) {
         /** @type {FieldContextRawState} */
         {
             // *** Identification & Metadata ***
+            fieldId: readonly(ref(id)),
             name: readonly(toRef(props, "name")),
             formModelName: readonly(toRef(props, "formModelName")),
             clearServerErrorDependents: readonly(toRef(props, "clearServerErrorDependents")),
