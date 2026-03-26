@@ -76,6 +76,16 @@ The normalized result is cached by `app.model` key in `storeModelInfo`. Subseque
 
 Default model-config generation uses the normalized metadata to derive field sets. `displayFields`, `fetchFields`, and `submitFields` are computed from the field metadata, excluding the PK field by default. The `expand` configuration is derived from the expand descriptor names, and expanded field details are flattened into `expand__subfield` composite keys in the `fieldDetails` map. When `expand` is overridden to an empty array, the flattening step is skipped and no `expand__subfield` keys are populated.
 
+## Multi-level Field and Expand Data
+
+When requesting multiple levels of field and expand data, there are a number of things you need to be aware of.
+
+The client requests the "id" and "available_actions" fields for the main model for all detail requests. Due to the way DRF Flex Fields works, this would mean that no fields would be returned for the expanded model, since none are being requested. Internally we use a wildcard to do this, as explained below. To be more helpful in regards to this situation, we automatically request all of the fields for an expanded model that did not request any fields. If you don't want all the fields for an expanded model, then you should specify which fields you want; like `[expandable field name].id,[expandable field name].name`.
+
+Wildcards ("\*" or "~all") can be used by both fields and expands, but only work at the specified level. Adding a wildcard to the expands will return all expands at the specified level. Adding a wildcard to the fields will return all the fields specified on the serializer for the model at the current level.
+
+Specifying both fields and wildcards is allowed, like `id,available_actions,*` is valid, but wildcards cannot be chained like `*.*`. You need to specify the expandable field, like ``[expandable field name].*` to get all expands or all fields from the expandable field specified.
+
 ## Observable Failure Modes
 
 **Invalid expand for a given action returns HTTP 400 with no partial application.** When a request includes both valid and invalid `expand` keys, the entire request fails. The valid expands are not partially applied in the response; the client receives only the error payload. The error message identifies the invalid keys and, when available, lists the permitted set.
@@ -83,6 +93,10 @@ Default model-config generation uses the normalized metadata to derive field set
 **Invalid sparse field keys produce field-keyed validation errors.** Unknown `f` values return HTTP 400 with a payload keyed by the invalid field name and a `code: invalid` error. In write flows, this validation error can be mistaken for a data validation failure because it follows the same response shape. The distinguishing signal is the error message text, which references valid field names.
 
 **Missing PK marker blocks the entire model on the client.** If the server's metadata response does not include a field with `pk: true`, `storeModelInfo` throws and caches the error. All subsequent operations for that `app.model`; config generation, route guards, form loading; fail immediately with the cached error. The only recovery is to recreate the store instance.
+
+**Not requested the PK field, usually `id`, for an expandable model.** This will cause errors in the client, as the PK field is required internally.
+
+**Requesting `pk` causes an invalid field error.** If you request the `pk` of an object, bypassing the vueda validation, then the `pk` field will be ignored. This does not return the `id` field, which is why it is treated as an invalid field.
 
 ## Relevant Implementation Surface
 
