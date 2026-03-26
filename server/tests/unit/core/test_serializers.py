@@ -327,7 +327,10 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_state.code",
             "order_state.name",
             "shipping_method",
+            "valid_transitions",
             "when",
+            "workflow_state_code",
+            "workflow_state_name",
         }
 
         assert valid_wildcard_fields == {
@@ -444,7 +447,10 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_state.code",
             "order_state.name",
             "shipping_method",
+            "valid_transitions",
             "when",
+            "workflow_state_code",
+            "workflow_state_name",
         }
 
         assert valid_wildcard_fields == {

@@ -412,6 +412,9 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
             "formatted_name",
             "available_actions",
             "current_history_id",
+            "valid_transitions",
+            "workflow_state_code",
+            "workflow_state_name",
         } == frozenset(response.data.keys())
         assert isinstance(response.data["customer"], int)
         assert isinstance(response.data["order_items"], list)
