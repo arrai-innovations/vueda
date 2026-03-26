@@ -9,6 +9,7 @@ __all__ = (
 )
 
 import logging
+from http import HTTPStatus
 from traceback import format_exception
 from traceback import format_exception_only
 from traceback import format_tb
@@ -49,7 +50,7 @@ def debug_stack_exception_handler(exc, context):
         # the exception was not handled by the default exception handler
         response = Response(
             {},
-            status=500,
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
         )
 
     if hasattr(exc, "__traceback__") and format_tb(exc.__traceback__):
