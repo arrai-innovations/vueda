@@ -86,6 +86,8 @@ Wildcards ("\*" or "~all") can be used by both fields and expands, but only work
 
 Specifying both fields and wildcards is allowed, like `id,available_actions,*` is valid, but wildcards cannot be chained like `*.*`. You need to specify the expandable field, like ``[expandable field name].*` to get all expands or all fields from the expandable field specified.
 
+"available_actions" is omitted from an expanded objects fields. Requesting `[expandable field name].available_actions` will generate an invalid field error.
+
 ## Observable Failure Modes
 
 **Invalid expand for a given action returns HTTP 400 with no partial application.** When a request includes both valid and invalid `expand` keys, the entire request fails. The valid expands are not partially applied in the response; the client receives only the error payload. The error message identifies the invalid keys and, when available, lists the permitted set.
