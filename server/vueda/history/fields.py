@@ -31,7 +31,7 @@ def filter_fields_for_flexlike_on_historical_records(serializer, our_field_name,
             for x in serializer._flex_options_rep_only["omit"]
             if x.startswith(our_field_name + ".")
         ]
-        if requested_fields:
+        if requested_fields and not serializer._contains_wildcard_value(requested_fields):
             value_fields = [field for field in value_fields if field in requested_fields]
             if not value_fields:
                 return None
