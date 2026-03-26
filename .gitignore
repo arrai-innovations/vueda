@@ -2,6 +2,7 @@ __pycache__
 .pytest_cache/
 .coverage
 .coverage.*
+.claude/
 htmlcov
 coverage/
 node_modules
@@ -9,7 +10,6 @@ dist
 *.log
 logs
 *.log*
-.env*.local
 *.local
 .vscode/*
 !.vscode/extensions.json
