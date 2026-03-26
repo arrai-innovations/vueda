@@ -16,6 +16,7 @@ from traceback import format_tb
 
 import sentry_sdk
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.http import JsonResponse
 from django.utils.encoding import force_str
 from rest_framework.exceptions import APIException
@@ -52,6 +53,14 @@ def debug_stack_exception_handler(exc, context):
             {},
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
         )
+
+    # The rest frameworks exception_handler doesn't handle ImpropertyConfigured errors, even though they
+    # raise them internally in a number of places, so this adds them to the response as the client expects.
+    if isinstance(exc, ImproperlyConfigured):
+        message = exc.args[0]
+        if not isinstance(message, list):
+            message = [message]
+        response.data = {"detail": message}
 
     if hasattr(exc, "__traceback__") and format_tb(exc.__traceback__):
         # Calling logging.exception() when there is no traceback, is what causes None in the logs.

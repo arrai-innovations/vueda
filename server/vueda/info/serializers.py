@@ -19,6 +19,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import RangeField
 from django.core import validators
+from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import StepValueValidator
 from django.db import connection
 from django.http import Http404
@@ -114,6 +115,40 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     def get_verbose_name_plural(self, instance: object) -> str:
         return instance.model_class()._meta.verbose_name_plural
+
+    @property
+    def data(self):
+        # Local imports, because apps may not be set up.
+        from vueda.workflow.models import HasWorkflowModelMixin
+        from vueda.workflow.models import Workflow
+        from vueda.workflow.serializers import HasWorkflowSerializerMixin
+        from vueda.workflow.views import HasWorkflowViewMixin
+
+        serializer = self.canonical["serializer"]
+        viewset = self.canonical["viewset"]
+        model = serializer.Meta.model
+
+        errors = []
+
+        if not issubclass(model, HasWorkflowModelMixin):
+            errors.append(f"{model.__name__} is missing HasWorkflowModelMixin inheritance.")
+
+        if not issubclass(serializer, HasWorkflowSerializerMixin):
+            errors.append(f"{serializer.__name__} is missing HasWorkflowSerializerMixin inheritance.")
+
+        if viewset is not None and not issubclass(viewset, HasWorkflowViewMixin):
+            errors.append(f"{viewset.__name__} is missing HasWorkflowViewMixin inheritance.")
+
+        if not Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists():
+            errors.append(f"{model.__name__} has no workflow configured.")
+
+        # If the length of errors becomes 4 (everything errored) or 3 if no viewset,
+        # then workflow is not set up for this model.
+        if errors and len(errors) != (4 if viewset is not None else 3):
+            raise ImproperlyConfigured(errors)
+
+        ret = super().data
+        return ret
 
     def get_model_permissions(self, instance):
         """
