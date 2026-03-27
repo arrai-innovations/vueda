@@ -22,9 +22,9 @@ const props = defineProps({
     /** The value submitted with a form when checked. */
     value: { type: String, default: undefined },
     /** The value representing the checked state. */
-    trueValue: { default: undefined },
+    trueValue: { type: [Boolean, String], default: undefined },
     /** The value representing the unchecked state. */
-    falseValue: { default: undefined },
+    falseValue: { type: [Boolean, String], default: undefined },
     /** The element or component to render as. */
     as: { type: [String, Object], default: undefined },
     /** When true, merges props onto the child element instead of rendering a wrapper. */
