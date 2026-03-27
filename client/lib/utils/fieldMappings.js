@@ -86,8 +86,9 @@ export const defaultFieldMappings = {
     },
     EmailField: {
         EmailField: {
-            component: availableFields.FieldEmail,
-            widget: availableWidgets.WidgetInput,
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { ownsLayout: true },
             widgetProps: { type: "email" },
             default: true,
         },
@@ -106,8 +107,16 @@ export const defaultFieldMappings = {
         ImageField: { component: availableFields.FieldImage, widget: availableWidgets.WidgetImage, default: true },
     },
     IntegerField: {
-        AutoField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
-        BigAutoField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
+        AutoField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { ownsLayout: true },
+        },
+        BigAutoField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { ownsLayout: true },
+        },
         BigIntegerField: {
             component: availableFields.FieldNumber,
             widget: availableWidgets.WidgetInputNumber,
@@ -270,9 +279,9 @@ export const defaultFieldMappings = {
     },
     SlugField: {
         SlugField: {
-            component: availableFields.FieldSlug,
-            widget: availableWidgets.WidgetInput,
-            fieldProps: {},
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -308,10 +317,10 @@ export const defaultFieldMappings = {
 
     URLField: {
         URLField: {
-            component: availableFields.FieldURL,
-            widget: availableWidgets.WidgetInput,
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { ownsLayout: true },
             widgetProps: { type: "url" },
-            fieldProps: {},
             default: true,
         },
     },
@@ -358,7 +367,7 @@ export const choiceFieldMappings = {
         },
     },
     EmailField: {
-        EmailField: { widget: availableWidgets.WidgetInput, widgetProps: { type: "email" }, default: true },
+        EmailField: { widget: availableWidgets.WidgetTextInput, widgetProps: { type: "email" }, default: true },
     },
     ManyRelatedField: {
         ManyToManyField: {
