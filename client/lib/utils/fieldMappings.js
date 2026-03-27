@@ -225,10 +225,9 @@ export const defaultFieldMappings = {
     },
     NullBooleanField: {
         NullBooleanField: {
-            component: availableFields.FieldBoolean,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetCheckbox,
-            fieldProps: { nullable: true },
-            widgetProps: { indeterminate: true },
+            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -377,7 +376,6 @@ export const choiceFieldMappings = {
     NullBooleanField: {
         NullBooleanField: {
             widget: availableWidgets.WidgetCheckbox,
-            widgetProps: { indeterminate: true },
             default: true,
         },
     },
@@ -421,7 +419,7 @@ export const manyFieldMappings = {
     BooleanField: {
         BooleanField: {
             fieldProps: { manyComponent: availableFields.FieldBoolean },
-            widget: availableWidgets.WidgetCheckbox,
+            widget: availableWidgets.WidgetToggle,
             default: true,
         },
     },
@@ -552,7 +550,6 @@ export const manyFieldMappings = {
     NullBooleanField: {
         NullBooleanField: {
             widget: availableWidgets.WidgetCheckbox,
-            widgetProps: { indeterminate: true },
             fieldProps: { manyComponent: availableFields.FieldBoolean },
             default: true,
         },
@@ -601,7 +598,7 @@ export const manyFieldMappings = {
 export const filterFieldMapping = {
     BooleanField: {
         component: availableFields.FieldBoolean,
-        widget: availableWidgets.WidgetCheckbox,
+        widget: availableWidgets.WidgetToggle,
     },
     CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
     ChoiceField: { component: availableFields.FieldString, widget: availableWidgets.WidgetSelect },
