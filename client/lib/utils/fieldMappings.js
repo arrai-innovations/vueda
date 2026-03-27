@@ -434,12 +434,12 @@ export const manyFieldMappings = {
     },
     CharField: {
         CharField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldString },
             default: true,
         },
         TextField: {
-            widget: availableWidgets.WidgetTextarea,
+            widget: availableWidgets.WidgetTextTextarea,
             fieldProps: { manyComponent: availableFields.FieldString },
         },
     },
@@ -460,12 +460,12 @@ export const manyFieldMappings = {
     },
     DecimalField: {
         DecimalField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldDecimal },
             default: true,
         },
         PositiveDecimalField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldDecimal },
         },
     },
@@ -487,7 +487,7 @@ export const manyFieldMappings = {
     },
     EmailField: {
         EmailField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldEmail },
             default: true,
         },
@@ -501,7 +501,7 @@ export const manyFieldMappings = {
     },
     FloatField: {
         FloatField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldNumber },
             default: true,
         },
@@ -515,18 +515,18 @@ export const manyFieldMappings = {
     },
     IntegerField: {
         AutoField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldString },
             default: true,
         },
         BigAutoField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldString },
         },
     },
     IntegerRangeField: {
         IntegerRangeField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldSetRange },
             default: true,
         },
@@ -565,7 +565,7 @@ export const manyFieldMappings = {
     },
     SlugField: {
         SlugField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldString },
             default: true,
         },
@@ -586,14 +586,14 @@ export const manyFieldMappings = {
     },
     URLField: {
         URLField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldURL },
             default: true,
         },
     },
     UUIDField: {
         UUIDField: {
-            widget: availableWidgets.WidgetInput,
+            widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FieldUUID },
             default: true,
         },
@@ -609,7 +609,7 @@ export const filterFieldMapping = {
         component: availableFields.FieldBoolean,
         widget: availableWidgets.WidgetToggle,
     },
-    CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
+    CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetTextInput },
     ChoiceField: { component: availableFields.FieldString, widget: availableWidgets.WidgetSelectDropdown },
     NullBooleanField: {
         component: availableFields.FieldString,
