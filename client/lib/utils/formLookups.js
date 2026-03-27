@@ -78,6 +78,9 @@ export const availableWidgets = {
         async () => (await import("@vueda/widgets/WidgetSearchableSelect.vue")).default,
     ),
     WidgetSelect: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetSelect.vue")).default),
+    WidgetSelectDropdown: defineAsyncComponent(
+        async () => (await import("@vueda/widgets/WidgetSelectDropdown.vue")).default,
+    ),
     WidgetRangeSlider: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRangeSlider.vue")).default),
     WidgetSlider: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetSlider.vue")).default),
     WidgetTextarea: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default),

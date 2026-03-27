@@ -347,22 +347,22 @@ export const choiceFieldMappings = {
     },
     CharField: {
         CharField: {
-            widget: availableWidgets.WidgetSelect,
+            widget: availableWidgets.WidgetSelectDropdown,
             manyWidget: availableWidgets.WidgetMultiSelect,
             default: true,
         },
-        TextField: { widget: availableWidgets.WidgetSelect, manyWidget: availableWidgets.WidgetMultiSelect },
+        TextField: { widget: availableWidgets.WidgetSelectDropdown, manyWidget: availableWidgets.WidgetMultiSelect },
     },
     ChoiceField: {
         CharField: {
             component: availableFields.FieldString,
-            widget: availableWidgets.WidgetSelect,
+            widget: availableWidgets.WidgetSelectDropdown,
             manyWidget: availableWidgets.WidgetMultiSelect,
             default: true,
         },
         TextField: {
             component: availableFields.FieldString,
-            widget: availableWidgets.WidgetSelect,
+            widget: availableWidgets.WidgetSelectDropdown,
             manyWidget: availableWidgets.WidgetMultiSelect,
         },
     },
@@ -410,14 +410,14 @@ export const choiceFieldMappings = {
     },
     SlugField: {
         SlugField: {
-            widget: availableWidgets.WidgetSelect,
+            widget: availableWidgets.WidgetSelectDropdown,
             widgetMany: availableWidgets.WidgetMultiSelect,
             default: true,
         },
     },
     URLField: {
         URLField: {
-            widget: availableWidgets.WidgetSelect,
+            widget: availableWidgets.WidgetSelectDropdown,
             widgetMany: availableWidgets.WidgetMultiSelect,
             default: true,
         },
@@ -610,10 +610,10 @@ export const filterFieldMapping = {
         widget: availableWidgets.WidgetToggle,
     },
     CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput },
-    ChoiceField: { component: availableFields.FieldString, widget: availableWidgets.WidgetSelect },
+    ChoiceField: { component: availableFields.FieldString, widget: availableWidgets.WidgetSelectDropdown },
     NullBooleanField: {
         component: availableFields.FieldString,
-        widget: availableWidgets.WidgetSelect,
+        widget: availableWidgets.WidgetSelectDropdown,
     },
     ModelMultipleChoiceInField: {
         component: availableFields.FieldArray,
