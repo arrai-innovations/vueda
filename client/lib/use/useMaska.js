@@ -1,17 +1,19 @@
 /**
  * @module use/useMaska
- * @description Provides a composable wrapper around maska's MaskInput for applying input masks
- * to template-ref elements, with reactive mask options and optional two-way model binding.
+ * @description Provides a composable wrapper around maska's MaskInput for applying
+ * input masks to template-ref elements, with reactive mask options and automatic
+ * lifecycle management. Exposes a destroy method for early teardown.
  */
+import { tryOnMounted, tryOnScopeDispose } from "@vueuse/core";
 import { MaskInput } from "maska";
-import { computed, onMounted, onUnmounted, readonly, ref, shallowRef, toValue, watch } from "vue";
+import { readonly, ref, shallowRef, toValue, watch } from "vue";
 
 /**
  * @typedef {object} UseMaskaReturn
  * @property {import('vue').DeepReadonly<import('vue').Ref<string>>} masked - The current masked (formatted) value.
  * @property {import('vue').DeepReadonly<import('vue').Ref<string>>} unmasked - The current unmasked (raw) value.
  * @property {import('vue').DeepReadonly<import('vue').Ref<boolean>>} completed - Whether the mask pattern is fully satisfied.
- * @property {import('vue').DeepReadonly<import('vue').ShallowRef<MaskInput|undefined>>} instance - The underlying MaskInput instance.
+ * @property {() => void} destroy - Destroy the current MaskInput instance early. Safe to call multiple times.
  */
 
 /**
@@ -27,49 +29,23 @@ function unrefElement(elRef) {
 }
 
 /**
- * Applies a maska input mask to an element ref with reactive options and optional model syncing.
+ * Applies a maska input mask to an element ref with reactive options. When called
+ * inside a component setup, initializes on mount and cleans up on unmount. When
+ * called outside a component context, initializes immediately. Cleanup is tied to
+ * the enclosing effect scope via tryOnScopeDispose, so it works in components,
+ * watchEffect, and manual effectScope contexts. The destroy() method is also
+ * exposed for early teardown and is idempotent.
  *
  * @param {import('vue').Ref<HTMLInputElement|import('vue').ComponentPublicInstance|null|undefined>} target - A template ref pointing to an input element or component with an input `$el`.
- * @param {import('vue').MaybeRefOrGetter<string|import('maska').MaskInputOptions & { modelType?: 'masked' | 'unmasked' }>} options - A mask pattern string or options object. May be a ref or getter for reactive updates.
- * @param {import('vue').Ref<string|undefined>} [model] - Optional ref to sync with the masked or unmasked value (controlled by `modelType`, defaults to `'unmasked'`).
+ * @param {import('vue').MaybeRefOrGetter<import('maska').MaskInputOptions>} options - Mask configuration object. May be a ref or getter for reactive updates.
  * @returns {UseMaskaReturn}
  */
-export function useMaska(target, options, model) {
+export function useMaska(target, options) {
     const instance = shallowRef(undefined);
 
     const masked = ref("");
     const unmasked = ref("");
     const completed = ref(false);
-
-    const modelType = computed(() => {
-        const plain = toValue(options);
-        if (typeof plain === "string") {
-            return "unmasked";
-        }
-        return plain?.modelType ?? "unmasked";
-    });
-
-    /** @returns {HTMLInputElement|undefined} */
-    function getTarget() {
-        return unrefElement(target);
-    }
-
-    // Sync external model changes back into the input element.
-    if (model != null) {
-        watch(model, (value) => {
-            if (instance.value === undefined) {
-                return;
-            }
-            const current = modelType.value === "masked" ? masked.value : unmasked.value;
-            if (current === value) {
-                return;
-            }
-            const el = getTarget();
-            if (el != null) {
-                el.value = value ?? "";
-            }
-        });
-    }
 
     /**
      * Callback invoked by MaskInput on every input change.
@@ -80,34 +56,24 @@ export function useMaska(target, options, model) {
         masked.value = detail.masked;
         unmasked.value = detail.unmasked;
         completed.value = detail.completed;
-
-        if (model != null) {
-            model.value = modelType.value === "masked" ? detail.masked : detail.unmasked;
-        }
     }
 
     /** @returns {import('maska').MaskInputOptions} */
     function createConfig() {
-        const plain = toValue(options);
-        if (typeof plain === "string") {
-            return { onMaska, mask: plain };
-        }
-        return { ...plain, onMaska };
+        return { ...toValue(options), onMaska };
     }
 
     function initialize() {
-        const el = getTarget();
+        const el = unrefElement(target);
         if (el == null) {
             return;
         }
         instance.value = new MaskInput(el, createConfig());
-        if (model != null) {
-            el.value = model.value ?? "";
-        }
     }
 
     function destroy() {
         instance.value?.destroy();
+        instance.value = undefined;
     }
 
     // Re-initialize when the target element changes (e.g. v-if toggle).
@@ -130,13 +96,13 @@ export function useMaska(target, options, model) {
         { deep: true },
     );
 
-    onMounted(initialize);
-    onUnmounted(destroy);
+    tryOnMounted(initialize);
+    tryOnScopeDispose(destroy);
 
     return {
         masked: readonly(masked),
         unmasked: readonly(unmasked),
         completed: readonly(completed),
-        instance: readonly(instance),
+        destroy,
     };
 }
