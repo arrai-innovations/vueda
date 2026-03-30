@@ -18,7 +18,7 @@
 -   **Main modules**: `vueda/core/` (base classes), `vueda/user/` (auth), `vueda/workflow/` (state management), `vueda/history/` (audit), `vueda/info/` (meta-API)
 -   **Database**: PostgreSQL with advanced features (arrays, GIN indexes, ranges)
 -   **Base classes**: VuedaSerializer, VuedaViewSet, VuedaModel with shared functionality
--   **Testing**: Django test framework in `tests/` with store examples
+-   **Testing**: Pytest test framework in `tests/` with store examples
 -   **Permission system**: Custom workflow-based permissions with row-level access control
 
 ## Code Style

@@ -19,6 +19,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import RangeField
 from django.core import validators
+from django.core.exceptions import FieldDoesNotExist
 from django.core.validators import StepValueValidator
 from django.db import connection
 from django.http import Http404
@@ -29,6 +30,7 @@ from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.fields import _UnvalidatedField
+from rest_framework.filters import OrderingFilter
 
 from vueda.core.open_api import replace_refs_with_schema
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
@@ -454,16 +456,19 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         model = queryset.model
         ordering_data = []
 
-        if hasattr(viewset, "ordering_fields"):
-            for field_name in viewset.ordering_fields:
+        for field_name, _title in OrderingFilter().get_valid_fields(queryset, viewset()):
+            try:
                 field = get_fields_from_path(model, field_name)[-1]
-                field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
-                ordering_data.append(
-                    {
-                        "name": field_name,
-                        "type": field_type,
-                    }
-                )
+            except FieldDoesNotExist:
+                continue
+
+            field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
+            ordering_data.append(
+                {
+                    "name": field_name,
+                    "type": field_type,
+                }
+            )
 
         return ordering_data
 

@@ -116,6 +116,7 @@ class DistributorSerializer(VuedaHistorySerializer):
         fields = [
             "id",
             "name",
+            "description",
         ] + VuedaHistorySerializer.Meta.fields
 
 

@@ -9,7 +9,6 @@ from django.db.models import F
 from django.db.models import Max
 from django.db.models.functions import Cast
 
-from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
 from vueda.core.models import VuedaModel
 from vueda.history.models import VuedaHistoryModel
@@ -22,7 +21,7 @@ class Customer(HasWorkflowModelMixin, VuedaHistoryModel):
     formatted_name = None
     formatted_name_lookup_expression = "data__formatted_name"
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryModel.Meta):
         pass
 
 
@@ -37,8 +36,9 @@ class CustomerData(models.Model):
 
 class Distributor(VuedaHistoryModel):
     name = models.CharField(max_length=255)
+    description = models.CharField(max_length=1024)
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryModel.Meta):
         pass
 
 
@@ -73,7 +73,7 @@ class Product(VuedaHistoryModel):
     last_ordered = models.DateField(null=True)
     quantity = models.IntegerField(db_default=0)
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryModel.Meta):
         ordering = ["name"]
         unique_together = [
             ["distributor", "name"],
@@ -94,7 +94,7 @@ class ProductOption(VuedaHistoryModel):
     disabled = models.BooleanField(db_default=False)
     quantity_available = models.IntegerField(db_default=0)
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryModel.Meta):
         default_related_name = "product_options"
 
 
@@ -155,7 +155,7 @@ class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryModel):
         db_persist=True,
     )
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryModel.Meta):
         permissions = [("fulfill_orders", "Can fulfill orders")]
 
     @classmethod
