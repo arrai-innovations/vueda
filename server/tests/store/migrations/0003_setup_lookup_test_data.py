@@ -7,9 +7,16 @@ def create_distributors(apps, schema_editor):
     Distributor = apps.get_model("store", "Distributor")
 
     for data in (
-        {"name": "T-Shirt Corp."},
-        {"name": "Tasty Treats Assoc."},
-        {"name": "Vibrant Looks Inc."},
+        {"name": "T-Shirt Corp.", "description": "Shirts For The World. From The Vibrant T-Shirt To The Hoodie."},
+        {
+            "name": "Tasty Treats Assoc.",
+            "description": "Treat Yourself To Glorious Sugar. Tasty Treats Will Sprinkle Your Mind With Sugar.",
+        },
+        {
+            "name": "Vibrant Looks Inc.",
+            "description": "A Sprinkle Of Vibrant Colour In Your Life. Expect The Best Vibrant Looks Available.",
+        },
+        {"name": "Treat King LLC.", "description": "Treat Yourself And Get Some Sugary Goodness."},
     ):
         Distributor.objects.create(**data)
 

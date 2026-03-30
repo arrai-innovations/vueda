@@ -264,8 +264,9 @@ def get_defaults(env: EnvLike):
             "SEARCH_PARAM": "s",
             "DEFAULT_FILTER_BACKENDS": (
                 # "rest_framework.filters.SearchFilter",
-                "vueda.core.filters.VuedaSearchFilterBackend",
                 "rest_framework.filters.OrderingFilter",
+                # VuedaSearchFilterBackend needs to be after OrderingFilter, or ranked results will get reordered.
+                "vueda.core.filters.VuedaSearchFilterBackend",
                 "django_filters.rest_framework.DjangoFilterBackend",
             ),
             "DEFAULT_PERMISSION_CLASSES": ["vueda.core.permissions.ObjectPermissions"],

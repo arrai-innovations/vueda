@@ -18,7 +18,8 @@ def strtobool(value):
 class ProductFilterSet(VuedaFilterSet):
     distributor = rest_framework.AllValuesMultipleFilter(field_name="distributor__name")
     distributor.model = my_models.Product
-    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
+    name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")
     tangible_type = rest_framework.ModelChoiceFilter(
         field_name="tangible_type", label="Tangible Type", queryset=my_models.TangibleType.objects.all()
     )
@@ -43,7 +44,8 @@ class CustomerOrderFilterSet(VuedaFilterSet):
 
 
 class DistributorFilterSet(VuedaFilterSet):
-    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
+    name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")
 
     class Meta:
         model = my_models.Distributor
@@ -51,9 +53,11 @@ class DistributorFilterSet(VuedaFilterSet):
 
 
 class ProductOptionFilterSet(VuedaFilterSet):
-    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
-    sku = rest_framework.CharFilter(field_name="sku", label="SKU", lookup_expr=["exact", "contains"])
-    price = rest_framework.NumericRangeFilter(field_name="price", label="Price", lookup_expr=[])
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
+    name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")
+    sku = rest_framework.CharFilter(field_name="sku", label="SKU", lookup_expr="exact")
+    sku_icontains = rest_framework.CharFilter(field_name="sku", label="SKU (contains)", lookup_expr="icontains")
+    price = rest_framework.NumericRangeFilter(field_name="price", label="Price")
     disabled = rest_framework.TypedChoiceFilter(
         field_name="disabled", label="Disabled", choices=(("false", "False"), ("true", "True")), coerce=strtobool
     )
@@ -66,7 +70,8 @@ class ProductOptionFilterSet(VuedaFilterSet):
 
 class CartFilterSet(VuedaFilterSet):
     last_modified = rest_framework.DateTimeFromToRangeFilter(
-        field_name="last_modified", label="Last modified", lookup_expr=[]
+        field_name="last_modified",
+        label="Last modified",
     )
     reserved_delivery_time = rest_framework.DateTimeFilter()
     reserved_until = rest_framework.TimeFilter()

@@ -43,6 +43,22 @@ class DistributorViewSet(VuedaHistoryViewSet):
         return super().get_allowed_extra_actions(request, instance=instance)
 
 
+class DistributorTrigramSimilarViewSet(DistributorViewSet):
+    search_fields = ["#name"]
+
+
+class DistributorTrigramWordSimilarViewSet(DistributorViewSet):
+    search_fields = ["~name"]
+
+
+class DistributorRankedSearchViewSet(DistributorViewSet):
+    search_fields = ["V:name", "V:description"]
+
+
+class DistributorRankedDescriptionViewSet(DistributorViewSet):
+    search_fields = ["V:description"]
+
+
 class ProductViewSet(VuedaHistoryViewSet):
     queryset = my_models.Product.objects.all()
     serializer_class = my_serializers.ProductSerializer
@@ -53,7 +69,6 @@ class ProductViewSet(VuedaHistoryViewSet):
 class OptionTypeViewSet(VuedaViewSet):
     queryset = my_models.OptionType.objects.all()
     serializer_class = my_serializers.OptionTypeSerializer
-    ordering_fields = ["name"]
 
 
 class ProductOptionViewSet(VuedaHistoryViewSet):
@@ -142,6 +157,16 @@ class InventoryRecordViewSet(VuedaViewSet):
     serializer_class = my_serializers.InventoryRecordSerializer
     filterset_class = my_filtersets.InventoryRecordFilterSet
     ordering_fields = ["when", "reason", "quantity"]
+
+
+class ProductM2MSearchViewSet(ProductViewSet):
+    search_fields = ["V:special_care__field_that_contains_the_name"]
+
+
+class DistributorMixedRankedAndWordSimilarViewSet(DistributorViewSet):
+    """Mixes V: (ranked) and ~ (trigram word similar) prefixes to expose a classification bug."""
+
+    search_fields = ["V:name", "~description"]
 
 
 class PackingBoxViewSet(VuedaViewSet):
