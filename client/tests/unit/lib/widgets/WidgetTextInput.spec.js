@@ -26,6 +26,15 @@ const ControlInputStub = defineComponent({
 });
 vi.mock("@vueda/controls/input", () => ({ ControlInput: ControlInputStub }));
 
+vi.mock("@vueda/use/useMaska.js", () => ({
+    useMaska: vi.fn(() => ({
+        masked: { value: "" },
+        unmasked: { value: "" },
+        completed: { value: false },
+        destroy: vi.fn(),
+    })),
+}));
+
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {
     widgetContext = {
@@ -165,6 +174,35 @@ describe("lib/widgets/WidgetTextInput.vue", () => {
             const input = wrapper.get(QA_SEL);
             expect(input.attributes("placeholder")).toBe("Enter text");
             expect(input.attributes("aria-label")).toBe("text field");
+        });
+    });
+
+    describe("Mask support", () => {
+        scopedIt("calls useMaska with a computed options object containing the mask", async () => {
+            const { useMaska } = await import("@vueda/use/useMaska.js");
+            mount(WidgetTextInput, { props: { mask: "###-####" } });
+            expect(useMaska).toHaveBeenCalledTimes(1);
+            const [, optionsArg] = useMaska.mock.calls[0];
+            expect(optionsArg.value).toEqual({ mask: "###-####" });
+        });
+
+        scopedIt("includes custom tokens in maska options when provided", async () => {
+            const { useMaska } = await import("@vueda/use/useMaska.js");
+            const tokens = { H: { pattern: /[0-9a-fA-F]/ } };
+            mount(WidgetTextInput, { props: { mask: "HHHH-HHHH", tokens } });
+            expect(useMaska).toHaveBeenCalledTimes(1);
+            const [, optionsArg] = useMaska.mock.calls[0];
+            expect(optionsArg.value).toEqual({ mask: "HHHH-HHHH", tokens });
+        });
+
+        scopedIt("tears down and re-creates maska scope when mask changes", async () => {
+            const { useMaska } = await import("@vueda/use/useMaska.js");
+            const wrapper = mount(WidgetTextInput, { props: { mask: "###-####" } });
+            expect(useMaska).toHaveBeenCalledTimes(1);
+
+            await wrapper.setProps({ mask: undefined });
+            await wrapper.setProps({ mask: "####" });
+            expect(useMaska).toHaveBeenCalledTimes(2);
         });
     });
 });
