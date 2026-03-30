@@ -7,27 +7,41 @@ import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import Button from "primevue/button";
 import { computed, inject, unref, useSlots } from "vue";
 
+/**
+ * Renders a single row within a stacked inline field set, including all
+ * non-action fields and a row-level action bar. The action bar shows a delete
+ * button for new (unsaved) rows and a destroy checkbox for existing rows, with
+ * slot overrides available for each.
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Zero-based position of this row within the inline field set. */
     index: {
         type: Number,
         default: undefined,
     },
+    /** Primary key of the existing record this row represents; absent for new (unsaved) rows. */
     pk: {
         type: [String, Number],
         default: undefined,
     },
+    /** Name of the parent field set field that owns this inline row. */
     fieldName: {
         type: String,
         required: true,
     },
+    /** Theme variant to apply to this row's layout. */
     variant: {
         type: String,
         default: "default",
     },
+    /** When true, all fields in the row are rendered in read-only mode. */
     readOnly: {
         type: Boolean,
         default: false,
     },
+    /** Shared context object provided by the parent field set, containing field objects, actions, and selection state. */
     fieldSetContextState: {
         type: Object,
         required: true,
@@ -100,6 +114,7 @@ const remainingSlotNames = computed(() => {
             >
                 <template v-for="action in fieldSetContextState.actions">
                     <template v-if="action.fieldName === 'destroy'">
+                        <!-- @slot [destroy-button, fieldset-destroy-button] Button used to delete a new (unsaved) inline row. -->
                         <slot
                             v-if="!pk"
                             :action="action"
@@ -114,6 +129,7 @@ const remainingSlotNames = computed(() => {
                         >
                             <Button label="Delete" text @click="onDelete" />
                         </slot>
+                        <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox] Checkbox used to mark an existing inline row for deletion. -->
                         <slot
                             v-else
                             :skip-feedback="true"
@@ -144,6 +160,7 @@ const remainingSlotNames = computed(() => {
                         </slot>
                     </template>
                     <template v-else>
+                        <!-- @slot [item-action-button, fieldset-item-action-button] Button for a non-destroy row action. -->
                         <slot
                             :name="fieldSetSlotNames['item-action-button'].name"
                             v-bind="{

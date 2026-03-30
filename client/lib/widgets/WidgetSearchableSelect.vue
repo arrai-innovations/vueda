@@ -13,6 +13,11 @@ import InputText from "primevue/inputtext";
 import Select from "primevue/select";
 import { ref, unref, useSlots } from "vue";
 
+/**
+ * Renders a single-value dropdown (PrimeVue Select) with an inline search input that filters options by querying the API.
+ * In read-only mode, the selected value is displayed as a link to the related record's detail view.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });

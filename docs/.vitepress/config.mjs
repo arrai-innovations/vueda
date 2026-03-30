@@ -17,6 +17,18 @@ const docsRoot = fileURLToPath(new URL("..", import.meta.url));
 const generatedRoot = path.join(docsRoot, ".generated");
 const apiRoot = path.join(docsRoot, "reference", "api");
 const glossaryFile = path.join(docsRoot, "reference", "glossary.md");
+const httpsKeyPath = process.env.HTTPS_KEY_PATH || "/etc/pki/tls/private/arrai.com.key";
+const httpsCertPath = process.env.HTTPS_CERT_PATH || "/etc/pki/tls/certs/arrai.com.crt";
+const useHttps = fs.existsSync(httpsKeyPath) && fs.existsSync(httpsCertPath);
+const httpsConfig = useHttps
+    ? {
+          key: fs.readFileSync(httpsKeyPath),
+          cert: fs.readFileSync(httpsCertPath),
+      }
+    : undefined;
+const hmrProtocol = process.env.HMR_PROTOCOL || (useHttps ? "wss" : "ws");
+const hmrHost = process.env.HMR_HOST || undefined;
+const hmrPort = Number(process.env.HMR_PORT || 5173);
 
 const walkFiles = (dir) => {
     if (!fs.existsSync(dir)) {
@@ -511,7 +523,7 @@ export default defineConfig({
     lastUpdated: true,
     base,
     outDir: "../site",
-    srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md"],
+    srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md", "**/README.md"],
     head: [
         ["link", { rel: "icon", href: `${base}assets/logo-cube.svg` }],
         [
@@ -564,8 +576,21 @@ export default defineConfig({
     },
     vite: {
         server: {
+            host: true,
+            https: httpsConfig,
+            hmr: hmrHost
+                ? {
+                      host: hmrHost,
+                      port: hmrPort,
+                      protocol: hmrProtocol,
+                  }
+                : true,
             // Allow reverse-proxy/custom hostnames in local dev.
             allowedHosts: true,
+        },
+        preview: {
+            host: true,
+            https: httpsConfig,
         },
         plugins: [generatedAssetsPlugin()],
     },

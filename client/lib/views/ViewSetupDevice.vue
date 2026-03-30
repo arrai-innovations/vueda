@@ -14,15 +14,25 @@ import { useToast } from "primevue/usetoast";
 import { computed, reactive, ref, toRef, useSlots } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+/**
+ * Multi-step form that guides the user through enrolling a two-factor authentication device.
+ * Presents a method-selection step (TOTP app, email, or SMS), then a verification step where
+ * the user confirms the device with a one-time code.
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Django app label for the model that represents the 2FA device. */
     app: {
         type: String,
         required: true,
     },
+    /** Model name for the 2FA device (used to fetch available method choices). */
     model: {
         type: String,
         required: true,
     },
+    /** Action name sent to the server when initiating device setup. */
     action: {
         type: String,
         default: "setup",
@@ -101,6 +111,7 @@ const widgetLabelSlotNames = getWidgetSlotsComputed(slots);
         @form-object="form.values = $event"
     >
         <template #action-form-inner>
+            <!-- Replaces the entire body of the setup form; receives `options`, `totpDataUri`, `totpSecret`, `method`, and `step` as slot props. -->
             <slot
                 name="action-form-inner"
                 :options="deviceTypes"
@@ -152,6 +163,7 @@ const widgetLabelSlotNames = getWidgetSlotsComputed(slots);
                         </template>
                     </widget-input>
                 </field-string>
+                <!-- Replaces the QR-code/manual-key block shown after a TOTP app method is chosen; receives `totpDataUri` and `totpSecret` as slot props. -->
                 <slot name="totp-app-setup-step" :totp-data-uri="totpSvgDataUri" :totp-secret="totpSecret">
                     <div v-if="totpSvgDataUri" data-qa="view-setup-device-app">
                         <p data-qa="view-setup-device-app-info-text">
@@ -178,6 +190,7 @@ const widgetLabelSlotNames = getWidgetSlotsComputed(slots);
             </slot>
         </template>
         <template #confirm-button="{ loading }">
+            <!-- Replaces the primary submit button; receives `loading` as a slot prop. -->
             <slot name="confirm-button" v-bind="{ loading }">
                 <Button
                     :label="step !== STEPS.CHOOSE ? 'Verify Device' : 'Choose Device'"
@@ -189,6 +202,7 @@ const widgetLabelSlotNames = getWidgetSlotsComputed(slots);
             </slot>
         </template>
         <template #cancel-button="{ loading, handleCancelClick }">
+            <!-- Replaces the cancel button; receives `loading` and `handleCancelClick` as slot props. -->
             <slot name="cancel-button" v-bind="{ loading, handleCancelClick }" />
         </template>
     </auth-form>

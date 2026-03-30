@@ -350,3 +350,18 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         another_order.refresh_from_db()
         assert customer_order.workflow_state.code == "new"
         assert another_order.workflow_state.code == "new"
+
+    def test_execute_transition_bulk_returns_validation_error_when_object_ids_not_a_list(
+        self, api_client, workflow_user
+    ):
+        api_client.force_authenticate(workflow_user)
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+        response = api_client.patch(
+            bulk_url,
+            {"transition_code": "pack_order", "object_ids": "not-a-list"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "object_ids" in response.data

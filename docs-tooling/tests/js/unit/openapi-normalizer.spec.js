@@ -57,5 +57,54 @@ describe("OpenApiNormalizer", () => {
         expect(output.roots).toEqual(["rest:root"]);
         expect(output.nodes.some((node) => node.kind === "endpoint")).toBe(true);
         expect(output.nodes.some((node) => node.kind === "schema")).toBe(true);
+
+        const endpoint = output.nodes.find((node) => node.kind === "endpoint");
+        expect(endpoint.displayName).toBeUndefined();
+        expect(endpoint.description).toBe("Fetch a widget.");
+    });
+
+    it("stores summary in displayName and description separately", () => {
+        const normalizer = new OpenApiNormalizer();
+        const payload = {
+            openapi: "3.0.3",
+            info: { title: "Test API", version: "0.1.0" },
+            paths: {
+                "/widgets/{id}": {
+                    get: {
+                        operationId: "widgets_retrieve",
+                        summary: "Retrieve a widget",
+                        description: "Fetch a widget by its ID.",
+                        responses: { 200: { description: "OK" } },
+                    },
+                },
+            },
+        };
+
+        const output = normalizer.normalize(payload);
+        const endpoint = output.nodes.find((node) => node.kind === "endpoint");
+        expect(endpoint.displayName).toBe("Retrieve a widget");
+        expect(endpoint.description).toBe("Fetch a widget by its ID.");
+    });
+
+    it("omits displayName when only description is present", () => {
+        const normalizer = new OpenApiNormalizer();
+        const payload = {
+            openapi: "3.0.3",
+            info: { title: "Test API", version: "0.1.0" },
+            paths: {
+                "/widgets/{id}": {
+                    get: {
+                        operationId: "widgets_retrieve",
+                        description: "Fetch a widget.",
+                        responses: { 200: { description: "OK" } },
+                    },
+                },
+            },
+        };
+
+        const output = normalizer.normalize(payload);
+        const endpoint = output.nodes.find((node) => node.kind === "endpoint");
+        expect(endpoint.displayName).toBeUndefined();
+        expect(endpoint.description).toBe("Fetch a widget.");
     });
 });

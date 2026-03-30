@@ -6,19 +6,26 @@ import omit from "lodash-es/omit.js";
 import { DateTime } from "luxon";
 import { computed, toRef, watch } from "vue";
 
+/**
+ * Field component for time values in HH:mm:ss format. Enforces optional
+ * minimum, maximum, and step constraints and validates the time string format.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...FIELD_PROPS,
+    /** The latest time allowed; accepts a Date object or an HH:mm:ss string. */
     maxValue: {
         type: [Date, String],
         default: undefined,
     },
+    /** The earliest time allowed; accepts a Date object or an HH:mm:ss string. */
     minValue: {
         type: [Date, String],
         default: undefined,
     },
+    /** The increment step in seconds; the time value must be a multiple of this step. */
     step: {
         type: Number,
         default: undefined,
@@ -114,6 +121,7 @@ watchIfDev(
 </script>
 <template>
     <div :class="$attrs.class" data-qa="field-time">
+        <!-- Renders the time input widget; receives field-attrs (non-class inherited attributes) and field-props. -->
         <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>

@@ -4,6 +4,10 @@ import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { watchIfDev } from "@vueda/utils/dev.js";
 import omit from "lodash-es/omit.js";
 
+/**
+ * Field component for plain object values. Warns in development when the value is not a plain object.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });

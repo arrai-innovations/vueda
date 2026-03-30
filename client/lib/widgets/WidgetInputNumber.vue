@@ -16,6 +16,10 @@ import InputGroupAddon from "primevue/inputgroupaddon";
 import Popover from "primevue/popover";
 import { computed, reactive, ref, toRef, toRefs, useSlots, useTemplateRef, watch } from "vue";
 
+/**
+ * A numeric input widget with optional unit conversion support, rendering a native number input
+ * with configurable min/max/step constraints and a unit-selector popover when multiple units are provided.
+ */
 defineOptions({
     inheritAttrs: false,
 });
@@ -24,26 +28,32 @@ const props = defineProps({
     ...WIDGET_LABEL_PROPS,
     ...THEME_OVERRIDE_PROPS,
     ...PASSTHROUGH_OPTION_PROPS,
+    /** Minimum allowed value; may be a plain number or a unit-aware object. */
     min: {
         type: [Number, Object],
         default: undefined,
     },
+    /** Maximum allowed value; may be a plain number or a unit-aware object. */
     max: {
         type: [Number, Object],
         default: undefined,
     },
+    /** Increment step; may be a plain number or a unit-aware object. */
     step: {
         type: [Number, Object],
         default: undefined,
     },
+    /** A single unit descriptor or an array of unit descriptors enabling a unit-switcher popover. */
     unit: {
         type: [String, Array],
         default: undefined,
     },
+    /** Map of unit keys to their conversion definitions (numerator, denominator, min, max, step). */
     unitDefs: {
         type: Object,
         default: () => ({}),
     },
+    /** The base unit key used when no unit conversion is active; stored value is always in this unit. */
     baseUnit: {
         type: String,
         default: undefined,
@@ -199,6 +209,7 @@ const displayValue = computed({
             <template #default="{ class: labelControlClass }">
                 <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-input-inner">
                     <component :is="$slots.prefix || $slots.suffix || props.unit ? InputGroup : EmptyComponent">
+                        <!-- Content rendered as a leading addon inside an InputGroup wrapper. -->
                         <slot v-if="$slots.prefix" name="prefix" />
                         <input
                             :id="widgetContext.state.widgetId"
@@ -230,6 +241,7 @@ const displayValue = computed({
                         </InputGroupAddon>
                         <Popover v-if="currentUnit?.label" ref="popoverRef">
                             <div :class="theme('formPopoverInner')">
+                                <!-- Button that cycles to the previous unit; defaults to a left-arrow button. -->
                                 <slot name="prev-button" @click="onPrevButtonClicked">
                                     <Button unstyled @click="onPrevButtonClicked">
                                         <template #icon> ⬅️ </template>
@@ -238,6 +250,7 @@ const displayValue = computed({
                                 <span class="p-1">
                                     {{ currentUnit.label }}
                                 </span>
+                                <!-- Button that cycles to the next unit; defaults to a right-arrow button. -->
                                 <slot name="next-button" @click="onNextButtonClicked">
                                     <Button unstyled @click="onNextButtonClicked">
                                         <template #icon> ➡️ </template>
@@ -245,6 +258,7 @@ const displayValue = computed({
                                 </slot>
                             </div>
                         </Popover>
+                        <!-- Content rendered as a trailing addon inside an InputGroup wrapper. -->
                         <slot v-if="$slots.suffix" name="suffix" />
                     </component>
                 </div>

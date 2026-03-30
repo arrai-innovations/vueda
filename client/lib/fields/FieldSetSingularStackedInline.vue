@@ -11,8 +11,19 @@ import Button from "primevue/button";
 import Divider from "primevue/divider";
 import { toRef, watch } from "vue";
 
+/**
+ * A stacked inline fieldset for editing a single related object (one-to-one
+ * style). Renders a divider with a title, an optional Create button when no
+ * value is present, and a single stacked-inline row when a value exists.
+ * Supports show/hide toggling and auto-creates the initial object when the
+ * field is required or `autoCreateWhenEmpty` is set.
+ */
+defineOptions({
+    inheritAttrs: false,
+});
 const props = defineProps({
     ...FIELD_SET_INLINE_PROPS,
+    /** When true, automatically creates an empty inline object if none exists and field objects are available. */
     autoCreateWhenEmpty: {
         type: Boolean,
         default: true,
@@ -22,9 +33,6 @@ const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
 const logger = useDevLogger({ fieldContext: fieldSetContext });
 const theme = useTheme("FieldSetStackedInline", props);
-defineOptions({
-    inheritAttrs: false,
-});
 const fieldSetInline = useFieldSetInline({
     props,
     emit,
@@ -92,6 +100,7 @@ watch(
                 }"
             >
                 <div v-if="fieldSetInline.state.hidable" data-qa="field-set-singular-stacked-inline-header-toggle">
+                    <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Button to show or hide the inline fieldset. -->
                     <slot
                         :class="theme('toggleButton')"
                         :field-props="fieldSetInline.state.computedFieldProps"
@@ -108,11 +117,13 @@ watch(
                     </slot>
                 </div>
                 <div :class="theme('title')" data-qa="field-set-singular-stacked-inline-title">
+                    <!-- @slot [title, fieldset-title, field(fieldName)title] Replaces the fieldset title/label. -->
                     <slot :name="fieldSetInline.resolvedSlotNames['title'].name">
                         {{ fieldSetContext.state.label }}
                     </slot>
                 </div>
                 <div :class="theme('actionBar')" data-qa="field-set-singular-stacked-inline-action-bar">
+                    <!-- @slot [create-button, fieldset-create-button, field(fieldName)create-button] Button to add a new inline row. -->
                     <slot
                         v-if="fieldSetInline.state.showCreateButton && !fieldSetContext.state.value"
                         :class="theme('createButton')"
@@ -126,6 +137,7 @@ watch(
                     </slot>
                 </div>
             </Divider>
+            <!-- @slot [field-set-level-chores, fieldset-field-set-level-chores, field(fieldName)field-set-level-chores] Replaces the form-level validation chores block for this fieldset. -->
             <slot :name="fieldSetInline.resolvedSlotNames['field-set-level-chores'].name">
                 <form-chores :variant="null">
                     <template

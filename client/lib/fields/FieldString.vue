@@ -6,6 +6,10 @@ import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
 import { computed, toRef, watch } from "vue";
 
+/**
+ * Field component for string values. Enforces optional minimum and maximum
+ * length constraints and validates the value against an optional regex pattern.
+ */
 defineOptions({
     inheritAttrs: false,
 });
@@ -15,18 +19,22 @@ const props = defineProps({
     //     type: Boolean,
     //     default: false,
     // },
+    /** The maximum number of characters allowed. */
     maxLength: {
         type: Number,
         default: undefined,
     },
+    /** The minimum number of characters required. */
     minLength: {
         type: Number,
         default: undefined,
     },
+    /** A regex pattern string the value must match after the field is touched. */
     patternRegex: {
         type: String,
         default: undefined,
     },
+    /** A human-readable description of the expected pattern shown in validation error messages. */
     patternForMessage: {
         type: String,
         default: undefined,
@@ -115,6 +123,7 @@ watchIfDev(
 </script>
 <template>
     <div :class="$attrs.class" data-qa="field-string">
+        <!-- Renders the string input widget; receives field-attrs (non-class inherited attributes) and field-props. -->
         <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>

@@ -4,6 +4,11 @@ import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
 import { toRef, watch } from "vue";
 
+/**
+ * Field component for image upload values. Automatically marks the field as ignored when the current value is a string
+ * (for example, an existing image URL returned by the server), and restores it when a new file object is provided.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });

@@ -4,6 +4,13 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import omit from "lodash-es/omit.js";
 import { computed, onBeforeUnmount, onMounted, reactive, ref, useTemplateRef, watch } from "vue";
 
+/**
+ * Renders a sticky toolbar that hides when the user scrolls down past its
+ * initial position and reappears when they scroll back up. Wraps its default
+ * slot content in a themed inner container with a decorative gradient element.
+ */
+defineOptions({});
+
 const root = useTemplateRef("root");
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,

@@ -15,20 +15,29 @@ import AutoComplete from "primevue/autocomplete";
 import Select from "primevue/select";
 import { computed, reactive, ref, toRef, useSlots } from "vue";
 
+/**
+ * A generic foreign-key widget for Django content-type style relations. Renders a type selector
+ * dropdown paired with an autocomplete that searches the chosen model, storing a
+ * `{ content_type, object_id }` value pair.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** Django app label used to identify the target model. */
     app: {
         type: String,
         required: true,
     },
+    /** Django model name within the app used to identify the target model. */
     model: {
         type: String,
         required: true,
     },
+    /** List of field names to request from the API when searching for autocomplete suggestions. */
     modelFields: {
         type: Array,
         required: true,

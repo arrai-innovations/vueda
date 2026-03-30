@@ -9,22 +9,30 @@ import get from "lodash-es/get.js";
 import omit from "lodash-es/omit.js";
 import { computed } from "vue";
 
+/**
+ * A widget that combines an editable input (HTML editor, plain input, or textarea) with a live
+ * preview pane that substitutes `$variable` placeholders using dependency data.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    /** The editor variant to render: `"editor"` (rich HTML), `"input"` (single-line), or `"textarea"`. */
     type: {
         type: String,
         default: "editor",
     },
+    /** The current value of the template text. */
     modelValue: {
         type: [String, Number, Array],
         default: undefined,
     },
+    /** Additional widget dependency keys whose values are made available for placeholder substitution. */
     displayDependencies: {
         type: Array,
         default: () => [],
     },
+    /** The dependency key whose value supplies the tag substitution data for the preview. */
     tagsKey: {
         type: String,
         default: "preview_tag_data",
@@ -70,6 +78,7 @@ const theme = useWidgetTheme("WidgetPreviewableTemplate");
                     v-bind="omit($attrs, 'value')"
                     @update:model-value="emit('update:modelValue', $event)"
                 />
+                <!-- Additional content rendered below the editor, receiving the current dependency values as `displayDependencies`. -->
                 <slot name="extra-legend" :display-dependencies="widgetContext.state.dependencyValues" />
             </div>
             <div :class="theme('previewWrapper')">

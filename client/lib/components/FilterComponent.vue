@@ -14,27 +14,40 @@ import ButtonGroup from "primevue/buttongroup";
 import Popover from "primevue/popover";
 import { computed, inject, reactive, ref, toRef, useSlots, useTemplateRef, watch } from "vue";
 
+/**
+ * Renders a single filterable field as a button-triggered popover. The button
+ * displays the filter label and its current value; clicking it opens a
+ * `FilterForm` popover where the user can set or clear the filter value.
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Field name used to identify this filter in query params and filter state. */
     filterName: {
         type: String,
         required: true,
     },
+    /** Position of this filter component within the parent filter group. */
     index: {
         type: Number,
         required: true,
     },
+    /** Configuration object for this filter, including label, choices, and lookup expressions. */
     filterDetails: {
         type: Object,
         required: true,
     },
+    /** Current URL query parameters, used to derive the active filter value on load. */
     params: {
         type: Object,
         required: true,
     },
+    /** Current URL query string object passed to pre-populate the filter value. */
     query: {
         type: Object,
         default: () => ({}),
     },
+    /** When true, renders the filter button in an error state. */
     errored: {
         type: Boolean,
         default: false,
@@ -293,6 +306,7 @@ watch(
 <template>
     <div>
         <ButtonGroup size="small">
+            <!-- @slot [filter-clear-button, filter-clear-button(filterName)] Replaces the clear-filter button shown when a filter value is active. -->
             <slot
                 :class="theme('clearButton')"
                 :do-toggle="doToggle"
@@ -314,6 +328,7 @@ watch(
                     @click.prevent="removeFilter"
                 >
                     <template #icon>
+                        <!-- @slot [filter-clear-button-icon, filter-clear-button-icon(filterName)] Icon inside the clear-filter button. -->
                         <slot
                             class="p-button-icon p-button-icon-left"
                             :filter-details="filterDetails"
@@ -328,6 +343,7 @@ watch(
                     </template>
                 </Button>
             </slot>
+            <!-- @slot [filter-dropdown-button, filter-dropdown-button(filterName)] Replaces the dropdown trigger button for this filter. -->
             <slot
                 :class="theme('dropdownButton')"
                 :filter-details="filterDetails"
@@ -352,6 +368,7 @@ watch(
                     <template #default>
                         <!-- primevue passes nothing via their button default slot... -->
                         <!-- when using the default slot, they don't render the icon slot... -->
+                        <!-- @slot [filter-dropdown-button-icon, filter-dropdown-button-icon(filterName)] Icon inside the dropdown button, shown when no filter value is set. -->
                         <slot
                             v-if="!hasFilterValue"
                             class="p-button-icon p-button-icon-left"
@@ -364,6 +381,7 @@ watch(
                         >
                             <span class="p-button-icon p-button-icon-left"> ➕ </span>
                         </slot>
+                        <!-- @slot [filter-dropdown-button-label, filter-dropdown-button-label(filterName)] Label text inside the dropdown button. -->
                         <slot
                             class="p-button-label"
                             :filter-details="filterDetails"
@@ -377,6 +395,7 @@ watch(
                                 {{ computedFilterLabel }}
                             </span>
                         </slot>
+                        <!-- @slot [filter-dropdown-button-suffix, filter-dropdown-button-suffix(filterName)] Suffix indicator (expand/collapse arrow) inside the dropdown button. -->
                         <slot
                             class="p-button-label"
                             :filter-details="filterDetails"
@@ -394,6 +413,7 @@ watch(
                 </Button>
             </slot>
         </ButtonGroup>
+        <!-- @slot [filter-form-popover, filter-form-popover(filterName)] Replaces the popover element that wraps the filter form. -->
         <slot
             :class="theme('formPopover')"
             :filter-details="filterDetails"
@@ -410,6 +430,7 @@ watch(
                 :filter-name="filterName"
                 :has-filter-value="hasFilterValue"
             >
+                <!-- @slot [filter-form, filter-form(filterName)] Replaces the filter form body inside the popover. -->
                 <slot
                     :apply-filter="onApplyFilter"
                     :filter-details="filterDetails"

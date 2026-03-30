@@ -2,6 +2,12 @@
 import { useSuggestRoute } from "@vueda/use/useSuggestRoute.js";
 import { useRouter } from "vue-router";
 
+/**
+ * Full-page 404 error view displayed when a route path does not match any registered route. Optionally shows a
+ * suggested alternative route derived from the closest match in the router, presented as a clickable link.
+ */
+defineOptions({});
+
 const router = useRouter();
 const suggestedRoute = useSuggestRoute();
 </script>

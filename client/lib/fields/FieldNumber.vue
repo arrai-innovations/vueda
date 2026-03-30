@@ -4,24 +4,32 @@ import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import omit from "lodash-es/omit.js";
 import { computed, toRef, watch } from "vue";
 
+/**
+ * Field component for integer or floating-point number values. Enforces
+ * optional minimum, maximum, and step constraints.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...FIELD_PROPS,
+    /** The maximum numeric value allowed. */
     maxValue: {
         type: Number,
         default: undefined,
     },
+    /** The minimum numeric value allowed. */
     minValue: {
         type: Number,
         default: undefined,
     },
+    /** The value must be a multiple of this step. */
     step: {
         type: Number,
         default: undefined,
     },
     // todo: maxFractionDigits doesn't do anything anymore, do we need it?
+    /** @deprecated No longer enforced; reserved for future use. */
     maxFractionDigits: {
         type: Number,
         default: undefined,
@@ -97,6 +105,7 @@ watch(
 </script>
 <template>
     <div :class="$attrs.class" data-qa="field-number">
+        <!-- Renders the number input widget; receives field-attrs (non-class inherited attributes) and field-props. -->
         <slot :field-attrs="omit($attrs, ['class'])" :field-props="props" />
     </div>
 </template>

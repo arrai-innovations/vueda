@@ -10,16 +10,23 @@ import pick from "lodash-es/pick.js";
 import Slider from "primevue/slider";
 import { useSlots } from "vue";
 
+/**
+ * Renders a range slider (PrimeVue Slider) with configurable minimum and maximum values, with a label.
+ * The current selected range is displayed as text above the slider track.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** Minimum value of the slider range. */
     minValue: {
         type: Number,
         default: 0,
     },
+    /** Maximum value of the slider range. */
     maxValue: {
         type: Number,
         default: 100,

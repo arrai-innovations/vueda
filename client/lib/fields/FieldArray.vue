@@ -4,6 +4,12 @@ import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { watchIfDev } from "@vueda/utils/dev.js";
 import omit from "lodash-es/omit.js";
 
+/**
+ * A field wrapper for array-typed values. Renders no UI of its own; instead it
+ * exposes the field props and attrs through a default slot so the consumer can
+ * compose an appropriate input for list data.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });

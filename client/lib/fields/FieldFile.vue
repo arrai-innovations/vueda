@@ -4,6 +4,11 @@ import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
 import { toRef, watch } from "vue";
 
+/**
+ * Field component for file upload values. Automatically marks the field as ignored when the current value is a
+ * non-File object (for example, an existing server-side file descriptor), and restores it when a new File is selected.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });

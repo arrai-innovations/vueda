@@ -7,16 +7,24 @@ import { WIDGET_LABEL_PROPS } from "@vueda/widgets/WidgetLabel.vue";
 import pick from "lodash-es/pick.js";
 import { computed, inject, provide, reactive, toRef, toRefs, useAttrs } from "vue";
 
+/**
+ * Tabular inline column header label. Synthesizes a widget context from props
+ * since column headers have no rendered widget of their own.
+ *
+ * @vueda-slot-forward WidgetLabel
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** Tabular inline field set configuration, used to resolve label and validation state per row. */
     fieldSetTabularInline: {
         type: Object,
         default: () => ({}),
     },
+    /** Dot-separated path to the field value within the form model, used as the widget name. */
     fieldValuePath: {
         type: String,
         required: true,

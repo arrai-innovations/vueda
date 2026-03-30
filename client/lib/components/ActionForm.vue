@@ -12,12 +12,15 @@ import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, inject, nextTick, onDeactivated, onUnmounted, reactive, watch } from "vue";
 
+/**
+ * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides confirm and cancel button slots.
+ */
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     /**
-     * Function to execute the action
+     * Function to execute the action.
      * @param {Object} options - Action execution options
      * @param {Object} options.formValues - Form values to submit
      * @param {boolean} options.dryRun - Whether this is a dry run validation
@@ -27,42 +30,52 @@ const props = defineProps({
         type: Function,
         default: undefined,
     },
+    /** Toast summary text shown when the action succeeds. */
     actionSuccessSummary: {
         type: String,
         default: undefined,
     },
+    /** Toast summary text shown when the action fails. */
     actionErrorSummary: {
         type: String,
         default: undefined,
     },
+    /** Confirmation message displayed to the user before executing the action (reserved for future use). */
     confirmMessage: {
         type: String,
         default: undefined,
     },
+    /** Reactive state object describing the data-fetch status (`errored`, `error`, `loading`). */
     fetchState: {
         type: Object,
         default: () => ({ errored: false, error: null, loading: undefined }),
     },
+    /** Reactive state object describing the action execution status (`errored`, `error`, `loading`). */
     actionState: {
         type: Object,
         default: () => ({ errored: false, error: null, loading: undefined }),
     },
+    /** Whether the form has user input fields that must be validated before submission. */
     hasInput: {
         type: Boolean,
         default: false,
     },
+    /** Async function called to navigate away after a successful action or cancel; receives `"success"` or `"cancel"` as its argument. */
     redirectTo: {
         type: Function,
         default: undefined,
     },
+    /** Custom handler called on successful submission in place of the default success toast and redirect. */
     onSubmissionSuccessHandler: {
         type: Function,
         default: undefined,
     },
+    /** Custom handler called on submission error in place of the default error toast. */
     onSubmissionErrorHandler: {
         type: Function,
         default: undefined,
     },
+    /** When set to `true`, triggers a dry-run validation pass without submitting the form. */
     readyToDryRun: {
         type: Boolean,
         default: false,
@@ -206,6 +219,7 @@ watch(
         <div :class="theme('inner')" data-qa="action-form-inner">
             <form-chores :class="theme('nonFieldErrorBlock')" :variant="null" />
             <form @submit.prevent="handleConfirm()">
+                <!-- Main form content area; receives `loading`, `error`, `errored`, `handleConfirm`, and `handleCancelClick` as slot props. -->
                 <slot
                     name="action-form-inner"
                     v-bind="{
@@ -216,6 +230,7 @@ watch(
                         handleCancelClick,
                     }"
                 />
+                <!-- Action bar containing the confirm and cancel buttons; receives `loading`, `handleConfirm`, and `handleCancelClick` as slot props. -->
                 <slot
                     :loading="combinedLoading"
                     name="action-bar"
@@ -223,6 +238,7 @@ watch(
                     :handle-cancel-click="handleCancelClick"
                 >
                     <div :class="theme('buttons')" data-qa="action-form-buttons">
+                        <!-- Submit button that triggers the action; receives `label`, `loading`, `verb`, `type`, and `disabled` as slot props. -->
                         <slot
                             label="Yes, continue"
                             :loading="combinedLoading"
@@ -235,6 +251,7 @@ watch(
                                 >Yes, continue</Button
                             >
                         </slot>
+                        <!-- Cancel button that invokes the redirect; receives `label`, `loading`, and `verb` as slot props. -->
                         <slot
                             label="Cancel, go back"
                             :loading="combinedLoading"

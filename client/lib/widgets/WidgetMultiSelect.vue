@@ -10,12 +10,18 @@ import pick from "lodash-es/pick.js";
 import MultiSelect from "primevue/multiselect";
 import { ref, useAttrs, useSlots } from "vue";
 
+/**
+ * Renders a multi-select dropdown (PrimeVue MultiSelect) with a label, validation state, and chip display.
+ * Accepts a static `options` array and integrates with the vueda widget system for field state management.
+ */
+
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
     ...WIDGET_LABEL_PROPS,
+    /** Static array of options to display in the multi-select dropdown. */
     options: {
         type: Array,
         required: true,

@@ -184,21 +184,9 @@ describe("buildVueDocgenPathMap", () => {
         expect(pathMap.get("vue:component:Foo")).toBe("vue/components/Foo.md");
     });
 
-    it("maps the :slots synthetic key to the slots sub-page path", () => {
+    it("generates exactly one path-map entry per component (sub-page paths are added by the renderer)", () => {
         const bundle = new VueDocgenNormalizer().normalize(vueDocgenPayload);
         const pathMap = buildVueDocgenPathMap(bundle);
-        expect(pathMap.get("vue:component:Foo:slots")).toBe("vue/components/Foo/slots.md");
-    });
-
-    it("maps the :events synthetic key to the events sub-page path", () => {
-        const bundle = new VueDocgenNormalizer().normalize(vueDocgenPayload);
-        const pathMap = buildVueDocgenPathMap(bundle);
-        expect(pathMap.get("vue:component:Foo:events")).toBe("vue/components/Foo/events.md");
-    });
-
-    it("generates exactly three path-map entries per component", () => {
-        const bundle = new VueDocgenNormalizer().normalize(vueDocgenPayload);
-        const pathMap = buildVueDocgenPathMap(bundle);
-        expect(pathMap.size).toBe(3);
+        expect(pathMap.size).toBe(1);
     });
 });

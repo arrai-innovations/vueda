@@ -9,27 +9,42 @@ import { useToast } from "primevue/usetoast";
 import { onMounted, toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+/**
+ * Renders a page-level authentication form with a title, subtitle, and action slot.
+ * Handles reauthentication redirects and MFA pending-flow detection automatically,
+ * delegating the actual form submission to an inner ActionForm.
+ *
+ * @vueda-slot-forward ActionForm
+ */
+defineOptions({});
+
 const props = defineProps({
+    /** Route path to redirect to after a successful authentication action. */
     redirect: {
         type: String,
         default: "",
     },
+    /** Heading text displayed above the form. */
     header: {
         type: String,
         default: "",
     },
+    /** Secondary text displayed below the heading. */
     subTitle: {
         type: String,
         default: "",
     },
+    /** Async function that performs the form submission action. */
     runAction: {
         type: Function,
         default: undefined,
     },
+    /** Additional props forwarded to the underlying form composable. */
     formProps: {
         type: Object,
         default: () => ({}),
     },
+    /** Whether the current user is permitted to access this form. */
     permitted: {
         type: Boolean,
         default: true,
@@ -88,6 +103,7 @@ const redirectTo = async () => {
                 {{ subTitle }}
             </template>
         </PageTitle>
+        <!-- @slot [form-content] Override the entire form content area; receives run-action, on-submission-error-handler, and redirect-to bindings. -->
         <slot
             name="form-content"
             v-bind="$attrs"
