@@ -327,8 +327,8 @@ export const defaultFieldMappings = {
     UUIDField: {
         UUIDField: {
             component: availableFields.FieldUUID,
-            widget: availableWidgets.WidgetInput,
-            widgetProps: { type: "mask", mask: "****-****-****-****-************" },
+            widget: availableWidgets.WidgetTextInput,
+            widgetProps: { mask: "********-****-****-****-************" },
             fieldProps: {},
             default: true,
         },
