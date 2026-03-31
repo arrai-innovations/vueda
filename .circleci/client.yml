@@ -64,6 +64,7 @@ jobs:
                   name: Publish
                   command: |
                       cd client
+                      export NPM_ID_TOKEN=$(circleci run oidc get --claims '{"aud": "npm:registry.npmjs.org"}')
                       pnpm publish --no-git-checks
 
 workflows:
@@ -87,7 +88,7 @@ workflows:
                           ignore: /.*/
             - client-publish:
                   name: client-publish
-                  context: arrai-private-package-publishing
+                  context: arrai-global
                   requires:
                       - client-verify-release-version
                   filters:
