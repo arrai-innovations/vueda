@@ -46,13 +46,13 @@ export const defaultFieldMappings = {
         },
     },
     DateField: {
-        DateField: { component: availableFields.FieldDate, widget: availableWidgets.WidgetDatePicker, default: true },
+        DateField: { component: availableFields.FieldDate, widget: availableWidgets.WidgetDateField, default: true },
     },
     DateTimeField: {
         DateTimeField: {
             component: availableFields.FieldDateTime,
-            widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { showTime: true },
+            widget: availableWidgets.WidgetDateField,
+            widgetProps: { granularity: "minute" },
             default: true,
         },
     },
@@ -158,14 +158,13 @@ export const defaultFieldMappings = {
     RangeField: {
         DateRangeField: {
             component: availableFields.FieldRange,
-            widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { selectionMode: "range" },
+            widget: availableWidgets.WidgetDateRangeField,
             default: true,
         },
         DateTimeRangeField: {
             component: availableFields.FieldRange,
-            widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { type: "number" },
+            widget: availableWidgets.WidgetDateRangeField,
+            widgetProps: { granularity: "minute" },
         },
         FloatRangeField: {
             component: availableFields.FieldSetRange,
@@ -181,8 +180,7 @@ export const defaultFieldMappings = {
         },
         TimeRangeField: {
             component: availableFields.FieldRange,
-            widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { timeOnly: true, hourFormat: "12" },
+            widget: availableWidgets.WidgetTimeRangeField,
         },
     },
     ManyRelatedField: {
@@ -288,9 +286,7 @@ export const defaultFieldMappings = {
     TimeField: {
         TimeField: {
             component: availableFields.FieldTime,
-            widget: availableWidgets.WidgetDatePicker,
-            widgetProps: { timeOnly: true, hourFormat: "12" },
-            fieldProps: {},
+            widget: availableWidgets.WidgetTimeField,
             default: true,
         },
     },
@@ -445,16 +441,16 @@ export const manyFieldMappings = {
     },
     DateField: {
         DateField: {
-            widget: availableWidgets.WidgetDatePicker,
+            widget: availableWidgets.WidgetDateField,
             fieldProps: { manyComponent: availableFields.FieldDate },
             default: true,
         },
     },
     DateTimeField: {
         DateTimeField: {
-            widget: availableWidgets.WidgetDatePicker,
+            widget: availableWidgets.WidgetDateField,
             fieldProps: { manyComponent: availableFields.FieldDateTime },
-            widgetProps: { showTime: true },
+            widgetProps: { granularity: "minute" },
             default: true,
         },
     },
@@ -551,7 +547,7 @@ export const manyFieldMappings = {
     },
     DateRangeField: {
         DateRangeField: {
-            widget: availableWidgets.WidgetDatePicker,
+            widget: availableWidgets.WidgetDateRangeField,
             fieldProps: { manyComponent: availableFields.FieldSetRange },
             default: true,
         },
@@ -572,14 +568,14 @@ export const manyFieldMappings = {
     },
     TimeField: {
         TimeField: {
-            widget: availableWidgets.WidgetDatePicker,
+            widget: availableWidgets.WidgetTimeField,
             fieldProps: { manyComponent: availableFields.FieldTime },
             default: true,
         },
     },
     TimeRangeField: {
         TimeRangeField: {
-            widget: availableWidgets.WidgetDatePicker,
+            widget: availableWidgets.WidgetTimeRangeField,
             fieldProps: { manyComponent: availableFields.FieldSetRange },
             default: true,
         },
@@ -631,20 +627,19 @@ export const filterFieldMapping = {
             type: "date",
             isFilter: true,
         },
-        boundaryWidget: availableWidgets.WidgetDatePicker,
-        boundaryWidgetProps: { showIcon: true },
+        boundaryWidget: availableWidgets.WidgetDateField,
         boundaryComponent: availableFields.FieldDate,
     },
     DateTimeRangeField: {
         component: availableFields.FieldSetRange,
         boundaryComponent: availableFields.FieldDate,
-        boundaryWidget: availableWidgets.WidgetDatePicker,
-        boundaryWidgetProps: { showTime: true },
+        boundaryWidget: availableWidgets.WidgetDateField,
+        boundaryWidgetProps: { granularity: "minute" },
     },
     IsoDateTimeField: {
         component: availableFields.FieldDate,
-        widget: availableWidgets.WidgetDatePicker,
-        widgetProps: { showTime: true },
+        widget: availableWidgets.WidgetDateField,
+        widgetProps: { granularity: "minute" },
     },
     ModelChoiceField: {
         component: availableFields.FieldString,

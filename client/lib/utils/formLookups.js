@@ -50,7 +50,11 @@ export const availableWidgets = {
         async () => (await import("@vueda/widgets/WidgetAutoComplete.vue")).default,
     ),
     WidgetCheckbox: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetCheckbox.vue")).default),
+    WidgetDateField: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDateField.vue")).default),
     WidgetDatePicker: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default),
+    WidgetDateRangeField: defineAsyncComponent(
+        async () => (await import("@vueda/widgets/WidgetDateRangeField.vue")).default,
+    ),
     WidgetDuration: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDuration.vue")).default),
     WidgetFile: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetFile.vue")).default),
     WidgetGenericAutoComplete: defineAsyncComponent(
@@ -89,6 +93,10 @@ export const availableWidgets = {
     WidgetToggle: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetToggle.vue")).default),
     WidgetTextTextarea: defineAsyncComponent(
         async () => (await import("@vueda/widgets/WidgetTextTextarea.vue")).default,
+    ),
+    WidgetTimeField: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetTimeField.vue")).default),
+    WidgetTimeRangeField: defineAsyncComponent(
+        async () => (await import("@vueda/widgets/WidgetTimeRangeField.vue")).default,
     ),
     WidgetUnmapped: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetUnmapped.vue")).default),
 };
