@@ -816,7 +816,7 @@ describe("lib/use/useFormModel.js", () => {
             modelConfig.config.fieldDetails = props.fieldDetails;
             await flushPromises();
 
-            expect(state.widgetComponents.status).toStrictEqual(availableWidgets.WidgetMultiSelect);
+            expect(state.widgetComponents.status).toStrictEqual(availableWidgets.WidgetCombobox);
         });
         scopedIt("infers FieldSetStackedInline for expanded many fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
