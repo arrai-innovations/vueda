@@ -50,6 +50,7 @@ export const availableWidgets = {
         async () => (await import("@vueda/widgets/WidgetAutoComplete.vue")).default,
     ),
     WidgetCheckbox: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetCheckbox.vue")).default),
+    WidgetCombobox: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetCombobox.vue")).default),
     WidgetDateField: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDateField.vue")).default),
     WidgetDatePicker: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default),
     WidgetDateRangeField: defineAsyncComponent(

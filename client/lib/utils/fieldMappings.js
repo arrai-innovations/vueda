@@ -186,7 +186,7 @@ export const defaultFieldMappings = {
     ManyRelatedField: {
         ManyToManyField: {
             component: null,
-            widget: availableWidgets.WidgetSearchableSelect,
+            widget: availableWidgets.WidgetCombobox,
             widgetProps: { multiple: true },
             fieldProps: {
                 shouldRequireFn: (value) => {
@@ -201,7 +201,7 @@ export const defaultFieldMappings = {
         },
         ManyRelatedField: {
             component: null,
-            widget: availableWidgets.WidgetSearchableSelect,
+            widget: availableWidgets.WidgetCombobox,
             widgetProps: { multiple: true },
             fieldProps: {
                 shouldRequireFn: (value) => {
@@ -241,13 +241,13 @@ export const defaultFieldMappings = {
     PrimaryKeyRelatedField: {
         ForeignKey: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetSearchableSelect,
+            widget: availableWidgets.WidgetCombobox,
             default: true,
         },
-        OneToOneField: { component: availableFields.FieldNumber, widget: availableWidgets.WidgetSearchableSelect },
+        OneToOneField: { component: availableFields.FieldNumber, widget: availableWidgets.WidgetCombobox },
         RelatedField: {
             component: availableFields.FieldNumber,
-            widget: availableWidgets.WidgetSearchableSelect,
+            widget: availableWidgets.WidgetCombobox,
             widgetProps: { multiple: true },
         },
     },
@@ -344,22 +344,29 @@ export const choiceFieldMappings = {
     CharField: {
         CharField: {
             widget: availableWidgets.WidgetSelectDropdown,
-            manyWidget: availableWidgets.WidgetMultiSelect,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
             default: true,
         },
-        TextField: { widget: availableWidgets.WidgetSelectDropdown, manyWidget: availableWidgets.WidgetMultiSelect },
+        TextField: {
+            widget: availableWidgets.WidgetSelectDropdown,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
+        },
     },
     ChoiceField: {
         CharField: {
             component: availableFields.FieldString,
             widget: availableWidgets.WidgetSelectDropdown,
-            manyWidget: availableWidgets.WidgetMultiSelect,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
             default: true,
         },
         TextField: {
             component: availableFields.FieldString,
             widget: availableWidgets.WidgetSelectDropdown,
-            manyWidget: availableWidgets.WidgetMultiSelect,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
         },
     },
     EmailField: {
@@ -367,14 +374,14 @@ export const choiceFieldMappings = {
     },
     ManyRelatedField: {
         ManyToManyField: {
-            widget: availableWidgets.WidgetSearchableSelect,
-            manyWidget: availableWidgets.WidgetSearchableSelect,
+            widget: availableWidgets.WidgetCombobox,
+            manyWidget: availableWidgets.WidgetCombobox,
             manyWidgetProps: { multiple: true },
             default: true,
         },
         ManyRelatedField: {
-            widget: availableWidgets.WidgetSearchableSelect,
-            manyWidget: availableWidgets.WidgetSearchableSelect,
+            widget: availableWidgets.WidgetCombobox,
+            manyWidget: availableWidgets.WidgetCombobox,
             manyWidgetProps: { multiple: true },
         },
     },
@@ -385,36 +392,38 @@ export const choiceFieldMappings = {
         },
     },
     PrimaryKeyRelatedField: {
-        ForeignKey: { widget: availableWidgets.WidgetSearchableSelect, default: true },
-        OneToOneField: { widget: availableWidgets.WidgetSearchableSelect },
+        ForeignKey: { widget: availableWidgets.WidgetCombobox, default: true },
+        OneToOneField: { widget: availableWidgets.WidgetCombobox },
         RelatedField: {
-            widget: availableWidgets.WidgetSearchableSelect,
-            manyWidget: availableWidgets.WidgetSearchableSelect,
+            widget: availableWidgets.WidgetCombobox,
+            manyWidget: availableWidgets.WidgetCombobox,
             manyWidgetProps: { multiple: true },
         },
     },
     SerializerMethodField: {
         GenericForeignKey: {
-            widget: availableWidgets.WidgetSearchableSelect,
-            widgetMany: availableWidgets.WidgetSearchableSelect,
+            widget: availableWidgets.WidgetCombobox,
+            manyWidget: availableWidgets.WidgetCombobox,
             default: true,
         },
         GenericRelation: {
-            widget: availableWidgets.WidgetSearchableSelect,
-            widgetMany: availableWidgets.WidgetSearchableSelect,
+            widget: availableWidgets.WidgetCombobox,
+            manyWidget: availableWidgets.WidgetCombobox,
         },
     },
     SlugField: {
         SlugField: {
             widget: availableWidgets.WidgetSelectDropdown,
-            widgetMany: availableWidgets.WidgetMultiSelect,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
             default: true,
         },
     },
     URLField: {
         URLField: {
             widget: availableWidgets.WidgetSelectDropdown,
-            widgetMany: availableWidgets.WidgetMultiSelect,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
             default: true,
         },
     },
