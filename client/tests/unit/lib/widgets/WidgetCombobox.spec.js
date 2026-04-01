@@ -125,6 +125,19 @@ const ControlComboboxEmptyStub = defineComponent({
     },
 });
 
+const ControlComboboxVirtualizerStub = defineComponent({
+    name: "ControlComboboxVirtualizerStub",
+    props: ["options", "textContent", "estimateSize", "overscan"],
+    setup(props, { slots }) {
+        return () =>
+            h(
+                "div",
+                { "data-stub": "combobox-virtualizer" },
+                props.options?.map((option) => slots.default?.({ option })),
+            );
+    },
+});
+
 vi.mock("@vueda/controls/combobox", () => ({
     ControlCombobox: ControlComboboxStub,
     ControlComboboxAnchor: ControlComboboxAnchorStub,
@@ -136,6 +149,7 @@ vi.mock("@vueda/controls/combobox", () => ({
     ControlComboboxGroup: ControlComboboxGroupStub,
     ControlComboboxItemIndicator: ControlComboboxItemIndicatorStub,
     ControlComboboxEmpty: ControlComboboxEmptyStub,
+    ControlComboboxVirtualizer: ControlComboboxVirtualizerStub,
 }));
 
 vi.mock("lucide-vue-next", () => ({
@@ -152,6 +166,15 @@ const LinkModelViewStub = defineComponent({
 });
 
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
+
+vi.mock("reka-ui", () => ({
+    useFilter: () => ({
+        contains: (string, substring) => {
+            if (!substring) return true;
+            return string.toLowerCase().includes(substring.toLowerCase());
+        },
+    }),
+}));
 
 /* ------------------------------------------------------------------ */
 /*  Mock useWidget                                                      */
@@ -557,6 +580,99 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
                 props: { options: STATIC_OPTIONS, multiple: true, placeholder: "Choose colors" },
             });
             expect(wrapper.get(QA_SEL).text()).toContain("Choose colors");
+        });
+    });
+
+    /* -------------------------------------------------------------- */
+    /*  Virtualizer                                                    */
+    /* -------------------------------------------------------------- */
+
+    describe("Virtualizer", () => {
+        scopedIt("renders non-grouped items through the virtualizer", async () => {
+            const wrapper = mount(WidgetCombobox, { props: { options: STATIC_OPTIONS } });
+            expect(wrapper.find("[data-stub='combobox-virtualizer']").exists()).toBe(true);
+            const items = wrapper.findAll("[data-stub='combobox-item']");
+            expect(items).toHaveLength(3);
+        });
+
+        scopedIt("passes options to virtualizer in API mode", async () => {
+            searchState.options = [
+                { id: 1, formatted_name: "Alpha" },
+                { id: 2, formatted_name: "Beta" },
+            ];
+            const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing" } });
+            const virt = wrapper.getComponent(ControlComboboxVirtualizerStub);
+            expect(virt.props("options")).toHaveLength(2);
+        });
+
+        scopedIt("passes textContent function to virtualizer", async () => {
+            const wrapper = mount(WidgetCombobox, {
+                props: { options: STATIC_OPTIONS, optionLabel: "label" },
+            });
+            const virt = wrapper.getComponent(ControlComboboxVirtualizerStub);
+            const fn = virt.props("textContent");
+            expect(fn({ label: "Red", value: "red" })).toBe("Red");
+        });
+
+        scopedIt("does not render virtualizer for grouped items", async () => {
+            searchState.isGrouped = true;
+            searchState.groupByField = "category";
+            searchState.options = [{ category: "Fruit", items: [{ id: 1, formatted_name: "Apple" }] }];
+            const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing" } });
+            expect(wrapper.find("[data-stub='combobox-virtualizer']").exists()).toBe(false);
+            expect(wrapper.find("[data-stub='combobox-group']").exists()).toBe(true);
+        });
+    });
+
+    /* -------------------------------------------------------------- */
+    /*  Static mode filtering                                          */
+    /* -------------------------------------------------------------- */
+
+    describe("Static mode filtering", () => {
+        scopedIt("filters static options by search query", async () => {
+            const { nextTick } = await vi.importActual("vue");
+            const wrapper = mount(WidgetCombobox, {
+                props: { options: STATIC_OPTIONS, optionLabel: "label" },
+            });
+            searchState.query = "re";
+            await nextTick();
+            const items = wrapper.findAll("[data-stub='combobox-item']");
+            expect(items).toHaveLength(2); // Red, Green
+        });
+
+        scopedIt("shows all options when query is empty", async () => {
+            const wrapper = mount(WidgetCombobox, {
+                props: { options: STATIC_OPTIONS, optionLabel: "label" },
+            });
+            const items = wrapper.findAll("[data-stub='combobox-item']");
+            expect(items).toHaveLength(3);
+        });
+
+        scopedIt("filtering is case-insensitive", async () => {
+            const { nextTick } = await vi.importActual("vue");
+            const wrapper = mount(WidgetCombobox, {
+                props: { options: STATIC_OPTIONS, optionLabel: "label" },
+            });
+            searchState.query = "RED";
+            await nextTick();
+            const items = wrapper.findAll("[data-stub='combobox-item']");
+            expect(items).toHaveLength(1);
+            expect(items[0].attributes("data-text-value")).toBe("Red");
+        });
+
+        scopedIt("shows 'No matching results.' when query matches nothing", async () => {
+            const { nextTick } = await vi.importActual("vue");
+            searchState.query = "xyz";
+            const wrapper = mount(WidgetCombobox, {
+                props: { options: STATIC_OPTIONS, optionLabel: "label" },
+            });
+            await nextTick();
+            expect(wrapper.find("[data-stub='combobox-empty']").text()).toBe("No matching results.");
+        });
+
+        scopedIt("shows 'No options available.' when no query and no options", async () => {
+            const wrapper = mount(WidgetCombobox, { props: { options: [] } });
+            expect(wrapper.find("[data-stub='combobox-empty']").text()).toBe("No options available.");
         });
     });
 });

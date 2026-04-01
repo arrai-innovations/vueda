@@ -9,4 +9,5 @@ export { default as ControlComboboxList } from "./ControlComboboxList.vue";
 export { default as ControlComboboxSeparator } from "./ControlComboboxSeparator.vue";
 export { default as ControlComboboxTrigger } from "./ControlComboboxTrigger.vue";
 export { default as ControlComboboxViewport } from "./ControlComboboxViewport.vue";
+export { default as ControlComboboxVirtualizer } from "./ControlComboboxVirtualizer.vue";
 export { ComboboxCancel } from "reka-ui";

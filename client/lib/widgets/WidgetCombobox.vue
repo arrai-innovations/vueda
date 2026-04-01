@@ -11,12 +11,14 @@ import {
     ControlComboboxList,
     ControlComboboxTrigger,
     ControlComboboxViewport,
+    ControlComboboxVirtualizer,
 } from "@vueda/controls/combobox";
 import { useComboboxSearch } from "@vueda/use/useComboboxSearch.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { cn } from "@vueda/utils/cn.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { CheckIcon, ChevronDownIcon } from "lucide-vue-next";
+import { useFilter } from "reka-ui";
 import { computed, inject } from "vue";
 
 /**
@@ -33,7 +35,7 @@ defineOptions({
 
 const props = defineProps({
     ...WIDGET_PROPS,
-    /** Static option array. When provided, filtering is handled client-side by Reka UI. */
+    /** Static option array. When provided, filtering is handled client-side via useFilter. */
     options: { type: Array, default: undefined },
     /** Django app label for the model to search (API mode). */
     app: { type: String, default: undefined },
@@ -124,7 +126,7 @@ const closedStateLabel = computed(() => {
     return label && label !== "\u00A0" ? label : null;
 });
 
-// Options passed to the item renderer.
+// Options passed to the grouped item renderer (API mode only).
 const displayOptions = computed(() => {
     if (isApiMode.value) {
         return comboboxSearch.options;
@@ -132,9 +134,33 @@ const displayOptions = computed(() => {
     return props.options ?? [];
 });
 
+const { contains } = useFilter({ sensitivity: "base" });
+
+// Filtered options for the virtualizer (non-grouped path).
+// The virtualizer bypasses Reka UI's built-in filtering, so static mode
+// options must be filtered manually.
+const filteredDisplayOptions = computed(() => {
+    if (isApiMode.value) {
+        return comboboxSearch.options;
+    }
+    const opts = props.options ?? [];
+    const q = comboboxSearch.query;
+    if (!q) return opts;
+    return opts.filter((opt) => {
+        const label = opt[props.optionLabel];
+        return label != null && contains(String(label), q);
+    });
+});
+
+// Text content accessor for the virtualizer's type-ahead support.
+const textContentFn = computed(() => {
+    const labelKey = isApiMode.value ? comboboxSearch.optionLabel : props.optionLabel;
+    return (opt) => String(opt[labelKey] ?? "");
+});
+
 const emptyMessage = computed(() => {
     if (isApiMode.value) return comboboxSearch.emptyMessage;
-    return "No options available.";
+    return comboboxSearch.query ? "No matching results." : "No options available.";
 });
 
 const isGrouped = computed(() => isApiMode.value && comboboxSearch.isGrouped);
@@ -224,10 +250,13 @@ const triggerClass = cn(
                         </ControlComboboxItem>
                     </ControlComboboxGroup>
                 </template>
-                <template v-else>
+                <ControlComboboxVirtualizer
+                    v-else
+                    v-slot="{ option }"
+                    :options="filteredDisplayOptions"
+                    :text-content="textContentFn"
+                >
                     <ControlComboboxItem
-                        v-for="option in displayOptions"
-                        :key="isApiMode ? option[comboboxSearch.optionValue] : option[props.optionValue]"
                         :value="isApiMode ? option[comboboxSearch.optionValue] : option[props.optionValue]"
                         :text-value="isApiMode ? option[comboboxSearch.optionLabel] : option[props.optionLabel]"
                     >
@@ -236,7 +265,7 @@ const triggerClass = cn(
                             <CheckIcon class="size-4" />
                         </ControlComboboxItemIndicator>
                     </ControlComboboxItem>
-                </template>
+                </ControlComboboxVirtualizer>
             </ControlComboboxViewport>
         </ControlComboboxList>
     </ControlCombobox>
