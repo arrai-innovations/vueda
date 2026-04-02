@@ -81,7 +81,7 @@ importers:
         specifier: ^9.5.0
         version: 9.47.1(pinia@3.0.4(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))
       '@vueuse/core':
-        specifier: ^13.0.0
+        specifier: ^13.9.0
         version: 13.9.0(vue@3.5.27(typescript@5.9.3))
       browser-util-inspect:
         specifier: ^0.2.0
