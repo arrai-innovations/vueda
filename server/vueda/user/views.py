@@ -55,7 +55,6 @@ from django.views.generic.detail import SingleObjectMixin
 from hashids import Hashids
 from rest_framework import serializers
 from rest_framework import status
-from rest_framework import status as drf_status
 from rest_framework.decorators import api_view
 from rest_framework.decorators import permission_classes
 from rest_framework.generics import GenericAPIView
@@ -99,7 +98,7 @@ class WhoIsView(RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         if isinstance(instance, AnonymousUser):
-            return Response({}, status=200)
+            return Response({}, status=status.HTTP_200_OK)
         return super().retrieve(request, *args, **kwargs)
 
     def get_object(self):
@@ -149,7 +148,7 @@ class VuedaForgotPasswordView(GenericAPIView):
             if cache.get(cache_key):
                 return Response(
                     {"detail": "You must wait before requesting another password reset."},
-                    status=drf_status.HTTP_429_TOO_MANY_REQUESTS,
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
                 )
 
             url = active_user.generate_reset_url()
@@ -160,9 +159,9 @@ class VuedaForgotPasswordView(GenericAPIView):
             get_adapter().send_mail(email, active_user.name, "forgot_password", context)
             cache.set(cache_key, True, timeout=60)
         else:
-            return Response({"email": ["Email not found or user is inactive. "]}, status=400)
+            return Response({"email": ["Email not found or user is inactive. "]}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(status=drf_status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @conditional_extend_schema_decorator(
@@ -201,7 +200,7 @@ class VuedaResetPasswordView(GenericAPIView):
         pk = request.query_params.get("pk")
         token = request.query_params.get("token")
         if not pk or not token:
-            return Response({"detail": "Missing parameters."}, status=drf_status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Missing parameters."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             uid = hashids.decode(pk)[0]
@@ -209,15 +208,15 @@ class VuedaResetPasswordView(GenericAPIView):
         except (IndexError, get_user_model().DoesNotExist):
             return Response(
                 {"detail": "This token is invalid or has already been used."},
-                status=drf_status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if token_validator.check_token(user, token):
-            return Response({"detail": "Token is valid."}, status=drf_status.HTTP_200_OK)
+            return Response({"detail": "Token is valid."}, status=status.HTTP_200_OK)
         else:
             return Response(
                 {"detail": "This token is invalid or has already been used."},
-                status=drf_status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
     @sensitive_variables("password", "token", "serializer.data")
@@ -239,7 +238,7 @@ class VuedaResetPasswordView(GenericAPIView):
             non_field_error_key = api_settings.NON_FIELD_ERRORS_KEY
             return Response(
                 {non_field_error_key: ["This token is invalid or has already been used."]},
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if token_validator.check_token(user, token):
@@ -253,10 +252,10 @@ class VuedaResetPasswordView(GenericAPIView):
 
             return Response(
                 {non_field_error_key: ["This token is invalid or has already been used."]},
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response(status=drf_status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @conditional_extend_schema_decorator(
@@ -272,12 +271,20 @@ class ResendWelcomeEmailView(SingleObjectMixin, APIView):
         try:
             user = self.get_object()
         except Exception as e:
-            return Response({"result": "error", "message": str(e)}, content_type="application/json", status=404)
+            return Response(
+                {"result": "error", "message": str(e)},
+                content_type="application/json",
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         try:
             user.send_welcome_email()
         except Exception as e:
-            return Response({"result": "error", "message": str(e)}, content_type="application/json", status=500)
+            return Response(
+                {"result": "error", "message": str(e)},
+                content_type="application/json",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return Response({"result": "success", "message": "Welcome email resent."}, content_type="application/json")
 
@@ -439,7 +446,7 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": ["Unable to find the permission for the group you want to delete."],
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         group = Group.objects.filter(pk=group_id).first()
@@ -449,7 +456,7 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": ["Unable to find the group to delete."],
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         group_name = group.name
@@ -487,7 +494,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": [str(e)],
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
     def _post(self, request, *args, **kwargs):
@@ -520,7 +527,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": errors,
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         permission = Permission.objects.filter(pk=permission_id).first()
@@ -530,7 +537,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": ["Unable to find the permission for the group you want to change."],
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if group_id is None:  # New Group
@@ -546,7 +553,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                             f"You already have an association between &quot;{group_name}&quot; and this permission."
                         ],
                     },
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             permission.group_set.add(group)
@@ -572,7 +579,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": ["Unable to find the group to change."],
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
         group_name_old = group.name
         group.name = group_name
@@ -585,7 +592,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                             f"You already have an association between &quot;{group_name}&quot; and this permission."
                         ],
                     },
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             group.save()
