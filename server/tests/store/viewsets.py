@@ -1,8 +1,10 @@
 from dateutil.relativedelta import relativedelta
 from django.http import Http404
 from django.utils.timezone import now
+from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
 
 import tests.store.filtersets as my_filtersets
 import tests.store.models as my_models
@@ -173,3 +175,17 @@ class PackingBoxViewSet(VuedaViewSet):
     queryset = my_models.PackingBox.objects.all()
     serializer_class = my_serializers.PackingBoxSerializer
     ordering_fields = ["name"]
+
+
+class InvoiceViewSet(VuedaViewSet):
+    queryset = my_models.Invoice.objects.all()
+    serializer_class = my_serializers.InvoiceSerializer
+    ordering_fields = ["name"]
+
+
+class InvoiceBaseViewSet(ModelViewSet):
+    """Plain drf_writable_nested viewset — no vueda fixes applied."""
+
+    queryset = my_models.Invoice.objects.all()
+    serializer_class = my_serializers.InvoiceBaseSerializer
+    permission_classes = [permissions.AllowAny]

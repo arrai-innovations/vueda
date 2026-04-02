@@ -1,4 +1,5 @@
 # Serializers to use with info.
+import drf_writable_nested
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
@@ -511,3 +512,37 @@ class PackingBoxSerializer(VuedaSerializer):
             "in_stock",
             "number_in_stock",
         ] + VuedaSerializer.Meta.fields
+
+
+class InvoiceLineSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.InvoiceLine
+        fields = ["id", "name", "amount"] + VuedaSerializer.Meta.fields
+
+
+class InvoiceSerializer(VuedaSerializer):
+    invoice_lines = InvoiceLineSerializer(many=True, required=False)
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Invoice
+        fields = ["id", "name", "invoice_lines"] + VuedaSerializer.Meta.fields
+
+
+# Plain drf_writable_nested serializers (no vueda fixes) — used to detect if
+# drf-writable-nested ever fixes the create-before-delete ordering bug itself.
+class InvoiceLineBaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.InvoiceLine
+        fields = ["id", "name", "amount"]
+
+
+class InvoiceBaseSerializer(
+    drf_writable_nested.NestedUpdateMixin,
+    drf_writable_nested.NestedCreateMixin,
+    serializers.ModelSerializer,
+):
+    invoice_lines = InvoiceLineBaseSerializer(many=True, required=False)
+
+    class Meta:
+        model = models.Invoice
+        fields = ["id", "name", "invoice_lines"]

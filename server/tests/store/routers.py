@@ -5,6 +5,8 @@ from tests.store.viewsets import CustomerViewSet
 from tests.store.viewsets import DistributorViewSet
 from tests.store.viewsets import InventoryRecordReasonViewSet
 from tests.store.viewsets import InventoryRecordViewSet
+from tests.store.viewsets import InvoiceBaseViewSet
+from tests.store.viewsets import InvoiceViewSet
 from tests.store.viewsets import OptionTypeViewSet
 from tests.store.viewsets import ProductOptionViewSet
 from tests.store.viewsets import ProductViewSet
@@ -19,6 +21,8 @@ store_tests_router.register("customer_orders", CustomerOrderViewSet)
 store_tests_router.register("distributors", DistributorViewSet)
 store_tests_router.register("inventory_records", InventoryRecordViewSet)
 store_tests_router.register("inventory_record_reasons", InventoryRecordReasonViewSet)
+store_tests_router.register("invoices", InvoiceViewSet)
+store_tests_router.register("invoices_base", InvoiceBaseViewSet, basename="store.invoice-base")
 store_tests_router.register("option_types", OptionTypeViewSet)
 store_tests_router.register("products", ProductViewSet)
 store_tests_router.register("product_options", ProductOptionViewSet)

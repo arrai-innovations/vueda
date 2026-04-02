@@ -724,6 +724,69 @@ class Migration(migrations.Migration):
                 "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
+        migrations.CreateModel(
+            name="Invoice",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="InvoiceLine",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=12)),
+                (
+                    "invoice",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="invoice_lines",
+                        to="store.invoice",
+                    ),
+                ),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
         migrations.RunPython(make_sure_permissions_exist, reverse_code=migrations.RunPython.noop),
         migrations.RunSQL(
             sql="""
