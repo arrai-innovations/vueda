@@ -127,29 +127,35 @@ export const defaultFieldMappings = {
             fieldProps: { ownsLayout: true },
         },
         BigIntegerField: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
+            fieldProps: { validation: "numeric", ownsLayout: true },
         },
         IntegerField: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
+            fieldProps: { validation: "numeric", ownsLayout: true },
             default: true,
         },
         PositiveBigIntegerField: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
+            fieldProps: { validation: "numeric", ownsLayout: true },
         },
         PositiveIntegerField: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
+            fieldProps: { validation: "numeric", ownsLayout: true },
         },
         PositiveSmallIntegerField: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
+            fieldProps: { validation: "numeric", ownsLayout: true },
         },
         SmallIntegerField: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
+            fieldProps: { validation: "numeric", ownsLayout: true },
         },
     },
     IPAddressField: {
