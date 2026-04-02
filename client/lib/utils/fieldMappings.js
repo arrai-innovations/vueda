@@ -264,15 +264,15 @@ export const defaultFieldMappings = {
     },
     SerializerMethodField: {
         GenericForeignKey: {
-            component: availableFields.FieldString,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetGenericAutoComplete,
-            fieldProps: {},
+            fieldProps: { ownsLayout: true },
             default: true,
         },
         GenericRelation: {
-            component: availableFields.FieldString,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetGenericAutoComplete,
-            fieldProps: {},
+            fieldProps: { ownsLayout: true },
         },
     },
     SlugField: {
