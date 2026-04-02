@@ -773,6 +773,55 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         assert obj.employee == employee
 
 
+@pytest.mark.django_db
+class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create = {
+        "Timesheet Updater": [
+            ("tests", "Timesheet", "update"),
+        ]
+    }
+
+    users_to_create = {
+        "test_nested_initial_data@example.com": {
+            "name": "Test Nested Initial Data User",
+            "password": "testpass",
+            "groups": ["Timesheet Updater"],
+        },
+    }
+
+    @pytest.fixture
+    def employee(self):
+        return Employee.objects.create(
+            user=self.users["test_nested_initial_data@example.com"],
+            employee_number="nested-12345",
+        )
+
+    def test_initial_data_propagated_to_nested_serializer(self, employee):
+        timesheet = Timesheet.objects.create(
+            employee=employee,
+            period_start=date(2024, 2, 15),
+            period_end=date(2024, 2, 29),
+        )
+        employee_data = {"id": employee.pk, "user": employee.user.pk, "employee_number": "nested-12345"}
+        data = {
+            "employee": employee_data,
+            "period_start": "2024-02-16",
+            "period_end": "2024-02-28",
+        }
+
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee"]}, data, "PUT")}
+        context["view"] = FakeView(
+            context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=timesheet.pk)
+        )
+
+        serializer = TimesheetSerializer(instance=timesheet, data=data, context=context)
+        serializer.is_valid(raise_exception=True)
+
+        # to_internal_value should have propagated initial_data from the main serializer
+        # down to the nested EmployeeSerializer field
+        assert serializer.fields["employee"].initial_data == employee_data
+
+
 class TestPrimaryKeyListSerializer:
     def test_valid_pk_list(self):
         serializer = PrimaryKeyListSerializer(data={"pks": [1, 2, 3]})
