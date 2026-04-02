@@ -3,12 +3,14 @@ import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import isString from "lodash-es/isString.js";
 import pick from "lodash-es/pick.js";
 import Button from "primevue/button";
 import FileUpload from "primevue/fileupload";
 import Image from "primevue/image";
-import { useSlots } from "vue";
+import { inject, toRef, useSlots, watch } from "vue";
 
 /**
  * An image upload widget that shows a file picker when no image is selected and a preview with a
@@ -26,6 +28,23 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
+/** @type {import('@vueda/use/useField.js').FieldContext|null} */
+const fieldContext = inject(FieldContextSymbol, null);
+
+if (fieldContext) {
+    watch(
+        toRef(fieldContext.state, "value"),
+        (newValue) => {
+            if (isString(newValue)) {
+                fieldContext.ignore();
+                return;
+            }
+            fieldContext.removeIgnore();
+        },
+        { immediate: true },
+    );
+}
+
 const upload = (e) => {
     widgetContext.state.combinedValue = e.files[0];
 };

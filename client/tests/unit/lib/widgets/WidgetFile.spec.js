@@ -1,5 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { defineComponent, h, reactive } from "vue";
 
 const FileUploadStub = defineComponent({
@@ -115,4 +116,30 @@ scopedIt("shows file info and removes file", async () => {
     expect(buttons.length).toBe(2);
     await buttons[0].trigger("click");
     expect(widgetState.combinedValue).toBe(null);
+});
+
+scopedIt("calls ignore for non-File objects and removeIgnore otherwise", async () => {
+    const fieldState = reactive({ value: undefined });
+    const ignoreFn = vi.fn();
+    const removeIgnoreFn = vi.fn();
+    const fc = { state: fieldState, ignore: ignoreFn, removeIgnore: removeIgnoreFn };
+
+    mount(WidgetFile, {
+        global: { provide: { [FieldContextSymbol]: fc } },
+    });
+
+    // immediate watch fires with undefined value
+    expect(removeIgnoreFn).toHaveBeenCalledTimes(1);
+
+    removeIgnoreFn.mockClear();
+    fieldState.value = { a: 1 };
+    await vue.nextTick();
+    expect(ignoreFn).toHaveBeenCalledTimes(1);
+    expect(removeIgnoreFn).not.toHaveBeenCalled();
+
+    ignoreFn.mockClear();
+    fieldState.value = new File(["x"], "x.txt");
+    await vue.nextTick();
+    expect(removeIgnoreFn).toHaveBeenCalledTimes(1);
+    expect(ignoreFn).not.toHaveBeenCalled();
 });

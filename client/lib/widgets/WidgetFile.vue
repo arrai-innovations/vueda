@@ -4,12 +4,14 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
+import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
 import Button from "primevue/button";
 import FileUpload from "primevue/fileupload";
-import { computed, useSlots } from "vue";
+import { computed, inject, toRef, useSlots, watch } from "vue";
 
 /**
  * A file-upload widget that displays an existing file as a labelled download link with remove and
@@ -36,8 +38,28 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
+/** @type {import('@vueda/use/useField.js').FieldContext|null} */
+const fieldContext = inject(FieldContextSymbol, null);
 const theme = useWidgetTheme("WidgetFile", props, widgetContext.state);
 const effectivePt = useWarningClass(props, widgetContext.state);
+
+if (fieldContext) {
+    watch(
+        toRef(fieldContext.state, "value"),
+        (newValue) => {
+            if (isObject(newValue)) {
+                if (newValue instanceof File) {
+                    fieldContext.removeIgnore();
+                    return;
+                }
+                fieldContext.ignore();
+            } else {
+                fieldContext.removeIgnore();
+            }
+        },
+        { immediate: true },
+    );
+}
 
 const upload = (e) => {
     widgetContext.state.combinedValue = e.files[0];

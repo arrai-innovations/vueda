@@ -1,5 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { defineComponent, h, nextTick, reactive } from "vue";
 
 const themeFn = vi.fn((k) => `t-${k}`);
@@ -117,5 +118,31 @@ describe("lib/widgets/WidgetImage.vue", () => {
         await nextTick();
         expect(widgetContext.state.combinedValue).toBe(null);
         expect(wrapper.findComponent(FileUploadStub).exists()).toBe(true);
+    });
+
+    scopedIt("calls ignore for string values and removeIgnore otherwise", async () => {
+        const fieldState = reactive({ value: undefined });
+        const ignoreFn = vi.fn();
+        const removeIgnoreFn = vi.fn();
+        const fc = { state: fieldState, ignore: ignoreFn, removeIgnore: removeIgnoreFn };
+
+        mount(WidgetImage, {
+            global: { provide: { [FieldContextSymbol]: fc } },
+        });
+
+        // immediate watch fires with undefined value
+        expect(removeIgnoreFn).toHaveBeenCalledTimes(1);
+
+        removeIgnoreFn.mockClear();
+        fieldState.value = "abc";
+        await nextTick();
+        expect(ignoreFn).toHaveBeenCalledTimes(1);
+        expect(removeIgnoreFn).not.toHaveBeenCalled();
+
+        ignoreFn.mockClear();
+        fieldState.value = { src: "img.jpg" };
+        await nextTick();
+        expect(removeIgnoreFn).toHaveBeenCalledTimes(1);
+        expect(ignoreFn).not.toHaveBeenCalled();
     });
 });

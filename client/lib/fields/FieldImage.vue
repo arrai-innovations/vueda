@@ -1,12 +1,12 @@
 <script setup>
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import isString from "lodash-es/isString.js";
 import omit from "lodash-es/omit.js";
-import { toRef, watch } from "vue";
 
 /**
- * Field component for image upload values. Automatically marks the field as ignored when the current value is a string
- * (for example, an existing image URL returned by the server), and restores it when a new file object is provided.
+ * Field component for image upload values. Provides field context for the
+ * image upload widget. The ignore/removeIgnore lifecycle (which prevents
+ * unchanged server-side image URLs from being submitted) is handled by the
+ * widget layer.
  */
 
 defineOptions({
@@ -16,18 +16,7 @@ const props = defineProps({
     ...FIELD_PROPS,
 });
 const emit = defineEmits([...FIELD_EMITS]);
-const fieldContext = useField(props, emit);
-watch(
-    toRef(fieldContext.state, "value"),
-    (newValue) => {
-        if (isString(newValue)) {
-            fieldContext.ignore();
-            return;
-        }
-        fieldContext.removeIgnore();
-    },
-    { immediate: true },
-);
+useField(props, emit);
 </script>
 <template>
     <div :class="$attrs.class" data-qa="field-image">
