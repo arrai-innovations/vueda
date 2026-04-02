@@ -15,7 +15,7 @@ from vueda.history.models import VuedaHistoryModel
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class Customer(HasWorkflowModelMixin, VuedaHistoryModel):
+class Customer(VuedaHistoryModel):
     user = models.OneToOneField(get_user_model(), on_delete=models.PROTECT)
 
     formatted_name = None

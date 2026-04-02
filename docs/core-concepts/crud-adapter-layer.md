@@ -27,7 +27,7 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 **Every slot starts with a sentinel function that rejects with a diagnostic message.** Before any adapter is registered, calling a composable method produces a rejected promise with the message `Crud method "<name>" is not implemented.` Slots that require cancellation support (`list`, `subscribe`) use a variant that also provides an empty `.cancel()` method. This ensures that missing registration produces an actionable error instead of a `TypeError` or silent failure.
 
-**The registry is singleton and last-write-wins.** Calling `setListCrud(...)` or `setObjectCrud(...)` replaces handler functions completely for the specified slots; it does not merge them. The `args` object is merged via `Object.assign`. Calling the setup functions multiple times (for example, from both `main.js` and a test setup) silently overwrites the previous registration. There is no warning or error for double registration.
+**The registry is a singleton and last-write-wins.** Calling `setListCrud(...)` or `setObjectCrud(...)` replaces handler functions completely for the specified slots; it does not merge them. The `args` object is merged via `Object.assign`. Calling the setup functions multiple times (for example, from both `main.js` and a test setup) silently overwrites the previous registration. There is no warning or error for double registration.
 
 ## Default Adapter Set (List)
 

@@ -18,7 +18,7 @@ from vueda.core.viewsets import VuedaViewSet
 from vueda.workflow.views import HasWorkflowViewMixin
 
 
-class CustomerViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
+class CustomerViewSet(VuedaHistoryViewSet):
     queryset = my_models.Customer.objects.all()
     serializer_class = my_serializers.CustomerSerializer
     ordering_fields = ["user__email"]

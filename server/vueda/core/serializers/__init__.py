@@ -21,6 +21,7 @@ import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from rest_flex_fields import split_levels
 from rest_framework import serializers
 
 from vueda.core.exceptions import VuedaValidationError
@@ -99,6 +100,26 @@ class FlexFieldsWriteableNestedSerializerMixin(
     """
     This is a utility mixin making a single class that makes serializers flex & nested writable.
     """
+
+    def apply_flex_fields(self, fields, flex_options):
+        expand_fields, _next_expand_fields = split_levels(flex_options["expand"])
+        sparse_fields, next_sparse_fields = split_levels(flex_options["fields"])
+
+        if self._contains_wildcard_value(expand_fields):
+            expand_fields = self._expandable_fields.keys()
+
+        added_wildcard_expands = False
+        for expand_field in expand_fields:
+            if expand_field not in next_sparse_fields:
+                flex_options["fields"].append(f"{expand_field}.*")
+                added_wildcard_expands = True
+
+        # If no fields were specified (which can occur through tests) and we added
+        # expanded field wildcards, then we also need all fields from the main model.
+        if added_wildcard_expands and not sparse_fields:
+            flex_options["fields"].append("*")
+
+        return super().apply_flex_fields(fields, flex_options)
 
     def to_internal_value(self, data):
         """

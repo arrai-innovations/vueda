@@ -12,7 +12,7 @@ from vueda.user.serializers import UserSerializer
 from vueda.workflow.serializers import HasWorkflowSerializerMixin
 
 
-class CustomerSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer):
+class CustomerSerializer(VuedaHistorySerializer):
     user = serializers.PrimaryKeyRelatedField(
         queryset=get_user_model().objects.filter(is_system=False),
     )
@@ -21,15 +21,11 @@ class CustomerSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer):
 
     class Meta(VuedaHistorySerializer.Meta):
         model = models.Customer
-        fields = (
-            [
-                "id",
-                "user",
-                "number_of_ordered_products",
-            ]
-            + VuedaHistorySerializer.Meta.fields
-            + HasWorkflowSerializerMixin.Meta.fields
-        )
+        fields = [
+            "id",
+            "user",
+            "number_of_ordered_products",
+        ] + VuedaHistorySerializer.Meta.fields
         expandable_fields = {
             "user": (
                 UserSerializer,
@@ -352,18 +348,22 @@ class OrderItemSerializer(VuedaSerializer):
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
-class CustomerOrderSerializer(VuedaHistorySerializer):
+class CustomerOrderSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
         model = models.CustomerOrder
-        fields = [
-            "id",
-            "order_number",
-            "when",
-            "customer",
-            "order_items",
-            "order_state",
-            "shipping_method",
-        ] + VuedaHistorySerializer.Meta.fields
+        fields = (
+            [
+                "id",
+                "order_number",
+                "when",
+                "customer",
+                "order_items",
+                "order_state",
+                "shipping_method",
+            ]
+            + VuedaHistorySerializer.Meta.fields
+            + HasWorkflowSerializerMixin.Meta.fields
+        )
         expandable_fields = {
             "customer": (
                 CustomerSerializer,

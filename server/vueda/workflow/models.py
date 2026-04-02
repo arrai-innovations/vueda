@@ -541,9 +541,7 @@ class HasWorkflowModelMixin(models.Model):
                 workflow__content_type=self.get_content_type(),
             ).exists()
         ):
-            raise PermissionDenied(
-                f"User {user.get_username()!r} does not have workflow permissions for {self.get_content_type()!r}"
-            )
+            raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
         transitions = self.fast_available_transitions()
         return transitions.filter(pk__in=[t.id for t in transitions if self.check_transition_permission(t, user)])
 

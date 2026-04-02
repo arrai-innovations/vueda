@@ -55,7 +55,6 @@ pre-commit:
                 - ".venv/**"
                 - "**/.venv/**"
                 - "**/node_modules/**"
-                - "server/**/migrations/**"
             run: |
                 uv run --group dev --no-sync ruff check --fix --show-fixes {staged_files}
                 uv run --group dev --no-sync ruff format {staged_files}

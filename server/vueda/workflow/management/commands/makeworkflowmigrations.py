@@ -1198,9 +1198,9 @@ class Command(BaseCommand):
                     if app_label not in apps_with_workflow:
                         apps_with_workflow[app_label] = {
                             "app_name": model_meta.app_config.name,
-                            "content_type_ids": [],
+                            "model_to_content_type_ids": [],
                         }
-                    apps_with_workflow[app_label]["content_type_ids"].append(content_type.pk)
+                    apps_with_workflow[app_label]["model_to_content_type_ids"][model_name] = content_type.pk
 
         return apps_with_workflow
 
@@ -2245,6 +2245,7 @@ class Command(BaseCommand):
             else:
                 copied_imports.extend(
                     [
+                        f"from django.db.models import Count{NEWLINE}",
                         "from django.utils import timezone",
                     ]
                 )
