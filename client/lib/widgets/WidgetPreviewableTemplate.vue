@@ -3,8 +3,8 @@ import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { sanitizeMessage } from "@vueda/utils/html.js";
 import WidgetHtml from "@vueda/widgets/WidgetHtml.vue";
-import WidgetInput from "@vueda/widgets/WidgetInput.vue";
-import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
+import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
+import WidgetTextTextarea from "@vueda/widgets/WidgetTextTextarea.vue";
 import get from "lodash-es/get.js";
 import omit from "lodash-es/omit.js";
 import { computed } from "vue";
@@ -60,8 +60,8 @@ const inputComponent = computed(
     () =>
         ({
             editor: WidgetHtml,
-            input: WidgetInput,
-            textarea: WidgetTextarea,
+            input: WidgetTextInput,
+            textarea: WidgetTextTextarea,
         })[props.type] || WidgetHtml,
 );
 
