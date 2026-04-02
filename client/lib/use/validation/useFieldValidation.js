@@ -13,6 +13,7 @@ import { useTimeValidation } from "./useTimeValidation.js";
 const validators = {
     text: useTextValidation,
     numeric: useNumericValidation,
+    decimal: (fieldContext, options) => useNumericValidation(fieldContext, options, { coerce: true }),
     date: (fieldContext, options) => useDateTimeValidation(fieldContext, options, { dateOnly: true }),
     datetime: useDateTimeValidation,
     time: useTimeValidation,
@@ -22,7 +23,7 @@ const validators = {
  * Dispatches to the validation composable matching the given type string.
  * Does nothing when type is undefined or unrecognized.
  *
- * @param {string|undefined} type - The validation type (e.g. "text", "numeric", "date", "datetime", "time").
+ * @param {string|undefined} type - The validation type (e.g. "text", "numeric", "decimal", "date", "datetime", "time").
  * @param {import('@vueda/use/useField.js').FieldContext} fieldContext - The field context to validate against.
  * @param {object} options - Constraint configuration (typically the component props object).
  * @returns {void}

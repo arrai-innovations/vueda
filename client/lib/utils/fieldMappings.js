@@ -46,25 +46,33 @@ export const defaultFieldMappings = {
         },
     },
     DateField: {
-        DateField: { component: availableFields.FieldDate, widget: availableWidgets.WidgetDateField, default: true },
+        DateField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetDateField,
+            fieldProps: { validation: "date", ownsLayout: true },
+            default: true,
+        },
     },
     DateTimeField: {
         DateTimeField: {
-            component: availableFields.FieldDateTime,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetDateField,
+            fieldProps: { validation: "datetime", ownsLayout: true },
             widgetProps: { granularity: "minute" },
             default: true,
         },
     },
     DecimalField: {
         DecimalField: {
-            component: availableFields.FieldDecimal,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
+            fieldProps: { validation: "decimal", ownsLayout: true },
             default: true,
         },
         PositiveDecimalField: {
-            component: availableFields.FieldDecimal,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
+            fieldProps: { validation: "decimal", ownsLayout: true },
         },
     },
     DurationSecondsField: {
@@ -98,8 +106,9 @@ export const defaultFieldMappings = {
     },
     FloatField: {
         FloatField: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
+            fieldProps: { validation: "numeric", ownsLayout: true },
             default: true,
         },
     },
@@ -240,14 +249,20 @@ export const defaultFieldMappings = {
     },
     PrimaryKeyRelatedField: {
         ForeignKey: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetCombobox,
+            fieldProps: { ownsLayout: true },
             default: true,
         },
-        OneToOneField: { component: availableFields.FieldNumber, widget: availableWidgets.WidgetCombobox },
-        RelatedField: {
-            component: availableFields.FieldNumber,
+        OneToOneField: {
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetCombobox,
+            fieldProps: { ownsLayout: true },
+        },
+        RelatedField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetCombobox,
+            fieldProps: { ownsLayout: true },
             widgetProps: { multiple: true },
         },
     },
@@ -285,8 +300,9 @@ export const defaultFieldMappings = {
     },
     TimeField: {
         TimeField: {
-            component: availableFields.FieldTime,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetTimeField,
+            fieldProps: { validation: "time", ownsLayout: true },
             default: true,
         },
     },
@@ -322,10 +338,10 @@ export const defaultFieldMappings = {
     },
     UUIDField: {
         UUIDField: {
-            component: availableFields.FieldUUID,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
             widgetProps: { mask: "********-****-****-****-************" },
-            fieldProps: {},
+            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
