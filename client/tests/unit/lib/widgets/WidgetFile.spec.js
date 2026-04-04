@@ -32,20 +32,6 @@ const ButtonStub = defineComponent({
 });
 vi.mock("primevue/button", () => ({ default: ButtonStub }));
 
-const WidgetLabelStub = defineComponent({
-    name: "WidgetLabelStub",
-    props: ["id", "labelTag"],
-    setup(_, { slots }) {
-        return () => h("label", { "data-qa": "widget-label" }, slots.default ? slots.default({ class: "lbl" }) : null);
-    },
-});
-vi.mock("@vueda/widgets/WidgetLabel.vue", () => ({
-    __esModule: true,
-    default: WidgetLabelStub,
-    WIDGET_LABEL_PROPS: {},
-    getWidgetSlotsComputed: () => () => [],
-}));
-
 const themeFn = vi.fn((k) => `t-${k}`);
 const mockedUseWidgetTheme = vi.fn(() => themeFn);
 vi.mock("@vueda/use/useWidgetTheme.js", () => ({ useWidgetTheme: mockedUseWidgetTheme }));
@@ -66,6 +52,19 @@ vi.mock("@vueda/use/useWidget.js", () => ({
 
 let WidgetFile, vue;
 
+const fieldContext = {
+    state: reactive({ fieldId: "test-field-id", value: undefined }),
+    ignore: vi.fn(),
+    removeIgnore: vi.fn(),
+};
+const mountOptions = {
+    global: {
+        provide: {
+            [FieldContextSymbol]: fieldContext,
+        },
+    },
+};
+
 beforeEach(async () => {
     vue = await vi.importActual("vue");
     widgetState = reactive({
@@ -85,13 +84,12 @@ beforeEach(async () => {
 });
 
 scopedIt("renders upload component and handles upload", async () => {
-    const wrapper = mount(WidgetFile, { attrs: { foo: "bar", value: "v" } });
+    const wrapper = mount(WidgetFile, { attrs: { foo: "bar", value: "v" }, ...mountOptions });
     const root = wrapper.get("div");
     expect(root.classes()).toContain("t-root");
 
     const inner = wrapper.get('[data-qa="widget-file-inner"]');
     expect(inner.classes()).toContain("t-inner");
-    expect(inner.classes()).toContain("lbl");
 
     const upload = wrapper.getComponent(FileUploadStub);
     expect(upload.attributes("foo")).toBe("bar");
@@ -105,7 +103,7 @@ scopedIt("renders upload component and handles upload", async () => {
 
 scopedIt("shows file info and removes file", async () => {
     widgetState.combinedValue = { name: "doc.pdf", objectURL: "/d" };
-    const wrapper = mount(WidgetFile);
+    const wrapper = mount(WidgetFile, mountOptions);
 
     expect(wrapper.findComponent(FileUploadStub).exists()).toBe(false);
     const link = wrapper.get("a");

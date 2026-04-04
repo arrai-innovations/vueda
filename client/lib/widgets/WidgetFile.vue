@@ -1,17 +1,14 @@
 <script setup>
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
 import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
-import pick from "lodash-es/pick.js";
 import Button from "primevue/button";
 import FileUpload from "primevue/fileupload";
-import { computed, inject, toRef, useSlots, watch } from "vue";
+import { computed, inject, toRef, watch } from "vue";
 
 /**
  * A file-upload widget that displays an existing file as a labelled download link with remove and
@@ -22,7 +19,6 @@ defineOptions({
 });
 const props = defineProps({
     ...WIDGET_PROPS,
-    ...WIDGET_LABEL_PROPS,
     /** MIME type filter passed to the file input (e.g. `"image/*"` or `".pdf"`). */
     accept: {
         type: String,
@@ -84,63 +80,48 @@ const fileURL = computed(() => {
     }
     return null;
 });
-// todo: click handler for the widget-label to focus the image
-// todo: aria-labelledby? or use id to the hidden file input
-const slots = useSlots();
-const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 
 <template>
     <div :class="theme('root')">
-        <widget-label
-            :id="widgetContext.state.widgetId"
-            label-tag="div"
-            v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
-        >
-            <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
-                <slot :name="slotName" v-bind="slotProps" />
-            </template>
-            <template #default="{ class: labelControlClass }">
-                <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-file-inner">
-                    <div
-                        v-if="widgetContext.state.combinedValue"
-                        :aria-labelledby="widgetContext.state.widgetId"
-                        :class="theme('file')"
-                    >
-                        <a :class="theme('link')" :href="fileURL">{{ fileName }}</a>
-                        <div :class="theme('buttonGroup')">
-                            <Button icon="pi pi-times" rounded @click="onRemoveFile" />
-                            <Button icon="pi pi-download" rounded @click="onDownload" />
-                        </div>
-                    </div>
-                    <div v-else>
-                        <!-- Replaces the default PrimeVue FileUpload component; receives `disabled`, `invalid`, `aria-labelledby`, and an `uploader` event handler. -->
-                        <slot
-                            v-bind="omit($attrs, 'value')"
-                            :aria-labelledby="widgetContext.state.widgetId"
-                            :disabled="widgetContext.state.disabled"
-                            :invalid="widgetContext.state.validationState.invalid"
-                            name="file-uploader"
-                            @uploader="upload"
-                        >
-                            <FileUpload
-                                v-bind="omit($attrs, 'value')"
-                                :aria-labelledby="widgetContext.state.widgetId"
-                                auto
-                                custom-upload
-                                :disabled="widgetContext.state.disabled"
-                                :invalid="widgetContext.state.validationState.invalid"
-                                mode="basic"
-                                name="files[]"
-                                :pt="effectivePt"
-                                :aria-required="widgetContext.state.required"
-                                @uploader="upload"
-                            >
-                            </FileUpload>
-                        </slot>
-                    </div>
+        <div :class="theme('inner')" data-qa="widget-file-inner">
+            <div
+                v-if="widgetContext.state.combinedValue"
+                :aria-labelledby="fieldContext?.state.fieldId"
+                :class="theme('file')"
+            >
+                <a :class="theme('link')" :href="fileURL">{{ fileName }}</a>
+                <div :class="theme('buttonGroup')">
+                    <Button icon="pi pi-times" rounded @click="onRemoveFile" />
+                    <Button icon="pi pi-download" rounded @click="onDownload" />
                 </div>
-            </template>
-        </widget-label>
+            </div>
+            <div v-else>
+                <!-- Replaces the default PrimeVue FileUpload component; receives `disabled`, `invalid`, `aria-labelledby`, and an `uploader` event handler. -->
+                <slot
+                    v-bind="omit($attrs, 'value')"
+                    :aria-labelledby="fieldContext?.state.fieldId"
+                    :disabled="widgetContext.state.disabled"
+                    :invalid="widgetContext.state.validationState.invalid"
+                    name="file-uploader"
+                    @uploader="upload"
+                >
+                    <FileUpload
+                        v-bind="omit($attrs, 'value')"
+                        :aria-labelledby="fieldContext?.state.fieldId"
+                        auto
+                        custom-upload
+                        :disabled="widgetContext.state.disabled"
+                        :invalid="widgetContext.state.validationState.invalid"
+                        mode="basic"
+                        name="files[]"
+                        :pt="effectivePt"
+                        :aria-required="widgetContext.state.required"
+                        @uploader="upload"
+                    >
+                    </FileUpload>
+                </slot>
+            </div>
+        </div>
     </div>
 </template>
