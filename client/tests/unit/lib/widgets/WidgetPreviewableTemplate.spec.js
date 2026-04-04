@@ -10,22 +10,6 @@ vi.mock("@vueda/use/useWidgetTheme.js", () => ({
     useWidgetTheme: mockedUseWidgetTheme,
 }));
 
-vi.mock("@vueda/widgets/WidgetLabel.vue", async () => {
-    const vue = await vi.importActual("vue");
-    const WidgetLabelStub = vue.defineComponent({
-        name: "WidgetLabelStub",
-        setup(_, { slots }) {
-            return () => (slots.default ? slots.default({}) : []);
-        },
-    });
-    return {
-        __esModule: true,
-        default: WidgetLabelStub,
-        WIDGET_LABEL_PROPS: {},
-        getWidgetSlotsComputed: () => vue.computed(() => []),
-    };
-});
-
 const widgetStub = (name) =>
     defineComponent({
         name,
