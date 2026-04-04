@@ -77,8 +77,9 @@ export const defaultFieldMappings = {
     },
     DurationSecondsField: {
         DurationField: {
-            component: availableFields.FieldNumber,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetDuration,
+            fieldProps: { ownsLayout: true },
             // todo: mode for WidgetDuration to handle seconds directly
             widgetProps: { unit: "minutes" },
             default: true,
@@ -86,9 +87,9 @@ export const defaultFieldMappings = {
     },
     DurationField: {
         DurationField: {
-            component: availableFields.FieldDuration,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetDuration,
-            fieldProps: { manyComponent: availableFields.FieldDuration },
+            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -102,7 +103,12 @@ export const defaultFieldMappings = {
         },
     },
     FileField: {
-        FileField: { component: availableFields.FieldFile, widget: availableWidgets.WidgetFile, default: true },
+        FileField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetFile,
+            fieldProps: { ownsLayout: true },
+            default: true,
+        },
     },
     FloatField: {
         FloatField: {
@@ -113,7 +119,12 @@ export const defaultFieldMappings = {
         },
     },
     ImageField: {
-        ImageField: { component: availableFields.FieldImage, widget: availableWidgets.WidgetImage, default: true },
+        ImageField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetImage,
+            fieldProps: { ownsLayout: true },
+            default: true,
+        },
     },
     IntegerField: {
         AutoField: {
@@ -159,14 +170,23 @@ export const defaultFieldMappings = {
         },
     },
     IPAddressField: {
-        IPAddressField: { component: availableFields.FieldIP, widget: availableWidgets.WidgetUnmapped, default: true },
-        GenericIPAddressField: { component: availableFields.FieldIP, widget: availableWidgets.WidgetUnmapped },
+        IPAddressField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetUnmapped,
+            fieldProps: { ownsLayout: true },
+            default: true,
+        },
+        GenericIPAddressField: {
+            component: availableFields.FormField,
+            widget: availableWidgets.WidgetUnmapped,
+            fieldProps: { ownsLayout: true },
+        },
     },
     JSONField: {
         JSONField: {
-            component: availableFields.FieldObject,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetUnmapped,
-            fieldProps: {},
+            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -232,15 +252,15 @@ export const defaultFieldMappings = {
     ModelField: {
         GeneratedField: {
             CharField: {
-                component: availableFields.FieldString,
+                component: availableFields.FormField,
                 widget: availableWidgets.WidgetReadOnly,
+                fieldProps: { ownsLayout: true },
                 default: true,
             },
             FloatField: {
-                component: availableFields.FieldNumber,
-                fieldProps: {
-                    maxFractionDigits: 2,
-                },
+                component: availableFields.FormField,
+                widget: availableWidgets.WidgetReadOnly,
+                fieldProps: { validation: "numeric", ownsLayout: true },
             },
             default: true,
         },
@@ -274,8 +294,9 @@ export const defaultFieldMappings = {
     },
     SlugRelatedField: {
         ForeignKey: {
-            component: availableFields.FieldString,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetModel,
+            fieldProps: { validation: "text", ownsLayout: true },
             widgetProps: { type: "select", editable: true },
             default: true,
         },
@@ -314,21 +335,24 @@ export const defaultFieldMappings = {
     },
     TemplatedTextField: {
         CharField: {
-            component: availableFields.FieldString,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetPreviewableTemplate,
+            fieldProps: { validation: "text", ownsLayout: true },
             widgetProps: { type: "input" },
             default: true,
         },
         TextField: {
-            component: availableFields.FieldString,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetPreviewableTemplate,
+            fieldProps: { validation: "text", ownsLayout: true },
             widgetProps: {},
         },
     },
     TemplateTagsDataField: {
         JSONField: {
-            component: availableFields.FieldObject,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetTemplateLegend,
+            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -378,15 +402,17 @@ export const choiceFieldMappings = {
     },
     ChoiceField: {
         CharField: {
-            component: availableFields.FieldString,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetSelectDropdown,
+            fieldProps: { validation: "text", ownsLayout: true },
             manyWidget: availableWidgets.WidgetCombobox,
             manyWidgetProps: { multiple: true },
             default: true,
         },
         TextField: {
-            component: availableFields.FieldString,
+            component: availableFields.FormField,
             widget: availableWidgets.WidgetSelectDropdown,
+            fieldProps: { validation: "text", ownsLayout: true },
             manyWidget: availableWidgets.WidgetCombobox,
             manyWidgetProps: { multiple: true },
         },
