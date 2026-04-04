@@ -1,6 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h, ref } from "vue";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import { defineComponent, h, reactive, ref } from "vue";
 
 const clickSpies = {};
 
@@ -24,32 +25,35 @@ const InputNumberStub = defineComponent({
     },
 });
 
-const WidgetLabelStub = defineComponent({
-    name: "WidgetLabelStub",
-    emits: ["click"],
-    setup(_, { emit, slots }) {
-        return () =>
-            h(
-                "div",
-                { "data-qa": "widget-label", onClick: () => emit("click") },
-                slots.default ? slots.default({ class: "" }) : null,
-            );
-    },
-});
-const WIDGET_LABEL_PROPS = {};
-const getWidgetSlotsComputed = () => () => [];
-
 vi.mock("primevue/inputnumber", () => ({ default: InputNumberStub }));
-vi.mock("@vueda/widgets/WidgetLabel.vue", () => ({
-    __esModule: true,
-    default: WidgetLabelStub,
-    WIDGET_LABEL_PROPS,
-    getWidgetSlotsComputed,
-}));
 vi.mock("@vueda/use/useWidgetTheme.js", () => ({ useWidgetTheme: () => () => "" }));
 vi.mock("@vueda/use/useWarningClass.js", () => ({ useWarningClass: () => ref({}), PASSTHROUGH_OPTION_PROPS: {} }));
 
 let WidgetDuration;
+
+const fieldContext = {
+    state: reactive({
+        fieldId: "test-field-id",
+        dependencyValues: {},
+        value: undefined,
+        required: false,
+        errors: {},
+        name: "duration",
+    }),
+    registerDependencyValues: vi.fn(),
+    unregisterDependencyValues: vi.fn(),
+    setTouched: vi.fn(),
+    clearTouched: vi.fn(),
+    focus: vi.fn(),
+    blur: vi.fn(),
+};
+const mountOptions = {
+    global: {
+        provide: {
+            [FieldContextSymbol]: fieldContext,
+        },
+    },
+};
 
 beforeEach(async () => {
     WidgetDuration = (await import("@vueda/widgets/WidgetDuration.vue")).default;
@@ -61,7 +65,8 @@ afterEach(() => {
 
 describe("lib/widgets/WidgetDuration.vue", () => {
     scopedIt("renders minutes input by default", () => {
-        const wrapper = mount(WidgetDuration, { props: { modelValue: { minutes: 1 } } });
+        fieldContext.state.value = { minutes: 1 };
+        const wrapper = mount(WidgetDuration, { props: { modelValue: { minutes: 1 } }, ...mountOptions });
         expect(wrapper.findAllComponents(InputNumberStub).length).toBe(1);
         expect(wrapper.find('input[data-label="minutes"]').exists()).toBe(true);
         expect(wrapper.find('input[data-label="hours"]').exists()).toBe(false);
@@ -69,19 +74,20 @@ describe("lib/widgets/WidgetDuration.vue", () => {
     });
 
     scopedIt("focuses first input and emits updates", async () => {
+        fieldContext.state.value = { days: 1, hours: 2, minutes: 3 };
         const wrapper = mount(WidgetDuration, {
             props: {
                 modelValue: { days: 1, hours: 2, minutes: 3 },
                 showDays: true,
                 showHours: true,
             },
+            ...mountOptions,
         });
-        await wrapper.get('[data-qa="widget-label"]').trigger("click");
+        // The inner div now has the click handler (previously on WidgetLabel)
+        await wrapper.get('[data-qa="widget-duration-inner"]').trigger("click");
         expect(clickSpies.days).toHaveBeenCalled();
 
         await wrapper.find('input[data-label="hours"]').setValue("5");
-        const emitted = wrapper.emitted("update:modelValue");
-        expect(emitted).toBeTruthy();
-        expect(emitted[0][0]).toEqual({ days: 1, hours: 5, minutes: 3, seconds: undefined });
+        expect(fieldContext.state.value).toEqual({ days: 1, hours: 5, minutes: 3, seconds: undefined });
     });
 });
