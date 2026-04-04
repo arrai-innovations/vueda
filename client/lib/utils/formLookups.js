@@ -46,13 +46,9 @@ export const availableFields = {
 
 /** @type {{[widgetComponentName:string]: WidgetComponent}} */
 export const availableWidgets = {
-    WidgetAutoComplete: defineAsyncComponent(
-        async () => (await import("@vueda/widgets/WidgetAutoComplete.vue")).default,
-    ),
     WidgetCheckbox: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetCheckbox.vue")).default),
     WidgetCombobox: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetCombobox.vue")).default),
     WidgetDateField: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDateField.vue")).default),
-    WidgetDatePicker: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDatePicker.vue")).default),
     WidgetDateRangeField: defineAsyncComponent(
         async () => (await import("@vueda/widgets/WidgetDateRangeField.vue")).default,
     ),
@@ -69,27 +65,17 @@ export const availableWidgets = {
         async () => (await import("@vueda/widgets/WidgetTemplateLegend.vue")).default,
     ),
     WidgetImage: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetImage.vue")).default),
-    WidgetInput: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetInput.vue")).default),
-    WidgetInputNumber: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetInputNumber.vue")).default),
     WidgetModel: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetModel.vue")).default),
-    WidgetMultiSelect: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetMultiSelect.vue")).default),
     WidgetNativeSelect: defineAsyncComponent(
         async () => (await import("@vueda/widgets/WidgetNativeSelect.vue")).default,
     ),
     WidgetNumberInput: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetNumberInput.vue")).default),
-    WidgetRadio: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRadio.vue")).default),
     WidgetRadioGroup: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRadioGroup.vue")).default),
     WidgetReadOnly: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetReadOnly.vue")).default),
-    WidgetSearchableSelect: defineAsyncComponent(
-        async () => (await import("@vueda/widgets/WidgetSearchableSelect.vue")).default,
-    ),
-    WidgetSelect: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetSelect.vue")).default),
     WidgetSelectDropdown: defineAsyncComponent(
         async () => (await import("@vueda/widgets/WidgetSelectDropdown.vue")).default,
     ),
     WidgetRangeSlider: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRangeSlider.vue")).default),
-    WidgetSlider: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetSlider.vue")).default),
-    WidgetTextarea: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetTextarea.vue")).default),
     WidgetTextInput: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetTextInput.vue")).default),
     WidgetToggle: defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetToggle.vue")).default),
     WidgetTextTextarea: defineAsyncComponent(

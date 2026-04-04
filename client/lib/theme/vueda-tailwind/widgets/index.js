@@ -4,14 +4,6 @@
  */
 
 export default {
-    WidgetAutoComplete: {
-        root: {
-            class: [],
-        },
-        inner: {
-            class: ["flex flex-col"],
-        },
-    },
     WidgetCheckbox: {
         root: {
             class: ["ml-2 flex flex-row grow items-baseline"],
@@ -38,14 +30,6 @@ export default {
                     },
                 },
             },
-        },
-    },
-    WidgetDatePicker: {
-        root: {
-            class: [],
-        },
-        inner: {
-            class: ["flex flex-col gap-2 flex-wrap"],
         },
     },
     WidgetDuration: {
@@ -115,70 +99,6 @@ export default {
             class: ["flex flex-wrap justify-between"],
         },
     },
-    WidgetInput: {
-        root: {
-            class: [],
-        },
-        inner: {
-            class: ["flex flex-col gap-2"],
-        },
-        inputRoot: {},
-    },
-    WidgetInputNumber: {
-        root: {
-            class: [],
-        },
-        inner: {
-            class: ["flex flex-col gap-2"],
-        },
-        input: {
-            class: ({ invalid, warning }) => {
-                return [
-                    {
-                        "w-full flex flex-grow": true,
-                        "p-inputtext": true,
-                        "p-invalid": invalid,
-                        "p-warning": warning,
-                    },
-                ];
-            },
-        },
-        formPopoverInner: { class: ["flex flex-col items-center"] },
-    },
-    WidgetMultiSelect: {
-        root: {
-            class: [],
-        },
-        inner: {
-            class: ["flex flex-col"],
-        },
-    },
-    WidgetRadio: {
-        root: { class: [] },
-        inner: {
-            class: ["flex"],
-        },
-        options: {
-            class: ["flex gap-2 flex-wrap"],
-        },
-        option: {
-            class: ["flex gap-1 flex-nowrap whitespace-nowrap items-center"],
-        },
-        optionInput: {
-            class: [],
-        },
-        optionLabel: {
-            class: ({ invalid, warning }) => {
-                return [
-                    {
-                        "text-surface-900/60 dark:text-white/60": !invalid && !warning,
-                        "text-red-500 dark:text-red-400": invalid,
-                        "text-warning-500 dark:text-warning-400": warning,
-                    },
-                ];
-            },
-        },
-    },
     WidgetReadOnly: {
         root: { class: [] },
         inner: {
@@ -209,44 +129,6 @@ export default {
         },
         textItemSuffix: {
             class: [],
-        },
-    },
-    WidgetSearchableSelect: {
-        root: {
-            class: [],
-        },
-        inner: {
-            class: ["flex flex-col gap-2"],
-        },
-        inputLabel: {
-            class: ["whitespace-nowrap overflow-hidden text-ellipsis"],
-        },
-        option: {
-            class: ["!whitespace-normal !h-auto"],
-        },
-    },
-    WidgetSelect: {
-        root: {
-            class: [],
-        },
-        inner: {
-            class: [["flex flex-col gap-2 flex-wrap"]],
-        },
-    },
-    WidgetSlider: {
-        root: {
-            class: [],
-        },
-        inner: {
-            class: ["flex flex-col"],
-        },
-    },
-    WidgetTextarea: {
-        root: {
-            class: [],
-        },
-        inner: {
-            class: [["flex flex-col gap-2 flex-wrap"]],
         },
     },
     WidgetLabel: {
