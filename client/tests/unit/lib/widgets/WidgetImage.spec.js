@@ -29,28 +29,6 @@ vi.mock("@vueda/use/useWidget.js", () => ({
     useWidget: mockedUseWidget,
 }));
 
-const WidgetLabelStub = defineComponent({
-    name: "WidgetLabelStub",
-    props: ["id", "labelTag"],
-    setup(props, { slots }) {
-        return () =>
-            h(
-                "label",
-                { "data-qa": "widget-label", id: props.id },
-                slots.default ? slots.default({ class: "lbl" }) : null,
-            );
-    },
-});
-vi.mock("@vueda/widgets/WidgetLabel.vue", async () => {
-    const vue = await vi.importActual("vue");
-    return {
-        __esModule: true,
-        default: WidgetLabelStub,
-        WIDGET_LABEL_PROPS: {},
-        getWidgetSlotsComputed: () => vue.computed(() => []),
-    };
-});
-
 const ButtonStub = defineComponent({
     name: "ButtonStub",
     props: ["icon"],
@@ -82,6 +60,19 @@ vi.mock("primevue/fileupload", () => ({ default: FileUploadStub }));
 
 let WidgetImage;
 
+const defaultFieldContext = {
+    state: reactive({ fieldId: "test-field-id", value: undefined }),
+    ignore: vi.fn(),
+    removeIgnore: vi.fn(),
+};
+const mountOptions = {
+    global: {
+        provide: {
+            [FieldContextSymbol]: defaultFieldContext,
+        },
+    },
+};
+
 beforeEach(async () => {
     WidgetImage = (await import("@vueda/widgets/WidgetImage.vue")).default;
     mockedUseWidget.mockClear();
@@ -94,12 +85,11 @@ afterEach(() => {
 
 describe("lib/widgets/WidgetImage.vue", () => {
     scopedIt("renders upload control and updates value on upload", async () => {
-        const wrapper = mount(WidgetImage);
+        const wrapper = mount(WidgetImage, mountOptions);
         const root = wrapper.get("div");
         expect(root.classes()).toContain("t-root");
         const inner = wrapper.get('[data-qa="widget-image-inner"]');
         expect(inner.classes()).toContain("t-inner");
-        expect(inner.classes()).toContain("lbl");
         const fu = wrapper.getComponent(FileUploadStub);
         expect(fu.exists()).toBe(true);
         fu.vm.$emit("uploader", { files: ["img"] });
@@ -108,7 +98,7 @@ describe("lib/widgets/WidgetImage.vue", () => {
     });
 
     scopedIt("shows image when value present and removes on click", async () => {
-        const wrapper = mount(WidgetImage);
+        const wrapper = mount(WidgetImage, mountOptions);
         widgetContext.state.combinedValue = "url";
         await nextTick();
         const img = wrapper.getComponent(ImageStub);
