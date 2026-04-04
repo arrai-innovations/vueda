@@ -1,34 +1,13 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h } from "vue";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import { defineComponent, h, reactive } from "vue";
 
 const themeFn = vi.fn((key) => `theme-${key}`);
 const mockedUseWidgetTheme = vi.fn(() => themeFn);
 vi.mock("@vueda/use/useWidgetTheme.js", () => ({
     useWidgetTheme: mockedUseWidgetTheme,
 }));
-
-vi.mock("@vueda/widgets/WidgetLabel.vue", async () => {
-    const vue = await vi.importActual("vue");
-    const WidgetLabelStub = vue.defineComponent({
-        name: "WidgetLabelStub",
-        props: ["id", "for"],
-        setup(props, { slots }) {
-            return () =>
-                vue.h(
-                    "label",
-                    { "data-qa": "widget-label", id: props.id, for: props.for },
-                    slots.default ? slots.default({ class: "label-class" }) : [],
-                );
-        },
-    });
-    return {
-        __esModule: true,
-        default: WidgetLabelStub,
-        WIDGET_LABEL_PROPS: {},
-        getWidgetSlotsComputed: () => vue.computed(() => []),
-    };
-});
 
 const ClickToCopyTextStub = defineComponent({
     name: "ClickToCopyTextStub",
@@ -48,11 +27,32 @@ describe("lib/widgets/WidgetTemplateLegend.vue", () => {
     });
 
     scopedIt("renders tags with copy-to-clipboard text", () => {
+        const testValue = {
+            name: { description: "Name" },
+            city: { description: "City" },
+        };
         const wrapper = mount(WidgetTemplateLegend, {
             props: {
-                modelValue: {
-                    name: { description: "Name" },
-                    city: { description: "City" },
+                modelValue: testValue,
+            },
+            global: {
+                provide: {
+                    [FieldContextSymbol]: {
+                        state: reactive({
+                            fieldId: "test-field-id",
+                            dependencyValues: {},
+                            value: testValue,
+                            required: false,
+                            errors: {},
+                            name: "tags",
+                        }),
+                        registerDependencyValues: vi.fn(),
+                        unregisterDependencyValues: vi.fn(),
+                        setTouched: vi.fn(),
+                        clearTouched: vi.fn(),
+                        focus: vi.fn(),
+                        blur: vi.fn(),
+                    },
                 },
             },
         });
