@@ -1,15 +1,9 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { defineComponent, h, reactive, ref } from "vue";
 
 // Stubs
-const WidgetLabelStub = defineComponent({
-    name: "WidgetLabelStub",
-    props: ["id", "labelTag"],
-    setup(_, { slots }) {
-        return () => h("label", { "data-qa": "widget-label" }, slots.default ? slots.default({ class: "lbl" }) : null);
-    },
-});
 const LinkModelViewStub = defineComponent({
     name: "LinkModelViewStub",
     props: ["app", "model", "pk", "view", "label"],
@@ -46,14 +40,18 @@ vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive }));
 const useSlotNameResolver = vi.fn(() => ({ name: ref("n"), exists: ref(false) }));
 vi.mock("@vueda/use/useSlotNameResolver.js", () => ({ useSlotNameResolver }));
 
-vi.mock("@vueda/widgets/WidgetLabel.vue", () => ({
-    default: WidgetLabelStub,
-    WIDGET_LABEL_PROPS: { label: String },
-    getWidgetSlotsComputed: () => ref([]),
-}));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 
 let WidgetReadOnly;
+
+const fieldContext = { state: { fieldId: "test-field-id" } };
+const mountOptions = {
+    global: {
+        provide: {
+            [FieldContextSymbol]: fieldContext,
+        },
+    },
+};
 
 beforeEach(async () => {
     WidgetReadOnly = (await import("@vueda/widgets/WidgetReadOnly.vue")).default;
@@ -67,6 +65,7 @@ afterEach(() => {
 scopedIt("renders text item when not in lookup mode", () => {
     const wrapper = mount(WidgetReadOnly, {
         props: { prefix: "P", suffix: "S" },
+        ...mountOptions,
     });
     const value = wrapper.get('[data-qa="widget-read-only-value"]');
     expect(value.text()).toContain("P");
@@ -87,6 +86,7 @@ scopedIt("renders link when lookup mode and value available", () => {
     useResolvedLookupObject.mockReturnValue(lookup);
     const wrapper = mount(WidgetReadOnly, {
         props: { app: "a", model: "m", prefix: "<", suffix: ">" },
+        ...mountOptions,
     });
     const link = wrapper.get('[data-qa="link-model-view"]');
     expect(link.attributes("data-app")).toBe("a");
