@@ -659,22 +659,31 @@ export const manyFieldMappings = {
  */
 export const filterFieldMapping = {
     BooleanField: {
-        component: availableFields.FieldBoolean,
+        component: availableFields.FormField,
         widget: availableWidgets.WidgetToggle,
     },
-    CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetTextInput },
-    ChoiceField: { component: availableFields.FieldString, widget: availableWidgets.WidgetSelectDropdown },
+    CharField: {
+        component: availableFields.FormField,
+        fieldProps: { validation: "text" },
+        widget: availableWidgets.WidgetTextInput,
+    },
+    ChoiceField: {
+        component: availableFields.FormField,
+        fieldProps: { validation: "text" },
+        widget: availableWidgets.WidgetSelectDropdown,
+    },
     NullBooleanField: {
-        component: availableFields.FieldString,
+        component: availableFields.FormField,
+        fieldProps: { validation: "text" },
         widget: availableWidgets.WidgetSelectDropdown,
     },
     ModelMultipleChoiceInField: {
-        component: availableFields.FieldArray,
+        component: availableFields.FormField,
         widget: availableWidgets.WidgetModel,
         widgetProps: { type: "multiSelect", isFilter: true },
     },
     ModelChoiceInField: {
-        component: availableFields.FieldArray,
+        component: availableFields.FormField,
         widget: availableWidgets.WidgetModel,
         widgetProps: { type: "multiSelect", isFilter: true },
     },
@@ -694,21 +703,25 @@ export const filterFieldMapping = {
         boundaryWidgetProps: { granularity: "minute" },
     },
     IsoDateTimeField: {
-        component: availableFields.FieldDate,
+        component: availableFields.FormField,
+        fieldProps: { validation: "date" },
         widget: availableWidgets.WidgetDateField,
         widgetProps: { granularity: "minute" },
     },
     ModelChoiceField: {
-        component: availableFields.FieldString,
+        component: availableFields.FormField,
+        fieldProps: { validation: "text" },
         widget: availableWidgets.WidgetModel,
         widgetProps: { type: "select", isFilter: true },
     },
     DecimalField: {
-        component: availableFields.FieldDecimal,
+        component: availableFields.FormField,
+        fieldProps: { validation: "decimal" },
         widget: availableWidgets.WidgetNumberInput,
     },
     PositiveDecimalField: {
-        component: availableFields.FieldDecimal,
+        component: availableFields.FormField,
+        fieldProps: { validation: "decimal" },
         widget: availableWidgets.WidgetNumberInput,
     },
 };
