@@ -1,15 +1,14 @@
 <script setup>
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
+import FormField from "@vueda/fields/FormField.vue";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";
-import WidgetInput from "@vueda/widgets/WidgetInput.vue";
-import { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
-import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
+import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
+import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
-import { computed, onBeforeUnmount, reactive, ref, toRef, useSlots, watch } from "vue";
+import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -108,8 +107,6 @@ watch([isActive, toRef(userStore, "loggedIn")], async ([newActive, newloggedIn])
         }
     }
 });
-const slots = useSlots();
-const widgetLabelSlotNames = getWidgetSlotsComputed(slots);
 const theme = useTheme("ViewTwoFactorAuth");
 const sendCodeMethods = ["sms", "email"];
 onBeforeUnmount(clearCooldownTimer);
@@ -127,21 +124,17 @@ onBeforeUnmount(clearCooldownTimer);
     >
         <template #action-form-inner>
             <slot name="action-form-inner" :options="computedOptions" :method="form.values?.method">
-                <field-string label="Method" name="method">
-                    <widget-select
+                <FormField owns-layout validation="text" label="Method" name="method">
+                    <WidgetSelectDropdown
                         :required="true"
                         autocapitalize="none"
                         autocorrect="off"
                         :options="computedOptions"
                     />
-                </field-string>
-                <field-string v-if="form.values?.method" label="Code" name="code">
-                    <widget-input :required="true">
-                        <template v-for="slotName in widgetLabelSlotNames" :key="slotName" #[slotName]="slotProps">
-                            <slot :name="slotName" v-bind="slotProps" />
-                        </template>
-                    </widget-input>
-                </field-string>
+                </FormField>
+                <FormField v-if="form.values?.method" owns-layout validation="text" label="Code" name="code">
+                    <WidgetTextInput :required="true" />
+                </FormField>
             </slot>
         </template>
         <template #action-bar="{ loading }">

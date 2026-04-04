@@ -1,17 +1,15 @@
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
 import ClickToCopyText from "@vueda/components/ClickToCopyText.vue";
-import FieldEmail from "@vueda/fields/FieldEmail.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
+import FormField from "@vueda/fields/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import WidgetInput from "@vueda/widgets/WidgetInput.vue";
-import { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
-import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
+import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
+import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import { useToast } from "primevue/usetoast";
-import { computed, reactive, ref, toRef, useSlots } from "vue";
+import { computed, reactive, ref, toRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /**
@@ -96,9 +94,6 @@ const doAfterSuccess = async (response) => {
         }
     }
 };
-
-const slots = useSlots();
-const widgetLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
 
 <template>
@@ -120,49 +115,45 @@ const widgetLabelSlotNames = getWidgetSlotsComputed(slots);
                 :method="form.values?.method"
                 :step="step"
             >
-                <field-string label="Choose a device/method to set up two-factor authentication:" name="method">
-                    <widget-select
+                <FormField
+                    owns-layout
+                    validation="text"
+                    label="Choose a device/method to set up two-factor authentication:"
+                    name="method"
+                >
+                    <WidgetSelectDropdown
                         :required="true"
                         autocapitalize="none"
                         autocorrect="off"
                         :options="deviceTypes"
                         :disabled="step === STEPS.VERIFY"
-                    >
-                        <template v-for="slotName in widgetLabelSlotNames" :key="slotName" #[slotName]="slotProps">
-                            <slot :name="slotName" v-bind="slotProps" />
-                        </template>
-                    </widget-select>
-                </field-string>
-                <field-email
+                    />
+                </FormField>
+                <FormField
                     v-if="form.values?.method === 'email'"
+                    owns-layout
+                    validation="text"
                     label="Email"
                     name="destination"
                     help="Please enter the email address you wish to receive the email with. This address will be validated in the next step."
                 >
-                    <widget-input :required="true" :disabled="step === STEPS.VERIFY">
-                        <template v-for="slotName in widgetLabelSlotNames" :key="slotName" #[slotName]="slotProps">
-                            <slot :name="slotName" v-bind="slotProps" />
-                        </template>
-                    </widget-input>
-                </field-email>
-                <field-string
+                    <WidgetTextInput :required="true" :disabled="step === STEPS.VERIFY" />
+                </FormField>
+                <FormField
                     v-if="form.values?.method === 'sms'"
+                    owns-layout
+                    validation="text"
                     label="Phone Number"
                     name="destination"
                     help="Please enter the phone number you wish to receive the sms with. This number will be validated in the next step."
                 >
-                    <widget-input
+                    <WidgetTextInput
                         :required="true"
                         :disabled="step === STEPS.VERIFY"
-                        mask="(999) 999-9999"
+                        mask="(###) ###-####"
                         placeholder="(999) 999-9999"
-                        type="mask"
-                    >
-                        <template v-for="slotName in widgetLabelSlotNames" :key="slotName" #[slotName]="slotProps">
-                            <slot :name="slotName" v-bind="slotProps" />
-                        </template>
-                    </widget-input>
-                </field-string>
+                    />
+                </FormField>
                 <!-- Replaces the QR-code/manual-key block shown after a TOTP app method is chosen; receives `totpDataUri` and `totpSecret` as slot props. -->
                 <slot name="totp-app-setup-step" :totp-data-uri="totpSvgDataUri" :totp-secret="totpSecret">
                     <div v-if="totpSvgDataUri" data-qa="view-setup-device-app">
@@ -180,13 +171,9 @@ const widgetLabelSlotNames = getWidgetSlotsComputed(slots);
                     </div>
                 </slot>
 
-                <field-string v-if="step === STEPS.VERIFY" label="Code" name="code">
-                    <widget-input :required="true">
-                        <template v-for="slotName in widgetLabelSlotNames" :key="slotName" #[slotName]="slotProps">
-                            <slot :name="slotName" v-bind="slotProps" />
-                        </template>
-                    </widget-input>
-                </field-string>
+                <FormField v-if="step === STEPS.VERIFY" owns-layout validation="text" label="Code" name="code">
+                    <WidgetTextInput :required="true" />
+                </FormField>
             </slot>
         </template>
         <template #confirm-button="{ loading }">
