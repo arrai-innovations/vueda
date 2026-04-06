@@ -160,6 +160,145 @@ describe("lib/fields/FormField.vue", () => {
         });
     });
 
+    describe("override slots", () => {
+        scopedIt("renders field-specific label slot when provided", () => {
+            fieldContext.state.label = "Original";
+            fieldContext.state.name = "email";
+            const wrapper = mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field(email)label": ({ label }) => `Custom: ${label}`,
+                },
+            });
+            expect(wrapper.find("[data-slot='field-label']").text()).toBe("Custom: Original");
+        });
+
+        scopedIt("renders global field-label slot as fallback", () => {
+            fieldContext.state.label = "Original";
+            fieldContext.state.name = "email";
+            const wrapper = mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field-label": ({ label }) => `Global: ${label}`,
+                },
+            });
+            expect(wrapper.find("[data-slot='field-label']").text()).toBe("Global: Original");
+        });
+
+        scopedIt("prefers field-specific label slot over global fallback", () => {
+            fieldContext.state.label = "Original";
+            fieldContext.state.name = "email";
+            const wrapper = mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field(email)label": () => "Specific",
+                    "field-label": () => "Global",
+                },
+            });
+            expect(wrapper.find("[data-slot='field-label']").text()).toBe("Specific");
+        });
+
+        scopedIt("label slot receives required prop", () => {
+            fieldContext.state.required = true;
+            fieldContext.state.name = "email";
+            let receivedProps;
+            mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field(email)label": (props) => {
+                        receivedProps = props;
+                        return "";
+                    },
+                },
+            });
+            expect(receivedProps.required).toBe(true);
+        });
+
+        scopedIt("renders field-specific help slot when provided", () => {
+            fieldContext.state.help = "Original help";
+            fieldContext.state.name = "email";
+            const wrapper = mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field(email)help": ({ help }) => `Custom: ${help}`,
+                },
+            });
+            expect(wrapper.text()).toContain("Custom: Original help");
+        });
+
+        scopedIt("renders global field-help slot as fallback", () => {
+            fieldContext.state.help = "Original help";
+            fieldContext.state.name = "email";
+            const wrapper = mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field-help": ({ help }) => `Global: ${help}`,
+                },
+            });
+            expect(wrapper.text()).toContain("Global: Original help");
+        });
+
+        scopedIt("renders help slot even when help text is empty if slot is provided", () => {
+            fieldContext.state.help = "";
+            fieldContext.state.name = "email";
+            const wrapper = mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field(email)help": () => "Injected help",
+                },
+            });
+            expect(wrapper.text()).toContain("Injected help");
+        });
+
+        scopedIt("renders field-specific errors slot when provided", () => {
+            fieldContext.state.errors = { required: "Required" };
+            fieldContext.state.name = "email";
+            const wrapper = mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field(email)errors": ({ errors }) => `Errors: ${Object.values(errors).join(", ")}`,
+                },
+            });
+            expect(wrapper.text()).toContain("Errors: Required");
+        });
+
+        scopedIt("renders global field-errors slot as fallback", () => {
+            fieldContext.state.errors = { required: "Required" };
+            fieldContext.state.name = "email";
+            const wrapper = mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field-errors": ({ errors }) => `Global: ${Object.values(errors).join(", ")}`,
+                },
+            });
+            expect(wrapper.text()).toContain("Global: Required");
+        });
+
+        scopedIt("renders field-specific warnings slot when provided", () => {
+            fieldContext.state.messages = { weak: "Password is weak" };
+            fieldContext.state.name = "email";
+            const wrapper = mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field(email)warnings": ({ messages }) => `Warn: ${Object.values(messages).join(", ")}`,
+                },
+            });
+            expect(wrapper.text()).toContain("Warn: Password is weak");
+        });
+
+        scopedIt("renders global field-warnings slot as fallback", () => {
+            fieldContext.state.messages = { weak: "Password is weak" };
+            fieldContext.state.name = "email";
+            const wrapper = mount(FormField, {
+                props: { name: "email" },
+                slots: {
+                    "field-warnings": ({ messages }) => `Global: ${Object.values(messages).join(", ")}`,
+                },
+            });
+            expect(wrapper.text()).toContain("Global: Password is weak");
+        });
+    });
+
     describe("slot props", () => {
         scopedIt("provides field-id as a slot prop", () => {
             let receivedProps;

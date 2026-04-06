@@ -87,41 +87,36 @@ import { computed, useSlots } from "vue";
  *             </div>
  *         </template>
  *
- *         <!-- Provide content to a named slot 'label' of the widget component for 'field3' -->
- *         <template #widget(field3)label="slotProps">
- *             <span class="custom-label">Custom Label for Field3</span>
+ *         <!-- Override the label for 'field3' -->
+ *         <template #field(field3)label="{ label, required }">
+ *             <span class="custom-label">{{ label }}</span>
  *         </template>
  *
  *         <!-- Replace the entire field component for 'field4' -->
  *         <template #field(field4)="slotProps">
  *             <field-custom v-bind="slotProps.fieldProps">
  *                 <template #default>
- *                     <!-- Optionally customize the widget inside your custom field -->
  *                     <widget-custom v-bind="slotProps.widgetProps" />
- *                     <!-- Overriding field this leaves you responsible for form-chores -->
- *                     <form-chores />
  *                 </template>
  *             </field-custom>
  *         </template>
  *
- *         <!-- Replace the help slot for 'field5' -->
- *         <!-- see form-chores for slot props details -->
- *         <template #field(field5)help="slotProps">
- *              <div class="custom-help">
- *                  <my-custom-help-message v-bind="slotProps" />
- *              </div>
+ *         <!-- Override the help text for 'field5' -->
+ *         <template #field(field5)help="{ help }">
+ *              <div class="custom-help">{{ help }}</div>
  *          </template>
  *
- *          <!-- Replace all error/message slots -->
- *          <!-- see form-chores for slot props details -->
- *         <template #field-error="slotProps">
+ *          <!-- Override error rendering for all fields -->
+ *         <template #field-errors="{ errors }">
  *             <div class="custom-error">
- *                 <my-custom-error-message v-bind="slotProps" />
+ *                 <span v-for="msg in Object.values(errors)" :key="msg">{{ msg }}</span>
  *             </div>
  *         </template>
- *         <template #field-message="slotProps">
- *             <div class="custom-message">
- *                 <my-custom-message v-bind="slotProps" />
+ *
+ *          <!-- Override warning rendering for a specific field -->
+ *         <template #field(field5)warnings="{ messages }">
+ *             <div class="custom-warning">
+ *                 <span v-for="msg in Object.values(messages)" :key="msg">{{ msg }}</span>
  *             </div>
  *         </template>
  *     </form-model>
@@ -133,8 +128,11 @@ import { computed, useSlots } from "vue";
  * In the example above, slots are used to customize the form:
  * - `#widget(field1)`: Replaces the entire widget component for `field1` with `<my-custom-widget>`.
  * - `#widget(field2)default`: Provides content to the **default slot** of the existing widget component for `field2`.
- * - `#widget(field3)label`: Provides content to the **named slot** `label` of the widget component for `field3`.
+ * - `#field(field3)label`: Overrides the label content for `field3`.
  * - `#field(field4)`: Replaces the entire field component for `field4` with `<my-custom-field>`.
+ * - `#field(field5)help`: Overrides the help text for `field5`.
+ * - `#field-errors`: Overrides error rendering for all fields (global fallback).
+ * - `#field(field5)warnings`: Overrides warning rendering for `field5` only.
  *
  * **Understanding the difference between `widget(fieldName)` and `widget(fieldName)default`:**
  * - `widget(fieldName)`: Replaces the **entire widget component** for the specified field.

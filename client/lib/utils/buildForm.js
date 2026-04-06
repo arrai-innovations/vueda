@@ -22,12 +22,14 @@ import { computed, effectScope, toRef, watch } from "vue";
  */
 export const getFormChoresSlotNames = (formModelName) => {
     return [
+        "field-label",
         "field-help",
-        "field-error",
-        "field-message",
+        "field-errors",
+        "field-warnings",
+        `field(${formModelName})label`,
         `field(${formModelName})help`,
-        `field(${formModelName})error`,
-        `field(${formModelName})message`,
+        `field(${formModelName})errors`,
+        `field(${formModelName})warnings`,
     ];
 };
 
