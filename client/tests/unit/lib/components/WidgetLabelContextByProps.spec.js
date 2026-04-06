@@ -59,7 +59,7 @@ vi.mock("@vueda/use/useWidget.js", () => ({
 let WidgetLabelContextByProps;
 
 beforeEach(async () => {
-    WidgetLabelContextByProps = (await import("@vueda/components/WidgetLabelContextByProps.vue")).default;
+    // WidgetLabelContextByProps = (await import("@vueda/components/WidgetLabelContextByProps.vue")).default;
     mockedUseFieldSetTabularHeaderProps.mockClear();
     mockedUseWidget.mockClear();
 });

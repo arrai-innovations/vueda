@@ -116,7 +116,6 @@ const doAfterSuccess = async (response) => {
                 :step="step"
             >
                 <FormField
-                    owns-layout
                     validation="text"
                     label="Choose a device/method to set up two-factor authentication:"
                     name="method"
@@ -131,7 +130,6 @@ const doAfterSuccess = async (response) => {
                 </FormField>
                 <FormField
                     v-if="form.values?.method === 'email'"
-                    owns-layout
                     validation="text"
                     label="Email"
                     name="destination"
@@ -141,7 +139,6 @@ const doAfterSuccess = async (response) => {
                 </FormField>
                 <FormField
                     v-if="form.values?.method === 'sms'"
-                    owns-layout
                     validation="text"
                     label="Phone Number"
                     name="destination"
@@ -171,7 +168,7 @@ const doAfterSuccess = async (response) => {
                     </div>
                 </slot>
 
-                <FormField v-if="step === STEPS.VERIFY" owns-layout validation="text" label="Code" name="code">
+                <FormField v-if="step === STEPS.VERIFY" validation="text" label="Code" name="code">
                     <WidgetTextInput :required="true" />
                 </FormField>
             </slot>

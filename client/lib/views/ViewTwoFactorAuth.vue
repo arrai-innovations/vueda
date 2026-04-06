@@ -124,7 +124,7 @@ onBeforeUnmount(clearCooldownTimer);
     >
         <template #action-form-inner>
             <slot name="action-form-inner" :options="computedOptions" :method="form.values?.method">
-                <FormField owns-layout validation="text" label="Method" name="method">
+                <FormField validation="text" label="Method" name="method">
                     <WidgetSelectDropdown
                         :required="true"
                         autocapitalize="none"
@@ -132,7 +132,7 @@ onBeforeUnmount(clearCooldownTimer);
                         :options="computedOptions"
                     />
                 </FormField>
-                <FormField v-if="form.values?.method" owns-layout validation="text" label="Code" name="code">
+                <FormField v-if="form.values?.method" validation="text" label="Code" name="code">
                     <WidgetTextInput :required="true" />
                 </FormField>
             </slot>

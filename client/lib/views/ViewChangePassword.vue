@@ -35,7 +35,7 @@ const handleSubmit = ({ formValues }) => {
         <template #action-form-inner>
             <!-- Replaces the entire current-password field row, including its label. -->
             <slot name="field(old_password)" label="Current Password">
-                <FormField owns-layout validation="text" label="Current Password" name="old_password">
+                <FormField validation="text" label="Current Password" name="old_password">
                     <!-- Replaces the current-password input widget; receives standard widget props. -->
                     <slot name="widget(old_password)" :required="true" type="password" autocomplete="current-password">
                         <WidgetTextInput :required="true" type="password" autocomplete="current-password" />
@@ -44,7 +44,7 @@ const handleSubmit = ({ formValues }) => {
             </slot>
             <!-- Replaces the entire new-password field row, including its label. -->
             <slot name="field(new_password1)" label="New Password">
-                <FormField owns-layout validation="text" label="New Password" name="new_password1">
+                <FormField validation="text" label="New Password" name="new_password1">
                     <!-- Replaces the new-password input widget; receives standard widget props. -->
                     <slot name="widget(new_password1)" :required="true" type="password">
                         <WidgetTextInput :required="true" type="password" />
@@ -53,7 +53,7 @@ const handleSubmit = ({ formValues }) => {
             </slot>
             <!-- Replaces the entire confirm-password field row, including its label. -->
             <slot name="field(new_password2)" label="Confirm New Password">
-                <FormField owns-layout validation="text" label="Confirm New Password" name="new_password2">
+                <FormField validation="text" label="Confirm New Password" name="new_password2">
                     <!-- Replaces the confirm-password input widget; receives standard widget props. -->
                     <slot name="widget(new_password2)" :required="true" type="password">
                         <WidgetTextInput :required="true" type="password" />

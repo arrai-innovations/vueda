@@ -28,7 +28,6 @@ export const defaultFieldMappings = {
         BooleanField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetToggle,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -36,20 +35,20 @@ export const defaultFieldMappings = {
         CharField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { validation: "text", ownsLayout: true },
+            fieldProps: { validation: "text" },
             default: true,
         },
         TextField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetTextTextarea,
-            fieldProps: { validation: "text", ownsLayout: true },
+            fieldProps: { validation: "text" },
         },
     },
     DateField: {
         DateField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetDateField,
-            fieldProps: { validation: "date", ownsLayout: true },
+            fieldProps: { validation: "date" },
             default: true,
         },
     },
@@ -57,7 +56,7 @@ export const defaultFieldMappings = {
         DateTimeField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetDateField,
-            fieldProps: { validation: "datetime", ownsLayout: true },
+            fieldProps: { validation: "datetime" },
             widgetProps: { granularity: "minute" },
             default: true,
         },
@@ -66,20 +65,19 @@ export const defaultFieldMappings = {
         DecimalField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
-            fieldProps: { validation: "decimal", ownsLayout: true },
+            fieldProps: { validation: "decimal" },
             default: true,
         },
         PositiveDecimalField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
-            fieldProps: { validation: "decimal", ownsLayout: true },
+            fieldProps: { validation: "decimal" },
         },
     },
     DurationSecondsField: {
         DurationField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetDuration,
-            fieldProps: { ownsLayout: true },
             // todo: mode for WidgetDuration to handle seconds directly
             widgetProps: { unit: "minutes" },
             default: true,
@@ -89,7 +87,6 @@ export const defaultFieldMappings = {
         DurationField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetDuration,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -97,7 +94,6 @@ export const defaultFieldMappings = {
         EmailField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { ownsLayout: true },
             widgetProps: { type: "email" },
             default: true,
         },
@@ -106,7 +102,6 @@ export const defaultFieldMappings = {
         FileField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetFile,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -114,7 +109,7 @@ export const defaultFieldMappings = {
         FloatField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
-            fieldProps: { validation: "numeric", ownsLayout: true },
+            fieldProps: { validation: "numeric" },
             default: true,
         },
     },
@@ -122,7 +117,6 @@ export const defaultFieldMappings = {
         ImageField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetImage,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -130,63 +124,58 @@ export const defaultFieldMappings = {
         AutoField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { ownsLayout: true },
         },
         BigAutoField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { ownsLayout: true },
         },
         BigIntegerField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
-            fieldProps: { validation: "numeric", ownsLayout: true },
+            fieldProps: { validation: "numeric" },
         },
         IntegerField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
-            fieldProps: { validation: "numeric", ownsLayout: true },
+            fieldProps: { validation: "numeric" },
             default: true,
         },
         PositiveBigIntegerField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
-            fieldProps: { validation: "numeric", ownsLayout: true },
+            fieldProps: { validation: "numeric" },
         },
         PositiveIntegerField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
-            fieldProps: { validation: "numeric", ownsLayout: true },
+            fieldProps: { validation: "numeric" },
         },
         PositiveSmallIntegerField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
-            fieldProps: { validation: "numeric", ownsLayout: true },
+            fieldProps: { validation: "numeric" },
         },
         SmallIntegerField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
-            fieldProps: { validation: "numeric", ownsLayout: true },
+            fieldProps: { validation: "numeric" },
         },
     },
     IPAddressField: {
         IPAddressField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetUnmapped,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
         GenericIPAddressField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetUnmapped,
-            fieldProps: { ownsLayout: true },
         },
     },
     JSONField: {
         JSONField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetUnmapped,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -254,13 +243,12 @@ export const defaultFieldMappings = {
             CharField: {
                 component: availableFields.FormField,
                 widget: availableWidgets.WidgetReadOnly,
-                fieldProps: { ownsLayout: true },
                 default: true,
             },
             FloatField: {
                 component: availableFields.FormField,
                 widget: availableWidgets.WidgetReadOnly,
-                fieldProps: { validation: "numeric", ownsLayout: true },
+                fieldProps: { validation: "numeric" },
             },
             default: true,
         },
@@ -269,7 +257,6 @@ export const defaultFieldMappings = {
         NullBooleanField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetCheckbox,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -277,18 +264,15 @@ export const defaultFieldMappings = {
         ForeignKey: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetCombobox,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
         OneToOneField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetCombobox,
-            fieldProps: { ownsLayout: true },
         },
         RelatedField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetCombobox,
-            fieldProps: { ownsLayout: true },
             widgetProps: { multiple: true },
         },
     },
@@ -296,7 +280,7 @@ export const defaultFieldMappings = {
         ForeignKey: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetModel,
-            fieldProps: { validation: "text", ownsLayout: true },
+            fieldProps: { validation: "text" },
             widgetProps: { type: "select", editable: true },
             default: true,
         },
@@ -308,20 +292,17 @@ export const defaultFieldMappings = {
         GenericForeignKey: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetGenericAutoComplete,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
         GenericRelation: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetGenericAutoComplete,
-            fieldProps: { ownsLayout: true },
         },
     },
     SlugField: {
         SlugField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -329,7 +310,7 @@ export const defaultFieldMappings = {
         TimeField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetTimeField,
-            fieldProps: { validation: "time", ownsLayout: true },
+            fieldProps: { validation: "time" },
             default: true,
         },
     },
@@ -337,14 +318,14 @@ export const defaultFieldMappings = {
         CharField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetPreviewableTemplate,
-            fieldProps: { validation: "text", ownsLayout: true },
+            fieldProps: { validation: "text" },
             widgetProps: { type: "input" },
             default: true,
         },
         TextField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetPreviewableTemplate,
-            fieldProps: { validation: "text", ownsLayout: true },
+            fieldProps: { validation: "text" },
             widgetProps: {},
         },
     },
@@ -352,7 +333,6 @@ export const defaultFieldMappings = {
         JSONField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetTemplateLegend,
-            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -361,7 +341,6 @@ export const defaultFieldMappings = {
         URLField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { ownsLayout: true },
             widgetProps: { type: "url" },
             default: true,
         },
@@ -371,7 +350,6 @@ export const defaultFieldMappings = {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
             widgetProps: { mask: "********-****-****-****-************" },
-            fieldProps: { ownsLayout: true },
             default: true,
         },
     },
@@ -382,7 +360,6 @@ export const choiceFieldMappings = {
         BooleanField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetRadioGroup,
-            fieldProps: { ownsLayout: true },
             manyWidget: availableWidgets.WidgetRadioGroup,
             default: true,
         },
@@ -404,7 +381,7 @@ export const choiceFieldMappings = {
         CharField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetSelectDropdown,
-            fieldProps: { validation: "text", ownsLayout: true },
+            fieldProps: { validation: "text" },
             manyWidget: availableWidgets.WidgetCombobox,
             manyWidgetProps: { multiple: true },
             default: true,
@@ -412,7 +389,7 @@ export const choiceFieldMappings = {
         TextField: {
             component: availableFields.FormField,
             widget: availableWidgets.WidgetSelectDropdown,
-            fieldProps: { validation: "text", ownsLayout: true },
+            fieldProps: { validation: "text" },
             manyWidget: availableWidgets.WidgetCombobox,
             manyWidgetProps: { multiple: true },
         },
@@ -660,30 +637,33 @@ export const manyFieldMappings = {
 export const filterFieldMapping = {
     BooleanField: {
         component: availableFields.FormField,
+        fieldProps: { hidden: true },
         widget: availableWidgets.WidgetToggle,
     },
     CharField: {
         component: availableFields.FormField,
-        fieldProps: { validation: "text" },
+        fieldProps: { validation: "text", hidden: true },
         widget: availableWidgets.WidgetTextInput,
     },
     ChoiceField: {
         component: availableFields.FormField,
-        fieldProps: { validation: "text" },
+        fieldProps: { validation: "text", hidden: true },
         widget: availableWidgets.WidgetSelectDropdown,
     },
     NullBooleanField: {
         component: availableFields.FormField,
-        fieldProps: { validation: "text" },
+        fieldProps: { validation: "text", hidden: true },
         widget: availableWidgets.WidgetSelectDropdown,
     },
     ModelMultipleChoiceInField: {
         component: availableFields.FormField,
+        fieldProps: { hidden: true },
         widget: availableWidgets.WidgetModel,
         widgetProps: { type: "multiSelect", isFilter: true },
     },
     ModelChoiceInField: {
         component: availableFields.FormField,
+        fieldProps: { hidden: true },
         widget: availableWidgets.WidgetModel,
         widgetProps: { type: "multiSelect", isFilter: true },
     },
@@ -704,24 +684,24 @@ export const filterFieldMapping = {
     },
     IsoDateTimeField: {
         component: availableFields.FormField,
-        fieldProps: { validation: "date" },
+        fieldProps: { validation: "date", hidden: true },
         widget: availableWidgets.WidgetDateField,
         widgetProps: { granularity: "minute" },
     },
     ModelChoiceField: {
         component: availableFields.FormField,
-        fieldProps: { validation: "text" },
+        fieldProps: { validation: "text", hidden: true },
         widget: availableWidgets.WidgetModel,
         widgetProps: { type: "select", isFilter: true },
     },
     DecimalField: {
         component: availableFields.FormField,
-        fieldProps: { validation: "decimal" },
+        fieldProps: { validation: "decimal", hidden: true },
         widget: availableWidgets.WidgetNumberInput,
     },
     PositiveDecimalField: {
         component: availableFields.FormField,
-        fieldProps: { validation: "decimal" },
+        fieldProps: { validation: "decimal", hidden: true },
         widget: availableWidgets.WidgetNumberInput,
     },
 };

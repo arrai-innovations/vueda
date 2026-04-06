@@ -54,39 +54,11 @@ describe("lib/fields/FormField.vue", () => {
         });
     });
 
-    describe("ownsLayout=false (default)", () => {
-        scopedIt("renders a plain div wrapper", () => {
-            const wrapper = mount(FormField, { props: { name: "test" } });
-            const root = wrapper.find("[data-qa='form-field']");
-            expect(root.exists()).toBe(true);
-            expect(root.element.tagName).toBe("DIV");
-        });
-
-        scopedIt("does not render ShellField layout components", () => {
-            fieldContext.state.label = "Test Label";
-            fieldContext.state.help = "Some help";
-            fieldContext.state.errors = { required: "Required" };
-            const wrapper = mount(FormField, { props: { name: "test" } });
-            expect(wrapper.find("[data-slot='field']").exists()).toBe(false);
-            expect(wrapper.find("[data-slot='field-label']").exists()).toBe(false);
-            expect(wrapper.find("[data-slot='field-description']").exists()).toBe(false);
-            expect(wrapper.find("[data-slot='field-error']").exists()).toBe(false);
-        });
-
-        scopedIt("applies class from attrs to the wrapper div", () => {
-            const wrapper = mount(FormField, {
-                props: { name: "test" },
-                attrs: { class: "custom-class" },
-            });
-            expect(wrapper.find("[data-qa='form-field']").classes()).toContain("custom-class");
-        });
-    });
-
-    describe("ownsLayout=true", () => {
+    describe("hidden=false (default, renders layout)", () => {
         scopedIt("renders ShellField layout with label", () => {
             fieldContext.state.label = "Email";
             const wrapper = mount(FormField, {
-                props: { name: "test", ownsLayout: true },
+                props: { name: "test" },
                 global: { stubs: { ShellField: false, ShellFieldLabel: false, ShellFieldContent: false } },
             });
             expect(wrapper.find("[data-slot='field']").exists()).toBe(true);
@@ -98,7 +70,7 @@ describe("lib/fields/FormField.vue", () => {
             fieldContext.state.required = true;
             fieldContext.state.label = "Name";
             const wrapper = mount(FormField, {
-                props: { name: "test", ownsLayout: true },
+                props: { name: "test" },
             });
             expect(wrapper.find("span[aria-hidden='true']").text()).toBe("*");
         });
@@ -106,7 +78,7 @@ describe("lib/fields/FormField.vue", () => {
         scopedIt("does not render required indicator when field is not required", () => {
             fieldContext.state.required = false;
             const wrapper = mount(FormField, {
-                props: { name: "test", ownsLayout: true },
+                props: { name: "test" },
             });
             expect(wrapper.find("span[aria-hidden='true']").exists()).toBe(false);
         });
@@ -114,7 +86,7 @@ describe("lib/fields/FormField.vue", () => {
         scopedIt("renders description when help text is present", () => {
             fieldContext.state.help = "Enter your email address";
             const wrapper = mount(FormField, {
-                props: { name: "test", ownsLayout: true },
+                props: { name: "test" },
             });
             expect(wrapper.find("[data-slot='field-description']").text()).toBe("Enter your email address");
         });
@@ -122,7 +94,7 @@ describe("lib/fields/FormField.vue", () => {
         scopedIt("does not render description when help is empty", () => {
             fieldContext.state.help = "";
             const wrapper = mount(FormField, {
-                props: { name: "test", ownsLayout: true },
+                props: { name: "test" },
             });
             expect(wrapper.find("[data-slot='field-description']").exists()).toBe(false);
         });
@@ -130,7 +102,7 @@ describe("lib/fields/FormField.vue", () => {
         scopedIt("renders errors from field context", async () => {
             fieldContext.state.errors = { required: "This field is required." };
             const wrapper = mount(FormField, {
-                props: { name: "test", ownsLayout: true },
+                props: { name: "test" },
             });
             expect(wrapper.find("[data-slot='field-error']").text()).toBe("This field is required.");
         });
@@ -138,16 +110,52 @@ describe("lib/fields/FormField.vue", () => {
         scopedIt("does not render error element when no errors", () => {
             fieldContext.state.errors = {};
             const wrapper = mount(FormField, {
-                props: { name: "test", ownsLayout: true },
+                props: { name: "test" },
             });
             expect(wrapper.find("[data-slot='field-error']").exists()).toBe(false);
         });
 
         scopedIt("applies orientation to ShellField", () => {
             const wrapper = mount(FormField, {
-                props: { name: "test", ownsLayout: true, orientation: "horizontal" },
+                props: { name: "test", orientation: "horizontal" },
             });
             expect(wrapper.find("[data-slot='field']").attributes("data-orientation")).toBe("horizontal");
+        });
+
+        scopedIt("applies class from attrs to ShellField", () => {
+            const wrapper = mount(FormField, {
+                props: { name: "test" },
+                attrs: { class: "custom-class" },
+            });
+            expect(wrapper.find("[data-qa='form-field']").classes()).toContain("custom-class");
+        });
+    });
+
+    describe("hidden=true (suppresses layout)", () => {
+        scopedIt("renders a plain div wrapper", () => {
+            const wrapper = mount(FormField, { props: { name: "test", hidden: true } });
+            const root = wrapper.find("[data-qa='form-field']");
+            expect(root.exists()).toBe(true);
+            expect(root.element.tagName).toBe("DIV");
+        });
+
+        scopedIt("does not render ShellField layout components", () => {
+            fieldContext.state.label = "Test Label";
+            fieldContext.state.help = "Some help";
+            fieldContext.state.errors = { required: "Required" };
+            const wrapper = mount(FormField, { props: { name: "test", hidden: true } });
+            expect(wrapper.find("[data-slot='field']").exists()).toBe(false);
+            expect(wrapper.find("[data-slot='field-label']").exists()).toBe(false);
+            expect(wrapper.find("[data-slot='field-description']").exists()).toBe(false);
+            expect(wrapper.find("[data-slot='field-error']").exists()).toBe(false);
+        });
+
+        scopedIt("applies class from attrs to the wrapper div", () => {
+            const wrapper = mount(FormField, {
+                props: { name: "test", hidden: true },
+                attrs: { class: "custom-class" },
+            });
+            expect(wrapper.find("[data-qa='form-field']").classes()).toContain("custom-class");
         });
     });
 
@@ -195,13 +203,13 @@ describe("lib/fields/FormField.vue", () => {
                 },
             });
             expect(receivedProps.fieldProps).toHaveProperty("validation", "text");
-            expect(receivedProps.fieldProps).toHaveProperty("ownsLayout", false);
+            expect(receivedProps.fieldProps).toHaveProperty("hidden", false);
         });
 
-        scopedIt("provides same slot props in ownsLayout mode", () => {
+        scopedIt("provides same slot props in hidden mode", () => {
             let receivedProps;
             mount(FormField, {
-                props: { name: "test", ownsLayout: true },
+                props: { name: "test", hidden: true },
                 slots: {
                     default: (slotProps) => {
                         receivedProps = slotProps;

@@ -3,7 +3,7 @@ import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
-import WidgetLabelContextByProps from "@vueda/components/WidgetLabelContextByProps.vue";
+// import WidgetLabelContextByProps from "@vueda/components/WidgetLabelContextByProps.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import {
     FIELD_SET_TABULAR_INLINE_EMITS,
@@ -167,12 +167,12 @@ watch(
                     <!-- @slot [header(fieldName)] Override the header label cell for a specific column. -->
                     <slot :name="`header(${fieldObj.name})`" v-bind="headerSlotProps">
                         <div :class="headerSlotProps.class" :data-card-header="headerSlotProps['data-card-header']">
-                            <widget-label-context-by-props
-                                :field-set-tabular-inline="fieldSetTabularInline"
-                                :field-value-path="`${fieldSetTabularInline.fieldSetContext.state.name}[${headerSlotProps.rowIndex || '0'}].${headerSlotProps.field.fieldName}`"
-                                :row-index="headerSlotProps.rowIndex"
-                                v-bind="headerSlotProps"
-                            />
+                            <!--                            <widget-label-context-by-props-->
+                            <!--                                :field-set-tabular-inline="fieldSetTabularInline"-->
+                            <!--                                :field-value-path="`${fieldSetTabularInline.fieldSetContext.state.name}[${headerSlotProps.rowIndex || '0'}].${headerSlotProps.field.fieldName}`"-->
+                            <!--                                :row-index="headerSlotProps.rowIndex"-->
+                            <!--                                v-bind="headerSlotProps"-->
+                            <!--                            />-->
                         </div>
                     </slot>
                 </template>

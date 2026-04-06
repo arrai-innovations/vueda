@@ -92,6 +92,12 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
                 ? props.formModel.filterableDetails[props.formModelName]
                 : props.formModel.fieldDetails[props.formModelName],
         );
+        const computedHidden = computed(() => {
+            if (props.hidden !== undefined) {
+                return props.hidden;
+            }
+            return !!fieldSetContext;
+        });
         const fieldProps = computed(() => ({
             ...omit(props.objectGridFieldSlotProps, ["value"]),
             ...omit(props.formModel.fieldProps[props.formModelName], ["themeOverride"]),
@@ -99,23 +105,17 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             name: unref(fieldValuePath),
             formModelName: props.formModelName,
             modelValue: props.objectGridFieldSlotProps?.value,
+            hidden: computedHidden.value,
             themeOverride: mergeTheme(
                 props.formModel.fieldProps[props.formModelName]?.themeOverride,
                 props.themeOverride,
             ),
         }));
-        const computedHidden = computed(() => {
-            if (props.hidden !== undefined) {
-                return props.hidden;
-            }
-            return !!fieldSetContext;
-        });
         const widgetProps = computed(() => ({
             ...props.objectGridFieldSlotProps,
             ...omit(props.formModel.widgetProps[props.formModelName], ["themeOverride"]),
             ...omit(attrs, ["class"]),
             ...props.widgetProps,
-            hidden: computedHidden.value,
             themeOverride: mergeTheme(
                 props.formModel.fieldProps[props.formModelName]?.themeOverride,
                 props.formModel.widgetProps[props.formModelName]?.themeOverride,

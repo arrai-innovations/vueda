@@ -407,7 +407,6 @@ describe("lib/use/useFormModel.js", () => {
             await flushPromises();
 
             expect(state.fieldProps.rating.validation).toBe("numeric");
-            expect(state.fieldProps.rating.ownsLayout).toBe(true);
         });
         scopedIt("defaults readOnly to false when field detail omits property", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");

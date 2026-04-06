@@ -20,7 +20,7 @@ const AuthFormStub = defineComponent({
 
 const FormFieldStub = defineComponent({
     name: "FormFieldStub",
-    props: ["label", "name", "ownsLayout", "validation"],
+    props: ["label", "name", "hidden", "validation"],
     setup(props, { slots }) {
         return () => h("div", null, slots.default ? slots.default() : null);
     },

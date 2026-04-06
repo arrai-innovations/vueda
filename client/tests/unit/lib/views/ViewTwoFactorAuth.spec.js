@@ -26,34 +26,32 @@ const AuthorizingFormStub = defineComponent({
     },
 });
 
-const makeFieldStub = (qa) =>
-    defineComponent({
-        name: `${qa}Stub`,
-        props: ["label", "name"],
-        setup(props, { slots }) {
-            return () => h("div", { "data-qa": qa, "data-name": props.name }, slots.default ? slots.default() : null);
-        },
-    });
+const FormFieldStub = defineComponent({
+    name: "FormFieldStub",
+    props: ["label", "name", "validation", "hidden"],
+    setup(props, { slots }) {
+        return () =>
+            h("div", { "data-qa": "form-field", "data-name": props.name }, slots.default ? slots.default() : null);
+    },
+});
 
-const FieldStringStub = makeFieldStub("field-string");
-
-const WidgetSelectStub = defineComponent({
-    name: "WidgetSelectStub",
+const WidgetSelectDropdownStub = defineComponent({
+    name: "WidgetSelectDropdownStub",
     props: ["options"],
     setup(props, { slots }) {
         return () =>
             h(
                 "select",
-                { "data-qa": "widget-select", "data-options": JSON.stringify(props.options || []) },
+                { "data-qa": "widget-select-dropdown", "data-options": JSON.stringify(props.options || []) },
                 slots.default ? slots.default() : null,
             );
     },
 });
 
-const WidgetInputStub = defineComponent({
-    name: "WidgetInputStub",
+const WidgetTextInputStub = defineComponent({
+    name: "WidgetTextInputStub",
     setup(props, { slots }) {
-        return () => h("input", { "data-qa": "widget-input" }, slots.default ? slots.default() : null);
+        return () => h("input", { "data-qa": "widget-text-input" }, slots.default ? slots.default() : null);
     },
 });
 
@@ -82,10 +80,9 @@ const toastAdd = vi.fn();
 const routerPush = vi.fn();
 
 vi.mock("@vueda/components/AuthorizingForm.vue", () => ({ default: AuthorizingFormStub }));
-vi.mock("@vueda/fields/FieldString.vue", () => ({ default: FieldStringStub }));
-vi.mock("@vueda/widgets/WidgetSelect.vue", () => ({ default: WidgetSelectStub }));
-vi.mock("@vueda/widgets/WidgetInput.vue", () => ({ default: WidgetInputStub }));
-vi.mock("@vueda/widgets/WidgetLabel.vue", () => ({ getWidgetSlotsComputed: () => [] }));
+vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
+vi.mock("@vueda/widgets/WidgetSelectDropdown.vue", () => ({ default: WidgetSelectDropdownStub }));
+vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
 vi.mock("primevue/button", () => ({ default: ButtonStub }));
 vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part, THEME_OVERRIDE_PROPS: {} }));

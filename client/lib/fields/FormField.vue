@@ -32,11 +32,11 @@ const props = defineProps({
         default: "vertical",
     },
     /**
-     * When true, the field renders its own label, description, and error
-     * display via ShellField. Set to false when the widget still handles
-     * layout through WidgetLabel and FormHiddenFeedback.
+     * When true, suppresses the ShellField layout shell (label, description,
+     * errors). Used by filter fields (which provide their own heading) and
+     * injected automatically by useFieldRenderer in fieldset contexts.
      */
-    ownsLayout: {
+    hidden: {
         type: Boolean,
         default: false,
     },
@@ -48,7 +48,7 @@ useFieldValidation(props.validation, fieldContext, attrs);
 const fieldId = fieldContext.state.fieldId;
 </script>
 <template>
-    <ShellField v-if="ownsLayout" :orientation="orientation" :class="$attrs.class" data-qa="form-field">
+    <ShellField v-if="!hidden" :orientation="orientation" :class="$attrs.class" data-qa="form-field">
         <ShellFieldLabel :for="fieldId">
             {{ fieldContext.state.label }}
             <span v-if="fieldContext.state.required" aria-hidden="true">*</span>
