@@ -1,19 +1,17 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
-import FormChores from "@vueda/components/FormChores.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
-// import WidgetLabelContextByProps from "@vueda/components/WidgetLabelContextByProps.vue";
+import { ControlButton } from "@vueda/controls/button";
+import { ShellFieldDescription, ShellFieldMessage } from "@vueda/shell/field";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import {
     FIELD_SET_TABULAR_INLINE_EMITS,
     FIELD_SET_TABULAR_INLINE_PROPS,
     useFieldSetTabularInline,
 } from "@vueda/use/useFieldSetTabularInline.js";
-import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import omit from "lodash-es/omit.js";
-import Button from "primevue/button";
 import Divider from "primevue/divider";
 import { watch } from "vue";
 
@@ -93,11 +91,14 @@ watch(
                         :verb="fieldSetTabularInline.state.internalVisible ? 'collapseDown' : 'collapseUp'"
                         @click="fieldSetTabularInline.toggleVisibility"
                     >
-                        <Button
+                        <ControlButton
+                            variant="outline"
+                            size="sm"
                             :class="fieldSetTabularInline.theme('toggleButton')"
-                            :label="fieldSetTabularInline.state.internalVisible ? 'Hide' : 'Show'"
                             @click="fieldSetTabularInline.toggleVisibility"
-                        />
+                        >
+                            {{ fieldSetTabularInline.state.internalVisible ? "Hide" : "Show" }}
+                        </ControlButton>
                     </slot>
                 </div>
                 <div :class="fieldSetTabularInline.theme('title')" data-qa="field-set-tabular-inline-title">
@@ -121,26 +122,28 @@ watch(
                         verb="createInline"
                         @click="fieldSetTabularInline.doCreate"
                     >
-                        <Button
+                        <ControlButton
+                            variant="outline"
+                            size="sm"
                             :class="fieldSetTabularInline.theme('createButton')"
-                            label="Create"
                             @click="fieldSetTabularInline.doCreate"
-                        />
+                        >
+                            Create
+                        </ControlButton>
                     </slot>
                 </div>
             </Divider>
-            <!-- @slot [field-set-level-chores] Replaces the form-level validation chores block rendered above the rows. -->
+            <!-- @slot [field-set-level-chores] Replaces the validation block rendered above the rows. -->
             <slot name="field-set-level-chores">
-                <form-chores :variant="null">
-                    <template
-                        v-for="slot in getFormChoresSlotNames(
-                            fieldSetTabularInline.fieldSetContext.state.formModelName,
-                        )"
-                        #[slot]="formChoresSlotProps"
-                    >
-                        <slot :name="slot" v-bind="formChoresSlotProps" />
-                    </template>
-                </form-chores>
+                <ShellFieldDescription v-if="fieldSetTabularInline.fieldSetContext.state.help">
+                    {{ fieldSetTabularInline.fieldSetContext.state.help }}
+                </ShellFieldDescription>
+                <ShellFieldMessage :messages="Object.values(fieldSetTabularInline.fieldSetContext.state.errors)" />
+                <ShellFieldMessage
+                    v-if="Object.keys(fieldSetTabularInline.fieldSetContext.state.messages).length"
+                    severity="warning"
+                    :messages="Object.values(fieldSetTabularInline.fieldSetContext.state.messages)"
+                />
             </slot>
             <objects-grid
                 :class="
@@ -203,13 +206,15 @@ watch(
                                         verb="destroy"
                                         @click="fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)"
                                     >
-                                        <Button
-                                            label="Delete"
-                                            text
+                                        <ControlButton
+                                            variant="ghost"
+                                            size="sm"
                                             @click="
                                                 fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)
                                             "
-                                        />
+                                        >
+                                            Delete
+                                        </ControlButton>
                                     </slot>
                                     <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox, field(fieldName)destroy-checkbox] Checkbox to mark an existing tabular inline row for deletion. -->
                                     <slot
@@ -271,8 +276,9 @@ watch(
                                             doCreate: fieldSetTabularInline.doCreate,
                                         }"
                                     >
-                                        <Button
-                                            :label="action.label"
+                                        <ControlButton
+                                            variant="outline"
+                                            size="sm"
                                             @click="
                                                 ($event) =>
                                                     action.action({
@@ -285,7 +291,9 @@ watch(
                                                         doCreate: fieldSetTabularInline.doCreate,
                                                     })
                                             "
-                                        />
+                                        >
+                                            {{ action.label }}
+                                        </ControlButton>
                                     </slot>
                                 </template>
                             </template>
@@ -341,12 +349,14 @@ watch(
                             verb="createInline"
                             @click="fieldSetTabularInline.doCreate"
                         >
-                            <Button
+                            <ControlButton
+                                variant="ghost"
+                                size="sm"
                                 :class="fieldSetTabularInline.theme('inLineCreateButton')"
-                                label="Create"
-                                variant="text"
                                 @click="fieldSetTabularInline.doCreate"
-                            />
+                            >
+                                Create
+                            </ControlButton>
                         </slot>
                     </div>
                 </template>
