@@ -1,10 +1,9 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
-import FormChores from "@vueda/components/FormChores.vue";
+import { ShellFieldDescription, ShellFieldMessage } from "@vueda/shell/field";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FilterModelSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
 import IsObject from "lodash-es/isObject.js";
 import { computed, inject, watch } from "vue";
@@ -94,16 +93,17 @@ watch(
                 {{ fieldContext.state.label }}
             </label>
         </div>
-        <!-- @slot [field-set-level-chores] Override the form-level validation chores block rendered above the range sub-fields. -->
+        <!-- @slot [field-set-level-chores] Override the validation block rendered above the range sub-fields. -->
         <slot name="field-set-level-chores">
-            <form-chores :variant="null">
-                <template
-                    v-for="slot in getFormChoresSlotNames(fieldContext.state.formModelName)"
-                    #[slot]="formChoresSlotProps"
-                >
-                    <slot :name="slot" v-bind="formChoresSlotProps" />
-                </template>
-            </form-chores>
+            <ShellFieldDescription v-if="fieldContext.state.help">
+                {{ fieldContext.state.help }}
+            </ShellFieldDescription>
+            <ShellFieldMessage :messages="Object.values(fieldContext.state.errors)" />
+            <ShellFieldMessage
+                v-if="Object.keys(fieldContext.state.messages).length"
+                severity="warning"
+                :messages="Object.values(fieldContext.state.messages)"
+            />
         </slot>
         <div :class="theme('inner')">
             <template v-for="name in boundaryNames" :key="name">
