@@ -1,11 +1,11 @@
 <script setup>
-import FormChores from "@vueda/components/FormChores.vue";
+import { ControlButton } from "@vueda/controls/button";
+import { ShellFieldDescription, ShellFieldMessage } from "@vueda/shell/field";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { watchIfDev } from "@vueda/utils/dev.js";
-import Button from "primevue/button";
+import { Plus, X } from "lucide-vue-next";
 import { computed, useAttrs } from "vue";
 
 /**
@@ -71,7 +71,7 @@ const theme = useTheme("FieldSetMany", props);
             </slot>
             <!-- @slot [add] Override the add button. -->
             <slot name="add" @click="onAdd">
-                <Button label="add" @click="onAdd"></Button>
+                <ControlButton variant="outline" size="sm" @click="onAdd"><Plus /> Add</ControlButton>
             </slot>
         </div>
         <div v-if="fieldProps?.length">
@@ -87,17 +87,24 @@ const theme = useTheme("FieldSetMany", props);
                         <div v-if="index">
                             <!-- @slot [destroy] Override the delete button for a row. -->
                             <slot name="destroy" @click="onDestroy(index)">
-                                <Button icon="pi pi-times" rounded @click="onDestroy(index)" />
+                                <ControlButton variant="ghost" size="icon-sm" @click="onDestroy(index)">
+                                    <X />
+                                    <span class="sr-only">Remove entry</span>
+                                </ControlButton>
                             </slot>
                         </div>
                     </div>
                 </slot>
             </template>
         </div>
-        <form-chores>
-            <template v-for="slot in getFormChoresSlotNames(fieldContext.state.name)" #[slot]="formChoresSlotProps">
-                <slot :name="slot" v-bind="formChoresSlotProps" />
-            </template>
-        </form-chores>
+        <ShellFieldDescription v-if="fieldContext.state.help">
+            {{ fieldContext.state.help }}
+        </ShellFieldDescription>
+        <ShellFieldMessage :messages="Object.values(fieldContext.state.errors)" />
+        <ShellFieldMessage
+            v-if="Object.keys(fieldContext.state.messages).length"
+            severity="warning"
+            :messages="Object.values(fieldContext.state.messages)"
+        />
     </div>
 </template>

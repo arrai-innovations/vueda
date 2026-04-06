@@ -2,26 +2,22 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, reactive } from "vue";
 
-const ButtonStub = defineComponent({
-    name: "ButtonStub",
-    props: ["label", "icon", "rounded"],
+const ControlButtonStub = defineComponent({
+    name: "ControlButtonStub",
+    props: ["variant", "size"],
     emits: ["click"],
-    setup(props, { emit }) {
+    setup(props, { emit, slots }) {
         return () =>
-            h("button", {
-                "data-qa": "prime-button",
-                "data-label": props.label,
-                "data-icon": props.icon,
-                "data-rounded": String(props.rounded),
-                onClick: () => emit("click"),
-            });
-    },
-});
-
-const FormChoresStub = defineComponent({
-    name: "FormChoresStub",
-    setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-chores" }, slots.default ? slots.default() : null);
+            h(
+                "button",
+                {
+                    "data-qa": "control-button",
+                    "data-variant": props.variant,
+                    "data-size": props.size,
+                    onClick: () => emit("click"),
+                },
+                slots.default?.(),
+            );
     },
 });
 
@@ -54,8 +50,25 @@ const warnSpy = vi.fn();
 const useFieldMock = vi.fn();
 const themeFn = vi.fn((cls) => `t-${cls}`);
 
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
-vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ControlButtonStub }));
+vi.mock("lucide-vue-next", () => ({
+    Plus: defineComponent({ name: "Plus", setup: () => () => h("svg", { "data-icon": "plus" }) }),
+    X: defineComponent({ name: "X", setup: () => () => h("svg", { "data-icon": "x" }) }),
+}));
+vi.mock("@vueda/shell/field", () => ({
+    ShellFieldDescription: defineComponent({
+        name: "ShellFieldDescription",
+        setup:
+            (_, { slots }) =>
+            () =>
+                h("p", { "data-qa": "field-description" }, slots.default?.()),
+    }),
+    ShellFieldMessage: defineComponent({
+        name: "ShellFieldMessage",
+        props: ["messages", "severity"],
+        setup: (props) => () => h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),
+    }),
+}));
 vi.mock("@vueda/use/useDevLogger.js", () => ({ useDevLogger: () => ({ warn: warnSpy }) }));
 vi.mock("@vueda/use/useField.js", () => ({
     FIELD_EMITS: [],
@@ -63,7 +76,6 @@ vi.mock("@vueda/use/useField.js", () => ({
     useField: useFieldMock,
 }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: vi.fn(() => themeFn), THEME_OVERRIDE_PROPS: {} }));
-vi.mock("@vueda/utils/buildForm.js", () => ({ getFormChoresSlotNames: () => [] }));
 
 let FieldSetMany, vue;
 
@@ -81,7 +93,9 @@ afterEach(() => {
 
 describe("lib/fields/FieldSetMany.vue", () => {
     scopedIt("warns when value is not an array", async () => {
-        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: {} }) };
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: {}, help: "", errors: {}, messages: {} }),
+        };
         useFieldMock.mockReturnValue(fieldContext);
         mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
         await vue.nextTick();
@@ -95,11 +109,13 @@ describe("lib/fields/FieldSetMany.vue", () => {
     });
 
     scopedIt("adds items and computes names", async () => {
-        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: [1] }) };
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: [1], help: "", errors: {}, messages: {} }),
+        };
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
-        await wrapper.find('[data-label="add"]').trigger("click");
+        await wrapper.find('[data-variant="outline"]').trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([1, undefined]);
         const comps = wrapper.findAll('[data-qa="many-component"]');
@@ -109,22 +125,26 @@ describe("lib/fields/FieldSetMany.vue", () => {
     });
 
     scopedIt("destroys items when remove clicked", async () => {
-        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: [1, 2] }) };
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
+        };
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(2);
-        await wrapper.find('[data-icon="pi pi-times"]').trigger("click");
+        await wrapper.find('[data-size="icon-sm"]').trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([1]);
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
     });
 
     scopedIt("handles undefined value for add and destroy", async () => {
-        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: undefined }) };
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: undefined, help: "", errors: {}, messages: {} }),
+        };
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
 
-        await wrapper.find('[data-label="add"]').trigger("click");
+        await wrapper.find('[data-variant="outline"]').trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([undefined]);
 
@@ -135,7 +155,9 @@ describe("lib/fields/FieldSetMany.vue", () => {
     });
 
     scopedIt("destroys items when slot clicked", async () => {
-        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: [1, 2] }) };
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
+        };
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, {
             props: { name: "nums", manyComponent: ManyComponentStub },
