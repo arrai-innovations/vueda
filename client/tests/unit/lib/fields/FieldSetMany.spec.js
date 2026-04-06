@@ -154,6 +154,30 @@ describe("lib/fields/FieldSetMany.vue", () => {
         expect(fieldContext.state.value).toEqual([]);
     });
 
+    scopedIt("renders field-set-level-chores slot when provided", () => {
+        const fieldContext = {
+            state: reactive({
+                name: "nums",
+                label: "Nums",
+                value: [1],
+                help: "Default help",
+                errors: { required: "Required" },
+                messages: {},
+            }),
+        };
+        useFieldMock.mockReturnValue(fieldContext);
+        const wrapper = mount(FieldSetMany, {
+            props: { name: "nums", manyComponent: ManyComponentStub },
+            slots: {
+                "field-set-level-chores": () => h("div", { "data-qa": "custom-chores" }, "Custom feedback"),
+            },
+        });
+        expect(wrapper.find('[data-qa="custom-chores"]').exists()).toBe(true);
+        expect(wrapper.find('[data-qa="custom-chores"]').text()).toBe("Custom feedback");
+        expect(wrapper.find('[data-qa="field-description"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="field-message"]').exists()).toBe(false);
+    });
+
     scopedIt("destroys items when slot clicked", async () => {
         const fieldContext = {
             state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),

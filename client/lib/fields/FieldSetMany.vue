@@ -97,14 +97,17 @@ const theme = useTheme("FieldSetMany", props);
                 </slot>
             </template>
         </div>
-        <ShellFieldDescription v-if="fieldContext.state.help">
-            {{ fieldContext.state.help }}
-        </ShellFieldDescription>
-        <ShellFieldMessage :messages="Object.values(fieldContext.state.errors)" />
-        <ShellFieldMessage
-            v-if="Object.keys(fieldContext.state.messages).length"
-            severity="warning"
-            :messages="Object.values(fieldContext.state.messages)"
-        />
+        <!-- @slot [field-set-level-chores] Override the validation block (help, errors, warnings) for this field set. -->
+        <slot name="field-set-level-chores">
+            <ShellFieldDescription v-if="fieldContext.state.help">
+                {{ fieldContext.state.help }}
+            </ShellFieldDescription>
+            <ShellFieldMessage :messages="Object.values(fieldContext.state.errors)" />
+            <ShellFieldMessage
+                v-if="Object.keys(fieldContext.state.messages).length"
+                severity="warning"
+                :messages="Object.values(fieldContext.state.messages)"
+            />
+        </slot>
     </div>
 </template>
