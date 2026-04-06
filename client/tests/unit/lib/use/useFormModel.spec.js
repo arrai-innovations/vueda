@@ -260,7 +260,7 @@ describe("lib/use/useFormModel.js", () => {
             expect(state.computedFields).toEqual([]);
             expect(state.fieldProps.name.contextless).toBe(false);
         });
-        scopedIt("uses FieldString for computed fields", async () => {
+        scopedIt("uses FormField for computed fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
             const { availableFields } = await import("@vueda/utils/formLookups.js");
 
@@ -283,7 +283,7 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.fieldComponents.score).toStrictEqual(availableFields.FieldString);
+            expect(state.fieldComponents.score).toStrictEqual(availableFields.FormField);
         });
         scopedIt("uses prop.fields when both prop and config supply fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -606,7 +606,7 @@ describe("lib/use/useFormModel.js", () => {
         });
         scopedIt("maps GeneratedField using typeDb mapping", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
 
             const props = makeBaseProps({
                 fields: ["amount"],
@@ -627,12 +627,11 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.fieldComponents.amount).toStrictEqual(
-                defaultFieldMappings.ModelField.GeneratedField.FloatField.component,
-            );
+            expect(state.fieldComponents.amount).toStrictEqual(availableFields.FormField);
         });
         scopedIt("uses default mapping when typeModel is missing", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
             const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
 
             const props = makeBaseProps({
@@ -652,11 +651,12 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.fieldComponents.title).toStrictEqual(defaultFieldMappings.CharField.CharField.component);
+            expect(state.fieldComponents.title).toStrictEqual(availableFields.FormField);
             expect(state.widgetComponents.title).toStrictEqual(defaultFieldMappings.CharField.CharField.widget);
         });
-        scopedIt("throws when no field or widget mapping exists for typeModel", async () => {
+        scopedIt("resolves FormField for unknown typeModel but throws for widget", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
 
             const props = makeBaseProps({
                 fields: ["title"],
@@ -676,16 +676,14 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(() => state.fieldComponents.title).toThrow(
-                'No field component found for field "title" in app "foo" model "bar"',
-            );
+            expect(state.fieldComponents.title).toStrictEqual(availableFields.FormField);
             expect(() => state.widgetComponents.title).toThrow(
                 'No widget component found for field "title" in app "foo" model "bar"',
             );
         });
         scopedIt("uses choice field component when choices provided", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const { choiceFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
 
             const props = makeBaseProps({
                 fields: ["kind"],
@@ -706,7 +704,7 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.fieldComponents.kind).toStrictEqual(choiceFieldMappings.ChoiceField.CharField.component);
+            expect(state.fieldComponents.kind).toStrictEqual(availableFields.FormField);
         });
         scopedIt("uses many field / widget mappings when many=true", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");

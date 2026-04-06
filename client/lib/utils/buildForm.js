@@ -163,7 +163,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         es.run(() => {
             component = computed(() => {
                 if ((deepUnref(state.computedFields) || []).includes(fieldName)) {
-                    return availableFields.FieldString;
+                    return availableFields.FormField;
                 }
                 const customField =
                     props.fieldComponents?.[fieldName] ||

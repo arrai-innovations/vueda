@@ -9,7 +9,7 @@ import merge from "lodash-es/merge.js";
  * Describes how a DRF serializer field type maps to a Vue field component and widget.
  *
  * @typedef {object} FieldMappingEntry
- * @property {import('vue').Component|null} component - The field component, or null if none.
+ * @property {import('vue').Component|null} [component] - The field component override. Only used by filterFieldMapping; defaultFieldMappings and choiceFieldMappings rely on FormField as the hardcoded default.
  * @property {import('vue').Component|null} widget - The widget component, or null if none.
  * @property {object} [fieldProps] - Extra props forwarded to the field component.
  * @property {object} [widgetProps] - Extra props forwarded to the widget component.
@@ -26,27 +26,23 @@ import merge from "lodash-es/merge.js";
 export const defaultFieldMappings = {
     BooleanField: {
         BooleanField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetToggle,
             default: true,
         },
     },
     CharField: {
         CharField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
             fieldProps: { validation: "text" },
             default: true,
         },
         TextField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetTextTextarea,
             fieldProps: { validation: "text" },
         },
     },
     DateField: {
         DateField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetDateField,
             fieldProps: { validation: "date" },
             default: true,
@@ -54,7 +50,6 @@ export const defaultFieldMappings = {
     },
     DateTimeField: {
         DateTimeField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetDateField,
             fieldProps: { validation: "datetime" },
             widgetProps: { granularity: "minute" },
@@ -63,20 +58,17 @@ export const defaultFieldMappings = {
     },
     DecimalField: {
         DecimalField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
             fieldProps: { validation: "decimal" },
             default: true,
         },
         PositiveDecimalField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
             fieldProps: { validation: "decimal" },
         },
     },
     DurationSecondsField: {
         DurationField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetDuration,
             // todo: mode for WidgetDuration to handle seconds directly
             widgetProps: { unit: "minutes" },
@@ -85,14 +77,12 @@ export const defaultFieldMappings = {
     },
     DurationField: {
         DurationField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetDuration,
             default: true,
         },
     },
     EmailField: {
         EmailField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
             widgetProps: { type: "email" },
             default: true,
@@ -100,14 +90,12 @@ export const defaultFieldMappings = {
     },
     FileField: {
         FileField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetFile,
             default: true,
         },
     },
     FloatField: {
         FloatField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
             fieldProps: { validation: "numeric" },
             default: true,
@@ -115,101 +103,83 @@ export const defaultFieldMappings = {
     },
     ImageField: {
         ImageField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetImage,
             default: true,
         },
     },
     IntegerField: {
         AutoField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
         },
         BigAutoField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
         },
         BigIntegerField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
             fieldProps: { validation: "numeric" },
         },
         IntegerField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
             fieldProps: { validation: "numeric" },
             default: true,
         },
         PositiveBigIntegerField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
             fieldProps: { validation: "numeric" },
         },
         PositiveIntegerField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
             fieldProps: { validation: "numeric" },
         },
         PositiveSmallIntegerField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
             fieldProps: { validation: "numeric" },
         },
         SmallIntegerField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetNumberInput,
             fieldProps: { validation: "numeric" },
         },
     },
     IPAddressField: {
         IPAddressField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetUnmapped,
             default: true,
         },
         GenericIPAddressField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetUnmapped,
         },
     },
     JSONField: {
         JSONField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetUnmapped,
             default: true,
         },
     },
     RangeField: {
         DateRangeField: {
-            component: availableFields.FieldRange,
             widget: availableWidgets.WidgetDateRangeField,
             default: true,
         },
         DateTimeRangeField: {
-            component: availableFields.FieldRange,
             widget: availableWidgets.WidgetDateRangeField,
             widgetProps: { granularity: "minute" },
         },
         FloatRangeField: {
-            component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetNumberInput,
             boundaryComponent: availableFields.FieldDecimal,
             boundaryWidget: availableWidgets.WidgetNumberInput,
         },
         IntegerRangeField: {
-            component: availableFields.FieldSetRange,
             widget: availableWidgets.WidgetNumberInput,
             boundaryComponent: availableFields.FieldNumber,
             boundaryWidget: availableWidgets.WidgetNumberInput,
         },
         TimeRangeField: {
-            component: availableFields.FieldRange,
             widget: availableWidgets.WidgetTimeRangeField,
         },
     },
     ManyRelatedField: {
         ManyToManyField: {
-            component: null,
             widget: availableWidgets.WidgetCombobox,
             widgetProps: { multiple: true },
             fieldProps: {
@@ -224,7 +194,6 @@ export const defaultFieldMappings = {
             default: true,
         },
         ManyRelatedField: {
-            component: null,
             widget: availableWidgets.WidgetCombobox,
             widgetProps: { multiple: true },
             fieldProps: {
@@ -241,12 +210,10 @@ export const defaultFieldMappings = {
     ModelField: {
         GeneratedField: {
             CharField: {
-                component: availableFields.FormField,
                 widget: availableWidgets.WidgetReadOnly,
                 default: true,
             },
             FloatField: {
-                component: availableFields.FormField,
                 widget: availableWidgets.WidgetReadOnly,
                 fieldProps: { validation: "numeric" },
             },
@@ -255,30 +222,25 @@ export const defaultFieldMappings = {
     },
     NullBooleanField: {
         NullBooleanField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetCheckbox,
             default: true,
         },
     },
     PrimaryKeyRelatedField: {
         ForeignKey: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetCombobox,
             default: true,
         },
         OneToOneField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetCombobox,
         },
         RelatedField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetCombobox,
             widgetProps: { multiple: true },
         },
     },
     SlugRelatedField: {
         ForeignKey: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetModel,
             fieldProps: { validation: "text" },
             widgetProps: { type: "select", editable: true },
@@ -286,29 +248,25 @@ export const defaultFieldMappings = {
         },
     },
     SerializerField: {
-        BinaryField: { component: null, widget: null, fieldProps: {}, default: true },
+        BinaryField: { widget: null, fieldProps: {}, default: true },
     },
     SerializerMethodField: {
         GenericForeignKey: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetGenericAutoComplete,
             default: true,
         },
         GenericRelation: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetGenericAutoComplete,
         },
     },
     SlugField: {
         SlugField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
             default: true,
         },
     },
     TimeField: {
         TimeField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetTimeField,
             fieldProps: { validation: "time" },
             default: true,
@@ -316,14 +274,12 @@ export const defaultFieldMappings = {
     },
     TemplatedTextField: {
         CharField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetPreviewableTemplate,
             fieldProps: { validation: "text" },
             widgetProps: { type: "input" },
             default: true,
         },
         TextField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetPreviewableTemplate,
             fieldProps: { validation: "text" },
             widgetProps: {},
@@ -331,7 +287,6 @@ export const defaultFieldMappings = {
     },
     TemplateTagsDataField: {
         JSONField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetTemplateLegend,
             default: true,
         },
@@ -339,7 +294,6 @@ export const defaultFieldMappings = {
 
     URLField: {
         URLField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
             widgetProps: { type: "url" },
             default: true,
@@ -347,7 +301,6 @@ export const defaultFieldMappings = {
     },
     UUIDField: {
         UUIDField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetTextInput,
             widgetProps: { mask: "********-****-****-****-************" },
             default: true,
@@ -358,7 +311,6 @@ export const defaultFieldMappings = {
 export const choiceFieldMappings = {
     BooleanField: {
         BooleanField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetRadioGroup,
             manyWidget: availableWidgets.WidgetRadioGroup,
             default: true,
@@ -379,7 +331,6 @@ export const choiceFieldMappings = {
     },
     ChoiceField: {
         CharField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetSelectDropdown,
             fieldProps: { validation: "text" },
             manyWidget: availableWidgets.WidgetCombobox,
@@ -387,7 +338,6 @@ export const choiceFieldMappings = {
             default: true,
         },
         TextField: {
-            component: availableFields.FormField,
             widget: availableWidgets.WidgetSelectDropdown,
             fieldProps: { validation: "text" },
             manyWidget: availableWidgets.WidgetCombobox,
