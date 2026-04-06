@@ -3,8 +3,8 @@ import {
     ShellField,
     ShellFieldContent,
     ShellFieldDescription,
-    ShellFieldError,
     ShellFieldLabel,
+    ShellFieldMessage,
 } from "@vueda/shell/field";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { useFieldValidation } from "@vueda/use/validation/useFieldValidation.js";
@@ -58,7 +58,12 @@ const fieldId = fieldContext.state.fieldId;
             <ShellFieldDescription v-if="fieldContext.state.help">
                 {{ fieldContext.state.help }}
             </ShellFieldDescription>
-            <ShellFieldError :errors="Object.values(fieldContext.state.errors)" />
+            <ShellFieldMessage :messages="Object.values(fieldContext.state.errors)" />
+            <ShellFieldMessage
+                v-if="Object.keys(fieldContext.state.messages).length"
+                severity="warning"
+                :messages="Object.values(fieldContext.state.messages)"
+            />
         </ShellFieldContent>
     </ShellField>
     <div v-else :class="$attrs.class" data-qa="form-field">

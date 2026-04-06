@@ -24,7 +24,7 @@ export const fieldVariants = cva("group/field flex w-full gap-3 data-[invalid=tr
 export { default as ShellField } from "./ShellField.vue";
 export { default as ShellFieldContent } from "./ShellFieldContent.vue";
 export { default as ShellFieldDescription } from "./ShellFieldDescription.vue";
-export { default as ShellFieldError } from "./ShellFieldError.vue";
+export { default as ShellFieldMessage } from "./ShellFieldMessage.vue";
 export { default as ShellFieldGroup } from "./ShellFieldGroup.vue";
 export { default as ShellFieldLabel } from "./ShellFieldLabel.vue";
 export { default as ShellFieldLegend } from "./ShellFieldLegend.vue";

@@ -3,10 +3,10 @@ import { mount } from "@vue/test-utils";
 import ShellField from "@vueda/shell/field/ShellField.vue";
 import ShellFieldContent from "@vueda/shell/field/ShellFieldContent.vue";
 import ShellFieldDescription from "@vueda/shell/field/ShellFieldDescription.vue";
-import ShellFieldError from "@vueda/shell/field/ShellFieldError.vue";
 import ShellFieldGroup from "@vueda/shell/field/ShellFieldGroup.vue";
 import ShellFieldLabel from "@vueda/shell/field/ShellFieldLabel.vue";
 import ShellFieldLegend from "@vueda/shell/field/ShellFieldLegend.vue";
+import ShellFieldMessage from "@vueda/shell/field/ShellFieldMessage.vue";
 import ShellFieldSeparator from "@vueda/shell/field/ShellFieldSeparator.vue";
 import ShellFieldSet from "@vueda/shell/field/ShellFieldSet.vue";
 import ShellFieldTitle from "@vueda/shell/field/ShellFieldTitle.vue";
@@ -196,59 +196,68 @@ describe("lib/shell/field/ShellField.vue", () => {
         });
     });
 
-    describe("ShellFieldError", () => {
-        scopedIt("renders nothing when no errors and no slot", () => {
-            const wrapper = mount(ShellFieldError);
-            expect(wrapper.find('[data-slot="field-error"]').exists()).toBe(false);
+    describe("ShellFieldMessage", () => {
+        scopedIt("renders nothing when no messages and no slot", () => {
+            const wrapper = mount(ShellFieldMessage);
+            expect(wrapper.find('[data-slot="field-message"]').exists()).toBe(false);
         });
 
-        scopedIt("renders when errors array has one entry", () => {
-            const wrapper = mount(ShellFieldError, { props: { errors: ["Required"] } });
-            expect(wrapper.find('[data-slot="field-error"]').exists()).toBe(true);
+        scopedIt("renders when messages array has one entry", () => {
+            const wrapper = mount(ShellFieldMessage, { props: { messages: ["Required"] } });
+            expect(wrapper.find('[data-slot="field-message"]').exists()).toBe(true);
             expect(wrapper.text()).toBe("Required");
         });
 
-        scopedIt("renders a list when errors array has multiple entries", () => {
-            const wrapper = mount(ShellFieldError, { props: { errors: ["Too short", "Invalid format"] } });
+        scopedIt("renders a list when messages array has multiple entries", () => {
+            const wrapper = mount(ShellFieldMessage, { props: { messages: ["Too short", "Invalid format"] } });
             expect(wrapper.findAll("li")).toHaveLength(2);
         });
 
-        scopedIt("deduplicates identical error messages", () => {
-            const wrapper = mount(ShellFieldError, { props: { errors: ["Required", "Required"] } });
+        scopedIt("deduplicates identical messages", () => {
+            const wrapper = mount(ShellFieldMessage, { props: { messages: ["Required", "Required"] } });
             expect(wrapper.text()).toBe("Required");
             expect(wrapper.findAll("li")).toHaveLength(0);
         });
 
-        scopedIt("renders slot content instead of errors when slot is provided", () => {
-            const wrapper = mount(ShellFieldError, {
-                props: { errors: ["Required"] },
+        scopedIt("renders slot content instead of messages when slot is provided", () => {
+            const wrapper = mount(ShellFieldMessage, {
+                props: { messages: ["Required"] },
                 slots: { default: "<span>Custom error</span>" },
             });
             expect(wrapper.find("span").exists()).toBe(true);
             expect(wrapper.text()).toBe("Custom error");
         });
 
-        scopedIt("has role=alert and data-slot=field-error", () => {
-            const wrapper = mount(ShellFieldError, { props: { errors: ["Oops"] } });
-            const el = wrapper.find('[data-slot="field-error"]');
+        scopedIt("defaults to severity=error with role=alert", () => {
+            const wrapper = mount(ShellFieldMessage, { props: { messages: ["Oops"] } });
+            const el = wrapper.find('[data-slot="field-message"]');
             expect(el.attributes("role")).toBe("alert");
+            expect(el.attributes("data-severity")).toBe("error");
         });
 
-        scopedIt("applies text-destructive class", () => {
-            const wrapper = mount(ShellFieldError, { props: { errors: ["Bad"] } });
-            expect(wrapper.find('[data-slot="field-error"]').classes()).toContain("text-destructive");
+        scopedIt("applies text-destructive class for error severity", () => {
+            const wrapper = mount(ShellFieldMessage, { props: { messages: ["Bad"] } });
+            expect(wrapper.find('[data-slot="field-message"]').classes()).toContain("text-destructive");
+        });
+
+        scopedIt("uses role=status and amber text for warning severity", () => {
+            const wrapper = mount(ShellFieldMessage, { props: { messages: ["Watch out"], severity: "warning" } });
+            const el = wrapper.find('[data-slot="field-message"]');
+            expect(el.attributes("role")).toBe("status");
+            expect(el.attributes("data-severity")).toBe("warning");
+            expect(el.classes()).toContain("text-amber-600");
         });
 
         scopedIt("merges custom class", () => {
-            const wrapper = mount(ShellFieldError, {
-                props: { class: "my-error", errors: ["x"] },
+            const wrapper = mount(ShellFieldMessage, {
+                props: { class: "my-error", messages: ["x"] },
             });
-            expect(wrapper.find('[data-slot="field-error"]').classes()).toContain("my-error");
+            expect(wrapper.find('[data-slot="field-message"]').classes()).toContain("my-error");
         });
 
-        scopedIt("accepts error objects with message property", () => {
-            const wrapper = mount(ShellFieldError, {
-                props: { errors: [{ message: "Object error" }] },
+        scopedIt("accepts message objects with message property", () => {
+            const wrapper = mount(ShellFieldMessage, {
+                props: { messages: [{ message: "Object error" }] },
             });
             expect(wrapper.text()).toBe("Object error");
         });

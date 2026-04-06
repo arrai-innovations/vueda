@@ -13,6 +13,7 @@ beforeEach(async () => {
             label: "My Label",
             help: "",
             errors: {},
+            messages: {},
             required: false,
         }),
         updateError: vi.fn(),
@@ -104,7 +105,7 @@ describe("lib/fields/FormField.vue", () => {
             const wrapper = mount(FormField, {
                 props: { name: "test" },
             });
-            expect(wrapper.find("[data-slot='field-error']").text()).toBe("This field is required.");
+            expect(wrapper.find("[data-slot='field-message']").text()).toBe("This field is required.");
         });
 
         scopedIt("does not render error element when no errors", () => {
@@ -112,7 +113,7 @@ describe("lib/fields/FormField.vue", () => {
             const wrapper = mount(FormField, {
                 props: { name: "test" },
             });
-            expect(wrapper.find("[data-slot='field-error']").exists()).toBe(false);
+            expect(wrapper.find("[data-slot='field-message']").exists()).toBe(false);
         });
 
         scopedIt("applies orientation to ShellField", () => {
@@ -147,7 +148,7 @@ describe("lib/fields/FormField.vue", () => {
             expect(wrapper.find("[data-slot='field']").exists()).toBe(false);
             expect(wrapper.find("[data-slot='field-label']").exists()).toBe(false);
             expect(wrapper.find("[data-slot='field-description']").exists()).toBe(false);
-            expect(wrapper.find("[data-slot='field-error']").exists()).toBe(false);
+            expect(wrapper.find("[data-slot='field-message']").exists()).toBe(false);
         });
 
         scopedIt("applies class from attrs to the wrapper div", () => {
