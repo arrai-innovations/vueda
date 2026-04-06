@@ -407,7 +407,7 @@ export const choiceFieldMappings = {
 export const manyFieldMappings = {
     BooleanField: {
         BooleanField: {
-            fieldProps: { manyComponent: availableFields.FieldBoolean },
+            fieldProps: { manyComponent: availableFields.FormField },
             widget: availableWidgets.WidgetToggle,
             default: true,
         },
@@ -415,25 +415,25 @@ export const manyFieldMappings = {
     CharField: {
         CharField: {
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { manyComponent: availableFields.FieldString },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
         TextField: {
             widget: availableWidgets.WidgetTextTextarea,
-            fieldProps: { manyComponent: availableFields.FieldString },
+            fieldProps: { manyComponent: availableFields.FormField },
         },
     },
     DateField: {
         DateField: {
             widget: availableWidgets.WidgetDateField,
-            fieldProps: { manyComponent: availableFields.FieldDate },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
     DateTimeField: {
         DateTimeField: {
             widget: availableWidgets.WidgetDateField,
-            fieldProps: { manyComponent: availableFields.FieldDateTime },
+            fieldProps: { manyComponent: availableFields.FormField },
             widgetProps: { granularity: "minute" },
             default: true,
         },
@@ -441,18 +441,18 @@ export const manyFieldMappings = {
     DecimalField: {
         DecimalField: {
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { manyComponent: availableFields.FieldDecimal },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
         PositiveDecimalField: {
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { manyComponent: availableFields.FieldDecimal },
+            fieldProps: { manyComponent: availableFields.FormField },
         },
     },
     DurationSecondsField: {
         DurationField: {
             widget: availableWidgets.WidgetDuration,
-            fieldProps: { manyComponent: availableFields.FieldNumber },
+            fieldProps: { manyComponent: availableFields.FormField },
             // todo: mode for WidgetDuration to handle seconds directly
             widgetProps: { unit: "minutes" },
             default: true,
@@ -461,47 +461,47 @@ export const manyFieldMappings = {
     DurationField: {
         DurationField: {
             widget: availableWidgets.WidgetDuration,
-            fieldProps: { manyComponent: availableFields.FieldDuration },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
     EmailField: {
         EmailField: {
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { manyComponent: availableFields.FieldEmail },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
     FileField: {
         FileField: {
             widget: availableWidgets.WidgetFile,
-            fieldProps: { manyComponent: availableFields.FieldString },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
     FloatField: {
         FloatField: {
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { manyComponent: availableFields.FieldNumber },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
     ImageField: {
         ImageField: {
             widget: availableWidgets.WidgetImage,
-            fieldProps: { manyComponent: availableFields.FieldImage },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
     IntegerField: {
         AutoField: {
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { manyComponent: availableFields.FieldString },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
         BigAutoField: {
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { manyComponent: availableFields.FieldString },
+            fieldProps: { manyComponent: availableFields.FormField },
         },
     },
     IntegerRangeField: {
@@ -514,18 +514,18 @@ export const manyFieldMappings = {
     IPAddressField: {
         IPAddressField: {
             widget: availableWidgets.WidgetUnmapped,
-            fieldProps: { manyComponent: availableFields.FieldIP },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
         GenericIPAddressField: {
             widget: availableWidgets.WidgetUnmapped,
-            fieldProps: { manyComponent: availableFields.FieldIP },
+            fieldProps: { manyComponent: availableFields.FormField },
         },
     },
     JSONField: {
         JSONField: {
             widget: availableWidgets.WidgetUnmapped,
-            fieldProps: { manyComponent: availableFields.FieldObject },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
@@ -539,21 +539,21 @@ export const manyFieldMappings = {
     NullBooleanField: {
         NullBooleanField: {
             widget: availableWidgets.WidgetCheckbox,
-            fieldProps: { manyComponent: availableFields.FieldBoolean },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
     SlugField: {
         SlugField: {
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { manyComponent: availableFields.FieldString },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
     TimeField: {
         TimeField: {
             widget: availableWidgets.WidgetTimeField,
-            fieldProps: { manyComponent: availableFields.FieldTime },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
@@ -567,14 +567,14 @@ export const manyFieldMappings = {
     URLField: {
         URLField: {
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { manyComponent: availableFields.FieldURL },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
     UUIDField: {
         UUIDField: {
             widget: availableWidgets.WidgetTextInput,
-            fieldProps: { manyComponent: availableFields.FieldUUID },
+            fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },
     },
