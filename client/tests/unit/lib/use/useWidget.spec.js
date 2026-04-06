@@ -1,4 +1,4 @@
-import { expectReadOnlyWarning, mockLifecycle, mockProvideInject, scopedIt, testWatches } from "@tests/unit/utils.js";
+import { mockLifecycle, mockProvideInject, scopedIt, testWatches } from "@tests/unit/utils.js";
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 
@@ -234,17 +234,6 @@ describe("lib/use/useWidget.js", () => {
 
     describe("state", () => {
         describe("Identification & Metadata", () => {
-            describe("widgetId", () => {
-                scopedIt("should be a string, using a-z + 0-9", () => {
-                    vi.spyOn(Math, "random").mockReturnValueOnce(0.1234).mockReturnValueOnce(0.5678);
-                    const { widget } = mountWidgetNoContext({});
-                    const { widgetId } = widget.state;
-                    expect(widgetId).toBe("4fxcm49g2j9kfv9yqdpilq");
-                    expectReadOnlyWarning(() => {
-                        widget.state.widgetId = "fakeId";
-                    }, "widgetId");
-                });
-            });
             describe("combinedName", () => {
                 testComputedFromContextOrProps({
                     widgetComputedProperty: "combinedName",

@@ -26,7 +26,7 @@ const LinkModelViewStub = defineComponent({
 
 // Mocks
 const useWidget = vi.fn(() => ({
-    state: reactive({ formModelName: "fm", widgetId: "wid", combinedValue: "val", combinedName: "field" }),
+    state: reactive({ formModelName: "fm", combinedValue: "val", combinedName: "field" }),
 }));
 vi.mock("@vueda/use/useWidget.js", () => ({ WIDGET_EMITS: [], WIDGET_PROPS: {}, useWidget }));
 const useWidgetTheme = vi.fn(() => () => "theme");

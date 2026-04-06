@@ -13,7 +13,6 @@ let widgetContext;
 const mockedUseWidget = vi.fn(() => {
     widgetContext = {
         state: reactive({
-            widgetId: "wid",
             combinedValue: null,
             disabled: false,
             required: false,

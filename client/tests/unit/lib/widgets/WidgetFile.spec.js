@@ -68,7 +68,6 @@ const mountOptions = {
 beforeEach(async () => {
     vue = await vi.importActual("vue");
     widgetState = reactive({
-        widgetId: "wid",
         combinedValue: null,
         disabled: false,
         validationState: reactive({ invalid: false }),
