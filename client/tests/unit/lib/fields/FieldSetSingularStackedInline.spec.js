@@ -2,11 +2,17 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, reactive } from "vue";
 
-const ButtonStub = defineComponent({
-    name: "ButtonStub",
-    props: ["label", "class"],
-    setup(props) {
-        return () => h("button", { "data-qa": "button-stub", class: props.class, "data-label": props.label });
+const ControlButtonStub = defineComponent({
+    name: "ControlButtonStub",
+    props: ["variant", "size"],
+    emits: ["click"],
+    setup(props, { emit, slots }) {
+        return () =>
+            h(
+                "button",
+                { "data-qa": "button-stub", "data-variant": props.variant, onClick: () => emit("click") },
+                slots.default?.(),
+            );
     },
 });
 
@@ -26,17 +32,23 @@ const InlineRowStub = defineComponent({
     },
 });
 
-const FormChoresStub = defineComponent({
-    name: "FormChoresStub",
-    setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-chores-stub" }, slots.default ? slots.default() : null);
-    },
-});
-
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ControlButtonStub }));
+vi.mock("@vueda/shell/field", () => ({
+    ShellFieldDescription: defineComponent({
+        name: "ShellFieldDescription",
+        setup:
+            (_, { slots }) =>
+            () =>
+                h("p", { "data-qa": "field-description" }, slots.default?.()),
+    }),
+    ShellFieldMessage: defineComponent({
+        name: "ShellFieldMessage",
+        props: ["messages", "severity"],
+        setup: (props) => () => h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),
+    }),
+}));
 vi.mock("primevue/divider", () => ({ default: DividerStub }));
 vi.mock("@vueda/components/FieldSetStackedInlineRow.vue", () => ({ default: InlineRowStub }));
-vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
 
 const mockedUseTheme = vi.fn(() => () => "theme");
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
@@ -74,13 +86,12 @@ vi.mock("@vueda/use/useFieldSetInline.js", () => ({
 
 const logger = { warn: vi.fn() };
 vi.mock("@vueda/use/useDevLogger.js", () => ({ useDevLogger: vi.fn(() => logger) }));
-vi.mock("@vueda/utils/buildForm.js", () => ({ getFormChoresSlotNames: vi.fn(() => []) }));
 
 let FieldSetSingularStackedInline, vue;
 
 beforeEach(async () => {
     vue = await vi.importActual("vue");
-    fieldState = vue.reactive({ name: "fs", label: "FS", value: null });
+    fieldState = vue.reactive({ name: "fs", label: "FS", value: null, help: "", errors: {}, messages: {} });
     fieldSetContext = { state: fieldState, blur: vi.fn(), ignore: vi.fn(), removeIgnore: vi.fn(), updateInitialValue };
     FieldSetSingularStackedInline = (await import("@vueda/fields/FieldSetSingularStackedInline.vue")).default;
     logger.warn.mockClear();

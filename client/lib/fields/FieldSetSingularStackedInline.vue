@@ -1,13 +1,12 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldSetStackedInlineRow from "@vueda/components/FieldSetStackedInlineRow.vue";
-import FormChores from "@vueda/components/FormChores.vue";
+import { ControlButton } from "@vueda/controls/button";
+import { ShellFieldDescription, ShellFieldMessage } from "@vueda/shell/field";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
 import { useTheme } from "@vueda/use/useTheme.js";
-import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
-import Button from "primevue/button";
 import Divider from "primevue/divider";
 import { toRef, watch } from "vue";
 
@@ -109,11 +108,14 @@ watch(
                         :verb="fieldSetInline.state.internalVisible ? 'collapseDown' : 'collapseUp'"
                         @click="fieldSetInline.toggleVisibility"
                     >
-                        <Button
+                        <ControlButton
+                            variant="outline"
+                            size="sm"
                             :class="theme('toggleButton')"
-                            :label="fieldSetInline.state.internalVisible ? 'Hide' : 'Show'"
                             @click="fieldSetInline.toggleVisibility"
-                        />
+                        >
+                            {{ fieldSetInline.state.internalVisible ? "Hide" : "Show" }}
+                        </ControlButton>
                     </slot>
                 </div>
                 <div :class="theme('title')" data-qa="field-set-singular-stacked-inline-title">
@@ -133,20 +135,23 @@ watch(
                         verb="createInline"
                         @click="addInline"
                     >
-                        <Button :class="theme('createButton')" label="Create" @click="addInline" />
+                        <ControlButton variant="outline" size="sm" :class="theme('createButton')" @click="addInline">
+                            Create
+                        </ControlButton>
                     </slot>
                 </div>
             </Divider>
-            <!-- @slot [field-set-level-chores, fieldset-field-set-level-chores, field(fieldName)field-set-level-chores] Replaces the form-level validation chores block for this fieldset. -->
+            <!-- @slot [field-set-level-chores, fieldset-field-set-level-chores, field(fieldName)field-set-level-chores] Replaces the validation block for this fieldset. -->
             <slot :name="fieldSetInline.resolvedSlotNames['field-set-level-chores'].name">
-                <form-chores :variant="null">
-                    <template
-                        v-for="slot in getFormChoresSlotNames(fieldSetContext.state.name)"
-                        #[slot]="formChoresSlotProps"
-                    >
-                        <slot :name="slot" v-bind="formChoresSlotProps" />
-                    </template>
-                </form-chores>
+                <ShellFieldDescription v-if="fieldSetContext.state.help">
+                    {{ fieldSetContext.state.help }}
+                </ShellFieldDescription>
+                <ShellFieldMessage :messages="Object.values(fieldSetContext.state.errors)" />
+                <ShellFieldMessage
+                    v-if="Object.keys(fieldSetContext.state.messages).length"
+                    severity="warning"
+                    :messages="Object.values(fieldSetContext.state.messages)"
+                />
             </slot>
             <div
                 :class="{ hidden: !fieldSetInline.state.internalVisible }"
