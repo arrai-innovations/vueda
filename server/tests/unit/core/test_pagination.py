@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
+from rest_framework import status
 
 from tests.conftest import BaseTestCommonModelViewSet
 from tests.models import Employee
@@ -151,5 +152,5 @@ class TestColumnTotals(BaseTestCommonModelViewSet):
     def test_column_totals(self, authenticated_client, page_data):
         url = reverse("tests.timesheetentry-list")
         response = authenticated_client.get(url, format="json")
-        assert response.status_code == 200  # noqa: PLR2004
+        assert response.status_code == status.HTTP_200_OK
         assert str(response.data["columnTotals"]["hours"]) == "3.15"

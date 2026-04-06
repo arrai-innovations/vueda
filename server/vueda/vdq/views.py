@@ -16,6 +16,7 @@ from django.http import Http404
 from django.http import HttpResponseForbidden
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -84,7 +85,7 @@ class TwilioSMSWebhook(APIView):
             else:
                 handler = TwilioQueueItemHandler()
                 handler.update_sms_qi(qi, message_status, message=message, webhook=True, error_code=error_code)
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @conditional_extend_schema_decorator(responses={200: conditional_open_api_types().BINARY})

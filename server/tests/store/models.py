@@ -268,3 +268,19 @@ class PackingBox(VuedaModel):
     class Meta(VuedaModel.Meta):
         verbose_name = "Packing Box"
         verbose_name_plural = "Packing Boxes"
+
+
+class Invoice(VuedaModel):
+    name = models.CharField(max_length=255)
+
+    class Meta(VuedaModel.Meta):
+        pass
+
+
+class InvoiceLine(VuedaModel):
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="invoice_lines")
+    name = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta(VuedaModel.Meta):
+        pass

@@ -346,7 +346,7 @@ class NoExtraFieldsForViewSetMixin:
                         }
                     ]
 
-                return Response(errors, status=400)
+                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
             extra_keys = submitted_expand_fields - (valid_expands | valid_wildcard_expands)
@@ -368,7 +368,7 @@ class NoExtraFieldsForViewSetMixin:
                         }
                     ]
 
-                return Response(errors, status=400)
+                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, *args, **kwargs):
         serializer = self.get_serializer()
@@ -460,7 +460,7 @@ class DeactivateActionViewSetMixin:
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
                     {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
-                    status=405,
+                    status=status.HTTP_405_METHOD_NOT_ALLOWED,
                 )
             if not instance.is_active:
                 raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
@@ -468,7 +468,7 @@ class DeactivateActionViewSetMixin:
             instance.save()
             return Response(
                 {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been deactivated."},
-                status=200,
+                status=status.HTTP_200_OK,
             )
 
         serializer = PrimaryKeyListSerializer(data=request.data)
@@ -483,7 +483,7 @@ class DeactivateActionViewSetMixin:
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
                     {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
-                    status=405,
+                    status=status.HTTP_405_METHOD_NOT_ALLOWED,
                 )
 
             elif not instance.is_active:
@@ -497,7 +497,7 @@ class DeactivateActionViewSetMixin:
 
         # Perform bulk deactivation in a single query
         queryset.update(is_active=False)
-        return Response({"detail": f"Successfully deactivated {len(pks)} objects."}, status=200)
+        return Response({"detail": f"Successfully deactivated {len(pks)} objects."}, status=status.HTTP_200_OK)
 
     @action(detail=True, bulk=True, methods=["patch"])
     def activate(self, request, **kwargs):
@@ -507,7 +507,7 @@ class DeactivateActionViewSetMixin:
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
                     {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
-                    status=405,
+                    status=status.HTTP_405_METHOD_NOT_ALLOWED,
                 )
 
             if instance.is_active:
@@ -517,7 +517,7 @@ class DeactivateActionViewSetMixin:
             instance.save()
             return Response(
                 {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been activated."},
-                status=200,
+                status=status.HTTP_200_OK,
             )
 
         serializer = PrimaryKeyListSerializer(data=request.data)
@@ -532,7 +532,7 @@ class DeactivateActionViewSetMixin:
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
                     {"detail": f"Activate action is not supported for {instance.__class__.__name__}."},
-                    status=405,
+                    status=status.HTTP_405_METHOD_NOT_ALLOWED,
                 )
 
             elif instance.is_active:
@@ -545,7 +545,7 @@ class DeactivateActionViewSetMixin:
         # Perform bulk deactivation in a single query
         queryset.update(is_active=True)
 
-        return Response({"detail": f"Successfully activated {len(pks)} objects."}, status=200)
+        return Response({"detail": f"Successfully activated {len(pks)} objects."}, status=status.HTTP_200_OK)
 
 
 class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
