@@ -630,7 +630,7 @@ The scaffolded router's `authRedirect` points to a `sign-in` route that does not
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
 import FormField from "@vueda/fields/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
-import WidgetInput from "@vueda/widgets/WidgetInput.vue";
+import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import Button from "primevue/button";
 
 const userStore = storeUser();
@@ -642,13 +642,17 @@ function login({ formValues }) {
 
 <template>
     <AuthorizingForm header="Sign In" :run-action="login">
-        <FormField name="email" label="Email" required>
-            <WidgetInput />
-        </FormField>
-        <FormField name="password" label="Password" required>
-            <WidgetInput type="password" />
-        </FormField>
-        <Button type="submit" label="Sign In" />
+        <template #action-form-inner>
+            <FormField name="email" label="Email" required>
+                <WidgetTextInput />
+            </FormField>
+            <FormField name="password" label="Password" required>
+                <WidgetTextInput type="password" />
+            </FormField>
+        </template>
+        <template #action-bar>
+            <Button type="submit" label="Sign In" />
+        </template>
     </AuthorizingForm>
 </template>
 ```
