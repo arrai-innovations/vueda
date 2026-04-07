@@ -18,6 +18,7 @@ import merge from "lodash-es/merge.js";
  * @property {object} [manyWidgetProps] - Extra props for the many-field widget.
  * @property {import('vue').Component} [boundaryComponent] - Component for range field boundaries.
  * @property {import('vue').Component} [boundaryWidget] - Widget for range field boundaries.
+ * @property {object} [boundaryFieldProps] - Extra props forwarded to the range boundary field component.
  * @property {object} [boundaryWidgetProps] - Extra props for the range boundary widget.
  * @property {boolean} [default] - Whether this is the default mapping for its serializer field type.
  */
@@ -624,11 +625,13 @@ export const filterFieldMapping = {
             isFilter: true,
         },
         boundaryWidget: availableWidgets.WidgetDateField,
-        boundaryComponent: availableFields.FieldDate,
+        boundaryComponent: availableFields.FormField,
+        boundaryFieldProps: { validation: "date" },
     },
     DateTimeRangeField: {
         component: availableFields.FieldSetRange,
-        boundaryComponent: availableFields.FieldDate,
+        boundaryComponent: availableFields.FormField,
+        boundaryFieldProps: { validation: "datetime" },
         boundaryWidget: availableWidgets.WidgetDateField,
         boundaryWidgetProps: { granularity: "minute" },
     },
