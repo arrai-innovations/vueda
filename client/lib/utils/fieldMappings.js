@@ -167,13 +167,9 @@ export const defaultFieldMappings = {
         },
         FloatRangeField: {
             widget: availableWidgets.WidgetNumberInput,
-            boundaryComponent: availableFields.FieldDecimal,
-            boundaryWidget: availableWidgets.WidgetNumberInput,
         },
         IntegerRangeField: {
             widget: availableWidgets.WidgetNumberInput,
-            boundaryComponent: availableFields.FieldNumber,
-            boundaryWidget: availableWidgets.WidgetNumberInput,
         },
         TimeRangeField: {
             widget: availableWidgets.WidgetTimeRangeField,
