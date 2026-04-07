@@ -628,7 +628,7 @@ The scaffolded router's `authRedirect` points to a `sign-in` route that does not
 ```vue
 <script setup>
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
+import FormField from "@vueda/fields/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import Button from "primevue/button";
@@ -642,18 +642,18 @@ function login({ formValues }) {
 
 <template>
     <AuthorizingForm header="Sign In" :run-action="login">
-        <FieldString name="email" label="Email" required>
+        <FormField name="email" label="Email" required>
             <WidgetInput />
-        </FieldString>
-        <FieldString name="password" label="Password" required>
+        </FormField>
+        <FormField name="password" label="Password" required>
             <WidgetInput type="password" />
-        </FieldString>
+        </FormField>
         <Button type="submit" label="Sign In" />
     </AuthorizingForm>
 </template>
 ```
 
-{@api vue:component:AuthorizingForm} handles form state, watches {@api js:function:@arrai-innovations/vueda/stores/storeUser#storeUser} for login, and redirects to the `welcome` route on success. {@api vue:component:FieldString} and {@api vue:component:WidgetInput} register fields in the form context so their values are collected into `formValues` on submit. See [Build Auth Views](/guides/build-auth-views) for more on auth view patterns.
+{@api vue:component:AuthorizingForm} handles form state, watches {@api js:function:@arrai-innovations/vueda/stores/storeUser#storeUser} for login, and redirects to the `welcome` route on success. {@api vue:component:FormField} and {@api vue:component:WidgetTextInput} register fields in the form context so their values are collected into `formValues` on submit. See [Build Auth Views](/guides/build-auth-views) for more on auth view patterns.
 
 ### Add a Welcome View
 

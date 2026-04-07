@@ -123,12 +123,12 @@ Non-field errors; server validation that is not associated with a specific field
 Field-level feedback is rendered by `FormFeedback` (or `FormChores`, which composes help text with error and message feedback) when inside a field context:
 
 ```vue
-<field-string name="email" label="Email" required>
+<form-field name="email" label="Email" required>
   <form-label>
     <widget-input />
   </form-label>
   <form-chores />
-</field-string>
+</form-field>
 ```
 
 `FormChores` renders both error and message feedback for the field, using named slot conventions for customization. For non-field feedback with structured objects, the server must emit objects with a `detail` template property:

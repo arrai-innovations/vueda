@@ -95,7 +95,7 @@ Examples:
 - `{@api js:module:@arrai-innovations/vueda/router/guards}`
 - `{@api py:module:vueda}`
 - `{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}` <!-- note: literal `{` and `}` characters are part of some IDs, referring to captured url parameters, not documentation placeholders -->
-- `{@api vue:component:FieldBoolean}`
+- `{@api vue:component:FormField}`
 
 ## Glossary links
 

@@ -1,7 +1,7 @@
 <script setup>
 import ActionForm from "@vueda/components/ActionForm.vue";
 import FormChores from "@vueda/components/FormChores.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
+import FormField from "@vueda/fields/FormField.vue";
 import { useModelConfig } from "@vueda/use/useModelConfig";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
@@ -226,7 +226,7 @@ const dryRun = computed(
                             :class="theme('listItem')"
                             data-qa="action-form-list-item"
                         >
-                            <field-string :field-value="pk" :label="pk" :name="pk" :read-only="true">
+                            <form-field :field-value="pk" :label="pk" :name="pk" :read-only="true">
                                 <widget-read-only
                                     :app="app"
                                     :foreign-key-obj="fetchState.objectsMap.get(pk)"
@@ -242,7 +242,7 @@ const dryRun = computed(
                                     </template>
                                 </widget-read-only>
                                 <form-chores />
-                            </field-string>
+                            </form-field>
                         </li>
                     </ul>
                 </slot>

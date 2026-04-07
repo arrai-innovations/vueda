@@ -16,7 +16,7 @@ For the core auth form component contract, review {@api vue:component:Authorizin
 
 The objective is a set of authentication views where:
 
-- Sign-in collects credentials through `FieldString`/`WidgetInput` and submits them through the user store's `login` action.
+- Sign-in collects credentials through `FormField`/`WidgetInput` and submits them through the user store's `login` action.
 - `AuthorizingForm` watches the user store for login state changes and redirects automatically on success.
 - MFA flows are detected from the server response and route the user to a two-factor authentication view.
 - Re-authentication views enforce a `recentlyLoggedIn` check for sensitive operations.
@@ -36,19 +36,19 @@ Auth views are built from three layers:
 
 **`ActionForm`** handles the submit lifecycle: validation, calling `runAction`, displaying toasts, and routing success/error responses.
 
-**`FieldString` / `WidgetInput`** provide the form inputs. In auth views, these are used in "hand-authored" mode (fields are declared in the template, not driven by model-info metadata).
+**`FormField` / `WidgetInput`** provide the form inputs. In auth views, these are used in "hand-authored" mode (fields are declared in the template, not driven by model-info metadata).
 
 The typical template structure is:
 
 ```vue
 <AuthorizingForm :run-action="handleSubmit" :form-props="formProps">
     <template #action-form-inner>
-        <FieldString label="Email" name="email" required>
+        <FormField label="Email" name="email" required>
             <WidgetInput :required="true" type="text" autocomplete="username" />
-        </FieldString>
-        <FieldString label="Password" name="password" required>
+        </FormField>
+        <FormField label="Password" name="password" required>
             <WidgetInput :required="true" type="password" autocomplete="current-password" />
-        </FieldString>
+        </FormField>
     </template>
 </AuthorizingForm>
 ```
@@ -62,7 +62,7 @@ Define form initial values and a submit handler that calls the user store:
 ```vue
 <script setup>
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
+import FormField from "@vueda/fields/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import { reactive } from "vue";
@@ -83,12 +83,12 @@ const handleSubmit = ({ formValues }) => {
 <template>
     <AuthorizingForm header="Sign In" :run-action="handleSubmit" :form-props="formProps">
         <template #action-form-inner>
-            <FieldString label="Email" name="email" required>
+            <FormField label="Email" name="email" required>
                 <WidgetInput :required="true" autocomplete="username" />
-            </FieldString>
-            <FieldString label="Password" name="password" required>
+            </FormField>
+            <FormField label="Password" name="password" required>
                 <WidgetInput :required="true" type="password" autocomplete="current-password" />
-            </FieldString>
+            </FormField>
         </template>
     </AuthorizingForm>
 </template>
@@ -123,7 +123,7 @@ Build a two-factor authentication view following the same pattern, but calling `
 ```vue
 <script setup>
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
+import FormField from "@vueda/fields/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import { reactive } from "vue";
@@ -150,9 +150,9 @@ const handleSubmit = ({ formValues }) => {
         :form-props="formProps"
     >
         <template #action-form-inner>
-            <FieldString label="Code" name="code" required>
+            <FormField label="Code" name="code" required>
                 <WidgetInput :required="true" type="otp" autocomplete="one-time-code" />
-            </FieldString>
+            </FormField>
         </template>
     </AuthorizingForm>
 </template>
@@ -167,7 +167,7 @@ Some operations require proof that the user logged in recently (not just that th
 ```vue
 <script setup>
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
+import FormField from "@vueda/fields/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import { reactive } from "vue";
@@ -192,9 +192,9 @@ const handleSubmit = ({ formValues }) => {
         :require-recent-login="true"
     >
         <template #action-form-inner>
-            <FieldString label="Password" name="password" required>
+            <FormField label="Password" name="password" required>
                 <WidgetInput :required="true" type="password" autocomplete="current-password" />
-            </FieldString>
+            </FormField>
         </template>
     </AuthorizingForm>
 </template>
@@ -209,7 +209,7 @@ Change-password is another hand-authored form variant. It uses `AuthForm` (a sim
 ```vue
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
+import FormField from "@vueda/fields/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import { reactive } from "vue";
@@ -235,15 +235,15 @@ const handleSubmit = ({ formValues }) => {
 <template>
     <AuthForm header="Change Password" :run-action="handleSubmit" :form-props="formProps">
         <template #action-form-inner>
-            <FieldString label="Current Password" name="old_password" required>
+            <FormField label="Current Password" name="old_password" required>
                 <WidgetInput :required="true" type="password" />
-            </FieldString>
-            <FieldString label="New Password" name="new_password1" required>
+            </FormField>
+            <FormField label="New Password" name="new_password1" required>
                 <WidgetInput :required="true" type="password" />
-            </FieldString>
-            <FieldString label="Confirm New Password" name="new_password2" required>
+            </FormField>
+            <FormField label="Confirm New Password" name="new_password2" required>
                 <WidgetInput :required="true" type="password" />
-            </FieldString>
+            </FormField>
         </template>
     </AuthForm>
 </template>
@@ -253,7 +253,7 @@ const handleSubmit = ({ formValues }) => {
 
 ## Hand-Authored Form Patterns
 
-Auth views use `FieldString` and `WidgetInput` outside the metadata-driven CRUDL surface. In CRUDL views, field components are rendered automatically from model-info metadata. In auth views, you declare fields manually in the template.
+Auth views use `FormField` and `WidgetInput` outside the metadata-driven CRUDL surface. In CRUDL views, field components are rendered automatically from model-info metadata. In auth views, you declare fields manually in the template.
 
 The key differences from CRUDL forms:
 
@@ -262,7 +262,7 @@ The key differences from CRUDL forms:
 - **No `formModelName` prop.** Auth forms do not reference a model config, so config-driven field behaviour (read-only states, visibility rules) does not apply.
 - **`WidgetInput` type variants** are set directly. Use `type="password"` for password fields, `type="otp"` for one-time codes. The full set of supported types is: `text`, `password`, `number`, `otp`, and `mask`.
 
-Validation in hand-authored forms uses the same `FieldString` props as CRUDL forms: `required`, `maxLength`, `minLength`, and `patternRegex`. Server-side validation errors are mapped by field name; if the server returns `{ "email": ["This field is required."] }`, the error surfaces on the `FieldString` with `name="email"`.
+Validation in hand-authored forms uses the same `FormField` props as CRUDL forms: `required`, `maxLength`, `minLength`, and `patternRegex` (available when `validation="text"` is set). Server-side validation errors are mapped by field name; if the server returns `{ "email": ["This field is required."] }`, the error surfaces on the `FormField` with `name="email"`.
 
 ## Verification Checklist
 
@@ -294,8 +294,8 @@ After building auth views, verify the following:
     - {@api vue:component:AuthorizingForm}
     - {@api vue:component:AuthForm}
     - {@api vue:component:ActionForm}
-    - {@api vue:component:FieldString}
-    - {@api vue:component:WidgetInput}
+    - {@api vue:component:FormField}
+    - {@api vue:component:WidgetTextInput}
 - JavaScript:
     - {@api js:module:@arrai-innovations/vueda/stores/storeUser}
     - {@api js:module:@arrai-innovations/vueda/use/useField}
