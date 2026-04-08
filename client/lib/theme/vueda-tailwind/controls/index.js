@@ -36,6 +36,24 @@ export default {
             ],
         }),
     },
+    ControlFileUpload: {
+        root: ({ dropzone, dragging, disabled }) => ({
+            class: [
+                "inline-flex flex-col items-center gap-1",
+                {
+                    "rounded-lg border-2 border-dashed border-input p-6 transition-colors": dropzone,
+                    "border-primary bg-primary/5": dropzone && dragging,
+                    "opacity-50 cursor-not-allowed": disabled,
+                },
+            ],
+        }),
+        trigger: {
+            class: [...BUTTON_BASE, BUTTON_VARIANT_OUTLINE, "h-9 px-4 py-2 has-[>svg]:px-3"],
+        },
+        dropMessage: {
+            class: ["text-sm text-muted-foreground"],
+        },
+    },
     ControlCalendarCellTrigger: {
         root: {
             class: [
