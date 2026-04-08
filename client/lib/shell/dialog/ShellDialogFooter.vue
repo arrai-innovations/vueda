@@ -1,5 +1,5 @@
 <script setup>
-import { ControlButton as Button } from "@vueda/controls/button";
+import { ControlButton } from "@vueda/controls/button";
 import { cn } from "@vueda/utils/cn.js";
 import { DialogClose } from "reka-ui";
 
@@ -20,7 +20,7 @@ const props = defineProps({
     <div data-slot="dialog-footer" :class="cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', props.class)">
         <slot />
         <DialogClose v-if="showCloseButton" as-child>
-            <Button variant="outline"> Close </Button>
+            <ControlButton variant="outline"> Close </ControlButton>
         </DialogClose>
     </div>
 </template>
