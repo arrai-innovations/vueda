@@ -825,7 +825,7 @@ Open `http://localhost:5173` in your browser.
 1. You should be redirected to `/sign-in/` (not authenticated yet).
 2. Sign in with the superuser credentials you created earlier.
 3. After login you should land on `/welcome/`.
-4. Click the "Products" link (or navigate to `http://localhost:5173/inventory/product/list/`). If you created products via curl earlier, they appear here.
+4. Click the "Products" link (or navigate to `http://localhost:5173/inventory/product/list/`). If you created products via curl earlier, they appear here. To reach other models, the client URL pattern is `/{app_label}/{model}/list/`, where `{model}` comes from model-info and follows Django's `model_name` convention: the class name lowercased with no separators. For example, `ProductOption` becomes `productoption`, so its list URL is `/inventory/productoption/list/`. This is separate from the server-side DRF router prefix (e.g. `product-options`), which controls the REST API path.
 5. Use the "Create" action to add a product and verify it appears in the list.
 6. Click a product row to open the read view, then try update and destroy.
 
