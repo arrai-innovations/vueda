@@ -13,3 +13,4 @@ If you already have a running project and need to accomplish something specific,
 ## Getting Started
 
 - [Start Building](start-building.md): Scaffold a new VUEDA project, wire up a Django API with a real inventory model, and connect it to a Vue client.
+- [Add Workflow to a Model](add-workflow.md): Wire up workflow URLs, add the workflow mixin, create states and transitions, and verify the API.
