@@ -9,26 +9,28 @@ vi.mock("@vueda/use/useLinkModelView.js", () => ({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["disabled", "href", "label", "link", "pt"],
+    props: ["as", "disabled", "href", "variant", "class"],
     emits: ["click"],
     setup(props, { emit, slots }) {
-        return () =>
-            h(
+        return () => {
+            const children = slots.default?.();
+            const textNode = children?.find((c) => typeof c.children === "string");
+            const label = textNode?.children;
+            return h(
                 "button",
                 {
                     "data-qa": "prime-button",
                     "data-disabled": String(props.disabled),
                     "data-href": props.href,
-                    "data-label": props.label,
-                    "data-link": String(props.link),
-                    "data-pt": JSON.stringify(props.pt),
+                    "data-label": typeof label === "string" ? label.trim() : undefined,
                     onClick: () => emit("click"),
                 },
                 Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
             );
+        };
     },
 });
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 
 let LinkModelView;
 
@@ -61,11 +63,9 @@ scopedIt("renders as link by default and forwards props", () => {
         expect.objectContaining({ app: "a", model: "m", pk: "1", view: "detail" }),
     );
     const btn = wrapper.get('[data-qa="prime-button"]');
-    expect(btn.attributes("data-link")).toBe("true");
     expect(btn.attributes("data-href")).toBe("/path");
     expect(btn.attributes("data-disabled")).toBe("false");
     expect(btn.attributes("data-label")).toBe("go");
-    expect(btn.attributes("data-pt")).toBe(JSON.stringify({ root: "cls" }));
     expect(btn.find('[data-slot="default"]').exists()).toBe(true);
 });
 
@@ -93,9 +93,8 @@ scopedIt("behaves as button when button prop true", () => {
         props: { app: "a", model: "m", view: "v", button: true, buttonClass: ["c"] },
     });
     const btn = wrapper.get('[data-qa="prime-button"]');
-    expect(btn.attributes("data-link")).toBe("false");
     expect(btn.attributes("data-href")).toBeUndefined();
-    expect(btn.attributes("data-pt")).toBe(JSON.stringify(["c"]));
+    expect(btn.attributes("data-disabled")).toBe("false");
 });
 
 scopedIt("sets disabled when actionDisabled is true", () => {

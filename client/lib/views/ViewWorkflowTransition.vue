@@ -1,6 +1,7 @@
 <script setup>
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
+import { ControlButton } from "@vueda/controls/button";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -8,7 +9,6 @@ import { getAppModelDotName, memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
 import isEmpty from "lodash-es/isEmpty.js";
-import Button from "primevue/button";
 import RadioButton from "primevue/radiobutton";
 import { useToast } from "primevue/usetoast";
 import { computed, inject, ref, toRef, watch } from "vue";
@@ -152,7 +152,7 @@ const handleSubmit = async () => {
                         />
                         <label class="ml-2" :for="transition.code">{{ transition.name }}</label>
                     </div>
-                    <Button :disabled="!selectedAction" label="execute transition" type="submit" />
+                    <ControlButton :disabled="!selectedAction" type="submit">execute transition</ControlButton>
                 </form>
             </div>
             <div v-else>

@@ -10,6 +10,7 @@ import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
+import { ControlButton } from "@vueda/controls/button";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { storeListPreference } from "@vueda/stores/storeListPreference.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions";
@@ -28,7 +29,6 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
-import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import InputGroup from "primevue/inputgroup";
 import InputText from "primevue/inputtext";
@@ -637,7 +637,7 @@ const columnOptions = computed(() => {
                                     @search="searchSlotProps.filterList"
                                     @update:model-value="searchSlotProps.updateListSearch"
                                 />
-                                <Button label="Search" @click="searchSlotProps.filterList" />
+                                <ControlButton @click="searchSlotProps.filterList">Search</ControlButton>
                             </InputGroup>
                         </slot>
                         <slot

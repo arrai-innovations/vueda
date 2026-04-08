@@ -164,10 +164,9 @@ const InputTextStub = defineComponent({
 });
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label"],
     emits: ["click"],
-    setup(props, { emit }) {
-        return () => h("button", { "data-qa": "button", "data-label": props.label, onClick: () => emit("click") });
+    setup(_, { emit, slots }) {
+        return () => h("button", { "data-qa": "button", onClick: () => emit("click") }, slots.default?.());
     },
 });
 const CheckboxStub = defineComponent({
@@ -216,7 +215,7 @@ vi.mock("@vueda/components/PaginationComponent.vue", () => ({ default: Paginatio
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
 vi.mock("primevue/inputgroup", () => ({ __esModule: true, default: InputGroupStub }));
 vi.mock("primevue/inputtext", () => ({ __esModule: true, default: InputTextStub }));
-vi.mock("primevue/button", () => ({ __esModule: true, default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 vi.mock("primevue/checkbox", () => ({ __esModule: true, default: CheckboxStub }));
 vi.mock("primevue/multiselect", () => ({ __esModule: true, default: MultiSelectStub }));
 

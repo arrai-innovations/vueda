@@ -26,20 +26,24 @@ const FormChoresStub = defineComponent({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label", "loading"],
+    props: ["loading"],
     emits: ["click"],
     setup(props, { emit, slots }) {
-        return () =>
-            h(
+        return () => {
+            const children = slots.default?.();
+            const textNode = children?.find((c) => typeof c.children === "string");
+            const label = textNode?.children;
+            return h(
                 "button",
                 {
                     "data-qa": "prime-button",
-                    "data-label": props.label,
+                    "data-label": typeof label === "string" ? label.trim() : undefined,
                     "data-loading": String(props.loading),
                     onClick: (event) => emit("click", event),
                 },
-                slots.default ? slots.default() : null,
+                children,
             );
+        };
     },
 });
 
@@ -68,9 +72,17 @@ vi.mock("@vueda/use/useObjectForm.js", async () => {
     };
 });
 
+const FeedbackSpinnerStub = defineComponent({
+    name: "FeedbackSpinnerStub",
+    setup() {
+        return () => h("div", { "data-qa": "feedback-spinner" });
+    },
+});
+
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
 vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
+vi.mock("@vueda/feedback/spinner", () => ({ FeedbackSpinner: FeedbackSpinnerStub }));
 
 const lifecycle = mockLifecycle(vi);
 const { mockedOnDeactivated, runDeactivatedHooks, clearDeactivated } = lifecycle;
@@ -372,7 +384,10 @@ describe("lib/components/ActionForm.vue", () => {
         scopedIt("calls redirectTo on cancel", async () => {
             const redirectTo = vi.fn();
             const { wrapper } = mountActionForm({ redirectTo });
-            await wrapper.find('[data-qa="prime-button"][data-label="Cancel, go back"]').trigger("click");
+            const cancelBtn = wrapper
+                .findAll('[data-qa="prime-button"]')
+                .find((btn) => btn.text().includes("Cancel, go back"));
+            await cancelBtn.trigger("click");
             expect(redirectTo).toHaveBeenCalledWith("cancel");
         });
     });

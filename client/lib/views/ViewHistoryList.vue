@@ -3,6 +3,7 @@ import { loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
+import { ControlButton } from "@vueda/controls/button";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -12,7 +13,6 @@ import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } f
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
 import { DateTime } from "luxon";
-import Button from "primevue/button";
 import { computed, inject, reactive, ref, toRef, useSlots, watch } from "vue";
 import { useRouter } from "vue-router";
 
@@ -219,7 +219,7 @@ const slots = useSlots();
     <div :class="theme('root')">
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
-                <Button outlined text @click="router.back()"> Back </Button>
+                <ControlButton variant="ghost" @click="router.back()">Back</ControlButton>
             </template>
         </page-title>
         <slot name="before-list" />

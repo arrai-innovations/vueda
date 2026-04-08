@@ -1,9 +1,9 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
+import { ControlButton } from "@vueda/controls/button";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FilterModelSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
-import Button from "primevue/button";
 import { computed, inject, useSlots } from "vue";
 
 /**
@@ -77,7 +77,7 @@ const remainingSlotNames = computed(() => {
                 :disabled="formContext.state.anyError"
                 :modified="formContext.state.anyModified"
             >
-                <Button type="submit" label="Apply" size="small" :disabled="formContext.state.anyError" />
+                <ControlButton type="submit" size="sm" :disabled="formContext.state.anyError">Apply</ControlButton>
             </slot>
         </div>
     </form>

@@ -1,12 +1,13 @@
 <script setup>
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
+import { ControlButton } from "@vueda/controls/button";
+import { FeedbackSpinner } from "@vueda/feedback/spinner";
 import FormField from "@vueda/fields/FormField.vue";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
-import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
@@ -148,26 +149,23 @@ onBeforeUnmount(clearCooldownTimer);
                 :loading="loading"
             >
                 <div :class="theme('buttons')" data-qa="view-two-factor-auth-buttons">
-                    <Button
+                    <ControlButton
                         v-if="sendCodeMethods.includes(form.values?.method)"
-                        text
-                        :label="
+                        variant="ghost"
+                        :disabled="loading || timer"
+                        @click="handleSendCode"
+                    >
+                        <FeedbackSpinner v-if="loading" />
+                        {{
                             timer
                                 ? `Send ${form.values?.method} again in ${cooldownSeconds}s`
                                 : `Send ${form.values?.method}`
-                        "
-                        :disabled="loading || timer"
-                        :loading="loading"
-                        @click="handleSendCode"
-                    />
-                    <Button
-                        verb="next"
-                        label="Verify"
-                        :disabled="loading || !form.values?.code"
-                        :loading="loading"
-                        severity="primary"
-                        type="submit"
-                    />
+                        }}
+                    </ControlButton>
+                    <ControlButton :disabled="loading || !form.values?.code" type="submit">
+                        <FeedbackSpinner v-if="loading" />
+                        Verify
+                    </ControlButton>
                 </div>
             </slot>
         </template>

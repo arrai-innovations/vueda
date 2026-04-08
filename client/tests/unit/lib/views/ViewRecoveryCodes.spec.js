@@ -21,19 +21,28 @@ const AuthFormStub = defineComponent({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label", "copied"],
+    props: ["copied"],
     emits: ["click"],
-    setup(props, { emit, slots }) {
-        return () =>
-            h(
+    setup(_, { emit, slots }) {
+        return () => {
+            const children = slots.default?.();
+            const label = children?.[0]?.children;
+            return h(
                 "button",
                 {
                     "data-qa": "prime-button",
-                    "data-label": props.label,
+                    "data-label": typeof label === "string" ? label.trim() : undefined,
                     onClick: () => emit("click"),
                 },
-                slots.default ? slots.default() : props.label,
+                children,
             );
+        };
+    },
+});
+const FeedbackSpinnerStub = defineComponent({
+    name: "FeedbackSpinnerStub",
+    setup() {
+        return () => h("div", { "data-qa": "feedback-spinner" });
     },
 });
 
@@ -64,7 +73,8 @@ vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part }));
 vi.mock("@vueuse/core", () => ({ useClipboard: () => useClipboardMock() }));
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
+vi.mock("@vueda/feedback/spinner", () => ({ FeedbackSpinner: FeedbackSpinnerStub }));
 vi.mock("primevue/message", () => ({ default: MessageStub }));
 
 const toastAdd = vi.fn();

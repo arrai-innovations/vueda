@@ -33,19 +33,21 @@ vi.mock("@vueda/widgets/WidgetCheckbox.vue", () => ({ default: WidgetCheckboxStu
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label"],
     emits: ["click", "update:model-value"],
-    setup(props, { emit }) {
-        return () =>
-            h("button", {
+    setup(_, { emit, slots }) {
+        return () => {
+            const children = slots.default?.();
+            const label = children?.[0]?.children;
+            return h("button", {
                 "data-qa": "button-stub",
-                "data-label": props.label,
+                "data-label": typeof label === "string" ? label.trim() : undefined,
                 onClick: () => emit("click"),
                 onUpdateModelValue: (v) => emit("update:model-value", v),
             });
+        };
     },
 });
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 
 const themeFn = vi.fn((k) => k);
 const mockedUseTheme = vi.fn(() => themeFn);

@@ -26,12 +26,13 @@ vi.mock("vue-router", () => ({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["disabled", "label", "type"],
-    setup(props, { attrs }) {
-        return () => h("button", { "data-qa": "button", "data-disabled": String(props.disabled), ...attrs });
+    props: ["disabled", "type"],
+    setup(props, { attrs, slots }) {
+        return () =>
+            h("button", { "data-qa": "button", "data-disabled": String(props.disabled), ...attrs }, slots.default?.());
     },
 });
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 
 const RadioButtonStub = defineComponent({
     name: "RadioButtonStub",

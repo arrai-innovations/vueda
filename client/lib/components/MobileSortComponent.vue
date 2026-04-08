@@ -1,7 +1,7 @@
 <script setup>
+import { ControlButton } from "@vueda/controls/button";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
-import Button from "primevue/button";
 import Drawer from "primevue/drawer";
 import Select from "primevue/select";
 import { computed } from "vue";
@@ -105,13 +105,15 @@ const theme = useTheme("MobileSortComponent", props);
         :badge="sortedCountBadge"
         @click="internalVisible = true"
     >
-        <Button
-            label="Sort"
-            size="small"
-            severity="primary"
-            :badge="sortedCountBadge"
-            @click="internalVisible = true"
-        />
+        <ControlButton size="sm" @click="internalVisible = true">
+            Sort
+            <span
+                v-if="sortedCountBadge"
+                class="ml-1 inline-flex items-center justify-center rounded-full bg-primary-foreground text-primary text-xs size-5"
+            >
+                {{ sortedCountBadge }}
+            </span>
+        </ControlButton>
     </slot>
     <Drawer
         v-model:visible="internalVisible"
@@ -173,11 +175,10 @@ const theme = useTheme("MobileSortComponent", props);
                                 size="small"
                                 @click="toggleDirection(item.index)"
                             >
-                                <Button
+                                <ControlButton
                                     data-qa="sort-component-toggle"
-                                    :label="item.descending ? '⬇️' : '⬆️'"
-                                    text
-                                    size="small"
+                                    variant="ghost"
+                                    size="sm"
                                     @click="toggleDirection(item.index)"
                                 >
                                     <!-- Icon rendered inside the toggle-order button; receives `field`, `sorted`, `index`, `descending`, and `ascending` as slot props. -->
@@ -192,7 +193,7 @@ const theme = useTheme("MobileSortComponent", props);
                                         <template v-if="item.descending">⬇️</template>
                                         <template v-else>⬆️</template>
                                     </slot>
-                                </Button>
+                                </ControlButton>
                             </slot>
                             <!-- Button that removes a sort row; receives `label`, `severity`, `text`, `index`, and a click handler as slot props. -->
                             <slot
@@ -204,14 +205,14 @@ const theme = useTheme("MobileSortComponent", props);
                                 :index="item.index"
                                 @click="removeSortable(item.index)"
                             >
-                                <Button
-                                    label="x"
+                                <ControlButton
                                     data-qa="sort-component-remove"
-                                    severity="danger"
-                                    text
-                                    size="small"
+                                    variant="ghost"
+                                    size="sm"
                                     @click="removeSortable(item.index)"
-                                />
+                                >
+                                    x
+                                </ControlButton>
                             </slot>
                         </div>
                     </div>
@@ -229,13 +230,14 @@ const theme = useTheme("MobileSortComponent", props);
                     size="small"
                     @click="addSortable"
                 >
-                    <Button
-                        label="Add Sort"
-                        severity="secondary"
+                    <ControlButton
+                        variant="secondary"
                         :disabled="!availableSortables.length"
-                        size="small"
+                        size="sm"
                         @click="addSortable"
-                    />
+                    >
+                        Add Sort
+                    </ControlButton>
                 </slot>
                 <!-- Button that clears all active sort criteria; receives `severity`, `text`, `label`, `disabled`, `size`, and a click handler as slot props. -->
                 <slot
@@ -247,14 +249,9 @@ const theme = useTheme("MobileSortComponent", props);
                     size="small"
                     @click="clearAll"
                 >
-                    <Button
-                        severity="secondary"
-                        text
-                        label="Clear all"
-                        :disabled="!props.sorted.length"
-                        size="small"
-                        @click="clearAll"
-                    />
+                    <ControlButton variant="ghost" :disabled="!props.sorted.length" size="sm" @click="clearAll">
+                        Clear all
+                    </ControlButton>
                 </slot>
             </div>
         </div>

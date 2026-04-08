@@ -5,12 +5,12 @@ import { defineComponent, h } from "vue";
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label", "severity", "rounded", "variant", "size", "onClick"],
-    setup(props) {
-        return () => h("button", { "data-qa": "copy-button", onClick: props.onClick }, props.label);
+    props: ["severity", "rounded", "variant", "size", "onClick"],
+    setup(props, { slots }) {
+        return () => h("button", { "data-qa": "copy-button", onClick: props.onClick }, slots.default?.());
     },
 });
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 
 let copySpy;
 let addSpy;

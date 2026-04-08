@@ -5,6 +5,8 @@ import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
+import { ControlButton } from "@vueda/controls/button";
+import { FeedbackSpinner } from "@vueda/feedback/spinner";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
@@ -14,7 +16,6 @@ import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
-import Button from "primevue/button";
 import { computed, inject, onMounted, reactive, toRef } from "vue";
 
 /**
@@ -218,7 +219,10 @@ const nonDetailActions = computed(() =>
                     name="submit-button"
                     type="submit"
                 >
-                    <Button :form="formId" label="Submit" :loading="objectForm.state.loading" type="submit" />
+                    <ControlButton :form="formId" :disabled="objectForm.state.loading" type="submit">
+                        <FeedbackSpinner v-if="objectForm.state.loading" />
+                        Submit
+                    </ControlButton>
                 </slot>
             </div>
         </sticky-bar>

@@ -18,16 +18,19 @@ const FilterComponentStub = defineComponent({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label", "severity", "name"],
+    props: ["variant", "name"],
     emits: ["click"],
-    setup(props, { emit }) {
+    setup(props, { emit, slots }) {
         return () =>
-            h("button", {
-                "data-qa": "button",
-                "data-label": props.label,
-                "data-severity": props.severity,
-                onClick: () => emit("click"),
-            });
+            h(
+                "button",
+                {
+                    "data-qa": "button",
+                    "data-variant": props.variant,
+                    onClick: () => emit("click"),
+                },
+                slots.default?.(),
+            );
     },
 });
 
@@ -53,7 +56,7 @@ const mockedUseTheme = vi.fn(() => () => "theme");
 const route = reactive({ query: {} });
 
 vi.mock("@vueda/components/FilterComponent.vue", () => ({ default: FilterComponentStub }));
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 vi.mock("@vueda/use/useSlotNameResolver.js", () => ({ useSlotNameResolver }));
 vi.mock("@vueda/use/useFilter.js", () => ({ useFilter: mockedUseFilter }));
 vi.mock("@vueda/use/useTheme.js", async () => {
@@ -199,11 +202,11 @@ describe("lib/components/FilterGroup.vue", () => {
 
         wrapper.vm.addedFilters.push({ param: "foo", value: "bar" });
         await vue.nextTick();
-        expect(wrapper.get('[data-qa="button"]').attributes("data-severity")).toBe("warn");
+        expect(wrapper.get('[data-qa="button"]').attributes("data-variant")).toBe("outline");
 
         await wrapper.get('[data-qa="button"]').trigger("click");
         await vue.nextTick();
         expect(wrapper.vm.addedFilters.length).toBe(0);
-        expect(wrapper.get('[data-qa="button"]').attributes("data-severity")).toBe("secondary");
+        expect(wrapper.get('[data-qa="button"]').attributes("data-variant")).toBe("secondary");
     });
 });

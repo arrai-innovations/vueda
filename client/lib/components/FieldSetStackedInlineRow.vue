@@ -1,10 +1,10 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
+import { ControlButton } from "@vueda/controls/button";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
-import Button from "primevue/button";
 import { computed, inject, unref, useSlots } from "vue";
 
 /**
@@ -127,7 +127,7 @@ const remainingSlotNames = computed(() => {
                             verb="destroy"
                             @click="onDelete"
                         >
-                            <Button label="Delete" text @click="onDelete" />
+                            <ControlButton variant="ghost" @click="onDelete">Delete</ControlButton>
                         </slot>
                         <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox] Checkbox used to mark an existing inline row for deletion. -->
                         <slot
@@ -170,7 +170,9 @@ const remainingSlotNames = computed(() => {
                             }"
                             @update:model-value="emit('update:model-value', $event)"
                         >
-                            <Button :label="action.label" @update:model-value="emit('update:model-value', $event)" />
+                            <ControlButton @update:model-value="emit('update:model-value', $event)">{{
+                                action.label
+                            }}</ControlButton>
                         </slot>
                     </template>
                 </template>

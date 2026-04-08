@@ -59,23 +59,20 @@ vi.mock("@vueda/components/ModelActionForm.vue", () => ({
 const ButtonStub = defineComponent({
     name: "ButtonStub",
     emits: ["click"],
-    props: ["label", "verb"],
-    setup(props, { emit }) {
+    setup(_, { emit, slots }) {
         return () =>
             h(
                 "button",
                 {
                     "data-qa": "prime-button",
-                    "data-label": props.label,
-                    "data-verb": props.verb,
                     onClick: () => emit("click"),
                 },
-                "button",
+                slots.default?.(),
             );
     },
 });
-vi.mock("primevue/button", () => ({
-    default: ButtonStub,
+vi.mock("@vueda/controls/button", () => ({
+    ControlButton: ButtonStub,
 }));
 
 const PageTitleStub = defineComponent({

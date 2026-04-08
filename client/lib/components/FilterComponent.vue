@@ -1,6 +1,8 @@
 <script setup>
 import { assignReactiveObject, deepUnref } from "@arrai-innovations/reactive-helpers";
 import FilterForm from "@vueda/components/FilterForm.vue";
+import { ControlButton } from "@vueda/controls/button";
+import { ControlButtonGroup } from "@vueda/controls/button-group";
 import { useFilterField } from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useModelChoices } from "@vueda/use/useModelChoices.js";
@@ -9,8 +11,6 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FilterModelSymbol } from "@vueda/utils/symbols.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isObject from "lodash-es/isObject.js";
-import Button from "primevue/button";
-import ButtonGroup from "primevue/buttongroup";
 import Popover from "primevue/popover";
 import { computed, inject, reactive, ref, toRef, useSlots, useTemplateRef, watch } from "vue";
 
@@ -305,7 +305,7 @@ watch(
 
 <template>
     <div>
-        <ButtonGroup size="small">
+        <ControlButtonGroup>
             <!-- @slot [filter-clear-button, filter-clear-button(filterName)] Replaces the clear-filter button shown when a filter value is active. -->
             <slot
                 :class="theme('clearButton')"
@@ -316,32 +316,22 @@ watch(
                 :label="computedFilterLabel"
                 :name="resolvedSlotNames.clearButton.name"
                 :remove-filter="removeFilter"
-                severity="warn"
+                variant="outline"
                 :show-state="internalShowState"
             >
-                <Button
-                    v-if="hasFilterValue"
-                    rounded
-                    severity="warn"
-                    size="small"
-                    variant="outlined"
-                    @click.prevent="removeFilter"
-                >
-                    <template #icon>
-                        <!-- @slot [filter-clear-button-icon, filter-clear-button-icon(filterName)] Icon inside the clear-filter button. -->
-                        <slot
-                            class="p-button-icon p-button-icon-left"
-                            :filter-details="filterDetails"
-                            :filter-name="filterName"
-                            :has-filter-value="hasFilterValue"
-                            :name="resolvedSlotNames.clearButtonIcon.name"
-                            :remove-filter="removeFilter"
-                            :show-state="internalShowState"
-                        >
-                            <span class="p-button-icon p-button-icon-left"> ✖️ </span>
-                        </slot>
-                    </template>
-                </Button>
+                <ControlButton v-if="hasFilterValue" variant="outline" size="sm" @click.prevent="removeFilter">
+                    <!-- @slot [filter-clear-button-icon, filter-clear-button-icon(filterName)] Icon inside the clear-filter button. -->
+                    <slot
+                        :filter-details="filterDetails"
+                        :filter-name="filterName"
+                        :has-filter-value="hasFilterValue"
+                        :name="resolvedSlotNames.clearButtonIcon.name"
+                        :remove-filter="removeFilter"
+                        :show-state="internalShowState"
+                    >
+                        <span>✖️</span>
+                    </slot>
+                </ControlButton>
             </slot>
             <!-- @slot [filter-dropdown-button, filter-dropdown-button(filterName)] Replaces the dropdown trigger button for this filter. -->
             <slot
@@ -352,67 +342,50 @@ watch(
                 :label="computedFilterLabel"
                 :name="resolvedSlotNames.dropdownButton.name"
                 :remove-filter="removeFilter"
-                severity="info"
+                variant="outline"
                 :show-state="internalShowState"
                 @click="doToggle"
             >
-                <Button
-                    :class="theme('dropdownButton')"
-                    :label="computedFilterLabel"
-                    rounded
-                    severity="info"
-                    size="small"
-                    variant="outlined"
-                    @click="doToggle"
-                >
-                    <template #default>
-                        <!-- primevue passes nothing via their button default slot... -->
-                        <!-- when using the default slot, they don't render the icon slot... -->
-                        <!-- @slot [filter-dropdown-button-icon, filter-dropdown-button-icon(filterName)] Icon inside the dropdown button, shown when no filter value is set. -->
-                        <slot
-                            v-if="!hasFilterValue"
-                            class="p-button-icon p-button-icon-left"
-                            :filter-details="filterDetails"
-                            :filter-name="filterName"
-                            :has-filter-value="hasFilterValue"
-                            :name="resolvedSlotNames.dropdownButtonIcon.name"
-                            :remove-filter="removeFilter"
-                            :show-state="internalShowState"
-                        >
-                            <span class="p-button-icon p-button-icon-left"> ➕ </span>
-                        </slot>
-                        <!-- @slot [filter-dropdown-button-label, filter-dropdown-button-label(filterName)] Label text inside the dropdown button. -->
-                        <slot
-                            class="p-button-label"
-                            :filter-details="filterDetails"
-                            :filter-name="filterName"
-                            :has-filter-value="hasFilterValue"
-                            :label="computedFilterLabel"
-                            :name="resolvedSlotNames.dropdownButtonLabel.name"
-                            :show-state="internalShowState"
-                        >
-                            <span class="p-button-label">
-                                {{ computedFilterLabel }}
-                            </span>
-                        </slot>
-                        <!-- @slot [filter-dropdown-button-suffix, filter-dropdown-button-suffix(filterName)] Suffix indicator (expand/collapse arrow) inside the dropdown button. -->
-                        <slot
-                            class="p-button-label"
-                            :filter-details="filterDetails"
-                            :filter-name="filterName"
-                            :has-filter-value="hasFilterValue"
-                            :label="computedFilterLabel"
-                            :name="resolvedSlotNames.dropdownButtonSuffix.name"
-                            :show-state="internalShowState"
-                        >
-                            <span class="p-button-label">
-                                {{ hasFilterValue ? (internalShowState ? "▲" : "▼") : "" }}
-                            </span>
-                        </slot>
-                    </template>
-                </Button>
+                <ControlButton :class="theme('dropdownButton')" variant="outline" size="sm" @click="doToggle">
+                    <!-- @slot [filter-dropdown-button-icon, filter-dropdown-button-icon(filterName)] Icon inside the dropdown button, shown when no filter value is set. -->
+                    <slot
+                        v-if="!hasFilterValue"
+                        :filter-details="filterDetails"
+                        :filter-name="filterName"
+                        :has-filter-value="hasFilterValue"
+                        :name="resolvedSlotNames.dropdownButtonIcon.name"
+                        :remove-filter="removeFilter"
+                        :show-state="internalShowState"
+                    >
+                        <span>➕</span>
+                    </slot>
+                    <!-- @slot [filter-dropdown-button-label, filter-dropdown-button-label(filterName)] Label text inside the dropdown button. -->
+                    <slot
+                        :filter-details="filterDetails"
+                        :filter-name="filterName"
+                        :has-filter-value="hasFilterValue"
+                        :label="computedFilterLabel"
+                        :name="resolvedSlotNames.dropdownButtonLabel.name"
+                        :show-state="internalShowState"
+                    >
+                        <span>{{ computedFilterLabel }}</span>
+                    </slot>
+                    <!-- @slot [filter-dropdown-button-suffix, filter-dropdown-button-suffix(filterName)] Suffix indicator (expand/collapse arrow) inside the dropdown button. -->
+                    <slot
+                        :filter-details="filterDetails"
+                        :filter-name="filterName"
+                        :has-filter-value="hasFilterValue"
+                        :label="computedFilterLabel"
+                        :name="resolvedSlotNames.dropdownButtonSuffix.name"
+                        :show-state="internalShowState"
+                    >
+                        <span>
+                            {{ hasFilterValue ? (internalShowState ? "▲" : "▼") : "" }}
+                        </span>
+                    </slot>
+                </ControlButton>
             </slot>
-        </ButtonGroup>
+        </ControlButtonGroup>
         <!-- @slot [filter-form-popover, filter-form-popover(filterName)] Replaces the popover element that wraps the filter form. -->
         <slot
             :class="theme('formPopover')"

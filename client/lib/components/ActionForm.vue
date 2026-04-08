@@ -2,13 +2,14 @@
 import { loadingCombine } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormChores from "@vueda/components/FormChores.vue";
+import { ControlButton } from "@vueda/controls/button";
+import { FeedbackSpinner } from "@vueda/feedback/spinner";
 import { defaultOnSubmissionError, defaultOnSubmitNotAnyModified } from "@vueda/use/useObjectForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
-import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 import { computed, inject, nextTick, onDeactivated, onUnmounted, reactive, watch } from "vue";
 
@@ -247,9 +248,10 @@ watch(
                             type="submit"
                             :disabled="formContext.state.anyError"
                         >
-                            <Button :loading="combinedLoading" type="submit" :disabled="formContext.state.anyError"
-                                >Yes, continue</Button
-                            >
+                            <ControlButton type="submit" :disabled="combinedLoading || formContext.state.anyError">
+                                <FeedbackSpinner v-if="combinedLoading" />
+                                Yes, continue
+                            </ControlButton>
                         </slot>
                         <!-- Cancel button that invokes the redirect; receives `label`, `loading`, and `verb` as slot props. -->
                         <slot
@@ -259,7 +261,10 @@ watch(
                             verb="cancel"
                             @click="handleCancelClick"
                         >
-                            <Button label="Cancel, go back" :loading="combinedLoading" @click="handleCancelClick" />
+                            <ControlButton variant="ghost" :disabled="combinedLoading" @click="handleCancelClick">
+                                <FeedbackSpinner v-if="combinedLoading" />
+                                Cancel, go back
+                            </ControlButton>
                         </slot>
                     </div>
                 </slot>

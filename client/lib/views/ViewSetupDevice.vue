@@ -1,12 +1,13 @@
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
 import ClickToCopyText from "@vueda/components/ClickToCopyText.vue";
+import { ControlButton } from "@vueda/controls/button";
+import { FeedbackSpinner } from "@vueda/feedback/spinner";
 import FormField from "@vueda/fields/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
-import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import { useToast } from "primevue/usetoast";
 import { computed, reactive, ref, toRef } from "vue";
@@ -161,7 +162,7 @@ const doAfterSuccess = async (response) => {
 
                         <img :src="totpSvgDataUri" alt="TOTP QR Code" data-qa="view-setup-device-app-img" />
                         Unable to scan? You can use the setup key to manually configure your authenticator app.
-                        <Button label="View Key" variant="text" @click="totpSecretDialogVisible = true" />
+                        <ControlButton variant="ghost" @click="totpSecretDialogVisible = true">View Key</ControlButton>
                         <Dialog v-model:visible="totpSecretDialogVisible" modal header="Your two-factor secret">
                             <click-to-copy-text :text="totpSecret" toast="Secret Copied!" />
                         </Dialog>
@@ -176,13 +177,10 @@ const doAfterSuccess = async (response) => {
         <template #confirm-button="{ loading }">
             <!-- Replaces the primary submit button; receives `loading` as a slot prop. -->
             <slot name="confirm-button" v-bind="{ loading }">
-                <Button
-                    :label="step !== STEPS.CHOOSE ? 'Verify Device' : 'Choose Device'"
-                    :disabled="loading || form.values?.method == null"
-                    :loading="loading"
-                    severity="primary"
-                    type="submit"
-                />
+                <ControlButton :disabled="loading || form.values?.method == null" type="submit">
+                    <FeedbackSpinner v-if="loading" />
+                    {{ step !== STEPS.CHOOSE ? "Verify Device" : "Choose Device" }}
+                </ControlButton>
             </slot>
         </template>
         <template #cancel-button="{ loading, handleCancelClick }">

@@ -1,6 +1,6 @@
 <script setup>
+import { ControlButton } from "@vueda/controls/button";
 import { useLinkModelView } from "@vueda/use/useLinkModelView.js";
-import Button from "primevue/button";
 
 /**
  * Renders a PrimeVue Button that navigates to a named model view (such as read, update, or a
@@ -57,16 +57,15 @@ const linkModelView = useLinkModelView(props);
 </script>
 
 <template>
-    <Button
+    <ControlButton
+        :as="button ? 'button' : 'a'"
         :disabled="linkModelView.actionDisabled.value"
         :href="button ? undefined : linkModelView.href.value"
-        :label="label"
-        :link="!button"
-        :pt="buttonClass"
+        :variant="button ? 'default' : 'link'"
+        :class="buttonClass"
         @click="linkModelView.navigate"
     >
-        <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-            <slot :name="slot" v-bind="slotProps || {}" />
-        </template>
-    </Button>
+        {{ label }}
+        <slot />
+    </ControlButton>
 </template>

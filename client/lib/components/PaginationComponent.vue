@@ -1,6 +1,6 @@
 <script setup>
+import { ControlButton } from "@vueda/controls/button";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import Button from "primevue/button";
 import Paginator from "primevue/paginator";
 import { computed, ref } from "vue";
 
@@ -106,14 +106,14 @@ const handleShowAllPagesClick = () => {
             :showing-all-pages="showingAllPages"
             @click="handleShowAllPagesClick"
         >
-            <Button
+            <ControlButton
                 v-if="allowShowAllPages && !showingAllPages && totalRecords > rows"
                 type="button"
-                variant="text"
+                variant="ghost"
                 @click="handleShowAllPagesClick"
             >
                 Show All Pages
-            </Button>
+            </ControlButton>
         </slot>
     </div>
 </template>

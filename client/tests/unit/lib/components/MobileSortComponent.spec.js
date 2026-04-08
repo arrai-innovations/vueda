@@ -88,7 +88,7 @@ const DraggableStub = defineComponent({
     },
 });
 
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 vi.mock("primevue/drawer", () => ({ default: DrawerStub }));
 vi.mock("primevue/select", () => ({ default: SelectStub }));
 vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
@@ -130,7 +130,7 @@ function mountComponent(options = {}) {
         slots: options.slots,
         global: {
             stubs: {
-                Button: ButtonStub,
+                ControlButton: ButtonStub,
                 Drawer: DrawerStub,
                 Select: SelectStub,
                 draggable: DraggableStub,
@@ -159,7 +159,10 @@ describe("lib/components/MobileSortComponent.vue", () => {
 
         expect(drawer().attributes("data-visible")).toBe("false");
 
-        await wrapper.find('[label="Sort"]').trigger("click");
+        await wrapper
+            .findAll('[data-qa="button"]')
+            .find((b) => b.text().includes("Sort"))
+            .trigger("click");
         await wrapper.vm.$nextTick();
         expect(drawer().attributes("data-visible")).toBe("true");
 
@@ -220,7 +223,7 @@ describe("lib/components/MobileSortComponent.vue", () => {
             },
         });
 
-        const clearButton = wrapper.find('[label="Clear all"]');
+        const clearButton = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Clear all"));
         expect(clearButton.attributes("disabled")).toBeDefined();
     });
 
@@ -232,7 +235,7 @@ describe("lib/components/MobileSortComponent.vue", () => {
             },
         });
 
-        const addButton = wrapper.find('[label="Add Sort"]');
+        const addButton = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Add Sort"));
         expect(addButton.attributes("disabled")).toBeDefined();
     });
 
@@ -261,7 +264,8 @@ describe("lib/components/MobileSortComponent.vue", () => {
 
         expect(selectDisplays[0].text()).toBe("Display Name");
         expect(selectDisplays[1].text()).toBe("Created");
-        expect(wrapper.find('[label="Sort"]').attributes("badge")).toBe("2");
+        const sortBtn = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Sort"));
+        expect(sortBtn.text()).toContain("2");
     });
 
     scopedIt("does not emit add events when all sortables are already selected", () => {

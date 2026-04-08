@@ -5,6 +5,8 @@ import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
+import { ControlButton } from "@vueda/controls/button";
+import { FeedbackSpinner } from "@vueda/feedback/spinner";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -16,7 +18,6 @@ import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
-import Button from "primevue/button";
 import { computed, inject, onMounted, reactive, readonly, ref, toRef, useSlots, watch } from "vue";
 
 /**
@@ -370,7 +371,10 @@ const nonDetailActions = computed(() =>
                     name="submit-button"
                     type="submit"
                 >
-                    <Button :form="formId" label="Submit" :loading="objectForm?.state?.loading" type="submit" />
+                    <ControlButton :form="formId" :disabled="objectForm?.state?.loading" type="submit">
+                        <FeedbackSpinner v-if="objectForm?.state?.loading" />
+                        Submit
+                    </ControlButton>
                 </slot>
                 <template v-for="actionName in detailActions" :key="actionName">
                     <!-- @slot [action-button] Override an individual action link button in the sticky bar. -->

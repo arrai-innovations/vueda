@@ -42,8 +42,8 @@ const PopoverStub = defineComponent({
     },
 });
 
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
-vi.mock("primevue/buttongroup", () => ({ default: ButtonGroupStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
+vi.mock("@vueda/controls/button-group", () => ({ ControlButtonGroup: ButtonGroupStub }));
 vi.mock("primevue/popover", () => ({ default: PopoverStub }));
 vi.mock("@vueda/components/FilterForm.vue", () => ({ default: FilterFormStub }));
 
@@ -99,8 +99,8 @@ function mountComponent(options = {}) {
         },
         global: {
             stubs: {
-                Button: ButtonStub,
-                ButtonGroup: ButtonGroupStub,
+                ControlButton: ButtonStub,
+                ControlButtonGroup: ButtonGroupStub,
                 Popover: PopoverStub,
                 FilterForm: FilterFormStub,
             },

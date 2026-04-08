@@ -1,10 +1,11 @@
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
+import { ControlButton } from "@vueda/controls/button";
+import { FeedbackSpinner } from "@vueda/feedback/spinner";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
-import Button from "primevue/button";
 import Message from "primevue/message";
 import { useToast } from "primevue/usetoast";
 import { computed, ref, watch } from "vue";
@@ -97,16 +98,18 @@ const theme = useTheme("ViewRecoveryCodes");
                 </div>
 
                 <div :class="theme('savingOptionButtons')" data-qa="view-recovery-codes-saving-options">
-                    <Button label="Download" class="w-32" severity="secondary" size="small" @click="downloadCodes" />
-                    <Button label="Print" class="w-32" severity="secondary" size="small" @click="printPage" />
-                    <Button
-                        :copied="copied"
-                        :label="copied ? 'Copied!' : 'Copy All'"
+                    <ControlButton class="w-32" variant="secondary" size="sm" @click="downloadCodes"
+                        >Download</ControlButton
+                    >
+                    <ControlButton class="w-32" variant="secondary" size="sm" @click="printPage">Print</ControlButton>
+                    <ControlButton
                         class="w-32"
-                        :severity="copied ? 'success' : 'secondary'"
-                        size="small"
+                        :variant="copied ? 'default' : 'secondary'"
+                        size="sm"
                         @click="copy(codesText)"
-                    />
+                    >
+                        {{ copied ? "Copied!" : "Copy All" }}
+                    </ControlButton>
                 </div>
             </div>
             <message v-else severity="error">
@@ -121,11 +124,20 @@ const theme = useTheme("ViewRecoveryCodes");
                     When you generate new recovery codes, you must download or print the new codes. Your old codes won't
                     work anymore.
                 </div>
-                <Button label="Generate new recovery codes" :loading="loading" severity="primary" type="submit" />
-                <Button label="Go Back" :loading="loading" text @click="handleCancelClick" />
+                <ControlButton :disabled="loading" type="submit">
+                    <FeedbackSpinner v-if="loading" />
+                    Generate new recovery codes
+                </ControlButton>
+                <ControlButton variant="ghost" :disabled="loading" @click="handleCancelClick">
+                    <FeedbackSpinner v-if="loading" />
+                    Go Back
+                </ControlButton>
             </div>
             <div v-else data-qa="view-recovery-codes-form-action-bar-invalid">
-                <Button label="Go Back" :loading="loading" @click="handleCancelClick" />
+                <ControlButton :disabled="loading" @click="handleCancelClick">
+                    <FeedbackSpinner v-if="loading" />
+                    Go Back
+                </ControlButton>
             </div>
         </template>
     </auth-form>

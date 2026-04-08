@@ -90,7 +90,7 @@ const ButtonStub = defineComponent({
             );
     },
 });
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 
 const WidgetReadOnlyStub = defineComponent({
     name: "WidgetReadOnlyStub",

@@ -47,19 +47,24 @@ const WidgetTextInputStub = defineComponent({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label", "loading"],
+    props: ["loading"],
     emits: ["click"],
-    setup(props, { emit, slots }) {
+    setup(_, { emit, slots }) {
         return () =>
             h(
                 "button",
                 {
                     "data-qa": "prime-button",
-                    "data-label": props.label,
                     onClick: () => emit("click"),
                 },
-                slots.default ? slots.default() : props.label,
+                slots.default?.(),
             );
+    },
+});
+const FeedbackSpinnerStub = defineComponent({
+    name: "FeedbackSpinnerStub",
+    setup() {
+        return () => h("div", { "data-qa": "feedback-spinner" });
     },
 });
 
@@ -87,7 +92,8 @@ vi.mock("@vueda/components/ClickToCopyText.vue", () => ({ default: ClickToCopyTe
 vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetSelectDropdown.vue", () => ({ default: WidgetSelectDropdownStub }));
 vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
+vi.mock("@vueda/feedback/spinner", () => ({ FeedbackSpinner: FeedbackSpinnerStub }));
 vi.mock("primevue/dialog", () => ({ default: DialogStub }));
 vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => useModelConfigMock() }));
