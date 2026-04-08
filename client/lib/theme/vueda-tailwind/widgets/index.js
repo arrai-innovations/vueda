@@ -79,13 +79,22 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-col"],
+            class: ["flex flex-col border border-input rounded-md overflow-hidden"],
         },
-        menu: {
-            class: [],
+        toolbar: {
+            class: ["flex flex-row flex-wrap items-center gap-0.5 border-b border-input bg-muted/50 px-1.5 py-1"],
         },
-        editor: {
-            class: [],
+        toolbarButton: {
+            class: [
+                "inline-flex items-center justify-center rounded px-1.5 py-0.5 text-sm font-medium text-muted-foreground",
+                "hover:bg-accent hover:text-accent-foreground",
+            ],
+        },
+        toolbarButtonActive: {
+            class: ["bg-accent text-accent-foreground"],
+        },
+        toolbarSeparator: {
+            class: ["mx-0.5 h-5 w-px bg-border"],
         },
     },
     WidgetImage: {

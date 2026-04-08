@@ -87,6 +87,9 @@
   },
   "dependencies": {
     "@internationalized/date": "^3.5.0",
+    "@tiptap/extension-underline": "^3.22.3",
+    "@tiptap/starter-kit": "^3.22.3",
+    "@tiptap/vue-3": "^3.22.3",
     "browser-util-inspect": "^0.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
