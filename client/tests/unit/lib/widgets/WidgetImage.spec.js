@@ -28,34 +28,25 @@ vi.mock("@vueda/use/useWidget.js", () => ({
     useWidget: mockedUseWidget,
 }));
 
-const ButtonStub = defineComponent({
-    name: "ButtonStub",
-    props: ["icon"],
+const ControlButtonStub = defineComponent({
+    name: "ControlButtonStub",
+    props: ["variant", "size"],
     emits: ["click"],
-    setup(props, { emit }) {
-        return () => h("button", { "data-qa": "button", "data-icon": props.icon, onClick: () => emit("click") });
+    setup(props, { emit, attrs }) {
+        return () => h("button", { "data-qa": attrs["data-qa"] || "control-button", onClick: () => emit("click") });
     },
 });
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button", () => ({ ControlButton: ControlButtonStub }));
 
-const ImageStub = defineComponent({
-    name: "ImageStub",
-    props: ["src"],
-    setup(props) {
-        return () => h("img", { "data-qa": "image", src: props.src });
-    },
-});
-vi.mock("primevue/image", () => ({ default: ImageStub }));
-
-const FileUploadStub = defineComponent({
-    name: "FileUploadStub",
-    emits: ["uploader"],
-    props: ["ariaLabelledby", "disabled", "maxFileSize", "mode", "name", "accept", "ariaRequired"],
+const ControlFileUploadStub = defineComponent({
+    name: "ControlFileUploadStub",
+    emits: ["update:modelValue"],
+    props: ["accept", "ariaLabelledby", "disabled", "maxFileSize", "ariaRequired"],
     setup(props, { attrs }) {
         return () => h("div", { "data-qa": "file-upload", ...attrs });
     },
 });
-vi.mock("primevue/fileupload", () => ({ default: FileUploadStub }));
+vi.mock("@vueda/controls/file-upload", () => ({ ControlFileUpload: ControlFileUploadStub }));
 
 let WidgetImage;
 
@@ -89,9 +80,9 @@ describe("lib/widgets/WidgetImage.vue", () => {
         expect(root.classes()).toContain("t-root");
         const inner = wrapper.get('[data-qa="widget-image-inner"]');
         expect(inner.classes()).toContain("t-inner");
-        const fu = wrapper.getComponent(FileUploadStub);
+        const fu = wrapper.getComponent(ControlFileUploadStub);
         expect(fu.exists()).toBe(true);
-        fu.vm.$emit("uploader", { files: ["img"] });
+        fu.vm.$emit("update:modelValue", "img");
         await nextTick();
         expect(widgetContext.state.combinedValue).toBe("img");
     });
@@ -100,13 +91,14 @@ describe("lib/widgets/WidgetImage.vue", () => {
         const wrapper = mount(WidgetImage, mountOptions);
         widgetContext.state.combinedValue = "url";
         await nextTick();
-        const img = wrapper.getComponent(ImageStub);
-        expect(img.props("src")).toBe("url");
-        const btn = wrapper.getComponent(ButtonStub);
+        const img = wrapper.get('[data-qa="image-preview"]');
+        expect(img.attributes("src")).toBe("url");
+        expect(img.attributes("width")).toBe("250");
+        const btn = wrapper.get('[data-qa="image-remove"]');
         await btn.trigger("click");
         await nextTick();
         expect(widgetContext.state.combinedValue).toBe(null);
-        expect(wrapper.findComponent(FileUploadStub).exists()).toBe(true);
+        expect(wrapper.findComponent(ControlFileUploadStub).exists()).toBe(true);
     });
 
     scopedIt("calls ignore for string values and removeIgnore otherwise", async () => {

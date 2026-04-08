@@ -1,12 +1,12 @@
 <script setup>
+import { ControlButton } from "@vueda/controls/button";
+import { ControlFileUpload } from "@vueda/controls/file-upload";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import isString from "lodash-es/isString.js";
-import Button from "primevue/button";
-import FileUpload from "primevue/fileupload";
-import Image from "primevue/image";
+import { X } from "lucide-vue-next";
 import { inject, toRef, watch } from "vue";
 
 /**
@@ -14,7 +14,6 @@ import { inject, toRef, watch } from "vue";
  * remove button once one has been chosen. The widget value is the raw File object selected by the
  * user.
  */
-
 defineOptions({
     inheritAttrs: false,
 });
@@ -26,6 +25,7 @@ const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 /** @type {import('@vueda/use/useField.js').FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
+const theme = useWidgetTheme("WidgetImage", props, widgetContext.state);
 
 if (fieldContext) {
     watch(
@@ -41,34 +41,32 @@ if (fieldContext) {
     );
 }
 
-const upload = (e) => {
-    widgetContext.state.combinedValue = e.files[0];
+const onFileSelected = (file) => {
+    widgetContext.state.combinedValue = file;
 };
 
 const onRemove = () => {
     widgetContext.state.combinedValue = null;
 };
-const theme = useWidgetTheme("WidgetImage", props, widgetContext.state);
 </script>
+
 <template>
     <div :class="theme('root')">
         <div :class="theme('inner')" data-qa="widget-image-inner">
             <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
-                <Image alt="Image" :src="widgetContext.state.combinedValue" width="250" />
-                <Button icon="pi pi-times" rounded @click="onRemove" />
+                <img alt="Image" :src="widgetContext.state.combinedValue" width="250" data-qa="image-preview" />
+                <ControlButton variant="ghost" size="icon-sm" data-qa="image-remove" @click="onRemove">
+                    <X class="h-4 w-4" />
+                </ControlButton>
             </div>
             <div v-else>
-                <FileUpload
+                <ControlFileUpload
                     accept="image/*"
                     :aria-labelledby="fieldContext?.state.fieldId"
-                    auto
-                    custom-upload
+                    :aria-required="widgetContext.state.required"
                     :disabled="widgetContext.state.disabled"
                     :max-file-size="1000000"
-                    mode="basic"
-                    name="demo[]"
-                    :aria-required="widgetContext.state.required"
-                    @uploader="upload"
+                    @update:model-value="onFileSelected"
                 />
             </div>
         </div>
