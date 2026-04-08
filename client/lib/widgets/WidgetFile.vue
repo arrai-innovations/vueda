@@ -1,13 +1,12 @@
 <script setup>
+import { ControlButton } from "@vueda/controls/button";
+import { ControlFileUpload } from "@vueda/controls/file-upload";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
-import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import isObject from "lodash-es/isObject.js";
-import omit from "lodash-es/omit.js";
-import Button from "primevue/button";
-import FileUpload from "primevue/fileupload";
+import { Download, X } from "lucide-vue-next";
 import { computed, inject, toRef, watch } from "vue";
 
 /**
@@ -30,14 +29,12 @@ const props = defineProps({
         default: 1000000,
     },
     ...THEME_OVERRIDE_PROPS,
-    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 /** @type {import('@vueda/use/useField.js').FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
 const theme = useWidgetTheme("WidgetFile", props, widgetContext.state);
-const effectivePt = useWarningClass(props, widgetContext.state);
 
 if (fieldContext) {
     watch(
@@ -57,8 +54,8 @@ if (fieldContext) {
     );
 }
 
-const upload = (e) => {
-    widgetContext.state.combinedValue = e.files[0];
+const onFileSelected = (file) => {
+    widgetContext.state.combinedValue = file;
 };
 const onRemoveFile = () => {
     widgetContext.state.combinedValue = null;
@@ -92,34 +89,31 @@ const fileURL = computed(() => {
             >
                 <a :class="theme('link')" :href="fileURL">{{ fileName }}</a>
                 <div :class="theme('buttonGroup')">
-                    <Button icon="pi pi-times" rounded @click="onRemoveFile" />
-                    <Button icon="pi pi-download" rounded @click="onDownload" />
+                    <ControlButton variant="ghost" size="icon-sm" data-qa="file-remove" @click="onRemoveFile">
+                        <X class="h-4 w-4" />
+                    </ControlButton>
+                    <ControlButton variant="ghost" size="icon-sm" data-qa="file-download" @click="onDownload">
+                        <Download class="h-4 w-4" />
+                    </ControlButton>
                 </div>
             </div>
             <div v-else>
-                <!-- Replaces the default PrimeVue FileUpload component; receives `disabled`, `invalid`, `aria-labelledby`, and an `uploader` event handler. -->
+                <!-- @slot [file-uploader] Replaces the default ControlFileUpload component; receives `disabled`, `invalid`, `aria-labelledby`, and an `update:modelValue` event handler. -->
                 <slot
-                    v-bind="omit($attrs, 'value')"
                     :aria-labelledby="fieldContext?.state.fieldId"
                     :disabled="widgetContext.state.disabled"
                     :invalid="widgetContext.state.validationState.invalid"
                     name="file-uploader"
-                    @uploader="upload"
+                    @update:model-value="onFileSelected"
                 >
-                    <FileUpload
-                        v-bind="omit($attrs, 'value')"
+                    <ControlFileUpload
+                        :accept="accept"
                         :aria-labelledby="fieldContext?.state.fieldId"
-                        auto
-                        custom-upload
-                        :disabled="widgetContext.state.disabled"
-                        :invalid="widgetContext.state.validationState.invalid"
-                        mode="basic"
-                        name="files[]"
-                        :pt="effectivePt"
                         :aria-required="widgetContext.state.required"
-                        @uploader="upload"
-                    >
-                    </FileUpload>
+                        :disabled="widgetContext.state.disabled"
+                        :max-file-size="maxFileSize"
+                        @update:model-value="onFileSelected"
+                    />
                 </slot>
             </div>
         </div>
