@@ -1,38 +1,9 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import { buttonVariants } from "@vueda/controls/button/index.js";
 import { h } from "vue";
 
 describe("lib/controls/button/ControlButton.vue", () => {
-    describe("buttonVariants", () => {
-        it("applies default variant and size classes when called with no arguments", () => {
-            const cls = buttonVariants({});
-            expect(cls).toContain("bg-primary");
-            expect(cls).toContain("h-9");
-        });
-
-        it.each([
-            ["destructive", "bg-destructive"],
-            ["outline", "bg-background"],
-            ["secondary", "bg-secondary"],
-            ["ghost", "hover:bg-accent"],
-            ["link", "underline-offset-4"],
-        ])("variant %s includes a distinguishing class", (variant, marker) => {
-            expect(buttonVariants({ variant })).toContain(marker);
-        });
-
-        it.each([
-            ["sm", "h-8"],
-            ["lg", "h-10"],
-            ["icon", "size-9"],
-            ["icon-sm", "size-8"],
-            ["icon-lg", "size-10"],
-        ])("size %s includes a distinguishing class", (size, marker) => {
-            expect(buttonVariants({ size })).toContain(marker);
-        });
-    });
-
     describe("rendering", () => {
         scopedIt("renders as a <button> by default", () => {
             const wrapper = mount(ControlButton);

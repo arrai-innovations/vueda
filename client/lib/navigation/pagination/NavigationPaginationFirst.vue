@@ -1,6 +1,5 @@
 <script setup>
-import { buttonVariants } from "@vueda/controls/button";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ChevronLeftIcon } from "lucide-vue-next";
 import { PaginationFirst, useForwardProps } from "reka-ui";
@@ -11,7 +10,8 @@ import { PaginationFirst, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
-    /** @type {import('@vueda/controls/button').ButtonVariants['size']} */
+    ...THEME_OVERRIDE_PROPS,
+    /** @type {import('@vueda/controls/button').ButtonSize} */
     size: { type: String, default: "default" },
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
@@ -23,16 +23,13 @@ const props = defineProps({
     disabled: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "size");
+const delegatedProps = reactiveOmit(props, "class", "size", "themeOverride");
 const forwarded = useForwardProps(delegatedProps);
+const theme = useTheme("NavigationPaginationNavButton", props);
 </script>
 
 <template>
-    <PaginationFirst
-        data-slot="pagination-first"
-        :class="cn(buttonVariants({ variant: 'ghost', size }), 'gap-1 px-2.5 sm:pr-2.5', props.class)"
-        v-bind="forwarded"
-    >
+    <PaginationFirst data-slot="pagination-first" :class="[theme('root'), props.class]" v-bind="forwarded">
         <slot>
             <ChevronLeftIcon />
             <span class="hidden sm:block">First</span>

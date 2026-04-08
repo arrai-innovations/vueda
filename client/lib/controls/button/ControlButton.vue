@@ -1,17 +1,18 @@
 <script setup>
-import { buttonVariants } from ".";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Primitive } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
- * A button control built on Reka UI's Primitive, supporting variant and size styles via cva.
+ * A button control built on Reka UI's Primitive, supporting variant and size styles via the theme system.
  */
 defineOptions({});
 
 const props = defineProps({
-    /** @type {import('.').ButtonVariants['variant']} */
+    ...THEME_OVERRIDE_PROPS,
+    /** @type {'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'} */
     variant: { type: String, default: undefined },
-    /** @type {import('.').ButtonVariants['size']} */
+    /** @type {'default' | 'sm' | 'lg' | 'icon' | 'icon-sm' | 'icon-lg'} */
     size: { type: String, default: undefined },
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
@@ -20,6 +21,15 @@ const props = defineProps({
     /** When true, merges props onto the child element instead of rendering a wrapper. */
     asChild: { type: Boolean, default: false },
 });
+
+const theme = useTheme(
+    "ControlButton",
+    props,
+    reactive({
+        variant: toRef(props, "variant"),
+        size: toRef(props, "size"),
+    }),
+);
 </script>
 
 <template>
@@ -29,7 +39,7 @@ const props = defineProps({
         :data-size="size"
         :as="as"
         :as-child="asChild"
-        :class="cn(buttonVariants({ variant, size }), props.class)"
+        :class="[theme('root'), props.class]"
     >
         <slot />
     </Primitive>

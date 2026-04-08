@@ -1,8 +1,8 @@
 <script setup>
-import { buttonVariants } from "@vueda/controls/button";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { PaginationListItem } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
  * A single page number button in a pagination control.
@@ -10,7 +10,8 @@ import { PaginationListItem } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
-    /** @type {import('@vueda/controls/button').ButtonVariants['size']} */
+    ...THEME_OVERRIDE_PROPS,
+    /** @type {import('@vueda/controls/button').ButtonSize} */
     size: { type: String, default: "icon" },
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
@@ -24,23 +25,12 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "size", "isActive");
+const delegatedProps = reactiveOmit(props, "class", "size", "isActive", "themeOverride");
+const theme = useTheme("NavigationPaginationItem", props, reactive({ isActive: toRef(props, "isActive") }));
 </script>
 
 <template>
-    <PaginationListItem
-        data-slot="pagination-item"
-        v-bind="delegatedProps"
-        :class="
-            cn(
-                buttonVariants({
-                    variant: isActive ? 'outline' : 'ghost',
-                    size,
-                }),
-                props.class,
-            )
-        "
-    >
+    <PaginationListItem data-slot="pagination-item" v-bind="delegatedProps" :class="[theme('root'), props.class]">
         <slot />
     </PaginationListItem>
 </template>

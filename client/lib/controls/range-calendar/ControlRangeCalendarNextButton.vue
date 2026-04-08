@@ -1,6 +1,5 @@
 <script setup>
-import { buttonVariants } from "@vueda/controls/button";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ChevronRight } from "lucide-vue-next";
 import { RangeCalendarNext, useForwardProps } from "reka-ui";
@@ -11,24 +10,20 @@ import { RangeCalendarNext, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the button. */
     class: { type: [String, Array, Object], default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const theme = useTheme("ControlRangeCalendarNextButton", props);
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
     <RangeCalendarNext
         data-slot="range-calendar-next-button"
-        :class="
-            cn(
-                buttonVariants({ variant: 'outline' }),
-                'absolute right-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100',
-                props.class,
-            )
-        "
+        :class="[theme('root'), props.class]"
         v-bind="forwardedProps"
     >
         <slot>

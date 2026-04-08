@@ -1,5 +1,5 @@
 <script setup>
-import { Button } from "@vueda/controls/button";
+import { ControlButton as Button } from "@vueda/controls/button";
 import { cn } from "@vueda/utils/cn.js";
 import { DialogClose } from "reka-ui";
 
