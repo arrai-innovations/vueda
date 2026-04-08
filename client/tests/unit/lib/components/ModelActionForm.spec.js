@@ -34,11 +34,11 @@ const FormChoresStub = defineComponent({
     },
 });
 
-const FieldStringStub = defineComponent({
-    name: "FieldStringStub",
-    props: ["fieldValue", "label", "name"],
+const FormFieldStub = defineComponent({
+    name: "FormFieldStub",
+    props: ["fieldValue", "label", "name", "readOnly"],
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "field-string" }, slots.default ? slots.default() : null);
+        return () => h("div", { "data-qa": "form-field" }, slots.default ? slots.default() : null);
     },
 });
 
@@ -89,7 +89,7 @@ vi.mock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper }));
 
 vi.mock("@vueda/components/ActionForm.vue", () => ({ default: ActionFormStub }));
 vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
-vi.mock("@vueda/fields/FieldString.vue", () => ({ default: FieldStringStub }));
+vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetReadOnly.vue", () => ({ default: WidgetReadOnlyStub }));
 
 let ModelActionForm, vue;
