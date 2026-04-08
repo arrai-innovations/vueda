@@ -1,11 +1,15 @@
 <script setup>
+import {
+    ControlNumberField,
+    ControlNumberFieldContent,
+    ControlNumberFieldDecrement,
+    ControlNumberFieldIncrement,
+    ControlNumberFieldInput,
+} from "@vueda/controls/number-field";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
-import { PASSTHROUGH_OPTION_PROPS, useWarningClass } from "@vueda/use/useWarningClass.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import omit from "lodash-es/omit.js";
-import InputNumber from "primevue/inputnumber";
 import { computed, inject, reactive, ref } from "vue";
 
 /**
@@ -40,14 +44,12 @@ const props = defineProps({
         default: false,
     },
     ...THEME_OVERRIDE_PROPS,
-    ...PASSTHROUGH_OPTION_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
 /** @type {import('@vueda/use/useField.js').FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
 const theme = useWidgetTheme("WidgetDuration", props, widgetContext.state);
-const effectivePt = useWarningClass(props, widgetContext.state);
 
 const valueDay = computed(() => {
     return widgetContext.state.combinedValue?.days;
@@ -95,13 +97,13 @@ const secondsInput = ref(null);
 // todo: this is untested
 const focusFirstInput = () => {
     if (props.showDays && daysInput.value) {
-        daysInput.value.onClick();
+        daysInput.value.$el?.querySelector("input")?.focus();
     } else if (props.showHours && hoursInput.value) {
-        hoursInput.value.onClick();
+        hoursInput.value.$el?.querySelector("input")?.focus();
     } else if (props.showMinutes && minutesInput.value) {
-        minutesInput.value.onClick();
+        minutesInput.value.$el?.querySelector("input")?.focus();
     } else if (props.showSeconds && secondsInput.value) {
-        secondsInput.value.onClick();
+        secondsInput.value.$el?.querySelector("input")?.focus();
     }
 };
 </script>
@@ -114,69 +116,85 @@ const focusFirstInput = () => {
             @click="focusFirstInput"
         >
             <div v-if="showDays" :class="theme('innerItem')">
-                <InputNumber
+                <ControlNumberField
                     ref="daysInput"
-                    aria-label="days"
-                    :disabled="widgetContext.state.disabled"
-                    :invalid="widgetContext.state.validationState.invalid"
-                    :max="365"
-                    :min="0"
                     :model-value="valueDay"
-                    :pt="effectivePt"
-                    show-buttons
-                    suffix=" days"
-                    v-bind="omit($attrs, 'value')"
-                    :aria-required="widgetContext.state.required"
-                    @update:model-value="(newValue) => updateDay(newValue)"
-                />
+                    :min="0"
+                    :max="365"
+                    :disabled="widgetContext.state.disabled"
+                    @update:model-value="updateDay"
+                >
+                    <ControlNumberFieldContent>
+                        <ControlNumberFieldDecrement />
+                        <ControlNumberFieldInput
+                            aria-label="days"
+                            :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :aria-required="widgetContext.state.required || undefined"
+                            data-qa="duration-days"
+                        />
+                        <ControlNumberFieldIncrement />
+                    </ControlNumberFieldContent>
+                </ControlNumberField>
             </div>
             <div v-if="showHours" :class="theme('innerItem')">
-                <InputNumber
+                <ControlNumberField
                     ref="hoursInput"
-                    aria-label="hours"
-                    :disabled="widgetContext.state.disabled"
-                    :invalid="widgetContext.state.validationState.invalid"
-                    :min="0"
                     :model-value="valueHour"
-                    :pt="effectivePt"
-                    show-buttons
-                    suffix=" hours"
-                    v-bind="omit($attrs, 'value')"
-                    :aria-required="widgetContext.state.required"
-                    @update:model-value="(newValue) => updateHour(newValue)"
-                />
+                    :min="0"
+                    :disabled="widgetContext.state.disabled"
+                    @update:model-value="updateHour"
+                >
+                    <ControlNumberFieldContent>
+                        <ControlNumberFieldDecrement />
+                        <ControlNumberFieldInput
+                            aria-label="hours"
+                            :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :aria-required="widgetContext.state.required || undefined"
+                            data-qa="duration-hours"
+                        />
+                        <ControlNumberFieldIncrement />
+                    </ControlNumberFieldContent>
+                </ControlNumberField>
             </div>
             <div v-if="showMinutes" :class="theme('innerItem')">
-                <InputNumber
+                <ControlNumberField
                     ref="minutesInput"
-                    aria-label="minutes"
-                    :disabled="widgetContext.state.disabled"
-                    :invalid="widgetContext.state.validationState.invalid"
-                    :min="0"
                     :model-value="valueMinute"
-                    :pt="effectivePt"
-                    show-buttons
-                    suffix=" minutes"
-                    v-bind="omit($attrs, 'value')"
-                    :aria-required="widgetContext.state.required"
-                    @update:model-value="(newValue) => updateMinute(newValue)"
-                />
+                    :min="0"
+                    :disabled="widgetContext.state.disabled"
+                    @update:model-value="updateMinute"
+                >
+                    <ControlNumberFieldContent>
+                        <ControlNumberFieldDecrement />
+                        <ControlNumberFieldInput
+                            aria-label="minutes"
+                            :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :aria-required="widgetContext.state.required || undefined"
+                            data-qa="duration-minutes"
+                        />
+                        <ControlNumberFieldIncrement />
+                    </ControlNumberFieldContent>
+                </ControlNumberField>
             </div>
             <div v-if="showSeconds" :class="theme('innerItem')">
-                <InputNumber
+                <ControlNumberField
                     ref="secondsInput"
-                    aria-label="seconds"
-                    :disabled="widgetContext.state.disabled"
-                    :invalid="widgetContext.state.validationState.invalid"
-                    :min="0"
                     :model-value="valueSecond"
-                    :pt="effectivePt"
-                    show-buttons
-                    suffix=" seconds"
-                    v-bind="omit($attrs, 'value')"
-                    :aria-required="widgetContext.state.required"
-                    @update:model-value="(newValue) => updateSecond(newValue)"
-                />
+                    :min="0"
+                    :disabled="widgetContext.state.disabled"
+                    @update:model-value="updateSecond"
+                >
+                    <ControlNumberFieldContent>
+                        <ControlNumberFieldDecrement />
+                        <ControlNumberFieldInput
+                            aria-label="seconds"
+                            :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :aria-required="widgetContext.state.required || undefined"
+                            data-qa="duration-seconds"
+                        />
+                        <ControlNumberFieldIncrement />
+                    </ControlNumberFieldContent>
+                </ControlNumberField>
             </div>
         </div>
     </div>
