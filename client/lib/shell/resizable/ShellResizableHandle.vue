@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { GripVertical } from "lucide-vue-next";
 import { SplitterResizeHandle, useForwardPropsEmits } from "reka-ui";
 
 /**
@@ -32,7 +31,7 @@ const theme = useTheme("ShellResizableHandle", props);
         <template v-if="props.withHandle">
             <div :class="theme('handle')">
                 <slot>
-                    <GripVertical class="size-2.5" />
+                    <span aria-hidden="true" class="select-none text-[10px] leading-none">⠿</span>
                 </slot>
             </div>
         </template>

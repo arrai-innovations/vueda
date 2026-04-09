@@ -2,7 +2,6 @@
 import ShellSheetOverlay from "./ShellSheetOverlay.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { X } from "lucide-vue-next";
 import { DialogClose, DialogContent, DialogPortal, useForwardPropsEmits } from "reka-ui";
 import { reactive, toRef } from "vue";
 
@@ -51,7 +50,8 @@ const theme = useTheme("ShellSheetContent", props, reactive({ side: toRef(props,
             <slot />
 
             <DialogClose :class="theme('close')">
-                <X class="size-4" />
+                <!-- Replaces the close-button icon; receives no slot props. -->
+                <slot name="close-icon">✕</slot>
                 <span class="sr-only">Close</span>
             </DialogClose>
         </DialogContent>

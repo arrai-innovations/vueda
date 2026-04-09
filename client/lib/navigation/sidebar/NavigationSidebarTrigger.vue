@@ -2,7 +2,6 @@
 import { useSidebar } from "./utils.js";
 import { ControlButton } from "@vueda/controls/button";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { PanelLeft } from "lucide-vue-next";
 
 /**
  * A button that toggles the sidebar open or closed.
@@ -28,7 +27,10 @@ const { toggleSidebar } = useSidebar();
         :class="[theme('root'), props.class]"
         @click="toggleSidebar"
     >
-        <PanelLeft />
+        <!-- Replaces the sidebar toggle icon; receives no slot props. -->
+        <slot name="icon">
+            <span aria-hidden="true" class="select-none">◫</span>
+        </slot>
         <span class="sr-only">Toggle Sidebar</span>
     </ControlButton>
 </template>

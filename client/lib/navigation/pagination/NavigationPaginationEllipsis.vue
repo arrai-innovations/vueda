@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { MoreHorizontal } from "lucide-vue-next";
 import { PaginationEllipsis } from "reka-ui";
 
 /**
@@ -26,7 +25,7 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 <template>
     <PaginationEllipsis data-slot="pagination-ellipsis" v-bind="delegatedProps" :class="[theme('root'), props.class]">
         <slot>
-            <MoreHorizontal class="size-4" />
+            <span aria-hidden="true" class="select-none">⋯</span>
             <span class="sr-only">More pages</span>
         </slot>
     </PaginationEllipsis>

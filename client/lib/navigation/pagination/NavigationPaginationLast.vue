@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { ChevronRightIcon } from "lucide-vue-next";
 import { PaginationLast, useForwardProps } from "reka-ui";
 
 /**
@@ -32,7 +31,7 @@ const theme = useTheme("NavigationPaginationNavButton", props);
     <PaginationLast data-slot="pagination-last" :class="[theme('root'), props.class]" v-bind="forwarded">
         <slot>
             <span class="hidden sm:block">Last</span>
-            <ChevronRightIcon />
+            <span aria-hidden="true" class="select-none">›</span>
         </slot>
     </PaginationLast>
 </template>
