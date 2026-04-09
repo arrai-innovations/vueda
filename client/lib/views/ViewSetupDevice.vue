@@ -4,11 +4,11 @@ import ClickToCopyText from "@vueda/components/ClickToCopyText.vue";
 import { ControlButton } from "@vueda/controls/button";
 import { FeedbackSpinner } from "@vueda/feedback/spinner";
 import FormField from "@vueda/fields/FormField.vue";
+import { ShellDialog, ShellDialogContent, ShellDialogHeader, ShellDialogTitle } from "@vueda/shell/dialog";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
-import Dialog from "primevue/dialog";
 import { computed, reactive, ref, toRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { toast } from "vue-sonner";
@@ -160,9 +160,14 @@ const doAfterSuccess = async (response) => {
                         <img :src="totpSvgDataUri" alt="TOTP QR Code" data-qa="view-setup-device-app-img" />
                         Unable to scan? You can use the setup key to manually configure your authenticator app.
                         <ControlButton variant="ghost" @click="totpSecretDialogVisible = true">View Key</ControlButton>
-                        <Dialog v-model:visible="totpSecretDialogVisible" modal header="Your two-factor secret">
-                            <click-to-copy-text :text="totpSecret" toast="Secret Copied!" />
-                        </Dialog>
+                        <ShellDialog v-model:open="totpSecretDialogVisible">
+                            <ShellDialogContent>
+                                <ShellDialogHeader>
+                                    <ShellDialogTitle>Your two-factor secret</ShellDialogTitle>
+                                </ShellDialogHeader>
+                                <click-to-copy-text :text="totpSecret" toast="Secret Copied!" />
+                            </ShellDialogContent>
+                        </ShellDialog>
                     </div>
                 </slot>
 

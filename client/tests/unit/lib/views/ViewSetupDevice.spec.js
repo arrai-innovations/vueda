@@ -68,11 +68,32 @@ const FeedbackSpinnerStub = defineComponent({
     },
 });
 
-const DialogStub = defineComponent({
-    name: "DialogStub",
-    props: ["visible"],
+const ShellDialogStub = defineComponent({
+    name: "ShellDialogStub",
+    props: ["open"],
     setup(props, { slots }) {
-        return () => (props.visible ? h("div", { "data-qa": "dialog" }, slots.default ? slots.default() : null) : null);
+        return () => (props.open ? h("div", { "data-qa": "dialog" }, slots.default ? slots.default() : null) : null);
+    },
+});
+
+const ShellDialogContentStub = defineComponent({
+    name: "ShellDialogContentStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "dialog-content" }, slots.default ? slots.default() : null);
+    },
+});
+
+const ShellDialogHeaderStub = defineComponent({
+    name: "ShellDialogHeaderStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "dialog-header" }, slots.default ? slots.default() : null);
+    },
+});
+
+const ShellDialogTitleStub = defineComponent({
+    name: "ShellDialogTitleStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "dialog-title" }, slots.default ? slots.default() : null);
     },
 });
 
@@ -94,7 +115,12 @@ vi.mock("@vueda/widgets/WidgetSelectDropdown.vue", () => ({ default: WidgetSelec
 vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
 vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 vi.mock("@vueda/feedback/spinner", () => ({ FeedbackSpinner: FeedbackSpinnerStub }));
-vi.mock("primevue/dialog", () => ({ default: DialogStub }));
+vi.mock("@vueda/shell/dialog", () => ({
+    ShellDialog: ShellDialogStub,
+    ShellDialogContent: ShellDialogContentStub,
+    ShellDialogHeader: ShellDialogHeaderStub,
+    ShellDialogTitle: ShellDialogTitleStub,
+}));
 vi.mock("vue-sonner", () => ({ toast: toastMock }));
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => useModelConfigMock() }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));
