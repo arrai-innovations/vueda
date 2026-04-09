@@ -17,7 +17,6 @@ export default defineConfig((configEnv) =>
                         "lib/theme", // mostly static configuration, even though contained in .js files
                         "lib/utils/dev.js", // only used in dev mode, basically a no-op
                         "lib/utils/fieldMappings.js", // static configuration
-                        "lib/utils/primevueConsts.js", // copy of primevue constants
                     ],
                     reporter: ["text", "json-summary", "html", "lcov"],
                 },
