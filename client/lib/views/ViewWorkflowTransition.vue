@@ -2,6 +2,7 @@
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { ControlButton } from "@vueda/controls/button";
+import { ControlRadioGroup, ControlRadioGroupItem } from "@vueda/controls/radio-group";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -9,7 +10,6 @@ import { getAppModelDotName, memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
 import isEmpty from "lodash-es/isEmpty.js";
-import RadioButton from "primevue/radiobutton";
 import { computed, inject, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
 import { toast } from "vue-sonner";
@@ -142,15 +142,16 @@ const handleSubmit = async () => {
             <div v-if="availableTransitions.length">
                 <p>the available transitions for the select objects are</p>
                 <form @submit.prevent="handleSubmit">
-                    <div v-for="transition in availableTransitions" :key="transition.code">
-                        <RadioButton
-                            v-model="selectedAction"
-                            :input-id="transition.code"
-                            name="dynamic"
-                            :value="transition.code"
-                        />
-                        <label class="ml-2" :for="transition.code">{{ transition.name }}</label>
-                    </div>
+                    <ControlRadioGroup v-model="selectedAction" name="dynamic">
+                        <div
+                            v-for="transition in availableTransitions"
+                            :key="transition.code"
+                            class="flex items-center gap-2"
+                        >
+                            <ControlRadioGroupItem :id="transition.code" :value="transition.code" />
+                            <label :for="transition.code">{{ transition.name }}</label>
+                        </div>
+                    </ControlRadioGroup>
                     <ControlButton :disabled="!selectedAction" type="submit">execute transition</ControlButton>
                 </form>
             </div>
