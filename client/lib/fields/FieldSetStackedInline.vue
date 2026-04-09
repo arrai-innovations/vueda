@@ -3,16 +3,16 @@ import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldSetStackedInlineRow from "@vueda/components/FieldSetStackedInlineRow.vue";
 import { ControlButton } from "@vueda/controls/button";
 import { ShellFieldDescription, ShellFieldMessage } from "@vueda/shell/field";
+import { ShellSeparator } from "@vueda/shell/separator";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
 import { useTheme } from "@vueda/use/useTheme.js";
-import Divider from "primevue/divider";
 import { watch } from "vue";
 
 /**
  * A stacked inline fieldset for editing a list of related objects. Renders
- * each object as a separate stacked row beneath a divider header, with Create
+ * each object as a separate stacked row beneath a separator header, with Create
  * and optional toggle buttons. Supports show/hide toggling and row deletion.
  */
 
@@ -53,16 +53,7 @@ watch(
 <template>
     <div :class="combineClasses(theme('root'), $attrs.class)">
         <div :class="theme('inner')">
-            <Divider
-                :pt="{
-                    root: {
-                        class: theme('dividerRoot'),
-                    },
-                    content: {
-                        class: theme('dividerContent'),
-                    },
-                }"
-            >
+            <div :class="theme('titleBar')">
                 <div v-if="fieldSetInline.state.hidable" data-qa="field-set-stacked-inline-header-toggle">
                     <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Button to show or hide the inline fieldset. -->
                     <slot
@@ -110,7 +101,8 @@ watch(
                         </ControlButton>
                     </slot>
                 </div>
-            </Divider>
+            </div>
+            <ShellSeparator :class="theme('hr')" />
             <!-- @slot [field-set-level-chores, fieldset-field-set-level-chores, field(fieldName)field-set-level-chores] Replaces the validation block for this fieldset. -->
             <slot :name="fieldSetInline.resolvedSlotNames['field-set-level-chores'].name">
                 <ShellFieldDescription v-if="fieldSetContext.state.help">

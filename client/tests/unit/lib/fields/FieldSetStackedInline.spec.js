@@ -26,10 +26,10 @@ const ControlButtonStub = defineComponent({
     },
 });
 
-const DividerStub = defineComponent({
-    name: "DividerStub",
-    setup(_, { slots }) {
-        return () => h("div", { "data-qa": "divider-stub" }, slots.default ? slots.default() : null);
+const ShellSeparatorStub = defineComponent({
+    name: "ShellSeparatorStub",
+    setup() {
+        return () => h("hr", { "data-qa": "separator-stub" });
     },
 });
 
@@ -55,7 +55,7 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
                     h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),
             }),
         }));
-        vi.doMock("primevue/divider", () => ({ default: DividerStub }));
+        vi.doMock("@vueda/shell/separator", () => ({ ShellSeparator: ShellSeparatorStub }));
 
         useField = vi.fn();
         useFieldSetInline = vi.fn();

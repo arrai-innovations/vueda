@@ -56,12 +56,6 @@ export default {
         inner: {
             class: ["flex flex-col"],
         },
-        dividerRoot: {
-            class: "!my-1",
-        },
-        dividerContent: {
-            class: ["flex flex-row items-baseline justify-between gap-1 2xs:gap-2 2xl:gap-4"],
-        },
         hr: {
             class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
         },
@@ -121,12 +115,6 @@ export default {
         },
         inner: {
             class: ["flex flex-col"],
-        },
-        dividerRoot: {
-            class: "!my-1",
-        },
-        dividerContent: {
-            class: ["flex flex-row items-baseline justify-between gap-1 2xs:gap-2 2xl:gap-4"],
         },
         hr: {
             class: "w-full flex-1 border-primary-300 dark:border-primary-600 border-t-2 my-2",
