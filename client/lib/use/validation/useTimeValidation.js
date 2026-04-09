@@ -80,12 +80,10 @@ export function useTimeValidation(fieldContext, options) {
     watch(
         [toRef(options, "step"), valueAsTime],
         ([step, value]) => {
-            if (step) {
-                if (value !== null && value % step !== 0) {
-                    fieldContext.updateError("step", `Must be a multiple of ${step}.`);
-                } else {
-                    fieldContext.deleteError("step");
-                }
+            if (step && value !== null && value % step !== 0) {
+                fieldContext.updateError("step", `Must be a multiple of ${step}.`);
+            } else {
+                fieldContext.deleteError("step");
             }
         },
         { immediate: true },

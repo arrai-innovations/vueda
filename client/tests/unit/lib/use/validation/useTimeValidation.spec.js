@@ -70,6 +70,19 @@ describe("lib/use/validation/useTimeValidation.js", () => {
             await nextTick();
             expect(ctx.deleteError).toHaveBeenCalledWith("step");
         });
+
+        scopedIt("clears step error when step constraint is removed", async () => {
+            const opts = reactive({ step: 3600 });
+            // 10:05:00 = 36300 seconds, 36300 % 3600 != 0
+            const ctx = makeFieldContext("10:05:00");
+            useTimeValidation(ctx, opts);
+            await nextTick();
+            expect(ctx.updateError).toHaveBeenCalledWith("step", "Must be a multiple of 3600.");
+
+            opts.step = undefined;
+            await nextTick();
+            expect(ctx.deleteError).toHaveBeenCalledWith("step");
+        });
     });
 
     describe("null handling", () => {
