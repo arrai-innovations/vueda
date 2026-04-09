@@ -37,38 +37,41 @@ const DrawerStub = defineComponent({
     },
 });
 
-const SelectStub = defineComponent({
-    name: "SelectStub",
-    props: ["modelValue", "options"],
+const ControlSelectStub = defineComponent({
+    name: "ControlSelectStub",
+    props: ["modelValue"],
     emits: ["update:modelValue"],
-    setup(props, { emit, attrs, slots }) {
-        return () => {
-            const dataQa = attrs["data-qa"] || "select";
-            const selectAttrs = {
-                ...attrs,
-                "data-qa": dataQa,
-                value: props.modelValue,
-                onChange: (event) => emit("update:modelValue", event.target.value),
-            };
-            const optionNodes = (props.options || []).map((option) => {
-                const optionContent = slots.option ? slots.option({ option }) : (option.label ?? option.value);
-                return h(
-                    "option",
-                    {
-                        value: option.value,
-                        selected: props.modelValue === option.value,
-                    },
-                    optionContent,
-                );
-            });
+    setup(props, { slots, attrs }) {
+        return () => h("div", { ...attrs }, slots.default?.());
+    },
+});
 
-            const valueDisplay = slots.value ? slots.value({ value: props.modelValue }) : props.modelValue;
+const ControlSelectTriggerStub = defineComponent({
+    name: "ControlSelectTriggerStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { ...attrs }, slots.default?.());
+    },
+});
 
-            return h("div", { "data-qa": `${dataQa}-wrapper` }, [
-                h("div", { "data-qa": `${dataQa}-value` }, valueDisplay),
-                h("select", selectAttrs, optionNodes),
-            ]);
-        };
+const ControlSelectValueStub = defineComponent({
+    name: "ControlSelectValueStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { "data-qa": "select-value", ...attrs }, slots.default?.());
+    },
+});
+
+const ControlSelectContentStub = defineComponent({
+    name: "ControlSelectContentStub",
+    setup(_, { slots }) {
+        return () => h("div", null, slots.default?.());
+    },
+});
+
+const ControlSelectItemStub = defineComponent({
+    name: "ControlSelectItemStub",
+    props: ["value"],
+    setup(_, { slots }) {
+        return () => h("div", null, slots.default?.());
     },
 });
 
@@ -90,7 +93,13 @@ const DraggableStub = defineComponent({
 
 vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 vi.mock("primevue/drawer", () => ({ default: DrawerStub }));
-vi.mock("primevue/select", () => ({ default: SelectStub }));
+vi.mock("@vueda/controls/select", () => ({
+    ControlSelect: ControlSelectStub,
+    ControlSelectContent: ControlSelectContentStub,
+    ControlSelectItem: ControlSelectItemStub,
+    ControlSelectTrigger: ControlSelectTriggerStub,
+    ControlSelectValue: ControlSelectValueStub,
+}));
 vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
 
 const themeMock = vi.fn((key) => key);
@@ -132,7 +141,7 @@ function mountComponent(options = {}) {
             stubs: {
                 ControlButton: ButtonStub,
                 Drawer: DrawerStub,
-                Select: SelectStub,
+                ControlSelect: ControlSelectStub,
                 draggable: DraggableStub,
             },
         },
@@ -260,7 +269,7 @@ describe("lib/components/MobileSortComponent.vue", () => {
             },
         });
 
-        const selectDisplays = wrapper.findAll('[data-qa="sort-component-select-value"]');
+        const selectDisplays = wrapper.findAll('[data-qa="select-value"]');
 
         expect(selectDisplays[0].text()).toBe("Display Name");
         expect(selectDisplays[1].text()).toBe("Created");
@@ -289,7 +298,7 @@ describe("lib/components/MobileSortComponent.vue", () => {
             },
         });
 
-        await wrapper.findComponent(SelectStub).vm.$emit("update:modelValue", "created_at");
+        await wrapper.findComponent(ControlSelectStub).vm.$emit("update:modelValue", "created_at");
 
         expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["created_at"]);
     });

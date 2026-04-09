@@ -1,9 +1,15 @@
 <script setup>
 import { ControlButton } from "@vueda/controls/button";
+import {
+    ControlSelect,
+    ControlSelectContent,
+    ControlSelectItem,
+    ControlSelectTrigger,
+    ControlSelectValue,
+} from "@vueda/controls/select";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import Drawer from "primevue/drawer";
-import Select from "primevue/select";
 import { computed } from "vue";
 import { VueDraggableNext as draggable } from "vue-draggable-next";
 
@@ -142,13 +148,9 @@ const theme = useTheme("MobileSortComponent", props);
                                 <span :class="theme('dragHandle')">⋮⋮</span>
                             </slot>
                             <span :class="theme('sortOrderText')">{{ item.index + 1 }}</span>
-                            <Select
+                            <ControlSelect
                                 :model-value="item.field"
-                                :options="[...availableSortableOptions, { label: item.label, value: item.field }]"
-                                :class="theme('select')"
                                 data-qa="sort-component-select"
-                                option-label="label"
-                                option-value="value"
                                 @update:model-value="
                                     (value) => {
                                         const newSorted = [...props.sorted];
@@ -157,14 +159,24 @@ const theme = useTheme("MobileSortComponent", props);
                                     }
                                 "
                             >
-                                <template #value="slotProps">
-                                    <span v-if="slotProps.value" class="text-sm">{{ item.label }}</span>
-                                    <span v-else>Select a field</span>
-                                </template>
-                                <template #option="slotProps">
-                                    <span>{{ slotProps.option.label }}</span>
-                                </template>
-                            </Select>
+                                <ControlSelectTrigger :class="theme('select')">
+                                    <ControlSelectValue placeholder="Select a field">
+                                        <span class="text-sm">{{ item.label }}</span>
+                                    </ControlSelectValue>
+                                </ControlSelectTrigger>
+                                <ControlSelectContent>
+                                    <ControlSelectItem
+                                        v-for="opt in [
+                                            ...availableSortableOptions,
+                                            { label: item.label, value: item.field },
+                                        ]"
+                                        :key="opt.value"
+                                        :value="opt.value"
+                                    >
+                                        {{ opt.label }}
+                                    </ControlSelectItem>
+                                </ControlSelectContent>
+                            </ControlSelect>
                         </div>
                         <div :class="theme('sortInlineActionBar')">
                             <!-- Button that toggles sort direction for a row; receives `label`, `text`, `size`, and a click handler as slot props. -->
