@@ -11,7 +11,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
-    /** @type {'default' | 'destructive'} */
+    /** @type {'default' | 'destructive' | 'warning' | 'info' | 'success'} */
     variant: { type: String, default: undefined },
 });
 

@@ -7,19 +7,24 @@ const sanitizeMessage = vi.fn((msg) => `${msg}`);
 const containsHtml = vi.fn(() => false);
 const useTheme = vi.fn(() => () => "root-class");
 
-const MessageStub = defineComponent({
-    name: "MessageStub",
-    props: ["severity", "size", "variant", "closable"],
+const FeedbackAlertStub = defineComponent({
+    name: "FeedbackAlertStub",
+    props: ["variant"],
     setup(_, { attrs, slots }) {
-        return () =>
-            h("div", { "data-qa": "message", ...attrs }, [
-                slots.icon ? h("div", { "data-slot": "icon" }, slots.icon({})) : null,
-                h("div", { "data-slot": "default" }, slots.default ? slots.default() : null),
-            ]);
+        return () => h("div", { "data-qa": "feedback-alert", ...attrs }, slots.default ? slots.default() : null);
+    },
+});
+const FeedbackAlertDescriptionStub = defineComponent({
+    name: "FeedbackAlertDescriptionStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "feedback-alert-description" }, slots.default ? slots.default() : null);
     },
 });
 
-vi.mock("primevue/message", () => ({ default: MessageStub }));
+vi.mock("@vueda/feedback/alert", () => ({
+    FeedbackAlert: FeedbackAlertStub,
+    FeedbackAlertDescription: FeedbackAlertDescriptionStub,
+}));
 vi.mock("@vueda/utils/html.js", () => ({ sanitizeMessage, containsHtml }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme, THEME_OVERRIDE_PROPS: {} }));
 
@@ -33,7 +38,7 @@ describe("lib/components/FormHelpText.vue", () => {
     scopedIt("renders sanitized help from prop", () => {
         const wrapper = mount(FormHelpText, { props: { help: "help" } });
         expect(sanitizeMessage).toHaveBeenCalledWith("help");
-        expect(wrapper.find('[data-qa="message"]').text()).toContain("help");
+        expect(wrapper.find('[data-qa="feedback-alert"]').text()).toContain("help");
     });
 
     scopedIt("uses field context when help prop empty", () => {
@@ -42,14 +47,14 @@ describe("lib/components/FormHelpText.vue", () => {
             global: { provide: { [FieldContextSymbol]: fieldCtx } },
         });
         expect(sanitizeMessage).toHaveBeenCalledWith("context");
-        expect(wrapper.find('[data-qa="message"]').text()).toContain("context");
+        expect(wrapper.find('[data-qa="feedback-alert"]').text()).toContain("context");
     });
 
     scopedIt("renders html when allowed", () => {
         sanitizeMessage.mockReturnValue("<b>bold</b>");
         containsHtml.mockReturnValue(true);
         const wrapper = mount(FormHelpText, { props: { help: "<b>bold</b>" } });
-        const htmlDiv = wrapper.find('[data-qa="message"] [data-slot="default"] div');
+        const htmlDiv = wrapper.find('[data-qa="feedback-alert"] [data-qa="feedback-alert-description"] div');
         expect(htmlDiv.exists()).toBe(true);
         expect(htmlDiv.html()).toContain("<b>bold</b>");
     });
@@ -58,14 +63,16 @@ describe("lib/components/FormHelpText.vue", () => {
         sanitizeMessage.mockReturnValue("<b>bold</b>");
         containsHtml.mockReturnValue(true);
         const wrapper = mount(FormHelpText, { props: { help: "<b>bold</b>", allowHtml: false } });
-        expect(wrapper.find('[data-qa="message"] [data-slot="default"] div').exists()).toBe(false);
-        expect(wrapper.find('[data-qa="message"]').text()).toContain("<b>bold</b>");
+        expect(wrapper.find('[data-qa="feedback-alert"] [data-qa="feedback-alert-description"] div').exists()).toBe(
+            false,
+        );
+        expect(wrapper.find('[data-qa="feedback-alert"]').text()).toContain("<b>bold</b>");
     });
 
     scopedIt("omits message when help empty", () => {
         sanitizeMessage.mockReturnValue("");
         const wrapper = mount(FormHelpText);
-        expect(wrapper.find('[data-qa="message"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="feedback-alert"]').exists()).toBe(false);
     });
 
     scopedIt("applies theme class to root", () => {

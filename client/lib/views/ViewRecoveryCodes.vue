@@ -1,12 +1,12 @@
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
 import { ControlButton } from "@vueda/controls/button";
+import { FeedbackAlert, FeedbackAlertDescription } from "@vueda/feedback/alert";
 import { FeedbackSpinner } from "@vueda/feedback/spinner";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
-import Message from "primevue/message";
 import { computed, ref, watch } from "vue";
 import { toast } from "vue-sonner";
 
@@ -74,11 +74,13 @@ const theme = useTheme("ViewRecoveryCodes");
             <div v-if="hasTotpdevices" :class="theme('inner')" data-qa="view-recovery-codes-form-inner">
                 <strong data-qa="view-recovery-codes-form-inner-title"> Unused Recovery codes: </strong>
                 <div :class="theme('messageContainer')" data-qa="view-recovery-codes-form-message-container">
-                    <Message severity="warn" closable>
-                        Keep your recovery codes in a safe spot. These codes are the last resort for accessing your
-                        account in case you lose your password and second factors. If you cannot find these codes, you
-                        <strong>will</strong> lose access to your account.
-                    </Message>
+                    <FeedbackAlert variant="warning">
+                        <FeedbackAlertDescription>
+                            Keep your recovery codes in a safe spot. These codes are the last resort for accessing your
+                            account in case you lose your password and second factors. If you cannot find these codes,
+                            you <strong>will</strong> lose access to your account.
+                        </FeedbackAlertDescription>
+                    </FeedbackAlert>
                 </div>
                 <div :class="theme('listContainer')" data-qa="view-recovery-codes-form-list-container">
                     <ul :class="theme('list')" data-qa="view-recovery-codes-form-list">
@@ -108,10 +110,12 @@ const theme = useTheme("ViewRecoveryCodes");
                     </ControlButton>
                 </div>
             </div>
-            <message v-else severity="error">
-                You don't have 2FA enabled. Set up a two-factor authentication device first to view or generate recovery
-                codes.
-            </message>
+            <FeedbackAlert v-else variant="destructive">
+                <FeedbackAlertDescription>
+                    You don't have 2FA enabled. Set up a two-factor authentication device first to view or generate
+                    recovery codes.
+                </FeedbackAlertDescription>
+            </FeedbackAlert>
         </template>
         <template #action-bar="{ loading, handleCancelClick }">
             <div v-if="hasTotpdevices" :class="theme('actionBar')" data-qa="view-recovery-codes-form-action-bar">

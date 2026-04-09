@@ -1,11 +1,11 @@
 <script setup>
 import * as Sentry from "@sentry/vue";
+import { FeedbackAlert, FeedbackAlertClose, FeedbackAlertDescription } from "@vueda/feedback/alert";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";
 import isEmpty from "lodash-es/isEmpty.js";
-import Message from "primevue/message";
-import { computed, ref, toRef, useAttrs, watch } from "vue";
+import { ref, toRef, watch } from "vue";
 
 /**
  * Displays a dismissible error message card, reports the error to Sentry, and optionally renders a router-link for navigation.
@@ -61,6 +61,11 @@ const props = defineProps({
         default: "Click here to go back.",
         description: "The text to display as the link in the message.",
     },
+    /** When `true`, a close button is shown that emits `dismiss-error` when clicked. */
+    dismissible: {
+        type: Boolean,
+        default: false,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([
@@ -109,24 +114,24 @@ watch(
     { immediate: true },
 );
 
-const attrs = useAttrs();
-// if there is a dismiss-error event, show the dismiss button
-const showDismiss = computed(() => !!attrs.onDismissError);
 const onDismiss = () => emit("dismiss-error");
 const theme = useTheme("ErrorDisplay", props);
 </script>
 
 <template>
-    <Message v-if="errored" :class="theme('root')" :closable="showDismiss" severity="error" @close="onDismiss">
-        <div :class="theme('container')">
-            <!-- Default error content; receives `redirectParams`, `redirectTitle`, `whileText`, and `error` as slot props. -->
-            <slot v-bind="{ redirectParams, redirectTitle, whileText, error }">
-                <p :class="theme('message')">There was an error while {{ whileText }}.</p>
-                <pre :class="theme('codeBlock')"><code>{{ formatError(error) }}</code></pre>
-                <p v-if="redirectParams">
-                    <router-link :class="theme('link')" :to="redirectParams">{{ redirectTitle }}</router-link>
-                </p>
-            </slot>
-        </div>
-    </Message>
+    <FeedbackAlert v-if="errored" :class="theme('root')" variant="destructive">
+        <FeedbackAlertClose v-if="dismissible" @close="onDismiss" />
+        <FeedbackAlertDescription>
+            <div :class="theme('container')">
+                <!-- Default error content; receives `redirectParams`, `redirectTitle`, `whileText`, and `error` as slot props. -->
+                <slot v-bind="{ redirectParams, redirectTitle, whileText, error }">
+                    <p :class="theme('message')">There was an error while {{ whileText }}.</p>
+                    <pre :class="theme('codeBlock')"><code>{{ formatError(error) }}</code></pre>
+                    <p v-if="redirectParams">
+                        <router-link :class="theme('link')" :to="redirectParams">{{ redirectTitle }}</router-link>
+                    </p>
+                </slot>
+            </div>
+        </FeedbackAlertDescription>
+    </FeedbackAlert>
 </template>

@@ -46,16 +46,22 @@ const FeedbackSpinnerStub = defineComponent({
     },
 });
 
-const MessageStub = defineComponent({
-    name: "MessageStub",
-    props: ["severity"],
+const FeedbackAlertStub = defineComponent({
+    name: "FeedbackAlertStub",
+    props: ["variant"],
     setup(props, { slots }) {
         return () =>
             h(
                 "div",
-                { "data-qa": "prime-message", "data-severity": props.severity },
+                { "data-qa": "feedback-alert", "data-variant": props.variant },
                 slots.default ? slots.default() : null,
             );
+    },
+});
+const FeedbackAlertDescriptionStub = defineComponent({
+    name: "FeedbackAlertDescriptionStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "feedback-alert-description" }, slots.default ? slots.default() : null);
     },
 });
 
@@ -75,7 +81,10 @@ vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part }));
 vi.mock("@vueuse/core", () => ({ useClipboard: () => useClipboardMock() }));
 vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 vi.mock("@vueda/feedback/spinner", () => ({ FeedbackSpinner: FeedbackSpinnerStub }));
-vi.mock("primevue/message", () => ({ default: MessageStub }));
+vi.mock("@vueda/feedback/alert", () => ({
+    FeedbackAlert: FeedbackAlertStub,
+    FeedbackAlertDescription: FeedbackAlertDescriptionStub,
+}));
 
 const toastMock = {
     success: vi.fn(),
@@ -133,7 +142,7 @@ describe("lib/views/ViewRecoveryCodes.vue", () => {
 
     scopedIt("shows error message when no totp devices", () => {
         const wrapper = mount(ViewRecoveryCodes);
-        expect(wrapper.find('[data-qa="prime-message"]').attributes("data-severity")).toBe("error");
+        expect(wrapper.find('[data-qa="feedback-alert"]').attributes("data-variant")).toBe("destructive");
         expect(userStore.getRecoveryCodes).not.toHaveBeenCalled();
     });
 

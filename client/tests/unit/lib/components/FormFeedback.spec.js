@@ -7,14 +7,23 @@ import { h } from "vue";
 const DOMPurify = { sanitize: vi.fn((msg) => msg) };
 vi.mock("dompurify", () => ({ __esModule: true, default: DOMPurify }));
 
-const MessageStub = {
-    name: "MessageStub",
-    props: ["closable", "severity", "size", "variant"],
+const FeedbackAlertStub = {
+    name: "FeedbackAlertStub",
+    props: ["variant"],
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "prime-message" }, slots.default ? slots.default() : null);
+        return () => h("div", { "data-qa": "feedback-alert" }, slots.default ? slots.default() : null);
     },
 };
-vi.mock("primevue/message", () => ({ default: MessageStub }));
+const FeedbackAlertDescriptionStub = {
+    name: "FeedbackAlertDescriptionStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "feedback-alert-description" }, slots.default ? slots.default() : null);
+    },
+};
+vi.mock("@vueda/feedback/alert", () => ({
+    FeedbackAlert: FeedbackAlertStub,
+    FeedbackAlertDescription: FeedbackAlertDescriptionStub,
+}));
 
 const mockedUseTheme = vi.fn(() => () => "theme");
 vi.mock("@vueda/use/useTheme.js", () => ({
@@ -47,7 +56,7 @@ scopedIt("renders text when allowHtml is false", async () => {
         props: { messages: { m: "<b>bad</b>" }, allowHtml: false },
     });
     await vue.nextTick();
-    const msg = wrapper.get("[data-qa='prime-message']");
+    const msg = wrapper.get("[data-qa='feedback-alert']");
     expect(msg.html()).toContain("&lt;b&gt;bad&lt;/b&gt;");
 });
 

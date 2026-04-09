@@ -3,22 +3,36 @@ import { mount } from "@vue/test-utils";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import { defineComponent, h, nextTick } from "vue";
 
-const MessageStub = defineComponent({
-    name: "MessageStub",
-    props: ["closable", "severity"],
-    emits: ["close"],
-    setup(props, { emit, slots }) {
+const FeedbackAlertStub = defineComponent({
+    name: "FeedbackAlertStub",
+    props: ["variant"],
+    setup(props, { slots }) {
         return () =>
             h(
                 "div",
                 {
-                    "data-qa": "message",
-                    "data-closable": String(props.closable),
-                    "data-severity": props.severity,
-                    onClick: () => emit("close"),
+                    "data-qa": "feedback-alert",
+                    "data-variant": props.variant,
                 },
                 slots.default ? slots.default() : null,
             );
+    },
+});
+const FeedbackAlertCloseStub = defineComponent({
+    name: "FeedbackAlertCloseStub",
+    emits: ["close"],
+    setup(_, { emit }) {
+        return () =>
+            h("button", {
+                "data-qa": "feedback-alert-close",
+                onClick: () => emit("close"),
+            });
+    },
+});
+const FeedbackAlertDescriptionStub = defineComponent({
+    name: "FeedbackAlertDescriptionStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "feedback-alert-description" }, slots.default ? slots.default() : null);
     },
 });
 
@@ -47,7 +61,11 @@ vi.mock("@vueda/utils/formatError.js", () => ({ formatError: mockedFormatError }
 const captureException = vi.fn();
 vi.mock("@sentry/vue", () => ({ captureException }));
 
-vi.mock("primevue/message", () => ({ default: MessageStub }));
+vi.mock("@vueda/feedback/alert", () => ({
+    FeedbackAlert: FeedbackAlertStub,
+    FeedbackAlertClose: FeedbackAlertCloseStub,
+    FeedbackAlertDescription: FeedbackAlertDescriptionStub,
+}));
 vi.mock("vue-router", () => ({ RouterLink: RouterLinkStub }));
 
 let ErrorDisplay;
@@ -70,7 +88,7 @@ afterEach(() => {
 scopedIt("does not render when not errored", async () => {
     const wrapper = mount(ErrorDisplay, { global: { stubs: { RouterLink: RouterLinkStub } } });
     await nextTick();
-    expect(wrapper.find('[data-qa="message"]').exists()).toBe(false);
+    expect(wrapper.find('[data-qa="feedback-alert"]').exists()).toBe(false);
     expect(captureException).not.toHaveBeenCalled();
 });
 
@@ -86,7 +104,7 @@ scopedIt("reports and displays error", async () => {
     expect(captureException).toHaveBeenCalledWith(error);
     expect(consoleSpy).toHaveBeenCalledWith(error);
     expect(mockedFormatError).toHaveBeenCalledWith(error);
-    expect(wrapper.find('[data-qa="message"]').exists()).toBe(true);
+    expect(wrapper.find('[data-qa="feedback-alert"]').exists()).toBe(true);
     expect(wrapper.text()).toContain("There was an error while loading.");
     expect(wrapper.find("pre code").text()).toBe("formatted-error");
 });
@@ -97,15 +115,16 @@ scopedIt("shows dismiss button and redirect link", async () => {
         props: {
             errored: true,
             error,
+            dismissible: true,
             redirectParams: "/foo",
             redirectTitle: "Back",
         },
-        attrs: { onDismissError: () => {} },
         global: { stubs: { RouterLink: RouterLinkStub } },
     });
     await nextTick();
-    const msg = wrapper.find('[data-qa="message"]');
-    await msg.trigger("click");
+    const closeBtn = wrapper.find('[data-qa="feedback-alert-close"]');
+    expect(closeBtn.exists()).toBe(true);
+    await closeBtn.trigger("click");
     expect(wrapper.emitted("dismiss-error")).toBeTruthy();
     const link = wrapper.find('[data-qa="router-link"]');
     expect(link.exists()).toBe(true);

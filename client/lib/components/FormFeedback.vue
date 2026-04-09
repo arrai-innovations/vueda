@@ -1,5 +1,6 @@
 <script setup>
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { FeedbackAlert, FeedbackAlertDescription } from "@vueda/feedback/alert";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { containsHtml, sanitizeMessages } from "@vueda/utils/html.js";
@@ -7,11 +8,10 @@ import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
-import Message from "primevue/message";
-import { inject, reactive, toRef, watch } from "vue";
+import { computed, inject, reactive, watch } from "vue";
 
 /**
- * Renders form or field validation messages sourced from injected form/field context or from the `messages` prop, displaying each entry as a PrimeVue Message component.
+ * Renders form or field validation messages sourced from injected form/field context or from the `messages` prop, displaying each entry as a FeedbackAlert.
  */
 defineOptions({});
 
@@ -28,23 +28,11 @@ const props = defineProps({
         default: null,
         description: "Messages to display, keyed by code.",
     },
-    /** Size variant forwarded to the PrimeVue Message component. */
-    size: {
-        type: String,
-        default: "small",
-        validator: (value) => ["small", "large", null].includes(value),
-    },
-    /** Visual variant forwarded to the PrimeVue Message component. */
-    variant: {
-        type: String,
-        default: "simple",
-        validator: (value) => ["simple", "outlined", null].includes(value),
-    },
-    /** Severity override forwarded to the PrimeVue Message component; defaults to `"error"` or `"warn"` based on `type`. */
+    /** Severity level controlling the alert variant; defaults to `"error"` or `"warn"` based on `type`. */
     severity: {
         type: String,
         default: null,
-        validator: (value) => ["error", "warn", "help", "success", "info", "contrast", null].includes(value),
+        validator: (value) => ["error", "warn", "success", "info", null].includes(value),
     },
     /** When `true`, message strings containing HTML are rendered as HTML. */
     allowHtml: {
@@ -95,13 +83,17 @@ watch(
     //  deleted. this leaves empty feedback boxes on the form.
     { immediate: true, deep: true },
 );
-const theme = useTheme(
-    "FormFeedback",
-    props,
-    reactive({
-        variant: toRef(props, "variant"),
-    }),
-);
+const SEVERITY_TO_VARIANT = {
+    error: "destructive",
+    warn: "warning",
+    success: "success",
+    info: "info",
+};
+const alertVariant = computed(() => {
+    if (props.severity) return SEVERITY_TO_VARIANT[props.severity] ?? "default";
+    return props.type === "message" ? "warning" : "destructive";
+});
+const theme = useTheme("FormFeedback", props);
 const renderDetail = (data) => {
     const detail = data.detail;
     if (typeof detail !== "string") {
@@ -128,28 +120,16 @@ const renderDetail = (data) => {
         >
             <!-- Replaces the entire message row; receives `message`, `type`, and `attrs` as slot props. -->
             <slot name="default" v-bind="{ message, type, attrs: $attrs }">
-                <Message
+                <FeedbackAlert
                     v-for="line in Array.isArray(message) ? message : [message]"
                     :key="line"
                     v-bind="$attrs"
-                    :closable="false"
-                    :severity="(severity ?? type === 'message') ? 'warn' : 'error'"
-                    :size="size"
-                    :variant="variant"
+                    :variant="alertVariant"
                 >
-                    <template #icon="slotProps">
-                        <slot name="icon" v-bind="slotProps" />
-                    </template>
-                    <template #default>
-                        <slot
-                            name="content"
-                            :line="line"
-                            :message="message"
-                            :type="type"
-                            :severity="severity"
-                            :variant="variant"
-                            :size="size"
-                        >
+                    <!-- @slot icon Replaces the default icon area inside each alert. -->
+                    <slot name="icon" />
+                    <FeedbackAlertDescription>
+                        <slot name="content" :line="line" :message="message" :type="type" :severity="severity">
                             <template v-if="isObject(line)">
                                 <!-- eslint-disable-next-line vue/no-v-html -->
                                 <div v-if="allowHtml" v-html="renderDetail(line)"></div>
@@ -165,8 +145,8 @@ const renderDetail = (data) => {
                                 {{ line }}
                             </template>
                         </slot>
-                    </template>
-                </Message>
+                    </FeedbackAlertDescription>
+                </FeedbackAlert>
             </slot>
         </div>
     </div>
