@@ -1,21 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
 import { defineComponent, h } from "vue";
-
-const ProgressSpinnerStub = defineComponent({
-    name: "ProgressSpinnerStub",
-    props: ["ariaLabel", "strokeWidth"],
-    setup(props, { attrs }) {
-        return () =>
-            h("div", {
-                "data-qa": "progress-spinner",
-                "data-aria-label": props.ariaLabel,
-                "data-stroke-width": props.strokeWidth,
-                ...attrs,
-            });
-    },
-});
-vi.mock("primevue/progressspinner", () => ({ default: ProgressSpinnerStub }));
 
 describe("lib/components/LoadingSpinnerInline.vue", () => {
     let LoadingSpinnerInline;
@@ -24,12 +10,9 @@ describe("lib/components/LoadingSpinnerInline.vue", () => {
         LoadingSpinnerInline = (await import("@vueda/components/LoadingSpinnerInline.vue")).default;
     });
 
-    scopedIt("renders primevue spinner by default", () => {
+    scopedIt("renders FeedbackSpinner by default", () => {
         const wrapper = mount(LoadingSpinnerInline);
-        const spinner = wrapper.getComponent(ProgressSpinnerStub);
-        expect(spinner.exists()).toBe(true);
-        expect(spinner.attributes("data-aria-label")).toBe("Loading...");
-        expect(spinner.attributes("data-stroke-width")).toBe("8");
+        expect(wrapper.findComponent(FeedbackSpinner).exists()).toBe(true);
     });
 
     scopedIt("renders provided spinner component", () => {
@@ -43,6 +26,6 @@ describe("lib/components/LoadingSpinnerInline.vue", () => {
             global: { provide: { vuedaLoadingSpinnerInline: CustomStub } },
         });
         expect(wrapper.findComponent(CustomStub).exists()).toBe(true);
-        expect(wrapper.findComponent(ProgressSpinnerStub).exists()).toBe(false);
+        expect(wrapper.findComponent(FeedbackSpinner).exists()).toBe(false);
     });
 });

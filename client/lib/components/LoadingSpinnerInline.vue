@@ -1,9 +1,9 @@
 <script setup>
-import ProgressSpinner from "primevue/progressspinner";
+import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
 import { inject } from "vue";
 
 /**
- * Renders an inline loading spinner. Uses a PrimeVue ProgressSpinner by
+ * Renders an inline loading spinner. Uses a FeedbackSpinner by
  * default, but accepts a replacement via the `vuedaLoadingSpinnerInline`
  * injection key so consuming applications can substitute their own component.
  */
@@ -15,5 +15,5 @@ const loadingSpinnerComponent = inject("vuedaLoadingSpinnerInline", null);
 
 <template>
     <component :is="loadingSpinnerComponent" v-if="loadingSpinnerComponent" />
-    <ProgressSpinner v-else aria-label="Loading..." stroke-width="8" />
+    <FeedbackSpinner v-else />
 </template>
