@@ -29,6 +29,9 @@ export default {
         paginator: {
             class: ["py-2 flex-1 flex justify-center"],
         },
+        pageReport: {
+            class: ["text-sm tabular-nums"],
+        },
         totalRecords: {
             class: ["p-2"],
         },
