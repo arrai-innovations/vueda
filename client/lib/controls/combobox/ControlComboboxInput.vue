@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { SearchIcon } from "lucide-vue-next";
 import { ComboboxInput, useForwardPropsEmits } from "reka-ui";
 
 /**
@@ -39,7 +38,10 @@ const theme = useTheme("ControlComboboxInput", props);
 
 <template>
     <div data-slot="combobox-input-wrapper" class="flex h-9 items-center gap-2 border-b px-3">
-        <SearchIcon class="size-4 shrink-0 opacity-50" />
+        <!-- Replaces the search icon; receives no slot props. -->
+        <slot name="icon">
+            <span aria-hidden="true" class="size-4 shrink-0 text-center leading-4 opacity-50 select-none">⚲</span>
+        </slot>
         <ComboboxInput
             data-slot="combobox-input"
             :class="[theme('root'), props.class]"

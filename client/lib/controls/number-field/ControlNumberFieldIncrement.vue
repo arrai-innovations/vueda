@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { Plus } from "lucide-vue-next";
 import { NumberFieldIncrement, useForwardProps } from "reka-ui";
 
 /**
@@ -31,7 +30,7 @@ const theme = useTheme("ControlNumberFieldIncrement", props);
 <template>
     <NumberFieldIncrement data-slot="increment" v-bind="forwarded" :class="[theme('root'), props.class]">
         <slot>
-            <Plus class="h-4 w-4" />
+            <span aria-hidden="true" class="select-none">+</span>
         </slot>
     </NumberFieldIncrement>
 </template>

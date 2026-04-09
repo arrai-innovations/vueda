@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { CircleIcon } from "lucide-vue-next";
 import { RadioGroupIndicator, RadioGroupItem, useForwardProps } from "reka-ui";
 
 /**
@@ -40,7 +39,11 @@ const theme = useTheme("ControlRadioGroupItem", props);
     <RadioGroupItem data-slot="radio-group-item" v-bind="forwardedProps" :class="[theme('root'), props.class]">
         <RadioGroupIndicator data-slot="radio-group-indicator" class="relative flex items-center justify-center">
             <slot>
-                <CircleIcon class="fill-primary absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2" />
+                <span
+                    aria-hidden="true"
+                    class="text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none text-[8px] leading-none"
+                    >●</span
+                >
             </slot>
         </RadioGroupIndicator>
     </RadioGroupItem>

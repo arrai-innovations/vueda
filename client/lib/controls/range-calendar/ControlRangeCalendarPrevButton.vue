@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { ChevronLeft } from "lucide-vue-next";
 import { RangeCalendarPrev, useForwardProps } from "reka-ui";
 
 /**
@@ -27,7 +26,7 @@ const forwardedProps = useForwardProps(delegatedProps);
         v-bind="forwardedProps"
     >
         <slot>
-            <ChevronLeft class="size-4" />
+            <span aria-hidden="true" class="select-none">‹</span>
         </slot>
     </RangeCalendarPrev>
 </template>

@@ -1,6 +1,4 @@
 <script setup>
-import { MinusIcon } from "lucide-vue-next";
-
 /**
  * A visual separator between OTP slot groups, rendering a minus icon by default.
  */
@@ -15,7 +13,7 @@ const props = defineProps({
 <template>
     <div data-slot="input-otp-separator" role="separator" v-bind="$attrs" :class="props.class">
         <slot>
-            <MinusIcon />
+            <span aria-hidden="true" class="select-none">−</span>
         </slot>
     </div>
 </template>

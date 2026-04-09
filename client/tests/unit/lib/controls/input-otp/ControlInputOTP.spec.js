@@ -96,9 +96,9 @@ describe("lib/controls/input-otp/ControlInputOTP.vue", () => {
             expect(wrapper.attributes("role")).toBe("separator");
         });
 
-        scopedIt("renders MinusIcon by default", () => {
+        scopedIt("renders minus character by default", () => {
             const wrapper = mount(ControlInputOTPSeparator);
-            expect(wrapper.find("svg").exists()).toBe(true);
+            expect(wrapper.find("span").text()).toBe("−");
         });
 
         scopedIt("renders custom slot content", () => {

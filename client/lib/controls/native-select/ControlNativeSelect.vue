@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit, useVModel } from "@vueuse/core";
-import { ChevronDownIcon } from "lucide-vue-next";
 
 /**
  * A styled native `<select>` element with a custom chevron icon overlay.
@@ -41,10 +40,14 @@ const theme = useTheme("ControlNativeSelect", props);
         >
             <slot />
         </select>
-        <ChevronDownIcon
-            class="text-muted-foreground pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 opacity-50 select-none"
-            aria-hidden="true"
-            data-slot="native-select-icon"
-        />
+        <!-- Replaces the dropdown chevron icon; receives no slot props. -->
+        <slot name="icon">
+            <span
+                class="text-muted-foreground pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-center leading-4 opacity-50 select-none"
+                aria-hidden="true"
+                data-slot="native-select-icon"
+                >▾</span
+            >
+        </slot>
     </div>
 </template>

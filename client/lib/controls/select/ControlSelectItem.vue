@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { Check } from "lucide-vue-next";
 import { SelectItem, SelectItemIndicator, SelectItemText, useForwardProps } from "reka-ui";
 
 /**
@@ -37,7 +36,7 @@ const theme = useTheme("ControlSelectItem", props);
         <span class="absolute right-2 flex size-3.5 items-center justify-center">
             <SelectItemIndicator>
                 <slot name="indicator-icon">
-                    <Check class="size-4" />
+                    <span aria-hidden="true" class="select-none">✓</span>
                 </slot>
             </SelectItemIndicator>
         </span>

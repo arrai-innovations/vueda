@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { Check, Minus } from "lucide-vue-next";
 import { CheckboxIndicator, CheckboxRoot, useForwardPropsEmits } from "reka-ui";
 
 /**
@@ -53,8 +52,8 @@ const theme = useTheme("ControlCheckbox", props);
             class="grid place-content-center text-current transition-none"
         >
             <slot v-bind="slotProps">
-                <Minus v-if="slotProps.state === 'indeterminate'" class="size-3.5" />
-                <Check v-else class="size-3.5" />
+                <span v-if="slotProps.state === 'indeterminate'" aria-hidden="true" class="select-none">−</span>
+                <span v-else aria-hidden="true" class="select-none">✓</span>
             </slot>
         </CheckboxIndicator>
     </CheckboxRoot>

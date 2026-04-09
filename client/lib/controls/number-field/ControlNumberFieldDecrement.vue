@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { Minus } from "lucide-vue-next";
 import { NumberFieldDecrement, useForwardProps } from "reka-ui";
 
 /**
@@ -31,7 +30,7 @@ const theme = useTheme("ControlNumberFieldDecrement", props);
 <template>
     <NumberFieldDecrement data-slot="decrement" v-bind="forwarded" :class="[theme('root'), props.class]">
         <slot>
-            <Minus class="h-4 w-4" />
+            <span aria-hidden="true" class="select-none">−</span>
         </slot>
     </NumberFieldDecrement>
 </template>

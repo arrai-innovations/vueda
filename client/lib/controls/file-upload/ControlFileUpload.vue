@@ -1,6 +1,5 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { Upload } from "lucide-vue-next";
 import { Primitive } from "reka-ui";
 import { reactive, ref, toRef } from "vue";
 
@@ -127,7 +126,7 @@ defineExpose({ openFilePicker });
                 @click="openFilePicker"
             >
                 <slot name="trigger-content">
-                    <Upload class="h-4 w-4" />
+                    <span aria-hidden="true" class="select-none">⇧</span>
                     Choose file
                 </slot>
             </button>

@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { ChevronUp } from "lucide-vue-next";
 import { SelectScrollUpButton, useForwardProps } from "reka-ui";
 
 /**
@@ -33,7 +32,7 @@ const theme = useTheme("ControlSelectScrollUpButton", props);
         :class="[theme('root'), props.class]"
     >
         <slot>
-            <ChevronUp class="size-4" />
+            <span aria-hidden="true" class="select-none">▴</span>
         </slot>
     </SelectScrollUpButton>
 </template>

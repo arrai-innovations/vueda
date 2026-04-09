@@ -1,7 +1,6 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { ChevronDown } from "lucide-vue-next";
 import { SelectIcon, SelectTrigger, useForwardProps } from "reka-ui";
 
 /**
@@ -42,7 +41,10 @@ const theme = useTheme("ControlSelectTrigger", props);
     >
         <slot />
         <SelectIcon as-child>
-            <ChevronDown class="size-4 opacity-50" />
+            <!-- Replaces the dropdown chevron icon; receives no slot props. -->
+            <slot name="icon">
+                <span aria-hidden="true" class="size-4 opacity-50 select-none text-center leading-4">▾</span>
+            </slot>
         </SelectIcon>
     </SelectTrigger>
 </template>
