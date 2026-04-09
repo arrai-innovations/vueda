@@ -31,7 +31,7 @@ vi.mock("@vueda/shell/field", () => ({
     }),
 }));
 vi.mock("@vueda/widgets/WidgetCheckbox.vue", () => ({ default: SimpleStub("widget-checkbox") }));
-vi.mock("primevue/divider", () => ({ default: SimpleStub("prime-divider") }));
+vi.mock("@vueda/shell/separator", () => ({ ShellSeparator: SimpleStub("shell-separator") }));
 
 // Mock composable used by component
 const useFieldSetTabularInline = vi.fn();

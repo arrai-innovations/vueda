@@ -4,6 +4,7 @@ import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import { ControlButton } from "@vueda/controls/button";
 import { ShellFieldDescription, ShellFieldMessage } from "@vueda/shell/field";
+import { ShellSeparator } from "@vueda/shell/separator";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import {
     FIELD_SET_TABULAR_INLINE_EMITS,
@@ -12,7 +13,6 @@ import {
 } from "@vueda/use/useFieldSetTabularInline.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import omit from "lodash-es/omit.js";
-import Divider from "primevue/divider";
 import { watch } from "vue";
 
 const logger = useDevLogger();
@@ -71,16 +71,7 @@ watch(
         data-qa="field-set-tabular-inline-root"
     >
         <div :class="fieldSetTabularInline.theme('inner')" data-qa="field-set-tabular-inline-inner">
-            <Divider
-                :pt="{
-                    root: {
-                        class: fieldSetTabularInline.theme('dividerRoot'),
-                    },
-                    content: {
-                        class: fieldSetTabularInline.theme('dividerContent'),
-                    },
-                }"
-            >
+            <div :class="fieldSetTabularInline.theme('titleBar')">
                 <div v-if="fieldSetTabularInline.state.hidable" data-qa="field-set-tabular-inline-header-toggle">
                     <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Button to show or hide the tabular inline fieldset. -->
                     <slot
@@ -132,7 +123,8 @@ watch(
                         </ControlButton>
                     </slot>
                 </div>
-            </Divider>
+            </div>
+            <ShellSeparator :class="fieldSetTabularInline.theme('hr')" />
             <!-- @slot [field-set-level-chores] Replaces the validation block rendered above the rows. -->
             <slot name="field-set-level-chores">
                 <ShellFieldDescription v-if="fieldSetTabularInline.fieldSetContext.state.help">
