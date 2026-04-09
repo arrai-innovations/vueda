@@ -42,4 +42,9 @@ export default {
             class: "size-4 animate-spin",
         },
     },
+    FeedbackToaster: {
+        root: {
+            class: "toaster group",
+        },
+    },
 };
