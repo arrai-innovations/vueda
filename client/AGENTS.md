@@ -35,15 +35,17 @@ To get started:
 
 Scripts defined in `package.json`:
 
-- **test** - `pnpx --no-install vitest`
+- **test** - `npx --no-install vitest`
 
-- **coverage** - `pnpm -C client test -- run --coverage`
+- **coverage** - `npm test -- run --coverage`
 
-- **docs** - (placeholder for future JSDoc generation)
+- **lint** - `pnpm -C .. exec eslint --no-warn-ignored --cache client`
 
-- **eslint** - `pnpm -C client eslint --fix .`
+- **format** - `pnpm -C .. exec prettier --check client`
 
-- **prettier** - `pnpm -C client prettier --write .`
+- **eslint** - `pnpm -C .. exec eslint --no-warn-ignored --cache --fix client`
+
+- **prettier** - `pnpm -C .. exec prettier --write client`
 
 ---
 
