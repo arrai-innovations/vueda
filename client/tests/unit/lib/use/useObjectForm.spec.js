@@ -7,10 +7,15 @@ vi.mock("@vueda/use/useLeaveUnload.js", () => ({
     useLeaveUnload: mockUseLeaveUnload,
 }));
 
-const toastAdd = vi.fn();
-vi.mock("primevue/usetoast", () => ({
-    useToast: () => ({ add: toastAdd }),
-}));
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
 vi.mock("vue-router", async () => {
@@ -55,13 +60,11 @@ describe("lib/use/useObjectForm.js", () => {
     });
 
     scopedIt("defaultOnSubmitNotAnyModified shows toast and returns true", async () => {
-        const result = await defaultOnSubmitNotAnyModified({ toast: { add: toastAdd } });
+        const result = await defaultOnSubmitNotAnyModified({ toast: toastMock });
         expect(result).toBe(true);
-        expect(toastAdd).toHaveBeenCalledWith({
-            severity: "info",
-            summary: "No Changes Detected",
-            detail: "Please modify the fields before submitting.",
-            life: 15000,
+        expect(toastMock.info).toHaveBeenCalledWith("No Changes Detected", {
+            description: "Please modify the fields before submitting.",
+            duration: 15000,
         });
     });
 
@@ -74,9 +77,9 @@ describe("lib/use/useObjectForm.js", () => {
             },
         };
         const state = { firstErrorField: "field" };
-        const result = await defaultOnSubmitAnyError({ state, formContext, toast: { add: toastAdd } });
+        const result = await defaultOnSubmitAnyError({ state, formContext, toast: toastMock });
         expect(result).toBe(false);
-        expect(toastAdd).not.toHaveBeenCalled();
+        expect(toastMock.warning).not.toHaveBeenCalled();
     });
 
     scopedIt("defaultOnSubmissionSuccess pushes router", async () => {
@@ -91,10 +94,10 @@ describe("lib/use/useObjectForm.js", () => {
         await defaultOnSubmissionSuccess({
             isUpdate: false,
             state,
-            toast: { add: toastAdd },
+            toast: toastMock,
             router: { push: routerPush },
         });
-        expect(toastAdd).toHaveBeenCalled();
+        expect(toastMock.success).toHaveBeenCalled();
         expect(routerPush).toHaveBeenCalled();
     });
 

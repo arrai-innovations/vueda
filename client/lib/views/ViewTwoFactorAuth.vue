@@ -8,9 +8,9 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
-import { useToast } from "primevue/usetoast";
 import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
+import { toast } from "vue-sonner";
 
 /**
  * Two-factor authentication challenge view presented after initial login. Lets the user select an available
@@ -24,7 +24,6 @@ const formProps = reactive({
         code: "",
     },
 });
-const toast = useToast();
 const router = useRouter();
 const userStore = storeUser();
 const cooldownSeconds = ref(60);
@@ -49,18 +48,17 @@ const handleSendCode = async () => {
     try {
         await userStore.sendTwoFactorAuthenticationCode(form.values);
         startCooldown();
-        toast.add({
-            severity: "success",
-            summary: `We have sent you a code via ${form.values?.method === "sms" ? "SMS" : form.values?.method === "email" ? "email" : form.values?.method}.`,
-            detail: "Please check your device to retrieve the code.",
-            life: 15000,
-        });
+        toast.success(
+            `We have sent you a code via ${form.values?.method === "sms" ? "SMS" : form.values?.method === "email" ? "email" : form.values?.method}.`,
+            {
+                description: "Please check your device to retrieve the code.",
+                duration: 15000,
+            },
+        );
     } catch (error) {
-        toast.add({
-            severity: "error",
-            summary: "Failed to send 2FA code",
-            detail: error.message,
-            life: 15000,
+        toast.error("Failed to send 2FA code", {
+            description: error.message,
+            duration: 15000,
         });
     }
 };
@@ -90,19 +88,15 @@ watch([isActive, toRef(userStore, "loggedIn")], async ([newActive, newloggedIn])
             methods.value = response?.methods;
         } catch (error) {
             if (error instanceof UnauthorizedError) {
-                toast.add({
-                    severity: "warn",
-                    summary: "Please verify your account again before proceeding",
-                    life: 10000,
+                toast.warning("Please verify your account again before proceeding", {
+                    duration: 10000,
                 });
                 await router.push({ name: "sign-in" });
                 return true;
             } else {
-                toast.add({
-                    severity: "error",
-                    summary: "Error fetching 2FA methods for the user",
-                    detail: error.message,
-                    life: 10000,
+                toast.error("Error fetching 2FA methods for the user", {
+                    description: error.message,
+                    duration: 10000,
                 });
             }
         }

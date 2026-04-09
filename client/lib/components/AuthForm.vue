@@ -5,9 +5,9 @@ import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { defaultOnSubmissionError } from "@vueda/use/useObjectForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { useToast } from "primevue/usetoast";
 import { onMounted, toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { toast } from "vue-sonner";
 
 /**
  * Renders a page-level authentication form with a title, subtitle, and action slot.
@@ -51,7 +51,6 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const toast = useToast();
 const router = useRouter();
 const formContext = useForm(props.formProps);
 const theme = useTheme("AuthForm", props);
@@ -65,10 +64,8 @@ onMounted(() => {
     );
 });
 const doReauthenticate = async () => {
-    toast.add({
-        severity: "warn",
-        summary: "Please verify your account again before proceeding",
-        life: 10000,
+    toast.warning("Please verify your account again before proceeding", {
+        duration: 10000,
     });
     await router.push({ name: "reauthenticate", query: { redirect: route.fullPath } });
 };

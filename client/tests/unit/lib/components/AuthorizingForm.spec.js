@@ -10,8 +10,15 @@ const ActionFormStub = defineComponent({
     },
 });
 
-const toastAdd = vi.fn();
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
 let routeQuery = {};
@@ -59,7 +66,7 @@ describe("lib/components/AuthorizingForm.vue", () => {
     beforeEach(async () => {
         vue = await import("vue");
         AuthorizingForm = (await import("@vueda/components/AuthorizingForm.vue")).default;
-        toastAdd.mockClear();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         useForm.mockClear();
         storeUser.mockClear();
@@ -100,7 +107,7 @@ describe("lib/components/AuthorizingForm.vue", () => {
         await vue.nextTick();
         await vue.nextTick();
         expect(routerPush).toHaveBeenCalledWith({ name: "welcome" });
-        expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ severity: "success", summary: "Signed In" }));
+        expect(toastMock.success).toHaveBeenCalledWith("Signed In", expect.any(Object));
     });
 
     scopedIt("uses route redirect when provided", async () => {

@@ -2,7 +2,7 @@
 import { ControlButton } from "@vueda/controls/button";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
-import { useToast } from "primevue/usetoast";
+import { toast as sonnerToast } from "vue-sonner";
 
 /**
  * Displays a text value alongside a button that copies it to the clipboard and shows a toast notification on success.
@@ -15,25 +15,18 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Toast notification config shown after copying; a string is used as the summary, an object is merged with default toast options. Defaults to `"<text> copied"`. */
+    /** Toast message shown after copying. Defaults to `"<text> copied"`. */
     toast: {
-        type: [String, Object],
+        type: String,
         default: null,
     },
 });
 
 const { copied, copy } = useClipboard();
-const toastService = useToast();
 
 const onClick = () => {
     copy(props.text);
-    let text = props.toast;
-    if (!text) {
-        text = `${props.text} copied`;
-    }
-    const options =
-        typeof text === "string" ? { severity: "success", summary: text } : { severity: "success", ...text };
-    toastService.add(options);
+    sonnerToast.success(props.toast || `${props.text} copied`);
 };
 
 const slotProps = {

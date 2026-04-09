@@ -8,6 +8,7 @@ import { storeUser } from "@vueda/stores/storeUser.js";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import isEmpty from "lodash-es/isEmpty.js";
+import { toast } from "vue-sonner";
 
 /**
  * Convert transition objects into route-action identifiers.
@@ -248,7 +249,7 @@ export async function requireInitialized(_router, pinia) {
  * export default router;
  * ```
  * @param {import('vue').App} instance - The Vue app instance.
- * @param {import('primevue/toast').ToastMessageOptions} toastArgs - Toast message options.
+ * @param {{ severity?: string, summary: string, detail?: string, life?: number }} toastArgs - Toast message options.
  * @param {string[]} groups - The groups the user must belong to at least one.
  * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if not authorized.
  * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
@@ -258,8 +259,6 @@ export async function requireInitialized(_router, pinia) {
  */
 export async function requireGroups(instance, toastArgs, groups, redirectTo, to, router, pinia) {
     const userStore = await waitForInitialising(pinia);
-    /** @type {import('primevue/toastservice').ToastServiceMethods} */
-    const toast = instance.config.globalProperties.$toast;
     if (isEmpty(groups)) {
         return true;
     }
@@ -269,9 +268,10 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
     if (groups.some((group) => userStore.loggedInUser?.groups?.includes(group))) {
         return true;
     }
-    toast.add({
-        ...toastArgs,
-        detail: `${toastArgs.detail} ${to.fullPath}`,
+    const severity = toastArgs.severity === "warn" ? "warning" : toastArgs.severity || "error";
+    toast[severity](toastArgs.summary, {
+        description: `${toastArgs.detail} ${to.fullPath}`,
+        ...(toastArgs.life != null && { duration: toastArgs.life }),
     });
     return resolveRedirect(redirectTo, router);
 }
@@ -287,8 +287,6 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
  * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} True if model info exists and action allowed, or redirect route.
  */
 export async function requireModelInfo(instance, redirectTo, to, router, pinia) {
-    const toast = instance.config.globalProperties.$toast;
-    /** @type {import('primevue/toastservice').ToastServiceMethods} */
     try {
         const [infoStore, configStore, transitionStore] = await waitForModelStoreLoad(
             to.params.app,
@@ -306,18 +304,12 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
         if (actions.length && actions.includes(actionName)) {
             return true;
         } else {
-            toast.add({
-                summary: "Action Not Found",
-                severity: "error",
-            });
+            toast.error("Action Not Found");
             return resolveRedirect(redirectTo, router);
         }
     } catch (e) {
         if (e instanceof ModelInfoError) {
-            toast.add({
-                summary: "Model Not Found",
-                severity: "error",
-            });
+            toast.error("Model Not Found");
             return resolveRedirect(redirectTo, router);
         }
         throw e;

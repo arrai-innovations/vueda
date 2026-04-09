@@ -4,9 +4,9 @@ import { storeUser } from "@vueda/stores/storeUser.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { useToast } from "primevue/usetoast";
 import { onMounted, toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { toast } from "vue-sonner";
 
 /**
  * Authentication wrapper that monitors login state and redirects the user after a successful sign-in, rendering a header, subtitle, and delegating to ActionForm for the actual credential form.
@@ -54,7 +54,6 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 const router = useRouter();
-const toast = useToast();
 const route = useRoute();
 const userStore = storeUser();
 const isActive = useIsActive();
@@ -72,11 +71,9 @@ watch(
                 return;
             }
             router.push(props.redirect || { name: "welcome" });
-            toast.add({
-                severity: "success",
-                summary: `Signed In`,
-                detail: "You are now signed in and have been redirected.",
-                life: 10000,
+            toast.success("Signed In", {
+                description: "You are now signed in and have been redirected.",
+                duration: 10000,
             });
         }
     },

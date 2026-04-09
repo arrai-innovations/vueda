@@ -81,7 +81,14 @@ const FeedbackSpinnerStub = defineComponent({
 const useIsActiveMock = vi.fn();
 const storeUserMock = vi.fn();
 let UnauthorizedErrorClass;
-const toastAdd = vi.fn();
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
 const routerPush = vi.fn();
 
 vi.mock("@vueda/components/AuthorizingForm.vue", () => ({ default: AuthorizingFormStub }));
@@ -92,7 +99,7 @@ vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 vi.mock("@vueda/feedback/spinner", () => ({ FeedbackSpinner: FeedbackSpinnerStub }));
 vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part, THEME_OVERRIDE_PROPS: {} }));
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 vi.mock("@vueda/utils/html.js", () => ({ escapeHtml: (v) => v }));
 vi.mock("@vueda/stores/storeUser.js", async () => {
     const actual = await vi.importActual("@vueda/stores/storeUser.js");
@@ -113,7 +120,7 @@ let userStore;
 
 describe("lib/views/ViewTwoFactorAuth.vue", () => {
     beforeEach(async () => {
-        toastAdd.mockClear();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         useIsActiveMock.mockReset();
         storeUserMock.mockReset();
@@ -147,7 +154,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         const wrapper = mount(ViewTwoFactorAuth);
         activeRef.value = true;
         await flushPromises();
-        expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ severity: "warn" }));
+        expect(toastMock.warning).toHaveBeenCalled();
         expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
         expect(wrapper.vm.methods).toEqual([]);
     });
@@ -157,9 +164,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         mount(ViewTwoFactorAuth);
         activeRef.value = true;
         await flushPromises();
-        expect(toastAdd).toHaveBeenCalledWith(
-            expect.objectContaining({ severity: "error", summary: "Error fetching 2FA methods for the user" }),
-        );
+        expect(toastMock.error).toHaveBeenCalledWith("Error fetching 2FA methods for the user", expect.any(Object));
     });
 
     scopedIt("handleSendCode triggers cooldown and toast", async () => {
@@ -168,9 +173,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         vi.useFakeTimers();
         await wrapper.vm.handleSendCode();
         expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledWith({ method: "sms" });
-        expect(toastAdd).toHaveBeenCalledWith(
-            expect.objectContaining({ severity: "success", summary: expect.stringContaining("SMS") }),
-        );
+        expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("SMS"), expect.any(Object));
         expect(wrapper.vm.timer).not.toBeNull();
         expect(wrapper.vm.cooldownSeconds).toBe(60);
         vi.advanceTimersByTime(1000);
@@ -184,9 +187,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         wrapper.vm.form.values = { method: "email" };
         userStore.sendTwoFactorAuthenticationCode.mockRejectedValue(new Error("fail"));
         await wrapper.vm.handleSendCode();
-        expect(toastAdd).toHaveBeenCalledWith(
-            expect.objectContaining({ severity: "error", summary: "Failed to send 2FA code" }),
-        );
+        expect(toastMock.error).toHaveBeenCalledWith("Failed to send 2FA code", expect.any(Object));
         expect(wrapper.vm.timer).toBeNull();
     });
 
@@ -221,9 +222,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         vi.useFakeTimers();
         await wrapper.vm.handleSendCode();
         expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledWith({ method: "email" });
-        expect(toastAdd).toHaveBeenCalledWith(
-            expect.objectContaining({ severity: "success", summary: expect.stringContaining("email") }),
-        );
+        expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("email"), expect.any(Object));
         expect(wrapper.vm.cooldownSeconds).toBe(60);
         expect(wrapper.vm.timer).not.toBeNull();
         vi.clearAllTimers();
@@ -236,9 +235,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         vi.useFakeTimers();
         await wrapper.vm.handleSendCode();
         expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledWith({ method: "recovery" });
-        expect(toastAdd).toHaveBeenCalledWith(
-            expect.objectContaining({ severity: "success", summary: expect.stringContaining("recovery") }),
-        );
+        expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("recovery"), expect.any(Object));
         vi.clearAllTimers();
         vi.useRealTimers();
     });

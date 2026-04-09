@@ -14,10 +14,15 @@ vi.mock("@vueda/use/useModelConfig.js", () => ({
     useModelConfig: mockedUseModelConfig,
 }));
 
-const toastAdd = vi.fn();
-vi.mock("primevue/usetoast", () => ({
-    useToast: () => ({ add: toastAdd }),
-}));
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 const routerBack = vi.fn();
 vi.mock("vue-router", () => ({
@@ -121,7 +126,7 @@ beforeEach(async () => {
     fetchWorkflowTransition.mockClear();
     fetchObjectTransitions.mockClear();
     executeTransition.mockClear();
-    toastAdd.mockClear();
+    Object.values(toastMock).forEach((fn) => fn.mockClear());
     routerBack.mockClear();
 });
 
@@ -166,7 +171,7 @@ scopedIt("submits transition and shows success toast", async () => {
     wrapper.vm.selectedAction = "a";
     await wrapper.vm.handleSubmit();
     expect(executeTransition).toHaveBeenCalledWith("a", "m", "1", "a", expect.any(Object));
-    expect(toastAdd).toHaveBeenCalledWith({ severity: "success", summary: "transition succeeded" });
+    expect(toastMock.success).toHaveBeenCalledWith("transition succeeded");
     expect(routerBack).toHaveBeenCalled();
 });
 
@@ -176,6 +181,6 @@ scopedIt("shows error toast when submission fails", async () => {
     const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
     wrapper.vm.selectedAction = "a";
     await wrapper.vm.handleSubmit();
-    expect(toastAdd).toHaveBeenCalledWith({ severity: "error", summary: "transition failed" });
+    expect(toastMock.error).toHaveBeenCalledWith("transition failed");
     expect(routerBack).not.toHaveBeenCalled();
 });

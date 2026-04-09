@@ -10,9 +10,9 @@ import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
 import isEmpty from "lodash-es/isEmpty.js";
 import RadioButton from "primevue/radiobutton";
-import { useToast } from "primevue/usetoast";
 import { computed, inject, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
+import { toast } from "vue-sonner";
 
 /**
  * View that lists the available workflow transitions for one or more model instances and allows
@@ -44,7 +44,6 @@ const props = defineProps({
     },
 });
 const workflow = storeWorkflow();
-const toast = useToast();
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
@@ -115,10 +114,10 @@ const handleSubmit = async () => {
         if (props.pk) {
             await workflow.executeTransition(props.app, props.model, props.pk, selectedAction.value, router);
         }
-        toast.add({ severity: "success", summary: "transition succeeded" });
+        toast.success("transition succeeded");
         router.back();
     } catch (error) {
-        toast.add({ severity: "error", summary: "transition failed" });
+        toast.error("transition failed");
     }
 };
 </script>

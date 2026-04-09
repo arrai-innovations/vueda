@@ -77,8 +77,15 @@ vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 vi.mock("@vueda/feedback/spinner", () => ({ FeedbackSpinner: FeedbackSpinnerStub }));
 vi.mock("primevue/message", () => ({ default: MessageStub }));
 
-const toastAdd = vi.fn();
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
 vi.mock("vue-router", () => ({ useRouter: () => ({ push: routerPush }) }));
@@ -103,7 +110,7 @@ describe("lib/views/ViewRecoveryCodes.vue", () => {
             generateRecoveryCode: vi.fn(),
         });
         storeUserMock.mockReturnValue(userStore);
-        toastAdd.mockClear();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         clipboardState.copy.mockClear();
         ViewRecoveryCodes = (await import("@vueda/views/ViewRecoveryCodes.vue")).default;
@@ -136,9 +143,7 @@ describe("lib/views/ViewRecoveryCodes.vue", () => {
         const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
         await handler({ data: { unused_codes: ["new1"] } });
         await flushPromises();
-        expect(toastAdd).toHaveBeenCalledWith(
-            expect.objectContaining({ severity: "success", summary: expect.stringContaining("generated") }),
-        );
+        expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("generated"));
         const items = wrapper.findAll('[data-qa="view-recovery-codes-form-list-item"]');
         expect(items).toHaveLength(1);
         expect(items[0].text().trim()).toBe("new1");

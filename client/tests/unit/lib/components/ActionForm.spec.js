@@ -52,8 +52,15 @@ vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERR
 const mockedUseModelConfig = vi.fn(() => ({ config: { actionRedirects: {} } }));
 vi.mock("@vueda/use/useModelConfig", () => ({ useModelConfig: mockedUseModelConfig }));
 
-const toastAdd = vi.fn();
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
 vi.mock("vue-router", () => ({
@@ -138,7 +145,7 @@ describe("lib/components/ActionForm.vue", () => {
         vue = await import("vue");
         ActionForm = (await import("@vueda/components/ActionForm.vue")).default;
         vi.unmock("vue");
-        toastAdd.mockClear();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         defaultOnSubmissionError.mockClear();
         defaultOnSubmitNotAnyModified.mockClear();
@@ -202,9 +209,7 @@ describe("lib/components/ActionForm.vue", () => {
             await flushPromises();
             expect(runAction).toHaveBeenCalledWith({ dryRun: false, formValues: {} });
             expect(redirectTo).toHaveBeenCalledWith("success");
-            expect(toastAdd).toHaveBeenCalledWith(
-                expect.objectContaining({ severity: "success", summary: "Action Succeeded" }),
-            );
+            expect(toastMock.success).toHaveBeenCalledWith("Action Succeeded", expect.any(Object));
         });
 
         scopedIt("uses onSubmissionSuccessHandler when provided", async () => {
@@ -220,7 +225,7 @@ describe("lib/components/ActionForm.vue", () => {
             await flushPromises();
             expect(handler).toHaveBeenCalledWith("ok");
             expect(redirectTo).not.toHaveBeenCalled();
-            expect(toastAdd).not.toHaveBeenCalledWith(expect.objectContaining({ severity: "success" }));
+            expect(toastMock.success).not.toHaveBeenCalled();
         });
 
         scopedIt("performs dry run automatically when ready", async () => {
@@ -238,7 +243,7 @@ describe("lib/components/ActionForm.vue", () => {
 
             expect(runAction).toHaveBeenCalledWith({ dryRun: true, formValues: {} });
             expect(onSubmissionSuccessHandler).not.toHaveBeenCalled();
-            expect(toastAdd).not.toHaveBeenCalled();
+            expect(toastMock.success).not.toHaveBeenCalled();
             expect(redirectTo).not.toHaveBeenCalled();
         });
 
@@ -254,7 +259,7 @@ describe("lib/components/ActionForm.vue", () => {
                 toast: expect.any(Object),
             });
             expect(wrapper.find('[data-qa="error-display"]').attributes("data-error")).toBe("true");
-            expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ severity: "error" }));
+            expect(toastMock.error).toHaveBeenCalled();
         });
 
         scopedIt("respects custom error handler", async () => {
@@ -266,7 +271,7 @@ describe("lib/components/ActionForm.vue", () => {
             await flushPromises();
             expect(handler).toHaveBeenCalled();
             expect(wrapper.find('[data-qa="error-display"]').attributes("data-error")).toBe("false");
-            expect(toastAdd).not.toHaveBeenCalledWith(expect.objectContaining({ severity: "error" }));
+            expect(toastMock.error).not.toHaveBeenCalled();
         });
 
         scopedIt("actionState error should be displayed when not handled", async () => {
@@ -371,12 +376,7 @@ describe("lib/components/ActionForm.vue", () => {
             }
             expect(formContext.setAllTouched).toHaveBeenCalled();
             expect(runAction).not.toHaveBeenCalled();
-            expect(toastAdd).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    severity: "warn",
-                    summary: "Submission Blocked",
-                }),
-            );
+            expect(toastMock.warning).toHaveBeenCalledWith("Submission Blocked", expect.any(Object));
         });
     });
 

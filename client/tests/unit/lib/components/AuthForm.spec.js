@@ -19,8 +19,15 @@ const PageTitleStub = defineComponent({
     },
 });
 
-const toastAdd = vi.fn();
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
 let routeQuery = {};
@@ -73,7 +80,7 @@ describe("lib/components/AuthForm.vue", () => {
     beforeEach(async () => {
         vue = await import("vue");
         AuthForm = (await import("@vueda/components/AuthForm.vue")).default;
-        toastAdd.mockClear();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         defaultOnSubmissionError.mockClear();
         useForm.mockClear();
@@ -114,21 +121,19 @@ describe("lib/components/AuthForm.vue", () => {
         const result = await handler({
             error: new UnauthorizedError("nope"),
             formContext: {},
-            toast: { add: toastAdd },
+            toast: toastMock,
         });
         expect(result).toBe(true);
         expect(routerPush).toHaveBeenCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
-        expect(toastAdd).toHaveBeenCalledWith(
-            expect.objectContaining({ severity: "warn", summary: expect.stringContaining("verify") }),
-        );
+        expect(toastMock.warning).toHaveBeenCalledWith(expect.stringContaining("verify"), expect.any(Object));
     });
 
     scopedIt("falls back to defaultOnSubmissionError for other errors", async () => {
         const wrapper = mountAuthForm();
         const handler = wrapper.getComponent(ActionFormStub).props("onSubmissionErrorHandler");
         const error = new Error("bad");
-        await handler({ error, formContext: {}, toast: { add: toastAdd } });
-        expect(defaultOnSubmissionError).toHaveBeenCalledWith({ error, formContext: {}, toast: { add: toastAdd } });
+        await handler({ error, formContext: {}, toast: toastMock });
+        expect(defaultOnSubmissionError).toHaveBeenCalledWith({ error, formContext: {}, toast: toastMock });
     });
 
     scopedIt("watches pendingFlow for reauthentication flows", async () => {

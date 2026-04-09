@@ -9,9 +9,9 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import Dialog from "primevue/dialog";
-import { useToast } from "primevue/usetoast";
 import { computed, reactive, ref, toRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { toast } from "vue-sonner";
 
 /**
  * Multi-step form that guides the user through enrolling a two-factor authentication device.
@@ -42,7 +42,6 @@ const formProps = reactive({
         email: "",
     },
 });
-const toast = useToast();
 const router = useRouter();
 const userStore = storeUser();
 
@@ -80,10 +79,8 @@ const doAfterSuccess = async (response) => {
             totpSecret.value = response.meta?.totp_secret;
         }
         if (form.values.method === "email" || form.values.method === "sms") {
-            toast.add({
-                severity: "success",
-                summary: `Verification Code Sent`,
-                detail: `We've sent you a verification ${form.values.method}. Please check your inbox, then enter your 6 digit verification code in the box below`,
+            toast.success("Verification Code Sent", {
+                description: `We've sent you a verification ${form.values.method}. Please check your inbox, then enter your 6 digit verification code in the box below`,
             });
         }
         step.value = STEPS.VERIFY;

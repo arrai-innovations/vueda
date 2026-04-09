@@ -10,8 +10,8 @@ import { FormValidationError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
-import { useToast } from "primevue/usetoast";
 import { computed, inject, nextTick, onDeactivated, onUnmounted, reactive, watch } from "vue";
+import { toast } from "vue-sonner";
 
 /**
  * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides confirm and cancel button slots.
@@ -83,8 +83,6 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const toast = useToast();
-
 const localActionState = reactive({
     loading: false,
     errored: false,
@@ -114,11 +112,9 @@ const handleConfirm = async (dryRun = false) => {
                 .filter(([, value]) => !isEmpty(value));
             if (nonServerErrors.length) {
                 const plural = nonServerErrors.length > 1;
-                toast.add({
-                    severity: "warn",
-                    summary: "Submission Blocked",
-                    detail: `Please correct the highlighted error${plural ? "s" : ""}.`,
-                    life: 10000,
+                toast.warning("Submission Blocked", {
+                    description: `Please correct the highlighted error${plural ? "s" : ""}.`,
+                    duration: 10000,
                 });
                 localActionState.loading = false;
                 return;
@@ -145,10 +141,8 @@ const handleConfirm = async (dryRun = false) => {
         if (props.onSubmissionSuccessHandler) {
             props.onSubmissionSuccessHandler(response);
         } else {
-            toast.add({
-                severity: "success",
-                summary: props.actionSuccessSummary || "Action Succeeded",
-                life: 15000,
+            toast.success(props.actionSuccessSummary || "Action Succeeded", {
+                duration: 15000,
             });
             if (props.redirectTo) {
                 await props.redirectTo("success");
@@ -174,11 +168,9 @@ const handleError = async (error, dryRun) => {
     if (!handled) {
         localActionState.errored = true;
         localActionState.error = error;
-        toast.add({
-            severity: "error",
-            summary: props.actionErrorSummary || "Action Failed",
-            detail: localActionState.error,
-            life: 15000,
+        toast.error(props.actionErrorSummary || "Action Failed", {
+            description: localActionState.error,
+            duration: 15000,
         });
     }
 };

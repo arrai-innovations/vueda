@@ -95,12 +95,19 @@ vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputS
 vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 vi.mock("@vueda/feedback/spinner", () => ({ FeedbackSpinner: FeedbackSpinnerStub }));
 vi.mock("primevue/dialog", () => ({ default: DialogStub }));
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => useModelConfigMock() }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part, THEME_OVERRIDE_PROPS: {} }));
 
-const toastAdd = vi.fn();
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
 const routerPush = vi.fn();
 const routeMock = reactive({ query: {} });
 
@@ -115,7 +122,7 @@ let userStore;
 
 describe("lib/views/ViewSetupDevice.vue", () => {
     beforeEach(async () => {
-        toastAdd.mockClear();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         useModelConfigMock.mockReset();
         storeUserMock.mockReset();
@@ -163,11 +170,9 @@ describe("lib/views/ViewSetupDevice.vue", () => {
         wrapper.vm.form.values = { method: "email" };
         const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
         await handler();
-        expect(toastAdd).toHaveBeenCalledWith(
-            expect.objectContaining({
-                severity: "success",
-                summary: expect.stringContaining("Verification Code Sent"),
-            }),
+        expect(toastMock.success).toHaveBeenCalledWith(
+            expect.stringContaining("Verification Code Sent"),
+            expect.any(Object),
         );
         expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.VERIFY);
     });

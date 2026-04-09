@@ -9,7 +9,7 @@ type: how-to
 
 This guide covers building sign-in, sign-up, re-authentication, and two-factor authentication views using VUEDA's `AuthorizingForm` component, the field/widget system, and the user store. It walks through the component hierarchy, the redirect chain, form value handling, MFA flow integration, and common variant patterns.
 
-The guide assumes familiarity with Vue component composition and VUEDA's field/widget architecture. For the field/widget composable surface, see [Custom Field/Widget Rendering](../guides/custom-field-widget-rendering). For client plugin registration (PrimeVue, ToastService, and related dependencies), see [Client Plugin Prerequisites](../guides/client-plugin-prerequisites).
+The guide assumes familiarity with Vue component composition and VUEDA's field/widget architecture. For the field/widget composable surface, see [Custom Field/Widget Rendering](../guides/custom-field-widget-rendering). For client plugin registration (PrimeVue and related dependencies), see [Client Plugin Prerequisites](../guides/client-plugin-prerequisites).
 For the core auth form component contract, review {@api vue:component:AuthorizingForm}. Auth redirects and action gates in this guide map closely to {@term Transition} behavior.
 
 ## Goal and Preconditions
@@ -24,7 +24,7 @@ The objective is a set of authentication views where:
 
 Before you begin:
 
-The client application must have PrimeVue, ToastService, and the VUEDA {@term CRUDL} adapters registered. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites) for the full registration sequence.
+The client application must have PrimeVue, `<FeedbackToaster />`, and the VUEDA {@term CRUDL} adapters registered. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites) for the full registration sequence.
 
 The server must expose the authentication endpoints (`login`, `logout`, `who-is`, `2fa/authenticate`, `reauthenticate`). These are provided by `vueda.user` when it is included in `INSTALLED_APPS`.
 

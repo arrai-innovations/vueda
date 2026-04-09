@@ -7,8 +7,8 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
 import Message from "primevue/message";
-import { useToast } from "primevue/usetoast";
 import { computed, ref, watch } from "vue";
+import { toast } from "vue-sonner";
 
 /**
  * Account security page for managing two-factor authentication recovery codes. Displays the user's unused
@@ -17,7 +17,6 @@ import { computed, ref, watch } from "vue";
  */
 defineOptions({});
 
-const toast = useToast();
 const userStore = storeUser();
 const isActive = useIsActive();
 const recoveryCodes = ref(null);
@@ -56,10 +55,7 @@ const printPage = () => {
 
 const handleSuccess = (response) => {
     recoveryCodes.value = response.data.unused_codes;
-    toast.add({
-        severity: "success",
-        summary: "New recovery codes generated successfully.",
-    });
+    toast.success("New recovery codes generated successfully.");
 };
 
 const { copied, copy } = useClipboard();

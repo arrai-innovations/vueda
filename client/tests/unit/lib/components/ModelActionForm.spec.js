@@ -59,8 +59,15 @@ const modelConfig = {
 const mockedUseModelConfig = vi.fn(() => modelConfig);
 vi.mock("@vueda/use/useModelConfig", () => ({ useModelConfig: mockedUseModelConfig }));
 
-const toastAdd = vi.fn();
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 let routeQuery = {};
 const routerPush = vi.fn();
@@ -138,7 +145,7 @@ describe("lib/components/ModelActionForm.vue", () => {
         ModelActionForm = (await import("@vueda/components/ModelActionForm.vue")).default;
         mockedUseModelConfig.mockClear();
         mockedUseTheme.mockClear();
-        toastAdd.mockClear();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         getListUrl.mockClear();
         getDetailUrl.mockClear();

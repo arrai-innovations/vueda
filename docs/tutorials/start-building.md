@@ -590,7 +590,6 @@ import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { createPinia } from "pinia";
 import PrimeVue from "primevue/config";
 import ConfirmationService from "primevue/confirmationservice";
-import ToastService from "primevue/toastservice";
 import Tooltip from "primevue/tooltip";
 import { createApp } from "vue";
 
@@ -608,7 +607,6 @@ app.use(PrimeVue, {
         preset: Aura,
     },
 });
-app.use(ToastService);
 app.use(ConfirmationService);
 app.directive("tooltip", Tooltip);
 
@@ -628,10 +626,10 @@ The scaffolded router's `authRedirect` points to a `sign-in` route that does not
 ```vue
 <script setup>
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
+import { ControlButton } from "@vueda/controls/button";
 import FormField from "@vueda/fields/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
-import Button from "primevue/button";
 
 const userStore = storeUser();
 
@@ -651,7 +649,7 @@ function login({ formValues }) {
             </FormField>
         </template>
         <template #action-bar>
-            <Button type="submit" label="Sign In" />
+            <ControlButton type="submit">Sign In</ControlButton>
         </template>
     </AuthorizingForm>
 </template>

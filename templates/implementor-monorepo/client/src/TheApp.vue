@@ -1,10 +1,10 @@
 <script setup>
+import { FeedbackToaster } from "@vueda/feedback/toast";
 import ConfirmDialog from "primevue/confirmdialog";
-import Toast from "primevue/toast";
 </script>
 
 <template>
-    <Toast />
+    <FeedbackToaster />
     <ConfirmDialog />
     <RouterView />
 </template>

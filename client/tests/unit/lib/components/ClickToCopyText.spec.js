@@ -13,19 +13,24 @@ const ButtonStub = defineComponent({
 vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 
 let copySpy;
-let addSpy;
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
 vi.mock("@vueuse/core", () => ({
     useClipboard: () => ({ copy: copySpy }),
 }));
-vi.mock("primevue/usetoast", () => ({
-    useToast: () => ({ add: addSpy }),
-}));
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 describe("lib/components/ClickToCopyText.vue", () => {
     let ClickToCopyText;
     beforeEach(async () => {
         copySpy = vi.fn().mockResolvedValue();
-        addSpy = vi.fn();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         ClickToCopyText = (await import("@vueda/components/ClickToCopyText.vue")).default;
     });
 
@@ -36,17 +41,17 @@ describe("lib/components/ClickToCopyText.vue", () => {
         await button.trigger("click");
         await flushPromises();
         expect(copySpy).toHaveBeenCalledWith("foo");
-        expect(addSpy).toHaveBeenCalledWith({ severity: "success", summary: "foo copied" });
+        expect(toastMock.success).toHaveBeenCalledWith("foo copied");
         expect(button.text()).toBe("copy");
     });
 
     scopedIt("allows customizing toast options", async () => {
         const wrapper = mount(ClickToCopyText, {
-            props: { text: "foo", toast: { summary: "done", detail: "yay" } },
+            props: { text: "foo", toast: "done" },
         });
         const button = wrapper.get("button[data-qa='copy-button']");
         await button.trigger("click");
         await flushPromises();
-        expect(addSpy).toHaveBeenCalledWith({ severity: "success", summary: "done", detail: "yay" });
+        expect(toastMock.success).toHaveBeenCalledWith("done");
     });
 });

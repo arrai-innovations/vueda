@@ -33,7 +33,6 @@ import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { createPinia } from "pinia";
 import PrimeVue from "primevue/config";
 import ConfirmationService from "primevue/confirmationservice";
-import ToastService from "primevue/toastservice";
 import Tooltip from "primevue/tooltip";
 import { createApp } from "vue";
 
@@ -55,7 +54,6 @@ app.use(PrimeVue, {
         preset: Aura,
     },
 });
-app.use(ToastService);
 app.use(ConfirmationService);
 app.directive("tooltip", Tooltip);
 
@@ -88,13 +86,37 @@ VUEDA uses the Aura preset by default. Any PrimeVue preset is compatible; the ch
 
 **What fails without it:** PrimeVue components render without styling. Inputs, buttons, and dropdowns appear as unstyled HTML elements. CSS custom properties for the design tokens are undefined, so any component that reads them produces visual inconsistencies.
 
-## ToastService
+## Toast Notifications (FeedbackToaster)
 
-`app.use(ToastService)` registers PrimeVue's global toast notification service. Components access it through the `useToast()` composable, which returns an object with an `add()` method for displaying notifications.
+Toast notifications use `vue-sonner` instead of PrimeVue's ToastService. No plugin registration is needed; `toast` is a plain module import that works anywhere (components, composables, stores, route guards).
+
+**Setup:** Render `<FeedbackToaster />` once in your root component (e.g. `TheApp.vue`):
+
+```vue
+<script setup>
+import { FeedbackToaster } from "@vueda/feedback/toast";
+</script>
+
+<template>
+    <FeedbackToaster />
+    <RouterView />
+</template>
+```
+
+**Usage:**
+
+```javascript
+import { toast } from "vue-sonner";
+
+toast.success("Saved successfully");
+toast.error("Something went wrong", { description: "Details here", duration: 15000 });
+toast.warning("Please check your input");
+toast.info("No changes detected");
+```
 
 **What depends on it:** `ActionForm` displays success, error, and warning toasts after form submissions. `AuthorizingForm` shows a redirect confirmation toast. `useObjectForm` default handlers show toasts for "No Changes Detected", "Pre-save Validation Failed", and "Save Validation Failed" scenarios. `ClickToCopyText`, `ViewWorkflowTransition`, and the MFA setup views also use toast notifications.
 
-**What fails without it:** `useToast()` returns `undefined`. The first component that calls `toast.add(...)` throws `TypeError: Cannot read properties of undefined (reading 'add')`. This typically surfaces on the first form submission or successful login.
+**What fails without it:** If `<FeedbackToaster />` is not mounted, `toast(...)` calls silently do nothing (no error is thrown, but no notification appears).
 
 ## ConfirmationService
 
@@ -137,7 +159,7 @@ After completing the registration sequence, verify the following:
 
 ## Troubleshooting
 
-**`TypeError: Cannot read properties of undefined (reading 'add')` on form submit.** `ToastService` is not registered. Add `app.use(ToastService)` before mounting.
+**Toast notifications not appearing.** `<FeedbackToaster />` is not mounted in the root component. Add it to `TheApp.vue`.
 
 **Components render as unstyled HTML.** PrimeVue is not registered, or the preset is missing. Verify `app.use(PrimeVue, { theme: { preset: Aura } })` is present. Check the browser console for missing CSS custom property warnings.
 
