@@ -10,7 +10,16 @@ import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
-import { ControlButton } from "@vueda/controls/button";
+import { ControlCheckbox } from "@vueda/controls/checkbox";
+import { ControlInputGroupButton, ControlInputGroupInput } from "@vueda/controls/input-group";
+import { ControlInputGroup } from "@vueda/controls/input-group";
+import {
+    ControlSelect,
+    ControlSelectContent,
+    ControlSelectItem,
+    ControlSelectTrigger,
+    ControlSelectValue,
+} from "@vueda/controls/select";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { storeListPreference } from "@vueda/stores/storeListPreference.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions";
@@ -29,10 +38,6 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
-import Checkbox from "primevue/checkbox";
-import InputGroup from "primevue/inputgroup";
-import InputText from "primevue/inputtext";
-import MultiSelect from "primevue/multiselect";
 import {
     computed,
     effectScope,
@@ -354,6 +359,15 @@ const filterList = () => {
     listState.search = listSearch.value;
 };
 
+const toggleSelectedObject = (pk) => {
+    const idx = selectedObjects.value.indexOf(pk);
+    if (idx === -1) {
+        selectedObjects.value.push(pk);
+    } else {
+        selectedObjects.value.splice(idx, 1);
+    }
+};
+
 const detailActionOnClick = (actionName) => {
     return async () => {
         await router.push(
@@ -627,8 +641,8 @@ const columnOptions = computed(() => {
                     </div>
                     <div :class="theme('listControlBar')">
                         <slot name="search" v-bind="searchSlotProps">
-                            <InputGroup>
-                                <InputText
+                            <ControlInputGroup>
+                                <ControlInputGroupInput
                                     :class="theme('searchInput')"
                                     :model-value="searchSlotProps.listSearch"
                                     name="search"
@@ -637,36 +651,37 @@ const columnOptions = computed(() => {
                                     @search="searchSlotProps.filterList"
                                     @update:model-value="searchSlotProps.updateListSearch"
                                 />
-                                <ControlButton @click="searchSlotProps.filterList">Search</ControlButton>
-                            </InputGroup>
+                                <ControlInputGroupButton @click="searchSlotProps.filterList">
+                                    Search
+                                </ControlInputGroupButton>
+                            </ControlInputGroup>
                         </slot>
                         <slot
                             v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
                             name="columns-select"
                             :columns="columns"
                             :options="columnOptions"
-                            option-value="value"
-                            option-label="label"
                             :loading="loading"
-                            size="small"
                         >
-                            <MultiSelect
-                                v-model="columns"
-                                :options="columnOptions"
-                                option-value="value"
-                                option-label="label"
-                                :loading="loading"
-                                size="small"
-                            >
-                                <template #value="multiSelectValueSlotProps">
-                                    <slot name="columns-select-value-label" v-bind="multiSelectValueSlotProps">
-                                        columns
-                                    </slot>
-                                </template>
-                                <template #dropdownicon="dropDownIconSlotProps">
-                                    <slot name="columns-select-dropdown-icon" v-bind="dropDownIconSlotProps" />
-                                </template>
-                            </MultiSelect>
+                            <ControlSelect v-model="columns" multiple>
+                                <ControlSelectTrigger size="sm">
+                                    <ControlSelectValue>
+                                        <slot name="columns-select-value-label">columns</slot>
+                                    </ControlSelectValue>
+                                    <template v-if="slots['columns-select-dropdown-icon']" #icon>
+                                        <slot name="columns-select-dropdown-icon" />
+                                    </template>
+                                </ControlSelectTrigger>
+                                <ControlSelectContent>
+                                    <ControlSelectItem
+                                        v-for="option in columnOptions"
+                                        :key="option.value"
+                                        :value="option.value"
+                                    >
+                                        {{ option.label }}
+                                    </ControlSelectItem>
+                                </ControlSelectContent>
+                            </ControlSelect>
                         </slot>
                     </div>
                 </div>
@@ -761,13 +776,13 @@ const columnOptions = computed(() => {
                     :has-selectable-actions="bulkActions.size || availableTransitions.size"
                     :name="`field(${field.name})`"
                 >
-                    <Checkbox
+                    <ControlCheckbox
                         v-if="bulkActions.size || availableTransitions.size"
-                        v-model="selectedObjects"
-                        :input-id="`selected-row-${slotProps.pk}`"
+                        :id="`selected-row-${slotProps.pk}`"
+                        :model-value="selectedObjects.includes(slotProps.pk)"
                         name="selected"
                         v-bind="slotProps"
-                        :value="slotProps.pk"
+                        @update:model-value="toggleSelectedObject(slotProps.pk)"
                     />
                 </slot>
             </template>
