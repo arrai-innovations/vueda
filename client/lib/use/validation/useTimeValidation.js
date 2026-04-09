@@ -55,7 +55,7 @@ export function useTimeValidation(fieldContext, options) {
         [toRef(options, "maxValue"), valueAsTime],
         ([maxValue, value]) => {
             const maxTimeValue = timeToComparableValue(maxValue);
-            if (maxTimeValue !== null && value > maxTimeValue) {
+            if (maxTimeValue !== null && value !== null && value > maxTimeValue) {
                 fieldContext.updateError("maxValue", `Must be ${maxValue} or less.`);
             } else {
                 fieldContext.deleteError("maxValue");
@@ -68,7 +68,7 @@ export function useTimeValidation(fieldContext, options) {
         [toRef(options, "minValue"), valueAsTime],
         ([minValue, value]) => {
             const minTimeValue = timeToComparableValue(minValue);
-            if (minTimeValue !== null && value < minTimeValue) {
+            if (minTimeValue !== null && value !== null && value < minTimeValue) {
                 fieldContext.updateError("minValue", `Must be ${minValue} or more.`);
             } else {
                 fieldContext.deleteError("minValue");

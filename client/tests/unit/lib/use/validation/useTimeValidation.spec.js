@@ -79,6 +79,13 @@ describe("lib/use/validation/useTimeValidation.js", () => {
             await nextTick();
             expect(ctx.deleteError).toHaveBeenCalledWith("maxValue");
         });
+
+        scopedIt("clears minValue error when value is null", async () => {
+            const ctx = makeFieldContext(null);
+            useTimeValidation(ctx, { minValue: "08:00:00" });
+            await nextTick();
+            expect(ctx.deleteError).toHaveBeenCalledWith("minValue");
+        });
     });
 
     describe("reactivity", () => {
