@@ -39,21 +39,25 @@ const ButtonStub = defineComponent({
 });
 vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
 
-const RadioButtonStub = defineComponent({
-    name: "RadioButtonStub",
-    props: ["modelValue", "inputId", "name", "value"],
+const RadioGroupStub = defineComponent({
+    name: "RadioGroupStub",
+    props: ["modelValue", "name"],
     emits: ["update:modelValue"],
-    setup(props, { emit }) {
-        return () =>
-            h("input", {
-                type: "radio",
-                "data-qa": "radio-button",
-                value: props.value,
-                onChange: () => emit("update:modelValue", props.value),
-            });
+    setup(props, { slots }) {
+        return () => h("div", { "data-qa": "radio-group" }, slots.default?.());
     },
 });
-vi.mock("primevue/radiobutton", () => ({ default: RadioButtonStub }));
+const RadioGroupItemStub = defineComponent({
+    name: "RadioGroupItemStub",
+    props: ["id", "value"],
+    setup(props) {
+        return () => h("input", { type: "radio", "data-qa": "radio-group-item", value: props.value });
+    },
+});
+vi.mock("@vueda/controls/radio-group", () => ({
+    ControlRadioGroup: RadioGroupStub,
+    ControlRadioGroupItem: RadioGroupItemStub,
+}));
 
 const LinkModelViewStub = defineComponent({
     name: "LinkModelViewStub",
