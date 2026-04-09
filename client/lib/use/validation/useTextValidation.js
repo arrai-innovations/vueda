@@ -29,6 +29,8 @@ export function useTextValidation(fieldContext, options) {
         ([maxLength, value]) => {
             if (maxLength && value?.length > maxLength) {
                 fieldContext.updateError("maxLength", `Must be ${maxLength} characters or less.`);
+            } else {
+                fieldContext.deleteError("maxLength");
             }
         },
         { immediate: true },
@@ -39,6 +41,8 @@ export function useTextValidation(fieldContext, options) {
         ([minLength, value]) => {
             if (minLength && value?.length < minLength) {
                 fieldContext.updateError("minLength", `Must be ${minLength} characters or more.`);
+            } else {
+                fieldContext.deleteError("minLength");
             }
         },
         { immediate: true },

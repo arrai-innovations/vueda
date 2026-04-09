@@ -39,6 +39,17 @@ describe("lib/use/validation/useTextValidation.js", () => {
             await nextTick();
             expect(ctx.updateError).toHaveBeenCalledWith("maxLength", "Must be 5 characters or less.");
         });
+
+        scopedIt("clears error when value returns within maxLength", async () => {
+            const ctx = makeFieldContext("abcdef");
+            useTextValidation(ctx, { maxLength: 5 });
+            await nextTick();
+            expect(ctx.updateError).toHaveBeenCalledWith("maxLength", "Must be 5 characters or less.");
+
+            ctx.state.value = "abc";
+            await nextTick();
+            expect(ctx.deleteError).toHaveBeenCalledWith("maxLength");
+        });
     });
 
     describe("minLength", () => {
@@ -54,6 +65,17 @@ describe("lib/use/validation/useTextValidation.js", () => {
             useTextValidation(ctx, { minLength: 3 });
             await nextTick();
             expect(ctx.updateError).not.toHaveBeenCalledWith("minLength", expect.any(String));
+        });
+
+        scopedIt("clears error when value returns above minLength", async () => {
+            const ctx = makeFieldContext("ab");
+            useTextValidation(ctx, { minLength: 3 });
+            await nextTick();
+            expect(ctx.updateError).toHaveBeenCalledWith("minLength", "Must be 3 characters or more.");
+
+            ctx.state.value = "abcd";
+            await nextTick();
+            expect(ctx.deleteError).toHaveBeenCalledWith("minLength");
         });
     });
 
