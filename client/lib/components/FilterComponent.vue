@@ -3,6 +3,7 @@ import { assignReactiveObject, deepUnref } from "@arrai-innovations/reactive-hel
 import FilterForm from "@vueda/components/FilterForm.vue";
 import { ControlButton } from "@vueda/controls/button";
 import { ControlButtonGroup } from "@vueda/controls/button-group";
+import { ShellPopover, ShellPopoverContent } from "@vueda/shell/popover";
 import { useFilterField } from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useModelChoices } from "@vueda/use/useModelChoices.js";
@@ -11,8 +12,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FilterModelSymbol } from "@vueda/utils/symbols.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isObject from "lodash-es/isObject.js";
-import Popover from "primevue/popover";
-import { computed, inject, reactive, ref, toRef, useSlots, useTemplateRef, watch } from "vue";
+import { computed, inject, reactive, ref, toRef, useSlots, watch } from "vue";
 
 /**
  * Renders a single filterable field as a button-triggered popover. The button
@@ -100,7 +100,6 @@ const formContext = useForm({
 
 // TODO: this is built assuming each filter field has only one lookup expression
 const emit = defineEmits(["hide-filter-form"]);
-const popoverRef = useTemplateRef("popoverRef");
 const addedFilters = defineModel({
     type: Object,
     required: true,
@@ -142,9 +141,6 @@ const doToggle = (event) => {
         event.preventDefault();
     }
     internalShowState.value = !internalShowState.value;
-    if (!slots[resolvedSlotNames.formPopover.name] && popoverRef.value) {
-        popoverRef.value.toggle(event);
-    }
 };
 
 const filterFormValue = computed(() => formContext.state?.submittingValues?.[props.filterName]);
@@ -259,9 +255,6 @@ const applyFilter = () => {
     }
     internalShowState.value = false;
     emit("hide-filter-form", props.filterName);
-    if (!slots[resolvedSlotNames.formPopover.name] && popoverRef.value) {
-        popoverRef.value.hide();
-    }
 };
 
 const isRangeObjectEmpty = (rangeObject) => {
@@ -395,34 +388,29 @@ watch(
             :name="resolvedSlotNames.formPopover.name"
             :show-state="internalShowState"
         >
-            <Popover
-                ref="popoverRef"
-                :apply-filter="onApplyFilter"
-                :class="theme('formPopover')"
-                :filter-details="filterDetails"
-                :filter-name="filterName"
-                :has-filter-value="hasFilterValue"
-            >
-                <!-- @slot [filter-form, filter-form(filterName)] Replaces the filter form body inside the popover. -->
-                <slot
-                    :apply-filter="onApplyFilter"
-                    :filter-details="filterDetails"
-                    :filter-name="filterName"
-                    :has-filter-value="hasFilterValue"
-                    :name="resolvedSlotNames.form.name"
-                >
-                    <FilterForm
-                        :filter-name="filterName"
-                        :filter-label="props.filterDetails.label ?? props.filterName"
+            <ShellPopover v-model:open="internalShowState">
+                <ShellPopoverContent :class="theme('formPopover')">
+                    <!-- @slot [filter-form, filter-form(filterName)] Replaces the filter form body inside the popover. -->
+                    <slot
                         :apply-filter="onApplyFilter"
+                        :filter-details="filterDetails"
+                        :filter-name="filterName"
                         :has-filter-value="hasFilterValue"
+                        :name="resolvedSlotNames.form.name"
                     >
-                        <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
-                            <slot :name="slotName" v-bind="slotProps || {}" />
-                        </template>
-                    </FilterForm>
-                </slot>
-            </Popover>
+                        <FilterForm
+                            :filter-name="filterName"
+                            :filter-label="props.filterDetails.label ?? props.filterName"
+                            :apply-filter="onApplyFilter"
+                            :has-filter-value="hasFilterValue"
+                        >
+                            <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
+                                <slot :name="slotName" v-bind="slotProps || {}" />
+                            </template>
+                        </FilterForm>
+                    </slot>
+                </ShellPopoverContent>
+            </ShellPopover>
         </slot>
     </div>
 </template>
