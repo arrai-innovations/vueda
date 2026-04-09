@@ -324,6 +324,41 @@ export default {
         },
     },
 
+    // drawer
+    ShellDrawerContent: {
+        root: {
+            class: "group/drawer-content bg-background fixed z-50 flex h-auto flex-col data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80vh] data-[vaul-drawer-direction=top]:rounded-b-lg data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80vh] data-[vaul-drawer-direction=bottom]:rounded-t-lg data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:sm:max-w-sm data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:sm:max-w-sm",
+        },
+        handle: {
+            class: "bg-muted mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block",
+        },
+    },
+    ShellDrawerDescription: {
+        root: {
+            class: "text-muted-foreground text-sm",
+        },
+    },
+    ShellDrawerFooter: {
+        root: {
+            class: "mt-auto flex flex-col gap-2 p-4",
+        },
+    },
+    ShellDrawerHeader: {
+        root: {
+            class: "flex flex-col gap-1.5 p-4",
+        },
+    },
+    ShellDrawerOverlay: {
+        root: {
+            class: "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80",
+        },
+    },
+    ShellDrawerTitle: {
+        root: {
+            class: "text-foreground font-semibold",
+        },
+    },
+
     // sheet
     ShellSheetContent: {
         root: ({ side }) => {
