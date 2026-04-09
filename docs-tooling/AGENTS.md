@@ -5,9 +5,9 @@ This package contains internal tooling that extracts, normalizes, and renders AP
 ## Commands
 
 - All tests: `just test-docs-tooling`
-- JS tests (single run): `pnpm -C docs-tooling test`
+- JS tests: `just test-docs-tooling-js` (accepts extra vitest args)
+- Python tests: `just test-docs-tooling-py` (accepts extra pytest args)
 - JS tests (watch): `pnpm -C docs-tooling test:watch`
-- Python tests: `cd docs-tooling && uv run --group test --no-sync pytest`
 - Docs pipeline (root): `just docs-extract`, `just docs-normalize`, `just docs-render`, `just docs-api`
 - Docs pipeline (local): `cd docs-tooling && ./bin/docs-tooling.js extract|normalize|render`
 

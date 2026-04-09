@@ -55,6 +55,18 @@ Packages: `server`, `client`, `docs-tooling` (and its sub-targets `docs-tooling-
 So, for example, `just test-client`, `just coverage-server`,
 `just coverage-docs-tooling-py`, and `just check-eslint` are all valid commands.
 
+All per-package `test` and `coverage` recipes accept extra arguments, which are
+forwarded to the underlying test runner (vitest or pytest). Paths must be
+relative to the package directory, not the repo root.
+
+```bash
+just test-server -k test_login
+just test-server tests/test_auth.py
+just test-client tests/unit/lib/views/ViewWorkflowTransition.spec.js
+just coverage-server --cov-report=html
+just test-docs-tooling-py -x --lf
+```
+
 ## Commit Message Style
 
 We use a custom commitlint configuration based on [Conventional Commits](https://www.conventionalcommits.org/).

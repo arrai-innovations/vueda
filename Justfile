@@ -9,38 +9,46 @@ bootstrap: # for development environment setup
 test:
   pnpx concurrently -n server,client,docs-tooling -c green,cyan,magenta "just test-server" "just test-client" "just test-docs-tooling"
 
-test-server:
-  cd {{justfile_directory()}}/server && uv run --no-sync pytest
+[positional-arguments]
+test-server *args:
+  cd {{justfile_directory()}}/server && uv run --no-sync pytest "$@"
 
-test-client:
-  cd {{justfile_directory()}}/client && pnpm test
+[positional-arguments]
+test-client *args:
+  cd {{justfile_directory()}}/client && pnpm test "$@"
 
 test-docs-tooling:
   pnpx concurrently -n js,py -c cyan,green "just test-docs-tooling-js" "just test-docs-tooling-py"
 
-test-docs-tooling-js:
-  pnpm -C {{justfile_directory()}}/docs-tooling test
+[positional-arguments]
+test-docs-tooling-js *args:
+  cd {{justfile_directory()}}/docs-tooling && pnpm test "$@"
 
-test-docs-tooling-py:
-  cd {{justfile_directory()}}/docs-tooling && uv run --group test --no-sync pytest
+[positional-arguments]
+test-docs-tooling-py *args:
+  cd {{justfile_directory()}}/docs-tooling && uv run --group test --no-sync pytest "$@"
 
 coverage:
   pnpx concurrently -n server,client,docs-tooling -c green,cyan,magenta "just coverage-server" "just coverage-client" "just coverage-docs-tooling"
 
-coverage-server:
-  cd {{justfile_directory()}}/server && uv run --no-sync pytest --cov
+[positional-arguments]
+coverage-server *args:
+  cd {{justfile_directory()}}/server && uv run --no-sync pytest --cov "$@"
 
-coverage-client:
-  cd {{justfile_directory()}}/client && pnpm coverage
+[positional-arguments]
+coverage-client *args:
+  cd {{justfile_directory()}}/client && pnpm coverage "$@"
 
 coverage-docs-tooling:
   pnpx concurrently -n js,py -c cyan,green "just coverage-docs-tooling-js" "just coverage-docs-tooling-py"
 
-coverage-docs-tooling-js:
-  pnpm -C {{justfile_directory()}}/docs-tooling coverage
+[positional-arguments]
+coverage-docs-tooling-js *args:
+  cd {{justfile_directory()}}/docs-tooling && pnpm coverage "$@"
 
-coverage-docs-tooling-py:
-  cd {{justfile_directory()}}/docs-tooling && uv run --group test --no-sync pytest --cov
+[positional-arguments]
+coverage-docs-tooling-py *args:
+  cd {{justfile_directory()}}/docs-tooling && uv run --group test --no-sync pytest --cov "$@"
 
 check:
   pnpx concurrently -n ruff,eslint,prettier -c green,cyan,magenta "just check-ruff" "just check-eslint" "just check-prettier"

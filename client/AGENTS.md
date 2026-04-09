@@ -14,18 +14,17 @@ To get started:
     pnpm install
     ```
 
-- Run tests:
+- Run tests: `just test-client` (accepts extra vitest args, paths relative to `client/`)
 
     ```bash
-    pnpm -C client test run
+    just test-client
+    just test-client tests/unit/lib/views/ViewWorkflowTransition.spec.js
     ```
 
-By default, `pnpm -C client test` launches vitest in watch mode. The `run` argument disables watch mode for single-pass execution.
-
-- View coverage:
+- View coverage: `just coverage-client` (accepts extra vitest args)
 
     ```bash
-    pnpm -C client run coverage
+    just coverage-client
     ```
 
 - This project uses **Vite** as its development server and bundler.

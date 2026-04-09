@@ -5,8 +5,8 @@
 -   **Build**: `uv sync` (setup), `python -m build` (package)
 -   **Lint**: `uv run --no-sync ruff check .` (check), `uv run --no-sync ruff check --fix .` (fix)
 -   **Format**: `uv run --no-sync ruff format .`
--   **Test**: `uv run --no-sync pytest` (all), `uv run --no-sync pytest tests/path/to/test_file.py::TestClass::test_method` (single test)
--   **Coverage**: `uv run pytest --cov-config=.coveragerc && uv run coverage combine && uv run coverage html`
+-   **Test**: `just test-server` (accepts extra pytest args, paths relative to `server/`). Example: `just test-server tests/test_auth.py::TestClass::test_method`
+-   **Coverage**: `just coverage-server` (accepts extra pytest args). Example: `just coverage-server --cov-report=html`
 -   **Django**: `uv run --no-sync python manage.py test`, `uv run --no-sync python manage.py makemigrations`, `uv run --no-sync python manage.py migrate`
 -   **API docs**: `uv run --no-sync python manage.py spectacular --color --file schema.yml`
 -   **Workflow migrations**: `uv run --no-sync python manage.py makeworkflowmigrations` (after workflow changes)
