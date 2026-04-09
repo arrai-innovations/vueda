@@ -6,6 +6,7 @@ import { ControlRadioGroup, ControlRadioGroupItem } from "@vueda/controls/radio-
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getAppModelDotName, memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
@@ -22,6 +23,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
@@ -46,6 +48,7 @@ const props = defineProps({
 const workflow = storeWorkflow();
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const theme = useTheme("ViewWorkflowTransition", props);
 
 if (!inject(LookupContextSymbol, null)) {
     useLookupContext();
@@ -126,10 +129,10 @@ const handleSubmit = async () => {
     <div :class="props.class">
         <page-title :loading="workflow.loading" :title="titleStr">
             <template #button>
-                <div class="flex gap-1 w-full justify-end">
+                <div :class="theme('buttons')">
                     <link-model-view
                         :app="app"
-                        class="whitespace-nowrap grow shrink-0"
+                        :class="theme('returnLink')"
                         label="Return to List"
                         :model="model"
                         view="list"
@@ -137,7 +140,7 @@ const handleSubmit = async () => {
                 </div>
             </template>
         </page-title>
-        <div>
+        <div :class="theme('inner')">
             available workflow transitions for {{ modelConfig.info?.verbose_name }} are {{ modelWorkflowTransitions }}
             <div v-if="availableTransitions.length">
                 <p>the available transitions for the select objects are</p>
@@ -146,7 +149,7 @@ const handleSubmit = async () => {
                         <div
                             v-for="transition in availableTransitions"
                             :key="transition.code"
-                            class="flex items-center gap-2"
+                            :class="theme('radioOption')"
                         >
                             <ControlRadioGroupItem :id="transition.code" :value="transition.code" />
                             <label :for="transition.code">{{ transition.name }}</label>

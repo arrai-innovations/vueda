@@ -196,6 +196,23 @@ export default {
             class: ["flex flex-col gap-2 pt-4"],
         },
     },
+    ViewWorkflowTransition: {
+        root: {
+            class: [],
+        },
+        buttons: {
+            class: ["flex gap-1 w-full justify-end"],
+        },
+        returnLink: {
+            class: ["whitespace-nowrap grow shrink-0"],
+        },
+        inner: {
+            class: [],
+        },
+        radioOption: {
+            class: ["flex items-center gap-2"],
+        },
+    },
     ViewRecoveryCodes: {
         root: {
             class: [],
