@@ -1,6 +1,5 @@
 <script setup>
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon, XIcon } from "lucide-vue-next";
 import { Toaster as Sonner } from "vue-sonner";
 
 /**
@@ -54,24 +53,30 @@ const theme = useTheme("FeedbackToaster", props);
         :as="as"
     >
         <template #success-icon>
-            <CircleCheckIcon class="size-4" />
+            <!-- Replaces the success toast icon; receives no slot props. -->
+            <slot name="success-icon"><span aria-hidden="true" class="select-none">✓</span></slot>
         </template>
         <template #info-icon>
-            <InfoIcon class="size-4" />
+            <!-- Replaces the info toast icon; receives no slot props. -->
+            <slot name="info-icon"><span aria-hidden="true" class="select-none">ℹ</span></slot>
         </template>
         <template #warning-icon>
-            <TriangleAlertIcon class="size-4" />
+            <!-- Replaces the warning toast icon; receives no slot props. -->
+            <slot name="warning-icon"><span aria-hidden="true" class="select-none">⚠</span></slot>
         </template>
         <template #error-icon>
-            <OctagonXIcon class="size-4" />
+            <!-- Replaces the error toast icon; receives no slot props. -->
+            <slot name="error-icon"><span aria-hidden="true" class="select-none">✕</span></slot>
         </template>
         <template #loading-icon>
-            <div>
-                <Loader2Icon class="size-4 animate-spin" />
-            </div>
+            <!-- Replaces the loading toast icon; receives no slot props. -->
+            <slot name="loading-icon"
+                ><span aria-hidden="true" class="inline-block animate-spin select-none">◌</span></slot
+            >
         </template>
         <template #close-icon>
-            <XIcon class="size-4" />
+            <!-- Replaces the close toast icon; receives no slot props. -->
+            <slot name="close-icon"><span aria-hidden="true" class="select-none">✕</span></slot>
         </template>
     </Sonner>
 </template>

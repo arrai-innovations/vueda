@@ -4,9 +4,10 @@ import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
 
 describe("lib/feedback/spinner/FeedbackSpinner.vue", () => {
     describe("rendering", () => {
-        scopedIt("renders an SVG element (Loader2Icon)", () => {
+        scopedIt("renders a span element with spinner character", () => {
             const wrapper = mount(FeedbackSpinner);
-            expect(wrapper.element.tagName.toLowerCase()).toBe("svg");
+            expect(wrapper.element.tagName.toLowerCase()).toBe("span");
+            expect(wrapper.text()).toBe("◌");
         });
 
         scopedIt("has role=status", () => {

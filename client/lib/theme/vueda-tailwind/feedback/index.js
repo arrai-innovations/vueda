@@ -51,7 +51,7 @@ export default {
     },
     FeedbackSpinner: {
         root: {
-            class: "size-4 animate-spin",
+            class: "inline-block size-4 animate-spin select-none",
         },
     },
     FeedbackToaster: {
