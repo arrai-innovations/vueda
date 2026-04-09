@@ -116,9 +116,6 @@ importers:
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.22
-      lucide-vue-next:
-        specifier: ^0.577.0
-        version: 0.577.0(vue@3.5.27(typescript@5.9.3))
       luxon:
         specifier: ^3.5.0
         version: 3.7.2
@@ -167,6 +164,9 @@ importers:
       vue-router:
         specifier: ^4.5.0
         version: 4.6.4(vue@3.5.27(typescript@5.9.3))
+      vue-sonner:
+        specifier: ^2.0.9
+        version: 2.0.9
     devDependencies:
       '@arrai-innovations/commitlint-config':
         specifier: ^2.1.0
@@ -4163,11 +4163,6 @@ packages:
     resolution: {integrity: sha512-MhWWlVnuab1RG5/zMRRcVGXZLCXrZTgfwMikgzCegsPnG62yDQo5JnqKkrK4jO5iKqDAZGItAqN5CtKBCBWRUA==}
     engines: {node: '>=16.14'}
 
-  lucide-vue-next@0.577.0:
-    resolution: {integrity: sha512-py05bAfv9SHVJqscbiOnjcnLlEmOffA58a+7XhZuFxrs6txe1E8VoR1ngWGTYO+9aVKABAz8l3ee3PqiQN9QPA==}
-    peerDependencies:
-      vue: '>=3.0.1'
-
   lunr@2.3.9:
     resolution: {integrity: sha512-zTU3DaZaF3Rt9rhN3uBMGQD3dD2/vFQqnvZCDv4dl5iOzq2IZQqTxu90r4E5J+nP70J3ilqVCrbho2eWaeW8Ow==}
 
@@ -5874,6 +5869,20 @@ packages:
     resolution: {integrity: sha512-Hz9q5sa33Yhduglwz6g9skT8OBPii+4bFn88w6J+J4MfEo4KRRpmiNG/hHHkdbRFlLBOqxN8y8gf2Fb0MTUgVg==}
     peerDependencies:
       vue: ^3.5.0
+
+  vue-sonner@2.0.9:
+    resolution: {integrity: sha512-i6BokNlNDL93fpzNxN/LZSn6D6MzlO+i3qXt6iVZne3x1k7R46d5HlFB4P8tYydhgqOrRbIZEsnRd3kG7qGXyw==}
+    peerDependencies:
+      '@nuxt/kit': ^4.0.3
+      '@nuxt/schema': ^4.0.3
+      nuxt: ^4.0.3
+    peerDependenciesMeta:
+      '@nuxt/kit':
+        optional: true
+      '@nuxt/schema':
+        optional: true
+      nuxt:
+        optional: true
 
   vue@3.5.27:
     resolution: {integrity: sha512-aJ/UtoEyFySPBGarREmN4z6qNKpbEguYHMmXSiOGk69czc+zhs0NF6tEFrY8TZKAl8N/LYAkd4JHVd5E/AsSmw==}
@@ -10227,10 +10236,6 @@ snapshots:
 
   lru-cache@8.0.5: {}
 
-  lucide-vue-next@0.577.0(vue@3.5.27(typescript@5.9.3)):
-    dependencies:
-      vue: 3.5.27(typescript@5.9.3)
-
   lunr@2.3.9: {}
 
   luxon@3.7.2: {}
@@ -12289,6 +12294,8 @@ snapshots:
     dependencies:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.27(typescript@5.9.3)
+
+  vue-sonner@2.0.9: {}
 
   vue@3.5.27(typescript@5.6.3):
     dependencies:

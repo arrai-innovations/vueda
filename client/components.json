@@ -9,7 +9,7 @@
         "cssVariables": true,
         "prefix": ""
     },
-    "iconLibrary": "lucide",
+    "iconLibrary": "none",
     "aliases": {
         "components": "@vueda/controls",
         "utils": "@vueda/utils",
