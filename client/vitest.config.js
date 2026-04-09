@@ -18,7 +18,6 @@ export default defineConfig((configEnv) =>
                         "lib/utils/dev.js", // only used in dev mode, basically a no-op
                         "lib/utils/fieldMappings.js", // static configuration
                         "lib/utils/primevueConsts.js", // copy of primevue constants
-                        "lib/utils/objectGridSkeletonProps.js", // configuration for object grid skeletons
                     ],
                     reporter: ["text", "json-summary", "html", "lcov"],
                 },
