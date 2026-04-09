@@ -17,7 +17,6 @@ import { useComboboxSearch } from "@vueda/use/useComboboxSearch.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import { CheckIcon, ChevronDownIcon } from "lucide-vue-next";
 import { useFilter } from "reka-ui";
 import { computed, inject } from "vue";
 
@@ -213,7 +212,10 @@ const theme = useTheme("WidgetCombobox", props);
             >
                 <span v-if="closedStateLabel">{{ closedStateLabel }}</span>
                 <span v-else class="text-muted-foreground">{{ effectivePlaceholder }}</span>
-                <ChevronDownIcon class="size-4 opacity-50" />
+                <!-- Replaces the dropdown chevron icon; receives no slot props. -->
+                <slot name="icon">
+                    <span aria-hidden="true" class="size-4 text-center leading-4 opacity-50 select-none">▾</span>
+                </slot>
             </ControlComboboxTrigger>
         </ControlComboboxAnchor>
         <ControlComboboxList class="w-[var(--reka-combobox-trigger-width)]">
@@ -237,7 +239,7 @@ const theme = useTheme("WidgetCombobox", props);
                         >
                             {{ item[comboboxSearch.optionLabel] }}
                             <ControlComboboxItemIndicator>
-                                <CheckIcon class="size-4" />
+                                <span aria-hidden="true" class="select-none">✓</span>
                             </ControlComboboxItemIndicator>
                         </ControlComboboxItem>
                     </ControlComboboxGroup>
@@ -254,7 +256,7 @@ const theme = useTheme("WidgetCombobox", props);
                     >
                         {{ isApiMode ? option[comboboxSearch.optionLabel] : option[props.optionLabel] }}
                         <ControlComboboxItemIndicator>
-                            <CheckIcon class="size-4" />
+                            <span aria-hidden="true" class="select-none">✓</span>
                         </ControlComboboxItemIndicator>
                     </ControlComboboxItem>
                 </ControlComboboxVirtualizer>

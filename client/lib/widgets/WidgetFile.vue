@@ -6,7 +6,6 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import isObject from "lodash-es/isObject.js";
-import { Download, X } from "lucide-vue-next";
 import { computed, inject, toRef, watch } from "vue";
 
 /**
@@ -90,10 +89,12 @@ const fileURL = computed(() => {
                 <a :class="theme('link')" :href="fileURL">{{ fileName }}</a>
                 <div :class="theme('buttonGroup')">
                     <ControlButton variant="ghost" size="icon-sm" data-qa="file-remove" @click="onRemoveFile">
-                        <X class="h-4 w-4" />
+                        <span aria-hidden="true" class="select-none">✕</span>
+                        <span class="sr-only">Remove file</span>
                     </ControlButton>
                     <ControlButton variant="ghost" size="icon-sm" data-qa="file-download" @click="onDownload">
-                        <Download class="h-4 w-4" />
+                        <span aria-hidden="true" class="select-none">⇩</span>
+                        <span class="sr-only">Download file</span>
                     </ControlButton>
                 </div>
             </div>

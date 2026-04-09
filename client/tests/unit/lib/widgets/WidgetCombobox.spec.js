@@ -152,11 +152,6 @@ vi.mock("@vueda/controls/combobox", () => ({
     ControlComboboxVirtualizer: ControlComboboxVirtualizerStub,
 }));
 
-vi.mock("lucide-vue-next", () => ({
-    ChevronDownIcon: defineComponent({ setup: () => () => h("span", { "data-stub": "chevron" }) }),
-    CheckIcon: defineComponent({ setup: () => () => h("span", { "data-stub": "check" }) }),
-}));
-
 const LinkModelViewStub = defineComponent({
     name: "LinkModelViewStub",
     props: ["app", "model", "pk", "label", "view"],

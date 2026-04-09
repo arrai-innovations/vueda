@@ -85,15 +85,6 @@ vi.mock("@vueda/controls/calendar", () => ({
     ControlCalendar: ControlCalendarStub,
 }));
 
-vi.mock("lucide-vue-next", () => ({
-    CalendarIcon: defineComponent({
-        name: "CalendarIcon",
-        setup(_, { attrs }) {
-            return () => h("svg", attrs);
-        },
-    }),
-}));
-
 vi.mock("@internationalized/date", () => ({
     parseDate: vi.fn((str) => ({ toString: () => str, _raw: str })),
     parseDateTime: vi.fn((str) => ({ toString: () => str, _raw: str })),

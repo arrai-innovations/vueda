@@ -6,7 +6,6 @@ import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import isString from "lodash-es/isString.js";
-import { X } from "lucide-vue-next";
 import { inject, toRef, watch } from "vue";
 
 /**
@@ -56,7 +55,8 @@ const onRemove = () => {
             <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
                 <img alt="Image" :src="widgetContext.state.combinedValue" width="250" data-qa="image-preview" />
                 <ControlButton variant="ghost" size="icon-sm" data-qa="image-remove" @click="onRemove">
-                    <X class="h-4 w-4" />
+                    <span aria-hidden="true" class="select-none">✕</span>
+                    <span class="sr-only">Remove image</span>
                 </ControlButton>
             </div>
             <div v-else>

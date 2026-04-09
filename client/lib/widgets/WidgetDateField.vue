@@ -5,7 +5,6 @@ import { ControlDateField, ControlDateFieldInput } from "@vueda/controls/date-fi
 import { ControlPopover, ControlPopoverContent, ControlPopoverTrigger } from "@vueda/controls/popover";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import { CalendarIcon } from "lucide-vue-next";
 import { computed, inject, ref } from "vue";
 
 /**
@@ -108,7 +107,7 @@ const onCalendarSelect = (value) => {
                         tabindex="-1"
                         data-qa="widget-date-field-trigger"
                     >
-                        <CalendarIcon class="size-4" />
+                        <span aria-hidden="true" class="select-none text-sm leading-none">📅</span>
                     </button>
                 </ControlPopoverTrigger>
             </template>

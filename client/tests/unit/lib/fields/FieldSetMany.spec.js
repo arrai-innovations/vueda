@@ -51,10 +51,6 @@ const useFieldMock = vi.fn();
 const themeFn = vi.fn((cls) => `t-${cls}`);
 
 vi.mock("@vueda/controls/button", () => ({ ControlButton: ControlButtonStub }));
-vi.mock("lucide-vue-next", () => ({
-    Plus: defineComponent({ name: "Plus", setup: () => () => h("svg", { "data-icon": "plus" }) }),
-    X: defineComponent({ name: "X", setup: () => () => h("svg", { "data-icon": "x" }) }),
-}));
 vi.mock("@vueda/shell/field", () => ({
     ShellFieldDescription: defineComponent({
         name: "ShellFieldDescription",

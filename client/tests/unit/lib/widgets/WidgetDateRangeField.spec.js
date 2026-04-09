@@ -92,15 +92,6 @@ vi.mock("@vueda/controls/range-calendar", () => ({
     ControlRangeCalendar: ControlRangeCalendarStub,
 }));
 
-vi.mock("lucide-vue-next", () => ({
-    CalendarIcon: defineComponent({
-        name: "CalendarIcon",
-        setup(_, { attrs }) {
-            return () => h("svg", attrs);
-        },
-    }),
-}));
-
 vi.mock("@internationalized/date", () => ({
     parseDate: vi.fn((str) => ({ toString: () => str, _raw: str })),
     parseDateTime: vi.fn((str) => ({ toString: () => str, _raw: str })),

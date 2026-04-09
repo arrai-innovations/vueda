@@ -5,7 +5,6 @@ import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { watchIfDev } from "@vueda/utils/dev.js";
-import { Plus, X } from "lucide-vue-next";
 import { computed, useAttrs } from "vue";
 
 /**
@@ -71,7 +70,9 @@ const theme = useTheme("FieldSetMany", props);
             </slot>
             <!-- @slot [add] Override the add button. -->
             <slot name="add" @click="onAdd">
-                <ControlButton variant="outline" size="sm" @click="onAdd"><Plus /> Add</ControlButton>
+                <ControlButton variant="outline" size="sm" @click="onAdd"
+                    ><span aria-hidden="true" class="select-none">+</span> Add</ControlButton
+                >
             </slot>
         </div>
         <div v-if="fieldProps?.length">
@@ -88,7 +89,7 @@ const theme = useTheme("FieldSetMany", props);
                             <!-- @slot [destroy] Override the delete button for a row. -->
                             <slot name="destroy" @click="onDestroy(index)">
                                 <ControlButton variant="ghost" size="icon-sm" @click="onDestroy(index)">
-                                    <X />
+                                    <span aria-hidden="true" class="select-none">✕</span>
                                     <span class="sr-only">Remove entry</span>
                                 </ControlButton>
                             </slot>
