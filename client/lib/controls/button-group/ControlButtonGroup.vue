@@ -1,6 +1,6 @@
 <script setup>
-import { buttonGroupVariants } from ".";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { reactive, toRef } from "vue";
 
 /**
  * A container that groups related buttons into a single visual unit.
@@ -9,11 +9,20 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the group container. */
     class: { type: [String, Array, Object], default: undefined },
     /** The layout direction of the group. */
     orientation: { type: String, default: undefined },
 });
+
+const theme = useTheme(
+    "ControlButtonGroup",
+    props,
+    reactive({
+        orientation: toRef(props, "orientation"),
+    }),
+);
 </script>
 
 <template>
@@ -21,7 +30,7 @@ const props = defineProps({
         role="group"
         data-slot="button-group"
         :data-orientation="props.orientation"
-        :class="cn(buttonGroupVariants({ orientation: props.orientation }), props.class)"
+        :class="[theme('root'), props.class]"
     >
         <slot />
     </div>

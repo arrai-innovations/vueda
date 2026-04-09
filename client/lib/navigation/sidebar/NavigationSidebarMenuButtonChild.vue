@@ -1,7 +1,7 @@
 <script setup>
-import { sidebarMenuButtonVariants } from "./index.js";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Primitive } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
  * Internal primitive element for NavigationSidebarMenuButton.
@@ -9,6 +9,7 @@ import { Primitive } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The element or component to render as. */
@@ -22,6 +23,15 @@ const props = defineProps({
     /** Whether the button represents the current active item. */
     isActive: { type: Boolean, default: false },
 });
+
+const theme = useTheme(
+    "NavigationSidebarMenuButtonChild",
+    props,
+    reactive({
+        variant: toRef(props, "variant"),
+        size: toRef(props, "size"),
+    }),
+);
 </script>
 
 <template>
@@ -30,7 +40,7 @@ const props = defineProps({
         data-sidebar="menu-button"
         :data-size="size"
         :data-active="isActive"
-        :class="cn(sidebarMenuButtonVariants({ variant, size }), props.class)"
+        :class="[theme('root'), props.class]"
         :as="as"
         :as-child="asChild"
         v-bind="$attrs"

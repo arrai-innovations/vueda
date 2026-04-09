@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { SelectLabel } from "reka-ui";
 
 /**
@@ -8,6 +8,7 @@ import { SelectLabel } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The HTML element or component to render as. */
@@ -15,15 +16,12 @@ const props = defineProps({
     /** Whether to render as a child element. */
     asChild: { type: Boolean, default: undefined },
 });
+
+const theme = useTheme("ControlSelectLabel", props);
 </script>
 
 <template>
-    <SelectLabel
-        data-slot="select-label"
-        :as="as"
-        :as-child="asChild"
-        :class="cn('text-muted-foreground px-2 py-1.5 text-xs', props.class)"
-    >
+    <SelectLabel data-slot="select-label" :as="as" :as-child="asChild" :class="[theme('root'), props.class]">
         <slot />
     </SelectLabel>
 </template>

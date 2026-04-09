@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { TabsList } from "reka-ui";
 
@@ -9,6 +9,7 @@ import { TabsList } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The reading direction. */
@@ -21,20 +22,12 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const theme = useTheme("ShellTabsList", props);
 </script>
 
 <template>
-    <TabsList
-        data-slot="tabs-list"
-        v-bind="delegatedProps"
-        :class="
-            cn(
-                'bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]',
-                props.class,
-            )
-        "
-    >
+    <TabsList data-slot="tabs-list" v-bind="delegatedProps" :class="[theme('root'), props.class]">
         <slot />
     </TabsList>
 </template>

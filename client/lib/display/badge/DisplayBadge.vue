@@ -1,16 +1,17 @@
 <script setup>
-import { badgeVariants } from ".";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { Primitive } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
- * A badge component built on Reka UI's Primitive, supporting variant styles via cva.
+ * A badge component built on Reka UI's Primitive, supporting variant styles.
  */
 defineOptions({});
 
 const props = defineProps({
-    /** @type {import('.').BadgeVariants['variant']} */
+    ...THEME_OVERRIDE_PROPS,
+    /** @type {('default'|'secondary'|'destructive'|'outline')} */
     variant: { type: String, default: undefined },
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
@@ -20,11 +21,13 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+
+const theme = useTheme("DisplayBadge", props, reactive({ variant: toRef(props, "variant") }));
 </script>
 
 <template>
-    <Primitive data-slot="badge" :class="cn(badgeVariants({ variant }), props.class)" v-bind="delegatedProps">
+    <Primitive data-slot="badge" :class="[theme('root'), props.class]" v-bind="delegatedProps">
         <slot />
     </Primitive>
 </template>

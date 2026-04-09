@@ -1,20 +1,21 @@
 <script setup>
-import { toggleVariants } from ".";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { Toggle, useForwardPropsEmits } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
- * A toggle button built on Reka UI's Toggle, supporting variant and size styles via cva.
+ * A toggle button built on Reka UI's Toggle, supporting variant and size styles via the theme system.
  */
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
-    /** @type {import('.').ToggleVariants['variant']} */
+    /** @type {'default' | 'outline'} */
     variant: { type: String, default: "default" },
-    /** @type {import('.').ToggleVariants['size']} */
+    /** @type {'default' | 'sm' | 'lg'} */
     size: { type: String, default: "default" },
     /** Whether the toggle is pressed. */
     pressed: { type: Boolean, default: undefined },
@@ -30,17 +31,21 @@ const props = defineProps({
 
 const emits = defineEmits(["update:pressed"]);
 
-const delegatedProps = reactiveOmit(props, "class", "size", "variant");
+const delegatedProps = reactiveOmit(props, "class", "size", "variant", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme(
+    "ControlToggle",
+    props,
+    reactive({
+        variant: toRef(props, "variant"),
+        size: toRef(props, "size"),
+    }),
+);
 </script>
 
 <template>
-    <Toggle
-        v-slot="slotProps"
-        data-slot="toggle"
-        v-bind="forwarded"
-        :class="cn(toggleVariants({ variant, size }), props.class)"
-    >
+    <Toggle v-slot="slotProps" data-slot="toggle" v-bind="forwarded" :class="[theme('root'), props.class]">
         <slot v-bind="slotProps" />
     </Toggle>
 </template>

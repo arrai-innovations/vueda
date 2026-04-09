@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * The header section of the sidebar.
@@ -7,13 +7,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("NavigationSidebarHeader", props);
 </script>
 
 <template>
-    <div data-slot="sidebar-header" data-sidebar="header" :class="cn('flex flex-col gap-2 p-2', props.class)">
+    <div data-slot="sidebar-header" data-sidebar="header" :class="[theme('root'), props.class]">
         <slot />
     </div>
 </template>

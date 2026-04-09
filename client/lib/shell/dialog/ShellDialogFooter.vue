@@ -1,6 +1,6 @@
 <script setup>
 import { ControlButton } from "@vueda/controls/button";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { DialogClose } from "reka-ui";
 
 /**
@@ -9,15 +9,18 @@ import { DialogClose } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** Whether to show a built-in close button. */
     showCloseButton: { type: Boolean, default: false },
 });
+
+const theme = useTheme("ShellDialogFooter", props);
 </script>
 
 <template>
-    <div data-slot="dialog-footer" :class="cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', props.class)">
+    <div data-slot="dialog-footer" :class="[theme('root'), props.class]">
         <slot />
         <DialogClose v-if="showCloseButton" as-child>
             <ControlButton variant="outline"> Close </ControlButton>

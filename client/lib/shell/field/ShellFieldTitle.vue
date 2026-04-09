@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A non-interactive label-styled div for titling a field when a semantic label
@@ -8,21 +8,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ShellFieldTitle", props);
 </script>
 
 <template>
-    <div
-        data-slot="field-label"
-        :class="
-            cn(
-                'flex w-fit items-center gap-2 text-sm leading-snug font-medium group-data-[disabled=true]/field:opacity-50',
-                props.class,
-            )
-        "
-    >
+    <div data-slot="field-label" :class="[theme('root'), props.class]">
         <slot />
     </div>
 </template>

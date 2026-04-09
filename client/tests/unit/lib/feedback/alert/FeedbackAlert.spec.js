@@ -3,24 +3,8 @@ import { mount } from "@vue/test-utils";
 import FeedbackAlert from "@vueda/feedback/alert/FeedbackAlert.vue";
 import FeedbackAlertDescription from "@vueda/feedback/alert/FeedbackAlertDescription.vue";
 import FeedbackAlertTitle from "@vueda/feedback/alert/FeedbackAlertTitle.vue";
-import { alertVariants } from "@vueda/feedback/alert/index.js";
 
 describe("lib/feedback/alert/FeedbackAlert.vue", () => {
-    describe("alertVariants", () => {
-        it("applies default variant classes when called with no arguments", () => {
-            const cls = alertVariants({});
-            expect(cls).toContain("bg-card");
-            expect(cls).toContain("text-card-foreground");
-        });
-
-        it.each([
-            ["default", "bg-card"],
-            ["destructive", "text-destructive"],
-        ])("variant %s includes a distinguishing class", (variant, marker) => {
-            expect(alertVariants({ variant })).toContain(marker);
-        });
-    });
-
     describe("FeedbackAlert", () => {
         scopedIt("renders as a <div>", () => {
             const wrapper = mount(FeedbackAlert);

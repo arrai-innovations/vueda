@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A relative-positioned wrapper that manages padding around a NumberField input
@@ -8,21 +8,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ControlNumberFieldContent", props);
 </script>
 
 <template>
-    <div
-        data-slot="number-field-content"
-        :class="
-            cn(
-                'relative [&>[data-slot=input]]:has-[[data-slot=increment]]:pr-5 [&>[data-slot=input]]:has-[[data-slot=decrement]]:pl-5',
-                props.class,
-            )
-        "
-    >
+    <div data-slot="number-field-content" :class="[theme('root'), props.class]">
         <slot />
     </div>
 </template>

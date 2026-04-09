@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { CalendarHeadCell } from "reka-ui";
 
 /**
@@ -10,17 +10,16 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the head cell. */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ControlCalendarHeadCell", props);
 </script>
 
 <template>
-    <CalendarHeadCell
-        data-slot="calendar-head-cell"
-        :class="cn('text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem]', props.class)"
-        v-bind="$attrs"
-    >
+    <CalendarHeadCell data-slot="calendar-head-cell" :class="[theme('root'), props.class]" v-bind="$attrs">
         <slot />
     </CalendarHeadCell>
 </template>

@@ -1,6 +1,6 @@
 <script setup>
 import { ShellSeparator } from "@vueda/shell/separator";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A horizontal separator rule used to divide sections within a ShellItem or ShellItemGroup.
@@ -8,11 +8,14 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the separator. */
     class: { type: [String, Array, Object], default: undefined },
     /** Whether the separator is purely decorative (hidden from assistive tech). */
     decorative: { type: Boolean, default: undefined },
 });
+
+const theme = useTheme("ShellItemSeparator", props);
 </script>
 
 <template>
@@ -20,6 +23,6 @@ const props = defineProps({
         data-slot="item-separator"
         orientation="horizontal"
         :decorative="props.decorative"
-        :class="cn('my-0', props.class)"
+        :class="[theme('root'), props.class]"
     />
 </template>

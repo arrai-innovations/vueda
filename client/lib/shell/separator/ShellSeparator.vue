@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { Separator } from "reka-ui";
 
@@ -9,6 +9,7 @@ import { Separator } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The orientation of the separator. */
@@ -21,18 +22,10 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const theme = useTheme("ShellSeparator", props);
 </script>
 
 <template>
-    <Separator
-        data-slot="separator"
-        v-bind="delegatedProps"
-        :class="
-            cn(
-                'bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px',
-                props.class,
-            )
-        "
-    />
+    <Separator data-slot="separator" v-bind="delegatedProps" :class="[theme('root'), props.class]" />
 </template>

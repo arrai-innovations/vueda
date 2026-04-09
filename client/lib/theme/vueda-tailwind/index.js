@@ -4,6 +4,7 @@
  */
 import controls from "@vueda/theme/vueda-tailwind/controls/index.js";
 import display from "@vueda/theme/vueda-tailwind/display/index.js";
+import feedback from "@vueda/theme/vueda-tailwind/feedback/index.js";
 import form from "@vueda/theme/vueda-tailwind/form/index.js";
 import navigation from "@vueda/theme/vueda-tailwind/navigation/index.js";
 import objectsGrid from "@vueda/theme/vueda-tailwind/objects-grid/index.js";
@@ -20,6 +21,7 @@ export default {
     ...widgets,
     ...views,
     ...display,
+    ...feedback,
     PaginationComponent: {
         root: {
             class: "flex flex-col sm:flex-row justify-between sm:justify-between items-center gap-2",

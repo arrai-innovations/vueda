@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * The main content area adjacent to an inset-variant sidebar.
@@ -7,22 +7,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("NavigationSidebarInset", props);
 </script>
 
 <template>
-    <main
-        data-slot="sidebar-inset"
-        :class="
-            cn(
-                'bg-background relative flex w-full flex-1 flex-col',
-                'md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2',
-                props.class,
-            )
-        "
-    >
+    <main data-slot="sidebar-inset" :class="[theme('root'), props.class]">
         <slot />
     </main>
 </template>

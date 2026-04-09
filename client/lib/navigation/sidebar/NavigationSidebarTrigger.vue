@@ -1,7 +1,7 @@
 <script setup>
 import { useSidebar } from "./utils.js";
 import { ControlButton } from "@vueda/controls/button";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { PanelLeft } from "lucide-vue-next";
 
 /**
@@ -10,10 +10,12 @@ import { PanelLeft } from "lucide-vue-next";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
 
+const theme = useTheme("NavigationSidebarTrigger", props);
 const { toggleSidebar } = useSidebar();
 </script>
 
@@ -23,7 +25,7 @@ const { toggleSidebar } = useSidebar();
         data-slot="sidebar-trigger"
         variant="ghost"
         size="icon"
-        :class="cn('h-7 w-7', props.class)"
+        :class="[theme('root'), props.class]"
         @click="toggleSidebar"
     >
         <PanelLeft />

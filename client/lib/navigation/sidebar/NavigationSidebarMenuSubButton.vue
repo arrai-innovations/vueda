@@ -1,6 +1,7 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Primitive } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
  * An interactive button inside a sidebar sub-menu.
@@ -8,6 +9,7 @@ import { Primitive } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The element or component to render as. */
@@ -19,6 +21,8 @@ const props = defineProps({
     /** Whether this sub-button represents the current active item. */
     isActive: { type: Boolean, default: false },
 });
+
+const theme = useTheme("NavigationSidebarMenuSubButton", props, reactive({ size: toRef(props, "size") }));
 </script>
 
 <template>
@@ -29,16 +33,7 @@ const props = defineProps({
         :as-child="asChild"
         :data-size="size"
         :data-active="isActive"
-        :class="
-            cn(
-                'text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 outline-hidden focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
-                'data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground',
-                size === 'sm' && 'text-xs',
-                size === 'md' && 'text-sm',
-                'group-data-[collapsible=icon]:hidden',
-                props.class,
-            )
-        "
+        :class="[theme('root'), props.class]"
     >
         <slot />
     </Primitive>

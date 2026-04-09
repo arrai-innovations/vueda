@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { Check } from "lucide-vue-next";
 import { SelectItem, SelectItemIndicator, SelectItemText, useForwardProps } from "reka-ui";
@@ -10,6 +10,7 @@ import { SelectItem, SelectItemIndicator, SelectItemText, useForwardProps } from
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The value submitted with the form. */
@@ -24,22 +25,15 @@ const props = defineProps({
     asChild: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwardedProps = useForwardProps(delegatedProps);
+
+const theme = useTheme("ControlSelectItem", props);
 </script>
 
 <template>
-    <SelectItem
-        data-slot="select-item"
-        v-bind="forwardedProps"
-        :class="
-            cn(
-                'focus:bg-accent focus:text-accent-foreground [&_svg:not([class*=\'text-\'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2',
-                props.class,
-            )
-        "
-    >
+    <SelectItem data-slot="select-item" v-bind="forwardedProps" :class="[theme('root'), props.class]">
         <span class="absolute right-2 flex size-3.5 items-center justify-center">
             <SelectItemIndicator>
                 <slot name="indicator-icon">

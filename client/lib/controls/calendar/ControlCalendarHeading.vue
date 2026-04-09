@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { CalendarHeading, useForwardProps } from "reka-ui";
 
@@ -10,12 +10,15 @@ import { CalendarHeading, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the heading. */
     class: { type: [String, Array, Object], default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwardedProps = useForwardProps(delegatedProps);
+
+const theme = useTheme("ControlCalendarHeading", props);
 </script>
 
 <template>
@@ -23,7 +26,7 @@ const forwardedProps = useForwardProps(delegatedProps);
         v-slot="{ headingValue }"
         data-slot="calendar-heading"
         v-bind="forwardedProps"
-        :class="cn('text-sm font-medium', props.class)"
+        :class="[theme('root'), props.class]"
     >
         <slot :heading-value="headingValue">
             {{ headingValue }}

@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { DialogDescription, useForwardProps } from "reka-ui";
 
@@ -9,6 +9,7 @@ import { DialogDescription, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The element or component to render as. */
@@ -17,17 +18,14 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwardedProps = useForwardProps(delegatedProps);
+const theme = useTheme("ShellDialogDescription", props);
 </script>
 
 <template>
-    <DialogDescription
-        data-slot="dialog-description"
-        v-bind="forwardedProps"
-        :class="cn('text-muted-foreground text-sm', props.class)"
-    >
+    <DialogDescription data-slot="dialog-description" v-bind="forwardedProps" :class="[theme('root'), props.class]">
         <slot />
     </DialogDescription>
 </template>

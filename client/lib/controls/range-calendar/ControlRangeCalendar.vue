@@ -12,7 +12,7 @@ import {
     ControlRangeCalendarNextButton,
     ControlRangeCalendarPrevButton,
 } from ".";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { RangeCalendarRoot, useForwardPropsEmits } from "reka-ui";
 
@@ -23,6 +23,7 @@ import { RangeCalendarRoot, useForwardPropsEmits } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the calendar root. */
     class: { type: [String, Array, Object], default: undefined },
     /** The currently selected date range (use with v-model). */
@@ -73,16 +74,18 @@ const props = defineProps({
 
 const emits = defineEmits(["update:modelValue", "update:placeholder"]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlRangeCalendar", props);
 </script>
 
 <template>
     <RangeCalendarRoot
         v-slot="{ grid, weekDays }"
         data-slot="range-calendar"
-        :class="cn('p-3', props.class)"
+        :class="[theme('root'), props.class]"
         v-bind="forwarded"
     >
         <ControlRangeCalendarHeader>

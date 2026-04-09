@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * The description element inside an Alert component.
@@ -7,21 +7,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("FeedbackAlertDescription", props);
 </script>
 
 <template>
-    <div
-        data-slot="alert-description"
-        :class="
-            cn(
-                'text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed',
-                props.class,
-            )
-        "
-    >
+    <div data-slot="alert-description" :class="[theme('root'), props.class]">
         <slot />
     </div>
 </template>

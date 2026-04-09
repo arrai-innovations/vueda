@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { useForwardProps } from "reka-ui";
 import { computed } from "vue";
@@ -11,15 +11,18 @@ import { useVueOTPContext } from "vue-input-otp";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** The zero-based index of this slot within the OTP input. */
     index: { type: Number, required: true },
     /** Additional CSS classes to apply to the slot element. */
     class: { type: [String, Array, Object], default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwarded = useForwardProps(delegatedProps);
+
+const theme = useTheme("ControlInputOTPSlot", props);
 
 const context = useVueOTPContext();
 
@@ -31,12 +34,7 @@ const slot = computed(() => context?.value.slots[props.index]);
         v-bind="forwarded"
         data-slot="input-otp-slot"
         :data-active="slot?.isActive"
-        :class="
-            cn(
-                'data-[active=true]:border-ring data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:ring-destructive/20 dark:data-[active=true]:aria-invalid:ring-destructive/40 aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive dark:bg-input/30 border-input relative flex h-9 w-9 items-center justify-center border-y border-r text-sm shadow-xs transition-all outline-none first:rounded-l-md first:border-l last:rounded-r-md data-[active=true]:z-10 data-[active=true]:ring-[3px]',
-                props.class,
-            )
-        "
+        :class="[theme('root'), props.class]"
     >
         {{ slot?.char }}
         <div v-if="slot?.hasFakeCaret" class="pointer-events-none absolute inset-0 flex items-center justify-center">

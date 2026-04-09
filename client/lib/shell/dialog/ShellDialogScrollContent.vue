@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { X } from "lucide-vue-next";
 import { DialogClose, DialogContent, DialogOverlay, DialogPortal, useForwardPropsEmits } from "reka-ui";
@@ -12,6 +12,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** Whether to trap focus inside the content. */
@@ -28,23 +29,17 @@ const emits = defineEmits([
     "interactOutside",
 ]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const theme = useTheme("ShellDialogScrollContent", props);
 </script>
 
 <template>
     <DialogPortal>
-        <DialogOverlay
-            class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-        >
+        <DialogOverlay :class="theme('overlay')">
             <DialogContent
-                :class="
-                    cn(
-                        'relative z-50 grid w-full max-w-lg my-8 gap-4 border border-border bg-background p-6 shadow-lg duration-200 sm:rounded-lg md:w-full',
-                        props.class,
-                    )
-                "
+                :class="[theme('root'), props.class]"
                 v-bind="{ ...$attrs, ...forwarded }"
                 @pointer-down-outside="
                     (event) => {
@@ -58,7 +53,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
             >
                 <slot />
 
-                <DialogClose class="absolute top-4 right-4 p-0.5 transition-colors rounded-md hover:bg-secondary">
+                <DialogClose :class="theme('close')">
                     <X class="w-4 h-4" />
                     <span class="sr-only">Close</span>
                 </DialogClose>

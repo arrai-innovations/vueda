@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A paragraph that provides supplementary context for a field,
@@ -8,23 +8,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ShellFieldDescription", props);
 </script>
 
 <template>
-    <p
-        data-slot="field-description"
-        :class="
-            cn(
-                'text-muted-foreground text-sm leading-normal font-normal group-has-[[data-orientation=horizontal]]/field:text-balance',
-                'last:mt-0 nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5',
-                '[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4',
-                props.class,
-            )
-        "
-    >
+    <p data-slot="field-description" :class="[theme('root'), props.class]">
         <slot />
     </p>
 </template>

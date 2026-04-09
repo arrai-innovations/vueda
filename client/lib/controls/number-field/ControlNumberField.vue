@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { NumberFieldRoot, useForwardPropsEmits } from "reka-ui";
 
@@ -10,6 +10,7 @@ import { NumberFieldRoot, useForwardPropsEmits } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The controlled numeric value. */
@@ -52,8 +53,10 @@ const props = defineProps({
 
 const emits = defineEmits(["update:modelValue"]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlNumberField", props);
 </script>
 
 <template>
@@ -61,7 +64,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         v-slot="slotProps"
         data-slot="number-field"
         v-bind="forwarded"
-        :class="cn('grid gap-1.5', props.class)"
+        :class="[theme('root'), props.class]"
     >
         <slot v-bind="slotProps" />
     </NumberFieldRoot>

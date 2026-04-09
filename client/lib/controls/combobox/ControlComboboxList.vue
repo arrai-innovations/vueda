@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ComboboxContent, ComboboxPortal, useForwardPropsEmits } from "reka-ui";
 
@@ -11,6 +11,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /**
@@ -27,8 +28,10 @@ const props = defineProps({
 });
 const emits = defineEmits(["escapeKeyDown", "pointerDownOutside", "closeAutoFocus"]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlComboboxList", props);
 </script>
 
 <template>
@@ -36,12 +39,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         <ComboboxContent
             data-slot="combobox-list"
             v-bind="{ ...$attrs, ...forwarded }"
-            :class="
-                cn(
-                    'z-50 w-[200px] rounded-md border bg-popover text-popover-foreground origin-(--reka-combobox-content-transform-origin) overflow-hidden shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-                    props.class,
-                )
-            "
+            :class="[theme('root'), props.class]"
         >
             <slot />
         </ComboboxContent>

@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { CalendarHeader } from "reka-ui";
 
 /**
@@ -10,17 +10,16 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the header. */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ControlCalendarHeader", props);
 </script>
 
 <template>
-    <CalendarHeader
-        data-slot="calendar-header"
-        :class="cn('flex justify-center pt-1 relative items-center w-full px-8', props.class)"
-        v-bind="$attrs"
-    >
+    <CalendarHeader data-slot="calendar-header" :class="[theme('root'), props.class]" v-bind="$attrs">
         <slot />
     </CalendarHeader>
 </template>

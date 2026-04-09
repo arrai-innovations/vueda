@@ -1,7 +1,7 @@
 <script setup>
-import { itemVariants } from ".";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Primitive } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
  * A flexible list item container that supports visual variants and sizes.
@@ -10,6 +10,7 @@ import { Primitive } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the item. */
     class: { type: [String, Array, Object], default: undefined },
     /** The HTML element or component to render as. */
@@ -21,6 +22,8 @@ const props = defineProps({
     /** The size preset of the item. */
     size: { type: String, default: undefined },
 });
+
+const theme = useTheme("ShellItem", props, reactive({ variant: toRef(props, "variant"), size: toRef(props, "size") }));
 </script>
 
 <template>
@@ -30,7 +33,7 @@ const props = defineProps({
         :data-size="size"
         :as="as"
         :as-child="asChild"
-        :class="cn(itemVariants({ variant, size }), props.class)"
+        :class="[theme('root'), props.class]"
     >
         <slot />
     </Primitive>

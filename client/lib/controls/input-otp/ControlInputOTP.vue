@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { useForwardPropsEmits } from "reka-ui";
 import { OTPInput } from "vue-input-otp";
@@ -10,6 +10,7 @@ import { OTPInput } from "vue-input-otp";
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the container element. */
     class: { type: [String, Array, Object], default: undefined },
     /** The controlled value (used with v-model). */
@@ -45,16 +46,18 @@ const emits = defineEmits([
     "paste",
 ]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlInputOTP", props);
 </script>
 
 <template>
     <OTPInput
         v-slot="slotProps"
         v-bind="{ ...forwarded, ...$attrs }"
-        :container-class="cn('flex items-center gap-2 has-disabled:opacity-50', props.class)"
+        :container-class="[theme('root'), props.class]"
         data-slot="input-otp"
         class="disabled:cursor-not-allowed"
     >

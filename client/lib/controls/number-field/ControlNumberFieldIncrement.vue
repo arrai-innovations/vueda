@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { Plus } from "lucide-vue-next";
 import { NumberFieldIncrement, useForwardProps } from "reka-ui";
@@ -11,6 +11,7 @@ import { NumberFieldIncrement, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** When true, disables the increment button. */
@@ -21,21 +22,14 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardProps(delegatedProps);
+
+const theme = useTheme("ControlNumberFieldIncrement", props);
 </script>
 
 <template>
-    <NumberFieldIncrement
-        data-slot="increment"
-        v-bind="forwarded"
-        :class="
-            cn(
-                'absolute top-1/2 -translate-y-1/2 right-0 disabled:cursor-not-allowed disabled:opacity-20 p-3',
-                props.class,
-            )
-        "
-    >
+    <NumberFieldIncrement data-slot="increment" v-bind="forwarded" :class="[theme('root'), props.class]">
         <slot>
             <Plus class="h-4 w-4" />
         </slot>

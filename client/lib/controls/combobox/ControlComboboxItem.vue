@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ComboboxItem, useForwardPropsEmits } from "reka-ui";
 
@@ -9,6 +9,7 @@ import { ComboboxItem, useForwardPropsEmits } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The value submitted with the form. */
@@ -24,22 +25,15 @@ const props = defineProps({
 });
 const emits = defineEmits(["select"]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlComboboxItem", props);
 </script>
 
 <template>
-    <ComboboxItem
-        data-slot="combobox-item"
-        v-bind="forwarded"
-        :class="
-            cn(
-                'data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg:not([class*=\'text-\'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4',
-                props.class,
-            )
-        "
-    >
+    <ComboboxItem data-slot="combobox-item" v-bind="forwarded" :class="[theme('root'), props.class]">
         <slot />
     </ComboboxItem>
 </template>

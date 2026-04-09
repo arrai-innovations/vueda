@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { SelectSeparator } from "reka-ui";
 
@@ -9,6 +9,7 @@ import { SelectSeparator } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The HTML element or component to render as. */
@@ -19,13 +20,11 @@ const props = defineProps({
     decorative: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+
+const theme = useTheme("ControlSelectSeparator", props);
 </script>
 
 <template>
-    <SelectSeparator
-        data-slot="select-separator"
-        v-bind="delegatedProps"
-        :class="cn('bg-border pointer-events-none -mx-1 my-1 h-px', props.class)"
-    />
+    <SelectSeparator data-slot="select-separator" v-bind="delegatedProps" :class="[theme('root'), props.class]" />
 </template>

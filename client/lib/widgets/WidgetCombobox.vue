@@ -14,8 +14,8 @@ import {
     ControlComboboxVirtualizer,
 } from "@vueda/controls/combobox";
 import { useComboboxSearch } from "@vueda/use/useComboboxSearch.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
-import { cn } from "@vueda/utils/cn.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { CheckIcon, ChevronDownIcon } from "lucide-vue-next";
 import { useFilter } from "reka-ui";
@@ -34,6 +34,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     ...WIDGET_PROPS,
     /** Static option array. When provided, filtering is handled client-side via useFilter. */
     options: { type: Array, default: undefined },
@@ -175,16 +176,7 @@ const handleOpenChange = (open) => {
     }
 };
 
-const triggerClass = cn(
-    "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground",
-    "focus-visible:border-ring focus-visible:ring-ring/50",
-    "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-    "dark:bg-input/30 dark:hover:bg-input/50",
-    "flex w-full h-9 items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm",
-    "whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none",
-    "focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
-    "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-);
+const theme = useTheme("WidgetCombobox", props);
 </script>
 <template>
     <template v-if="props.readonly">
@@ -214,7 +206,7 @@ const triggerClass = cn(
                 :id="fieldContext?.state.fieldId"
                 :aria-invalid="widgetContext.state.validationState.invalid || undefined"
                 :aria-required="widgetContext.state.required || undefined"
-                :class="triggerClass"
+                :class="theme('trigger')"
                 data-qa="widget-combobox"
                 @blur="widgetContext.blur"
                 @focus="widgetContext.focus"

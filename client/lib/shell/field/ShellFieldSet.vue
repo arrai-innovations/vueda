@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A semantic fieldset that groups related form controls with consistent vertical spacing,
@@ -8,22 +8,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ShellFieldSet", props);
 </script>
 
 <template>
-    <fieldset
-        data-slot="field-set"
-        :class="
-            cn(
-                'flex flex-col gap-6',
-                'has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3',
-                props.class,
-            )
-        "
-    >
+    <fieldset data-slot="field-set" :class="[theme('root'), props.class]">
         <slot />
     </fieldset>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A flex column container that groups related controls within a field,
@@ -8,16 +8,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ShellFieldContent", props);
 </script>
 
 <template>
-    <div
-        data-slot="field-content"
-        :class="cn('group/field-content flex flex-1 flex-col gap-1.5 leading-snug', props.class)"
-    >
+    <div data-slot="field-content" :class="[theme('root'), props.class]">
         <slot />
     </div>
 </template>

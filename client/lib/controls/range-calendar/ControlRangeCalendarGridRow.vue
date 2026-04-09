@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { RangeCalendarGridRow } from "reka-ui";
 
 /**
@@ -10,13 +10,16 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the grid row. */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ControlRangeCalendarGridRow", props);
 </script>
 
 <template>
-    <RangeCalendarGridRow data-slot="range-calendar-grid-row" :class="cn('flex', props.class)" v-bind="$attrs">
+    <RangeCalendarGridRow data-slot="range-calendar-grid-row" :class="[theme('root'), props.class]" v-bind="$attrs">
         <slot />
     </RangeCalendarGridRow>
 </template>

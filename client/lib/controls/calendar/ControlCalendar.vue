@@ -14,7 +14,7 @@ import {
 } from ".";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { ControlNativeSelect, ControlNativeSelectOption } from "@vueda/controls/native-select";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { createReusableTemplate, reactiveOmit, useVModel } from "@vueuse/core";
 import { CalendarRoot, useDateFormatter, useForwardPropsEmits } from "reka-ui";
 import { createYear, createYearRange, toDate } from "reka-ui/date";
@@ -27,6 +27,7 @@ import { computed, toRaw } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the calendar root. */
     class: { type: [String, Array, Object], default: undefined },
     /** The heading layout style: "month-and-year", "month-only", "year-only", or default heading. */
@@ -75,7 +76,9 @@ const props = defineProps({
 
 const emits = defineEmits(["update:modelValue", "update:placeholder"]);
 
-const delegatedProps = reactiveOmit(props, "class", "layout", "placeholder");
+const delegatedProps = reactiveOmit(props, "class", "layout", "placeholder", "themeOverride");
+
+const theme = useTheme("ControlCalendar", props);
 
 const placeholder = useVModel(props, "placeholder", emits, {
     passive: true,
@@ -169,7 +172,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         v-bind="forwarded"
         v-model:placeholder="placeholder"
         data-slot="calendar"
-        :class="cn('p-3', props.class)"
+        :class="[theme('root'), props.class]"
     >
         <ControlCalendarHeader class="pt-0">
             <nav class="flex items-center gap-1 absolute top-0 inset-x-0 justify-between">

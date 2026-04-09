@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A single item within a sidebar sub-menu list.
@@ -7,17 +7,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("NavigationSidebarMenuSubItem", props);
 </script>
 
 <template>
-    <li
-        data-slot="sidebar-menu-sub-item"
-        data-sidebar="menu-sub-item"
-        :class="cn('group/menu-sub-item relative', props.class)"
-    >
+    <li data-slot="sidebar-menu-sub-item" data-sidebar="menu-sub-item" :class="[theme('root'), props.class]">
         <slot />
     </li>
 </template>

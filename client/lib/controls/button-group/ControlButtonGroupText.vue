@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Primitive } from "reka-ui";
 
 /**
@@ -9,6 +9,7 @@ import { Primitive } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the element. */
     class: { type: [String, Array, Object], default: undefined },
     /** The HTML element or component to render as. */
@@ -18,6 +19,8 @@ const props = defineProps({
     /** The layout direction of the parent button group. */
     orientation: { type: String, default: undefined },
 });
+
+const theme = useTheme("ControlButtonGroupText", props);
 </script>
 
 <template>
@@ -27,12 +30,7 @@ const props = defineProps({
         :data-orientation="props.orientation"
         :as="as"
         :as-child="asChild"
-        :class="
-            cn(
-                'bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium shadow-xs [&_svg]:pointer-events-none [&_svg:not([class*=\'size-\'])]:size-4',
-                props.class,
-            )
-        "
+        :class="[theme('root'), props.class]"
     >
         <slot />
     </Primitive>

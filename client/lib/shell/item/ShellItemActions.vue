@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A row of action controls (e.g. buttons) aligned at the end of a ShellItem.
@@ -7,13 +7,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the actions container. */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ShellItemActions", props);
 </script>
 
 <template>
-    <div data-slot="item-actions" :class="cn('flex items-center gap-2', props.class)">
+    <div data-slot="item-actions" :class="[theme('root'), props.class]">
         <slot />
     </div>
 </template>

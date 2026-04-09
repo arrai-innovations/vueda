@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { PaginationRoot, useForwardPropsEmits } from "reka-ui";
 
@@ -9,6 +9,7 @@ import { PaginationRoot, useForwardPropsEmits } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The total number of pages. */
@@ -28,17 +29,13 @@ const props = defineProps({
 });
 const emits = defineEmits(["update:page"]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const theme = useTheme("NavigationPagination", props);
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-    <PaginationRoot
-        v-slot="slotProps"
-        data-slot="pagination"
-        v-bind="forwarded"
-        :class="cn('mx-auto flex w-full justify-center', props.class)"
-    >
+    <PaginationRoot v-slot="slotProps" data-slot="pagination" v-bind="forwarded" :class="[theme('root'), props.class]">
         <slot v-bind="slotProps" />
     </PaginationRoot>
 </template>

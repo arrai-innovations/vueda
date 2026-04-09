@@ -1,7 +1,7 @@
 <script setup>
-import { inputGroupButtonVariants } from ".";
 import { ControlButton } from "@vueda/controls/button";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { reactive, toRef } from "vue";
 
 /**
  * A sized button variant designed for inline placement within an input group.
@@ -9,6 +9,7 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** The button style variant. */
     variant: { type: String, default: "ghost" },
     /** The size variant for the button within the input group. */
@@ -16,14 +17,18 @@ const props = defineProps({
     /** Additional CSS classes to apply to the button. */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme(
+    "ControlInputGroupButton",
+    props,
+    reactive({
+        size: toRef(props, "size"),
+    }),
+);
 </script>
 
 <template>
-    <ControlButton
-        :data-size="props.size"
-        :variant="props.variant"
-        :class="cn(inputGroupButtonVariants({ size: props.size }), props.class)"
-    >
+    <ControlButton :data-size="props.size" :variant="props.variant" :class="[theme('root'), props.class]">
         <slot />
     </ControlButton>
 </template>

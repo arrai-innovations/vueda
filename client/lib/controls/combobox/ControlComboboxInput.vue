@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { SearchIcon } from "lucide-vue-next";
 import { ComboboxInput, useForwardPropsEmits } from "reka-ui";
@@ -12,6 +12,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The controlled search value. Can be bound with v-model. */
@@ -29,9 +30,11 @@ const props = defineProps({
 });
 const emits = defineEmits(["update:modelValue"]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlComboboxInput", props);
 </script>
 
 <template>
@@ -39,12 +42,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         <SearchIcon class="size-4 shrink-0 opacity-50" />
         <ComboboxInput
             data-slot="combobox-input"
-            :class="
-                cn(
-                    'placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
-                    props.class,
-                )
-            "
+            :class="[theme('root'), props.class]"
             v-bind="{ ...$attrs, ...forwarded }"
         >
             <slot />

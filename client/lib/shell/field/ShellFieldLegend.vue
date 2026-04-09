@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A fieldset legend styled as either a section heading or a field label,
@@ -8,19 +8,18 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** Controls text size: "legend" renders at base size, "label" renders at sm size. */
     variant: { type: String, default: undefined },
 });
+
+const theme = useTheme("ShellFieldLegend", props);
 </script>
 
 <template>
-    <legend
-        data-slot="field-legend"
-        :data-variant="variant"
-        :class="cn('mb-3 font-medium', 'data-[variant=legend]:text-base', 'data-[variant=label]:text-sm', props.class)"
-    >
+    <legend data-slot="field-legend" :data-variant="variant" :class="[theme('root'), props.class]">
         <slot />
     </legend>
 </template>

@@ -10,50 +10,9 @@ import ShellItemHeader from "@vueda/shell/item/ShellItemHeader.vue";
 import ShellItemMedia from "@vueda/shell/item/ShellItemMedia.vue";
 import ShellItemSeparator from "@vueda/shell/item/ShellItemSeparator.vue";
 import ShellItemTitle from "@vueda/shell/item/ShellItemTitle.vue";
-import { itemMediaVariants, itemVariants } from "@vueda/shell/item/index.js";
 import { h } from "vue";
 
 describe("lib/shell/item/ShellItem.vue", () => {
-    describe("itemVariants", () => {
-        it("applies default variant and size classes when called with no arguments", () => {
-            const cls = itemVariants({});
-            expect(cls).toContain("flex");
-            expect(cls).toContain("items-center");
-            expect(cls).toContain("p-4");
-        });
-
-        it.each([
-            ["default", "bg-transparent"],
-            ["outline", "border-border"],
-            ["muted", "bg-muted/50"],
-        ])("variant %s includes a distinguishing class", (variant, marker) => {
-            expect(itemVariants({ variant })).toContain(marker);
-        });
-
-        it.each([
-            ["default", "p-4"],
-            ["sm", "py-3"],
-        ])("size %s includes a distinguishing class", (size, marker) => {
-            expect(itemVariants({ size })).toContain(marker);
-        });
-    });
-
-    describe("itemMediaVariants", () => {
-        it("applies base flex and shrink classes by default", () => {
-            const cls = itemMediaVariants({});
-            expect(cls).toContain("flex");
-            expect(cls).toContain("shrink-0");
-        });
-
-        it.each([
-            ["default", "bg-transparent"],
-            ["icon", "size-8"],
-            ["image", "size-10"],
-        ])("variant %s includes a distinguishing class", (variant, marker) => {
-            expect(itemMediaVariants({ variant })).toContain(marker);
-        });
-    });
-
     describe("ShellItem", () => {
         scopedIt("has data-slot=item", () => {
             const wrapper = mount(ShellItem);

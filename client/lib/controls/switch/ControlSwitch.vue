@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { SwitchRoot, SwitchThumb, useForwardPropsEmits } from "reka-ui";
 
@@ -9,6 +9,7 @@ import { SwitchRoot, SwitchThumb, useForwardPropsEmits } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the switch root. */
     class: { type: [String, Array, Object], default: undefined },
     /** The default checked state when uncontrolled. */
@@ -37,30 +38,15 @@ const props = defineProps({
 
 const emits = defineEmits(["update:modelValue"]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlSwitch", props);
 </script>
 
 <template>
-    <SwitchRoot
-        v-slot="slotProps"
-        data-slot="switch"
-        v-bind="forwarded"
-        :class="
-            cn(
-                'peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
-                props.class,
-            )
-        "
-    >
-        <SwitchThumb
-            data-slot="switch-thumb"
-            :class="
-                cn(
-                    'bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0',
-                )
-            "
-        >
+    <SwitchRoot v-slot="slotProps" data-slot="switch" v-bind="forwarded" :class="[theme('root'), props.class]">
+        <SwitchThumb data-slot="switch-thumb" :class="theme('thumb')">
             <slot name="thumb" v-bind="slotProps" />
         </SwitchThumb>
     </SwitchRoot>

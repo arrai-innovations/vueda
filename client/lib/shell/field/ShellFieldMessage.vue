@@ -1,6 +1,6 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
-import { computed } from "vue";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { computed, reactive, toRef } from "vue";
 
 /**
  * Displays field messages (errors or warnings) from a slot or an array of
@@ -10,6 +10,7 @@ import { computed } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** One or more message strings or objects with a message property to display beneath the field. */
@@ -21,6 +22,8 @@ const props = defineProps({
         validator: (value) => ["error", "warning"].includes(value),
     },
 });
+
+const theme = useTheme("ShellFieldMessage", props, reactive({ severity: toRef(props, "severity") }));
 
 const content = computed(() => {
     if (!props.messages || props.messages.length === 0) return null;
@@ -48,13 +51,7 @@ const content = computed(() => {
         :role="severity === 'error' ? 'alert' : 'status'"
         data-slot="field-message"
         :data-severity="severity"
-        :class="
-            cn(
-                'text-sm font-normal',
-                severity === 'error' ? 'text-destructive' : 'text-amber-600 dark:text-amber-500',
-                props.class,
-            )
-        "
+        :class="[theme('root'), props.class]"
     >
         <slot v-if="$slots.default" />
 
@@ -62,7 +59,7 @@ const content = computed(() => {
             {{ content }}
         </template>
 
-        <ul v-else-if="Array.isArray(content)" class="ml-4 flex list-disc flex-col gap-1">
+        <ul v-else-if="Array.isArray(content)" :class="theme('list')">
             <li v-for="(msg, index) in content" :key="index">
                 {{ msg }}
             </li>

@@ -1,6 +1,6 @@
 <script setup>
 import { ShellSeparator } from "@vueda/shell/separator";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 
 /**
@@ -10,6 +10,7 @@ import { reactiveOmit } from "@vueuse/core";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the separator. */
     class: { type: [String, Array, Object], default: undefined },
     /** The orientation of the separator line. */
@@ -18,7 +19,9 @@ const props = defineProps({
     decorative: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+
+const theme = useTheme("ControlButtonGroupSeparator", props);
 </script>
 
 <template>
@@ -26,6 +29,6 @@ const delegatedProps = reactiveOmit(props, "class");
         data-slot="button-group-separator"
         v-bind="delegatedProps"
         :orientation="props.orientation"
-        :class="cn('bg-input relative !m-0 self-stretch data-[orientation=vertical]:h-auto', props.class)"
+        :class="[theme('root'), props.class]"
     />
 </template>

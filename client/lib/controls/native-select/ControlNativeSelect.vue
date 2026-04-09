@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit, useVModel } from "@vueuse/core";
 import { ChevronDownIcon } from "lucide-vue-next";
 
@@ -12,6 +12,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** The current value of the select. */
     modelValue: { type: [String, Number, Boolean, Array, Object], default: undefined },
     /** Additional CSS classes to apply to the select element. */
@@ -25,7 +26,9 @@ const modelValue = useVModel(props, "modelValue", emit, {
     defaultValue: "",
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+
+const theme = useTheme("ControlNativeSelect", props);
 </script>
 
 <template>
@@ -34,14 +37,7 @@ const delegatedProps = reactiveOmit(props, "class");
             v-bind="{ ...$attrs, ...delegatedProps }"
             v-model="modelValue"
             data-slot="native-select"
-            :class="
-                cn(
-                    'border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 dark:hover:bg-input/50 h-9 w-full min-w-0 appearance-none rounded-md border bg-transparent px-3 py-2 pr-9 text-sm shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed',
-                    'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-                    'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
-                    props.class,
-                )
-            "
+            :class="[theme('root'), props.class]"
         >
             <slot />
         </select>

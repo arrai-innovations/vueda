@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { DateRangeFieldRoot, useForwardPropsEmits } from "reka-ui";
 
@@ -11,6 +11,7 @@ import { DateRangeFieldRoot, useForwardPropsEmits } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The controlled date range value. Can be bound as v-model. */
@@ -55,8 +56,10 @@ const props = defineProps({
 
 const emits = defineEmits(["update:modelValue", "update:placeholder"]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlDateRangeField", props);
 </script>
 
 <template>
@@ -64,12 +67,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         v-slot="slotProps"
         data-slot="date-range-field"
         v-bind="forwarded"
-        :class="
-            cn(
-                'flex w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
-                props.class,
-            )
-        "
+        :class="[theme('root'), props.class]"
     >
         <slot v-bind="slotProps" />
     </DateRangeFieldRoot>

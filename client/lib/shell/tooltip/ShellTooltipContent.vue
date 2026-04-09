@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { TooltipArrow, TooltipContent, TooltipPortal, useForwardPropsEmits } from "reka-ui";
 
@@ -11,6 +11,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The distance in pixels from the trigger. */
@@ -27,8 +28,9 @@ const props = defineProps({
 
 const emits = defineEmits(["escapeKeyDown", "pointerDownOutside"]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const theme = useTheme("ShellTooltipContent", props);
 </script>
 
 <template>
@@ -36,18 +38,11 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         <TooltipContent
             data-slot="tooltip-content"
             v-bind="{ ...forwarded, ...$attrs }"
-            :class="
-                cn(
-                    'bg-foreground text-background animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit rounded-md px-3 py-1.5 text-xs text-balance',
-                    props.class,
-                )
-            "
+            :class="[theme('root'), props.class]"
         >
             <slot />
 
-            <TooltipArrow
-                class="bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]"
-            />
+            <TooltipArrow :class="theme('arrow')" />
         </TooltipContent>
     </TooltipPortal>
 </template>

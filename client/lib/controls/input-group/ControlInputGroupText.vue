@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A inline text or icon label displayed inside an input group alongside the input.
@@ -7,16 +7,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the text element. */
     class: { type: [String, Array, Object], default: undefined },
 });
 
-const BASE_CLASS =
-    "text-muted-foreground flex items-center gap-2 text-sm [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4";
+const theme = useTheme("ControlInputGroupText", props);
 </script>
 
 <template>
-    <span v-bind="$attrs" :class="cn(BASE_CLASS, props.class)">
+    <span v-bind="$attrs" :class="[theme('root'), props.class]">
         <slot />
     </span>
 </template>

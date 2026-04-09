@@ -1,6 +1,6 @@
 <script setup>
 import { ShellSeparator } from "@vueda/shell/separator";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A visual separator between sections of the sidebar.
@@ -8,15 +8,14 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("NavigationSidebarSeparator", props);
 </script>
 
 <template>
-    <ShellSeparator
-        data-slot="sidebar-separator"
-        data-sidebar="separator"
-        :class="cn('bg-sidebar-border mx-2 w-auto', props.class)"
-    />
+    <ShellSeparator data-slot="sidebar-separator" data-sidebar="separator" :class="[theme('root'), props.class]" />
 </template>

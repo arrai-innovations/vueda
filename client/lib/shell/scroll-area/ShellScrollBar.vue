@@ -1,7 +1,8 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ScrollAreaScrollbar, ScrollAreaThumb } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
  * The scrollbar track and thumb for a ScrollArea.
@@ -9,6 +10,7 @@ import { ScrollAreaScrollbar, ScrollAreaThumb } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The orientation of the scrollbar. */
@@ -21,22 +23,16 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const theme = useTheme("ShellScrollBar", props, reactive({ orientation: toRef(props, "orientation") }));
 </script>
 
 <template>
     <ScrollAreaScrollbar
         data-slot="scroll-area-scrollbar"
         v-bind="delegatedProps"
-        :class="
-            cn(
-                'flex touch-none p-px transition-colors select-none',
-                orientation === 'vertical' && 'h-full w-2.5 border-l border-l-transparent',
-                orientation === 'horizontal' && 'h-2.5 flex-col border-t border-t-transparent',
-                props.class,
-            )
-        "
+        :class="[theme('root'), props.class]"
     >
-        <ScrollAreaThumb data-slot="scroll-area-thumb" class="bg-border relative flex-1 rounded-full" />
+        <ScrollAreaThumb data-slot="scroll-area-thumb" :class="theme('thumb')" />
     </ScrollAreaScrollbar>
 </template>

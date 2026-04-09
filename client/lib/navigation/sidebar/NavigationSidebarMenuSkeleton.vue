@@ -1,6 +1,6 @@
 <script setup>
 import { FeedbackSkeleton } from "@vueda/feedback/skeleton";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed } from "vue";
 
 /**
@@ -9,21 +9,19 @@ import { computed } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** Whether to show an icon-sized skeleton on the left. */
     showIcon: { type: Boolean, default: false },
 });
 
+const theme = useTheme("NavigationSidebarMenuSkeleton", props);
 const width = computed(() => `${Math.floor(Math.random() * 40) + 50}%`);
 </script>
 
 <template>
-    <div
-        data-slot="sidebar-menu-skeleton"
-        data-sidebar="menu-skeleton"
-        :class="cn('flex h-8 items-center gap-2 rounded-md px-2', props.class)"
-    >
+    <div data-slot="sidebar-menu-skeleton" data-sidebar="menu-skeleton" :class="[theme('root'), props.class]">
         <FeedbackSkeleton v-if="showIcon" class="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />
 
         <FeedbackSkeleton

@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * The footer area of an AlertDialog, used to arrange action and cancel buttons.
@@ -7,16 +7,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ShellAlertDialogFooter", props);
 </script>
 
 <template>
-    <div
-        data-slot="alert-dialog-footer"
-        :class="cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', props.class)"
-    >
+    <div data-slot="alert-dialog-footer" :class="[theme('root'), props.class]">
         <slot />
     </div>
 </template>

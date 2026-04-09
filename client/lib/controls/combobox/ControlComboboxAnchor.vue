@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ComboboxAnchor, useForwardProps } from "reka-ui";
 
@@ -9,6 +9,7 @@ import { ComboboxAnchor, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The HTML element or component to render as. */
@@ -17,13 +18,15 @@ const props = defineProps({
     asChild: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwarded = useForwardProps(delegatedProps);
+
+const theme = useTheme("ControlComboboxAnchor", props);
 </script>
 
 <template>
-    <ComboboxAnchor data-slot="combobox-anchor" v-bind="forwarded" :class="cn('w-[200px]', props.class)">
+    <ComboboxAnchor data-slot="combobox-anchor" v-bind="forwarded" :class="[theme('root'), props.class]">
         <slot />
     </ComboboxAnchor>
 </template>

@@ -8,7 +8,7 @@ import {
     provideSidebarContext,
 } from "./utils.js";
 import { ShellTooltipProvider } from "@vueda/shell/tooltip";
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { defaultDocument, useEventListener, useMediaQuery, useVModel } from "@vueuse/core";
 import { computed, ref } from "vue";
 
@@ -18,6 +18,7 @@ import { computed, ref } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** Whether the sidebar is open by default. Reads from cookie if available. */
@@ -29,6 +30,8 @@ const props = defineProps({
     open: { type: Boolean, default: undefined },
 });
 const emits = defineEmits(["update:open"]);
+
+const theme = useTheme("NavigationSidebarProvider", props);
 
 const isMobile = useMediaQuery("(max-width: 768px)");
 const openMobile = ref(false);
@@ -79,7 +82,7 @@ provideSidebarContext({
                 '--sidebar-width': SIDEBAR_WIDTH,
                 '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
             }"
-            :class="cn('group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full', props.class)"
+            :class="[theme('root'), props.class]"
             v-bind="$attrs"
         >
             <slot />

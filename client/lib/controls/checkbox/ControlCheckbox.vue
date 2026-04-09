@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { Check, Minus } from "lucide-vue-next";
 import { CheckboxIndicator, CheckboxRoot, useForwardPropsEmits } from "reka-ui";
@@ -11,6 +11,7 @@ import { CheckboxIndicator, CheckboxRoot, useForwardPropsEmits } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the checkbox root. */
     class: { type: [String, Array, Object], default: undefined },
     /** The default checked state when uncontrolled. */
@@ -39,22 +40,14 @@ const props = defineProps({
 
 const emits = defineEmits(["update:modelValue"]);
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlCheckbox", props);
 </script>
 
 <template>
-    <CheckboxRoot
-        v-slot="slotProps"
-        data-slot="checkbox"
-        v-bind="forwarded"
-        :class="
-            cn(
-                'peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground data-[state=indeterminate]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
-                props.class,
-            )
-        "
-    >
+    <CheckboxRoot v-slot="slotProps" data-slot="checkbox" v-bind="forwarded" :class="[theme('root'), props.class]">
         <CheckboxIndicator
             data-slot="checkbox-indicator"
             class="grid place-content-center text-current transition-none"

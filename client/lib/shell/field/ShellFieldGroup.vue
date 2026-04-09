@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A vertical stack container for grouping multiple ShellField instances,
@@ -8,21 +8,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ShellFieldGroup", props);
 </script>
 
 <template>
-    <div
-        data-slot="field-group"
-        :class="
-            cn(
-                'group/field-group @container/field-group flex w-full flex-col gap-7 data-[slot=checkbox-group]:gap-3 [&>[data-slot=field-group]]:gap-4',
-                props.class,
-            )
-        "
-    >
+    <div data-slot="field-group" :class="[theme('root'), props.class]">
         <slot />
     </div>
 </template>

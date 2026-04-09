@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ProgressIndicator, ProgressRoot } from "reka-ui";
 
@@ -9,6 +9,7 @@ import { ProgressIndicator, ProgressRoot } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The current progress value (0 to max). */
@@ -23,18 +24,16 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+
+const theme = useTheme("FeedbackProgress", props);
 </script>
 
 <template>
-    <ProgressRoot
-        data-slot="progress"
-        v-bind="delegatedProps"
-        :class="cn('bg-primary/20 relative h-2 w-full overflow-hidden rounded-full', props.class)"
-    >
+    <ProgressRoot data-slot="progress" v-bind="delegatedProps" :class="[theme('root'), props.class]">
         <ProgressIndicator
             data-slot="progress-indicator"
-            class="bg-primary h-full w-full flex-1 transition-all"
+            :class="theme('indicator')"
             :style="`transform: translateX(-${100 - (props.modelValue ?? 0)}%);`"
         />
     </ProgressRoot>

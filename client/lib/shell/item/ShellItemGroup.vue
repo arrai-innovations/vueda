@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A vertical list container for grouping multiple ShellItem components.
@@ -7,13 +7,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the group container. */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ShellItemGroup", props);
 </script>
 
 <template>
-    <div role="list" data-slot="item-group" :class="cn('group/item-group flex flex-col', props.class)">
+    <div role="list" data-slot="item-group" :class="[theme('root'), props.class]">
         <slot />
     </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ToggleGroupRoot, useForwardPropsEmits } from "reka-ui";
 import { provide } from "vue";
@@ -10,11 +10,12 @@ import { provide } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
-    /** @type {import('class-variance-authority').VariantProps<typeof import('@vueda/controls/toggle').toggleVariants>['variant']} */
+    /** @type {'default' | 'outline'} */
     variant: { type: String, default: undefined },
-    /** @type {import('class-variance-authority').VariantProps<typeof import('@vueda/controls/toggle').toggleVariants>['size']} */
+    /** @type {'default' | 'sm' | 'lg'} */
     size: { type: String, default: undefined },
     /** The gap spacing between items (0 = flush/no-gap). */
     spacing: { type: Number, default: 0 },
@@ -48,8 +49,10 @@ provide("toggleGroup", {
     spacing: props.spacing,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "size", "variant");
+const delegatedProps = reactiveOmit(props, "class", "size", "variant", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlToggleGroup", props);
 </script>
 
 <template>
@@ -63,12 +66,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
             '--gap': spacing,
         }"
         v-bind="forwarded"
-        :class="
-            cn(
-                'group/toggle-group flex w-fit items-center gap-[--spacing(var(--gap))] rounded-md data-[spacing=default]:data-[variant=outline]:shadow-xs',
-                props.class,
-            )
-        "
+        :class="[theme('root'), props.class]"
     >
         <slot v-bind="slotProps" />
     </ToggleGroupRoot>

@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { TabsContent } from "reka-ui";
 
@@ -9,6 +9,7 @@ import { TabsContent } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
     /** The value that links this content to its trigger. */
@@ -21,11 +22,12 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class");
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const theme = useTheme("ShellTabsContent", props);
 </script>
 
 <template>
-    <TabsContent data-slot="tabs-content" :class="cn('flex-1 outline-none', props.class)" v-bind="delegatedProps">
+    <TabsContent data-slot="tabs-content" :class="[theme('root'), props.class]" v-bind="delegatedProps">
         <slot />
     </TabsContent>
 </template>

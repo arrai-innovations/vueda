@@ -1,26 +1,8 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import DisplayBadge from "@vueda/display/badge/DisplayBadge.vue";
-import { badgeVariants } from "@vueda/display/badge/index.js";
 
 describe("lib/display/badge/DisplayBadge.vue", () => {
-    describe("badgeVariants", () => {
-        it("applies default variant classes when called with no arguments", () => {
-            const cls = badgeVariants({});
-            expect(cls).toContain("bg-primary");
-            expect(cls).toContain("text-primary-foreground");
-        });
-
-        it.each([
-            ["default", "bg-primary"],
-            ["secondary", "bg-secondary"],
-            ["destructive", "bg-destructive"],
-            ["outline", "text-foreground"],
-        ])("variant %s includes a distinguishing class", (variant, marker) => {
-            expect(badgeVariants({ variant })).toContain(marker);
-        });
-    });
-
     describe("rendering", () => {
         scopedIt("always has data-slot=badge", () => {
             const wrapper = mount(DisplayBadge);

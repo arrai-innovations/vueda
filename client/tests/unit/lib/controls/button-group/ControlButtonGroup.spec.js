@@ -3,22 +3,9 @@ import { mount } from "@vue/test-utils";
 import ControlButtonGroup from "@vueda/controls/button-group/ControlButtonGroup.vue";
 import ControlButtonGroupSeparator from "@vueda/controls/button-group/ControlButtonGroupSeparator.vue";
 import ControlButtonGroupText from "@vueda/controls/button-group/ControlButtonGroupText.vue";
-import { buttonGroupVariants } from "@vueda/controls/button-group/index.js";
 import { h } from "vue";
 
 describe("lib/controls/button-group/ControlButtonGroup.vue", () => {
-    describe("buttonGroupVariants", () => {
-        it("applies horizontal layout classes by default", () => {
-            const cls = buttonGroupVariants({});
-            expect(cls).toContain("items-stretch");
-        });
-
-        it("applies vertical orientation classes when orientation=vertical", () => {
-            const cls = buttonGroupVariants({ orientation: "vertical" });
-            expect(cls).toContain("flex-col");
-        });
-    });
-
     describe("ControlButtonGroup", () => {
         scopedIt("has role=group", () => {
             const wrapper = mount(ControlButtonGroup);

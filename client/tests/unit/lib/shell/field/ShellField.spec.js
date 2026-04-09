@@ -10,32 +10,8 @@ import ShellFieldMessage from "@vueda/shell/field/ShellFieldMessage.vue";
 import ShellFieldSeparator from "@vueda/shell/field/ShellFieldSeparator.vue";
 import ShellFieldSet from "@vueda/shell/field/ShellFieldSet.vue";
 import ShellFieldTitle from "@vueda/shell/field/ShellFieldTitle.vue";
-import { fieldVariants } from "@vueda/shell/field/index.js";
 
 describe("lib/shell/field/ShellField.vue", () => {
-    describe("fieldVariants", () => {
-        it("applies vertical layout classes by default", () => {
-            const cls = fieldVariants({});
-            expect(cls).toContain("flex-col");
-        });
-
-        it("applies horizontal layout classes when orientation=horizontal", () => {
-            const cls = fieldVariants({ orientation: "horizontal" });
-            expect(cls).toContain("flex-row");
-            expect(cls).toContain("items-center");
-        });
-
-        it("applies responsive layout classes when orientation=responsive", () => {
-            const cls = fieldVariants({ orientation: "responsive" });
-            expect(cls).toContain("flex-col");
-        });
-
-        it("includes invalid state class in base", () => {
-            const cls = fieldVariants({});
-            expect(cls).toContain("data-[invalid=true]:text-destructive");
-        });
-    });
-
     describe("ShellField", () => {
         scopedIt("has role=group", () => {
             const wrapper = mount(ShellField);

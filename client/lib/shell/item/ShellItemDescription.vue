@@ -1,5 +1,5 @@
 <script setup>
-import { cn } from "@vueda/utils/cn.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
  * A supporting description paragraph inside a ShellItem, styled with muted text and line clamping.
@@ -7,22 +7,16 @@ import { cn } from "@vueda/utils/cn.js";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the description element. */
     class: { type: [String, Array, Object], default: undefined },
 });
+
+const theme = useTheme("ShellItemDescription", props);
 </script>
 
 <template>
-    <p
-        data-slot="item-description"
-        :class="
-            cn(
-                'text-muted-foreground line-clamp-2 text-sm leading-normal font-normal text-balance',
-                '[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4',
-                props.class,
-            )
-        "
-    >
+    <p data-slot="item-description" :class="[theme('root'), props.class]">
         <slot />
     </p>
 </template>
