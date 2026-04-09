@@ -19,21 +19,42 @@ const ButtonStub = defineComponent({
     },
 });
 
-const DrawerStub = defineComponent({
-    name: "DrawerStub",
-    props: ["visible"],
-    emits: ["update:visible"],
+const ShellDrawerStub = defineComponent({
+    name: "ShellDrawerStub",
+    props: ["open"],
+    emits: ["update:open"],
     setup(props, { slots, attrs }) {
         return () =>
             h(
                 "div",
                 {
                     "data-qa": "drawer",
-                    "data-visible": props.visible,
+                    "data-open": props.open,
                     ...attrs,
                 },
                 slots.default ? slots.default() : null,
             );
+    },
+});
+
+const ShellDrawerContentStub = defineComponent({
+    name: "ShellDrawerContentStub",
+    setup(_, { slots }) {
+        return () => h("div", null, slots.default?.());
+    },
+});
+
+const ShellDrawerHeaderStub = defineComponent({
+    name: "ShellDrawerHeaderStub",
+    setup(_, { slots }) {
+        return () => h("div", null, slots.default?.());
+    },
+});
+
+const ShellDrawerTitleStub = defineComponent({
+    name: "ShellDrawerTitleStub",
+    setup(_, { slots }) {
+        return () => h("div", null, slots.default?.());
     },
 });
 
@@ -92,7 +113,12 @@ const DraggableStub = defineComponent({
 });
 
 vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
-vi.mock("primevue/drawer", () => ({ default: DrawerStub }));
+vi.mock("@vueda/shell/drawer", () => ({
+    ShellDrawer: ShellDrawerStub,
+    ShellDrawerContent: ShellDrawerContentStub,
+    ShellDrawerHeader: ShellDrawerHeaderStub,
+    ShellDrawerTitle: ShellDrawerTitleStub,
+}));
 vi.mock("@vueda/controls/select", () => ({
     ControlSelect: ControlSelectStub,
     ControlSelectContent: ControlSelectContentStub,
@@ -117,20 +143,20 @@ afterEach(() => {
 
 function mountComponent(options = {}) {
     const sorted = ref(options.props?.sorted ?? []);
-    const visible = ref(options.props?.visible ?? false);
+    const open = ref(options.props?.open ?? false);
 
     const props = {
         sortables: ["name", "created_at"],
         fieldDetails: {},
         sorted: sorted.value,
-        visible: visible.value,
+        open: open.value,
         "onUpdate:sorted": (value) => {
             sorted.value = value;
             wrapper.setProps({ sorted: value });
         },
-        "onUpdate:visible": (value) => {
-            visible.value = value;
-            wrapper.setProps({ visible: value });
+        "onUpdate:open": (value) => {
+            open.value = value;
+            wrapper.setProps({ open: value });
         },
         ...options.props,
     };
@@ -140,7 +166,10 @@ function mountComponent(options = {}) {
         global: {
             stubs: {
                 ControlButton: ButtonStub,
-                Drawer: DrawerStub,
+                ShellDrawer: ShellDrawerStub,
+                ShellDrawerContent: ShellDrawerContentStub,
+                ShellDrawerHeader: ShellDrawerHeaderStub,
+                ShellDrawerTitle: ShellDrawerTitleStub,
                 ControlSelect: ControlSelectStub,
                 draggable: DraggableStub,
             },
@@ -151,14 +180,14 @@ function mountComponent(options = {}) {
 }
 
 describe("lib/components/MobileSortComponent.vue", () => {
-    scopedIt("emits visibility updates through the computed proxy", async () => {
+    scopedIt("emits open updates through the computed proxy", async () => {
         const { wrapper } = mountComponent();
 
-        wrapper.vm.internalVisible = true;
-        expect(wrapper.emitted()["update:visible"][0]).toEqual([true]);
+        wrapper.vm.internalOpen = true;
+        expect(wrapper.emitted()["update:open"][0]).toEqual([true]);
 
-        wrapper.vm.internalVisible = false;
-        expect(wrapper.emitted()["update:visible"][1]).toEqual([false]);
+        wrapper.vm.internalOpen = false;
+        expect(wrapper.emitted()["update:open"][1]).toEqual([false]);
     });
 
     scopedIt("opens and closes the drawer via the toggle button interactions", async () => {
@@ -166,18 +195,18 @@ describe("lib/components/MobileSortComponent.vue", () => {
 
         const drawer = () => wrapper.find('[data-qa="sort-component-drawer"]');
 
-        expect(drawer().attributes("data-visible")).toBe("false");
+        expect(drawer().attributes("data-open")).toBe("false");
 
         await wrapper
             .findAll('[data-qa="button"]')
             .find((b) => b.text().includes("Sort"))
             .trigger("click");
         await wrapper.vm.$nextTick();
-        expect(drawer().attributes("data-visible")).toBe("true");
+        expect(drawer().attributes("data-open")).toBe("true");
 
-        wrapper.findComponent(DrawerStub).vm.$emit("update:visible", false);
+        wrapper.findComponent(ShellDrawerStub).vm.$emit("update:open", false);
         await wrapper.vm.$nextTick();
-        expect(drawer().attributes("data-visible")).toBe("false");
+        expect(drawer().attributes("data-open")).toBe("false");
     });
 
     scopedIt("manages the sorted list when adding, toggling, and removing entries", async () => {
