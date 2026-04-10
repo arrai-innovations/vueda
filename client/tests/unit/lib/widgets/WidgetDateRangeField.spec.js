@@ -44,8 +44,8 @@ const ControlDateRangeFieldInputStub = defineComponent({
     },
 });
 
-const ControlPopoverStub = defineComponent({
-    name: "ControlPopoverStub",
+const ShellPopoverStub = defineComponent({
+    name: "ShellPopoverStub",
     props: ["open"],
     emits: ["update:open"],
     setup(_, { slots }) {
@@ -53,15 +53,15 @@ const ControlPopoverStub = defineComponent({
     },
 });
 
-const ControlPopoverContentStub = defineComponent({
-    name: "ControlPopoverContentStub",
+const ShellPopoverContentStub = defineComponent({
+    name: "ShellPopoverContentStub",
     setup(_, { slots }) {
         return () => h("div", {}, slots.default ? slots.default() : undefined);
     },
 });
 
-const ControlPopoverTriggerStub = defineComponent({
-    name: "ControlPopoverTriggerStub",
+const ShellPopoverTriggerStub = defineComponent({
+    name: "ShellPopoverTriggerStub",
     props: ["asChild"],
     setup(_, { slots }) {
         return () => h("div", {}, slots.default ? slots.default() : undefined);
@@ -82,10 +82,10 @@ vi.mock("@vueda/controls/date-range-field", () => ({
     ControlDateRangeFieldInput: ControlDateRangeFieldInputStub,
 }));
 
-vi.mock("@vueda/controls/popover", () => ({
-    ControlPopover: ControlPopoverStub,
-    ControlPopoverContent: ControlPopoverContentStub,
-    ControlPopoverTrigger: ControlPopoverTriggerStub,
+vi.mock("@vueda/shell/popover", () => ({
+    ShellPopover: ShellPopoverStub,
+    ShellPopoverContent: ShellPopoverContentStub,
+    ShellPopoverTrigger: ShellPopoverTriggerStub,
 }));
 
 vi.mock("@vueda/controls/range-calendar", () => ({

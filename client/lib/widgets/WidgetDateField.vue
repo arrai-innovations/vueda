@@ -2,7 +2,7 @@
 import { parseDate, parseDateTime } from "@internationalized/date";
 import { ControlCalendar } from "@vueda/controls/calendar";
 import { ControlDateField, ControlDateFieldInput } from "@vueda/controls/date-field";
-import { ControlPopover, ControlPopoverContent, ControlPopoverTrigger } from "@vueda/controls/popover";
+import { ShellPopover, ShellPopoverContent, ShellPopoverTrigger } from "@vueda/shell/popover";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, ref } from "vue";
@@ -70,7 +70,7 @@ const onCalendarSelect = (value) => {
 </script>
 
 <template>
-    <ControlPopover v-model:open="popoverOpen">
+    <ShellPopover v-model:open="popoverOpen">
         <ControlDateField
             :id="fieldContext?.state.fieldId"
             v-model="dateValue"
@@ -99,7 +99,7 @@ const onCalendarSelect = (value) => {
                     />
                     <ControlDateFieldInput v-else :part="segment.part" />
                 </template>
-                <ControlPopoverTrigger as-child>
+                <ShellPopoverTrigger as-child>
                     <button
                         type="button"
                         class="ml-auto inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -109,10 +109,10 @@ const onCalendarSelect = (value) => {
                     >
                         <span aria-hidden="true" class="select-none text-sm leading-none">📅</span>
                     </button>
-                </ControlPopoverTrigger>
+                </ShellPopoverTrigger>
             </template>
         </ControlDateField>
-        <ControlPopoverContent class="w-auto p-3" align="start">
+        <ShellPopoverContent class="w-auto p-3" align="start">
             <ControlCalendar
                 :model-value="dateValue"
                 :min-value="minValue"
@@ -122,6 +122,6 @@ const onCalendarSelect = (value) => {
                 initial-focus
                 @update:model-value="onCalendarSelect"
             />
-        </ControlPopoverContent>
-    </ControlPopover>
+        </ShellPopoverContent>
+    </ShellPopover>
 </template>

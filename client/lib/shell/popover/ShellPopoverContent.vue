@@ -4,7 +4,8 @@ import { reactiveOmit } from "@vueuse/core";
 import { PopoverContent, PopoverPortal, useForwardPropsEmits } from "reka-ui";
 
 /**
- * The content panel of a Popover, rendered in a portal with positioning support.
+ * The floating content panel of a popover, rendered inside a portal.
+ * Positioned relative to the trigger or anchor element.
  */
 defineOptions({
     inheritAttrs: false,
@@ -14,16 +15,30 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },
-    /** The alignment of the popover relative to the trigger. */
-    align: { type: String, default: "center" },
+    /** The preferred side of the trigger to render against. */
+    side: { type: String, default: undefined },
     /** The distance in pixels from the trigger. */
     sideOffset: { type: Number, default: 4 },
-    /** The side of the trigger to show the popover on. */
-    side: { type: String, default: undefined },
+    /** The preferred alignment against the trigger. */
+    align: { type: String, default: "center" },
+    /** An offset in pixels from the alignment edge. */
+    alignOffset: { type: Number, default: undefined },
+    /** When true, overrides side and align to avoid collisions with boundary edges. */
+    avoidCollisions: { type: Boolean, default: undefined },
+    /** The padding between the content and the boundary edge. */
+    collisionPadding: { type: [Number, Object], default: undefined },
     /** Whether to force mount the content. */
     forceMount: { type: Boolean, default: undefined },
-    /** Whether the content avoids collisions with the viewport. */
-    avoidCollisions: { type: Boolean, default: undefined },
+    /** When true, keeps the content in place relative to the trigger even when it overflows. */
+    sticky: { type: String, default: undefined },
+    /** When true, hides the content when the trigger is fully occluded. */
+    hideWhenDetached: { type: Boolean, default: undefined },
+    /** Forces content to render as a specific element. */
+    as: { type: [String, Object], default: undefined },
+    /** When true, merges props onto the child element instead of rendering a wrapper. */
+    asChild: { type: Boolean, default: false },
+    /** When true, prevents auto-focusing the first focusable element. */
+    trapFocus: { type: Boolean, default: undefined },
 });
 const emits = defineEmits([
     "openAutoFocus",
