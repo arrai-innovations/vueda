@@ -37,7 +37,7 @@ const theme = useTheme("ControlCommandInput", props);
 </script>
 
 <template>
-    <div data-slot="command-input-wrapper" class="flex h-9 items-center gap-2 border-b px-3">
+    <div data-slot="command-input-wrapper" :class="theme('wrapper')">
         <slot name="search-icon">⌕</slot>
         <ListboxFilter
             v-bind="{ ...forwardedProps, ...$attrs }"

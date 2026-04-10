@@ -37,6 +37,6 @@ const theme = useTheme("NavigationMenubarSubTrigger", props);
         :class="[theme('root'), props.class]"
     >
         <slot />
-        <span class="ml-auto size-4" aria-hidden="true"><slot name="icon">›</slot></span>
+        <span :class="theme('iconWrapper')" aria-hidden="true"><slot name="icon">›</slot></span>
     </MenubarSubTrigger>
 </template>

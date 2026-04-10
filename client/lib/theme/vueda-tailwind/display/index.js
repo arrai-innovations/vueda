@@ -4,6 +4,9 @@
  */
 
 export default {
+    DisplayAspectRatio: {
+        root: { class: "" },
+    },
     DateRangeDisplay: {
         root: {
             class: "whitespace-nowrap",

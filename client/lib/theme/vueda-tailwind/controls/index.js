@@ -637,6 +637,7 @@ export default {
                 "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
+        wrapper: { class: "flex h-9 items-center gap-2 border-b px-3" },
     },
     ControlCommandList: {
         root: {
@@ -652,6 +653,7 @@ export default {
         root: {
             class: ["text-foreground overflow-hidden p-1"],
         },
+        heading: { class: "px-2 py-1.5 text-xs font-medium text-muted-foreground" },
     },
     ControlCommandItem: {
         root: {
@@ -669,5 +671,9 @@ export default {
         root: {
             class: ["text-muted-foreground ml-auto text-xs tracking-widest"],
         },
+    },
+    ControlCommandDialog: {
+        content: { class: "overflow-hidden p-0" },
+        header: { class: "sr-only" },
     },
 };

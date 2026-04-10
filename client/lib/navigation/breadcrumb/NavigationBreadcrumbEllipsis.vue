@@ -18,6 +18,6 @@ const theme = useTheme("NavigationBreadcrumbEllipsis", props);
 <template>
     <span data-slot="breadcrumb-ellipsis" role="presentation" aria-hidden="true" :class="[theme('root'), props.class]">
         <slot name="icon">…</slot>
-        <span class="sr-only">More</span>
+        <span :class="theme('label')">More</span>
     </span>
 </template>

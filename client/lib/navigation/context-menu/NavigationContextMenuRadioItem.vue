@@ -33,7 +33,7 @@ const theme = useTheme("NavigationContextMenuRadioItem", props);
 
 <template>
     <ContextMenuRadioItem data-slot="context-menu-radio-item" v-bind="forwarded" :class="[theme('root'), props.class]">
-        <span class="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+        <span :class="theme('indicator')">
             <ContextMenuItemIndicator>
                 <slot name="indicator">•</slot>
             </ContextMenuItemIndicator>

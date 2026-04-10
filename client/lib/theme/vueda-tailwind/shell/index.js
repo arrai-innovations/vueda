@@ -6,6 +6,9 @@ import { BUTTON_BASE, BUTTON_VARIANT_DEFAULT, BUTTON_VARIANT_OUTLINE } from "@vu
 
 export default {
     // accordion
+    ShellAccordion: {
+        root: { class: "" },
+    },
     ShellAccordionItem: {
         root: {
             class: "border-b last:border-b-0",
@@ -22,6 +25,9 @@ export default {
     ShellAccordionTrigger: {
         root: {
             class: "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
+        },
+        header: {
+            class: "flex",
         },
         icon: {
             class: "text-muted-foreground pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200",
@@ -66,6 +72,17 @@ export default {
         root: {
             class: "text-lg font-semibold",
         },
+    },
+
+    // collapsible
+    ShellCollapsible: {
+        root: { class: "" },
+    },
+    ShellCollapsibleContent: {
+        root: { class: "" },
+    },
+    ShellCollapsibleTrigger: {
+        root: { class: "" },
     },
 
     // card
@@ -251,6 +268,9 @@ export default {
     },
 
     // hover-card
+    ShellHoverCardTrigger: {
+        root: { class: "" },
+    },
     ShellHoverCardContent: {
         root: {
             class: "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",

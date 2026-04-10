@@ -1,4 +1,6 @@
 <script setup>
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { reactiveOmit } from "@vueuse/core";
 import { AccordionRoot, useForwardPropsEmits } from "reka-ui";
 
 /**
@@ -7,6 +9,9 @@ import { AccordionRoot, useForwardPropsEmits } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
+    /** @type {import('vue').HTMLAttributes['class']} */
+    class: { type: [String, Array, Object], default: undefined },
     /** The type of accordion (single or multiple). */
     type: { type: String, default: undefined },
     /** The default expanded item(s). */
@@ -26,11 +31,13 @@ const props = defineProps({
 });
 const emits = defineEmits(["update:modelValue"]);
 
-const forwarded = useForwardPropsEmits(props, emits);
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const theme = useTheme("ShellAccordion", props);
 </script>
 
 <template>
-    <AccordionRoot v-slot="slotProps" data-slot="accordion" v-bind="forwarded">
+    <AccordionRoot v-slot="slotProps" data-slot="accordion" v-bind="forwarded" :class="[theme('root'), props.class]">
         <slot v-bind="slotProps" />
     </AccordionRoot>
 </template>

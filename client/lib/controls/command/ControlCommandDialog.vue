@@ -5,6 +5,8 @@ import ShellDialogContent from "@vueda/shell/dialog/ShellDialogContent.vue";
 import ShellDialogDescription from "@vueda/shell/dialog/ShellDialogDescription.vue";
 import ShellDialogHeader from "@vueda/shell/dialog/ShellDialogHeader.vue";
 import ShellDialogTitle from "@vueda/shell/dialog/ShellDialogTitle.vue";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { reactiveOmit } from "@vueuse/core";
 import { useForwardPropsEmits } from "reka-ui";
 
 /**
@@ -13,6 +15,9 @@ import { useForwardPropsEmits } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
+    /** @type {import('vue').HTMLAttributes['class']} */
+    class: { type: [String, Array, Object], default: undefined },
     /** The controlled open state. Can be bound with v-model:open. */
     open: { type: Boolean, default: undefined },
     /** The open state when initially rendered. Use when you do not need to control the open state. */
@@ -26,15 +31,18 @@ const props = defineProps({
 });
 const emits = defineEmits(["update:open"]);
 
-const forwarded = useForwardPropsEmits(props, emits);
+const delegatedProps = reactiveOmit(props, "class", "themeOverride", "title", "description");
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
+
+const theme = useTheme("ControlCommandDialog", props);
 </script>
 
 <template>
     <ShellDialog v-slot="slotProps" v-bind="forwarded">
-        <ShellDialogContent class="overflow-hidden p-0">
-            <ShellDialogHeader class="sr-only">
-                <ShellDialogTitle>{{ title }}</ShellDialogTitle>
-                <ShellDialogDescription>{{ description }}</ShellDialogDescription>
+        <ShellDialogContent :class="theme('content')">
+            <ShellDialogHeader :class="theme('header')">
+                <ShellDialogTitle>{{ props.title }}</ShellDialogTitle>
+                <ShellDialogDescription>{{ props.description }}</ShellDialogDescription>
             </ShellDialogHeader>
             <ControlCommand>
                 <slot v-bind="slotProps" />

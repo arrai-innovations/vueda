@@ -37,7 +37,7 @@ const theme = useTheme("NavigationDropdownMenuCheckboxItem", props);
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
     >
-        <span class="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+        <span :class="theme('indicator')">
             <DropdownMenuItemIndicator>
                 <slot name="check-icon">✓</slot>
             </DropdownMenuItemIndicator>

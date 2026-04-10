@@ -33,7 +33,7 @@ const theme = useTheme("NavigationMenubarCheckboxItem", props);
 
 <template>
     <MenubarCheckboxItem data-slot="menubar-checkbox-item" v-bind="forwarded" :class="[theme('root'), props.class]">
-        <span class="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+        <span :class="theme('indicator')">
             <MenubarItemIndicator>
                 <slot name="check-icon">✓</slot>
             </MenubarItemIndicator>

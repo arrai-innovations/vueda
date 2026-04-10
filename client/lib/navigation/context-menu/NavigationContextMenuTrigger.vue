@@ -1,4 +1,6 @@
 <script setup>
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { reactiveOmit } from "@vueuse/core";
 import { ContextMenuTrigger, useForwardProps } from "reka-ui";
 
 /**
@@ -7,6 +9,9 @@ import { ContextMenuTrigger, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
+    /** @type {import('vue').HTMLAttributes['class']} */
+    class: { type: [String, Array, Object], default: undefined },
     /** The element or component to render as. */
     as: { type: [String, Object], default: undefined },
     /** When true, merges props onto the child element instead of rendering a wrapper. */
@@ -15,11 +20,13 @@ const props = defineProps({
     disabled: { type: Boolean, default: undefined },
 });
 
-const forwardedProps = useForwardProps(props);
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const forwardedProps = useForwardProps(delegatedProps);
+const theme = useTheme("NavigationContextMenuTrigger", props);
 </script>
 
 <template>
-    <ContextMenuTrigger data-slot="context-menu-trigger" v-bind="forwardedProps">
+    <ContextMenuTrigger data-slot="context-menu-trigger" v-bind="forwardedProps" :class="[theme('root'), props.class]">
         <slot />
     </ContextMenuTrigger>
 </template>

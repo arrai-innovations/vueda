@@ -37,6 +37,6 @@ const theme = useTheme("NavigationContextMenuSubTrigger", props);
         :class="[theme('root'), props.class]"
     >
         <slot />
-        <span class="ml-auto" aria-hidden="true"><slot name="icon">›</slot></span>
+        <span :class="theme('iconWrapper')" aria-hidden="true"><slot name="icon">›</slot></span>
     </ContextMenuSubTrigger>
 </template>

@@ -6,6 +6,7 @@ import { BUTTON_BASE, BUTTON_VARIANT_GHOST, BUTTON_VARIANT_OUTLINE } from "@vued
 
 export default {
     // --- Breadcrumb ---
+    NavigationBreadcrumb: { root: { class: "" } },
     NavigationBreadcrumbList: {
         root: {
             class: "text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5",
@@ -35,9 +36,13 @@ export default {
         root: {
             class: "flex size-9 items-center justify-center",
         },
+        label: { class: "sr-only" },
     },
 
     // --- Dropdown Menu ---
+    NavigationDropdownMenuGroup: { root: { class: "" } },
+    NavigationDropdownMenuRadioGroup: { root: { class: "" } },
+    NavigationDropdownMenuTrigger: { root: { class: "" } },
     NavigationDropdownMenuContent: {
         root: {
             class: "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--reka-dropdown-menu-content-available-height) min-w-[8rem] origin-(--reka-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
@@ -52,11 +57,13 @@ export default {
         root: {
             class: "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         },
+        indicator: { class: "pointer-events-none absolute left-2 flex size-3.5 items-center justify-center" },
     },
     NavigationDropdownMenuRadioItem: {
         root: {
             class: "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         },
+        indicator: { class: "pointer-events-none absolute left-2 flex size-3.5 items-center justify-center" },
     },
     NavigationDropdownMenuLabel: {
         root: {
@@ -77,6 +84,7 @@ export default {
         root: {
             class: "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground",
         },
+        iconWrapper: { class: "ml-auto size-4" },
     },
     NavigationDropdownMenuSubContent: {
         root: {
@@ -85,6 +93,9 @@ export default {
     },
 
     // --- Context Menu ---
+    NavigationContextMenuGroup: { root: { class: "" } },
+    NavigationContextMenuRadioGroup: { root: { class: "" } },
+    NavigationContextMenuTrigger: { root: { class: "" } },
     NavigationContextMenuContent: {
         root: {
             class: "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--reka-context-menu-content-available-height) min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
@@ -99,11 +110,13 @@ export default {
         root: {
             class: "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         },
+        indicator: { class: "pointer-events-none absolute left-2 flex size-3.5 items-center justify-center" },
     },
     NavigationContextMenuRadioItem: {
         root: {
             class: "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         },
+        indicator: { class: "pointer-events-none absolute left-2 flex size-3.5 items-center justify-center" },
     },
     NavigationContextMenuLabel: {
         root: {
@@ -124,6 +137,7 @@ export default {
         root: {
             class: "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         },
+        iconWrapper: { class: "ml-auto" },
     },
     NavigationContextMenuSubContent: {
         root: {
@@ -132,6 +146,8 @@ export default {
     },
 
     // --- Menubar ---
+    NavigationMenubarGroup: { root: { class: "" } },
+    NavigationMenubarRadioGroup: { root: { class: "" } },
     NavigationMenubar: {
         root: {
             class: "bg-background flex h-9 items-center gap-1 rounded-md border p-1 shadow-xs",
@@ -156,11 +172,13 @@ export default {
         root: {
             class: "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         },
+        indicator: { class: "pointer-events-none absolute left-2 flex size-3.5 items-center justify-center" },
     },
     NavigationMenubarRadioItem: {
         root: {
             class: "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         },
+        indicator: { class: "pointer-events-none absolute left-2 flex size-3.5 items-center justify-center" },
     },
     NavigationMenubarLabel: {
         root: {
@@ -181,6 +199,7 @@ export default {
         root: {
             class: "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none data-[inset]:pl-8",
         },
+        iconWrapper: { class: "ml-auto size-4" },
     },
     NavigationMenubarSubContent: {
         root: {

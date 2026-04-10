@@ -25,7 +25,7 @@ const theme = useTheme("ShellAccordionTrigger", props);
 </script>
 
 <template>
-    <AccordionHeader class="flex">
+    <AccordionHeader :class="theme('header')">
         <AccordionTrigger data-slot="accordion-trigger" v-bind="delegatedProps" :class="[theme('root'), props.class]">
             <slot />
             <slot name="icon">
