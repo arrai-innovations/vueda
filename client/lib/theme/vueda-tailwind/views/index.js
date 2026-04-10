@@ -31,10 +31,10 @@ export default {
             class: ["font-bold leading-relaxed text-3xl"],
         },
         spacer: {
-            class: ["flex-1 min-w-6", "hidden sm:block", "border-primary-300 dark:border-primary-600 border-t-2"],
+            class: ["flex-1 min-w-6", "hidden sm:block", "border-neutral-300 dark:border-neutral-600 border-t-2"],
         },
         divider: {
-            class: ["block sm:hidden", "border-primary-300 dark:border-primary-600 border-t-2"],
+            class: ["block sm:hidden", "border-neutral-300 dark:border-neutral-600 border-t-2"],
         },
         buttons: {
             class: ["flex gap-1 flex-wrap", "justify-end", "self-center"],

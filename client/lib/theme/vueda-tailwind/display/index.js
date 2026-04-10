@@ -53,7 +53,7 @@ export default {
             class: [],
         },
         codeBlock: {
-            class: "bg-surface-100 dark:bg-surface-800 p-1 2xs:p-2 2xl:p-4 rounded", // Styling for the code block
+            class: "bg-neutral-100 dark:bg-neutral-800 p-1 2xs:p-2 2xl:p-4 rounded", // Styling for the code block
         },
         link: {
             class: "underline",
@@ -105,7 +105,7 @@ export default {
             class: ["flex flex-col gap-2"],
         },
         draggableItem: {
-            class: ["flex flex-row rounded-lg border border-surface-200 p-3"],
+            class: ["flex flex-row rounded-lg border border-neutral-200 p-3"],
         },
         draggableItemInner: {
             class: ["select-none flex flex-row gap-3 items-center justify-between grow flex-1"],
@@ -114,7 +114,7 @@ export default {
             class: ["drag-handle cursor-grab active:cursor-grabbing p-1"],
         },
         sortOrderText: {
-            class: ["w-3 text-sm font-semibold text-surface-500"],
+            class: ["w-3 text-sm font-semibold text-neutral-500"],
         },
         select: {
             class: ["w-full"],

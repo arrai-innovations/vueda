@@ -81,8 +81,8 @@ export default {
                 "py-1 px-2",
                 {
                     "cursor-pointer": sortable,
-                    "hover:bg-surface-600 dark:hover:bg-surface-300": sortable,
-                    "hover:text-white dark:hover:text-material-black": sortable,
+                    "hover:bg-neutral-600 dark:hover:bg-neutral-300": sortable,
+                    "hover:text-white dark:hover:text-neutral-900": sortable,
                     "hover:rounded": sortable,
                 },
             ],
@@ -99,17 +99,17 @@ export default {
     },
     ObjectsGridCardCell: {
         header: {
-            class: ["self-baseline", "text-material-black dark:text-white", "font-semibold", "select-none"],
+            class: ["self-baseline", "text-neutral-900 dark:text-white", "font-semibold", "select-none"],
         },
         value: {
-            class: ["self-baseline", "text-surface-800 dark:text-surface-200", "font-normal"],
+            class: ["self-baseline", "text-neutral-800 dark:text-neutral-200", "font-normal"],
         },
     },
     ObjectsGridBodyCell: {
         root: {
             class: [
                 "align-middle",
-                "text-surface-800 dark:text-surface-200",
+                "text-neutral-800 dark:text-neutral-200",
                 "font-normal",
                 "px-1 lg:px-2",
                 "table-cell",

@@ -230,7 +230,7 @@ const theme = useTheme("MobileSortComponent", props);
                         </div>
                     </draggable>
                 </div>
-                <div v-else class="text-sm text-surface-500">No Sorting applied. Click 'Add Sort' to begin</div>
+                <div v-else class="text-sm text-neutral-500">No Sorting applied. Click 'Add Sort' to begin</div>
                 <div :class="theme('actionBar')">
                     <!-- Button that appends the first available field as a new sort criterion; receives `label`, `severity`, `disabled`, `size`, and a click handler as slot props. -->
                     <slot

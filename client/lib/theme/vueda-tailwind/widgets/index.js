@@ -177,7 +177,7 @@ export default {
                     "col-end-2": !hidden && showingButton,
                     "col-end-3": !hidden && !showingButton,
                     "leading-[2.3958125rem]": true,
-                    "text-surface-900/60 dark:text-white/60": true,
+                    "text-neutral-900/60 dark:text-white/60": true,
                     "!text-amber-600 dark:!text-amber-500": warning,
                     "!text-maroon-600 dark:!text-maroon-500": invalid,
                 };
@@ -206,7 +206,7 @@ export default {
             class: [],
         },
         title: {
-            class: ["text-surface-900 dark:text-white"],
+            class: ["text-neutral-900 dark:text-white"],
         },
         inner: {
             class: ["grid lg:grid-cols-2 gap-2"],
@@ -218,7 +218,7 @@ export default {
             class: ["prose max-w-full flex flex-col row-start-2 row-end-3 col-start-1 col-end-3"],
         },
         label: {
-            class: ["row-start-1 row-end-2 col-start-1 leading-[2.3958125rem] text-surface-900/60 dark:text-white/60"],
+            class: ["row-start-1 row-end-2 col-start-1 leading-[2.3958125rem] text-neutral-900/60 dark:text-white/60"],
         },
         previewWrapper: {
             class: ["ml-2 mb-1 gap-1 grid grid-cols-[auto_1fr] justify-between"],
