@@ -42,7 +42,8 @@ export default {
         },
         bodyRowGroup: {
             class: ({ isTable }) => [
-                "screen:grid",
+                "grid",
+                "print:block",
                 "p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4",
                 // don't add grid-cols-x here.
                 // projects should set their own via theme-override
