@@ -75,6 +75,7 @@
     "lodash-es": "^4.17.21",
     "luxon": "^3.5.0",
     "pinia": "^3.0.1",
+    "tailwindcss": "^4.2.1",
     "vue": "^3.5.13",
     "vue-draggable-next": "^2.3.0",
     "vue-router": "^4.5.0"
@@ -85,8 +86,6 @@
     "@tiptap/starter-kit": "^3.22.3",
     "@tiptap/vue-3": "^3.22.3",
     "browser-util-inspect": "^0.2.0",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
     "decimal.js": "^10.5.0",
     "dompurify": "^3.2.0",
     "js-cookie": "^3.0.5",
@@ -97,7 +96,6 @@
     "reka-ui": "^2.9.5",
     "semver": "^7.7.1",
     "string-similarity-js": "^2.1.4",
-    "tailwind-merge": "^3.5.0",
     "vaul-vue": "^0.4.1",
     "vue-input-otp": "^0.3.2",
     "vue-sonner": "^2.0.9"
