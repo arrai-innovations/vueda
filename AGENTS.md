@@ -18,9 +18,54 @@ This repo uses two workspace managers, both rooted here:
 ## Common Commands (root)
 
 - Bootstrap: `just bootstrap`
-- Checks (read‑only): `just check`
-- Fix (auto‑format): `just fix`
+- Checks (read-only): `just check`
+- Fix (auto-format): `just fix`
 - Tests: `just test`
+- Coverage: `just coverage`
+
+### Command naming pattern
+
+`test` and `coverage` follow a `<verb>-<package>` pattern: `<verb>` runs all
+packages in parallel; `<verb>-<package>` runs one package. For packages that
+contain both a JS and a Python component (`docs-tooling`), a further
+`<verb>-<package>-js` / `<verb>-<package>-py` split exists.
+
+`check` and `fix` split by tool rather than package: `<verb>-<tool>`.
+
+Packages: `server`, `client`, `docs-tooling` (and its sub-targets `docs-tooling-js`, `docs-tooling-py`).
+
+`test` and `coverage` sub-targets:
+
+| Verb | server | client | docs-tooling-js | docs-tooling-py |
+|------|--------|--------|-----------------|-----------------|
+| `test` | `test-server` | `test-client` | `test-docs-tooling-js` | `test-docs-tooling-py` |
+| `coverage` | `coverage-server` | `coverage-client` | `coverage-docs-tooling-js` | `coverage-docs-tooling-py` |
+
+`check` and `fix` sub-targets:
+
+| Recipe | Runs |
+|--------|------|
+| `check-ruff` | `ruff check` (server + docs-tooling) |
+| `check-eslint` | `eslint` check (client) |
+| `check-prettier` | `prettier` check (client) |
+| `fix-ruff` | `ruff check --fix` + `ruff format` |
+| `fix-eslint` | `eslint --fix` (client) |
+| `fix-prettier` | `prettier --write` (client) |
+
+So, for example, `just test-client`, `just coverage-server`,
+`just coverage-docs-tooling-py`, and `just check-eslint` are all valid commands.
+
+All per-package `test` and `coverage` recipes accept extra arguments, which are
+forwarded to the underlying test runner (vitest or pytest). Paths must be
+relative to the package directory, not the repo root.
+
+```bash
+just test-server -k test_login
+just test-server tests/test_auth.py
+just test-client tests/unit/lib/views/ViewWorkflowTransition.spec.js
+just coverage-server --cov-report=html
+just test-docs-tooling-py -x --lf
+```
 
 ## Commit Message Style
 
