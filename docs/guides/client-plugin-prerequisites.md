@@ -7,7 +7,7 @@ type: how-to
 
 # Client Plugin Prerequisites
 
-This guide covers the Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting a VUEDA client application. It explains what each dependency provides, which built-in components rely on it, and what fails when it is missing. The registration sequence depends on {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} to activate the shared {@term CRUDL} data path used by built-in views.
+This guide covers the Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting a VUEDA client application. It explains what each dependency provides, which built-in components rely on it, and what fails when it is missing. The registration sequence depends on `setTheme` to provide component styling classes and on {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} to activate the shared {@term CRUDL} data path used by built-in views.
 
 The guide assumes familiarity with Vue 3 application setup (`createApp`, `app.use`, `app.directive`). For the tutorial-style walkthrough that shows the full `main.js` in context, see [Start Building](../tutorials/start-building). For theme customization beyond the base preset, consult the PrimeVue documentation.
 
@@ -27,7 +27,8 @@ Plugin registration follows a specific order. Some steps have dependencies on ea
 import TheApp from "./TheApp.vue";
 import { getRouter } from "./router/index.js";
 import Aura from "@primeuix/themes/aura";
-import { setPrimeVuePreset } from "@vueda/theme/register.js";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { setTheme } from "@vueda/use/useTheme.js";
 import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
 import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { createPinia } from "pinia";
@@ -36,7 +37,8 @@ import ConfirmationService from "primevue/confirmationservice";
 import Tooltip from "primevue/tooltip";
 import { createApp } from "vue";
 
-// 1. CRUDL adapters (before app creation)
+// 1. Theme and CRUDL adapters (before app creation)
+setTheme(vuedaTailwind);
 setupDefaultListCrud();
 setupDefaultObjectCrud();
 
@@ -57,14 +59,25 @@ app.use(PrimeVue, {
 app.use(ConfirmationService);
 app.directive("tooltip", Tooltip);
 
-// 4. VUEDA theme sync
-setPrimeVuePreset(Aura);
-
-// 5. Mount
+// 4. Mount
 app.mount("#the-app");
 ```
 
 The sections below explain each registration step.
+
+## Theme
+
+`setTheme(themeObject)` registers the component theme that VUEDA uses to resolve CSS classes for every component slot (layout containers, buttons, inputs, headings, etc.).
+
+VUEDA ships a first-party Tailwind CSS theme at `@vueda/theme/vueda-tailwind/index.js`. This is the recommended starting point. It maps each component's named slots to Tailwind utility classes and supports overrides through `patchTheme()`, `setTheme()`, and per-component `themeOverride` props.
+
+The theme system itself is CSS-framework-agnostic. `setTheme` accepts any object that follows the `ThemeObject` shape (component name to slot to class map). To use a different CSS framework, provide a theme object that maps the same component and slot keys to your own classes.
+
+This must be called **before** any VUEDA component renders. Calling it before `createApp` satisfies this requirement.
+
+**What depends on it:** Every VUEDA component resolves its CSS classes through the theme system. Without a registered theme, components render with empty class attributes.
+
+**What fails without it:** Components render without any styling classes. The application is functional but visually unstyled. No runtime error occurs.
 
 ## CRUDL Adapters
 
@@ -134,18 +147,6 @@ toast.info("No changes detected");
 
 **What fails without it:** The `v-tooltip` attribute is silently ignored. No runtime error occurs; help text tooltips simply do not appear. This is the least critical of the plugin dependencies, but users lose access to contextual help on form fields.
 
-## setPrimeVuePreset
-
-`setPrimeVuePreset(preset)` stores the PrimeVue preset object in a module-scoped variable that VUEDA's widget components access at runtime through `getPrimeVuePreset()`.
-
-This is separate from `app.use(PrimeVue, { theme: { preset } })`. The PrimeVue plugin registration configures PrimeVue on the Vue application instance. `setPrimeVuePreset` makes the same preset object available to VUEDA's pass-through styling system, which extends PrimeVue component styling for features like warning states.
-
-The preset passed to `setPrimeVuePreset` must be the same object passed to PrimeVue's `theme.preset` option. Passing a different preset produces styling inconsistencies between base PrimeVue components and VUEDA's extensions.
-
-**What depends on it:** `useWarningClass()`, which adds the `.p-warning` CSS class to form fields that have validation warnings. This composable uses `getPrimeVuePreset()` to build a PrimeVue pass-through configuration that merges warning styles with the base preset.
-
-**What fails without it:** `getPrimeVuePreset()` returns `null`. The pass-through system still operates, but without the base preset's token foundation. Warning states on form fields (amber border, adjusted placeholder color) may render without correct styling. There is no runtime error.
-
 ## Verification Checklist
 
 After completing the registration sequence, verify the following:
@@ -155,31 +156,26 @@ After completing the registration sequence, verify the following:
 - A form with invalid data displays inline validation errors and a warning toast.
 - Hovering over a field with help text shows a tooltip.
 - A destructive action (e.g., delete) shows a confirmation dialog before proceeding.
-- Form fields with validation warnings display an amber border (confirming `setPrimeVuePreset` is active).
 
 ## Troubleshooting
 
 **Toast notifications not appearing.** `<FeedbackToaster />` is not mounted in the root component. Add it to `TheApp.vue`.
 
-**Components render as unstyled HTML.** PrimeVue is not registered, or the preset is missing. Verify `app.use(PrimeVue, { theme: { preset: Aura } })` is present. Check the browser console for missing CSS custom property warnings.
+**Components render as unstyled HTML.** Either `setTheme` was not called (VUEDA layout classes are missing) or PrimeVue is not registered (PrimeVue widget styling is missing). Verify `setTheme(vuedaTailwind)` is called before app creation and `app.use(PrimeVue, { theme: { preset: Aura } })` is present. Check the browser console for missing CSS custom property warnings.
 
 **Lists load but show no data.** CRUDL adapters are not registered. Verify that `setupDefaultListCrud()` and `setupDefaultObjectCrud()` are called before app creation. Check the network tab; if no HTTP requests are made for list data, the adapter layer has no implementation.
 
 **Tooltips do not appear on hover.** The Tooltip directive is not registered. Add `app.directive("tooltip", Tooltip)`. This has no runtime error, so it is easy to miss.
-
-**Warning field styling is missing.** `setPrimeVuePreset` was not called, or was called with a different preset than PrimeVue. Verify the same preset object is passed to both `app.use(PrimeVue, { theme: { preset } })` and `setPrimeVuePreset(preset)`.
 
 **Confirmation dialog does not appear for delete actions.** `ConfirmationService` is not registered. Add `app.use(ConfirmationService)`. Also verify that the action's configuration includes a `confirmMessage` prop.
 
 ## Relevant Implementation Surface
 
 - JavaScript:
-    - {@api js:function:@arrai-innovations/vueda/theme/register#setPrimeVuePreset}
-    - {@api js:function:@arrai-innovations/vueda/theme/register#getPrimeVuePreset}
+    - {@api js:function:@arrai-innovations/vueda/use/useTheme#setTheme}
+    - {@api js:function:@arrai-innovations/vueda/use/useTheme#patchTheme}
     - {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud}
     - {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud}
-    - {@api js:function:@arrai-innovations/vueda/use/useWarningClass#useWarningClass}
-    - {@api js:module:@arrai-innovations/vueda/use/useWarningClass}
 - Vue.js Components:
     - {@api vue:component:ActionForm}
     - {@api vue:component:AuthorizingForm}

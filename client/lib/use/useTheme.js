@@ -4,14 +4,13 @@
  */
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { ThemeOverrideSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isFunction from "lodash-es/isFunction.js";
 import mergeWith from "lodash-es/mergeWith.js";
 import { computed, effectScope, getCurrentInstance, inject, provide, toRef, unref } from "vue";
 
-let defaultTheme = vuedaTailwind;
+let defaultTheme = {};
 
 /**
  * Vue component props definition for components that accept a theme override prop.
@@ -21,7 +20,7 @@ let defaultTheme = vuedaTailwind;
  * @vueda-spread props
  */
 export const THEME_OVERRIDE_PROPS = {
-    /** A partial theme object merged with the component's default theme; accepts a Tailwind class string, class array, or theme object. */
+    /** A partial theme object merged with the component's default theme; accepts a class string, class array, or theme object. */
     themeOverride: {
         type: [String, Object, Array],
         default: null,
@@ -139,17 +138,11 @@ export function useTheme(componentName, props, context, keyFn) {
     if (!componentName) {
         throw new Error("No component name passed");
     }
-    const config = defaultTheme[componentName];
-    if (!config) {
-        throw new Error(`No theme config found for ${componentName}`);
-    }
+    const config = defaultTheme[componentName] || {};
 
     const themeOverride = useThemeOverride(toRef(props, "themeOverride"), config.themeOverride || null);
 
     const returnFn = (key, kwargs = {}) => {
-        if (!config[key]) {
-            throw new Error(`No theme config key found for ${key} in ${componentName}`);
-        }
         let myKey = key;
         if (keyFn) {
             // This allows us to have different computed properties for the same key based on kwargs

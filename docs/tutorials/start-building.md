@@ -584,7 +584,8 @@ Replace `client/src/main.js` with:
 import TheApp from "./TheApp.vue";
 import { getRouter } from "./router/index.js";
 import Aura from "@primeuix/themes/aura";
-import { setPrimeVuePreset } from "@vueda/theme/register.js";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { setTheme } from "@vueda/use/useTheme.js";
 import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
 import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { createPinia } from "pinia";
@@ -593,6 +594,7 @@ import ConfirmationService from "primevue/confirmationservice";
 import Tooltip from "primevue/tooltip";
 import { createApp } from "vue";
 
+setTheme(vuedaTailwind);
 setupDefaultListCrud();
 setupDefaultObjectCrud();
 
@@ -610,14 +612,12 @@ app.use(PrimeVue, {
 app.use(ConfirmationService);
 app.directive("tooltip", Tooltip);
 
-setPrimeVuePreset(Aura);
-
 app.mount("#the-app");
 
 export default app;
 ```
 
-{@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUDL operation. {@api js:function:@arrai-innovations/vueda/theme/register#setPrimeVuePreset} syncs the active PrimeVue preset into VUEDA's theme system. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each plugin.
+`setTheme(vuedaTailwind)` registers the built-in Tailwind CSS theme so that all VUEDA components receive their default styling classes. The theme system is CSS-framework-agnostic; `vuedaTailwind` is a first-party preset that maps component slots to Tailwind utility classes. {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUDL operation. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each plugin.
 
 ### Add a Sign-In View
 

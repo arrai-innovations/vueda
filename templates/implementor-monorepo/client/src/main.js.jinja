@@ -1,7 +1,11 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { setTheme } from "@vueda/use/useTheme.js";
 import { getRouter } from "./router/index.js";
 import TheApp from "./TheApp.vue";
+
+setTheme(vuedaTailwind);
 
 const app = createApp(TheApp);
 const pinia = createPinia();
