@@ -63,13 +63,11 @@ scopedIt("warns for non-string or invalid values", async () => {
     expect(loggerWarn).toHaveBeenCalledWith(expect.stringContaining("not a valid ISO datetime"), "bad");
 });
 
-scopedIt("formatDateTime handles falsey and valid values", () => {
-    const wrapper = mount(FieldDateTime, { props: { name: "dt" } });
-    expect(wrapper.vm.formatDateTime(null)).toBe("");
-
-    expect(wrapper.vm.formatDateTime(undefined)).toBe("");
-    const d = new Date("2024-05-04T06:00:00Z");
-    expect(wrapper.vm.formatDateTime(d)).toBe(DateTime.fromJSDate(d).toISO({ suppressMilliseconds: true }));
+scopedIt("clears errors for null value", () => {
+    fieldContext.state.value = null;
+    mount(FieldDateTime, { props: { name: "dt", maxValue: new Date(), minValue: new Date() } });
+    expect(fieldContext.deleteError).toHaveBeenCalledWith("maxValue");
+    expect(fieldContext.deleteError).toHaveBeenCalledWith("minValue");
 });
 
 scopedIt("does not warn for null or valid ISO values", async () => {

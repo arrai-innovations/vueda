@@ -1,7 +1,6 @@
 <script setup>
-import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { watchIfDev } from "@vueda/utils/dev.js";
+import { useDevTypeGuard } from "@vueda/use/validation/useDevTypeGuard.js";
 import omit from "lodash-es/omit.js";
 
 /**
@@ -28,30 +27,17 @@ const props = defineProps({
     step: {
         type: Number,
         default: 60,
-        description: "The step in seconds.",
     },
     /** The display unit used by the rendering widget (e.g. "minutes" or "hours"). */
     unit: {
         type: String,
         default: "minutes",
-        description: "The unit of the duration.",
     },
 });
 const emit = defineEmits([...FIELD_EMITS]);
-
 const fieldContext = useField(props, emit);
-const logger = useDevLogger({ fieldContext });
-watchIfDev(
-    () => fieldContext.state.value,
-    (value) => {
-        if (value === null || value === undefined) {
-            return;
-        }
-        if (typeof value !== "object" || Array.isArray(value)) {
-            logger.warn(`Expected value to be a plain object for duration, got:`, value);
-        }
-    },
-    { immediate: true },
+useDevTypeGuard(fieldContext, (value) =>
+    typeof value !== "object" || Array.isArray(value) ? `Expected value to be a plain object for duration, got:` : null,
 );
 </script>
 <template>

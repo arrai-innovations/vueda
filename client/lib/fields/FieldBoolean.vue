@@ -1,7 +1,6 @@
 <script setup>
-import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { watchIfDev } from "@vueda/utils/dev.js";
+import { useDevTypeGuard } from "@vueda/use/validation/useDevTypeGuard.js";
 import omit from "lodash-es/omit.js";
 
 /**
@@ -21,22 +20,18 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
-const logger = useDevLogger({ fieldContext });
-
-watchIfDev(
-    () => fieldContext.state.value,
+useDevTypeGuard(
+    fieldContext,
     (value) => {
-        if (value === undefined) {
-            return;
-        }
         if (props.nullable && value === null) {
-            return;
+            return null;
         }
         if (typeof value !== "boolean") {
-            logger.warn(`Expected value to be a boolean${props.nullable ? " or null" : ""}, got:`, value);
+            return `Expected value to be a boolean${props.nullable ? " or null" : ""}, got:`;
         }
+        return null;
     },
-    { immediate: true },
+    { includeNull: true },
 );
 </script>
 <template>

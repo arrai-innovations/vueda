@@ -81,16 +81,13 @@ describe("lib/fields/FieldDate.vue", () => {
         restore();
     });
 
-    scopedIt("parseToDate and formatDate bail early for falsey values", async () => {
-        const { wrapper, restore } = await setup(false);
+    scopedIt("clears errors for null value", async () => {
+        const { state, deleteError, restore } = await setup(false);
 
-        expect(wrapper.vm.parseToDate(null)).toBeNull();
-        expect(wrapper.vm.parseToDate(undefined)).toBeNull();
-        expect(wrapper.vm.parseToDate(0)).toBeNull();
-        expect(wrapper.vm.parseToDate("")).toBeNull();
-
-        expect(wrapper.vm.formatDate(null)).toBe("");
-        expect(wrapper.vm.formatDate(undefined)).toBe("");
+        state.value = null;
+        await vue.nextTick();
+        expect(deleteError).toHaveBeenCalledWith("maxValue");
+        expect(deleteError).toHaveBeenCalledWith("minValue");
 
         restore();
     });

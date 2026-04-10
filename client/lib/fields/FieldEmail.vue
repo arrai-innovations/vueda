@@ -1,7 +1,6 @@
 <script setup>
-import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { watchIfDev } from "@vueda/utils/dev.js";
+import { useDevTypeGuard } from "@vueda/use/validation/useDevTypeGuard.js";
 import omit from "lodash-es/omit.js";
 
 /**
@@ -16,18 +15,8 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldContext = useField(props, emit);
-const logger = useDevLogger({ fieldContext });
-watchIfDev(
-    () => fieldContext.state.value,
-    (value) => {
-        if (value === null || value === undefined) {
-            return;
-        }
-        if (typeof value !== "string") {
-            logger.warn(`Expected value to be a string (email address), got:`, value);
-        }
-    },
-    { immediate: true },
+useDevTypeGuard(fieldContext, (value) =>
+    typeof value !== "string" ? `Expected value to be a string (email address), got:` : null,
 );
 </script>
 <template>
