@@ -71,6 +71,15 @@ The sections below explain each registration step.
 
 VUEDA ships a first-party Tailwind CSS theme at `@vueda/theme/vueda-tailwind/index.js`. This is the recommended starting point. It maps each component's named slots to Tailwind utility classes and supports overrides through `patchTheme()`, `setTheme()`, and per-component `themeOverride` props.
 
+The theme also requires a set of semantic color tokens (`foreground`, `background`, `primary`, `muted`, `sidebar`, and related variants) that are not part of Tailwind's default palette. A baseline CSS file is included at `@vueda/theme/vueda-tailwind/base.css` that defines these tokens with a default light/dark neutral palette. Import it once in your project's main CSS file:
+
+```css
+@import "tailwindcss";
+@import "@vueda/theme/vueda-tailwind/base.css";
+```
+
+If your project already defines these tokens (for example, from shadcn-ui or a custom design system), you can skip the `base.css` import and the theme will use your existing values.
+
 The theme system itself is CSS-framework-agnostic. `setTheme` accepts any object that follows the `ThemeObject` shape (component name to slot to class map). To use a different CSS framework, provide a theme object that maps the same component and slot keys to your own classes.
 
 This must be called **before** any VUEDA component renders. Calling it before `createApp` satisfies this requirement.
