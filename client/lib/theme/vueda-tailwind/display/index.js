@@ -94,6 +94,23 @@ export default {
             class: "inline-flex items-center gap-1",
         },
     },
+
+    // avatar
+    DisplayAvatar: {
+        root: {
+            class: "relative flex size-8 shrink-0 overflow-hidden rounded-full",
+        },
+    },
+    DisplayAvatarImage: {
+        root: {
+            class: "aspect-square size-full",
+        },
+    },
+    DisplayAvatarFallback: {
+        root: {
+            class: "bg-muted flex size-full items-center justify-center rounded-full",
+        },
+    },
     MobileSortComponent: {
         drawer: {
             class: ["!h-auto"],

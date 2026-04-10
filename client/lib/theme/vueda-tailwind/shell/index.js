@@ -5,6 +5,29 @@
 import { BUTTON_BASE, BUTTON_VARIANT_DEFAULT, BUTTON_VARIANT_OUTLINE } from "@vueda/theme/vueda-tailwind/_shared.js";
 
 export default {
+    // accordion
+    ShellAccordionItem: {
+        root: {
+            class: "border-b last:border-b-0",
+        },
+    },
+    ShellAccordionContent: {
+        root: {
+            class: "data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm",
+        },
+        inner: {
+            class: "pt-0 pb-4",
+        },
+    },
+    ShellAccordionTrigger: {
+        root: {
+            class: "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
+        },
+        icon: {
+            class: "text-muted-foreground pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200",
+        },
+    },
+
     // alert-dialog
     ShellAlertDialogAction: {
         root: {
@@ -42,6 +65,43 @@ export default {
     ShellAlertDialogTitle: {
         root: {
             class: "text-lg font-semibold",
+        },
+    },
+
+    // card
+    ShellCard: {
+        root: {
+            class: "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        },
+    },
+    ShellCardHeader: {
+        root: {
+            class: "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
+        },
+    },
+    ShellCardTitle: {
+        root: {
+            class: "leading-none font-semibold",
+        },
+    },
+    ShellCardDescription: {
+        root: {
+            class: "text-muted-foreground text-sm",
+        },
+    },
+    ShellCardAction: {
+        root: {
+            class: "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
+        },
+    },
+    ShellCardContent: {
+        root: {
+            class: "px-6",
+        },
+    },
+    ShellCardFooter: {
+        root: {
+            class: "flex items-center px-6 [.border-t]:pt-6",
         },
     },
 
@@ -187,6 +247,13 @@ export default {
     ShellFieldTitle: {
         root: {
             class: "flex w-fit items-center gap-2 text-sm leading-snug font-medium group-data-[disabled=true]/field:opacity-50",
+        },
+    },
+
+    // hover-card
+    ShellHoverCardContent: {
+        root: {
+            class: "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",
         },
     },
 
@@ -402,6 +469,52 @@ export default {
     ShellSheetTitle: {
         root: {
             class: "text-foreground font-semibold",
+        },
+    },
+
+    // stepper
+    ShellStepper: {
+        root: {
+            class: "flex gap-2",
+        },
+    },
+    ShellStepperItem: {
+        root: {
+            class: "flex items-center gap-2 group data-[disabled]:pointer-events-none",
+        },
+    },
+    ShellStepperTrigger: {
+        root: {
+            class: "p-1 flex flex-col items-center text-center gap-1 rounded-md",
+        },
+    },
+    ShellStepperIndicator: {
+        root: {
+            class: [
+                "inline-flex items-center justify-center rounded-full text-muted-foreground/50 w-8 h-8",
+                "group-data-[disabled]:text-muted-foreground group-data-[disabled]:opacity-50",
+                "group-data-[state=active]:bg-primary group-data-[state=active]:text-primary-foreground",
+                "group-data-[state=completed]:bg-accent group-data-[state=completed]:text-accent-foreground",
+            ],
+        },
+    },
+    ShellStepperTitle: {
+        root: {
+            class: "text-md font-semibold whitespace-nowrap",
+        },
+    },
+    ShellStepperDescription: {
+        root: {
+            class: "text-xs text-muted-foreground",
+        },
+    },
+    ShellStepperSeparator: {
+        root: {
+            class: [
+                "bg-muted",
+                "group-data-[disabled]:bg-muted group-data-[disabled]:opacity-50",
+                "group-data-[state=completed]:bg-accent",
+            ],
         },
     },
 

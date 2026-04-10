@@ -1,0 +1,47 @@
+<script setup>
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { reactiveOmit } from "@vueuse/core";
+import { DropdownMenuItemIndicator, DropdownMenuRadioItem, useForwardPropsEmits } from "reka-ui";
+
+/**
+ * A radio item within a dropdown menu radio group.
+ */
+defineOptions({});
+
+const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
+    /** @type {import('vue').HTMLAttributes['class']} */
+    class: { type: [String, Array, Object], default: undefined },
+    /** The element or component to render as. */
+    as: { type: [String, Object], default: undefined },
+    /** When true, merges props onto the child element instead of rendering a wrapper. */
+    asChild: { type: Boolean, default: false },
+    /** When true, prevents the user from interacting with the item. */
+    disabled: { type: Boolean, default: undefined },
+    /** Optional text used for typeahead purposes. */
+    textValue: { type: String, default: undefined },
+    /** The unique value of this radio item. */
+    value: { type: [String, Number, Boolean, Object], required: true },
+});
+
+const emits = defineEmits(["select"]);
+
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const theme = useTheme("NavigationDropdownMenuRadioItem", props);
+</script>
+
+<template>
+    <DropdownMenuRadioItem
+        data-slot="dropdown-menu-radio-item"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+    >
+        <span class="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+            <DropdownMenuItemIndicator>
+                <slot name="indicator">•</slot>
+            </DropdownMenuItemIndicator>
+        </span>
+        <slot />
+    </DropdownMenuRadioItem>
+</template>

@@ -1,0 +1,22 @@
+<script setup>
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+
+/**
+ * A single item within a breadcrumb list.
+ */
+defineOptions({});
+
+const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
+    /** @type {import('vue').HTMLAttributes['class']} */
+    class: { type: [String, Array, Object], default: undefined },
+});
+
+const theme = useTheme("NavigationBreadcrumbItem", props);
+</script>
+
+<template>
+    <li data-slot="breadcrumb-item" :class="[theme('root'), props.class]">
+        <slot />
+    </li>
+</template>

@@ -595,4 +595,79 @@ export default {
             ],
         },
     },
+    ControlTagsInput: {
+        root: {
+            class: [
+                "flex flex-wrap gap-2 items-center rounded-md border border-input bg-background px-2 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none",
+                "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]",
+                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+            ],
+        },
+    },
+    ControlTagsInputItem: {
+        root: {
+            class: [
+                "flex h-5 items-center rounded-md bg-secondary data-[state=active]:ring-ring data-[state=active]:ring-2 data-[state=active]:ring-offset-2 ring-offset-background",
+            ],
+        },
+    },
+    ControlTagsInputInput: {
+        root: {
+            class: ["text-sm min-h-5 focus:outline-none flex-1 bg-transparent px-1"],
+        },
+    },
+    ControlTagsInputItemDelete: {
+        root: {
+            class: ["flex rounded bg-transparent mr-1"],
+        },
+    },
+    ControlTagsInputItemText: {
+        root: {
+            class: ["py-0.5 px-2 text-sm rounded bg-transparent"],
+        },
+    },
+    ControlCommand: {
+        root: {
+            class: ["bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md"],
+        },
+    },
+    ControlCommandInput: {
+        root: {
+            class: [
+                "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+            ],
+        },
+    },
+    ControlCommandList: {
+        root: {
+            class: ["max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto"],
+        },
+    },
+    ControlCommandEmpty: {
+        root: {
+            class: ["py-6 text-center text-sm"],
+        },
+    },
+    ControlCommandGroup: {
+        root: {
+            class: ["text-foreground overflow-hidden p-1"],
+        },
+    },
+    ControlCommandItem: {
+        root: {
+            class: [
+                "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+            ],
+        },
+    },
+    ControlCommandSeparator: {
+        root: {
+            class: ["bg-border -mx-1 h-px"],
+        },
+    },
+    ControlCommandShortcut: {
+        root: {
+            class: ["text-muted-foreground ml-auto text-xs tracking-widest"],
+        },
+    },
 };
