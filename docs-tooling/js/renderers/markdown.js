@@ -120,7 +120,7 @@ export function labelFromType(typeRef) {
 export function formatParameters(parameters) {
     return (parameters || []).map((param) => [
         param.name || "",
-        labelFromType(param.type) || "",
+        renderCodeInline(labelFromType(param.type)),
         // TypeDoc serializes flags sparsely, so missing optional means "required".
         param.optional ? "no" : "yes",
         param.description || "",
@@ -132,7 +132,7 @@ export function formatMembers(members, kindLabel = "property") {
         .filter((member) => member.kind === kindLabel || kindLabel === "any")
         .map((member) => [
             member.name || "",
-            labelFromType(member.type) || "",
+            renderCodeInline(labelFromType(member.type)),
             member.required === true ? "yes" : member.required === false ? "no" : "",
             member.default || "",
             member.description || "",

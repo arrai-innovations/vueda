@@ -194,3 +194,74 @@ describe("renderPdocBundle with class members", () => {
         expect(modulePage).toContain("# vueda.example");
     });
 });
+
+describe("renderPdocBundle anchor collision avoidance", () => {
+    function buildCollisionBundle(memberName) {
+        return {
+            schemaVersion: "1.0",
+            source: "pdoc",
+            nodes: [
+                {
+                    id: "py:module:pkg.mod",
+                    kind: "module",
+                    name: "mod",
+                    children: ["py:class:pkg.mod.MyModel"],
+                    extensions: { pdoc: { fullname: "pkg.mod", qualname: "", modulename: "pkg.mod" } },
+                },
+                {
+                    id: "py:class:pkg.mod.MyModel",
+                    kind: "class",
+                    name: "MyModel",
+                    description: "A model.",
+                    source: { file: "server/mod.py", line: 1 },
+                    children: [`py:property:pkg.mod.MyModel.${memberName}`],
+                    extensions: {
+                        pdoc: {
+                            fullname: "pkg.mod.MyModel",
+                            qualname: "MyModel",
+                            modulename: "pkg.mod",
+                            is_public: true,
+                        },
+                    },
+                },
+                {
+                    id: `py:property:pkg.mod.MyModel.${memberName}`,
+                    kind: "property",
+                    name: memberName,
+                    description: "A field.",
+                    extensions: {
+                        pdoc: {
+                            fullname: `pkg.mod.MyModel.${memberName}`,
+                            qualname: `MyModel.${memberName}`,
+                            modulename: "pkg.mod",
+                            is_public: true,
+                        },
+                    },
+                },
+            ],
+        };
+    }
+
+    function renderCollisionCase(memberName) {
+        const outputs = renderPdocBundle(buildCollisionBundle(memberName));
+        return [...outputs.entries()].find(([k]) => k.endsWith("MyModel.md"))?.[1];
+    }
+
+    it("disambiguates Source heading when a member is named 'source'", () => {
+        const page = renderCollisionCase("source");
+        expect(page).toContain("## source {#source}");
+        expect(page).toContain("## Source {#source-section}");
+    });
+
+    it("disambiguates Overview heading when a member is named 'overview'", () => {
+        const page = renderCollisionCase("overview");
+        expect(page).toContain("## overview {#overview}");
+        expect(page).toContain("## Overview {#overview-section}");
+    });
+
+    it("leaves Source heading unchanged when no collision exists", () => {
+        const page = renderCollisionCase("name");
+        expect(page).toContain("## Source\n");
+        expect(page).not.toContain("source-section");
+    });
+});

@@ -326,7 +326,15 @@ async function runRender(argv) {
     await writeRenderedFiles(outputDir, combinedOutputs);
 }
 
-const defaultExcludes = ["reference/api", ".vitepress", ".generated", "AGENTS.md", "README.md", "CONTENT_PLAN.md"];
+const defaultExcludes = [
+    "reference/api",
+    ".vitepress",
+    ".generated",
+    "temp",
+    "AGENTS.md",
+    "README.md",
+    "CONTENT_PLAN.md",
+];
 
 function collectMarkdownFiles(docsDir, excludes) {
     const results = [];

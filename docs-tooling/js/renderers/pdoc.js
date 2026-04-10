@@ -26,13 +26,30 @@ function moduleTitle(node) {
     return parts.length >= 2 ? parts.slice(-2).join(".") : fullname;
 }
 
-function renderSignatures(node, filePath) {
+/**
+ * Return heading text with an explicit anchor when the auto-slug would
+ * collide with an inline member anchor on a class page.  VitePress
+ * auto-slugifies headings to lowercase, so `## Source` becomes
+ * `id="source"`, which collides with a member `## source {#source}`.
+ */
+function sectionAnchor(text, memberAnchors) {
+    if (!memberAnchors || !memberAnchors.size) {
+        return text;
+    }
+    const autoSlug = text.toLowerCase().replace(/\s+/g, "-");
+    if (memberAnchors.has(autoSlug)) {
+        return `${text} {#${autoSlug}-section}`;
+    }
+    return text;
+}
+
+function renderSignatures(node, filePath, memberAnchors) {
     if (!node.signatures || !node.signatures.length) {
         return "";
     }
     const lines = [];
     const heading = node.signatures.length > 1 ? "Signatures" : "Signature";
-    lines.push(renderHeading(2, heading), "");
+    lines.push(renderHeading(2, sectionAnchor(heading, memberAnchors)), "");
 
     for (const signature of node.signatures) {
         const params = (signature.parameters || []).map((param) => param.name).join(", ");
@@ -64,24 +81,29 @@ function renderInlineMember(member) {
 
     if (member.signatures?.length) {
         const heading = member.signatures.length > 1 ? "Signatures" : "Signature";
-        lines.push(renderHeading(3, heading), "");
+        lines.push(renderHeading(3, `${heading} {#${anchor}-${heading.toLowerCase()}}`), "");
         for (const signature of member.signatures) {
             const params = (signature.parameters || []).map((p) => p.name).join(", ");
             lines.push(renderCodeInline(`${member.name}(${params})`), "");
             const paramRows = formatParameters(signature.parameters || []);
             const paramTable = renderTable(["Name", "Type", "Required", "Description"], paramRows);
             if (paramTable) {
-                lines.push(renderHeading(4, "Parameters"), "", paramTable, "");
+                lines.push(renderHeading(4, `Parameters {#${anchor}-parameters}`), "", paramTable, "");
             }
             if (signature.returns?.name) {
-                lines.push(renderHeading(4, "Returns"), "", renderCodeInline(signature.returns.name), "");
+                lines.push(
+                    renderHeading(4, `Returns {#${anchor}-returns}`),
+                    "",
+                    renderCodeInline(signature.returns.name),
+                    "",
+                );
             }
         }
     }
 
     const sourceValue = formatSource(member.source);
     if (sourceValue) {
-        lines.push(renderHeading(3, "Source"), "", renderCodeInline(sourceValue), "");
+        lines.push(renderHeading(3, `Source {#${anchor}-source}`), "", renderCodeInline(sourceValue), "");
     }
 
     return lines.join("\n");
@@ -136,22 +158,24 @@ function renderChildrenSections(node, index, pathMap, filePath) {
     return lines.join("\n");
 }
 
-function renderSource(node) {
+function renderSource(node, memberAnchors) {
     const value = formatSource(node.source);
     if (!value) {
         return "";
     }
-    return [renderHeading(2, "Source"), "", renderCodeInline(value), ""].join("\n");
+    return [renderHeading(2, sectionAnchor("Source", memberAnchors)), "", renderCodeInline(value), ""].join("\n");
 }
 
 export function renderPdocNode(node, index, filePath) {
     const fm = { id: node.id, kind: node.kind, source: "pdoc" };
 
+    let memberAnchors;
     if (node.kind === "class") {
         const children = index.childrenOf.get(node.id) || [];
         const publicChildren = children.filter(isVisibleMember);
         if (publicChildren.length) {
             fm.member_ids = publicChildren.map((c) => c.id);
+            memberAnchors = new Set(publicChildren.map((c) => slugify(c.name)));
         }
     }
 
@@ -164,10 +188,10 @@ export function renderPdocNode(node, index, filePath) {
     lines.push(renderHeading(1, title), "");
 
     if (node.description) {
-        lines.push(renderHeading(2, "Overview"), "", escapeText(node.description), "");
+        lines.push(renderHeading(2, sectionAnchor("Overview", memberAnchors)), "", escapeText(node.description), "");
     }
 
-    const signatureBlock = renderSignatures(node, filePath);
+    const signatureBlock = renderSignatures(node, filePath, memberAnchors);
     if (signatureBlock) {
         lines.push(signatureBlock);
     }
@@ -184,7 +208,7 @@ export function renderPdocNode(node, index, filePath) {
         }
     }
 
-    const sourceBlock = renderSource(node);
+    const sourceBlock = renderSource(node, memberAnchors);
     if (sourceBlock) {
         lines.push(sourceBlock);
     }

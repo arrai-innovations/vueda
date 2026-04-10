@@ -5,6 +5,7 @@ import {
     parseTermRef,
     stripInlineMarkdown,
 } from "../../docs-tooling/js/utils/reference-parser.js";
+import { slugify } from "../../docs-tooling/js/utils/slugify.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -105,6 +106,11 @@ const apiPathForFile = (filePath) => {
     return `/reference/api/${rel}`;
 };
 
+const memberNameFromId = (memberId) => {
+    const qualName = memberId.replace(/^[^:]+:[^:]+:/, "");
+    return qualName.includes(".") ? qualName.split(".").pop() : qualName;
+};
+
 const buildApiIndex = () => {
     const index = new Map();
     if (!fs.existsSync(apiRoot)) {
@@ -121,11 +127,26 @@ const buildApiIndex = () => {
             throw new Error(`Duplicate API id: ${frontmatter.id}`);
         }
         const title = frontmatter.title || extractHeading(body) || frontmatter.id;
+        const pageHref = apiPathForFile(filePath);
         index.set(frontmatter.id, {
-            href: apiPathForFile(filePath),
+            href: pageHref,
             title,
             filePath,
         });
+        if (Array.isArray(frontmatter.member_ids)) {
+            for (const memberId of frontmatter.member_ids) {
+                if (!memberId || index.has(memberId)) {
+                    continue;
+                }
+                const memberName = memberNameFromId(memberId);
+                const anchor = slugify(memberName);
+                index.set(memberId, {
+                    href: anchor ? `${pageHref}#${anchor}` : pageHref,
+                    title: `${title}.${memberName}`,
+                    filePath,
+                });
+            }
+        }
     }
     return index;
 };
@@ -523,7 +544,7 @@ export default defineConfig({
     lastUpdated: true,
     base,
     outDir: "../site",
-    srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md", "**/README.md"],
+    srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md", "**/README.md", "temp/**"],
     head: [
         ["link", { rel: "icon", href: `${base}assets/logo-cube.svg` }],
         [
