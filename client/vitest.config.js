@@ -6,6 +6,7 @@ export default defineConfig((configEnv) =>
         viteConfig(configEnv),
         defineConfig({
             test: {
+                watch: false,
                 globals: true,
                 environment: "jsdom",
                 coverage: {
