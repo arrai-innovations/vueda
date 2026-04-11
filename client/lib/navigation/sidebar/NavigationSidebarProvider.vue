@@ -1,14 +1,14 @@
 <script setup>
+import { ShellTooltipProvider } from "@vueda/shell/tooltip";
+import { provideSidebarContext } from "@vueda/use/useSidebar.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import {
     SIDEBAR_COOKIE_MAX_AGE,
     SIDEBAR_COOKIE_NAME,
     SIDEBAR_KEYBOARD_SHORTCUT,
     SIDEBAR_WIDTH,
     SIDEBAR_WIDTH_ICON,
-    provideSidebarContext,
-} from "./utils.js";
-import { ShellTooltipProvider } from "@vueda/shell/tooltip";
-import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+} from "@vueda/utils/constants.js";
 import { defaultDocument, useEventListener, useMediaQuery, useVModel } from "@vueuse/core";
 import { computed, ref } from "vue";
 

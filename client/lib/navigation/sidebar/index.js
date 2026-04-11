@@ -22,5 +22,3 @@ export { default as NavigationSidebarProvider } from "./NavigationSidebarProvide
 export { default as NavigationSidebarRail } from "./NavigationSidebarRail.vue";
 export { default as NavigationSidebarSeparator } from "./NavigationSidebarSeparator.vue";
 export { default as NavigationSidebarTrigger } from "./NavigationSidebarTrigger.vue";
-
-export { useSidebar } from "./utils.js";

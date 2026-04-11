@@ -1,5 +1,4 @@
 <script setup>
-import { SIDEBAR_WIDTH_MOBILE, useSidebar } from "./utils.js";
 import {
     ShellSheet,
     ShellSheetContent,
@@ -7,7 +6,9 @@ import {
     ShellSheetHeader,
     ShellSheetTitle,
 } from "@vueda/shell/sheet";
+import { useSidebar } from "@vueda/use/useSidebar.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { SIDEBAR_WIDTH_MOBILE } from "@vueda/utils/constants.js";
 import { reactive, toRef } from "vue";
 
 /**

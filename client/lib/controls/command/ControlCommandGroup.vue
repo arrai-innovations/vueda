@@ -1,5 +1,5 @@
 <script setup>
-import { provideCommandGroupContext, useCommand } from "./command-context.js";
+import { provideCommandGroupContext, useCommand } from "@vueda/use/useCommand.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ListboxGroup, ListboxGroupLabel, useId } from "reka-ui";

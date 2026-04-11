@@ -1,6 +1,6 @@
 <script setup>
-import { useSidebar } from "./utils.js";
 import { ControlButton } from "@vueda/controls/button";
+import { useSidebar } from "@vueda/use/useSidebar.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

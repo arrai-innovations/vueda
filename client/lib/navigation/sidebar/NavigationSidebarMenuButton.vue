@@ -1,7 +1,7 @@
 <script setup>
 import NavigationSidebarMenuButtonChild from "./NavigationSidebarMenuButtonChild.vue";
-import { useSidebar } from "./utils.js";
 import { ShellTooltip, ShellTooltipContent, ShellTooltipTrigger } from "@vueda/shell/tooltip";
+import { useSidebar } from "@vueda/use/useSidebar.js";
 import { reactiveOmit } from "@vueuse/core";
 
 /**
