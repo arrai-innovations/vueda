@@ -88,8 +88,8 @@ const FeedbackSpinnerStub = defineComponent({
 
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
 vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
-vi.mock("@vueda/feedback/spinner", () => ({ FeedbackSpinner: FeedbackSpinnerStub }));
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/feedback/spinner/FeedbackSpinner.vue", () => ({ default: FeedbackSpinnerStub }));
 
 const lifecycle = mockLifecycle(vi);
 const { mockedOnDeactivated, runDeactivatedHooks, clearDeactivated } = lifecycle;

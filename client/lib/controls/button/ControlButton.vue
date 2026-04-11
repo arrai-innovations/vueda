@@ -4,6 +4,14 @@ import { Primitive } from "reka-ui";
 import { reactive, toRef } from "vue";
 
 /**
+ * @typedef {'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'} ButtonVariant
+ */
+
+/**
+ * @typedef {'default' | 'sm' | 'lg' | 'icon' | 'icon-sm' | 'icon-lg'} ButtonSize
+ */
+
+/**
  * A button control built on Reka UI's Primitive, supporting variant and size styles via the theme system.
  */
 defineOptions({});

@@ -2,7 +2,7 @@
 import { deepUnref, keyDiff } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterComponent from "@vueda/components/FilterComponent.vue";
-import { ControlButton } from "@vueda/controls/button";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
 import { useFilter } from "@vueda/use/useFilter.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { useTheme } from "@vueda/use/useTheme.js";

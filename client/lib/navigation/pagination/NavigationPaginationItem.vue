@@ -11,7 +11,7 @@ defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** @type {import('@vueda/controls/button').ButtonSize} */
+    /** @type {import('@vueda/controls/button/ControlButton.vue').ButtonSize} */
     size: { type: String, default: "icon" },
     /** @type {import('vue').HTMLAttributes['class']} */
     class: { type: [String, Array, Object], default: undefined },

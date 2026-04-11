@@ -1,5 +1,5 @@
 <script setup>
-import { ShellTooltipProvider } from "@vueda/shell/tooltip";
+import ShellTooltipProvider from "@vueda/shell/tooltip/ShellTooltipProvider.vue";
 import { provideSidebarContext } from "@vueda/use/useSidebar.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import {

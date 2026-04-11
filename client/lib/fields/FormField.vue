@@ -1,11 +1,9 @@
 <script setup>
-import {
-    ShellField,
-    ShellFieldContent,
-    ShellFieldDescription,
-    ShellFieldLabel,
-    ShellFieldMessage,
-} from "@vueda/shell/field";
+import ShellField from "@vueda/shell/field/ShellField.vue";
+import ShellFieldContent from "@vueda/shell/field/ShellFieldContent.vue";
+import ShellFieldDescription from "@vueda/shell/field/ShellFieldDescription.vue";
+import ShellFieldLabel from "@vueda/shell/field/ShellFieldLabel.vue";
+import ShellFieldMessage from "@vueda/shell/field/ShellFieldMessage.vue";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { useFieldValidation } from "@vueda/use/validation/useFieldValidation.js";

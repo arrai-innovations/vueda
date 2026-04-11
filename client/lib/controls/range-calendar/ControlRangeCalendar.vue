@@ -1,17 +1,15 @@
 <script setup>
-import {
-    ControlRangeCalendarCell,
-    ControlRangeCalendarCellTrigger,
-    ControlRangeCalendarGrid,
-    ControlRangeCalendarGridBody,
-    ControlRangeCalendarGridHead,
-    ControlRangeCalendarGridRow,
-    ControlRangeCalendarHeadCell,
-    ControlRangeCalendarHeader,
-    ControlRangeCalendarHeading,
-    ControlRangeCalendarNextButton,
-    ControlRangeCalendarPrevButton,
-} from ".";
+import ControlRangeCalendarCell from "./ControlRangeCalendarCell.vue";
+import ControlRangeCalendarCellTrigger from "./ControlRangeCalendarCellTrigger.vue";
+import ControlRangeCalendarGrid from "./ControlRangeCalendarGrid.vue";
+import ControlRangeCalendarGridBody from "./ControlRangeCalendarGridBody.vue";
+import ControlRangeCalendarGridHead from "./ControlRangeCalendarGridHead.vue";
+import ControlRangeCalendarGridRow from "./ControlRangeCalendarGridRow.vue";
+import ControlRangeCalendarHeadCell from "./ControlRangeCalendarHeadCell.vue";
+import ControlRangeCalendarHeader from "./ControlRangeCalendarHeader.vue";
+import ControlRangeCalendarHeading from "./ControlRangeCalendarHeading.vue";
+import ControlRangeCalendarNextButton from "./ControlRangeCalendarNextButton.vue";
+import ControlRangeCalendarPrevButton from "./ControlRangeCalendarPrevButton.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { RangeCalendarRoot, useForwardPropsEmits } from "reka-ui";

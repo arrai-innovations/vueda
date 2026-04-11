@@ -10,16 +10,15 @@ import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
-import { ControlCheckbox } from "@vueda/controls/checkbox";
-import { ControlInputGroupButton, ControlInputGroupInput } from "@vueda/controls/input-group";
-import { ControlInputGroup } from "@vueda/controls/input-group";
-import {
-    ControlSelect,
-    ControlSelectContent,
-    ControlSelectItem,
-    ControlSelectTrigger,
-    ControlSelectValue,
-} from "@vueda/controls/select";
+import ControlCheckbox from "@vueda/controls/checkbox/ControlCheckbox.vue";
+import ControlInputGroup from "@vueda/controls/input-group/ControlInputGroup.vue";
+import ControlInputGroupButton from "@vueda/controls/input-group/ControlInputGroupButton.vue";
+import ControlInputGroupInput from "@vueda/controls/input-group/ControlInputGroupInput.vue";
+import ControlSelect from "@vueda/controls/select/ControlSelect.vue";
+import ControlSelectContent from "@vueda/controls/select/ControlSelectContent.vue";
+import ControlSelectItem from "@vueda/controls/select/ControlSelectItem.vue";
+import ControlSelectTrigger from "@vueda/controls/select/ControlSelectTrigger.vue";
+import ControlSelectValue from "@vueda/controls/select/ControlSelectValue.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { storeListPreference } from "@vueda/stores/storeListPreference.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";

@@ -1,5 +1,5 @@
 <script setup>
-import { ControlButton } from "@vueda/controls/button";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
 import { toast as sonnerToast } from "vue-sonner";

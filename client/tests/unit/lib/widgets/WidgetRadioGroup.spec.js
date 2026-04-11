@@ -47,10 +47,8 @@ const ControlRadioGroupItemStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/radio-group", () => ({
-    ControlRadioGroup: ControlRadioGroupStub,
-    ControlRadioGroupItem: ControlRadioGroupItemStub,
-}));
+vi.mock("@vueda/controls/radio-group/ControlRadioGroup.vue", () => ({ default: ControlRadioGroupStub }));
+vi.mock("@vueda/controls/radio-group/ControlRadioGroupItem.vue", () => ({ default: ControlRadioGroupItemStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {

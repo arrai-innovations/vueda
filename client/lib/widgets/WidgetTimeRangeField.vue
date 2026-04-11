@@ -1,6 +1,7 @@
 <script setup>
 import { parseTime } from "@internationalized/date";
-import { ControlTimeField, ControlTimeFieldInput } from "@vueda/controls/time-field";
+import ControlTimeField from "@vueda/controls/time-field/ControlTimeField.vue";
+import ControlTimeFieldInput from "@vueda/controls/time-field/ControlTimeFieldInput.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";

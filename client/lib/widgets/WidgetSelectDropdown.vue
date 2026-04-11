@@ -1,11 +1,9 @@
 <script setup>
-import {
-    ControlSelect,
-    ControlSelectContent,
-    ControlSelectItem,
-    ControlSelectTrigger,
-    ControlSelectValue,
-} from "@vueda/controls/select";
+import ControlSelect from "@vueda/controls/select/ControlSelect.vue";
+import ControlSelectContent from "@vueda/controls/select/ControlSelectContent.vue";
+import ControlSelectItem from "@vueda/controls/select/ControlSelectItem.vue";
+import ControlSelectTrigger from "@vueda/controls/select/ControlSelectTrigger.vue";
+import ControlSelectValue from "@vueda/controls/select/ControlSelectValue.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";

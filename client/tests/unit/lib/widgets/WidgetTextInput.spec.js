@@ -24,7 +24,7 @@ const ControlInputStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/input", () => ({ ControlInput: ControlInputStub }));
+vi.mock("@vueda/controls/input/ControlInput.vue", () => ({ default: ControlInputStub }));
 
 vi.mock("@vueda/use/useMaska.js", () => ({
     useMaska: vi.fn(() => ({

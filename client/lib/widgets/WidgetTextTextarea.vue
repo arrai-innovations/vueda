@@ -1,5 +1,5 @@
 <script setup>
-import { ControlTextarea } from "@vueda/controls/textarea";
+import ControlTextarea from "@vueda/controls/textarea/ControlTextarea.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { inject } from "vue";

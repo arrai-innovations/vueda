@@ -1,5 +1,5 @@
 <script setup>
-import { ControlButton } from "@vueda/controls/button";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactive, toRef } from "vue";
 

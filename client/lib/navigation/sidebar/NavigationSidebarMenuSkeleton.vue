@@ -1,5 +1,5 @@
 <script setup>
-import { FeedbackSkeleton } from "@vueda/feedback/skeleton";
+import FeedbackSkeleton from "@vueda/feedback/skeleton/FeedbackSkeleton.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed } from "vue";
 

@@ -1,5 +1,5 @@
 <script setup>
-import { ControlSwitch } from "@vueda/controls/switch";
+import ControlSwitch from "@vueda/controls/switch/ControlSwitch.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { inject } from "vue";

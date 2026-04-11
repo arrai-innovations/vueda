@@ -47,7 +47,7 @@ const ButtonStub = defineComponent({
         };
     },
 });
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
 
 const themeFn = vi.fn((k) => k);
 const mockedUseTheme = vi.fn(() => themeFn);

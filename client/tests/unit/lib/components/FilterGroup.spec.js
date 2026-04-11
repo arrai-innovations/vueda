@@ -56,7 +56,7 @@ const mockedUseTheme = vi.fn(() => () => "theme");
 const route = reactive({ query: {} });
 
 vi.mock("@vueda/components/FilterComponent.vue", () => ({ default: FilterComponentStub }));
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/use/useSlotNameResolver.js", () => ({ useSlotNameResolver }));
 vi.mock("@vueda/use/useFilter.js", () => ({ useFilter: mockedUseFilter }));
 vi.mock("@vueda/use/useTheme.js", async () => {

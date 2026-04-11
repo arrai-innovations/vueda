@@ -15,23 +15,25 @@ const SimpleStub = (qa) =>
 
 vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: SimpleStub("field-renderer") }));
 vi.mock("@vueda/components/ObjectsGrid.vue", () => ({ default: SimpleStub("objects-grid") }));
-vi.mock("@vueda/controls/button", () => ({ ControlButton: SimpleStub("control-button") }));
-vi.mock("@vueda/shell/field", () => ({
-    ShellFieldDescription: defineComponent({
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: SimpleStub("control-button") }));
+vi.mock("@vueda/shell/field/ShellFieldDescription.vue", () => ({
+    default: defineComponent({
         name: "ShellFieldDescription",
         setup:
             (_, { slots }) =>
             () =>
                 h("p", { "data-qa": "field-description" }, slots.default?.()),
     }),
-    ShellFieldMessage: defineComponent({
+}));
+vi.mock("@vueda/shell/field/ShellFieldMessage.vue", () => ({
+    default: defineComponent({
         name: "ShellFieldMessage",
         props: ["messages", "severity"],
         setup: (props) => () => h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),
     }),
 }));
 vi.mock("@vueda/widgets/WidgetCheckbox.vue", () => ({ default: SimpleStub("widget-checkbox") }));
-vi.mock("@vueda/shell/separator", () => ({ ShellSeparator: SimpleStub("shell-separator") }));
+vi.mock("@vueda/shell/separator/ShellSeparator.vue", () => ({ default: SimpleStub("shell-separator") }));
 
 // Mock composable used by component
 const useFieldSetTabularInline = vi.fn();

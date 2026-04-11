@@ -1,13 +1,11 @@
 <script setup>
-import { ControlButton } from "@vueda/controls/button";
-import {
-    NavigationPagination,
-    NavigationPaginationContent,
-    NavigationPaginationFirst,
-    NavigationPaginationLast,
-    NavigationPaginationNext,
-    NavigationPaginationPrevious,
-} from "@vueda/navigation/pagination";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import NavigationPagination from "@vueda/navigation/pagination/NavigationPagination.vue";
+import NavigationPaginationContent from "@vueda/navigation/pagination/NavigationPaginationContent.vue";
+import NavigationPaginationFirst from "@vueda/navigation/pagination/NavigationPaginationFirst.vue";
+import NavigationPaginationLast from "@vueda/navigation/pagination/NavigationPaginationLast.vue";
+import NavigationPaginationNext from "@vueda/navigation/pagination/NavigationPaginationNext.vue";
+import NavigationPaginationPrevious from "@vueda/navigation/pagination/NavigationPaginationPrevious.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed } from "vue";
 

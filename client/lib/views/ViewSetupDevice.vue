@@ -1,10 +1,13 @@
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
 import ClickToCopyText from "@vueda/components/ClickToCopyText.vue";
-import { ControlButton } from "@vueda/controls/button";
-import { FeedbackSpinner } from "@vueda/feedback/spinner";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
 import FormField from "@vueda/fields/FormField.vue";
-import { ShellDialog, ShellDialogContent, ShellDialogHeader, ShellDialogTitle } from "@vueda/shell/dialog";
+import ShellDialog from "@vueda/shell/dialog/ShellDialog.vue";
+import ShellDialogContent from "@vueda/shell/dialog/ShellDialogContent.vue";
+import ShellDialogHeader from "@vueda/shell/dialog/ShellDialogHeader.vue";
+import ShellDialogTitle from "@vueda/shell/dialog/ShellDialogTitle.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";

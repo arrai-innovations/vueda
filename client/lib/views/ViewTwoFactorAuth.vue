@@ -1,7 +1,7 @@
 <script setup>
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import { ControlButton } from "@vueda/controls/button";
-import { FeedbackSpinner } from "@vueda/feedback/spinner";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
 import FormField from "@vueda/fields/FormField.vue";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";

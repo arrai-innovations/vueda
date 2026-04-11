@@ -1,11 +1,9 @@
 <script setup>
-import {
-    ControlNumberField,
-    ControlNumberFieldContent,
-    ControlNumberFieldDecrement,
-    ControlNumberFieldIncrement,
-    ControlNumberFieldInput,
-} from "@vueda/controls/number-field";
+import ControlNumberField from "@vueda/controls/number-field/ControlNumberField.vue";
+import ControlNumberFieldContent from "@vueda/controls/number-field/ControlNumberFieldContent.vue";
+import ControlNumberFieldDecrement from "@vueda/controls/number-field/ControlNumberFieldDecrement.vue";
+import ControlNumberFieldIncrement from "@vueda/controls/number-field/ControlNumberFieldIncrement.vue";
+import ControlNumberFieldInput from "@vueda/controls/number-field/ControlNumberFieldInput.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";

@@ -1,5 +1,6 @@
 <script setup>
-import { ControlRadioGroup, ControlRadioGroupItem } from "@vueda/controls/radio-group";
+import ControlRadioGroup from "@vueda/controls/radio-group/ControlRadioGroup.vue";
+import ControlRadioGroupItem from "@vueda/controls/radio-group/ControlRadioGroupItem.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";

@@ -1,5 +1,5 @@
 <script setup>
-import { ControlTextarea } from "@vueda/controls/textarea";
+import ControlTextarea from "@vueda/controls/textarea/ControlTextarea.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

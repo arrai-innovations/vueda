@@ -1,18 +1,16 @@
 <script setup>
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import {
-    ControlCombobox,
-    ControlComboboxAnchor,
-    ControlComboboxEmpty,
-    ControlComboboxGroup,
-    ControlComboboxInput,
-    ControlComboboxItem,
-    ControlComboboxItemIndicator,
-    ControlComboboxList,
-    ControlComboboxTrigger,
-    ControlComboboxViewport,
-    ControlComboboxVirtualizer,
-} from "@vueda/controls/combobox";
+import ControlCombobox from "@vueda/controls/combobox/ControlCombobox.vue";
+import ControlComboboxAnchor from "@vueda/controls/combobox/ControlComboboxAnchor.vue";
+import ControlComboboxEmpty from "@vueda/controls/combobox/ControlComboboxEmpty.vue";
+import ControlComboboxGroup from "@vueda/controls/combobox/ControlComboboxGroup.vue";
+import ControlComboboxInput from "@vueda/controls/combobox/ControlComboboxInput.vue";
+import ControlComboboxItem from "@vueda/controls/combobox/ControlComboboxItem.vue";
+import ControlComboboxItemIndicator from "@vueda/controls/combobox/ControlComboboxItemIndicator.vue";
+import ControlComboboxList from "@vueda/controls/combobox/ControlComboboxList.vue";
+import ControlComboboxTrigger from "@vueda/controls/combobox/ControlComboboxTrigger.vue";
+import ControlComboboxViewport from "@vueda/controls/combobox/ControlComboboxViewport.vue";
+import ControlComboboxVirtualizer from "@vueda/controls/combobox/ControlComboboxVirtualizer.vue";
 import { useComboboxSearch } from "@vueda/use/useComboboxSearch.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";

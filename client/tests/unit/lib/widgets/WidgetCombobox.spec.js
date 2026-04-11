@@ -138,19 +138,19 @@ const ControlComboboxVirtualizerStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/combobox", () => ({
-    ControlCombobox: ControlComboboxStub,
-    ControlComboboxAnchor: ControlComboboxAnchorStub,
-    ControlComboboxTrigger: ControlComboboxTriggerStub,
-    ControlComboboxList: ControlComboboxListStub,
-    ControlComboboxInput: ControlComboboxInputStub,
-    ControlComboboxViewport: ControlComboboxViewportStub,
-    ControlComboboxItem: ControlComboboxItemStub,
-    ControlComboboxGroup: ControlComboboxGroupStub,
-    ControlComboboxItemIndicator: ControlComboboxItemIndicatorStub,
-    ControlComboboxEmpty: ControlComboboxEmptyStub,
-    ControlComboboxVirtualizer: ControlComboboxVirtualizerStub,
+vi.mock("@vueda/controls/combobox/ControlCombobox.vue", () => ({ default: ControlComboboxStub }));
+vi.mock("@vueda/controls/combobox/ControlComboboxAnchor.vue", () => ({ default: ControlComboboxAnchorStub }));
+vi.mock("@vueda/controls/combobox/ControlComboboxTrigger.vue", () => ({ default: ControlComboboxTriggerStub }));
+vi.mock("@vueda/controls/combobox/ControlComboboxList.vue", () => ({ default: ControlComboboxListStub }));
+vi.mock("@vueda/controls/combobox/ControlComboboxInput.vue", () => ({ default: ControlComboboxInputStub }));
+vi.mock("@vueda/controls/combobox/ControlComboboxViewport.vue", () => ({ default: ControlComboboxViewportStub }));
+vi.mock("@vueda/controls/combobox/ControlComboboxItem.vue", () => ({ default: ControlComboboxItemStub }));
+vi.mock("@vueda/controls/combobox/ControlComboboxGroup.vue", () => ({ default: ControlComboboxGroupStub }));
+vi.mock("@vueda/controls/combobox/ControlComboboxItemIndicator.vue", () => ({
+    default: ControlComboboxItemIndicatorStub,
 }));
+vi.mock("@vueda/controls/combobox/ControlComboboxEmpty.vue", () => ({ default: ControlComboboxEmptyStub }));
+vi.mock("@vueda/controls/combobox/ControlComboboxVirtualizer.vue", () => ({ default: ControlComboboxVirtualizerStub }));
 
 const LinkModelViewStub = defineComponent({
     name: "LinkModelViewStub",

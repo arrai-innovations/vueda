@@ -243,20 +243,16 @@ vi.mock("@vueda/components/MobileSortComponent.vue", () => ({ default: MobileSor
 vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
 vi.mock("@vueda/components/PaginationComponent.vue", () => ({ default: PaginationComponentStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
-vi.mock("@vueda/controls/checkbox", () => ({ ControlCheckbox: CheckboxStub }));
-vi.mock("@vueda/controls/input-group", () => ({
-    ControlInputGroup: InputGroupStub,
-    ControlInputGroupButton: InputGroupButtonStub,
-    ControlInputGroupInput: InputGroupInputStub,
-}));
-vi.mock("@vueda/controls/select", () => ({
-    ControlSelect: SelectStub,
-    ControlSelectContent: SelectContentStub,
-    ControlSelectItem: SelectItemStub,
-    ControlSelectTrigger: SelectTriggerStub,
-    ControlSelectValue: SelectValueStub,
-}));
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/checkbox/ControlCheckbox.vue", () => ({ default: CheckboxStub }));
+vi.mock("@vueda/controls/input-group/ControlInputGroup.vue", () => ({ default: InputGroupStub }));
+vi.mock("@vueda/controls/input-group/ControlInputGroupButton.vue", () => ({ default: InputGroupButtonStub }));
+vi.mock("@vueda/controls/input-group/ControlInputGroupInput.vue", () => ({ default: InputGroupInputStub }));
+vi.mock("@vueda/controls/select/ControlSelect.vue", () => ({ default: SelectStub }));
+vi.mock("@vueda/controls/select/ControlSelectContent.vue", () => ({ default: SelectContentStub }));
+vi.mock("@vueda/controls/select/ControlSelectItem.vue", () => ({ default: SelectItemStub }));
+vi.mock("@vueda/controls/select/ControlSelectTrigger.vue", () => ({ default: SelectTriggerStub }));
+vi.mock("@vueda/controls/select/ControlSelectValue.vue", () => ({ default: SelectValueStub }));
 
 const route = { query: {} };
 const routerPush = vi.fn();

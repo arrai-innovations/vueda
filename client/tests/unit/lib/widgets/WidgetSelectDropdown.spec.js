@@ -67,13 +67,11 @@ const ControlSelectItemStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/select", () => ({
-    ControlSelect: ControlSelectStub,
-    ControlSelectTrigger: ControlSelectTriggerStub,
-    ControlSelectValue: ControlSelectValueStub,
-    ControlSelectContent: ControlSelectContentStub,
-    ControlSelectItem: ControlSelectItemStub,
-}));
+vi.mock("@vueda/controls/select/ControlSelect.vue", () => ({ default: ControlSelectStub }));
+vi.mock("@vueda/controls/select/ControlSelectTrigger.vue", () => ({ default: ControlSelectTriggerStub }));
+vi.mock("@vueda/controls/select/ControlSelectValue.vue", () => ({ default: ControlSelectValueStub }));
+vi.mock("@vueda/controls/select/ControlSelectContent.vue", () => ({ default: ControlSelectContentStub }));
+vi.mock("@vueda/controls/select/ControlSelectItem.vue", () => ({ default: ControlSelectItemStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {

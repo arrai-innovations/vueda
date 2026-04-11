@@ -30,7 +30,7 @@ const ButtonStub = defineComponent({
         };
     },
 });
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
 
 let LinkModelView;
 

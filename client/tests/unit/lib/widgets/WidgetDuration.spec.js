@@ -50,12 +50,16 @@ const ControlNumberFieldDecrementStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/number-field", () => ({
-    ControlNumberField: ControlNumberFieldStub,
-    ControlNumberFieldContent: ControlNumberFieldContentStub,
-    ControlNumberFieldInput: ControlNumberFieldInputStub,
-    ControlNumberFieldIncrement: ControlNumberFieldIncrementStub,
-    ControlNumberFieldDecrement: ControlNumberFieldDecrementStub,
+vi.mock("@vueda/controls/number-field/ControlNumberField.vue", () => ({ default: ControlNumberFieldStub }));
+vi.mock("@vueda/controls/number-field/ControlNumberFieldContent.vue", () => ({
+    default: ControlNumberFieldContentStub,
+}));
+vi.mock("@vueda/controls/number-field/ControlNumberFieldInput.vue", () => ({ default: ControlNumberFieldInputStub }));
+vi.mock("@vueda/controls/number-field/ControlNumberFieldIncrement.vue", () => ({
+    default: ControlNumberFieldIncrementStub,
+}));
+vi.mock("@vueda/controls/number-field/ControlNumberFieldDecrement.vue", () => ({
+    default: ControlNumberFieldDecrementStub,
 }));
 
 vi.mock("@vueda/use/useWidgetTheme.js", () => ({ useWidgetTheme: () => () => "" }));

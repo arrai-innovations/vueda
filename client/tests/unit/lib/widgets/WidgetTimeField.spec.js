@@ -44,10 +44,8 @@ const ControlTimeFieldInputStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/time-field", () => ({
-    ControlTimeField: ControlTimeFieldStub,
-    ControlTimeFieldInput: ControlTimeFieldInputStub,
-}));
+vi.mock("@vueda/controls/time-field/ControlTimeField.vue", () => ({ default: ControlTimeFieldStub }));
+vi.mock("@vueda/controls/time-field/ControlTimeFieldInput.vue", () => ({ default: ControlTimeFieldInputStub }));
 
 vi.mock("@internationalized/date", () => ({
     parseTime: vi.fn((str) => ({ toString: () => str, _raw: str })),

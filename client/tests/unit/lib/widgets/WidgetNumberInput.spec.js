@@ -57,12 +57,16 @@ const ControlNumberFieldDecrementStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/number-field", () => ({
-    ControlNumberField: ControlNumberFieldStub,
-    ControlNumberFieldContent: ControlNumberFieldContentStub,
-    ControlNumberFieldInput: ControlNumberFieldInputStub,
-    ControlNumberFieldIncrement: ControlNumberFieldIncrementStub,
-    ControlNumberFieldDecrement: ControlNumberFieldDecrementStub,
+vi.mock("@vueda/controls/number-field/ControlNumberField.vue", () => ({ default: ControlNumberFieldStub }));
+vi.mock("@vueda/controls/number-field/ControlNumberFieldContent.vue", () => ({
+    default: ControlNumberFieldContentStub,
+}));
+vi.mock("@vueda/controls/number-field/ControlNumberFieldInput.vue", () => ({ default: ControlNumberFieldInputStub }));
+vi.mock("@vueda/controls/number-field/ControlNumberFieldIncrement.vue", () => ({
+    default: ControlNumberFieldIncrementStub,
+}));
+vi.mock("@vueda/controls/number-field/ControlNumberFieldDecrement.vue", () => ({
+    default: ControlNumberFieldDecrementStub,
 }));
 
 /* ------------------------------------------------------------------ */
@@ -84,10 +88,8 @@ const ControlInputGroupAddonStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/input-group", () => ({
-    ControlInputGroup: ControlInputGroupStub,
-    ControlInputGroupAddon: ControlInputGroupAddonStub,
-}));
+vi.mock("@vueda/controls/input-group/ControlInputGroup.vue", () => ({ default: ControlInputGroupStub }));
+vi.mock("@vueda/controls/input-group/ControlInputGroupAddon.vue", () => ({ default: ControlInputGroupAddonStub }));
 
 /* ------------------------------------------------------------------ */
 /*  Mock useWidget                                                    */

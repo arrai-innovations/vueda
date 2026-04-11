@@ -1,5 +1,5 @@
 <script setup>
-import { ControlNativeSelect } from "@vueda/controls/native-select";
+import ControlNativeSelect from "@vueda/controls/native-select/ControlNativeSelect.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";

@@ -10,7 +10,7 @@ const ButtonStub = defineComponent({
         return () => h("button", { "data-qa": "copy-button", onClick: props.onClick }, slots.default?.());
     },
 });
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
 
 let copySpy;
 const toastMock = {

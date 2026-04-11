@@ -1,12 +1,11 @@
 <script setup>
-import { ControlInputGroup, ControlInputGroupAddon } from "@vueda/controls/input-group";
-import {
-    ControlNumberField,
-    ControlNumberFieldContent,
-    ControlNumberFieldDecrement,
-    ControlNumberFieldIncrement,
-    ControlNumberFieldInput,
-} from "@vueda/controls/number-field";
+import ControlInputGroup from "@vueda/controls/input-group/ControlInputGroup.vue";
+import ControlInputGroupAddon from "@vueda/controls/input-group/ControlInputGroupAddon.vue";
+import ControlNumberField from "@vueda/controls/number-field/ControlNumberField.vue";
+import ControlNumberFieldContent from "@vueda/controls/number-field/ControlNumberFieldContent.vue";
+import ControlNumberFieldDecrement from "@vueda/controls/number-field/ControlNumberFieldDecrement.vue";
+import ControlNumberFieldIncrement from "@vueda/controls/number-field/ControlNumberFieldIncrement.vue";
+import ControlNumberFieldInput from "@vueda/controls/number-field/ControlNumberFieldInput.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";

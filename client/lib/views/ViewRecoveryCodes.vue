@@ -1,8 +1,9 @@
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
-import { ControlButton } from "@vueda/controls/button";
-import { FeedbackAlert, FeedbackAlertDescription } from "@vueda/feedback/alert";
-import { FeedbackSpinner } from "@vueda/feedback/spinner";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import FeedbackAlert from "@vueda/feedback/alert/FeedbackAlert.vue";
+import FeedbackAlertDescription from "@vueda/feedback/alert/FeedbackAlertDescription.vue";
+import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";

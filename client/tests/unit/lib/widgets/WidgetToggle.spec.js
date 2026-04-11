@@ -25,7 +25,7 @@ const ControlSwitchStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/switch", () => ({ ControlSwitch: ControlSwitchStub }));
+vi.mock("@vueda/controls/switch/ControlSwitch.vue", () => ({ default: ControlSwitchStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {

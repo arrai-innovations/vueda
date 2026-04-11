@@ -98,8 +98,8 @@ vi.mock("@vueda/components/FormModel.vue", () => ({ default: FormModelStub }));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
-vi.mock("@vueda/feedback/spinner", () => ({ FeedbackSpinner: FeedbackSpinnerStub }));
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/feedback/spinner/FeedbackSpinner.vue", () => ({ default: FeedbackSpinnerStub }));
 
 const filteredActions = reactive({ actions: [] });
 vi.mock("@vueda/use/useFilteredActions.js", () => ({ useFilteredActions: () => filteredActions }));

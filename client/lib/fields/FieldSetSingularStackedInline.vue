@@ -1,9 +1,10 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldSetStackedInlineRow from "@vueda/components/FieldSetStackedInlineRow.vue";
-import { ControlButton } from "@vueda/controls/button";
-import { ShellFieldDescription, ShellFieldMessage } from "@vueda/shell/field";
-import { ShellSeparator } from "@vueda/shell/separator";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import ShellFieldDescription from "@vueda/shell/field/ShellFieldDescription.vue";
+import ShellFieldMessage from "@vueda/shell/field/ShellFieldMessage.vue";
+import ShellSeparator from "@vueda/shell/separator/ShellSeparator.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";

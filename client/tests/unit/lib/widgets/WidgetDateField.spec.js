@@ -70,20 +70,14 @@ const ControlCalendarStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/date-field", () => ({
-    ControlDateField: ControlDateFieldStub,
-    ControlDateFieldInput: ControlDateFieldInputStub,
-}));
+vi.mock("@vueda/controls/date-field/ControlDateField.vue", () => ({ default: ControlDateFieldStub }));
+vi.mock("@vueda/controls/date-field/ControlDateFieldInput.vue", () => ({ default: ControlDateFieldInputStub }));
 
-vi.mock("@vueda/shell/popover", () => ({
-    ShellPopover: ShellPopoverStub,
-    ShellPopoverContent: ShellPopoverContentStub,
-    ShellPopoverTrigger: ShellPopoverTriggerStub,
-}));
+vi.mock("@vueda/shell/popover/ShellPopover.vue", () => ({ default: ShellPopoverStub }));
+vi.mock("@vueda/shell/popover/ShellPopoverContent.vue", () => ({ default: ShellPopoverContentStub }));
+vi.mock("@vueda/shell/popover/ShellPopoverTrigger.vue", () => ({ default: ShellPopoverTriggerStub }));
 
-vi.mock("@vueda/controls/calendar", () => ({
-    ControlCalendar: ControlCalendarStub,
-}));
+vi.mock("@vueda/controls/calendar/ControlCalendar.vue", () => ({ default: ControlCalendarStub }));
 
 vi.mock("@internationalized/date", () => ({
     parseDate: vi.fn((str) => ({ toString: () => str, _raw: str })),

@@ -1,9 +1,10 @@
 <script setup>
 import { assignReactiveObject, deepUnref } from "@arrai-innovations/reactive-helpers";
 import FilterForm from "@vueda/components/FilterForm.vue";
-import { ControlButton } from "@vueda/controls/button";
-import { ControlButtonGroup } from "@vueda/controls/button-group";
-import { ShellPopover, ShellPopoverContent } from "@vueda/shell/popover";
+import ControlButtonGroup from "@vueda/controls/button-group/ControlButtonGroup.vue";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import ShellPopover from "@vueda/shell/popover/ShellPopover.vue";
+import ShellPopoverContent from "@vueda/shell/popover/ShellPopoverContent.vue";
 import { useFilterField } from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useModelChoices } from "@vueda/use/useModelChoices.js";

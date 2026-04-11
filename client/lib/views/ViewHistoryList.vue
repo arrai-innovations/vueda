@@ -3,7 +3,7 @@ import { loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
-import { ControlButton } from "@vueda/controls/button";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";

@@ -1,6 +1,8 @@
 <script setup>
 import * as Sentry from "@sentry/vue";
-import { FeedbackAlert, FeedbackAlertClose, FeedbackAlertDescription } from "@vueda/feedback/alert";
+import FeedbackAlert from "@vueda/feedback/alert/FeedbackAlert.vue";
+import FeedbackAlertClose from "@vueda/feedback/alert/FeedbackAlertClose.vue";
+import FeedbackAlertDescription from "@vueda/feedback/alert/FeedbackAlertDescription.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";

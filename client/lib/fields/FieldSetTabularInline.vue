@@ -2,9 +2,10 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
-import { ControlButton } from "@vueda/controls/button";
-import { ShellFieldDescription, ShellFieldMessage } from "@vueda/shell/field";
-import { ShellSeparator } from "@vueda/shell/separator";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import ShellFieldDescription from "@vueda/shell/field/ShellFieldDescription.vue";
+import ShellFieldMessage from "@vueda/shell/field/ShellFieldMessage.vue";
+import ShellSeparator from "@vueda/shell/separator/ShellSeparator.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import {
     FIELD_SET_TABULAR_INLINE_EMITS,

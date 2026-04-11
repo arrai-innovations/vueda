@@ -50,16 +50,18 @@ const warnSpy = vi.fn();
 const useFieldMock = vi.fn();
 const themeFn = vi.fn((cls) => `t-${cls}`);
 
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ControlButtonStub }));
-vi.mock("@vueda/shell/field", () => ({
-    ShellFieldDescription: defineComponent({
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ControlButtonStub }));
+vi.mock("@vueda/shell/field/ShellFieldDescription.vue", () => ({
+    default: defineComponent({
         name: "ShellFieldDescription",
         setup:
             (_, { slots }) =>
             () =>
                 h("p", { "data-qa": "field-description" }, slots.default?.()),
     }),
-    ShellFieldMessage: defineComponent({
+}));
+vi.mock("@vueda/shell/field/ShellFieldMessage.vue", () => ({
+    default: defineComponent({
         name: "ShellFieldMessage",
         props: ["messages", "severity"],
         setup: (props) => () => h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),

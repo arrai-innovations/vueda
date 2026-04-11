@@ -1,5 +1,5 @@
 <script setup>
-import { ShellSeparator } from "@vueda/shell/separator/index.js";
+import ShellSeparator from "@vueda/shell/separator/ShellSeparator.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

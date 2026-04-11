@@ -1,8 +1,9 @@
 <script setup>
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
-import { ControlButton } from "@vueda/controls/button";
-import { ControlRadioGroup, ControlRadioGroupItem } from "@vueda/controls/radio-group";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import ControlRadioGroup from "@vueda/controls/radio-group/ControlRadioGroup.vue";
+import ControlRadioGroupItem from "@vueda/controls/radio-group/ControlRadioGroupItem.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";

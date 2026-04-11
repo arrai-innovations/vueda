@@ -20,10 +20,8 @@ const FeedbackAlertDescriptionStub = {
         return () => h("div", { "data-qa": "feedback-alert-description" }, slots.default ? slots.default() : null);
     },
 };
-vi.mock("@vueda/feedback/alert", () => ({
-    FeedbackAlert: FeedbackAlertStub,
-    FeedbackAlertDescription: FeedbackAlertDescriptionStub,
-}));
+vi.mock("@vueda/feedback/alert/FeedbackAlert.vue", () => ({ default: FeedbackAlertStub }));
+vi.mock("@vueda/feedback/alert/FeedbackAlertDescription.vue", () => ({ default: FeedbackAlertDescriptionStub }));
 
 const mockedUseTheme = vi.fn(() => () => "theme");
 vi.mock("@vueda/use/useTheme.js", () => ({

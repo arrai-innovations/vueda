@@ -112,20 +112,16 @@ const DraggableStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
-vi.mock("@vueda/shell/drawer", () => ({
-    ShellDrawer: ShellDrawerStub,
-    ShellDrawerContent: ShellDrawerContentStub,
-    ShellDrawerHeader: ShellDrawerHeaderStub,
-    ShellDrawerTitle: ShellDrawerTitleStub,
-}));
-vi.mock("@vueda/controls/select", () => ({
-    ControlSelect: ControlSelectStub,
-    ControlSelectContent: ControlSelectContentStub,
-    ControlSelectItem: ControlSelectItemStub,
-    ControlSelectTrigger: ControlSelectTriggerStub,
-    ControlSelectValue: ControlSelectValueStub,
-}));
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/shell/drawer/ShellDrawer.vue", () => ({ default: ShellDrawerStub }));
+vi.mock("@vueda/shell/drawer/ShellDrawerContent.vue", () => ({ default: ShellDrawerContentStub }));
+vi.mock("@vueda/shell/drawer/ShellDrawerHeader.vue", () => ({ default: ShellDrawerHeaderStub }));
+vi.mock("@vueda/shell/drawer/ShellDrawerTitle.vue", () => ({ default: ShellDrawerTitleStub }));
+vi.mock("@vueda/controls/select/ControlSelect.vue", () => ({ default: ControlSelectStub }));
+vi.mock("@vueda/controls/select/ControlSelectContent.vue", () => ({ default: ControlSelectContentStub }));
+vi.mock("@vueda/controls/select/ControlSelectItem.vue", () => ({ default: ControlSelectItemStub }));
+vi.mock("@vueda/controls/select/ControlSelectTrigger.vue", () => ({ default: ControlSelectTriggerStub }));
+vi.mock("@vueda/controls/select/ControlSelectValue.vue", () => ({ default: ControlSelectValueStub }));
 vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
 
 const themeMock = vi.fn((key) => key);

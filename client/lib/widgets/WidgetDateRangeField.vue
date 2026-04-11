@@ -1,8 +1,11 @@
 <script setup>
 import { parseDate, parseDateTime } from "@internationalized/date";
-import { ControlDateRangeField, ControlDateRangeFieldInput } from "@vueda/controls/date-range-field";
-import { ControlRangeCalendar } from "@vueda/controls/range-calendar";
-import { ShellPopover, ShellPopoverContent, ShellPopoverTrigger } from "@vueda/shell/popover";
+import ControlDateRangeField from "@vueda/controls/date-range-field/ControlDateRangeField.vue";
+import ControlDateRangeFieldInput from "@vueda/controls/date-range-field/ControlDateRangeFieldInput.vue";
+import ControlRangeCalendar from "@vueda/controls/range-calendar/ControlRangeCalendar.vue";
+import ShellPopover from "@vueda/shell/popover/ShellPopover.vue";
+import ShellPopoverContent from "@vueda/shell/popover/ShellPopoverContent.vue";
+import ShellPopoverTrigger from "@vueda/shell/popover/ShellPopoverTrigger.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, ref } from "vue";

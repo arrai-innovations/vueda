@@ -1,5 +1,5 @@
 <script setup>
-import { ControlSlider } from "@vueda/controls/slider";
+import ControlSlider from "@vueda/controls/slider/ControlSlider.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { inject } from "vue";

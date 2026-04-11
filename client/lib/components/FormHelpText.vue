@@ -1,5 +1,6 @@
 <script setup>
-import { FeedbackAlert, FeedbackAlertDescription } from "@vueda/feedback/alert";
+import FeedbackAlert from "@vueda/feedback/alert/FeedbackAlert.vue";
+import FeedbackAlertDescription from "@vueda/feedback/alert/FeedbackAlertDescription.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { containsHtml, sanitizeMessage } from "@vueda/utils/html.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";

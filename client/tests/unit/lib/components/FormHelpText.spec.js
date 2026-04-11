@@ -21,10 +21,8 @@ const FeedbackAlertDescriptionStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/feedback/alert", () => ({
-    FeedbackAlert: FeedbackAlertStub,
-    FeedbackAlertDescription: FeedbackAlertDescriptionStub,
-}));
+vi.mock("@vueda/feedback/alert/FeedbackAlert.vue", () => ({ default: FeedbackAlertStub }));
+vi.mock("@vueda/feedback/alert/FeedbackAlertDescription.vue", () => ({ default: FeedbackAlertDescriptionStub }));
 vi.mock("@vueda/utils/html.js", () => ({ sanitizeMessage, containsHtml }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme, THEME_OVERRIDE_PROPS: {} }));
 

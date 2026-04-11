@@ -25,7 +25,7 @@ const ControlCheckboxStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/checkbox", () => ({ ControlCheckbox: ControlCheckboxStub }));
+vi.mock("@vueda/controls/checkbox/ControlCheckbox.vue", () => ({ default: ControlCheckboxStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {

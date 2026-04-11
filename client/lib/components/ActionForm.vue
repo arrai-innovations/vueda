@@ -2,8 +2,8 @@
 import { loadingCombine } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormChores from "@vueda/components/FormChores.vue";
-import { ControlButton } from "@vueda/controls/button";
-import { FeedbackSpinner } from "@vueda/feedback/spinner";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
 import { defaultOnSubmissionError, defaultOnSubmitNotAnyModified } from "@vueda/use/useObjectForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError } from "@vueda/utils/errors.js";

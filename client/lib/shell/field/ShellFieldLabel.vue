@@ -1,5 +1,5 @@
 <script setup>
-import { ShellLabel } from "@vueda/shell/label/index.js";
+import ShellLabel from "@vueda/shell/label/ShellLabel.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

@@ -23,7 +23,7 @@ const ControlSliderStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/slider", () => ({ ControlSlider: ControlSliderStub }));
+vi.mock("@vueda/controls/slider/ControlSlider.vue", () => ({ default: ControlSliderStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {

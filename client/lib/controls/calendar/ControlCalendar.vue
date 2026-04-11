@@ -1,19 +1,18 @@
 <script setup>
-import {
-    ControlCalendarCell,
-    ControlCalendarCellTrigger,
-    ControlCalendarGrid,
-    ControlCalendarGridBody,
-    ControlCalendarGridHead,
-    ControlCalendarGridRow,
-    ControlCalendarHeadCell,
-    ControlCalendarHeader,
-    ControlCalendarHeading,
-    ControlCalendarNextButton,
-    ControlCalendarPrevButton,
-} from ".";
+import ControlCalendarCell from "./ControlCalendarCell.vue";
+import ControlCalendarCellTrigger from "./ControlCalendarCellTrigger.vue";
+import ControlCalendarGrid from "./ControlCalendarGrid.vue";
+import ControlCalendarGridBody from "./ControlCalendarGridBody.vue";
+import ControlCalendarGridHead from "./ControlCalendarGridHead.vue";
+import ControlCalendarGridRow from "./ControlCalendarGridRow.vue";
+import ControlCalendarHeadCell from "./ControlCalendarHeadCell.vue";
+import ControlCalendarHeader from "./ControlCalendarHeader.vue";
+import ControlCalendarHeading from "./ControlCalendarHeading.vue";
+import ControlCalendarNextButton from "./ControlCalendarNextButton.vue";
+import ControlCalendarPrevButton from "./ControlCalendarPrevButton.vue";
 import { getLocalTimeZone, today } from "@internationalized/date";
-import { ControlNativeSelect, ControlNativeSelectOption } from "@vueda/controls/native-select";
+import ControlNativeSelect from "@vueda/controls/native-select/ControlNativeSelect.vue";
+import ControlNativeSelectOption from "@vueda/controls/native-select/ControlNativeSelectOption.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { createReusableTemplate, reactiveOmit, useVModel } from "@vueuse/core";
 import { CalendarRoot, useDateFormatter, useForwardPropsEmits } from "reka-ui";

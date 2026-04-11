@@ -1,5 +1,5 @@
 <script setup>
-import { ControlButton } from "@vueda/controls/button";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
 import { useLinkModelView } from "@vueda/use/useLinkModelView.js";
 
 /**

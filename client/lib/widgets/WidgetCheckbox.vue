@@ -1,5 +1,5 @@
 <script setup>
-import { ControlCheckbox } from "@vueda/controls/checkbox";
+import ControlCheckbox from "@vueda/controls/checkbox/ControlCheckbox.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";

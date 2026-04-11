@@ -1,6 +1,7 @@
 <script setup>
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import { FeedbackAlert, FeedbackAlertDescription } from "@vueda/feedback/alert";
+import FeedbackAlert from "@vueda/feedback/alert/FeedbackAlert.vue";
+import FeedbackAlertDescription from "@vueda/feedback/alert/FeedbackAlertDescription.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { containsHtml, sanitizeMessages } from "@vueda/utils/html.js";

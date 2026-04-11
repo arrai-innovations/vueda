@@ -1,5 +1,5 @@
 <script setup>
-import { ControlInput } from "@vueda/controls/input";
+import ControlInput from "@vueda/controls/input/ControlInput.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

@@ -33,15 +33,17 @@ const themeFn = vi.fn(() => "theme-root");
 const mockedUseTheme = vi.fn(() => themeFn);
 
 vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: SimpleStub("field-renderer") }));
-vi.mock("@vueda/shell/field", () => ({
-    ShellFieldDescription: defineComponent({
+vi.mock("@vueda/shell/field/ShellFieldDescription.vue", () => ({
+    default: defineComponent({
         name: "ShellFieldDescription",
         setup:
             (_, { slots }) =>
             () =>
                 h("p", { "data-qa": "field-description" }, slots.default?.()),
     }),
-    ShellFieldMessage: defineComponent({
+}));
+vi.mock("@vueda/shell/field/ShellFieldMessage.vue", () => ({
+    default: defineComponent({
         name: "ShellFieldMessage",
         props: ["messages", "severity"],
         setup: (props) => () => h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),

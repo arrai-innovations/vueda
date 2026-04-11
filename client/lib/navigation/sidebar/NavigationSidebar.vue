@@ -1,11 +1,9 @@
 <script setup>
-import {
-    ShellSheet,
-    ShellSheetContent,
-    ShellSheetDescription,
-    ShellSheetHeader,
-    ShellSheetTitle,
-} from "@vueda/shell/sheet";
+import ShellSheet from "@vueda/shell/sheet/ShellSheet.vue";
+import ShellSheetContent from "@vueda/shell/sheet/ShellSheetContent.vue";
+import ShellSheetDescription from "@vueda/shell/sheet/ShellSheetDescription.vue";
+import ShellSheetHeader from "@vueda/shell/sheet/ShellSheetHeader.vue";
+import ShellSheetTitle from "@vueda/shell/sheet/ShellSheetTitle.vue";
 import { useSidebar } from "@vueda/use/useSidebar.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { SIDEBAR_WIDTH_MOBILE } from "@vueda/utils/constants.js";

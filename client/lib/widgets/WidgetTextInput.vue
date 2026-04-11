@@ -1,5 +1,5 @@
 <script setup>
-import { ControlInput } from "@vueda/controls/input";
+import ControlInput from "@vueda/controls/input/ControlInput.vue";
 import { useMaska } from "@vueda/use/useMaska.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";

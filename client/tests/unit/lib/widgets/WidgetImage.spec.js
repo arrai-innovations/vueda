@@ -36,7 +36,7 @@ const ControlButtonStub = defineComponent({
         return () => h("button", { "data-qa": attrs["data-qa"] || "control-button", onClick: () => emit("click") });
     },
 });
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ControlButtonStub }));
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ControlButtonStub }));
 
 const ControlFileUploadStub = defineComponent({
     name: "ControlFileUploadStub",
@@ -46,7 +46,7 @@ const ControlFileUploadStub = defineComponent({
         return () => h("div", { "data-qa": "file-upload", ...attrs });
     },
 });
-vi.mock("@vueda/controls/file-upload", () => ({ ControlFileUpload: ControlFileUploadStub }));
+vi.mock("@vueda/controls/file-upload/ControlFileUpload.vue", () => ({ default: ControlFileUploadStub }));
 
 let WidgetImage;
 

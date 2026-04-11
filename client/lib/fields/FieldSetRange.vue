@@ -1,6 +1,7 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
-import { ShellFieldDescription, ShellFieldMessage } from "@vueda/shell/field";
+import ShellFieldDescription from "@vueda/shell/field/ShellFieldDescription.vue";
+import ShellFieldMessage from "@vueda/shell/field/ShellFieldMessage.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";

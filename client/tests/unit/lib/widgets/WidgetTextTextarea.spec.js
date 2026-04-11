@@ -24,7 +24,7 @@ const ControlTextareaStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/textarea", () => ({ ControlTextarea: ControlTextareaStub }));
+vi.mock("@vueda/controls/textarea/ControlTextarea.vue", () => ({ default: ControlTextareaStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {

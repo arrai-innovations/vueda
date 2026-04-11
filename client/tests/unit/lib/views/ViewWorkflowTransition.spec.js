@@ -37,7 +37,7 @@ const ButtonStub = defineComponent({
             h("button", { "data-qa": "button", "data-disabled": String(props.disabled), ...attrs }, slots.default?.());
     },
 });
-vi.mock("@vueda/controls/button", () => ({ ControlButton: ButtonStub }));
+vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
 
 const RadioGroupStub = defineComponent({
     name: "RadioGroupStub",
@@ -54,10 +54,8 @@ const RadioGroupItemStub = defineComponent({
         return () => h("input", { type: "radio", "data-qa": "radio-group-item", value: props.value });
     },
 });
-vi.mock("@vueda/controls/radio-group", () => ({
-    ControlRadioGroup: RadioGroupStub,
-    ControlRadioGroupItem: RadioGroupItemStub,
-}));
+vi.mock("@vueda/controls/radio-group/ControlRadioGroup.vue", () => ({ default: RadioGroupStub }));
+vi.mock("@vueda/controls/radio-group/ControlRadioGroupItem.vue", () => ({ default: RadioGroupItemStub }));
 
 const LinkModelViewStub = defineComponent({
     name: "LinkModelViewStub",

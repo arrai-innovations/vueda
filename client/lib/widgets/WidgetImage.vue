@@ -1,6 +1,6 @@
 <script setup>
-import { ControlButton } from "@vueda/controls/button";
-import { ControlFileUpload } from "@vueda/controls/file-upload";
+import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import ControlFileUpload from "@vueda/controls/file-upload/ControlFileUpload.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
