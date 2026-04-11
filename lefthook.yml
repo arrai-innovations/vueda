@@ -117,8 +117,9 @@ pre-commit:
                 - "**/AGENTS.md"
             run: docs-tooling/bin/docs-tooling.js validate --files {staged_files}
         circleci-config:
+            glob: ".circleci/*.yml"
             run: |
-                readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')
-                for file in ${files[@]}; do
-                  circleci config validate ${file}
+                command -v circleci > /dev/null 2>&1 || exit 0
+                for file in {staged_files}; do
+                  circleci config validate "$file"
                 done
