@@ -1,5 +1,5 @@
 <script setup>
-import { storeModelInfo } from "@vueda/stores/storeModelInfo";
+import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { stringSimilarity } from "string-similarity-js";

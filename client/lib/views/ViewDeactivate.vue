@@ -4,7 +4,7 @@ import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
-import { useModelConfig } from "@vueda/use/useModelConfig";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";

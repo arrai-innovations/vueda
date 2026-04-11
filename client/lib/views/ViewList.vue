@@ -22,7 +22,7 @@ import {
 } from "@vueda/controls/select";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { storeListPreference } from "@vueda/stores/storeListPreference.js";
-import { useFilteredActions } from "@vueda/use/useFilteredActions";
+import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";

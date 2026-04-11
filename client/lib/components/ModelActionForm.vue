@@ -2,7 +2,7 @@
 import ActionForm from "@vueda/components/ActionForm.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import FormField from "@vueda/fields/FormField.vue";
-import { useModelConfig } from "@vueda/use/useModelConfig";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
