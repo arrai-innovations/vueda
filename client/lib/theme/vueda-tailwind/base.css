@@ -12,6 +12,12 @@
  * brand without touching the theme JS files.
  */
 
+/* Tell Tailwind CSS v4 to scan vueda's lib directory for component class names.
+ * Tailwind excludes node_modules from automatic scanning, so without this, class
+ * names that appear only in vueda theme files (e.g. sidebar collapse variants) are
+ * never generated in consuming projects' stylesheets. */
+@source "../../";
+
 @theme inline {
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
