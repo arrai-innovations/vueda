@@ -32,7 +32,10 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+});
 
 const theme = useTheme(
     "ControlFileUpload",

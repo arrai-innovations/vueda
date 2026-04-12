@@ -27,7 +27,12 @@ const props = defineProps({
     modelValue: { type: [Boolean, String], default: undefined },
 });
 
-const emits = defineEmits(["select", "update:modelValue"]);
+const emits = defineEmits({
+    /** Emitted when an item is selected. */
+    select: null,
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

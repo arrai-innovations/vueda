@@ -39,15 +39,22 @@ const props = defineProps({
     prioritizePosition: { type: Boolean, default: undefined },
 });
 
-const emits = defineEmits([
-    "entryFocus",
-    "escapeKeyDown",
-    "pointerDownOutside",
-    "focusOutside",
-    "interactOutside",
-    "openAutoFocus",
-    "closeAutoFocus",
-]);
+const emits = defineEmits({
+    /** Emitted when focus enters the sub-menu content. */
+    entryFocus: null,
+    /** Emitted when the Escape key is pressed. */
+    escapeKeyDown: null,
+    /** Emitted when a pointer-down event occurs outside the content. */
+    pointerDownOutside: null,
+    /** Emitted when focus moves outside the content. */
+    focusOutside: null,
+    /** Emitted when any interaction occurs outside the content. */
+    interactOutside: null,
+    /** Emitted when focus moves inside the content after it opens. */
+    openAutoFocus: null,
+    /** Emitted when focus returns to the trigger after the content closes. */
+    closeAutoFocus: null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

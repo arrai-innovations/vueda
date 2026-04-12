@@ -44,7 +44,10 @@ const props = defineProps({
     viewport: { type: Boolean, default: true },
 });
 
-const emits = defineEmits(["update:modelValue"]);
+const emits = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride", "viewport");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

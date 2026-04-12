@@ -26,7 +26,14 @@ const props = defineProps({
     /** When true, merges props onto the child element instead of rendering a wrapper. */
     asChild: { type: Boolean, default: false },
 });
-const emits = defineEmits(["collapse", "expand", "resize"]);
+const emits = defineEmits({
+    /** Emitted when the panel collapses. */
+    collapse: null,
+    /** Emitted when the panel expands. */
+    expand: null,
+    /** Emitted when the panel is resized. */
+    resize: null,
+});
 
 const forwarded = useForwardPropsEmits(props, emits);
 const { forwardRef } = useForwardExpose();

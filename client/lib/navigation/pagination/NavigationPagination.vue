@@ -30,7 +30,10 @@ const props = defineProps({
     /** The disabled state. */
     disabled: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["update:page"]);
+const emits = defineEmits({
+    /** Emitted when the current page changes. */
+    "update:page": null,
+});
 
 const theme = useTheme("NavigationPagination", props);
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");

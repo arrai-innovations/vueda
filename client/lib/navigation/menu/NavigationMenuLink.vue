@@ -23,7 +23,10 @@ const props = defineProps({
     active: { type: Boolean, default: undefined },
 });
 
-const emits = defineEmits(["select"]);
+const emits = defineEmits({
+    /** Emitted when an item is selected. */
+    select: null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

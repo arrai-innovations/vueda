@@ -12,7 +12,10 @@ const props = defineProps({
     /** The default open state. */
     defaultOpen: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["update:open"]);
+const emits = defineEmits({
+    /** Emitted when the open state changes. */
+    "update:open": null,
+});
 
 const forwarded = useForwardPropsEmits(props, emits);
 </script>

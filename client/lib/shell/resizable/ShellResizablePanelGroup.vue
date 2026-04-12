@@ -28,7 +28,10 @@ const props = defineProps({
     /** When true, merges props onto the child element instead of rendering a wrapper. */
     asChild: { type: Boolean, default: false },
 });
-const emits = defineEmits(["layout"]);
+const emits = defineEmits({
+    /** Emitted when the panel layout sizes change. */
+    layout: null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 

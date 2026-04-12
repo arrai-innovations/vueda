@@ -29,7 +29,12 @@ const props = defineProps({
     ariaLabel: { type: String, default: undefined },
 });
 
-const emits = defineEmits(["escapeKeyDown", "pointerDownOutside"]);
+const emits = defineEmits({
+    /** Emitted when the Escape key is pressed. */
+    escapeKeyDown: null,
+    /** Emitted when a pointer-down event occurs outside the content. */
+    pointerDownOutside: null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

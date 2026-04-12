@@ -38,7 +38,10 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const emits = defineEmits(["update:pressed"]);
+const emits = defineEmits({
+    /** Emitted when the pressed state changes. */
+    "update:pressed": null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "size", "variant", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

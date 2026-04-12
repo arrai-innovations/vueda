@@ -50,7 +50,10 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const emits = defineEmits(["update:modelValue"]);
+const emits = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+});
 
 provide("toggleGroup", {
     variant: props.variant,

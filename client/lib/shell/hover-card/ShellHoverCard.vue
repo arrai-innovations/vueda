@@ -22,7 +22,10 @@ const props = defineProps({
     /** When true, merges props onto the child element instead of rendering a wrapper. */
     asChild: { type: Boolean, default: false },
 });
-const emits = defineEmits(["update:modelValue"]);
+const emits = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+});
 
 const forwarded = useForwardPropsEmits(props, emits);
 </script>

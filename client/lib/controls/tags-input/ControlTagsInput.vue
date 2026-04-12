@@ -44,7 +44,16 @@ const props = defineProps({
     /** Whether to render as a child element. */
     asChild: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["update:modelValue", "invalid", "addTag", "removeTag"]);
+const emits = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+    /** Emitted when an invalid tag entry is attempted. */
+    invalid: null,
+    /** Emitted when a new tag is added. */
+    addTag: null,
+    /** Emitted when a tag is removed. */
+    removeTag: null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 

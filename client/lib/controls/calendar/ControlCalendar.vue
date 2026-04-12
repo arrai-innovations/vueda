@@ -73,7 +73,12 @@ const props = defineProps({
     multiple: { type: Boolean, default: undefined },
 });
 
-const emits = defineEmits(["update:modelValue", "update:placeholder"]);
+const emits = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+    /** Emitted when the placeholder date changes. */
+    "update:placeholder": null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "layout", "placeholder", "themeOverride");
 

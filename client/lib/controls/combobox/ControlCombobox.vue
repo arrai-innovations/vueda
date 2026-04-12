@@ -38,7 +38,14 @@ const props = defineProps({
     /** Whether to render as a child element. */
     asChild: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["update:modelValue", "update:open", "highlight"]);
+const emits = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+    /** Emitted when the open state changes. */
+    "update:open": null,
+    /** Emitted when an item is highlighted. */
+    highlight: null,
+});
 
 const forwarded = useForwardPropsEmits(props, emits);
 </script>

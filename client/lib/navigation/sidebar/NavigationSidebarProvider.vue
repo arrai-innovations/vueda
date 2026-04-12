@@ -32,7 +32,10 @@ const props = defineProps({
     /** Controlled open state. */
     open: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["update:open"]);
+const emits = defineEmits({
+    /** Emitted when the open state changes. */
+    "update:open": null,
+});
 
 const theme = useTheme("NavigationSidebarProvider", props);
 

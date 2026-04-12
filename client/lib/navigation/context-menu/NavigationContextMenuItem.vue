@@ -29,7 +29,10 @@ const props = defineProps({
     variant: { type: String, default: "default" },
 });
 
-const emits = defineEmits(["select"]);
+const emits = defineEmits({
+    /** Emitted when an item is selected. */
+    select: null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride", "inset", "variant");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

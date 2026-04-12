@@ -18,7 +18,10 @@ const props = defineProps({
     class: { type: [String, Array, Object], default: undefined },
 });
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+});
 
 const modelValue = useVModel(props, "modelValue", emit, {
     passive: true,

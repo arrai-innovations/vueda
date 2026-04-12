@@ -30,7 +30,12 @@ const props = defineProps({
     /** Whether the field is required. */
     required: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["update:modelValue", "update:open"]);
+const emits = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+    /** Emitted when the open state changes. */
+    "update:open": null,
+});
 
 const forwarded = useForwardPropsEmits(props, emits);
 </script>

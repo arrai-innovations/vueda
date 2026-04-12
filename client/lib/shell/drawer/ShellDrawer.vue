@@ -41,7 +41,20 @@ const props = defineProps({
     /** Whether to prevent scroll restoration on close. */
     preventScrollRestoration: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["update:open", "update:activeSnapPoint", "drag", "release", "close", "animationEnd"]);
+const emits = defineEmits({
+    /** Emitted when the open state changes. */
+    "update:open": null,
+    /** Emitted when the active snap point changes. */
+    "update:activeSnapPoint": null,
+    /** Emitted while the drawer is being dragged. */
+    drag: null,
+    /** Emitted when the drag is released. */
+    release: null,
+    /** Emitted when the close action is triggered. */
+    close: null,
+    /** Emitted when the open or close animation ends. */
+    animationEnd: null,
+});
 
 const forwarded = useForwardPropsEmits(props, emits);
 </script>

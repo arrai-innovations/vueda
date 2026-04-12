@@ -33,18 +33,28 @@ const props = defineProps({
     pasteTransformer: { type: Function, default: undefined },
 });
 
-const emits = defineEmits([
-    "update:modelValue",
-    "complete",
-    "change",
-    "select",
-    "input",
-    "focus",
-    "blur",
-    "mouseover",
-    "mouseleave",
-    "paste",
-]);
+const emits = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+    /** Emitted when all slots are filled. */
+    complete: null,
+    /** Emitted when the value changes. */
+    change: null,
+    /** Emitted when an item is selected. */
+    select: null,
+    /** Emitted on each keystroke. */
+    input: null,
+    /** Emitted when the input gains focus. */
+    focus: null,
+    /** Emitted when the input loses focus. */
+    blur: null,
+    /** Emitted when the pointer enters the element. */
+    mouseover: null,
+    /** Emitted when the pointer leaves the element. */
+    mouseleave: null,
+    /** Emitted when the user pastes into the input. */
+    paste: null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 

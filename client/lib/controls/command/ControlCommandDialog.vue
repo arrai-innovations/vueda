@@ -32,7 +32,10 @@ const props = defineProps({
     /** Accessible description shown in the dialog header. */
     description: { type: String, default: "Search for a command to run..." },
 });
-const emits = defineEmits(["update:open"]);
+const emits = defineEmits({
+    /** Emitted when the open state changes. */
+    "update:open": null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride", "title", "description");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

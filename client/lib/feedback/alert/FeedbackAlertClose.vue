@@ -15,10 +15,10 @@ const props = defineProps({
     class: { type: [String, Array, Object], default: undefined },
 });
 
-const emit = defineEmits([
-    /** Emitted when the close button is clicked. */
-    "close",
-]);
+const emit = defineEmits({
+    /** Emitted when the close action is triggered. */
+    close: null,
+});
 
 const theme = useTheme("FeedbackAlertClose", props);
 </script>

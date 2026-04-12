@@ -30,7 +30,10 @@ const props = defineProps({
     /** Whether to render as a child element. */
     asChild: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["update:modelValue"]);
+const emits = defineEmits({
+    /** Emitted when the value changes. */
+    "update:modelValue": null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 

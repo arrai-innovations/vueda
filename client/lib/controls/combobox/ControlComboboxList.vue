@@ -29,7 +29,14 @@ const props = defineProps({
     /** Whether to force mount the content. */
     forceMount: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["escapeKeyDown", "pointerDownOutside", "closeAutoFocus"]);
+const emits = defineEmits({
+    /** Emitted when the Escape key is pressed. */
+    escapeKeyDown: null,
+    /** Emitted when a pointer-down event occurs outside the content. */
+    pointerDownOutside: null,
+    /** Emitted when focus returns to the trigger after the content closes. */
+    closeAutoFocus: null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

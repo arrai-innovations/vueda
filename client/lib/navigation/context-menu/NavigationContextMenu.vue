@@ -17,7 +17,10 @@ const props = defineProps({
     pressOpenDelay: { type: Number, default: undefined },
 });
 
-const emits = defineEmits(["update:open"]);
+const emits = defineEmits({
+    /** Emitted when the open state changes. */
+    "update:open": null,
+});
 
 const forwarded = useForwardPropsEmits(props, emits);
 </script>

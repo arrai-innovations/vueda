@@ -22,7 +22,10 @@ const props = defineProps({
     /** The disabled state. */
     disabled: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["dragging"]);
+const emits = defineEmits({
+    /** Emitted when the handle drag state changes. */
+    dragging: null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "withHandle", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);

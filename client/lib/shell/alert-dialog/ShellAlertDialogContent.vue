@@ -22,7 +22,14 @@ const props = defineProps({
     /** Whether to force mount the content. */
     forceMount: { type: Boolean, default: undefined },
 });
-const emits = defineEmits(["openAutoFocus", "closeAutoFocus", "escapeKeyDown"]);
+const emits = defineEmits({
+    /** Emitted when focus moves inside the content after it opens. */
+    openAutoFocus: null,
+    /** Emitted when focus returns to the trigger after the content closes. */
+    closeAutoFocus: null,
+    /** Emitted when the Escape key is pressed. */
+    escapeKeyDown: null,
+});
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
