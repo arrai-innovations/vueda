@@ -1,0 +1,6 @@
+# pnpm
+node_modules
+# uv
+.venv*
+# jetbrains
+.idea
