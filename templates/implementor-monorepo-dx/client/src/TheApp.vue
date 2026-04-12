@@ -1,5 +1,5 @@
 <script setup>
-import { FeedbackToaster } from "@vueda/feedback/toast";
+import FeedbackToaster from "@vueda/feedback/toast/FeedbackToaster.vue";
 </script>
 
 <template>
