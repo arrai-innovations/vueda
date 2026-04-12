@@ -4,3 +4,5 @@ node_modules
 .venv*
 # jetbrains
 .idea
+# local gunicorn overrides (machine-specific paths, e.g. TLS cert/key)
+server/gunicorn.conf.py
