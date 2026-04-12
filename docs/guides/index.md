@@ -8,6 +8,10 @@ type: index
 
 Guides are task-focused recipes for implementors working on real VUEDA projects. They assume you already know your domain model and need practical steps for wiring server + client behavior.
 
+## Environment & Networking
+
+- [Local HTTPS Development](local-https-setup.md): Set up mkcert, gunicorn TLS, and Vite HTTPS for a production-like local environment with secure cookies.
+
 ## Client Setup & Theming
 
 - [Client Plugin Prerequisites](client-plugin-prerequisites.md): Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting.

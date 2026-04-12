@@ -190,6 +190,10 @@ You should get a 200 response with an empty JSON object, indicating that the ser
 
 For the client, open your browser and navigate to `http://localhost:5173`. You should see a page load without console errors. There is nothing to display yet since we have not added any routes or components.
 
+::: tip
+If you want your local environment to match production security settings (secure session and CSRF cookies, HTTPS-only), see [Local HTTPS Development](../guides/local-https-setup.md).
+:::
+
 ::: warning
 If you are having issues from here, consult [Django](https://docs.djangoproject.com/) or [Vite](https://vite.dev/) documentation for troubleshooting tips, or a system administrator for networking problems, as the issues are likely outside the scope of this guide.
 :::
@@ -566,15 +570,7 @@ The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wire
 
 ### Connect to the Server
 
-During local development the client dev server (port 5173) and Django (port 8000) run on different ports. Tell VUEDA which port to reach Django on.
-
-Create `client/.env.development`:
-
-```ini
-VITE_DJANGO_CONNECTION_PORT=8000
-```
-
-The template's `config.toml` already includes `http://localhost:5173` in `CORS_ALLOWED_ORIGINS`, so no Vite proxy is needed.
+During local development the client dev server and Django run on different ports. The scaffolded `client/.env.development` already contains `VITE_DJANGO_CONNECTION_PORT` set to the port you chose during scaffolding, so VUEDA knows where to reach the Django server. No Vite proxy is needed; the template's `config.toml` already includes the client origin in `CORS_ALLOWED_ORIGINS`.
 
 ### Set Up Tailwind CSS
 
