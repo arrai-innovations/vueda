@@ -20,7 +20,7 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "npx --no-install vitest",
+    "test": "npx --no-install vitest run",
     "coverage": "npm test -- run --coverage",
     "lint": "pnpm -C .. exec eslint --no-warn-ignored --cache client",
     "format": "pnpm -C .. exec prettier --check client",
