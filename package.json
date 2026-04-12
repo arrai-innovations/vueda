@@ -11,6 +11,11 @@
         "patchedDependencies": {
             "vitepress-plugin-diagrams": "patches/vitepress-plugin-diagrams.patch",
             "vitepress": "patches/vitepress.patch"
+        },
+        "peerDependencyRules": {
+            "allowedVersions": {
+                "glob-promise>glob": "10 || 11"
+            }
         }
     },
     "devDependencies": {
