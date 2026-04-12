@@ -14,7 +14,10 @@ defineOptions({
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** @type {import('vue').HTMLAttributes['class']} */
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
     class: { type: [String, Array, Object], default: undefined },
     /** The side the sheet slides in from. */
     side: { type: String, default: "right" },

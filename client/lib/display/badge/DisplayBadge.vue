@@ -11,9 +11,15 @@ defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** @type {('default'|'secondary'|'destructive'|'outline')} */
+    /**
+     * Visual style variant.
+     * @type {('default'|'secondary'|'destructive'|'outline')}
+     */
     variant: { type: String, default: undefined },
-    /** @type {import('vue').HTMLAttributes['class']} */
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
     class: { type: [String, Array, Object], default: undefined },
     /** The element or component to render as. */
     as: { type: [String, Object], default: undefined },

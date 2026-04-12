@@ -9,9 +9,15 @@ defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** @type {import('vue').HTMLAttributes['class']} */
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
     class: { type: [String, Array, Object], default: undefined },
-    /** @type {'default' | 'destructive' | 'warning' | 'info' | 'success'} */
+    /**
+     * Visual style variant.
+     * @type {'default' | 'destructive' | 'warning' | 'info' | 'success'}
+     */
     variant: { type: String, default: undefined },
 });
 

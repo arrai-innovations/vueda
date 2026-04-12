@@ -11,11 +11,20 @@ defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** @type {import('vue').HTMLAttributes['class']} */
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
     class: { type: [String, Array, Object], default: undefined },
-    /** @type {'default' | 'outline'} */
+    /**
+     * Visual style variant; inherits from parent ControlToggleGroup when not set.
+     * @type {'default' | 'outline'}
+     */
     variant: { type: String, default: undefined },
-    /** @type {'default' | 'sm' | 'lg'} */
+    /**
+     * Size variant; inherits from parent ControlToggleGroup when not set.
+     * @type {'default' | 'sm' | 'lg'}
+     */
     size: { type: String, default: undefined },
     /** The value of this item. */
     value: { type: String, default: undefined },

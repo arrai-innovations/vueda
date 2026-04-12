@@ -10,7 +10,10 @@ defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** @type {import('vue').HTMLAttributes['class']} */
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
     class: { type: [String, Array, Object], default: undefined },
     /** Controls whether the label and input stack vertically, sit side by side, or switch layout responsively. */
     orientation: { type: String, default: undefined },

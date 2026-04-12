@@ -19,7 +19,10 @@ defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** @type {import('vue').HTMLAttributes['class']} */
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
     class: { type: [String, Array, Object], default: undefined },
     /** Whether the sidebar is open by default. Reads from cookie if available. */
     defaultOpen: {

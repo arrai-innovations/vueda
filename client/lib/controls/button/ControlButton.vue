@@ -18,11 +18,20 @@ defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** @type {'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'} */
+    /**
+     * Visual style variant.
+     * @type {'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'}
+     */
     variant: { type: String, default: undefined },
-    /** @type {'default' | 'sm' | 'lg' | 'icon' | 'icon-sm' | 'icon-lg'} */
+    /**
+     * Size variant.
+     * @type {'default' | 'sm' | 'lg' | 'icon' | 'icon-sm' | 'icon-lg'}
+     */
     size: { type: String, default: undefined },
-    /** @type {import('vue').HTMLAttributes['class']} */
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
     class: { type: [String, Array, Object], default: undefined },
     /** The element or component to render as. */
     as: { type: [String, Object], default: "button" },

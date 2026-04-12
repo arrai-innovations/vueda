@@ -11,11 +11,20 @@ defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** @type {import('vue').HTMLAttributes['class']} */
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
     class: { type: [String, Array, Object], default: undefined },
-    /** @type {'default' | 'outline'} */
+    /**
+     * Visual style variant.
+     * @type {'default' | 'outline'}
+     */
     variant: { type: String, default: "default" },
-    /** @type {'default' | 'sm' | 'lg'} */
+    /**
+     * Size variant.
+     * @type {'default' | 'sm' | 'lg'}
+     */
     size: { type: String, default: "default" },
     /** Whether the toggle is pressed. */
     pressed: { type: Boolean, default: undefined },

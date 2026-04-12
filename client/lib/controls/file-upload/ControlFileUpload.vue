@@ -21,7 +21,10 @@ const props = defineProps({
     disabled: { type: Boolean, default: false },
     /** When true, renders a drag-and-drop zone around the trigger. */
     dropzone: { type: Boolean, default: false },
-    /** @type {import('vue').HTMLAttributes['class']} */
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
     class: { type: [String, Array, Object], default: undefined },
     /** The element or component to render the root as. */
     as: { type: [String, Object], default: "div" },

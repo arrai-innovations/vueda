@@ -11,9 +11,15 @@ defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** @type {import('@vueda/controls/button/ControlButton.vue').ButtonSize} */
+    /**
+     * Size variant for the button.
+     * @type {import('@vueda/controls/button/ControlButton.vue').ButtonSize}
+     */
     size: { type: String, default: "icon" },
-    /** @type {import('vue').HTMLAttributes['class']} */
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
     class: { type: [String, Array, Object], default: undefined },
     /** Whether this item represents the currently active page. */
     isActive: { type: Boolean, default: undefined },
