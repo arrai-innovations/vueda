@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { ContextMenuContent, ContextMenuPortal, useForwardPropsEmits } from "reka-ui";
+import { ContextMenuContent, ContextMenuPortal } from "reka-ui";
 
 /**
  * The content panel of a context menu, rendered inside a portal.

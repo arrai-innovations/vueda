@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { CollapsibleRoot, useForwardPropsEmits } from "reka-ui";
+import { CollapsibleRoot } from "reka-ui";
 
 /**
  * Root collapsible component built on Reka UI's CollapsibleRoot.

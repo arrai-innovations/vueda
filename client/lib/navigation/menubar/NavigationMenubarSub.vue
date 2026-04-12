@@ -1,5 +1,6 @@
 <script setup>
-import { MenubarSub, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { MenubarSub } from "reka-ui";
 
 /**
  * The root provider for a menubar submenu.

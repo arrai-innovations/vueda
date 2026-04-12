@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { MenubarPortal, MenubarSubContent, useForwardPropsEmits } from "reka-ui";
+import { MenubarPortal, MenubarSubContent } from "reka-ui";
 
 /**
  * The content panel of a menubar submenu, rendered inside a portal.

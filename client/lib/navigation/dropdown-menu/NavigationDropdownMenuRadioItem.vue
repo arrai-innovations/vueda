@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { DropdownMenuItemIndicator, DropdownMenuRadioItem, useForwardPropsEmits } from "reka-ui";
+import { DropdownMenuItemIndicator, DropdownMenuRadioItem } from "reka-ui";
 
 /**
  * A radio item within a dropdown menu radio group.

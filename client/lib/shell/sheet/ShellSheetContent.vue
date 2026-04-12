@@ -1,8 +1,9 @@
 <script setup>
 import ShellSheetOverlay from "./ShellSheetOverlay.vue";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { DialogClose, DialogContent, DialogPortal, useForwardPropsEmits } from "reka-ui";
+import { DialogClose, DialogContent, DialogPortal } from "reka-ui";
 import { reactive, toRef } from "vue";
 
 /**

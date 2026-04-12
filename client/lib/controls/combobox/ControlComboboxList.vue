@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { ComboboxContent, ComboboxPortal, useForwardPropsEmits } from "reka-ui";
+import { ComboboxContent, ComboboxPortal } from "reka-ui";
 
 /**
  * The dropdown list panel for ControlCombobox, rendered in a portal.

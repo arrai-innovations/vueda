@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { SplitterResizeHandle, useForwardPropsEmits } from "reka-ui";
+import { SplitterResizeHandle } from "reka-ui";
 
 /**
  * A drag handle for resizing panels in a ResizablePanelGroup.

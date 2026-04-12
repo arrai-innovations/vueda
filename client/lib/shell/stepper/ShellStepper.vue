@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { StepperRoot, useForwardPropsEmits } from "reka-ui";
+import { StepperRoot } from "reka-ui";
 
 /**
  * Root stepper component built on Reka UI's StepperRoot.

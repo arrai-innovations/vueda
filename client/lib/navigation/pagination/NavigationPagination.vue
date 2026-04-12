@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { PaginationRoot, useForwardPropsEmits } from "reka-ui";
+import { PaginationRoot } from "reka-ui";
 
 /**
  * Root pagination component built on Reka UI's PaginationRoot.

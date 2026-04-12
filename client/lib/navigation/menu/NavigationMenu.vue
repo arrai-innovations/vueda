@@ -1,8 +1,9 @@
 <script setup>
 import NavigationMenuViewport from "./NavigationMenuViewport.vue";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { NavigationMenuRoot, useForwardPropsEmits } from "reka-ui";
+import { NavigationMenuRoot } from "reka-ui";
 
 /**
  * The root provider for a navigation menu.

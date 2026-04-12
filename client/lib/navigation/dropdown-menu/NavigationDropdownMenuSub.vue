@@ -1,5 +1,6 @@
 <script setup>
-import { DropdownMenuSub, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { DropdownMenuSub } from "reka-ui";
 
 /**
  * The root provider for a dropdown submenu.

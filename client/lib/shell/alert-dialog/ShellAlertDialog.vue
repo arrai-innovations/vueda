@@ -1,5 +1,6 @@
 <script setup>
-import { AlertDialogRoot, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { AlertDialogRoot } from "reka-ui";
 
 /**
  * Root alert dialog component built on Reka UI's AlertDialogRoot.

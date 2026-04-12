@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { MenubarRoot, useForwardPropsEmits } from "reka-ui";
+import { MenubarRoot } from "reka-ui";
 
 /**
  * A horizontal menu bar containing a set of menus.

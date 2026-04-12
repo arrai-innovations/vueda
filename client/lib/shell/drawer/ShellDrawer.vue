@@ -1,5 +1,5 @@
 <script setup>
-import { useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { DrawerRoot } from "vaul-vue";
 
 /**

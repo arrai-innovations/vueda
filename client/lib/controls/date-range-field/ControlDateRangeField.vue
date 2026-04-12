@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { DateRangeFieldRoot, useForwardPropsEmits } from "reka-ui";
+import { DateRangeFieldRoot } from "reka-ui";
 
 /**
  * A segment-based date range input built on Reka UI's DateRangeFieldRoot.

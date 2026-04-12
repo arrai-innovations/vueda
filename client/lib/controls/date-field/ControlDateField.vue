@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { DateFieldRoot, useForwardPropsEmits } from "reka-ui";
+import { DateFieldRoot } from "reka-ui";
 
 /**
  * A segment-based date input built on Reka UI's DateFieldRoot. Users tab

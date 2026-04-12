@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { ComboboxInput, useForwardPropsEmits } from "reka-ui";
+import { ComboboxInput } from "reka-ui";
 
 /**
  * The search input for ControlCombobox, rendered with a search icon.

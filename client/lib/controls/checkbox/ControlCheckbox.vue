@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { CheckboxIndicator, CheckboxRoot, useForwardPropsEmits } from "reka-ui";
+import { CheckboxIndicator, CheckboxRoot } from "reka-ui";
 
 /**
  * A checkbox built on Reka UI's CheckboxRoot, displaying a check icon when checked

@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { AlertDialogContent, AlertDialogOverlay, AlertDialogPortal, useForwardPropsEmits } from "reka-ui";
+import { AlertDialogContent, AlertDialogOverlay, AlertDialogPortal } from "reka-ui";
 
 /**
  * The content panel of an AlertDialog, rendered in a portal with an overlay.

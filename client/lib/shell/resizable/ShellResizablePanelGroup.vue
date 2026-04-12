@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { SplitterGroup, useForwardPropsEmits } from "reka-ui";
+import { SplitterGroup } from "reka-ui";
 
 /**
  * A container that manages a group of resizable panels.

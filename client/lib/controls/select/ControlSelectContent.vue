@@ -1,9 +1,10 @@
 <script setup>
 import ControlSelectScrollDownButton from "./ControlSelectScrollDownButton.vue";
 import ControlSelectScrollUpButton from "./ControlSelectScrollUpButton.vue";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { SelectContent, SelectPortal, SelectViewport, useForwardPropsEmits } from "reka-ui";
+import { SelectContent, SelectPortal, SelectViewport } from "reka-ui";
 import { reactive, toRef } from "vue";
 
 /**

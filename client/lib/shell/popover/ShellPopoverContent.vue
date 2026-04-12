@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { PopoverContent, PopoverPortal, useForwardPropsEmits } from "reka-ui";
+import { PopoverContent, PopoverPortal } from "reka-ui";
 
 /**
  * The floating content panel of a popover, rendered inside a portal.

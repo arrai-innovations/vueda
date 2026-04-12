@@ -13,9 +13,10 @@ import ControlCalendarPrevButton from "./ControlCalendarPrevButton.vue";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import ControlNativeSelect from "@vueda/controls/native-select/ControlNativeSelect.vue";
 import ControlNativeSelectOption from "@vueda/controls/native-select/ControlNativeSelectOption.vue";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { createReusableTemplate, reactiveOmit, useVModel } from "@vueuse/core";
-import { CalendarRoot, useDateFormatter, useForwardPropsEmits } from "reka-ui";
+import { CalendarRoot, useDateFormatter } from "reka-ui";
 import { createYear, createYearRange, toDate } from "reka-ui/date";
 import { computed, toRaw } from "vue";
 

@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { Toggle, useForwardPropsEmits } from "reka-ui";
+import { Toggle } from "reka-ui";
 import { reactive, toRef } from "vue";
 
 /**

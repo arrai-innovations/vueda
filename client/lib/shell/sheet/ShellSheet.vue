@@ -1,5 +1,6 @@
 <script setup>
-import { DialogRoot, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { DialogRoot } from "reka-ui";
 
 /**
  * Root Sheet component, a dialog variant that slides in from a side of the screen.

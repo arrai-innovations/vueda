@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { SwitchRoot, SwitchThumb, useForwardPropsEmits } from "reka-ui";
+import { SwitchRoot, SwitchThumb } from "reka-ui";
 
 /**
  * A toggle switch built on Reka UI's SwitchRoot, with a sliding thumb indicator.

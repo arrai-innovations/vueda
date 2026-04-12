@@ -5,9 +5,9 @@ import ShellDialogContent from "@vueda/shell/dialog/ShellDialogContent.vue";
 import ShellDialogDescription from "@vueda/shell/dialog/ShellDialogDescription.vue";
 import ShellDialogHeader from "@vueda/shell/dialog/ShellDialogHeader.vue";
 import ShellDialogTitle from "@vueda/shell/dialog/ShellDialogTitle.vue";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { useForwardPropsEmits } from "reka-ui";
 
 /**
  * Wraps ControlCommand inside a modal dialog for use as a floating command palette.

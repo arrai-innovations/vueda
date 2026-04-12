@@ -1,5 +1,6 @@
 <script setup>
-import { SplitterPanel, useForwardExpose, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { SplitterPanel, useForwardExpose } from "reka-ui";
 
 /**
  * A resizable panel managed by a ResizablePanelGroup.

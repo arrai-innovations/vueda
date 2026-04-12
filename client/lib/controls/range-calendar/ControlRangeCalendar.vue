@@ -10,9 +10,10 @@ import ControlRangeCalendarHeader from "./ControlRangeCalendarHeader.vue";
 import ControlRangeCalendarHeading from "./ControlRangeCalendarHeading.vue";
 import ControlRangeCalendarNextButton from "./ControlRangeCalendarNextButton.vue";
 import ControlRangeCalendarPrevButton from "./ControlRangeCalendarPrevButton.vue";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { RangeCalendarRoot, useForwardPropsEmits } from "reka-ui";
+import { RangeCalendarRoot } from "reka-ui";
 
 /**
  * A full-featured date range calendar built on RangeCalendarRoot.

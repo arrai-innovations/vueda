@@ -1,5 +1,6 @@
 <script setup>
-import { ComboboxRoot, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { ComboboxRoot } from "reka-ui";
 
 /**
  * Root of a Combobox widget. Combines a searchable input with a filtered option list.

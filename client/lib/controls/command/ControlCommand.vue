@@ -1,8 +1,9 @@
 <script setup>
 import { provideCommandContext } from "@vueda/use/useCommand.js";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { ListboxRoot, useFilter, useForwardPropsEmits } from "reka-ui";
+import { ListboxRoot, useFilter } from "reka-ui";
 import { reactive, ref, watch } from "vue";
 
 /**

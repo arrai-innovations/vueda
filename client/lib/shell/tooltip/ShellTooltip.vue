@@ -1,5 +1,6 @@
 <script setup>
-import { TooltipRoot, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { TooltipRoot } from "reka-ui";
 
 /**
  * Root tooltip component built on Reka UI's TooltipRoot.

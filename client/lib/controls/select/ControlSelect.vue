@@ -1,5 +1,6 @@
 <script setup>
-import { SelectRoot, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { SelectRoot } from "reka-ui";
 
 /**
  * Root of a Select widget. Wrap with ControlSelectTrigger and ControlSelectContent.

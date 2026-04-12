@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { ContextMenuItem, useForwardPropsEmits } from "reka-ui";
+import { ContextMenuItem } from "reka-ui";
 
 /**
  * An individual action item within a context menu.

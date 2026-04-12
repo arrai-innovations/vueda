@@ -1,5 +1,6 @@
 <script setup>
-import { HoverCardRoot, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { HoverCardRoot } from "reka-ui";
 
 /**
  * Root hover card component built on Reka UI's HoverCardRoot.

@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { DialogClose, DialogContent, DialogOverlay, DialogPortal, useForwardPropsEmits } from "reka-ui";
+import { DialogClose, DialogContent, DialogOverlay, DialogPortal } from "reka-ui";
 
 /**
  * A scrollable Dialog content panel that renders in a portal with a scrollable overlay.

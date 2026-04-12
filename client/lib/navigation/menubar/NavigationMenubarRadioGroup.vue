@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { MenubarRadioGroup, useForwardPropsEmits } from "reka-ui";
+import { MenubarRadioGroup } from "reka-ui";
 
 /**
  * Groups radio items within a menubar menu.

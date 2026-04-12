@@ -1,5 +1,6 @@
 <script setup>
-import { PopoverRoot, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { PopoverRoot } from "reka-ui";
 
 /**
  * Root popover component built on Reka UI's PopoverRoot.

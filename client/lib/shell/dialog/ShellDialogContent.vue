@@ -1,8 +1,9 @@
 <script setup>
 import ShellDialogOverlay from "./ShellDialogOverlay.vue";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { DialogClose, DialogContent, DialogPortal, useForwardPropsEmits } from "reka-ui";
+import { DialogClose, DialogContent, DialogPortal } from "reka-ui";
 
 /**
  * The content panel of a Dialog, rendered in a portal with an overlay and optional close button.

@@ -1,5 +1,6 @@
 <script setup>
-import { ContextMenuRoot, useForwardPropsEmits } from "reka-ui";
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { ContextMenuRoot } from "reka-ui";
 
 /**
  * The root provider for a context menu.

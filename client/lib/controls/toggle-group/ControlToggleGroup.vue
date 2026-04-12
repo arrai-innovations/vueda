@@ -1,7 +1,8 @@
 <script setup>
+import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { ToggleGroupRoot, useForwardPropsEmits } from "reka-ui";
+import { ToggleGroupRoot } from "reka-ui";
 import { provide } from "vue";
 
 /**
