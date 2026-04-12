@@ -19,6 +19,8 @@ Before you begin:
 
 The project must have `primevue` and `@primeuix/themes` installed as dependencies. These are peer dependencies of `@arrai-innovations/vueda`. Pinia and Vue Router must also be installed; they are assumed throughout but are not VUEDA-specific.
 
+If you are using the built-in `vueda-tailwind` theme (recommended), you also need `tailwindcss` and `@tailwindcss/vite` installed as dev dependencies, and the Vite plugin registered in `vite.config.js`. Tailwindcss is a build tool, not a runtime peer dependency of VUEDA.
+
 ## Registration Order
 
 Plugin registration follows a specific order. Some steps have dependencies on earlier steps; others are order-independent but grouped by concern for clarity.
@@ -70,6 +72,17 @@ The sections below explain each registration step.
 `setTheme(themeObject)` registers the component theme that VUEDA uses to resolve CSS classes for every component slot (layout containers, buttons, inputs, headings, etc.).
 
 VUEDA ships a first-party Tailwind CSS theme at `@vueda/theme/vueda-tailwind/index.js`. This is the recommended starting point. It maps each component's named slots to Tailwind utility classes and supports overrides through `patchTheme()`, `setTheme()`, and per-component `themeOverride` props.
+
+Using the `vueda-tailwind` theme requires Tailwind CSS to be set up in your project so those utility classes generate CSS. Install `tailwindcss` and `@tailwindcss/vite` as dev dependencies and add the plugin to your `vite.config.js`:
+
+```javascript
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+    plugins: [vue(), tailwindcss()],
+    // ...
+});
+```
 
 The theme also requires a set of semantic color tokens (`foreground`, `background`, `primary`, `muted`, `sidebar`, and related variants) that are not part of Tailwind's default palette. A baseline CSS file is included at `@vueda/theme/vueda-tailwind/base.css` that defines these tokens with a default light/dark neutral palette. Import it once in your project's main CSS file:
 

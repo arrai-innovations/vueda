@@ -576,6 +576,19 @@ VITE_DJANGO_CONNECTION_PORT=8000
 
 The template's `config.toml` already includes `http://localhost:5173` in `CORS_ALLOWED_ORIGINS`, so no Vite proxy is needed.
 
+### Set Up Tailwind CSS
+
+The scaffolded `client/src/index.css` is empty. The `vueda-tailwind` theme maps component slots to Tailwind utility classes, so Tailwind must be configured to generate CSS for those classes.
+
+Replace `client/src/index.css` with:
+
+```css
+@import "tailwindcss";
+@import "@vueda/theme/vueda-tailwind/base.css";
+```
+
+The `@vueda/theme/vueda-tailwind/base.css` import defines the semantic color tokens (`foreground`, `background`, `primary`, `muted`, `sidebar`, and related variants) that the theme relies on. If your project already provides these tokens (for example, from a custom design system), you can omit that import.
+
 ### Register Plugins
 
 Replace `client/src/main.js` with:
@@ -690,6 +703,7 @@ Replace `client/vite.config.js` with:
 
 ```javascript
 import { vuedaViteConfig } from "@arrai-innovations/vueda/lib/vite.js";
+import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -698,7 +712,7 @@ import { defineConfig } from "vite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-    plugins: [vue()],
+    plugins: [vue(), tailwindcss()],
     ...vuedaViteConfig({
         extraAliases: {
             "@": path.resolve(__dirname, "src"),
