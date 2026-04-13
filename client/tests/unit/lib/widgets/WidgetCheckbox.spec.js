@@ -25,7 +25,7 @@ const ControlCheckboxStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/checkbox/ControlCheckbox.vue", () => ({ default: ControlCheckboxStub }));
+vi.mock("@vueda/controls/checkbox/Checkbox.vue", () => ({ default: ControlCheckboxStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {
@@ -63,7 +63,7 @@ describe("lib/widgets/WidgetCheckbox.vue", () => {
     });
 
     describe("Rendering", () => {
-        scopedIt("renders a ControlCheckbox element", async () => {
+        scopedIt("renders a Checkbox element", async () => {
             const wrapper = mount(WidgetCheckbox);
             expect(wrapper.get(QA_SEL).element.tagName).toBe("BUTTON");
         });

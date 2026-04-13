@@ -1,16 +1,16 @@
 <script setup>
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import ControlCombobox from "@vueda/controls/combobox/ControlCombobox.vue";
-import ControlComboboxAnchor from "@vueda/controls/combobox/ControlComboboxAnchor.vue";
-import ControlComboboxEmpty from "@vueda/controls/combobox/ControlComboboxEmpty.vue";
-import ControlComboboxGroup from "@vueda/controls/combobox/ControlComboboxGroup.vue";
-import ControlComboboxInput from "@vueda/controls/combobox/ControlComboboxInput.vue";
-import ControlComboboxItem from "@vueda/controls/combobox/ControlComboboxItem.vue";
-import ControlComboboxItemIndicator from "@vueda/controls/combobox/ControlComboboxItemIndicator.vue";
-import ControlComboboxList from "@vueda/controls/combobox/ControlComboboxList.vue";
-import ControlComboboxTrigger from "@vueda/controls/combobox/ControlComboboxTrigger.vue";
-import ControlComboboxViewport from "@vueda/controls/combobox/ControlComboboxViewport.vue";
-import ControlComboboxVirtualizer from "@vueda/controls/combobox/ControlComboboxVirtualizer.vue";
+import Combobox from "@vueda/controls/combobox/Combobox.vue";
+import ComboboxAnchor from "@vueda/controls/combobox/ComboboxAnchor.vue";
+import ComboboxEmpty from "@vueda/controls/combobox/ComboboxEmpty.vue";
+import ComboboxGroup from "@vueda/controls/combobox/ComboboxGroup.vue";
+import ComboboxInput from "@vueda/controls/combobox/ComboboxInput.vue";
+import ComboboxItem from "@vueda/controls/combobox/ComboboxItem.vue";
+import ComboboxItemIndicator from "@vueda/controls/combobox/ComboboxItemIndicator.vue";
+import ComboboxList from "@vueda/controls/combobox/ComboboxList.vue";
+import ComboboxTrigger from "@vueda/controls/combobox/ComboboxTrigger.vue";
+import ComboboxViewport from "@vueda/controls/combobox/ComboboxViewport.vue";
+import ComboboxVirtualizer from "@vueda/controls/combobox/ComboboxVirtualizer.vue";
 import { useComboboxSearch } from "@vueda/use/useComboboxSearch.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -187,7 +187,7 @@ const theme = useTheme("WidgetCombobox", props);
         />
         <span v-else>{{ closedStateLabel }}</span>
     </template>
-    <ControlCombobox
+    <Combobox
         v-else
         v-model="effectiveValue"
         v-bind="$attrs"
@@ -198,8 +198,8 @@ const theme = useTheme("WidgetCombobox", props);
         :reset-search-term-on-select="true"
         @update:open="handleOpenChange"
     >
-        <ControlComboboxAnchor class="w-full">
-            <ControlComboboxTrigger
+        <ComboboxAnchor class="w-full">
+            <ComboboxTrigger
                 :id="fieldContext?.state.fieldId"
                 :aria-invalid="widgetContext.state.validationState.invalid || undefined"
                 :aria-required="widgetContext.state.required || undefined"
@@ -214,51 +214,51 @@ const theme = useTheme("WidgetCombobox", props);
                 <slot name="icon">
                     <span aria-hidden="true" class="size-4 text-center leading-4 opacity-50 select-none">▾</span>
                 </slot>
-            </ControlComboboxTrigger>
-        </ControlComboboxAnchor>
-        <ControlComboboxList class="w-[var(--reka-combobox-trigger-width)]">
-            <ControlComboboxInput
+            </ComboboxTrigger>
+        </ComboboxAnchor>
+        <ComboboxList class="w-[var(--reka-combobox-trigger-width)]">
+            <ComboboxInput
                 v-model="comboboxSearch.query"
                 :placeholder="isApiMode ? 'Type to search...' : 'Search...'"
             />
-            <ControlComboboxViewport>
-                <ControlComboboxEmpty>{{ emptyMessage }}</ControlComboboxEmpty>
+            <ComboboxViewport>
+                <ComboboxEmpty>{{ emptyMessage }}</ComboboxEmpty>
                 <template v-if="isGrouped">
-                    <ControlComboboxGroup
+                    <ComboboxGroup
                         v-for="group in displayOptions"
                         :key="group[comboboxSearch.groupByField]"
                         :heading="group[comboboxSearch.groupByField]"
                     >
-                        <ControlComboboxItem
+                        <ComboboxItem
                             v-for="item in group.items"
                             :key="item[comboboxSearch.optionValue]"
                             :value="item[comboboxSearch.optionValue]"
                             :text-value="item[comboboxSearch.optionLabel]"
                         >
                             {{ item[comboboxSearch.optionLabel] }}
-                            <ControlComboboxItemIndicator>
+                            <ComboboxItemIndicator>
                                 <span aria-hidden="true" class="select-none">✓</span>
-                            </ControlComboboxItemIndicator>
-                        </ControlComboboxItem>
-                    </ControlComboboxGroup>
+                            </ComboboxItemIndicator>
+                        </ComboboxItem>
+                    </ComboboxGroup>
                 </template>
-                <ControlComboboxVirtualizer
+                <ComboboxVirtualizer
                     v-else
                     v-slot="{ option }"
                     :options="filteredDisplayOptions"
                     :text-content="textContentFn"
                 >
-                    <ControlComboboxItem
+                    <ComboboxItem
                         :value="isApiMode ? option[comboboxSearch.optionValue] : option[props.optionValue]"
                         :text-value="isApiMode ? option[comboboxSearch.optionLabel] : option[props.optionLabel]"
                     >
                         {{ isApiMode ? option[comboboxSearch.optionLabel] : option[props.optionLabel] }}
-                        <ControlComboboxItemIndicator>
+                        <ComboboxItemIndicator>
                             <span aria-hidden="true" class="select-none">✓</span>
-                        </ControlComboboxItemIndicator>
-                    </ControlComboboxItem>
-                </ControlComboboxVirtualizer>
-            </ControlComboboxViewport>
-        </ControlComboboxList>
-    </ControlCombobox>
+                        </ComboboxItemIndicator>
+                    </ComboboxItem>
+                </ComboboxVirtualizer>
+            </ComboboxViewport>
+        </ComboboxList>
+    </Combobox>
 </template>

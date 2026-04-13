@@ -1,19 +1,19 @@
 <script setup>
 import { parseDate, parseDateTime } from "@internationalized/date";
-import ControlCalendar from "@vueda/controls/calendar/ControlCalendar.vue";
-import ControlDateField from "@vueda/controls/date-field/ControlDateField.vue";
-import ControlDateFieldInput from "@vueda/controls/date-field/ControlDateFieldInput.vue";
-import ShellPopover from "@vueda/shell/popover/ShellPopover.vue";
-import ShellPopoverContent from "@vueda/shell/popover/ShellPopoverContent.vue";
-import ShellPopoverTrigger from "@vueda/shell/popover/ShellPopoverTrigger.vue";
+import Calendar from "@vueda/controls/calendar/Calendar.vue";
+import DateField from "@vueda/controls/date-field/DateField.vue";
+import DateFieldInput from "@vueda/controls/date-field/DateFieldInput.vue";
+import Popover from "@vueda/shell/popover/Popover.vue";
+import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
+import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, ref } from "vue";
 
 /**
  * A date or datetime picker widget that combines segment-based input with a
- * calendar popover. Uses ControlDateField for keyboard-friendly segment editing
- * and ControlCalendar for visual date selection. Set granularity to "minute" or
+ * calendar popover. Uses DateField for keyboard-friendly segment editing
+ * and Calendar for visual date selection. Set granularity to "minute" or
  * "second" for datetime input.
  */
 defineOptions({
@@ -73,8 +73,8 @@ const onCalendarSelect = (value) => {
 </script>
 
 <template>
-    <ShellPopover v-model:open="popoverOpen">
-        <ControlDateField
+    <Popover v-model:open="popoverOpen">
+        <DateField
             :id="fieldContext?.state.fieldId"
             v-model="dateValue"
             :granularity="granularity"
@@ -95,14 +95,14 @@ const onCalendarSelect = (value) => {
         >
             <template #default="{ segments }">
                 <template v-for="segment in segments" :key="segment.part">
-                    <ControlDateFieldInput
+                    <DateFieldInput
                         v-if="segment.part === 'literal'"
                         :part="segment.part"
                         class="text-muted-foreground"
                     />
-                    <ControlDateFieldInput v-else :part="segment.part" />
+                    <DateFieldInput v-else :part="segment.part" />
                 </template>
-                <ShellPopoverTrigger as-child>
+                <PopoverTrigger as-child>
                     <button
                         type="button"
                         class="ml-auto inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -112,11 +112,11 @@ const onCalendarSelect = (value) => {
                     >
                         <span aria-hidden="true" class="select-none text-sm leading-none">📅</span>
                     </button>
-                </ShellPopoverTrigger>
+                </PopoverTrigger>
             </template>
-        </ControlDateField>
-        <ShellPopoverContent class="w-auto p-3" align="start">
-            <ControlCalendar
+        </DateField>
+        <PopoverContent class="w-auto p-3" align="start">
+            <Calendar
                 :model-value="dateValue"
                 :min-value="minValue"
                 :max-value="maxValue"
@@ -125,6 +125,6 @@ const onCalendarSelect = (value) => {
                 initial-focus
                 @update:model-value="onCalendarSelect"
             />
-        </ShellPopoverContent>
-    </ShellPopover>
+        </PopoverContent>
+    </Popover>
 </template>

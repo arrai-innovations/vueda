@@ -24,7 +24,7 @@ const ControlTextareaStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/textarea/ControlTextarea.vue", () => ({ default: ControlTextareaStub }));
+vi.mock("@vueda/controls/textarea/Textarea.vue", () => ({ default: ControlTextareaStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {
@@ -62,7 +62,7 @@ describe("lib/widgets/WidgetTextTextarea.vue", () => {
     });
 
     describe("Rendering", () => {
-        scopedIt("renders a ControlTextarea element", async () => {
+        scopedIt("renders a Textarea element", async () => {
             const wrapper = mount(WidgetTextTextarea);
             expect(wrapper.get(QA_SEL).element.tagName).toBe("TEXTAREA");
         });

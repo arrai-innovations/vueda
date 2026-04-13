@@ -1,6 +1,6 @@
 <script setup>
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import ControlFileUpload from "@vueda/controls/file-upload/ControlFileUpload.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import FileUpload from "@vueda/controls/file-upload/FileUpload.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
@@ -54,13 +54,13 @@ const onRemove = () => {
         <div :class="theme('inner')" data-qa="widget-image-inner">
             <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
                 <img alt="Image" :src="widgetContext.state.combinedValue" width="250" data-qa="image-preview" />
-                <ControlButton variant="ghost" size="icon-sm" data-qa="image-remove" @click="onRemove">
+                <Button variant="ghost" size="icon-sm" data-qa="image-remove" @click="onRemove">
                     <span aria-hidden="true" class="select-none">✕</span>
                     <span class="sr-only">Remove image</span>
-                </ControlButton>
+                </Button>
             </div>
             <div v-else>
-                <ControlFileUpload
+                <FileUpload
                     accept="image/*"
                     :aria-labelledby="fieldContext?.state.fieldId"
                     :aria-required="widgetContext.state.required"

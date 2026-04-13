@@ -1,7 +1,7 @@
 <script setup>
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import FormField from "@vueda/fields/FormField.vue";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
@@ -143,23 +143,23 @@ onBeforeUnmount(clearCooldownTimer);
                 :loading="loading"
             >
                 <div :class="theme('buttons')" data-qa="view-two-factor-auth-buttons">
-                    <ControlButton
+                    <Button
                         v-if="sendCodeMethods.includes(form.values?.method)"
                         variant="ghost"
                         :disabled="loading || timer"
                         @click="handleSendCode"
                     >
-                        <FeedbackSpinner v-if="loading" />
+                        <Spinner v-if="loading" />
                         {{
                             timer
                                 ? `Send ${form.values?.method} again in ${cooldownSeconds}s`
                                 : `Send ${form.values?.method}`
                         }}
-                    </ControlButton>
-                    <ControlButton :disabled="loading || !form.values?.code" type="submit">
-                        <FeedbackSpinner v-if="loading" />
+                    </Button>
+                    <Button :disabled="loading || !form.values?.code" type="submit">
+                        <Spinner v-if="loading" />
                         Verify
-                    </ControlButton>
+                    </Button>
                 </div>
             </slot>
         </template>

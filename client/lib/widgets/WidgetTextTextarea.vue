@@ -1,11 +1,11 @@
 <script setup>
-import ControlTextarea from "@vueda/controls/textarea/ControlTextarea.vue";
+import Textarea from "@vueda/controls/textarea/Textarea.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { inject } from "vue";
 
 /**
- * A textarea widget that renders a ControlTextarea with form field integration.
+ * A textarea widget that renders a Textarea with form field integration.
  * Used for CharField (TextField variant) and similar multi-line string fields when paired with FormField.
  */
 defineOptions({
@@ -20,7 +20,7 @@ const fieldContext = inject(FieldContextSymbol, null);
 const widgetContext = useWidget(props, emit);
 </script>
 <template>
-    <ControlTextarea
+    <Textarea
         :id="fieldContext?.state.fieldId"
         v-model="widgetContext.state.combinedValue"
         :disabled="widgetContext.state.disabled"

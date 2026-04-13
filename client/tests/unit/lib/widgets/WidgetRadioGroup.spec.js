@@ -47,8 +47,8 @@ const ControlRadioGroupItemStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/radio-group/ControlRadioGroup.vue", () => ({ default: ControlRadioGroupStub }));
-vi.mock("@vueda/controls/radio-group/ControlRadioGroupItem.vue", () => ({ default: ControlRadioGroupItemStub }));
+vi.mock("@vueda/controls/radio-group/RadioGroup.vue", () => ({ default: ControlRadioGroupStub }));
+vi.mock("@vueda/controls/radio-group/RadioGroupItem.vue", () => ({ default: ControlRadioGroupItemStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {
@@ -86,7 +86,7 @@ describe("lib/widgets/WidgetRadioGroup.vue", () => {
     });
 
     describe("Rendering", () => {
-        scopedIt("renders a ControlRadioGroup element", async () => {
+        scopedIt("renders a RadioGroup element", async () => {
             const wrapper = mount(WidgetRadioGroup, {
                 props: { options: TEST_OPTIONS },
             });

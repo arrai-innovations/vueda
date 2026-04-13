@@ -79,10 +79,10 @@ vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part }));
 vi.mock("@vueuse/core", () => ({ useClipboard: () => useClipboardMock() }));
-vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/feedback/spinner/FeedbackSpinner.vue", () => ({ default: FeedbackSpinnerStub }));
-vi.mock("@vueda/feedback/alert/FeedbackAlert.vue", () => ({ default: FeedbackAlertStub }));
-vi.mock("@vueda/feedback/alert/FeedbackAlertDescription.vue", () => ({ default: FeedbackAlertDescriptionStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/feedback/spinner/Spinner.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("@vueda/feedback/alert/Alert.vue", () => ({ default: FeedbackAlertStub }));
+vi.mock("@vueda/feedback/alert/AlertDescription.vue", () => ({ default: FeedbackAlertDescriptionStub }));
 
 const toastMock = {
     success: vi.fn(),

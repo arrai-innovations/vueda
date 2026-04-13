@@ -45,8 +45,8 @@ const ControlTimeFieldInputStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/time-field/ControlTimeField.vue", () => ({ default: ControlTimeFieldStub }));
-vi.mock("@vueda/controls/time-field/ControlTimeFieldInput.vue", () => ({ default: ControlTimeFieldInputStub }));
+vi.mock("@vueda/controls/time-field/TimeField.vue", () => ({ default: ControlTimeFieldStub }));
+vi.mock("@vueda/controls/time-field/TimeFieldInput.vue", () => ({ default: ControlTimeFieldInputStub }));
 
 vi.mock("@internationalized/date", () => ({
     parseTime: vi.fn((str) => ({ toString: () => str, _raw: str })),
@@ -93,7 +93,7 @@ describe("lib/widgets/WidgetTimeRangeField.vue", () => {
             expect(wrapper.get(QA_SEL).exists()).toBe(true);
         });
 
-        scopedIt("renders two ControlTimeField instances", async () => {
+        scopedIt("renders two TimeField instances", async () => {
             const wrapper = mount(WidgetTimeRangeField);
             const fields = wrapper.findAll('[data-control="time-field"]');
             expect(fields).toHaveLength(2);

@@ -1,9 +1,9 @@
 <script setup>
-import ControlNumberField from "@vueda/controls/number-field/ControlNumberField.vue";
-import ControlNumberFieldContent from "@vueda/controls/number-field/ControlNumberFieldContent.vue";
-import ControlNumberFieldDecrement from "@vueda/controls/number-field/ControlNumberFieldDecrement.vue";
-import ControlNumberFieldIncrement from "@vueda/controls/number-field/ControlNumberFieldIncrement.vue";
-import ControlNumberFieldInput from "@vueda/controls/number-field/ControlNumberFieldInput.vue";
+import NumberField from "@vueda/controls/number-field/NumberField.vue";
+import NumberFieldContent from "@vueda/controls/number-field/NumberFieldContent.vue";
+import NumberFieldDecrement from "@vueda/controls/number-field/NumberFieldDecrement.vue";
+import NumberFieldIncrement from "@vueda/controls/number-field/NumberFieldIncrement.vue";
+import NumberFieldInput from "@vueda/controls/number-field/NumberFieldInput.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
@@ -114,7 +114,7 @@ const focusFirstInput = () => {
             @click="focusFirstInput"
         >
             <div v-if="showDays" :class="theme('innerItem')">
-                <ControlNumberField
+                <NumberField
                     ref="daysInput"
                     :model-value="valueDay"
                     :min="0"
@@ -122,77 +122,77 @@ const focusFirstInput = () => {
                     :disabled="widgetContext.state.disabled"
                     @update:model-value="updateDay"
                 >
-                    <ControlNumberFieldContent>
-                        <ControlNumberFieldDecrement />
-                        <ControlNumberFieldInput
+                    <NumberFieldContent>
+                        <NumberFieldDecrement />
+                        <NumberFieldInput
                             aria-label="days"
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-days"
                         />
-                        <ControlNumberFieldIncrement />
-                    </ControlNumberFieldContent>
-                </ControlNumberField>
+                        <NumberFieldIncrement />
+                    </NumberFieldContent>
+                </NumberField>
             </div>
             <div v-if="showHours" :class="theme('innerItem')">
-                <ControlNumberField
+                <NumberField
                     ref="hoursInput"
                     :model-value="valueHour"
                     :min="0"
                     :disabled="widgetContext.state.disabled"
                     @update:model-value="updateHour"
                 >
-                    <ControlNumberFieldContent>
-                        <ControlNumberFieldDecrement />
-                        <ControlNumberFieldInput
+                    <NumberFieldContent>
+                        <NumberFieldDecrement />
+                        <NumberFieldInput
                             aria-label="hours"
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-hours"
                         />
-                        <ControlNumberFieldIncrement />
-                    </ControlNumberFieldContent>
-                </ControlNumberField>
+                        <NumberFieldIncrement />
+                    </NumberFieldContent>
+                </NumberField>
             </div>
             <div v-if="showMinutes" :class="theme('innerItem')">
-                <ControlNumberField
+                <NumberField
                     ref="minutesInput"
                     :model-value="valueMinute"
                     :min="0"
                     :disabled="widgetContext.state.disabled"
                     @update:model-value="updateMinute"
                 >
-                    <ControlNumberFieldContent>
-                        <ControlNumberFieldDecrement />
-                        <ControlNumberFieldInput
+                    <NumberFieldContent>
+                        <NumberFieldDecrement />
+                        <NumberFieldInput
                             aria-label="minutes"
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-minutes"
                         />
-                        <ControlNumberFieldIncrement />
-                    </ControlNumberFieldContent>
-                </ControlNumberField>
+                        <NumberFieldIncrement />
+                    </NumberFieldContent>
+                </NumberField>
             </div>
             <div v-if="showSeconds" :class="theme('innerItem')">
-                <ControlNumberField
+                <NumberField
                     ref="secondsInput"
                     :model-value="valueSecond"
                     :min="0"
                     :disabled="widgetContext.state.disabled"
                     @update:model-value="updateSecond"
                 >
-                    <ControlNumberFieldContent>
-                        <ControlNumberFieldDecrement />
-                        <ControlNumberFieldInput
+                    <NumberFieldContent>
+                        <NumberFieldDecrement />
+                        <NumberFieldInput
                             aria-label="seconds"
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-seconds"
                         />
-                        <ControlNumberFieldIncrement />
-                    </ControlNumberFieldContent>
-                </ControlNumberField>
+                        <NumberFieldIncrement />
+                    </NumberFieldContent>
+                </NumberField>
             </div>
         </div>
     </div>

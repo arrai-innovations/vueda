@@ -6,15 +6,15 @@ import { BUTTON_BASE, BUTTON_VARIANT_DEFAULT, BUTTON_VARIANT_OUTLINE } from "@vu
 
 export default {
     // accordion
-    ShellAccordion: {
+    Accordion: {
         root: { class: "" },
     },
-    ShellAccordionItem: {
+    AccordionItem: {
         root: {
             class: "border-b last:border-b-0",
         },
     },
-    ShellAccordionContent: {
+    AccordionContent: {
         root: {
             class: "data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm",
         },
@@ -22,7 +22,7 @@ export default {
             class: "pt-0 pb-4",
         },
     },
-    ShellAccordionTrigger: {
+    AccordionTrigger: {
         root: {
             class: "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
         },
@@ -35,17 +35,17 @@ export default {
     },
 
     // alert-dialog
-    ShellAlertDialogAction: {
+    AlertDialogAction: {
         root: {
             class: [...BUTTON_BASE, BUTTON_VARIANT_DEFAULT],
         },
     },
-    ShellAlertDialogCancel: {
+    AlertDialogCancel: {
         root: {
             class: [...BUTTON_BASE, BUTTON_VARIANT_OUTLINE, "mt-2 sm:mt-0"],
         },
     },
-    ShellAlertDialogContent: {
+    AlertDialogContent: {
         root: {
             class: "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
         },
@@ -53,77 +53,77 @@ export default {
             class: "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80",
         },
     },
-    ShellAlertDialogDescription: {
+    AlertDialogDescription: {
         root: {
             class: "text-muted-foreground text-sm",
         },
     },
-    ShellAlertDialogFooter: {
+    AlertDialogFooter: {
         root: {
             class: "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
         },
     },
-    ShellAlertDialogHeader: {
+    AlertDialogHeader: {
         root: {
             class: "flex flex-col gap-2 text-center sm:text-left",
         },
     },
-    ShellAlertDialogTitle: {
+    AlertDialogTitle: {
         root: {
             class: "text-lg font-semibold",
         },
     },
 
     // collapsible
-    ShellCollapsible: {
+    Collapsible: {
         root: { class: "" },
     },
-    ShellCollapsibleContent: {
+    CollapsibleContent: {
         root: { class: "" },
     },
-    ShellCollapsibleTrigger: {
+    CollapsibleTrigger: {
         root: { class: "" },
     },
 
     // card
-    ShellCard: {
+    Card: {
         root: {
             class: "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
         },
     },
-    ShellCardHeader: {
+    CardHeader: {
         root: {
             class: "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
         },
     },
-    ShellCardTitle: {
+    CardTitle: {
         root: {
             class: "leading-none font-semibold",
         },
     },
-    ShellCardDescription: {
+    CardDescription: {
         root: {
             class: "text-muted-foreground text-sm",
         },
     },
-    ShellCardAction: {
+    CardAction: {
         root: {
             class: "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
         },
     },
-    ShellCardContent: {
+    CardContent: {
         root: {
             class: "px-6",
         },
     },
-    ShellCardFooter: {
+    CardFooter: {
         root: {
             class: "flex items-center px-6 [.border-t]:pt-6",
         },
     },
 
     // dialog
-    ShellDialogContent: {
+    DialogContent: {
         root: {
             class: "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
         },
@@ -131,27 +131,27 @@ export default {
             class: "ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none text-sm leading-none",
         },
     },
-    ShellDialogDescription: {
+    DialogDescription: {
         root: {
             class: "text-muted-foreground text-sm",
         },
     },
-    ShellDialogFooter: {
+    DialogFooter: {
         root: {
             class: "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
         },
     },
-    ShellDialogHeader: {
+    DialogHeader: {
         root: {
             class: "flex flex-col gap-2 text-center sm:text-left",
         },
     },
-    ShellDialogOverlay: {
+    DialogOverlay: {
         root: {
             class: "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80",
         },
     },
-    ShellDialogScrollContent: {
+    DialogScrollContent: {
         root: {
             class: "relative z-50 grid w-full max-w-lg my-8 gap-4 border border-border bg-background p-6 shadow-lg duration-200 sm:rounded-lg md:w-full",
         },
@@ -162,14 +162,14 @@ export default {
             class: "absolute top-4 right-4 p-0.5 transition-colors rounded-md hover:bg-secondary",
         },
     },
-    ShellDialogTitle: {
+    DialogTitle: {
         root: {
             class: "text-lg leading-none font-semibold",
         },
     },
 
     // field
-    ShellField: {
+    Field: {
         root: ({ orientation }) => {
             const base = "group/field flex w-full gap-3 data-[invalid=true]:text-destructive";
             if (orientation === "horizontal") {
@@ -198,12 +198,12 @@ export default {
             };
         },
     },
-    ShellFieldContent: {
+    FieldContent: {
         root: {
             class: "group/field-content flex flex-1 flex-col gap-1.5 leading-snug",
         },
     },
-    ShellFieldDescription: {
+    FieldDescription: {
         root: {
             class: [
                 "text-muted-foreground text-sm leading-normal font-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
@@ -212,12 +212,12 @@ export default {
             ],
         },
     },
-    ShellFieldGroup: {
+    FieldGroup: {
         root: {
             class: "group/field-group @container/field-group flex w-full flex-col gap-7 data-[slot=checkbox-group]:gap-3 [&>[data-slot=field-group]]:gap-4",
         },
     },
-    ShellFieldLabel: {
+    FieldLabel: {
         root: {
             class: [
                 "group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50",
@@ -226,12 +226,12 @@ export default {
             ],
         },
     },
-    ShellFieldLegend: {
+    FieldLegend: {
         root: {
             class: "mb-3 font-medium data-[variant=legend]:text-base data-[variant=label]:text-sm",
         },
     },
-    ShellFieldMessage: {
+    FieldMessage: {
         root: ({ severity }) => ({
             class: [
                 "text-sm font-normal",
@@ -242,7 +242,7 @@ export default {
             class: "ml-4 flex list-disc flex-col gap-1",
         },
     },
-    ShellFieldSeparator: {
+    FieldSeparator: {
         root: {
             class: "relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
         },
@@ -253,7 +253,7 @@ export default {
             class: "bg-background text-muted-foreground relative mx-auto block w-fit px-2",
         },
     },
-    ShellFieldSet: {
+    FieldSet: {
         root: {
             class: [
                 "flex flex-col gap-6",
@@ -261,24 +261,24 @@ export default {
             ],
         },
     },
-    ShellFieldTitle: {
+    FieldTitle: {
         root: {
             class: "flex w-fit items-center gap-2 text-sm leading-snug font-medium group-data-[disabled=true]/field:opacity-50",
         },
     },
 
     // hover-card
-    ShellHoverCardTrigger: {
+    HoverCardTrigger: {
         root: { class: "" },
     },
-    ShellHoverCardContent: {
+    HoverCardContent: {
         root: {
             class: "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",
         },
     },
 
     // item
-    ShellItem: {
+    Item: {
         root: ({ variant, size }) => {
             const variantClass =
                 variant === "outline" ? "border-border" : variant === "muted" ? "bg-muted/50" : "bg-transparent";
@@ -292,17 +292,17 @@ export default {
             };
         },
     },
-    ShellItemActions: {
+    ItemActions: {
         root: {
             class: "flex items-center gap-2",
         },
     },
-    ShellItemContent: {
+    ItemContent: {
         root: {
             class: "flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none",
         },
     },
-    ShellItemDescription: {
+    ItemDescription: {
         root: {
             class: [
                 "text-muted-foreground line-clamp-2 text-sm leading-normal font-normal text-balance",
@@ -310,22 +310,22 @@ export default {
             ],
         },
     },
-    ShellItemFooter: {
+    ItemFooter: {
         root: {
             class: "flex basis-full items-center justify-between gap-2",
         },
     },
-    ShellItemGroup: {
+    ItemGroup: {
         root: {
             class: "group/item-group flex flex-col",
         },
     },
-    ShellItemHeader: {
+    ItemHeader: {
         root: {
             class: "flex basis-full items-center justify-between gap-2",
         },
     },
-    ShellItemMedia: {
+    ItemMedia: {
         root: ({ variant }) => {
             const variantClass =
                 variant === "icon"
@@ -341,33 +341,33 @@ export default {
             };
         },
     },
-    ShellItemSeparator: {
+    ItemSeparator: {
         root: {
             class: "my-0",
         },
     },
-    ShellItemTitle: {
+    ItemTitle: {
         root: {
             class: "flex w-fit items-center gap-2 text-sm leading-snug font-medium",
         },
     },
 
     // label
-    ShellLabel: {
+    Label: {
         root: {
             class: "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
         },
     },
 
     // popover
-    ShellPopoverContent: {
+    PopoverContent: {
         root: {
             class: "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-72 rounded-md border p-4 shadow-md origin-(--reka-popover-content-transform-origin) outline-hidden",
         },
     },
 
     // resizable
-    ShellResizableHandle: {
+    ResizableHandle: {
         root: {
             class: "bg-border focus-visible:ring-ring relative flex w-px items-center justify-center after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:outline-hidden data-[orientation=vertical]:h-px data-[orientation=vertical]:w-full data-[orientation=vertical]:after:left-0 data-[orientation=vertical]:after:h-1 data-[orientation=vertical]:after:w-full data-[orientation=vertical]:after:-translate-y-1/2 data-[orientation=vertical]:after:translate-x-0 [&[data-orientation=vertical]>div]:rotate-90",
         },
@@ -375,14 +375,14 @@ export default {
             class: "bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border",
         },
     },
-    ShellResizablePanelGroup: {
+    ResizablePanelGroup: {
         root: {
             class: "flex h-full w-full data-[orientation=vertical]:flex-col",
         },
     },
 
     // scroll-area
-    ShellScrollArea: {
+    ScrollArea: {
         root: {
             class: "relative",
         },
@@ -390,7 +390,7 @@ export default {
             class: "focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1",
         },
     },
-    ShellScrollBar: {
+    ScrollBar: {
         root: ({ orientation }) => ({
             class: [
                 "flex touch-none p-px transition-colors select-none",
@@ -405,14 +405,14 @@ export default {
     },
 
     // separator
-    ShellSeparator: {
+    Separator: {
         root: {
             class: "bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
         },
     },
 
     // drawer
-    ShellDrawerContent: {
+    DrawerContent: {
         root: {
             class: "group/drawer-content bg-background fixed z-50 flex h-auto flex-col data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80vh] data-[vaul-drawer-direction=top]:rounded-b-lg data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80vh] data-[vaul-drawer-direction=bottom]:rounded-t-lg data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:sm:max-w-sm data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:sm:max-w-sm",
         },
@@ -420,34 +420,34 @@ export default {
             class: "bg-muted mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block",
         },
     },
-    ShellDrawerDescription: {
+    DrawerDescription: {
         root: {
             class: "text-muted-foreground text-sm",
         },
     },
-    ShellDrawerFooter: {
+    DrawerFooter: {
         root: {
             class: "mt-auto flex flex-col gap-2 p-4",
         },
     },
-    ShellDrawerHeader: {
+    DrawerHeader: {
         root: {
             class: "flex flex-col gap-1.5 p-4",
         },
     },
-    ShellDrawerOverlay: {
+    DrawerOverlay: {
         root: {
             class: "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80",
         },
     },
-    ShellDrawerTitle: {
+    DrawerTitle: {
         root: {
             class: "text-foreground font-semibold",
         },
     },
 
     // sheet
-    ShellSheetContent: {
+    SheetContent: {
         root: ({ side }) => {
             const sideClasses = {
                 right: "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
@@ -466,49 +466,49 @@ export default {
             class: "ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none text-sm leading-none",
         },
     },
-    ShellSheetDescription: {
+    SheetDescription: {
         root: {
             class: "text-muted-foreground text-sm",
         },
     },
-    ShellSheetFooter: {
+    SheetFooter: {
         root: {
             class: "mt-auto flex flex-col gap-2 p-4",
         },
     },
-    ShellSheetHeader: {
+    SheetHeader: {
         root: {
             class: "flex flex-col gap-1.5 p-4",
         },
     },
-    ShellSheetOverlay: {
+    SheetOverlay: {
         root: {
             class: "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80",
         },
     },
-    ShellSheetTitle: {
+    SheetTitle: {
         root: {
             class: "text-foreground font-semibold",
         },
     },
 
     // stepper
-    ShellStepper: {
+    Stepper: {
         root: {
             class: "flex gap-2",
         },
     },
-    ShellStepperItem: {
+    StepperItem: {
         root: {
             class: "flex items-center gap-2 group data-[disabled]:pointer-events-none",
         },
     },
-    ShellStepperTrigger: {
+    StepperTrigger: {
         root: {
             class: "p-1 flex flex-col items-center text-center gap-1 rounded-md",
         },
     },
-    ShellStepperIndicator: {
+    StepperIndicator: {
         root: {
             class: [
                 "inline-flex items-center justify-center rounded-full text-muted-foreground/50 w-8 h-8",
@@ -518,17 +518,17 @@ export default {
             ],
         },
     },
-    ShellStepperTitle: {
+    StepperTitle: {
         root: {
             class: "text-md font-semibold whitespace-nowrap",
         },
     },
-    ShellStepperDescription: {
+    StepperDescription: {
         root: {
             class: "text-xs text-muted-foreground",
         },
     },
-    ShellStepperSeparator: {
+    StepperSeparator: {
         root: {
             class: [
                 "bg-muted",
@@ -539,29 +539,29 @@ export default {
     },
 
     // tabs
-    ShellTabs: {
+    Tabs: {
         root: {
             class: "flex flex-col gap-2",
         },
     },
-    ShellTabsContent: {
+    TabsContent: {
         root: {
             class: "flex-1 outline-none",
         },
     },
-    ShellTabsList: {
+    TabsList: {
         root: {
             class: "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
         },
     },
-    ShellTabsTrigger: {
+    TabsTrigger: {
         root: {
             class: "data-[state=active]:bg-background dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         },
     },
 
     // tooltip
-    ShellTooltipContent: {
+    TooltipContent: {
         root: {
             class: "bg-foreground text-background animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit rounded-md px-3 py-1.5 text-xs text-balance",
         },

@@ -1,6 +1,6 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import Button from "@vueda/controls/button/Button.vue";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FilterModelSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -77,7 +77,7 @@ const remainingSlotNames = computed(() => {
                 :disabled="formContext.state.anyError"
                 :modified="formContext.state.anyModified"
             >
-                <ControlButton type="submit" size="sm" :disabled="formContext.state.anyError">Apply</ControlButton>
+                <Button type="submit" size="sm" :disabled="formContext.state.anyError">Apply</Button>
             </slot>
         </div>
     </form>

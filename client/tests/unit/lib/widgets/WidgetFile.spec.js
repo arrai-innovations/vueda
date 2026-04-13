@@ -19,7 +19,7 @@ const ControlFileUploadStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/file-upload/ControlFileUpload.vue", () => ({ default: ControlFileUploadStub }));
+vi.mock("@vueda/controls/file-upload/FileUpload.vue", () => ({ default: ControlFileUploadStub }));
 
 const ControlButtonStub = defineComponent({
     name: "ControlButtonStub",
@@ -28,7 +28,7 @@ const ControlButtonStub = defineComponent({
         return () => h("button", { "data-qa": attrs["data-qa"] || "control-button", ...attrs });
     },
 });
-vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ControlButtonStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ControlButtonStub }));
 
 const themeFn = vi.fn((k) => `t-${k}`);
 const mockedUseWidgetTheme = vi.fn(() => themeFn);

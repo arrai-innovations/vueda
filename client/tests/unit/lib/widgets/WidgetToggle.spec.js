@@ -25,7 +25,7 @@ const ControlSwitchStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/switch/ControlSwitch.vue", () => ({ default: ControlSwitchStub }));
+vi.mock("@vueda/controls/switch/Switch.vue", () => ({ default: ControlSwitchStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {
@@ -63,7 +63,7 @@ describe("lib/widgets/WidgetToggle.vue", () => {
     });
 
     describe("Rendering", () => {
-        scopedIt("renders a ControlSwitch element", async () => {
+        scopedIt("renders a Switch element", async () => {
             const wrapper = mount(WidgetToggle);
             expect(wrapper.get(QA_SEL).element.tagName).toBe("BUTTON");
         });

@@ -122,6 +122,10 @@ const eslintConfig = [
         name: "SFCs",
         files: ["client/lib/**/*.vue", "docs/**/*.vue"],
         ...vueConfig,
+        rules: {
+            ...vueConfig.rules,
+            "vue/multi-word-component-names": "off",
+        },
     },
     {
         name: "tests",

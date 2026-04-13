@@ -4,7 +4,7 @@ import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { defineComponent, h, reactive } from "vue";
 
 /* ------------------------------------------------------------------ */
-/*  Stubs for the ControlNumberField family                           */
+/*  Stubs for the NumberField family                           */
 /* ------------------------------------------------------------------ */
 
 const ControlNumberFieldStub = defineComponent({
@@ -50,15 +50,15 @@ const ControlNumberFieldDecrementStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/number-field/ControlNumberField.vue", () => ({ default: ControlNumberFieldStub }));
-vi.mock("@vueda/controls/number-field/ControlNumberFieldContent.vue", () => ({
+vi.mock("@vueda/controls/number-field/NumberField.vue", () => ({ default: ControlNumberFieldStub }));
+vi.mock("@vueda/controls/number-field/NumberFieldContent.vue", () => ({
     default: ControlNumberFieldContentStub,
 }));
-vi.mock("@vueda/controls/number-field/ControlNumberFieldInput.vue", () => ({ default: ControlNumberFieldInputStub }));
-vi.mock("@vueda/controls/number-field/ControlNumberFieldIncrement.vue", () => ({
+vi.mock("@vueda/controls/number-field/NumberFieldInput.vue", () => ({ default: ControlNumberFieldInputStub }));
+vi.mock("@vueda/controls/number-field/NumberFieldIncrement.vue", () => ({
     default: ControlNumberFieldIncrementStub,
 }));
-vi.mock("@vueda/controls/number-field/ControlNumberFieldDecrement.vue", () => ({
+vi.mock("@vueda/controls/number-field/NumberFieldDecrement.vue", () => ({
     default: ControlNumberFieldDecrementStub,
 }));
 
@@ -135,7 +135,7 @@ describe("lib/widgets/WidgetDuration.vue", () => {
             },
             ...mountOptions,
         });
-        // Simulate hours update via the second ControlNumberField (hours)
+        // Simulate hours update via the second NumberField (hours)
         // Order: days (0), hours (1), minutes (2)
         const allFields = wrapper.findAllComponents(ControlNumberFieldStub);
         allFields[1].vm.$emit("update:modelValue", 5);

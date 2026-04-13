@@ -112,16 +112,16 @@ const DraggableStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/shell/drawer/ShellDrawer.vue", () => ({ default: ShellDrawerStub }));
-vi.mock("@vueda/shell/drawer/ShellDrawerContent.vue", () => ({ default: ShellDrawerContentStub }));
-vi.mock("@vueda/shell/drawer/ShellDrawerHeader.vue", () => ({ default: ShellDrawerHeaderStub }));
-vi.mock("@vueda/shell/drawer/ShellDrawerTitle.vue", () => ({ default: ShellDrawerTitleStub }));
-vi.mock("@vueda/controls/select/ControlSelect.vue", () => ({ default: ControlSelectStub }));
-vi.mock("@vueda/controls/select/ControlSelectContent.vue", () => ({ default: ControlSelectContentStub }));
-vi.mock("@vueda/controls/select/ControlSelectItem.vue", () => ({ default: ControlSelectItemStub }));
-vi.mock("@vueda/controls/select/ControlSelectTrigger.vue", () => ({ default: ControlSelectTriggerStub }));
-vi.mock("@vueda/controls/select/ControlSelectValue.vue", () => ({ default: ControlSelectValueStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/shell/drawer/Drawer.vue", () => ({ default: ShellDrawerStub }));
+vi.mock("@vueda/shell/drawer/DrawerContent.vue", () => ({ default: ShellDrawerContentStub }));
+vi.mock("@vueda/shell/drawer/DrawerHeader.vue", () => ({ default: ShellDrawerHeaderStub }));
+vi.mock("@vueda/shell/drawer/DrawerTitle.vue", () => ({ default: ShellDrawerTitleStub }));
+vi.mock("@vueda/controls/select/Select.vue", () => ({ default: ControlSelectStub }));
+vi.mock("@vueda/controls/select/SelectContent.vue", () => ({ default: ControlSelectContentStub }));
+vi.mock("@vueda/controls/select/SelectItem.vue", () => ({ default: ControlSelectItemStub }));
+vi.mock("@vueda/controls/select/SelectTrigger.vue", () => ({ default: ControlSelectTriggerStub }));
+vi.mock("@vueda/controls/select/SelectValue.vue", () => ({ default: ControlSelectValueStub }));
 vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
 
 const themeMock = vi.fn((key) => key);
@@ -161,12 +161,12 @@ function mountComponent(options = {}) {
         slots: options.slots,
         global: {
             stubs: {
-                ControlButton: ButtonStub,
-                ShellDrawer: ShellDrawerStub,
-                ShellDrawerContent: ShellDrawerContentStub,
-                ShellDrawerHeader: ShellDrawerHeaderStub,
-                ShellDrawerTitle: ShellDrawerTitleStub,
-                ControlSelect: ControlSelectStub,
+                Button: ButtonStub,
+                Drawer: ShellDrawerStub,
+                DrawerContent: ShellDrawerContentStub,
+                DrawerHeader: ShellDrawerHeaderStub,
+                DrawerTitle: ShellDrawerTitleStub,
+                Select: ControlSelectStub,
                 draggable: DraggableStub,
             },
         },

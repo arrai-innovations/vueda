@@ -1,12 +1,12 @@
 <script setup>
-import ControlInput from "@vueda/controls/input/ControlInput.vue";
+import Input from "@vueda/controls/input/Input.vue";
 import { useMaska } from "@vueda/use/useMaska.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, effectScope, inject, ref, watch } from "vue";
 
 /**
- * A text input widget that renders a ControlInput with form field integration.
+ * A text input widget that renders a Input with form field integration.
  * Used for CharField and similar string-based fields when paired with FormField.
  * Supports optional input masking via the mask prop.
  */
@@ -66,7 +66,7 @@ watch(
 );
 </script>
 <template>
-    <ControlInput
+    <Input
         :id="fieldContext?.state.fieldId"
         ref="inputRef"
         v-model="widgetContext.state.combinedValue"

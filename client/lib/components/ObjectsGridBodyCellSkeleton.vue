@@ -1,5 +1,5 @@
 <script setup>
-import FeedbackSkeleton from "@vueda/feedback/skeleton/FeedbackSkeleton.vue";
+import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getSkeletonClassForField } from "@vueda/utils/objectGridSkeletonClass.js";
 
@@ -22,6 +22,6 @@ const theme = useTheme("ObjectsGridBodyCell", props);
 </script>
 <template>
     <div :class="theme('root')">
-        <FeedbackSkeleton :class="getSkeletonClassForField(field)" />
+        <Skeleton :class="getSkeletonClassForField(field)" />
     </div>
 </template>

@@ -1,8 +1,8 @@
 <script setup>
 import * as Sentry from "@sentry/vue";
-import FeedbackAlert from "@vueda/feedback/alert/FeedbackAlert.vue";
-import FeedbackAlertClose from "@vueda/feedback/alert/FeedbackAlertClose.vue";
-import FeedbackAlertDescription from "@vueda/feedback/alert/FeedbackAlertDescription.vue";
+import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertClose from "@vueda/feedback/alert/AlertClose.vue";
+import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";
@@ -121,9 +121,9 @@ const theme = useTheme("ErrorDisplay", props);
 </script>
 
 <template>
-    <FeedbackAlert v-if="errored" :class="theme('root')" variant="destructive">
-        <FeedbackAlertClose v-if="dismissible" @close="onDismiss" />
-        <FeedbackAlertDescription>
+    <Alert v-if="errored" :class="theme('root')" variant="destructive">
+        <AlertClose v-if="dismissible" @close="onDismiss" />
+        <AlertDescription>
             <div :class="theme('container')">
                 <!-- Default error content; receives `redirectParams`, `redirectTitle`, `whileText`, and `error` as slot props. -->
                 <slot v-bind="{ redirectParams, redirectTitle, whileText, error }">
@@ -134,6 +134,6 @@ const theme = useTheme("ErrorDisplay", props);
                     </p>
                 </slot>
             </div>
-        </FeedbackAlertDescription>
-    </FeedbackAlert>
+        </AlertDescription>
+    </Alert>
 </template>

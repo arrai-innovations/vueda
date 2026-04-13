@@ -1,13 +1,13 @@
 <script setup>
-import ControlNativeSelect from "@vueda/controls/native-select/ControlNativeSelect.vue";
+import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";
 
 /**
- * A native select dropdown widget that renders a ControlNativeSelect with option elements
+ * A native select dropdown widget that renders a NativeSelect with option elements
  * for each entry. Used for choice fields when a lightweight native dropdown is preferred
- * over the headless ControlSelect.
+ * over the headless Select.
  */
 defineOptions({
     inheritAttrs: false,
@@ -47,7 +47,7 @@ const computedOptions = computed(() => {
 });
 </script>
 <template>
-    <ControlNativeSelect
+    <NativeSelect
         :id="fieldContext?.state.fieldId"
         v-model="widgetContext.state.combinedValue"
         :disabled="widgetContext.state.disabled"
@@ -63,5 +63,5 @@ const computedOptions = computed(() => {
         <option v-for="option in computedOptions" :key="option.value" :value="option.value">
             {{ option.label }}
         </option>
-    </ControlNativeSelect>
+    </NativeSelect>
 </template>

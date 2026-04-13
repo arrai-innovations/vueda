@@ -6,16 +6,16 @@
 import { createContext } from "reka-ui";
 
 /**
- * Injects the command context provided by the nearest `ControlCommand` ancestor.
- * `provideCommandContext` is called by `ControlCommand` to supply it.
+ * Injects the command context provided by the nearest `Command` ancestor.
+ * `provideCommandContext` is called by `Command` to supply it.
  *
  * @type {[() => unknown, (context: unknown) => void]}
  */
 export const [useCommand, provideCommandContext] = createContext("Command");
 
 /**
- * Injects the command group context provided by the nearest `ControlCommandGroup` ancestor.
- * `provideCommandGroupContext` is called by `ControlCommandGroup` to supply it.
+ * Injects the command group context provided by the nearest `CommandGroup` ancestor.
+ * `provideCommandGroupContext` is called by `CommandGroup` to supply it.
  *
  * @type {[() => unknown, (context: unknown) => void]}
  */

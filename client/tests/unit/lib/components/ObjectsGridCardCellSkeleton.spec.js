@@ -21,7 +21,7 @@ const SkeletonStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/feedback/skeleton/FeedbackSkeleton.vue", () => ({ default: SkeletonStub }));
+vi.mock("@vueda/feedback/skeleton/Skeleton.vue", () => ({ default: SkeletonStub }));
 vi.mock("@vueda/utils/objectGridSkeletonClass.js", () => ({ getSkeletonClassForField }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
 

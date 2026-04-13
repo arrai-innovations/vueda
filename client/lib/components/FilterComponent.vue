@@ -1,10 +1,10 @@
 <script setup>
 import { assignReactiveObject, deepUnref } from "@arrai-innovations/reactive-helpers";
 import FilterForm from "@vueda/components/FilterForm.vue";
-import ControlButtonGroup from "@vueda/controls/button-group/ControlButtonGroup.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import ShellPopover from "@vueda/shell/popover/ShellPopover.vue";
-import ShellPopoverContent from "@vueda/shell/popover/ShellPopoverContent.vue";
+import ButtonGroup from "@vueda/controls/button-group/ButtonGroup.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import Popover from "@vueda/shell/popover/Popover.vue";
+import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import { useFilterField } from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useModelChoices } from "@vueda/use/useModelChoices.js";
@@ -299,7 +299,7 @@ watch(
 
 <template>
     <div>
-        <ControlButtonGroup>
+        <ButtonGroup>
             <!-- @slot [filter-clear-button, filter-clear-button(filterName)] Replaces the clear-filter button shown when a filter value is active. -->
             <slot
                 :class="theme('clearButton')"
@@ -313,7 +313,7 @@ watch(
                 variant="outline"
                 :show-state="internalShowState"
             >
-                <ControlButton v-if="hasFilterValue" variant="outline" size="sm" @click.prevent="removeFilter">
+                <Button v-if="hasFilterValue" variant="outline" size="sm" @click.prevent="removeFilter">
                     <!-- @slot [filter-clear-button-icon, filter-clear-button-icon(filterName)] Icon inside the clear-filter button. -->
                     <slot
                         :filter-details="filterDetails"
@@ -325,7 +325,7 @@ watch(
                     >
                         <span>✖️</span>
                     </slot>
-                </ControlButton>
+                </Button>
             </slot>
             <!-- @slot [filter-dropdown-button, filter-dropdown-button(filterName)] Replaces the dropdown trigger button for this filter. -->
             <slot
@@ -340,7 +340,7 @@ watch(
                 :show-state="internalShowState"
                 @click="doToggle"
             >
-                <ControlButton :class="theme('dropdownButton')" variant="outline" size="sm" @click="doToggle">
+                <Button :class="theme('dropdownButton')" variant="outline" size="sm" @click="doToggle">
                     <!-- @slot [filter-dropdown-button-icon, filter-dropdown-button-icon(filterName)] Icon inside the dropdown button, shown when no filter value is set. -->
                     <slot
                         v-if="!hasFilterValue"
@@ -377,9 +377,9 @@ watch(
                             {{ hasFilterValue ? (internalShowState ? "▲" : "▼") : "" }}
                         </span>
                     </slot>
-                </ControlButton>
+                </Button>
             </slot>
-        </ControlButtonGroup>
+        </ButtonGroup>
         <!-- @slot [filter-form-popover, filter-form-popover(filterName)] Replaces the popover element that wraps the filter form. -->
         <slot
             :class="theme('formPopover')"
@@ -389,8 +389,8 @@ watch(
             :name="resolvedSlotNames.formPopover.name"
             :show-state="internalShowState"
         >
-            <ShellPopover v-model:open="internalShowState">
-                <ShellPopoverContent :class="theme('formPopover')">
+            <Popover v-model:open="internalShowState">
+                <PopoverContent :class="theme('formPopover')">
                     <!-- @slot [filter-form, filter-form(filterName)] Replaces the filter form body inside the popover. -->
                     <slot
                         :apply-filter="onApplyFilter"
@@ -410,8 +410,8 @@ watch(
                             </template>
                         </FilterForm>
                     </slot>
-                </ShellPopoverContent>
-            </ShellPopover>
+                </PopoverContent>
+            </Popover>
         </slot>
     </div>
 </template>

@@ -1,7 +1,7 @@
 <script setup>
 import { parseTime } from "@internationalized/date";
-import ControlTimeField from "@vueda/controls/time-field/ControlTimeField.vue";
-import ControlTimeFieldInput from "@vueda/controls/time-field/ControlTimeFieldInput.vue";
+import TimeField from "@vueda/controls/time-field/TimeField.vue";
+import TimeFieldInput from "@vueda/controls/time-field/TimeFieldInput.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";
@@ -75,7 +75,7 @@ const endValue = useBoundaryValue("upper");
 
 <template>
     <div class="flex items-center gap-2" data-qa="widget-time-range-field" v-bind="$attrs">
-        <ControlTimeField
+        <TimeField
             :id="fieldContext?.state.fieldId"
             v-model="startValue"
             :granularity="granularity"
@@ -93,17 +93,17 @@ const endValue = useBoundaryValue("upper");
         >
             <template #default="{ segments }">
                 <template v-for="segment in segments" :key="'start-' + segment.part">
-                    <ControlTimeFieldInput
+                    <TimeFieldInput
                         v-if="segment.part === 'literal'"
                         :part="segment.part"
                         class="text-muted-foreground"
                     />
-                    <ControlTimeFieldInput v-else :part="segment.part" />
+                    <TimeFieldInput v-else :part="segment.part" />
                 </template>
             </template>
-        </ControlTimeField>
+        </TimeField>
         <span class="text-muted-foreground" aria-hidden="true">&ndash;</span>
-        <ControlTimeField
+        <TimeField
             v-model="endValue"
             :granularity="granularity"
             :min-value="minValue"
@@ -118,14 +118,14 @@ const endValue = useBoundaryValue("upper");
         >
             <template #default="{ segments }">
                 <template v-for="segment in segments" :key="'end-' + segment.part">
-                    <ControlTimeFieldInput
+                    <TimeFieldInput
                         v-if="segment.part === 'literal'"
                         :part="segment.part"
                         class="text-muted-foreground"
                     />
-                    <ControlTimeFieldInput v-else :part="segment.part" />
+                    <TimeFieldInput v-else :part="segment.part" />
                 </template>
             </template>
-        </ControlTimeField>
+        </TimeField>
     </div>
 </template>

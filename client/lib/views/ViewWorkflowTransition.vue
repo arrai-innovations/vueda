@@ -1,9 +1,9 @@
 <script setup>
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import ControlRadioGroup from "@vueda/controls/radio-group/ControlRadioGroup.vue";
-import ControlRadioGroupItem from "@vueda/controls/radio-group/ControlRadioGroupItem.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import RadioGroup from "@vueda/controls/radio-group/RadioGroup.vue";
+import RadioGroupItem from "@vueda/controls/radio-group/RadioGroupItem.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -146,17 +146,17 @@ const handleSubmit = async () => {
             <div v-if="availableTransitions.length">
                 <p>the available transitions for the select objects are</p>
                 <form @submit.prevent="handleSubmit">
-                    <ControlRadioGroup v-model="selectedAction" name="dynamic">
+                    <RadioGroup v-model="selectedAction" name="dynamic">
                         <div
                             v-for="transition in availableTransitions"
                             :key="transition.code"
                             :class="theme('radioOption')"
                         >
-                            <ControlRadioGroupItem :id="transition.code" :value="transition.code" />
+                            <RadioGroupItem :id="transition.code" :value="transition.code" />
                             <label :for="transition.code">{{ transition.name }}</label>
                         </div>
-                    </ControlRadioGroup>
-                    <ControlButton :disabled="!selectedAction" type="submit">execute transition</ControlButton>
+                    </RadioGroup>
+                    <Button :disabled="!selectedAction" type="submit">execute transition</Button>
                 </form>
             </div>
             <div v-else>

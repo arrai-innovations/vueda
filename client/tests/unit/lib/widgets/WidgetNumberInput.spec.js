@@ -7,7 +7,7 @@ const QA = "widget-number-input";
 const QA_SEL = `[data-qa='${QA}']`;
 
 /* ------------------------------------------------------------------ */
-/*  Stubs for the ControlNumberField family                           */
+/*  Stubs for the NumberField family                           */
 /* ------------------------------------------------------------------ */
 
 const ControlNumberFieldStub = defineComponent({
@@ -57,20 +57,20 @@ const ControlNumberFieldDecrementStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/number-field/ControlNumberField.vue", () => ({ default: ControlNumberFieldStub }));
-vi.mock("@vueda/controls/number-field/ControlNumberFieldContent.vue", () => ({
+vi.mock("@vueda/controls/number-field/NumberField.vue", () => ({ default: ControlNumberFieldStub }));
+vi.mock("@vueda/controls/number-field/NumberFieldContent.vue", () => ({
     default: ControlNumberFieldContentStub,
 }));
-vi.mock("@vueda/controls/number-field/ControlNumberFieldInput.vue", () => ({ default: ControlNumberFieldInputStub }));
-vi.mock("@vueda/controls/number-field/ControlNumberFieldIncrement.vue", () => ({
+vi.mock("@vueda/controls/number-field/NumberFieldInput.vue", () => ({ default: ControlNumberFieldInputStub }));
+vi.mock("@vueda/controls/number-field/NumberFieldIncrement.vue", () => ({
     default: ControlNumberFieldIncrementStub,
 }));
-vi.mock("@vueda/controls/number-field/ControlNumberFieldDecrement.vue", () => ({
+vi.mock("@vueda/controls/number-field/NumberFieldDecrement.vue", () => ({
     default: ControlNumberFieldDecrementStub,
 }));
 
 /* ------------------------------------------------------------------ */
-/*  Stubs for the ControlInputGroup family                            */
+/*  Stubs for the InputGroup family                            */
 /* ------------------------------------------------------------------ */
 
 const ControlInputGroupStub = defineComponent({
@@ -88,8 +88,8 @@ const ControlInputGroupAddonStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/input-group/ControlInputGroup.vue", () => ({ default: ControlInputGroupStub }));
-vi.mock("@vueda/controls/input-group/ControlInputGroupAddon.vue", () => ({ default: ControlInputGroupAddonStub }));
+vi.mock("@vueda/controls/input-group/InputGroup.vue", () => ({ default: ControlInputGroupStub }));
+vi.mock("@vueda/controls/input-group/InputGroupAddon.vue", () => ({ default: ControlInputGroupAddonStub }));
 
 /* ------------------------------------------------------------------ */
 /*  Mock useWidget                                                    */
@@ -297,7 +297,7 @@ describe("lib/widgets/WidgetNumberInput.vue", () => {
     });
 
     describe("Unit label", () => {
-        scopedIt("renders ControlInputGroup with addon when unit prop is provided", async () => {
+        scopedIt("renders InputGroup with addon when unit prop is provided", async () => {
             const wrapper = mount(WidgetNumberInput, { props: { unit: "kg" } });
             expect(wrapper.find("[data-stub='input-group']").exists()).toBe(true);
             const addon = wrapper.find("[data-stub='input-group-addon']");
@@ -316,7 +316,7 @@ describe("lib/widgets/WidgetNumberInput.vue", () => {
     });
 
     describe("No unit", () => {
-        scopedIt("does not render ControlInputGroup when unit prop is not provided", async () => {
+        scopedIt("does not render InputGroup when unit prop is not provided", async () => {
             const wrapper = mount(WidgetNumberInput, { props: {} });
             expect(wrapper.find("[data-stub='input-group']").exists()).toBe(false);
             expect(wrapper.find("[data-stub='input-group-addon']").exists()).toBe(false);

@@ -1,13 +1,13 @@
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
 import ClickToCopyText from "@vueda/components/ClickToCopyText.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import FormField from "@vueda/fields/FormField.vue";
-import ShellDialog from "@vueda/shell/dialog/ShellDialog.vue";
-import ShellDialogContent from "@vueda/shell/dialog/ShellDialogContent.vue";
-import ShellDialogHeader from "@vueda/shell/dialog/ShellDialogHeader.vue";
-import ShellDialogTitle from "@vueda/shell/dialog/ShellDialogTitle.vue";
+import Dialog from "@vueda/shell/dialog/Dialog.vue";
+import DialogContent from "@vueda/shell/dialog/DialogContent.vue";
+import DialogHeader from "@vueda/shell/dialog/DialogHeader.vue";
+import DialogTitle from "@vueda/shell/dialog/DialogTitle.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
@@ -162,15 +162,15 @@ const doAfterSuccess = async (response) => {
 
                         <img :src="totpSvgDataUri" alt="TOTP QR Code" data-qa="view-setup-device-app-img" />
                         Unable to scan? You can use the setup key to manually configure your authenticator app.
-                        <ControlButton variant="ghost" @click="totpSecretDialogVisible = true">View Key</ControlButton>
-                        <ShellDialog v-model:open="totpSecretDialogVisible">
-                            <ShellDialogContent>
-                                <ShellDialogHeader>
-                                    <ShellDialogTitle>Your two-factor secret</ShellDialogTitle>
-                                </ShellDialogHeader>
+                        <Button variant="ghost" @click="totpSecretDialogVisible = true">View Key</Button>
+                        <Dialog v-model:open="totpSecretDialogVisible">
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Your two-factor secret</DialogTitle>
+                                </DialogHeader>
                                 <click-to-copy-text :text="totpSecret" toast="Secret Copied!" />
-                            </ShellDialogContent>
-                        </ShellDialog>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </slot>
 
@@ -182,10 +182,10 @@ const doAfterSuccess = async (response) => {
         <template #confirm-button="{ loading }">
             <!-- Replaces the primary submit button; receives `loading` as a slot prop. -->
             <slot name="confirm-button" v-bind="{ loading }">
-                <ControlButton :disabled="loading || form.values?.method == null" type="submit">
-                    <FeedbackSpinner v-if="loading" />
+                <Button :disabled="loading || form.values?.method == null" type="submit">
+                    <Spinner v-if="loading" />
                     {{ step !== STEPS.CHOOSE ? "Verify Device" : "Choose Device" }}
-                </ControlButton>
+                </Button>
             </slot>
         </template>
         <template #cancel-button="{ loading, handleCancelClick }">

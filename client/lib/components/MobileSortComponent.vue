@@ -1,14 +1,14 @@
 <script setup>
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import ControlSelect from "@vueda/controls/select/ControlSelect.vue";
-import ControlSelectContent from "@vueda/controls/select/ControlSelectContent.vue";
-import ControlSelectItem from "@vueda/controls/select/ControlSelectItem.vue";
-import ControlSelectTrigger from "@vueda/controls/select/ControlSelectTrigger.vue";
-import ControlSelectValue from "@vueda/controls/select/ControlSelectValue.vue";
-import ShellDrawer from "@vueda/shell/drawer/ShellDrawer.vue";
-import ShellDrawerContent from "@vueda/shell/drawer/ShellDrawerContent.vue";
-import ShellDrawerHeader from "@vueda/shell/drawer/ShellDrawerHeader.vue";
-import ShellDrawerTitle from "@vueda/shell/drawer/ShellDrawerTitle.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import Select from "@vueda/controls/select/Select.vue";
+import SelectContent from "@vueda/controls/select/SelectContent.vue";
+import SelectItem from "@vueda/controls/select/SelectItem.vue";
+import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
+import SelectValue from "@vueda/controls/select/SelectValue.vue";
+import Drawer from "@vueda/shell/drawer/Drawer.vue";
+import DrawerContent from "@vueda/shell/drawer/DrawerContent.vue";
+import DrawerHeader from "@vueda/shell/drawer/DrawerHeader.vue";
+import DrawerTitle from "@vueda/shell/drawer/DrawerTitle.vue";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { computed } from "vue";
@@ -112,7 +112,7 @@ const theme = useTheme("MobileSortComponent", props);
         :badge="sortedCountBadge"
         @click="internalOpen = true"
     >
-        <ControlButton size="sm" @click="internalOpen = true">
+        <Button size="sm" @click="internalOpen = true">
             Sort
             <span
                 v-if="sortedCountBadge"
@@ -120,19 +120,19 @@ const theme = useTheme("MobileSortComponent", props);
             >
                 {{ sortedCountBadge }}
             </span>
-        </ControlButton>
+        </Button>
     </slot>
-    <ShellDrawer
+    <Drawer
         v-model:open="internalOpen"
         :modal="true"
         direction="bottom"
         data-qa="sort-component-drawer"
         v-bind="$attrs"
     >
-        <ShellDrawerContent :class="theme('drawer')">
-            <ShellDrawerHeader class="sr-only">
-                <ShellDrawerTitle>Sort</ShellDrawerTitle>
-            </ShellDrawerHeader>
+        <DrawerContent :class="theme('drawer')">
+            <DrawerHeader class="sr-only">
+                <DrawerTitle>Sort</DrawerTitle>
+            </DrawerHeader>
             <div :class="theme('drawerInner')">
                 <span>Drag to reorder. First sort has highest priority</span>
                 <div v-if="computedSorted.length">
@@ -149,7 +149,7 @@ const theme = useTheme("MobileSortComponent", props);
                                     <span :class="theme('dragHandle')">⋮⋮</span>
                                 </slot>
                                 <span :class="theme('sortOrderText')">{{ item.index + 1 }}</span>
-                                <ControlSelect
+                                <Select
                                     :model-value="item.field"
                                     data-qa="sort-component-select"
                                     @update:model-value="
@@ -160,13 +160,13 @@ const theme = useTheme("MobileSortComponent", props);
                                         }
                                     "
                                 >
-                                    <ControlSelectTrigger :class="theme('select')">
-                                        <ControlSelectValue placeholder="Select a field">
+                                    <SelectTrigger :class="theme('select')">
+                                        <SelectValue placeholder="Select a field">
                                             <span class="text-sm">{{ item.label }}</span>
-                                        </ControlSelectValue>
-                                    </ControlSelectTrigger>
-                                    <ControlSelectContent>
-                                        <ControlSelectItem
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
                                             v-for="opt in [
                                                 ...availableSortableOptions,
                                                 { label: item.label, value: item.field },
@@ -175,9 +175,9 @@ const theme = useTheme("MobileSortComponent", props);
                                             :value="opt.value"
                                         >
                                             {{ opt.label }}
-                                        </ControlSelectItem>
-                                    </ControlSelectContent>
-                                </ControlSelect>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div :class="theme('sortInlineActionBar')">
                                 <!-- Button that toggles sort direction for a row; receives `label`, `text`, `size`, and a click handler as slot props. -->
@@ -188,7 +188,7 @@ const theme = useTheme("MobileSortComponent", props);
                                     size="small"
                                     @click="toggleDirection(item.index)"
                                 >
-                                    <ControlButton
+                                    <Button
                                         data-qa="sort-component-toggle"
                                         variant="ghost"
                                         size="sm"
@@ -206,7 +206,7 @@ const theme = useTheme("MobileSortComponent", props);
                                             <template v-if="item.descending">⬇️</template>
                                             <template v-else>⬆️</template>
                                         </slot>
-                                    </ControlButton>
+                                    </Button>
                                 </slot>
                                 <!-- Button that removes a sort row; receives `label`, `severity`, `text`, `index`, and a click handler as slot props. -->
                                 <slot
@@ -218,14 +218,14 @@ const theme = useTheme("MobileSortComponent", props);
                                     :index="item.index"
                                     @click="removeSortable(item.index)"
                                 >
-                                    <ControlButton
+                                    <Button
                                         data-qa="sort-component-remove"
                                         variant="ghost"
                                         size="sm"
                                         @click="removeSortable(item.index)"
                                     >
                                         x
-                                    </ControlButton>
+                                    </Button>
                                 </slot>
                             </div>
                         </div>
@@ -243,14 +243,14 @@ const theme = useTheme("MobileSortComponent", props);
                         size="small"
                         @click="addSortable"
                     >
-                        <ControlButton
+                        <Button
                             variant="secondary"
                             :disabled="!availableSortables.length"
                             size="sm"
                             @click="addSortable"
                         >
                             Add Sort
-                        </ControlButton>
+                        </Button>
                     </slot>
                     <!-- Button that clears all active sort criteria; receives `severity`, `text`, `label`, `disabled`, `size`, and a click handler as slot props. -->
                     <slot
@@ -262,12 +262,12 @@ const theme = useTheme("MobileSortComponent", props);
                         size="small"
                         @click="clearAll"
                     >
-                        <ControlButton variant="ghost" :disabled="!props.sorted.length" size="sm" @click="clearAll">
+                        <Button variant="ghost" :disabled="!props.sorted.length" size="sm" @click="clearAll">
                             Clear all
-                        </ControlButton>
+                        </Button>
                     </slot>
                 </div>
             </div>
-        </ShellDrawerContent>
-    </ShellDrawer>
+        </DrawerContent>
+    </Drawer>
 </template>

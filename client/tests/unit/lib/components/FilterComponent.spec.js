@@ -46,10 +46,10 @@ const ShellPopoverContentStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/controls/button-group/ControlButtonGroup.vue", () => ({ default: ButtonGroupStub }));
-vi.mock("@vueda/shell/popover/ShellPopover.vue", () => ({ default: ShellPopoverStub }));
-vi.mock("@vueda/shell/popover/ShellPopoverContent.vue", () => ({ default: ShellPopoverContentStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button-group/ButtonGroup.vue", () => ({ default: ButtonGroupStub }));
+vi.mock("@vueda/shell/popover/Popover.vue", () => ({ default: ShellPopoverStub }));
+vi.mock("@vueda/shell/popover/PopoverContent.vue", () => ({ default: ShellPopoverContentStub }));
 vi.mock("@vueda/components/FilterForm.vue", () => ({ default: FilterFormStub }));
 
 const mockedUseSlotNameResolver = vi.fn(() => ({ name: "slot" }));
@@ -102,10 +102,10 @@ function mountComponent(options = {}) {
         },
         global: {
             stubs: {
-                ControlButton: ButtonStub,
-                ControlButtonGroup: ButtonGroupStub,
-                ShellPopover: ShellPopoverStub,
-                ShellPopoverContent: ShellPopoverContentStub,
+                Button: ButtonStub,
+                ButtonGroup: ButtonGroupStub,
+                Popover: ShellPopoverStub,
+                PopoverContent: ShellPopoverContentStub,
                 FilterForm: FilterFormStub,
             },
         },

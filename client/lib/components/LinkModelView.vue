@@ -1,5 +1,5 @@
 <script setup>
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import Button from "@vueda/controls/button/Button.vue";
 import { useLinkModelView } from "@vueda/use/useLinkModelView.js";
 
 /**
@@ -57,7 +57,7 @@ const linkModelView = useLinkModelView(props);
 </script>
 
 <template>
-    <ControlButton
+    <Button
         :as="button ? 'button' : 'a'"
         :disabled="linkModelView.actionDisabled.value"
         :href="button ? undefined : linkModelView.href.value"
@@ -67,5 +67,5 @@ const linkModelView = useLinkModelView(props);
     >
         {{ label }}
         <slot />
-    </ControlButton>
+    </Button>
 </template>

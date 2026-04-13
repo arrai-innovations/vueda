@@ -1,10 +1,10 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldSetStackedInlineRow from "@vueda/components/FieldSetStackedInlineRow.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import ShellFieldDescription from "@vueda/shell/field/ShellFieldDescription.vue";
-import ShellFieldMessage from "@vueda/shell/field/ShellFieldMessage.vue";
-import ShellSeparator from "@vueda/shell/separator/ShellSeparator.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
+import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
+import Separator from "@vueda/shell/separator/Separator.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
@@ -100,14 +100,14 @@ watch(
                         :verb="fieldSetInline.state.internalVisible ? 'collapseDown' : 'collapseUp'"
                         @click="fieldSetInline.toggleVisibility"
                     >
-                        <ControlButton
+                        <Button
                             variant="outline"
                             size="sm"
                             :class="theme('toggleButton')"
                             @click="fieldSetInline.toggleVisibility"
                         >
                             {{ fieldSetInline.state.internalVisible ? "Hide" : "Show" }}
-                        </ControlButton>
+                        </Button>
                     </slot>
                 </div>
                 <div :class="theme('title')" data-qa="field-set-singular-stacked-inline-title">
@@ -127,20 +127,20 @@ watch(
                         verb="createInline"
                         @click="addInline"
                     >
-                        <ControlButton variant="outline" size="sm" :class="theme('createButton')" @click="addInline">
+                        <Button variant="outline" size="sm" :class="theme('createButton')" @click="addInline">
                             Create
-                        </ControlButton>
+                        </Button>
                     </slot>
                 </div>
             </div>
-            <ShellSeparator :class="theme('hr')" />
+            <Separator :class="theme('hr')" />
             <!-- @slot [field-set-level-chores, fieldset-field-set-level-chores, field(fieldName)field-set-level-chores] Replaces the validation block for this fieldset. -->
             <slot :name="fieldSetInline.resolvedSlotNames['field-set-level-chores'].name">
-                <ShellFieldDescription v-if="fieldSetContext.state.help">
+                <FieldDescription v-if="fieldSetContext.state.help">
                     {{ fieldSetContext.state.help }}
-                </ShellFieldDescription>
-                <ShellFieldMessage :messages="Object.values(fieldSetContext.state.errors)" />
-                <ShellFieldMessage
+                </FieldDescription>
+                <FieldMessage :messages="Object.values(fieldSetContext.state.errors)" />
+                <FieldMessage
                     v-if="Object.keys(fieldSetContext.state.messages).length"
                     severity="warning"
                     :messages="Object.values(fieldSetContext.state.messages)"

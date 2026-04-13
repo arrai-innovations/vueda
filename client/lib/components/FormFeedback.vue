@@ -1,7 +1,7 @@
 <script setup>
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
-import FeedbackAlert from "@vueda/feedback/alert/FeedbackAlert.vue";
-import FeedbackAlertDescription from "@vueda/feedback/alert/FeedbackAlertDescription.vue";
+import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { containsHtml, sanitizeMessages } from "@vueda/utils/html.js";
@@ -12,7 +12,7 @@ import isObject from "lodash-es/isObject.js";
 import { computed, inject, reactive, watch } from "vue";
 
 /**
- * Renders form or field validation messages sourced from injected form/field context or from the `messages` prop, displaying each entry as a FeedbackAlert.
+ * Renders form or field validation messages sourced from injected form/field context or from the `messages` prop, displaying each entry as a Alert.
  */
 defineOptions({});
 
@@ -121,7 +121,7 @@ const renderDetail = (data) => {
         >
             <!-- Replaces the entire message row; receives `message`, `type`, and `attrs` as slot props. -->
             <slot name="default" v-bind="{ message, type, attrs: $attrs }">
-                <FeedbackAlert
+                <Alert
                     v-for="line in Array.isArray(message) ? message : [message]"
                     :key="line"
                     v-bind="$attrs"
@@ -129,7 +129,7 @@ const renderDetail = (data) => {
                 >
                     <!-- @slot icon Replaces the default icon area inside each alert. -->
                     <slot name="icon" />
-                    <FeedbackAlertDescription>
+                    <AlertDescription>
                         <slot name="content" :line="line" :message="message" :type="type" :severity="severity">
                             <template v-if="isObject(line)">
                                 <!-- eslint-disable-next-line vue/no-v-html -->
@@ -146,8 +146,8 @@ const renderDetail = (data) => {
                                 {{ line }}
                             </template>
                         </slot>
-                    </FeedbackAlertDescription>
-                </FeedbackAlert>
+                    </AlertDescription>
+                </Alert>
             </slot>
         </div>
     </div>

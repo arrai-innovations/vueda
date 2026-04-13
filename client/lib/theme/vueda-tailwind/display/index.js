@@ -4,7 +4,7 @@
  */
 
 export default {
-    DisplayAspectRatio: {
+    AspectRatio: {
         root: { class: "" },
     },
     DateRangeDisplay: {
@@ -67,7 +67,7 @@ export default {
             class: "flex flex-row items-baseline gap-1 p-1 2xs:p-2 2xl:p-4 ",
         },
     },
-    DisplayBadge: {
+    Badge: {
         root: ({ variant }) => ({
             class: [
                 "inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
@@ -83,7 +83,7 @@ export default {
             ],
         }),
     },
-    DisplayKbd: {
+    Kbd: {
         root: {
             class: [
                 "bg-muted text-muted-foreground pointer-events-none inline-flex h-5 w-fit min-w-5 items-center justify-center gap-1 rounded-sm px-1 font-sans text-xs font-medium select-none",
@@ -92,24 +92,24 @@ export default {
             ],
         },
     },
-    DisplayKbdGroup: {
+    KbdGroup: {
         root: {
             class: "inline-flex items-center gap-1",
         },
     },
 
     // avatar
-    DisplayAvatar: {
+    Avatar: {
         root: {
             class: "relative flex size-8 shrink-0 overflow-hidden rounded-full",
         },
     },
-    DisplayAvatarImage: {
+    AvatarImage: {
         root: {
             class: "aspect-square size-full",
         },
     },
-    DisplayAvatarFallback: {
+    AvatarFallback: {
         root: {
             class: "bg-muted flex size-full items-center justify-center rounded-full",
         },

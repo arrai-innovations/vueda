@@ -39,25 +39,25 @@ const warnSpy = vi.fn();
 describe("lib/fields/FieldSetStackedInline.vue", () => {
     beforeEach(async () => {
         vi.doMock("@vueda/components/FieldSetStackedInlineRow.vue", () => ({ default: RowStub }));
-        vi.doMock("@vueda/controls/button/ControlButton.vue", () => ({ default: ControlButtonStub }));
-        vi.doMock("@vueda/shell/field/ShellFieldDescription.vue", () => ({
+        vi.doMock("@vueda/controls/button/Button.vue", () => ({ default: ControlButtonStub }));
+        vi.doMock("@vueda/shell/field/FieldDescription.vue", () => ({
             default: defineComponent({
-                name: "ShellFieldDescription",
+                name: "FieldDescription",
                 setup:
                     (_, { slots }) =>
                     () =>
                         h("p", { "data-qa": "field-description" }, slots.default?.()),
             }),
         }));
-        vi.doMock("@vueda/shell/field/ShellFieldMessage.vue", () => ({
+        vi.doMock("@vueda/shell/field/FieldMessage.vue", () => ({
             default: defineComponent({
-                name: "ShellFieldMessage",
+                name: "FieldMessage",
                 props: ["messages", "severity"],
                 setup: (props) => () =>
                     h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),
             }),
         }));
-        vi.doMock("@vueda/shell/separator/ShellSeparator.vue", () => ({ default: ShellSeparatorStub }));
+        vi.doMock("@vueda/shell/separator/Separator.vue", () => ({ default: ShellSeparatorStub }));
 
         useField = vi.fn();
         useFieldSetInline = vi.fn();

@@ -113,12 +113,12 @@ vi.mock("@vueda/components/ClickToCopyText.vue", () => ({ default: ClickToCopyTe
 vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetSelectDropdown.vue", () => ({ default: WidgetSelectDropdownStub }));
 vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
-vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/feedback/spinner/FeedbackSpinner.vue", () => ({ default: FeedbackSpinnerStub }));
-vi.mock("@vueda/shell/dialog/ShellDialog.vue", () => ({ default: ShellDialogStub }));
-vi.mock("@vueda/shell/dialog/ShellDialogContent.vue", () => ({ default: ShellDialogContentStub }));
-vi.mock("@vueda/shell/dialog/ShellDialogHeader.vue", () => ({ default: ShellDialogHeaderStub }));
-vi.mock("@vueda/shell/dialog/ShellDialogTitle.vue", () => ({ default: ShellDialogTitleStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/feedback/spinner/Spinner.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("@vueda/shell/dialog/Dialog.vue", () => ({ default: ShellDialogStub }));
+vi.mock("@vueda/shell/dialog/DialogContent.vue", () => ({ default: ShellDialogContentStub }));
+vi.mock("@vueda/shell/dialog/DialogHeader.vue", () => ({ default: ShellDialogHeaderStub }));
+vi.mock("@vueda/shell/dialog/DialogTitle.vue", () => ({ default: ShellDialogTitleStub }));
 vi.mock("vue-sonner", () => ({ toast: toastMock }));
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => useModelConfigMock() }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));

@@ -23,7 +23,7 @@ const ControlSliderStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/slider/ControlSlider.vue", () => ({ default: ControlSliderStub }));
+vi.mock("@vueda/controls/slider/Slider.vue", () => ({ default: ControlSliderStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {
@@ -61,7 +61,7 @@ describe("lib/widgets/WidgetRangeSlider.vue", () => {
     });
 
     describe("Rendering", () => {
-        scopedIt("renders a ControlSlider element", async () => {
+        scopedIt("renders a Slider element", async () => {
             const wrapper = mount(WidgetRangeSlider);
             expect(wrapper.get(QA_SEL).element.tagName).toBe("DIV");
         });

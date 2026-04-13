@@ -1,9 +1,9 @@
 <script setup>
-import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
+import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import { inject } from "vue";
 
 /**
- * Renders a block-level loading spinner. Uses a FeedbackSpinner by
+ * Renders a block-level loading spinner. Uses a Spinner by
  * default, but accepts a replacement via the `vuedaLoadingSpinnerBlock`
  * injection key so consuming applications can substitute their own component.
  */
@@ -15,5 +15,5 @@ const loadingSpinnerComponent = inject("vuedaLoadingSpinnerBlock", null);
 
 <template>
     <component :is="loadingSpinnerComponent" v-if="loadingSpinnerComponent" />
-    <FeedbackSpinner v-else />
+    <Spinner v-else />
 </template>

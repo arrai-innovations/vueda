@@ -2,7 +2,7 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import Button from "@vueda/controls/button/Button.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -101,7 +101,7 @@ const rootClass = computed(() => combineClasses(theme.root, props.class));
         <PageTitle :title="actionTitleText">
             <template #button>
                 <slot label="Go Back" name="return-button" verb="return" @click="handleReturnClick">
-                    <ControlButton @click="handleReturnClick">Go Back</ControlButton>
+                    <Button @click="handleReturnClick">Go Back</Button>
                 </slot>
             </template>
             <template v-for="(_, slot) in omit(slots, ['before-list', 'default'])" #[slot]="slotProps">

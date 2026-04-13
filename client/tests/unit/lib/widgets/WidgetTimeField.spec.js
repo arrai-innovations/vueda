@@ -44,8 +44,8 @@ const ControlTimeFieldInputStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/time-field/ControlTimeField.vue", () => ({ default: ControlTimeFieldStub }));
-vi.mock("@vueda/controls/time-field/ControlTimeFieldInput.vue", () => ({ default: ControlTimeFieldInputStub }));
+vi.mock("@vueda/controls/time-field/TimeField.vue", () => ({ default: ControlTimeFieldStub }));
+vi.mock("@vueda/controls/time-field/TimeFieldInput.vue", () => ({ default: ControlTimeFieldInputStub }));
 
 vi.mock("@internationalized/date", () => ({
     parseTime: vi.fn((str) => ({ toString: () => str, _raw: str })),
@@ -87,7 +87,7 @@ describe("lib/widgets/WidgetTimeField.vue", () => {
     });
 
     describe("Rendering", () => {
-        scopedIt("renders a ControlTimeField element", async () => {
+        scopedIt("renders a TimeField element", async () => {
             const wrapper = mount(WidgetTimeField);
             expect(wrapper.get(QA_SEL).element.tagName).toBe("DIV");
         });

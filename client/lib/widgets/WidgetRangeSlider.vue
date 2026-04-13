@@ -1,11 +1,11 @@
 <script setup>
-import ControlSlider from "@vueda/controls/slider/ControlSlider.vue";
+import Slider from "@vueda/controls/slider/Slider.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { inject } from "vue";
 
 /**
- * A range slider widget that renders a ControlSlider with form field integration.
+ * A range slider widget that renders a Slider with form field integration.
  * Used for numeric range inputs when paired with FormField.
  */
 defineOptions({
@@ -20,7 +20,7 @@ const fieldContext = inject(FieldContextSymbol, null);
 const widgetContext = useWidget(props, emit);
 </script>
 <template>
-    <ControlSlider
+    <Slider
         :id="fieldContext?.state.fieldId"
         v-model="widgetContext.state.combinedValue"
         :disabled="widgetContext.state.disabled"

@@ -2,8 +2,8 @@
 import { loadingCombine } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormChores from "@vueda/components/FormChores.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import { defaultOnSubmissionError, defaultOnSubmitNotAnyModified } from "@vueda/use/useObjectForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
@@ -240,10 +240,10 @@ watch(
                             type="submit"
                             :disabled="formContext.state.anyError"
                         >
-                            <ControlButton type="submit" :disabled="combinedLoading || formContext.state.anyError">
-                                <FeedbackSpinner v-if="combinedLoading" />
+                            <Button type="submit" :disabled="combinedLoading || formContext.state.anyError">
+                                <Spinner v-if="combinedLoading" />
                                 Yes, continue
-                            </ControlButton>
+                            </Button>
                         </slot>
                         <!-- Cancel button that invokes the redirect; receives `label`, `loading`, and `verb` as slot props. -->
                         <slot
@@ -253,10 +253,10 @@ watch(
                             verb="cancel"
                             @click="handleCancelClick"
                         >
-                            <ControlButton variant="ghost" :disabled="combinedLoading" @click="handleCancelClick">
-                                <FeedbackSpinner v-if="combinedLoading" />
+                            <Button variant="ghost" :disabled="combinedLoading" @click="handleCancelClick">
+                                <Spinner v-if="combinedLoading" />
                                 Cancel, go back
-                            </ControlButton>
+                            </Button>
                         </slot>
                     </div>
                 </slot>

@@ -1,6 +1,6 @@
 <script setup>
-import FeedbackAlert from "@vueda/feedback/alert/FeedbackAlert.vue";
-import FeedbackAlertDescription from "@vueda/feedback/alert/FeedbackAlertDescription.vue";
+import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { containsHtml, sanitizeMessage } from "@vueda/utils/html.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
@@ -47,10 +47,10 @@ const theme = useTheme("FormHelpText", props);
     <div :class="theme('root')">
         <!-- Replaces the default help message display; receives `attrs` and `help` as slot props. -->
         <slot :attrs="$attrs" :help="computedHelp">
-            <FeedbackAlert v-if="computedHelp?.length" v-bind="$attrs" :variant="alertVariant">
+            <Alert v-if="computedHelp?.length" v-bind="$attrs" :variant="alertVariant">
                 <!-- @slot icon Replaces the default icon area inside the help alert. -->
                 <slot name="icon" />
-                <FeedbackAlertDescription>
+                <AlertDescription>
                     <template v-if="allowHtml && containsHtml(computedHelp)">
                         <!-- eslint-disable-next-line vue/no-v-html -->
                         <div v-html="computedHelp" />
@@ -58,8 +58,8 @@ const theme = useTheme("FormHelpText", props);
                     <template v-else>
                         {{ computedHelp }}
                     </template>
-                </FeedbackAlertDescription>
-            </FeedbackAlert>
+                </AlertDescription>
+            </Alert>
         </slot>
     </div>
 </template>

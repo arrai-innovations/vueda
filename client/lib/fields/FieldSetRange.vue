@@ -1,7 +1,7 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
-import ShellFieldDescription from "@vueda/shell/field/ShellFieldDescription.vue";
-import ShellFieldMessage from "@vueda/shell/field/ShellFieldMessage.vue";
+import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
+import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -96,11 +96,11 @@ watch(
         </div>
         <!-- @slot [field-set-level-chores] Override the validation block rendered above the range sub-fields. -->
         <slot name="field-set-level-chores">
-            <ShellFieldDescription v-if="fieldContext.state.help">
+            <FieldDescription v-if="fieldContext.state.help">
                 {{ fieldContext.state.help }}
-            </ShellFieldDescription>
-            <ShellFieldMessage :messages="Object.values(fieldContext.state.errors)" />
-            <ShellFieldMessage
+            </FieldDescription>
+            <FieldMessage :messages="Object.values(fieldContext.state.errors)" />
+            <FieldMessage
                 v-if="Object.keys(fieldContext.state.messages).length"
                 severity="warning"
                 :messages="Object.values(fieldContext.state.messages)"

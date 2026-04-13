@@ -70,14 +70,14 @@ const ControlCalendarStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/date-field/ControlDateField.vue", () => ({ default: ControlDateFieldStub }));
-vi.mock("@vueda/controls/date-field/ControlDateFieldInput.vue", () => ({ default: ControlDateFieldInputStub }));
+vi.mock("@vueda/controls/date-field/DateField.vue", () => ({ default: ControlDateFieldStub }));
+vi.mock("@vueda/controls/date-field/DateFieldInput.vue", () => ({ default: ControlDateFieldInputStub }));
 
-vi.mock("@vueda/shell/popover/ShellPopover.vue", () => ({ default: ShellPopoverStub }));
-vi.mock("@vueda/shell/popover/ShellPopoverContent.vue", () => ({ default: ShellPopoverContentStub }));
-vi.mock("@vueda/shell/popover/ShellPopoverTrigger.vue", () => ({ default: ShellPopoverTriggerStub }));
+vi.mock("@vueda/shell/popover/Popover.vue", () => ({ default: ShellPopoverStub }));
+vi.mock("@vueda/shell/popover/PopoverContent.vue", () => ({ default: ShellPopoverContentStub }));
+vi.mock("@vueda/shell/popover/PopoverTrigger.vue", () => ({ default: ShellPopoverTriggerStub }));
 
-vi.mock("@vueda/controls/calendar/ControlCalendar.vue", () => ({ default: ControlCalendarStub }));
+vi.mock("@vueda/controls/calendar/Calendar.vue", () => ({ default: ControlCalendarStub }));
 
 vi.mock("@internationalized/date", () => ({
     parseDate: vi.fn((str) => ({ toString: () => str, _raw: str })),
@@ -120,7 +120,7 @@ describe("lib/widgets/WidgetDateField.vue", () => {
     });
 
     describe("Rendering", () => {
-        scopedIt("renders a ControlDateField element", async () => {
+        scopedIt("renders a DateField element", async () => {
             const wrapper = mount(WidgetDateField);
             expect(wrapper.get(QA_SEL).element.tagName).toBe("DIV");
         });

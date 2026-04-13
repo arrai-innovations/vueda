@@ -1,6 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
+import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import { defineComponent, h } from "vue";
 
 describe("lib/components/LoadingSpinnerInline.vue", () => {
@@ -10,9 +10,9 @@ describe("lib/components/LoadingSpinnerInline.vue", () => {
         LoadingSpinnerInline = (await import("@vueda/components/LoadingSpinnerInline.vue")).default;
     });
 
-    scopedIt("renders FeedbackSpinner by default", () => {
+    scopedIt("renders Spinner by default", () => {
         const wrapper = mount(LoadingSpinnerInline);
-        expect(wrapper.findComponent(FeedbackSpinner).exists()).toBe(true);
+        expect(wrapper.findComponent(Spinner).exists()).toBe(true);
     });
 
     scopedIt("renders provided spinner component", () => {
@@ -26,6 +26,6 @@ describe("lib/components/LoadingSpinnerInline.vue", () => {
             global: { provide: { vuedaLoadingSpinnerInline: CustomStub } },
         });
         expect(wrapper.findComponent(CustomStub).exists()).toBe(true);
-        expect(wrapper.findComponent(FeedbackSpinner).exists()).toBe(false);
+        expect(wrapper.findComponent(Spinner).exists()).toBe(false);
     });
 });

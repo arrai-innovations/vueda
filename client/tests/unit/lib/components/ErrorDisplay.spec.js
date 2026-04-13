@@ -61,9 +61,9 @@ vi.mock("@vueda/utils/formatError.js", () => ({ formatError: mockedFormatError }
 const captureException = vi.fn();
 vi.mock("@sentry/vue", () => ({ captureException }));
 
-vi.mock("@vueda/feedback/alert/FeedbackAlert.vue", () => ({ default: FeedbackAlertStub }));
-vi.mock("@vueda/feedback/alert/FeedbackAlertClose.vue", () => ({ default: FeedbackAlertCloseStub }));
-vi.mock("@vueda/feedback/alert/FeedbackAlertDescription.vue", () => ({ default: FeedbackAlertDescriptionStub }));
+vi.mock("@vueda/feedback/alert/Alert.vue", () => ({ default: FeedbackAlertStub }));
+vi.mock("@vueda/feedback/alert/AlertClose.vue", () => ({ default: FeedbackAlertCloseStub }));
+vi.mock("@vueda/feedback/alert/AlertDescription.vue", () => ({ default: FeedbackAlertDescriptionStub }));
 vi.mock("vue-router", () => ({ RouterLink: RouterLinkStub }));
 
 let ErrorDisplay;

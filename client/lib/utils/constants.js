@@ -81,7 +81,7 @@ export const LIST_VIEW_CRUD_NAME = "actionrouter.listview";
 
 /**
  * Name of the cookie used to persist the sidebar open/collapsed state across page loads.
- * Read by `NavigationSidebarProvider` on mount to restore previous state.
+ * Read by `SidebarProvider` on mount to restore previous state.
  */
 export const SIDEBAR_COOKIE_NAME = "sidebar_state";
 
@@ -98,7 +98,7 @@ export const SIDEBAR_WIDTH = "16rem";
 
 /**
  * Default width of the sidebar when rendered in a mobile viewport.
- * Applied via `NavigationSidebarProvider` when `isMobile` is true.
+ * Applied via `SidebarProvider` when `isMobile` is true.
  */
 export const SIDEBAR_WIDTH_MOBILE = "18rem";
 
@@ -110,6 +110,6 @@ export const SIDEBAR_WIDTH_ICON = "3rem";
 
 /**
  * Keyboard shortcut key that, combined with Ctrl/Cmd, toggles the sidebar.
- * Listened for in `NavigationSidebarProvider`.
+ * Listened for in `SidebarProvider`.
  */
 export const SIDEBAR_KEYBOARD_SHORTCUT = "b";

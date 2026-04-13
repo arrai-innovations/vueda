@@ -1,8 +1,8 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import ShellResizableHandle from "@vueda/shell/resizable/ShellResizableHandle.vue";
-import ShellResizablePanel from "@vueda/shell/resizable/ShellResizablePanel.vue";
-import ShellResizablePanelGroup from "@vueda/shell/resizable/ShellResizablePanelGroup.vue";
+import ResizableHandle from "@vueda/shell/resizable/ResizableHandle.vue";
+import ResizablePanel from "@vueda/shell/resizable/ResizablePanel.vue";
+import ResizablePanelGroup from "@vueda/shell/resizable/ResizablePanelGroup.vue";
 
 // SplitterPanel and SplitterResizeHandle require injection from a parent SplitterGroup.
 // Stub the underlying Reka splitter primitives so each wrapper can be tested in isolation.
@@ -27,16 +27,16 @@ vi.mock("reka-ui", async (importOriginal) => {
 });
 
 describe("lib/shell/resizable/ShellResizable", () => {
-    describe("ShellResizablePanelGroup", () => {
+    describe("ResizablePanelGroup", () => {
         scopedIt("always has data-slot=resizable-panel-group", () => {
-            const wrapper = mount(ShellResizablePanelGroup, {
+            const wrapper = mount(ResizablePanelGroup, {
                 props: { direction: "horizontal" },
             });
             expect(wrapper.attributes("data-slot")).toBe("resizable-panel-group");
         });
 
         scopedIt("applies base classes", () => {
-            const wrapper = mount(ShellResizablePanelGroup, {
+            const wrapper = mount(ResizablePanelGroup, {
                 props: { direction: "horizontal" },
             });
             expect(wrapper.classes()).toContain("flex");
@@ -45,7 +45,7 @@ describe("lib/shell/resizable/ShellResizable", () => {
         });
 
         scopedIt("merges custom class while preserving base classes", () => {
-            const wrapper = mount(ShellResizablePanelGroup, {
+            const wrapper = mount(ResizablePanelGroup, {
                 props: { direction: "horizontal", class: "my-custom-class" },
             });
             expect(wrapper.classes()).toContain("my-custom-class");
@@ -53,7 +53,7 @@ describe("lib/shell/resizable/ShellResizable", () => {
         });
 
         scopedIt("renders slot content", () => {
-            const wrapper = mount(ShellResizablePanelGroup, {
+            const wrapper = mount(ResizablePanelGroup, {
                 props: { direction: "horizontal" },
                 slots: { default: "<span>panel content</span>" },
             });
@@ -61,35 +61,35 @@ describe("lib/shell/resizable/ShellResizable", () => {
         });
     });
 
-    describe("ShellResizablePanel", () => {
+    describe("ResizablePanel", () => {
         scopedIt("always has data-slot=resizable-panel", () => {
-            const wrapper = mount(ShellResizablePanel);
+            const wrapper = mount(ResizablePanel);
             expect(wrapper.attributes("data-slot")).toBe("resizable-panel");
         });
 
         scopedIt("renders slot content", () => {
-            const wrapper = mount(ShellResizablePanel, {
+            const wrapper = mount(ResizablePanel, {
                 slots: { default: "<span>panel slot</span>" },
             });
             expect(wrapper.text()).toBe("panel slot");
         });
     });
 
-    describe("ShellResizableHandle", () => {
+    describe("ResizableHandle", () => {
         scopedIt("always has data-slot=resizable-handle", () => {
-            const wrapper = mount(ShellResizableHandle);
+            const wrapper = mount(ResizableHandle);
             expect(wrapper.attributes("data-slot")).toBe("resizable-handle");
         });
 
         scopedIt("applies base classes", () => {
-            const wrapper = mount(ShellResizableHandle);
+            const wrapper = mount(ResizableHandle);
             expect(wrapper.classes()).toContain("bg-border");
             expect(wrapper.classes()).toContain("relative");
             expect(wrapper.classes()).toContain("flex");
         });
 
         scopedIt("merges custom class while preserving base classes", () => {
-            const wrapper = mount(ShellResizableHandle, {
+            const wrapper = mount(ResizableHandle, {
                 props: { class: "my-custom-class" },
             });
             expect(wrapper.classes()).toContain("my-custom-class");
@@ -97,13 +97,13 @@ describe("lib/shell/resizable/ShellResizable", () => {
         });
 
         scopedIt("does not render the grip handle wrapper when withHandle is not set", () => {
-            const wrapper = mount(ShellResizableHandle);
+            const wrapper = mount(ResizableHandle);
             // No inner div for the grip icon when withHandle is falsy
             expect(wrapper.find(".z-10").exists()).toBe(false);
         });
 
         scopedIt("renders the grip handle wrapper when withHandle is true", () => {
-            const wrapper = mount(ShellResizableHandle, { props: { withHandle: true } });
+            const wrapper = mount(ResizableHandle, { props: { withHandle: true } });
             expect(wrapper.find(".z-10").exists()).toBe(true);
         });
     });

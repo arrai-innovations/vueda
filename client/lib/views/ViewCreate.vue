@@ -5,8 +5,8 @@ import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
@@ -219,10 +219,10 @@ const nonDetailActions = computed(() =>
                     name="submit-button"
                     type="submit"
                 >
-                    <ControlButton :form="formId" :disabled="objectForm.state.loading" type="submit">
-                        <FeedbackSpinner v-if="objectForm.state.loading" />
+                    <Button :form="formId" :disabled="objectForm.state.loading" type="submit">
+                        <Spinner v-if="objectForm.state.loading" />
                         Submit
-                    </ControlButton>
+                    </Button>
                 </slot>
             </div>
         </sticky-bar>

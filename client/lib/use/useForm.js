@@ -597,7 +597,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @example
  * ```vue
  * <script setup>
- * import ControlButton from "@vueda/controls/button/ControlButton.vue"
+ * import Button from "@vueda/controls/button/Button.vue"
  * const myState = reactive({
  *     submitting: false,
  *     // when initialValues is changed, the form's values are reset to match
@@ -648,7 +648,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *         <form-feedback type="error" />
  *         <form-feedback type="message" />
  *     </form-field>
- *     <ControlButton type="submit">Submit</ControlButton>
+ *     <Button type="submit">Submit</Button>
  * </form>
  * </template>
  * ```

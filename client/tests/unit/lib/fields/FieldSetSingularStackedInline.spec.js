@@ -31,24 +31,24 @@ const InlineRowStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ControlButtonStub }));
-vi.mock("@vueda/shell/field/ShellFieldDescription.vue", () => ({
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ControlButtonStub }));
+vi.mock("@vueda/shell/field/FieldDescription.vue", () => ({
     default: defineComponent({
-        name: "ShellFieldDescription",
+        name: "FieldDescription",
         setup:
             (_, { slots }) =>
             () =>
                 h("p", { "data-qa": "field-description" }, slots.default?.()),
     }),
 }));
-vi.mock("@vueda/shell/field/ShellFieldMessage.vue", () => ({
+vi.mock("@vueda/shell/field/FieldMessage.vue", () => ({
     default: defineComponent({
-        name: "ShellFieldMessage",
+        name: "FieldMessage",
         props: ["messages", "severity"],
         setup: (props) => () => h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),
     }),
 }));
-vi.mock("@vueda/shell/separator/ShellSeparator.vue", () => ({ default: ShellSeparatorStub }));
+vi.mock("@vueda/shell/separator/Separator.vue", () => ({ default: ShellSeparatorStub }));
 vi.mock("@vueda/components/FieldSetStackedInlineRow.vue", () => ({ default: InlineRowStub }));
 
 const mockedUseTheme = vi.fn(() => () => "theme");

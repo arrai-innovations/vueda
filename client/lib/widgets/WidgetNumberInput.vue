@@ -1,17 +1,17 @@
 <script setup>
-import ControlInputGroup from "@vueda/controls/input-group/ControlInputGroup.vue";
-import ControlInputGroupAddon from "@vueda/controls/input-group/ControlInputGroupAddon.vue";
-import ControlNumberField from "@vueda/controls/number-field/ControlNumberField.vue";
-import ControlNumberFieldContent from "@vueda/controls/number-field/ControlNumberFieldContent.vue";
-import ControlNumberFieldDecrement from "@vueda/controls/number-field/ControlNumberFieldDecrement.vue";
-import ControlNumberFieldIncrement from "@vueda/controls/number-field/ControlNumberFieldIncrement.vue";
-import ControlNumberFieldInput from "@vueda/controls/number-field/ControlNumberFieldInput.vue";
+import InputGroup from "@vueda/controls/input-group/InputGroup.vue";
+import InputGroupAddon from "@vueda/controls/input-group/InputGroupAddon.vue";
+import NumberField from "@vueda/controls/number-field/NumberField.vue";
+import NumberFieldContent from "@vueda/controls/number-field/NumberFieldContent.vue";
+import NumberFieldDecrement from "@vueda/controls/number-field/NumberFieldDecrement.vue";
+import NumberFieldIncrement from "@vueda/controls/number-field/NumberFieldIncrement.vue";
+import NumberFieldInput from "@vueda/controls/number-field/NumberFieldInput.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";
 
 /**
- * A numeric input widget that assembles ControlNumberField sub-components
+ * A numeric input widget that assembles NumberField sub-components
  * with increment and decrement buttons. Converts between string field values
  * and numeric display values. Optionally displays a unit label suffix.
  */
@@ -49,7 +49,7 @@ const numericValue = computed({
 });
 </script>
 <template>
-    <ControlNumberField
+    <NumberField
         v-model="numericValue"
         :min="min"
         :max="max"
@@ -58,10 +58,10 @@ const numericValue = computed({
         :name="widgetContext.state.combinedName"
         v-bind="$attrs"
     >
-        <ControlInputGroup v-if="unit">
-            <ControlNumberFieldContent>
-                <ControlNumberFieldDecrement />
-                <ControlNumberFieldInput
+        <InputGroup v-if="unit">
+            <NumberFieldContent>
+                <NumberFieldDecrement />
+                <NumberFieldInput
                     :id="fieldContext?.state.fieldId"
                     :aria-invalid="widgetContext.state.validationState.invalid || undefined"
                     :aria-required="widgetContext.state.required || undefined"
@@ -69,15 +69,15 @@ const numericValue = computed({
                     @blur="widgetContext.blur"
                     @focus="widgetContext.focus"
                 />
-                <ControlNumberFieldIncrement />
-            </ControlNumberFieldContent>
-            <ControlInputGroupAddon align="inline-end">
+                <NumberFieldIncrement />
+            </NumberFieldContent>
+            <InputGroupAddon align="inline-end">
                 {{ unit }}
-            </ControlInputGroupAddon>
-        </ControlInputGroup>
-        <ControlNumberFieldContent v-else>
-            <ControlNumberFieldDecrement />
-            <ControlNumberFieldInput
+            </InputGroupAddon>
+        </InputGroup>
+        <NumberFieldContent v-else>
+            <NumberFieldDecrement />
+            <NumberFieldInput
                 :id="fieldContext?.state.fieldId"
                 :aria-invalid="widgetContext.state.validationState.invalid || undefined"
                 :aria-required="widgetContext.state.required || undefined"
@@ -85,7 +85,7 @@ const numericValue = computed({
                 @blur="widgetContext.blur"
                 @focus="widgetContext.focus"
             />
-            <ControlNumberFieldIncrement />
-        </ControlNumberFieldContent>
-    </ControlNumberField>
+            <NumberFieldIncrement />
+        </NumberFieldContent>
+    </NumberField>
 </template>

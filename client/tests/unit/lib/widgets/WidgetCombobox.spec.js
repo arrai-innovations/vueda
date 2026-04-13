@@ -13,7 +13,7 @@ const STATIC_OPTIONS = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Stubs for the ControlCombobox family                               */
+/*  Stubs for the Combobox family                               */
 /* ------------------------------------------------------------------ */
 
 const ControlComboboxStub = defineComponent({
@@ -138,19 +138,19 @@ const ControlComboboxVirtualizerStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/controls/combobox/ControlCombobox.vue", () => ({ default: ControlComboboxStub }));
-vi.mock("@vueda/controls/combobox/ControlComboboxAnchor.vue", () => ({ default: ControlComboboxAnchorStub }));
-vi.mock("@vueda/controls/combobox/ControlComboboxTrigger.vue", () => ({ default: ControlComboboxTriggerStub }));
-vi.mock("@vueda/controls/combobox/ControlComboboxList.vue", () => ({ default: ControlComboboxListStub }));
-vi.mock("@vueda/controls/combobox/ControlComboboxInput.vue", () => ({ default: ControlComboboxInputStub }));
-vi.mock("@vueda/controls/combobox/ControlComboboxViewport.vue", () => ({ default: ControlComboboxViewportStub }));
-vi.mock("@vueda/controls/combobox/ControlComboboxItem.vue", () => ({ default: ControlComboboxItemStub }));
-vi.mock("@vueda/controls/combobox/ControlComboboxGroup.vue", () => ({ default: ControlComboboxGroupStub }));
-vi.mock("@vueda/controls/combobox/ControlComboboxItemIndicator.vue", () => ({
+vi.mock("@vueda/controls/combobox/Combobox.vue", () => ({ default: ControlComboboxStub }));
+vi.mock("@vueda/controls/combobox/ComboboxAnchor.vue", () => ({ default: ControlComboboxAnchorStub }));
+vi.mock("@vueda/controls/combobox/ComboboxTrigger.vue", () => ({ default: ControlComboboxTriggerStub }));
+vi.mock("@vueda/controls/combobox/ComboboxList.vue", () => ({ default: ControlComboboxListStub }));
+vi.mock("@vueda/controls/combobox/ComboboxInput.vue", () => ({ default: ControlComboboxInputStub }));
+vi.mock("@vueda/controls/combobox/ComboboxViewport.vue", () => ({ default: ControlComboboxViewportStub }));
+vi.mock("@vueda/controls/combobox/ComboboxItem.vue", () => ({ default: ControlComboboxItemStub }));
+vi.mock("@vueda/controls/combobox/ComboboxGroup.vue", () => ({ default: ControlComboboxGroupStub }));
+vi.mock("@vueda/controls/combobox/ComboboxItemIndicator.vue", () => ({
     default: ControlComboboxItemIndicatorStub,
 }));
-vi.mock("@vueda/controls/combobox/ControlComboboxEmpty.vue", () => ({ default: ControlComboboxEmptyStub }));
-vi.mock("@vueda/controls/combobox/ControlComboboxVirtualizer.vue", () => ({ default: ControlComboboxVirtualizerStub }));
+vi.mock("@vueda/controls/combobox/ComboboxEmpty.vue", () => ({ default: ControlComboboxEmptyStub }));
+vi.mock("@vueda/controls/combobox/ComboboxVirtualizer.vue", () => ({ default: ControlComboboxVirtualizerStub }));
 
 const LinkModelViewStub = defineComponent({
     name: "LinkModelViewStub",
@@ -397,7 +397,7 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
             expect(searchState.onClose).toHaveBeenCalledTimes(1);
         });
 
-        scopedIt("renders grouped items using ControlComboboxGroup when isGrouped is true", async () => {
+        scopedIt("renders grouped items using ComboboxGroup when isGrouped is true", async () => {
             searchState.isGrouped = true;
             searchState.groupByField = "category";
             searchState.options = [

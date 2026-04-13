@@ -1,5 +1,5 @@
 <script setup>
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
+import Button from "@vueda/controls/button/Button.vue";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
 import { toast as sonnerToast } from "vue-sonner";
@@ -49,9 +49,9 @@ const theme = useTheme("ClickToCopyText", props);
         </slot>
         <!-- Renders the copy button; receives `onClick`, `label`, `severity`, `rounded`, `variant`, `size`, `text`, and `copied` as slot props. -->
         <slot name="copy-button" v-bind="slotProps">
-            <ControlButton :variant="slotProps.variant" :size="slotProps.size" @click="slotProps.onClick">
+            <Button :variant="slotProps.variant" :size="slotProps.size" @click="slotProps.onClick">
                 {{ slotProps.label }}
-            </ControlButton>
+            </Button>
         </slot>
     </div>
 </template>

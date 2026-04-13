@@ -34,7 +34,7 @@ const ControlNativeSelectStub = defineComponent({
             );
     },
 });
-vi.mock("@vueda/controls/native-select/ControlNativeSelect.vue", () => ({ default: ControlNativeSelectStub }));
+vi.mock("@vueda/controls/native-select/NativeSelect.vue", () => ({ default: ControlNativeSelectStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {
@@ -72,7 +72,7 @@ describe("lib/widgets/WidgetNativeSelect.vue", () => {
     });
 
     describe("Rendering", () => {
-        scopedIt("renders a ControlNativeSelect element", async () => {
+        scopedIt("renders a NativeSelect element", async () => {
             const wrapper = mount(WidgetNativeSelect, {
                 props: { options: TEST_OPTIONS },
             });

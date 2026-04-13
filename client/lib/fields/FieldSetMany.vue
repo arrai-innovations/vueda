@@ -1,7 +1,7 @@
 <script setup>
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import ShellFieldDescription from "@vueda/shell/field/ShellFieldDescription.vue";
-import ShellFieldMessage from "@vueda/shell/field/ShellFieldMessage.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
+import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -71,8 +71,8 @@ const theme = useTheme("FieldSetMany", props);
             </slot>
             <!-- @slot [add] Override the add button. -->
             <slot name="add" @click="onAdd">
-                <ControlButton variant="outline" size="sm" @click="onAdd"
-                    ><span aria-hidden="true" class="select-none">+</span> Add</ControlButton
+                <Button variant="outline" size="sm" @click="onAdd"
+                    ><span aria-hidden="true" class="select-none">+</span> Add</Button
                 >
             </slot>
         </div>
@@ -89,10 +89,10 @@ const theme = useTheme("FieldSetMany", props);
                         <div v-if="index">
                             <!-- @slot [destroy] Override the delete button for a row. -->
                             <slot name="destroy" @click="onDestroy(index)">
-                                <ControlButton variant="ghost" size="icon-sm" @click="onDestroy(index)">
+                                <Button variant="ghost" size="icon-sm" @click="onDestroy(index)">
                                     <span aria-hidden="true" class="select-none">✕</span>
                                     <span class="sr-only">Remove entry</span>
-                                </ControlButton>
+                                </Button>
                             </slot>
                         </div>
                     </div>
@@ -101,11 +101,11 @@ const theme = useTheme("FieldSetMany", props);
         </div>
         <!-- @slot [field-set-level-chores] Override the validation block (help, errors, warnings) for this field set. -->
         <slot name="field-set-level-chores">
-            <ShellFieldDescription v-if="fieldContext.state.help">
+            <FieldDescription v-if="fieldContext.state.help">
                 {{ fieldContext.state.help }}
-            </ShellFieldDescription>
-            <ShellFieldMessage :messages="Object.values(fieldContext.state.errors)" />
-            <ShellFieldMessage
+            </FieldDescription>
+            <FieldMessage :messages="Object.values(fieldContext.state.errors)" />
+            <FieldMessage
                 v-if="Object.keys(fieldContext.state.messages).length"
                 severity="warning"
                 :messages="Object.values(fieldContext.state.messages)"

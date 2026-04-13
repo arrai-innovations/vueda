@@ -5,8 +5,8 @@ import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -371,10 +371,10 @@ const nonDetailActions = computed(() =>
                     name="submit-button"
                     type="submit"
                 >
-                    <ControlButton :form="formId" :disabled="objectForm?.state?.loading" type="submit">
-                        <FeedbackSpinner v-if="objectForm?.state?.loading" />
+                    <Button :form="formId" :disabled="objectForm?.state?.loading" type="submit">
+                        <Spinner v-if="objectForm?.state?.loading" />
                         Submit
-                    </ControlButton>
+                    </Button>
                 </slot>
                 <template v-for="actionName in detailActions" :key="actionName">
                     <!-- @slot [action-button] Override an individual action link button in the sticky bar. -->

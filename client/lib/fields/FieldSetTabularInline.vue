@@ -2,10 +2,10 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import ShellFieldDescription from "@vueda/shell/field/ShellFieldDescription.vue";
-import ShellFieldMessage from "@vueda/shell/field/ShellFieldMessage.vue";
-import ShellSeparator from "@vueda/shell/separator/ShellSeparator.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
+import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
+import Separator from "@vueda/shell/separator/Separator.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import {
     FIELD_SET_TABULAR_INLINE_EMITS,
@@ -83,14 +83,14 @@ watch(
                         :verb="fieldSetTabularInline.state.internalVisible ? 'collapseDown' : 'collapseUp'"
                         @click="fieldSetTabularInline.toggleVisibility"
                     >
-                        <ControlButton
+                        <Button
                             variant="outline"
                             size="sm"
                             :class="fieldSetTabularInline.theme('toggleButton')"
                             @click="fieldSetTabularInline.toggleVisibility"
                         >
                             {{ fieldSetTabularInline.state.internalVisible ? "Hide" : "Show" }}
-                        </ControlButton>
+                        </Button>
                     </slot>
                 </div>
                 <div :class="fieldSetTabularInline.theme('title')" data-qa="field-set-tabular-inline-title">
@@ -114,25 +114,25 @@ watch(
                         verb="createInline"
                         @click="fieldSetTabularInline.doCreate"
                     >
-                        <ControlButton
+                        <Button
                             variant="outline"
                             size="sm"
                             :class="fieldSetTabularInline.theme('createButton')"
                             @click="fieldSetTabularInline.doCreate"
                         >
                             Create
-                        </ControlButton>
+                        </Button>
                     </slot>
                 </div>
             </div>
-            <ShellSeparator :class="fieldSetTabularInline.theme('hr')" />
+            <Separator :class="fieldSetTabularInline.theme('hr')" />
             <!-- @slot [field-set-level-chores] Replaces the validation block rendered above the rows. -->
             <slot name="field-set-level-chores">
-                <ShellFieldDescription v-if="fieldSetTabularInline.fieldSetContext.state.help">
+                <FieldDescription v-if="fieldSetTabularInline.fieldSetContext.state.help">
                     {{ fieldSetTabularInline.fieldSetContext.state.help }}
-                </ShellFieldDescription>
-                <ShellFieldMessage :messages="Object.values(fieldSetTabularInline.fieldSetContext.state.errors)" />
-                <ShellFieldMessage
+                </FieldDescription>
+                <FieldMessage :messages="Object.values(fieldSetTabularInline.fieldSetContext.state.errors)" />
+                <FieldMessage
                     v-if="Object.keys(fieldSetTabularInline.fieldSetContext.state.messages).length"
                     severity="warning"
                     :messages="Object.values(fieldSetTabularInline.fieldSetContext.state.messages)"
@@ -199,7 +199,7 @@ watch(
                                         verb="destroy"
                                         @click="fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)"
                                     >
-                                        <ControlButton
+                                        <Button
                                             variant="ghost"
                                             size="sm"
                                             @click="
@@ -207,7 +207,7 @@ watch(
                                             "
                                         >
                                             Delete
-                                        </ControlButton>
+                                        </Button>
                                     </slot>
                                     <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox, field(fieldName)destroy-checkbox] Checkbox to mark an existing tabular inline row for deletion. -->
                                     <slot
@@ -269,7 +269,7 @@ watch(
                                             doCreate: fieldSetTabularInline.doCreate,
                                         }"
                                     >
-                                        <ControlButton
+                                        <Button
                                             variant="outline"
                                             size="sm"
                                             @click="
@@ -286,7 +286,7 @@ watch(
                                             "
                                         >
                                             {{ action.label }}
-                                        </ControlButton>
+                                        </Button>
                                     </slot>
                                 </template>
                             </template>
@@ -342,14 +342,14 @@ watch(
                             verb="createInline"
                             @click="fieldSetTabularInline.doCreate"
                         >
-                            <ControlButton
+                            <Button
                                 variant="ghost"
                                 size="sm"
                                 :class="fieldSetTabularInline.theme('inLineCreateButton')"
                                 @click="fieldSetTabularInline.doCreate"
                             >
                                 Create
-                            </ControlButton>
+                            </Button>
                         </slot>
                     </div>
                 </template>

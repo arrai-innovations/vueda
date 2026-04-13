@@ -1,7 +1,7 @@
 <script setup>
 import { parseTime } from "@internationalized/date";
-import ControlTimeField from "@vueda/controls/time-field/ControlTimeField.vue";
-import ControlTimeFieldInput from "@vueda/controls/time-field/ControlTimeFieldInput.vue";
+import TimeField from "@vueda/controls/time-field/TimeField.vue";
+import TimeFieldInput from "@vueda/controls/time-field/TimeFieldInput.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";
@@ -57,7 +57,7 @@ const timeValue = computed({
 </script>
 
 <template>
-    <ControlTimeField
+    <TimeField
         :id="fieldContext?.state.fieldId"
         v-model="timeValue"
         :granularity="granularity"
@@ -77,13 +77,9 @@ const timeValue = computed({
     >
         <template #default="{ segments }">
             <template v-for="segment in segments" :key="segment.part">
-                <ControlTimeFieldInput
-                    v-if="segment.part === 'literal'"
-                    :part="segment.part"
-                    class="text-muted-foreground"
-                />
-                <ControlTimeFieldInput v-else :part="segment.part" />
+                <TimeFieldInput v-if="segment.part === 'literal'" :part="segment.part" class="text-muted-foreground" />
+                <TimeFieldInput v-else :part="segment.part" />
             </template>
         </template>
-    </ControlTimeField>
+    </TimeField>
 </template>

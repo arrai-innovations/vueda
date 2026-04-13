@@ -10,15 +10,15 @@ import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
-import ControlCheckbox from "@vueda/controls/checkbox/ControlCheckbox.vue";
-import ControlInputGroup from "@vueda/controls/input-group/ControlInputGroup.vue";
-import ControlInputGroupButton from "@vueda/controls/input-group/ControlInputGroupButton.vue";
-import ControlInputGroupInput from "@vueda/controls/input-group/ControlInputGroupInput.vue";
-import ControlSelect from "@vueda/controls/select/ControlSelect.vue";
-import ControlSelectContent from "@vueda/controls/select/ControlSelectContent.vue";
-import ControlSelectItem from "@vueda/controls/select/ControlSelectItem.vue";
-import ControlSelectTrigger from "@vueda/controls/select/ControlSelectTrigger.vue";
-import ControlSelectValue from "@vueda/controls/select/ControlSelectValue.vue";
+import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
+import InputGroup from "@vueda/controls/input-group/InputGroup.vue";
+import InputGroupButton from "@vueda/controls/input-group/InputGroupButton.vue";
+import InputGroupInput from "@vueda/controls/input-group/InputGroupInput.vue";
+import Select from "@vueda/controls/select/Select.vue";
+import SelectContent from "@vueda/controls/select/SelectContent.vue";
+import SelectItem from "@vueda/controls/select/SelectItem.vue";
+import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
+import SelectValue from "@vueda/controls/select/SelectValue.vue";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { storeListPreference } from "@vueda/stores/storeListPreference.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
@@ -640,8 +640,8 @@ const columnOptions = computed(() => {
                     </div>
                     <div :class="theme('listControlBar')">
                         <slot name="search" v-bind="searchSlotProps">
-                            <ControlInputGroup>
-                                <ControlInputGroupInput
+                            <InputGroup>
+                                <InputGroupInput
                                     :class="theme('searchInput')"
                                     :model-value="searchSlotProps.listSearch"
                                     name="search"
@@ -650,10 +650,8 @@ const columnOptions = computed(() => {
                                     @search="searchSlotProps.filterList"
                                     @update:model-value="searchSlotProps.updateListSearch"
                                 />
-                                <ControlInputGroupButton @click="searchSlotProps.filterList">
-                                    Search
-                                </ControlInputGroupButton>
-                            </ControlInputGroup>
+                                <InputGroupButton @click="searchSlotProps.filterList"> Search </InputGroupButton>
+                            </InputGroup>
                         </slot>
                         <slot
                             v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
@@ -662,25 +660,25 @@ const columnOptions = computed(() => {
                             :options="columnOptions"
                             :loading="loading"
                         >
-                            <ControlSelect v-model="columns" multiple>
-                                <ControlSelectTrigger size="sm">
-                                    <ControlSelectValue>
+                            <Select v-model="columns" multiple>
+                                <SelectTrigger size="sm">
+                                    <SelectValue>
                                         <slot name="columns-select-value-label">columns</slot>
-                                    </ControlSelectValue>
+                                    </SelectValue>
                                     <template v-if="slots['columns-select-dropdown-icon']" #icon>
                                         <slot name="columns-select-dropdown-icon" />
                                     </template>
-                                </ControlSelectTrigger>
-                                <ControlSelectContent>
-                                    <ControlSelectItem
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
                                         v-for="option in columnOptions"
                                         :key="option.value"
                                         :value="option.value"
                                     >
                                         {{ option.label }}
-                                    </ControlSelectItem>
-                                </ControlSelectContent>
-                            </ControlSelect>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                         </slot>
                     </div>
                 </div>
@@ -775,7 +773,7 @@ const columnOptions = computed(() => {
                     :has-selectable-actions="bulkActions.size || availableTransitions.size"
                     :name="`field(${field.name})`"
                 >
-                    <ControlCheckbox
+                    <Checkbox
                         v-if="bulkActions.size || availableTransitions.size"
                         :id="`selected-row-${slotProps.pk}`"
                         :model-value="selectedObjects.includes(slotProps.pk)"

@@ -1,12 +1,12 @@
 <script setup>
-import ControlRadioGroup from "@vueda/controls/radio-group/ControlRadioGroup.vue";
-import ControlRadioGroupItem from "@vueda/controls/radio-group/ControlRadioGroupItem.vue";
+import RadioGroup from "@vueda/controls/radio-group/RadioGroup.vue";
+import RadioGroupItem from "@vueda/controls/radio-group/RadioGroupItem.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";
 
 /**
- * A radio group widget that renders a ControlRadioGroup with ControlRadioGroupItem
+ * A radio group widget that renders a RadioGroup with RadioGroupItem
  * children for each option. Used for choice fields (e.g. BooleanField with choices)
  * when paired with FormField.
  */
@@ -43,7 +43,7 @@ const computedOptions = computed(() => {
 });
 </script>
 <template>
-    <ControlRadioGroup
+    <RadioGroup
         v-model="widgetContext.state.combinedValue"
         :disabled="widgetContext.state.disabled"
         :aria-invalid="widgetContext.state.validationState.invalid || undefined"
@@ -58,7 +58,7 @@ const computedOptions = computed(() => {
             class="flex items-center gap-2"
             data-qa="widget-radio-group-option"
         >
-            <ControlRadioGroupItem
+            <RadioGroupItem
                 :id="`${fieldContext?.state.fieldId ?? widgetContext.state.combinedName}-${option.value}`"
                 :value="option.value"
                 @focus="widgetContext.focus"
@@ -71,5 +71,5 @@ const computedOptions = computed(() => {
                 {{ option.label }}
             </label>
         </div>
-    </ControlRadioGroup>
+    </RadioGroup>
 </template>

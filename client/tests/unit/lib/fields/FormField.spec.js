@@ -56,11 +56,11 @@ describe("lib/fields/FormField.vue", () => {
     });
 
     describe("hidden=false (default, renders layout)", () => {
-        scopedIt("renders ShellField layout with label", () => {
+        scopedIt("renders Field layout with label", () => {
             fieldContext.state.label = "Email";
             const wrapper = mount(FormField, {
                 props: { name: "test" },
-                global: { stubs: { ShellField: false, ShellFieldLabel: false, ShellFieldContent: false } },
+                global: { stubs: { Field: false, FieldLabel: false, FieldContent: false } },
             });
             expect(wrapper.find("[data-slot='field']").exists()).toBe(true);
             expect(wrapper.find("[data-slot='field-label']").exists()).toBe(true);
@@ -116,14 +116,14 @@ describe("lib/fields/FormField.vue", () => {
             expect(wrapper.find("[data-slot='field-message']").exists()).toBe(false);
         });
 
-        scopedIt("applies orientation to ShellField", () => {
+        scopedIt("applies orientation to Field", () => {
             const wrapper = mount(FormField, {
                 props: { name: "test", orientation: "horizontal" },
             });
             expect(wrapper.find("[data-slot='field']").attributes("data-orientation")).toBe("horizontal");
         });
 
-        scopedIt("applies class from attrs to ShellField", () => {
+        scopedIt("applies class from attrs to Field", () => {
             const wrapper = mount(FormField, {
                 props: { name: "test" },
                 attrs: { class: "custom-class" },
@@ -140,7 +140,7 @@ describe("lib/fields/FormField.vue", () => {
             expect(root.element.tagName).toBe("DIV");
         });
 
-        scopedIt("does not render ShellField layout components", () => {
+        scopedIt("does not render Field layout components", () => {
             fieldContext.state.label = "Test Label";
             fieldContext.state.help = "Some help";
             fieldContext.state.errors = { required: "Required" };

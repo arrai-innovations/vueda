@@ -1,16 +1,16 @@
 <script setup>
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import NavigationPagination from "@vueda/navigation/pagination/NavigationPagination.vue";
-import NavigationPaginationContent from "@vueda/navigation/pagination/NavigationPaginationContent.vue";
-import NavigationPaginationFirst from "@vueda/navigation/pagination/NavigationPaginationFirst.vue";
-import NavigationPaginationLast from "@vueda/navigation/pagination/NavigationPaginationLast.vue";
-import NavigationPaginationNext from "@vueda/navigation/pagination/NavigationPaginationNext.vue";
-import NavigationPaginationPrevious from "@vueda/navigation/pagination/NavigationPaginationPrevious.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import Pagination from "@vueda/navigation/pagination/Pagination.vue";
+import PaginationContent from "@vueda/navigation/pagination/PaginationContent.vue";
+import PaginationFirst from "@vueda/navigation/pagination/PaginationFirst.vue";
+import PaginationLast from "@vueda/navigation/pagination/PaginationLast.vue";
+import PaginationNext from "@vueda/navigation/pagination/PaginationNext.vue";
+import PaginationPrevious from "@vueda/navigation/pagination/PaginationPrevious.vue";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed } from "vue";
 
 /**
- * Pagination bar that combines a NavigationPagination with a total-record count display and a "Show All Pages" button.
+ * Pagination bar that combines a Pagination with a total-record count display and a "Show All Pages" button.
  */
 defineOptions({});
 
@@ -95,7 +95,7 @@ const handleShowAllPagesClick = () => {
                 {{ loading ? "" : `${totalRecords} total results` }}
             </span>
         </slot>
-        <NavigationPagination
+        <Pagination
             v-if="!showingAllPages"
             v-model:page="page"
             :class="theme('paginator')"
@@ -103,14 +103,14 @@ const handleShowAllPagesClick = () => {
             :items-per-page="rows"
             :disabled="loading"
         >
-            <NavigationPaginationContent>
-                <NavigationPaginationFirst />
-                <NavigationPaginationPrevious />
+            <PaginationContent>
+                <PaginationFirst />
+                <PaginationPrevious />
                 <span :class="theme('pageReport')">{{ currentPageReport }}</span>
-                <NavigationPaginationNext />
-                <NavigationPaginationLast />
-            </NavigationPaginationContent>
-        </NavigationPagination>
+                <PaginationNext />
+                <PaginationLast />
+            </PaginationContent>
+        </Pagination>
         <!-- "Show All Pages" button area; receives `allowShowAllPages`, `showingAllPages`, and a click handler as slot props. -->
         <slot
             name="show-all-pages"
@@ -118,14 +118,14 @@ const handleShowAllPagesClick = () => {
             :showing-all-pages="showingAllPages"
             @click="handleShowAllPagesClick"
         >
-            <ControlButton
+            <Button
                 v-if="allowShowAllPages && !showingAllPages && totalRecords > rows"
                 type="button"
                 variant="ghost"
                 @click="handleShowAllPagesClick"
             >
                 Show All Pages
-            </ControlButton>
+            </Button>
         </slot>
     </div>
 </template>

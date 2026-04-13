@@ -1,7 +1,7 @@
 /**
  * @module use/useSidebar
  * @description Provides the sidebar context pair for injecting and consuming sidebar state
- * across the NavigationSidebar component tree.
+ * across the Sidebar component tree.
  * Based on the shadcn-vue sidebar implementation.
  */
 import { createContext } from "reka-ui";
@@ -18,7 +18,7 @@ import { createContext } from "reka-ui";
  */
 
 /**
- * Injects the sidebar context provided by the nearest `NavigationSidebarProvider` ancestor.
+ * Injects the sidebar context provided by the nearest `SidebarProvider` ancestor.
  *
  * @returns {SidebarContext}
  */

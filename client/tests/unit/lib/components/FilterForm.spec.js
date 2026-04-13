@@ -30,7 +30,7 @@ vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme }));
 const mockedUseSlotNameResolver = vi.fn(() => ({ name: "slot" }));
 vi.mock("@vueda/use/useSlotNameResolver.js", () => ({ useSlotNameResolver: mockedUseSlotNameResolver }));
 vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: FieldRendererStub }));
-vi.mock("@vueda/controls/button/ControlButton.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 
 let FilterForm;
 
@@ -64,7 +64,7 @@ function mountForm(options = {}) {
         },
         slots: options.slots,
         global: {
-            stubs: { FieldRenderer: FieldRendererStub, ControlButton: ButtonStub },
+            stubs: { FieldRenderer: FieldRendererStub, Button: ButtonStub },
             provide,
         },
     });

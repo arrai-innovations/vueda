@@ -14,7 +14,7 @@ vi.mock("@vueda/use/useTheme.js", () => ({
     mergeTheme: (...args) => Object.assign({}, ...args),
 }));
 
-vi.mock("@vueda/feedback/skeleton/FeedbackSkeleton.vue", () => ({
+vi.mock("@vueda/feedback/skeleton/Skeleton.vue", () => ({
     default: defineComponent({
         name: "FeedbackSkeletonStub",
         setup() {

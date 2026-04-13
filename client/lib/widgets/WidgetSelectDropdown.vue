@@ -1,15 +1,15 @@
 <script setup>
-import ControlSelect from "@vueda/controls/select/ControlSelect.vue";
-import ControlSelectContent from "@vueda/controls/select/ControlSelectContent.vue";
-import ControlSelectItem from "@vueda/controls/select/ControlSelectItem.vue";
-import ControlSelectTrigger from "@vueda/controls/select/ControlSelectTrigger.vue";
-import ControlSelectValue from "@vueda/controls/select/ControlSelectValue.vue";
+import Select from "@vueda/controls/select/Select.vue";
+import SelectContent from "@vueda/controls/select/SelectContent.vue";
+import SelectItem from "@vueda/controls/select/SelectItem.vue";
+import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
+import SelectValue from "@vueda/controls/select/SelectValue.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";
 
 /**
- * A dropdown select widget that assembles ControlSelect sub-components for
+ * A dropdown select widget that assembles Select sub-components for
  * static choice fields. Used when a styled dropdown is preferred over a native
  * select element.
  */
@@ -39,13 +39,13 @@ const computedOptions = computed(() => {
 });
 </script>
 <template>
-    <ControlSelect
+    <Select
         v-model="widgetContext.state.combinedValue"
         :disabled="widgetContext.state.disabled"
         :name="widgetContext.state.combinedName"
         v-bind="$attrs"
     >
-        <ControlSelectTrigger
+        <SelectTrigger
             :id="fieldContext?.state.fieldId"
             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
             :aria-required="widgetContext.state.required || undefined"
@@ -53,12 +53,12 @@ const computedOptions = computed(() => {
             @blur="widgetContext.blur"
             @focus="widgetContext.focus"
         >
-            <ControlSelectValue :placeholder="placeholder" />
-        </ControlSelectTrigger>
-        <ControlSelectContent>
-            <ControlSelectItem v-for="option in computedOptions" :key="option.value" :value="option.value">
+            <SelectValue :placeholder="placeholder" />
+        </SelectTrigger>
+        <SelectContent>
+            <SelectItem v-for="option in computedOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
-            </ControlSelectItem>
-        </ControlSelectContent>
-    </ControlSelect>
+            </SelectItem>
+        </SelectContent>
+    </Select>
 </template>

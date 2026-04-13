@@ -1,9 +1,9 @@
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import FeedbackAlert from "@vueda/feedback/alert/FeedbackAlert.vue";
-import FeedbackAlertDescription from "@vueda/feedback/alert/FeedbackAlertDescription.vue";
-import FeedbackSpinner from "@vueda/feedback/spinner/FeedbackSpinner.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
+import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";
@@ -75,13 +75,13 @@ const theme = useTheme("ViewRecoveryCodes");
             <div v-if="hasTotpdevices" :class="theme('inner')" data-qa="view-recovery-codes-form-inner">
                 <strong data-qa="view-recovery-codes-form-inner-title"> Unused Recovery codes: </strong>
                 <div :class="theme('messageContainer')" data-qa="view-recovery-codes-form-message-container">
-                    <FeedbackAlert variant="warning">
-                        <FeedbackAlertDescription>
+                    <Alert variant="warning">
+                        <AlertDescription>
                             Keep your recovery codes in a safe spot. These codes are the last resort for accessing your
                             account in case you lose your password and second factors. If you cannot find these codes,
                             you <strong>will</strong> lose access to your account.
-                        </FeedbackAlertDescription>
-                    </FeedbackAlert>
+                        </AlertDescription>
+                    </Alert>
                 </div>
                 <div :class="theme('listContainer')" data-qa="view-recovery-codes-form-list-container">
                     <ul :class="theme('list')" data-qa="view-recovery-codes-form-list">
@@ -97,26 +97,19 @@ const theme = useTheme("ViewRecoveryCodes");
                 </div>
 
                 <div :class="theme('savingOptionButtons')" data-qa="view-recovery-codes-saving-options">
-                    <ControlButton class="w-32" variant="secondary" size="sm" @click="downloadCodes"
-                        >Download</ControlButton
-                    >
-                    <ControlButton class="w-32" variant="secondary" size="sm" @click="printPage">Print</ControlButton>
-                    <ControlButton
-                        class="w-32"
-                        :variant="copied ? 'default' : 'secondary'"
-                        size="sm"
-                        @click="copy(codesText)"
-                    >
+                    <Button class="w-32" variant="secondary" size="sm" @click="downloadCodes">Download</Button>
+                    <Button class="w-32" variant="secondary" size="sm" @click="printPage">Print</Button>
+                    <Button class="w-32" :variant="copied ? 'default' : 'secondary'" size="sm" @click="copy(codesText)">
                         {{ copied ? "Copied!" : "Copy All" }}
-                    </ControlButton>
+                    </Button>
                 </div>
             </div>
-            <FeedbackAlert v-else variant="destructive">
-                <FeedbackAlertDescription>
+            <Alert v-else variant="destructive">
+                <AlertDescription>
                     You don't have 2FA enabled. Set up a two-factor authentication device first to view or generate
                     recovery codes.
-                </FeedbackAlertDescription>
-            </FeedbackAlert>
+                </AlertDescription>
+            </Alert>
         </template>
         <template #action-bar="{ loading, handleCancelClick }">
             <div v-if="hasTotpdevices" :class="theme('actionBar')" data-qa="view-recovery-codes-form-action-bar">
@@ -125,20 +118,20 @@ const theme = useTheme("ViewRecoveryCodes");
                     When you generate new recovery codes, you must download or print the new codes. Your old codes won't
                     work anymore.
                 </div>
-                <ControlButton :disabled="loading" type="submit">
-                    <FeedbackSpinner v-if="loading" />
+                <Button :disabled="loading" type="submit">
+                    <Spinner v-if="loading" />
                     Generate new recovery codes
-                </ControlButton>
-                <ControlButton variant="ghost" :disabled="loading" @click="handleCancelClick">
-                    <FeedbackSpinner v-if="loading" />
+                </Button>
+                <Button variant="ghost" :disabled="loading" @click="handleCancelClick">
+                    <Spinner v-if="loading" />
                     Go Back
-                </ControlButton>
+                </Button>
             </div>
             <div v-else data-qa="view-recovery-codes-form-action-bar-invalid">
-                <ControlButton :disabled="loading" @click="handleCancelClick">
-                    <FeedbackSpinner v-if="loading" />
+                <Button :disabled="loading" @click="handleCancelClick">
+                    <Spinner v-if="loading" />
                     Go Back
-                </ControlButton>
+                </Button>
             </div>
         </template>
     </auth-form>

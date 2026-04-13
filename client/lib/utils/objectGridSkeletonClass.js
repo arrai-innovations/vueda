@@ -1,6 +1,6 @@
 /**
  * @module utils/objectGridSkeletonClass
- * @description Returns Tailwind classes to size a FeedbackSkeleton for each field type in an object grid.
+ * @description Returns Tailwind classes to size a Skeleton for each field type in an object grid.
  */
 
 /**

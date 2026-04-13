@@ -24,7 +24,7 @@ const ControlInputStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/controls/input/ControlInput.vue", () => ({ default: ControlInputStub }));
+vi.mock("@vueda/controls/input/Input.vue", () => ({ default: ControlInputStub }));
 
 vi.mock("@vueda/use/useMaska.js", () => ({
     useMaska: vi.fn(() => ({
@@ -71,7 +71,7 @@ describe("lib/widgets/WidgetTextInput.vue", () => {
     });
 
     describe("Rendering", () => {
-        scopedIt("renders a ControlInput element", async () => {
+        scopedIt("renders a Input element", async () => {
             const wrapper = mount(WidgetTextInput);
             expect(wrapper.get(QA_SEL).element.tagName).toBe("INPUT");
         });

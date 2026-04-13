@@ -1,6 +1,6 @@
 <script setup>
-import ControlButton from "@vueda/controls/button/ControlButton.vue";
-import ControlFileUpload from "@vueda/controls/file-upload/ControlFileUpload.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import FileUpload from "@vueda/controls/file-upload/FileUpload.vue";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
@@ -88,18 +88,18 @@ const fileURL = computed(() => {
             >
                 <a :class="theme('link')" :href="fileURL">{{ fileName }}</a>
                 <div :class="theme('buttonGroup')">
-                    <ControlButton variant="ghost" size="icon-sm" data-qa="file-remove" @click="onRemoveFile">
+                    <Button variant="ghost" size="icon-sm" data-qa="file-remove" @click="onRemoveFile">
                         <span aria-hidden="true" class="select-none">✕</span>
                         <span class="sr-only">Remove file</span>
-                    </ControlButton>
-                    <ControlButton variant="ghost" size="icon-sm" data-qa="file-download" @click="onDownload">
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" data-qa="file-download" @click="onDownload">
                         <span aria-hidden="true" class="select-none">⇩</span>
                         <span class="sr-only">Download file</span>
-                    </ControlButton>
+                    </Button>
                 </div>
             </div>
             <div v-else>
-                <!-- @slot [file-uploader] Replaces the default ControlFileUpload component; receives `disabled`, `invalid`, `aria-labelledby`, and an `update:modelValue` event handler. -->
+                <!-- @slot [file-uploader] Replaces the default FileUpload component; receives `disabled`, `invalid`, `aria-labelledby`, and an `update:modelValue` event handler. -->
                 <slot
                     :aria-labelledby="fieldContext?.state.fieldId"
                     :disabled="widgetContext.state.disabled"
@@ -107,7 +107,7 @@ const fileURL = computed(() => {
                     name="file-uploader"
                     @update:model-value="onFileSelected"
                 >
-                    <ControlFileUpload
+                    <FileUpload
                         :accept="accept"
                         :aria-labelledby="fieldContext?.state.fieldId"
                         :aria-required="widgetContext.state.required"
