@@ -57,11 +57,16 @@ const theme = useTheme("Slider", props);
 </script>
 
 <template>
-    <SliderRoot v-slot="{ modelValue }" data-slot="slider" :class="[theme('root'), props.class]" v-bind="forwarded">
+    <SliderRoot
+        v-slot="{ modelValue: sliderValue }"
+        data-slot="slider"
+        :class="[theme('root'), props.class]"
+        v-bind="forwarded"
+    >
         <SliderTrack data-slot="slider-track" :class="theme('track')">
             <SliderRange data-slot="slider-range" :class="theme('range')" />
         </SliderTrack>
 
-        <SliderThumb v-for="(_, key) in modelValue" :key="key" data-slot="slider-thumb" :class="theme('thumb')" />
+        <SliderThumb v-for="(_, key) in sliderValue" :key="key" data-slot="slider-thumb" :class="theme('thumb')" />
     </SliderRoot>
 </template>
