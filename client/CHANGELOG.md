@@ -6,6 +6,11 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Breaking Changes
 
+- **availableFields / Field type components**:
+    - Removed all type-specific `Field<Type>` components (`FieldString`, `FieldNumber`, `FieldBoolean`, `FieldDate`, `FieldDateTime`, `FieldTime`, `FieldDecimal`, `FieldDuration`, `FieldRange`, `FieldArray`, `FieldObject`, `FieldEmail`, `FieldURL`, `FieldUUID`, `FieldIP`, `FieldFile`, `FieldImage`) and their entries in `availableFields`. `FormField` is now the sole generic field component.
+    - Also removed `useDevTypeGuard` (was only used internally by the removed components).
+      _If you referenced these components by string name (e.g. in `fieldComponents` model config) or imported them directly, replace them with `FormField` and pass the appropriate `validation` prop (e.g. `validation: "text"`, `"numeric"`, `"decimal"`, `"date"`, `"datetime"`, or `"time"`)._
+
 - **makeCrud**:
     - `makeCRUDRoutes` now requires `actionRedirect` (e.g. `{ name: "not-found" }`) so missing model/action guard paths cannot attempt to resolve a null redirect.
       _If you were relying on the previous default, pass an explicit redirect route that is not gated by `requireModelInfo` to avoid redirect loops._

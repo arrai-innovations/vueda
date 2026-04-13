@@ -11,18 +11,6 @@ import { defineAsyncComponent } from "vue";
 /** @type {{[fieldComponentName:string]: FieldComponent}} */
 export const availableFields = {
     FormField: defineAsyncComponent(async () => (await import("@vueda/fields/FormField.vue")).default),
-    FieldArray: defineAsyncComponent(async () => (await import("@vueda/fields/FieldArray.vue")).default),
-    FieldBoolean: defineAsyncComponent(async () => (await import("@vueda/fields/FieldBoolean.vue")).default),
-    FieldDate: defineAsyncComponent(async () => (await import("@vueda/fields/FieldDate.vue")).default),
-    FieldDateTime: defineAsyncComponent(async () => (await import("@vueda/fields/FieldDateTime.vue")).default),
-    FieldDecimal: defineAsyncComponent(async () => (await import("@vueda/fields/FieldDecimal.vue")).default),
-    FieldDuration: defineAsyncComponent(async () => (await import("@vueda/fields/FieldDuration.vue")).default),
-    FieldEmail: defineAsyncComponent(async () => (await import("@vueda/fields/FieldEmail.vue")).default),
-    FieldFile: defineAsyncComponent(async () => (await import("@vueda/fields/FieldFile.vue")).default),
-    FieldImage: defineAsyncComponent(async () => (await import("@vueda/fields/FieldImage.vue")).default),
-    FieldNumber: defineAsyncComponent(async () => (await import("@vueda/fields/FieldNumber.vue")).default),
-    FieldObject: defineAsyncComponent(async () => (await import("@vueda/fields/FieldObject.vue")).default),
-    FieldRange: defineAsyncComponent(async () => (await import("@vueda/fields/FieldRange.vue")).default),
     FieldSetMany: defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetMany.vue")).default),
     FieldSetRange: defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetRange.vue")).default),
     FieldSetSingularStackedInline: defineAsyncComponent(
@@ -34,10 +22,6 @@ export const availableFields = {
     FieldSetTabularInline: defineAsyncComponent(
         async () => (await import("@vueda/fields/FieldSetTabularInline.vue")).default,
     ),
-    FieldString: defineAsyncComponent(async () => (await import("@vueda/fields/FieldString.vue")).default),
-    FieldTime: defineAsyncComponent(async () => (await import("@vueda/fields/FieldTime.vue")).default),
-    FieldURL: defineAsyncComponent(async () => (await import("@vueda/fields/FieldURL.vue")).default),
-    FieldUUID: defineAsyncComponent(async () => (await import("@vueda/fields/FieldUUID.vue")).default),
 };
 
 /**
