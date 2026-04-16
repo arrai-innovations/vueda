@@ -1,4 +1,10 @@
-"""Serializer fields for available actions, template tags, and templated text."""
+"""DRF serializer fields tied to Vueda domain concepts.
+
+Custom serializer fields for available actions, template tags, and
+templated text. Unlike the generic field-type helpers in
+vueda.core.fields.serializers, these are specific to Vueda's
+serialization layer and have no standalone Django field counterpart.
+"""
 
 __all__ = (
     "AvailableActionsField",
