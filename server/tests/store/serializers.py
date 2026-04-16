@@ -546,3 +546,66 @@ class InvoiceBaseSerializer(
     class Meta:
         model = models.Invoice
         fields = ["id", "name", "invoice_lines"]
+
+
+class OrderCompositePKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.OrderCompositePK
+        fields = [
+            "id",
+            "order_number",
+            "order_date",
+        ] + VuedaSerializer.Meta.fields
+
+
+class ProductCompositePKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.ProductCompositePK
+        fields = [
+            "id",
+            "name",
+        ] + VuedaSerializer.Meta.fields
+
+
+class OrderItemCompositePKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.OrderItemCompositePK
+        fields = [
+            "pk",
+            "order",
+            "product",
+            "quantity",
+        ] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "order": (
+                OrderCompositePKSerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        "id",
+                        "order_number",
+                        "order_date",
+                    ],
+                },
+            ),
+            "product": (
+                ProductCompositePKSerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        "id",
+                        "name",
+                    ],
+                },
+            ),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class OrderItemAltCompositePKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.OrderItemAltCompositePK
+        fields = [
+            "pk",
+            "order",
+            "product",
+            "quantity",
+        ] + VuedaSerializer.Meta.fields

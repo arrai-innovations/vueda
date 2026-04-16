@@ -189,3 +189,19 @@ class InvoiceBaseViewSet(ModelViewSet):
     queryset = my_models.Invoice.objects.all()
     serializer_class = my_serializers.InvoiceBaseSerializer
     permission_classes = [permissions.AllowAny]
+
+
+class OrderItemCompositePKViewSet(VuedaViewSet):
+    queryset = my_models.OrderItemCompositePK.objects.all()
+    serializer_class = my_serializers.OrderItemCompositePKSerializer
+    filterset_class = my_filtersets.OrderItemCompositePKFilterSet
+    ordering_fields = ["order", "product", "quantity"]
+
+    @action(detail=False, methods=["post"], permission_classes=(), bulk=True)
+    def test_action(self, request):
+        return None
+
+
+class OrderItemAltCompositePKViewSet(VuedaViewSet):
+    queryset = my_models.OrderItemAltCompositePK.objects.all()
+    serializer_class = my_serializers.OrderItemAltCompositePKSerializer
