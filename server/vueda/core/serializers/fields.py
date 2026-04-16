@@ -8,6 +8,7 @@ serialization layer and have no standalone Django field counterpart.
 
 __all__ = (
     "AvailableActionsField",
+    "CompositePrimaryKeyField",
     "TemplateTagsDataField",
     "TemplatedTextField",
 )
@@ -104,3 +105,39 @@ class TemplatedTextField(serializers.JSONField):
     """
 
     pass
+
+
+class CompositePrimaryKeyField(serializers.CharField):
+    """
+    CompositePrimaryKey returns the pk as a json list:
+    '["1", "1"]'
+
+    Internally it needs to convert it back to a list or tuple queries won't work:
+        TupleExact
+        TupleGreaterThan
+        TupleGreaterThanOrEqual
+        TupleLessThan
+        TupleLessThanOrEqual
+        TupleIn
+        TupleIsNull
+    """
+
+    def to_representation(self, value):
+        # value_to_string requires a class with a pk attribute.
+        class PK:
+            def __init__(self, pk):
+                self.pk = pk
+
+            def value_from_object(self):
+                return self.pk
+
+        obj = PK(value)
+
+        # Get the CompositePrimaryKey field off the model, so we can call value_to_string.
+        composite_primary_key = self.parent.Meta.model._meta.pk
+        return composite_primary_key.value_to_string(obj)
+
+    def to_internal_value(self, data):
+        # Get the CompositePrimaryKey field off the model, so we can call to_python.
+        composite_primary_key = self.parent.Meta.model._meta.pk
+        return composite_primary_key.to_python(data)

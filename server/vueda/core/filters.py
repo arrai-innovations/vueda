@@ -93,8 +93,15 @@ class IdInFilterSet(rest_framework.FilterSet):
     id = NumberArrayFilter(field_name="id", lookup_expr="in", widget=forms.HiddenInput)
 
 
-class VuedaFilterSet(IdInFilterSet, rest_framework.FilterSet):
+class VuedaFilterSet(IdInFilterSet):
     pass
+
+
+class VuedaCompositePrimaryKeyFilterSet(rest_framework.FilterSet):
+    """
+    We can't have a default 'pk' filter.
+    We would want filters for each field that combines to make the pk.
+    """
 
 
 TRIGRAM_SIMILAR_PREFIX = "#"

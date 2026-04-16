@@ -23,6 +23,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import StepValueValidator
 from django.db import connection
+from django.db.models import CompositePrimaryKey
 from django.http import Http404
 from django.utils.functional import cached_property
 from django_filters.fields import ChoiceIterator
@@ -34,6 +35,7 @@ from rest_framework.fields import _UnvalidatedField
 from rest_framework.filters import OrderingFilter
 
 from vueda.core.open_api import replace_refs_with_schema
+from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.utils import AvailableActionsRequest
 from vueda.info import open_api_tracebacks
@@ -304,7 +306,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
             effective_label = field.label or field_name.replace("_", " ").title()
 
-            model_field = getattr(serializer.Meta.model, field_name, None)
+            if isinstance(field, CompositePrimaryKeyField):
+                model_field = serializer.Meta.model._meta.get_field(field_name)
+
+            else:
+                model_field = getattr(serializer.Meta.model, field_name, None)
 
             lookup_expression = f"{field_name}_lookup_expression"
             if hasattr(serializer.Meta.model, lookup_expression):
@@ -487,8 +493,21 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         queryset = viewset().get_queryset()
         model = queryset.model
         ordering_data = []
+        view = viewset()
 
-        for field_name, _title in OrderingFilter().get_valid_fields(queryset, viewset()):
+        has_composite_primary_key = False
+        for field in model._meta.fields:
+            if isinstance(field, CompositePrimaryKey):
+                has_composite_primary_key = True
+
+        # Temporary code to prevent a blow up when a model with a composite primary
+        # key has no ordering fields set up on the view and there are no objects created.
+        # Once this pull request (https://github.com/arrai-innovations/vueda/pull/19) is
+        # deployed, this code will be removed, because we don't use get_valid_fields.
+        if has_composite_primary_key and not queryset and getattr(view, "ordering_fields", None) is None:
+            return ordering_data
+
+        for field_name, _title in OrderingFilter().get_valid_fields(queryset, view):
             try:
                 field = get_fields_from_path(model, field_name)[-1]
             except FieldDoesNotExist:

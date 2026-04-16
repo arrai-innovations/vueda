@@ -21,6 +21,7 @@ import warnings
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import CompositePrimaryKey
 from django.db.models import Q
 from django.db.models import Sum
 from rest_flex_fields import WILDCARD_VALUES
@@ -635,6 +636,22 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
             allowed_actions.add(extra_action.url_name)
 
         return allowed_actions
+
+    def get_object(self):
+        """
+        Override this function to convert the pk kwarg to a list if the model has a composite primary key.
+        """
+        if hasattr(self, "kwargs") and "pk" in self.kwargs:
+            has_composite_primary_key = False
+            for field in self.queryset.model._meta.fields:
+                if isinstance(field, CompositePrimaryKey):
+                    has_composite_primary_key = True
+
+            if has_composite_primary_key:
+                # 'CompositePrimaryKey' must be named 'pk'.
+                self.kwargs["pk"] = self.kwargs["pk"].split(",")
+
+        return super().get_object()
 
 
 class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):

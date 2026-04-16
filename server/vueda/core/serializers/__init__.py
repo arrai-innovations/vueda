@@ -21,11 +21,13 @@ import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import CompositePrimaryKey
 from rest_flex_fields import split_levels
 from rest_framework import serializers
 
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers.fields import AvailableActionsField
+from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
@@ -394,6 +396,11 @@ class VuedaSerializer(
     """
 
     available_actions = AvailableActionsField()
+
+    serializer_field_mapping = {
+        **serializers.ModelSerializer.serializer_field_mapping,
+        CompositePrimaryKey: CompositePrimaryKeyField,
+    }
 
     class Meta:
         expandable_fields = {}
