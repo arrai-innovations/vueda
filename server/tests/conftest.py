@@ -5,7 +5,6 @@ import importlib
 import io
 from collections import OrderedDict
 from http import HTTPStatus
-from urllib.parse import urlencode
 
 import pytest
 from django import db
@@ -211,11 +210,11 @@ class BaseTestCommonModelViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin,
     model: models.Model = None
     page_data_arguments = ()
 
-    def list_url(self):
-        return reverse(f"{self.model._meta.label_lower}-list")
+    def list_url(self, query=None):
+        return reverse(f"{self.model._meta.label_lower}-list", query=query)
 
-    def detail_url(self, pk):
-        return reverse(f"{self.model._meta.label_lower}-detail", kwargs={"pk": pk})
+    def detail_url(self, pk, query=None):
+        return reverse(f"{self.model._meta.label_lower}-detail", kwargs={"pk": pk}, query=query)
 
     @pytest.fixture
     def page_data(self):
@@ -324,8 +323,7 @@ class BaseTestCreateModelViewSet:
         self, page_data, authenticated_client, create_arguments, expected_create_response, detail_querystring
     ):
         status_code = self.expected_create_status_code
-        qs = f"?{urlencode(detail_querystring, doseq=True)}" if detail_querystring else ""
-        response = authenticated_client.post(self.list_url() + qs, data=create_arguments, format="json")
+        response = authenticated_client.post(self.list_url(detail_querystring), data=create_arguments, format="json")
         new_instance = self.model.objects.latest("pk")
         assert response.status_code == status_code, (
             f"{response.status_code} != {status_code}, response.data: {response.data}"
@@ -456,9 +454,8 @@ class BaseTestUpdateModelViewSet:
         detail_querystring,
     ):
         status_code = self.expected_update_status_code
-        qs = f"?{urlencode(detail_querystring, doseq=True)}" if detail_querystring else ""
         response = authenticated_client.put(
-            self.detail_url(page_data.first().id) + qs, data=update_arguments, format="json"
+            self.detail_url(page_data.first().id, detail_querystring), data=update_arguments, format="json"
         )
         updated_instance = self.model.objects.first()
         assert response.status_code == status_code, (

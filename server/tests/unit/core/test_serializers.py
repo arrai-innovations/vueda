@@ -53,9 +53,12 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             period_end=date(2024, 2, 29),
         )
 
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
         response = api_client.put(
-            url + f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=period_start,period_end",
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
+            ),
             data={
                 "period_start": date(2024, 2, 16),
                 "period_end": date(2024, 2, 25),
@@ -82,9 +85,12 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             period_end=date(2024, 2, 29),
         )
 
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
         response = api_client.put(
-            url + f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=period_start,une",
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,une"},
+            ),
             data={
                 "period_start": date(2024, 2, 16),
                 "period_end": date(2024, 2, 25),
@@ -112,9 +118,12 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             period_end=date(2024, 2, 29),
         )
 
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
         response = api_client.put(
-            url + f"?{settings.REST_FLEX_FIELDS['EXPAND_PARAM']}=employee,foo",
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,foo"},
+            ),
             data={
                 "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-12345"},
                 "period_start": date(2024, 2, 16),
@@ -144,9 +153,12 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             period_end=date(2024, 2, 29),
         )
 
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
         response = api_client.put(
-            url + f"?{settings.REST_FLEX_FIELDS['EXPAND_PARAM']}=foo,label10",
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "foo,label10"},
+            ),
             data={
                 "employee": e1.pk,
                 "period_start": date(2024, 2, 16),
@@ -172,11 +184,15 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             period_end=date(2024, 2, 29),
         )
 
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
         response = api_client.put(
-            url
-            + f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=period_start,period_end,employee&"
-            + f"{settings.REST_FLEX_FIELDS['EXPAND_PARAM']}=employee",
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end,employee",
+                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
+                },
+            ),
             data={
                 "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-123456"},
                 "period_start": date(2024, 2, 16),
@@ -205,11 +221,15 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             period_end=date(2024, 2, 29),
         )
 
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
         response = api_client.put(
-            url
-            + f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=period_start,period_end,employee,invalid_field_name&"
-            + f"{settings.REST_FLEX_FIELDS['EXPAND_PARAM']}=employee",
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end,employee,invalid_field_name",
+                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
+                },
+            ),
             data={
                 "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-123456"},
                 "period_start": date(2024, 2, 16),
