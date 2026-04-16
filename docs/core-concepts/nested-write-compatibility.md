@@ -25,9 +25,9 @@ The mixin enforces this by performing flex-field application in `to_internal_val
 
 ## View-Bound Flex Application
 
-Flex fields are applied only when the serializer is the view's top-level serializer class, and only once per serialization pass. The mixin tracks this with a `_flex_fields_rep_applied` flag. When `to_internal_value` runs, it checks whether the serializer is bound to the view (i.e., it is the root serializer, not a nested child) and whether flex fields have already been applied. If both conditions are met, it applies flex fields; otherwise, it skips the application.
+Flex fields are applied only when the serializer is the view's top-level serializer class, and only once per serialization pass. The mixin tracks this with a `_flex_fields_rep_applied` flag. When `to_internal_value` runs, it checks whether the serializer is bound to the view (i.e., it is the root serializer, not a nested child) and whether flex fields have not already been applied. If both conditions are met, it applies flex fields; otherwise, it skips the application.
 
-This means nested serializers do not receive automatic flex-field application through this mixin. A nested child serializer will include whatever fields its class defines, regardless of the request's query parameters. This is intentional: double-application of flex fields is treated as an error case, and nested serializers should not independently interpret `f`/`e` parameters. The practical consequence is that if a nested serializer's field set needs to vary, that variation must be handled through serializer class design (different serializer classes for different contexts), not through flex-field query parameters.
+This means nested serializers do not receive flex-field application through this mixin, it occurs as a result of the main serializer's flex-field application being applied. A nested child serializer will include whatever fields are specified by the request's query parameters, or whatever fields its class defines if none are specified in the request's query parameters. Double-application of flex fields is treated as an error case, and nested serializers do not independently interpret `f`/`e` parameters.
 
 ## Nested Serializer Data Access
 
@@ -49,7 +49,7 @@ This means that if a relation is accidentally declared with a read-only serializ
 
 The mixin defines a fixed update sequence for nested writes:
 
-1. **Direct relations are updated first.** Forward foreign key relations that appear in the payload are created or updated via `update_or_create_direct_relations` before the parent instance is saved. This ensures that foreign key values are available when the parent's `save()` runs.
+1. **Direct relations are created or updated first.** Forward foreign key relations that appear in the payload are created or updated via `update_or_create_direct_relations` before the parent instance is saved. This ensures that foreign key values are available when the parent's `save()` runs.
 
 2. **The parent instance is updated.** The parent model's fields are written to the database.
 
@@ -61,13 +61,13 @@ The mixin defines a fixed update sequence for nested writes:
 
 This sequence is not configurable. Custom save logic that depends on reverse relations being present before the parent save, or that expects parent save to happen before direct relation updates, will conflict with this ordering.
 
+This sequence has diverged from the default, due to a bug discovered in drf-writeable-nested. A test has been created (in TestCreateIssueExpectedFailure) that will fail if things are fixed in drf-writable-nested. We will review the need for the overriding code if this occurs. The original sequence had #3 and #4 reversed.
+
 ## Observable Failure Modes
 
 **Readonly serializer payloads are silently dropped.** Reverse relation data targeting a `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer` field is excluded from nested write extraction. The request succeeds, but the nested data has no effect. Symptom: parent object saves correctly, child objects remain unchanged.
 
-**Flex fields on nested serializers are not applied.** Nested child serializers skip flex-field application because they are not the view's root serializer. Symptom: a nested serializer includes or excludes different fields than expected based on query parameters. Vary nested field sets through serializer class design, not query parameters.
-
-**Double flex-field application is blocked.** If the `_flex_fields_rep_applied` flag is somehow set before the first legitimate application (through incorrect serializer reuse or manual flag manipulation), flex fields will not be applied at all. Symptom: the root serializer behaves as though no `f`/`e` parameters were passed.
+**Double flex-field application is blocked.** If the `_flex_fields_rep_applied` flag is somehow set before the first legitimate application (through incorrect serializer reuse or manual flag manipulation), flex fields will not be applied at all. Symptom: serializers behave as though no `f`/`e` parameters were passed.
 
 **Unique validation timing in nested flows.** `UniqueFieldsMixin` is composed before the nested `create`/`update` mixins in the mixin chain. Unique-together validation runs at the serializer validation phase, before nested objects are persisted. For validation rules that depend on the final state of nested relations (e.g., uniqueness constraints that span parent and child), the validation may evaluate against stale database state.
 
