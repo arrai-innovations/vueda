@@ -57,6 +57,16 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "OrderItem", "list"),
             ("store", "OrderItem", "read"),
             ("store", "OrderItem", "update"),
+            ("store", "OrderItemCompositePK", "create"),
+            ("store", "OrderItemCompositePK", "delete"),
+            ("store", "OrderItemCompositePK", "list"),
+            ("store", "OrderItemCompositePK", "read"),
+            ("store", "OrderItemCompositePK", "update"),
+            ("store", "OrderItemAltCompositePK", "create"),
+            ("store", "OrderItemAltCompositePK", "delete"),
+            ("store", "OrderItemAltCompositePK", "list"),
+            ("store", "OrderItemAltCompositePK", "read"),
+            ("store", "OrderItemAltCompositePK", "update"),
             ("store", "OrderState", "create"),
             ("store", "OrderState", "delete"),
             ("store", "OrderState", "list"),
@@ -116,6 +126,12 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "OrderItem", "create"),
             ("store", "OrderItem", "list"),
             ("store", "OrderItem", "read"),
+            ("store", "OrderItemCompositePK", "create"),
+            ("store", "OrderItemCompositePK", "list"),
+            ("store", "OrderItemCompositePK", "read"),
+            ("store", "OrderItemAltCompositePK", "create"),
+            ("store", "OrderItemAltCompositePK", "list"),
+            ("store", "OrderItemAltCompositePK", "read"),
             ("store", "OrderState", "list"),
             ("store", "OrderState", "read"),
             ("store", "PackingBox", "list"),
@@ -175,6 +191,10 @@ class TestModelInfoSerializer:
         info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
         info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)
+        info.register(store_serializers.OrderItemCompositePKSerializer, store_viewsets.OrderItemCompositePKViewSet)
+        info.register(
+            store_serializers.OrderItemAltCompositePKSerializer, store_viewsets.OrderItemAltCompositePKViewSet
+        )
 
     def check_model_actions_data(self, response_data, expected_data, app_label, model_name):
         data = response_data.data["model_actions"]
@@ -275,7 +295,7 @@ class TestModelInfoSerializer:
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
         assert response.status_code == HTTPStatus.OK, str(response.data)
-        assert response.data["totalRecords"] == 12  # noqa: PLR2004
+        assert response.data["totalRecords"] == 14  # noqa: PLR2004
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",

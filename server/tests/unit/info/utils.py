@@ -946,3 +946,9 @@ def create_test_data(self):
         }
 
     self.carts = carts
+
+    # Make composite primary pk objects.
+    # The Alt version must not have any objects.
+    order = store_models.OrderCompositePK.objects.create(order_number="1234")
+    product = store_models.ProductCompositePK.objects.create(name="Test Composite PK Product")
+    store_models.OrderItemCompositePK.objects.create(order=order, product=product, quantity=1)
