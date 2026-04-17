@@ -19,7 +19,7 @@ vi.mock("@vueda/use/useWarnings.js", () => ({
     useWarnings: mockedUseWarnings,
 }));
 
-const mockedUseTheme = vi.fn(() => ({ root: "theme-root" }));
+const mockedUseTheme = vi.fn(() => (key) => (key === "root" ? "theme-root" : ""));
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
     THEME_OVERRIDE_PROPS: {},

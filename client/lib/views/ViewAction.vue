@@ -90,7 +90,7 @@ const theme = useTheme("ViewAction", props);
 </script>
 
 <template>
-    <div :class="theme('root')" data-qa="view-action-root">
+    <div :class="theme('root')" v-bind="$attrs" data-qa="view-action-root">
         <PageTitle :title="actionTitleText">
             <template #button>
                 <slot label="Go Back" name="return-button" verb="return" @click="handleReturnClick">
@@ -102,7 +102,7 @@ const theme = useTheme("ViewAction", props);
             </template>
         </PageTitle>
         <slot :action="action" :app="app" :form-context="formContext" :model="model" :pk="pk">
-            <model-action-form :action="action" :app="app" :model="model" v-bind="$attrs">
+            <model-action-form :action="action" :app="app" :model="model" v-bind="omit($attrs, ['class'])">
                 <template v-for="(_, slot) in omit(slots, ['before-list'])" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
