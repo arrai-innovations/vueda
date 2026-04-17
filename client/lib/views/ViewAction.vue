@@ -1,5 +1,4 @@
 <script setup>
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import Button from "@vueda/controls/button/Button.vue";
@@ -48,11 +47,6 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
-    /** Additional CSS classes applied to the root element. */
-    class: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
     /** Initial field values pre-populated into the action form. */
     initialFormValues: {
         type: Object,
@@ -93,11 +87,10 @@ const handleReturnClick = () => {
     router.back();
 };
 const theme = useTheme("ViewAction", props);
-const rootClass = computed(() => combineClasses(theme.root, props.class));
 </script>
 
 <template>
-    <div :class="rootClass" data-qa="view-action-root">
+    <div :class="theme('root')" data-qa="view-action-root">
         <PageTitle :title="actionTitleText">
             <template #button>
                 <slot label="Go Back" name="return-button" verb="return" @click="handleReturnClick">

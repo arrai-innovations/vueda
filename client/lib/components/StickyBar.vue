@@ -1,7 +1,5 @@
 <script setup>
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import omit from "lodash-es/omit.js";
 import { computed, onBeforeUnmount, onMounted, reactive, ref, useTemplateRef, watch } from "vue";
 
 /**
@@ -70,12 +68,7 @@ const theme = useTheme(
 );
 </script>
 <template>
-    <div
-        ref="root"
-        :class="combineClasses(theme('root'), $attrs.class)"
-        data-qa="sticky-bar-root"
-        v-bind="omit($attrs, ['class'])"
-    >
+    <div ref="root" :class="theme('root')" data-qa="sticky-bar-root">
         <div :class="theme('inner')" data-qa="sticky-bar-inner">
             <slot />
         </div>

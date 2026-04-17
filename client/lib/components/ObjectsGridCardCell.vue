@@ -108,7 +108,7 @@ const effectiveHeaderClass = combineClasses(theme("header"), toRef(props, "heade
             {{ field.label }}
         </div>
     </slot>
-    <div :class="combineClasses(theme('value'), $attrs.class)" :data-card="field.name">
+    <div :class="theme('value')" v-bind="$attrs" :data-card="field.name">
         <!-- Cell value content; receives `calculatedObj`, `columnIndex`, `field`, `formatted`, `isTableLayout`, `isCardLayout`, `obj`, `pk`, `pkKey`, `relatedObj`, `rowIndex`, `rowCount`, `columnCount`, `value`, and any `fieldProps` as slot props. -->
         <slot
             :key="uniqueKeyForSlot"

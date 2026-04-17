@@ -68,8 +68,9 @@ watch(
 <template>
     <div
         ref="test"
-        :class="combineClasses(fieldSetTabularInline.theme('root'), $attrs.class)"
+        :class="fieldSetTabularInline.theme('root')"
         data-qa="field-set-tabular-inline-root"
+        v-bind="$attrs"
     >
         <div :class="fieldSetTabularInline.theme('inner')" data-qa="field-set-tabular-inline-inner">
             <div :class="fieldSetTabularInline.theme('titleBar')">

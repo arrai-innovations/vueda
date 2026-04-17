@@ -1,5 +1,4 @@
 <script setup>
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import FieldSetStackedInlineRow from "@vueda/components/FieldSetStackedInlineRow.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
@@ -87,7 +86,7 @@ watch(
 </script>
 
 <template>
-    <div :class="combineClasses(theme('root'), $attrs.class)">
+    <div :class="theme('root')" v-bind="$attrs">
         <div :class="theme('inner')">
             <div :class="theme('titleBar')">
                 <div v-if="fieldSetInline.state.hidable" data-qa="field-set-singular-stacked-inline-header-toggle">
