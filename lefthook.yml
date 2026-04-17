@@ -8,12 +8,12 @@ pre-commit:
     commands:
         fix-file-modes:
             glob: "**/*.{py,js,cjs,mjs,ts,tsx,vue,css,scss,less,json,yml,yaml,toml,md,html}"
-            exclude:
-                - "docs-tooling/bin/**"
-                - "scripts/build_docs.py"
             run: |
                 for f in {staged_files}; do
                     if [ "$(git ls-files --format '%(objectmode)' -- "$f")" = "100755" ]; then
+                        if git show :"$f" 2>/dev/null | head -1 | grep -q '^#!'; then
+                            continue
+                        fi
                         git update-index --chmod=-x -- "$f"
                         chmod -x "$f"
                         echo "fix-file-modes: removed +x from $f"
