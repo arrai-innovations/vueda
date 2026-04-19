@@ -6,6 +6,7 @@ import DateFieldInput from "@vueda/controls/date-field/DateFieldInput.vue";
 import Popover from "@vueda/shell/popover/Popover.vue";
 import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, ref } from "vue";
@@ -21,6 +22,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     ...WIDGET_PROPS,
     /** The granularity of the field: "day" for date-only, "hour"/"minute"/"second" for datetime. */
     granularity: { type: String, default: "day" },
@@ -70,6 +72,8 @@ const onCalendarSelect = (value) => {
         popoverOpen.value = false;
     }
 };
+
+const theme = useTheme("WidgetDateField", props);
 </script>
 
 <template>
@@ -89,33 +93,29 @@ const onCalendarSelect = (value) => {
             :aria-required="widgetContext.state.required || undefined"
             v-bind="$attrs"
             data-qa="widget-date-field"
-            class="items-center"
+            :class="theme('field')"
             @blur="widgetContext.blur"
             @focus="widgetContext.focus"
         >
             <template #default="{ segments }">
                 <template v-for="segment in segments" :key="segment.part">
-                    <DateFieldInput
-                        v-if="segment.part === 'literal'"
-                        :part="segment.part"
-                        class="text-muted-foreground"
-                    />
+                    <DateFieldInput v-if="segment.part === 'literal'" :part="segment.part" :class="theme('literal')" />
                     <DateFieldInput v-else :part="segment.part" />
                 </template>
                 <PopoverTrigger as-child>
                     <button
                         type="button"
-                        class="ml-auto inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        :class="theme('trigger')"
                         :disabled="widgetContext.state.disabled"
                         tabindex="-1"
                         data-qa="widget-date-field-trigger"
                     >
-                        <span aria-hidden="true" class="select-none text-sm leading-none">📅</span>
+                        <span aria-hidden="true" :class="theme('triggerIcon')">📅</span>
                     </button>
                 </PopoverTrigger>
             </template>
         </DateField>
-        <PopoverContent class="w-auto p-3" align="start">
+        <PopoverContent :class="theme('popoverContent')" align="start">
             <Calendar
                 :model-value="dateValue"
                 :min-value="minValue"

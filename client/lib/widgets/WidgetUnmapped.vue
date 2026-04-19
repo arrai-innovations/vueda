@@ -1,22 +1,22 @@
 <script setup>
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_PROPS } from "@vueda/use/useWidget.js";
 
 /**
  * Renders an error message when a field's widget name is not mapped to any known widget component.
  * Useful as a development-time diagnostic to surface misconfigured field definitions.
  */
-defineOptions({});
+defineOptions({ inheritAttrs: false });
 
-defineProps({
+const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     ...WIDGET_PROPS,
 });
+
+const theme = useTheme("WidgetUnmapped", props);
 </script>
 <template>
-    <div
-        role="alert"
-        data-qa="unmapped-widget-message"
-        class="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800"
-    >
+    <div role="alert" data-qa="unmapped-widget-message" :class="theme('root')" v-bind="$attrs">
         <strong>Unmapped Widget</strong> &mdash; The name "{{ name }}" is not mapped to a widget component.
     </div>
 </template>

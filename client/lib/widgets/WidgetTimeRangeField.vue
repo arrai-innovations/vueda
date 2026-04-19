@@ -2,6 +2,7 @@
 import { parseTime } from "@internationalized/date";
 import TimeField from "@vueda/controls/time-field/TimeField.vue";
 import TimeFieldInput from "@vueda/controls/time-field/TimeFieldInput.vue";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";
@@ -16,6 +17,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     ...WIDGET_PROPS,
     /** The granularity of the time fields ("hour", "minute", or "second"). */
     granularity: { type: String, default: "minute" },
@@ -71,10 +73,12 @@ function useBoundaryValue(key) {
 
 const startValue = useBoundaryValue("lower");
 const endValue = useBoundaryValue("upper");
+
+const theme = useTheme("WidgetTimeRangeField", props);
 </script>
 
 <template>
-    <div class="flex items-center gap-2" data-qa="widget-time-range-field" v-bind="$attrs">
+    <div :class="theme('root')" data-qa="widget-time-range-field" v-bind="$attrs">
         <TimeField
             :id="fieldContext?.state.fieldId"
             v-model="startValue"
@@ -87,22 +91,18 @@ const endValue = useBoundaryValue("upper");
             :name="widgetContext.state.combinedName ? widgetContext.state.combinedName + '_lower' : undefined"
             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
             :aria-required="widgetContext.state.required || undefined"
-            class="items-center"
+            :class="theme('field')"
             @blur="widgetContext.blur"
             @focus="widgetContext.focus"
         >
             <template #default="{ segments }">
                 <template v-for="segment in segments" :key="'start-' + segment.part">
-                    <TimeFieldInput
-                        v-if="segment.part === 'literal'"
-                        :part="segment.part"
-                        class="text-muted-foreground"
-                    />
+                    <TimeFieldInput v-if="segment.part === 'literal'" :part="segment.part" :class="theme('literal')" />
                     <TimeFieldInput v-else :part="segment.part" />
                 </template>
             </template>
         </TimeField>
-        <span class="text-muted-foreground" aria-hidden="true">&ndash;</span>
+        <span :class="theme('separator')" aria-hidden="true">&ndash;</span>
         <TimeField
             v-model="endValue"
             :granularity="granularity"
@@ -112,17 +112,13 @@ const endValue = useBoundaryValue("upper");
             :hour-cycle="hourCycle"
             :disabled="widgetContext.state.disabled"
             :name="widgetContext.state.combinedName ? widgetContext.state.combinedName + '_upper' : undefined"
-            class="items-center"
+            :class="theme('field')"
             @blur="widgetContext.blur"
             @focus="widgetContext.focus"
         >
             <template #default="{ segments }">
                 <template v-for="segment in segments" :key="'end-' + segment.part">
-                    <TimeFieldInput
-                        v-if="segment.part === 'literal'"
-                        :part="segment.part"
-                        class="text-muted-foreground"
-                    />
+                    <TimeFieldInput v-if="segment.part === 'literal'" :part="segment.part" :class="theme('literal')" />
                     <TimeFieldInput v-else :part="segment.part" />
                 </template>
             </template>
