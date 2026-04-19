@@ -1,12 +1,8 @@
 <script setup>
 import ActionForm from "@vueda/components/ActionForm.vue";
-import { storeUser } from "@vueda/stores/storeUser.js";
-import { useForm } from "@vueda/use/useForm.js";
-import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useSignInFlow } from "@vueda/use/useSignInFlow.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { onMounted, toRef, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { toast } from "vue-sonner";
+import { onMounted, toRef } from "vue";
 
 /**
  * Authentication wrapper that monitors login state and redirects the user after a successful sign-in, rendering a header, subtitle, and delegating to ActionForm for the actual credential form.
@@ -53,31 +49,7 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const router = useRouter();
-const route = useRoute();
-const userStore = storeUser();
-const isActive = useIsActive();
-watch(
-    [isActive, toRef(userStore, "loggedIn"), toRef(userStore, "recentlyLoggedIn"), toRef(userStore, "pendingFlow")],
-    ([newActive, newLoggedIn, recentlyLoggedIn, newPendingFlow]) => {
-        if (newPendingFlow) {
-            if (newPendingFlow.id === "mfa_authenticate") {
-                router.push({ name: "2fa" });
-            }
-        }
-        if (newActive && newLoggedIn && (!props.requireRecentLogin || recentlyLoggedIn)) {
-            if (route.query?.redirect) {
-                router.push(route.query?.redirect);
-                return;
-            }
-            router.push(props.redirect || { name: "welcome" });
-            toast.success("Signed In", {
-                description: "You are now signed in and have been redirected.",
-                duration: 10000,
-            });
-        }
-    },
-);
+const { formContext } = useSignInFlow(props);
 const theme = useTheme("AuthorizingForm", props);
 const emit = defineEmits([
     /** Emitted on mount with a ref to the reactive form values object. */
@@ -90,7 +62,6 @@ onMounted(() => {
         toRef(() => formContext.state.values),
     );
 });
-const formContext = useForm(props.formProps);
 </script>
 
 <template>

@@ -1,13 +1,10 @@
 <script setup>
 import ActionForm from "@vueda/components/ActionForm.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
-import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
-import { useForm } from "@vueda/use/useForm.js";
-import { defaultOnSubmissionError } from "@vueda/use/useObjectForm.js";
+import { storeUser } from "@vueda/stores/storeUser.js";
+import { useAuthFlow } from "@vueda/use/useAuthFlow.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { onMounted, toRef, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { toast } from "vue-sonner";
+import { onMounted, toRef } from "vue";
 
 /**
  * Renders a page-level authentication form with a title, subtitle, and action slot.
@@ -51,11 +48,10 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const router = useRouter();
-const formContext = useForm(props.formProps);
+const { formContext, onSubmissionErrorHandler: OnSubmissionErrorHandler, redirectTo } = useAuthFlow(props);
 const theme = useTheme("AuthForm", props);
 const emit = defineEmits(["form-object"]);
-const route = useRoute();
+const userStore = storeUser();
 
 onMounted(() => {
     emit(
@@ -63,34 +59,6 @@ onMounted(() => {
         toRef(() => formContext.state.values),
     );
 });
-const doReauthenticate = async () => {
-    toast.warning("Please verify your account again before proceeding", {
-        duration: 10000,
-    });
-    await router.push({ name: "reauthenticate", query: { redirect: route.fullPath } });
-};
-const userStore = storeUser();
-watch(toRef(userStore, "pendingFlow"), async (newPendingFlow) => {
-    if (newPendingFlow) {
-        if (newPendingFlow.id === "mfa_reauthenticate" || newPendingFlow.id === "reauthenticate") {
-            await doReauthenticate();
-        }
-    }
-});
-
-const OnSubmissionErrorHandler = async ({ error, formContext, toast }) => {
-    if (error instanceof UnauthorizedError) {
-        await doReauthenticate();
-        return true;
-    }
-    return await defaultOnSubmissionError({ error, formContext, toast });
-};
-const redirectTo = async () => {
-    const returnPath = route.query?.returnPath;
-    if (returnPath) {
-        await router.push(returnPath);
-    }
-};
 </script>
 
 <template>
