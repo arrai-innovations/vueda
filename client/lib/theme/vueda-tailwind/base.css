@@ -18,6 +18,9 @@
  * never generated in consuming projects' stylesheets. */
 @source "../../";
 
+/* vueda assumes `dark:` works like this */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
