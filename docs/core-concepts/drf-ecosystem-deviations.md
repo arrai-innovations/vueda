@@ -37,6 +37,18 @@ Upstream DRF request parsing tolerates unknown query parameters on `list` endpoi
 
 Both validation surfaces enforce the same principle: contract surfaces are explicit, and unknown inputs are treated as errors rather than being silently discarded. The benefit is immediate, diagnosable errors for typos and stale clients. The cost is that integrations that append unexpected query parameters or payload keys will fail rather than degrade gracefully. See [Filtering and Ordering Semantics](./filtering-and-ordering-semantics) for the list-query validation details.
 
+## Composite Primary Key Support
+
+Django's `CompositePrimaryKey` field requires coordinated deviations at the serializer, viewset, and URL routing layers.
+
+**Automatic field mapping.** `VuedaSerializer` extends DRF's `serializer_field_mapping` with an entry that maps `CompositePrimaryKey` to `CompositePrimaryKeyField`. Serializers that inherit from `VuedaSerializer` receive correct composite key serialization automatically, without declaring the field explicitly.
+
+**Django model delegation in `CompositePrimaryKeyField`.** The field delegates serialization and deserialization to the `CompositePrimaryKey` model field's own methods: `value_to_string` for outbound conversion and `to_python` for inbound parsing. Delegating to these model-level functions reduces VUEDA-specific logic and means that if Django changes the data format returned by those methods, the serializer field adjusts without modifications to VUEDA.
+
+**`get_object` URL conversion.** DRF's default `get_object` passes URL keyword arguments directly to the ORM lookup. Composite primary key models carry the key as a comma-separated string in the URL (for example, `["1","2"]/`). `VuedaViewSet.get_object` detects whether the model has a `CompositePrimaryKey` and splits the `pk` URL segment into a list before calling `super().get_object()`, because the ORM requires the key as a sequence.
+
+**`reverse()` incompatibility.** Django's `reverse()` function does not accept a list or tuple as an URL argument. A composite primary key's `.pk` attribute is a list, so passing it directly to `reverse()` raises an error. The value must be converted to a comma-separated string before being passed to `reverse()`.
+
 ## Observable Failure Modes
 
 **Query parameter typo returns 400.** A misspelled filter key or an unsupported query parameter produces an HTTP 400 with `"Invalid query parameter.  Valid filters are ..."`. The error includes the valid filter set for diagnosis.
@@ -49,5 +61,8 @@ Both validation surfaces enforce the same principle: contract surfaces are expli
 - {@api py:module:vueda.info.registration}
 - {@api py:module:vueda.core.viewsets}
 - {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}
+- {@api py:class:vueda.core.viewsets.VuedaViewSet}
+- {@api py:function:vueda.core.viewsets.VuedaViewSet.get_object}
 - {@api py:module:vueda.core.serializers}
 - {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}
+- {@api py:class:vueda.core.serializers.fields.CompositePrimaryKeyField}

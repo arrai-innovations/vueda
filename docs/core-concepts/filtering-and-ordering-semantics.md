@@ -71,6 +71,12 @@ Cached model-info errors are sticky. A failed model-info fetch for a given `app.
 
 The default filter UI uses only the first lookup expression (`lookupExprs[0]`) from each filter's metadata. Multi-lookup-expression selectors are not emitted by default. If a filter declares multiple lookup expressions (for example, `exact` and `icontains`), only the first is wired into the default filter component. A custom filter UI is needed to expose multiple lookup expressions for a single field.
 
+## Composite Primary Key Filtering
+
+Models that use a composite primary key cannot use `VuedaFilterSet` as a filterset base. `VuedaFilterSet` inherits from `IdInFilterSet`, which declares a default `id` filter. Composite primary key models have no `id` field; Django requires their primary key field to be named `pk`, and `id` is not a valid field name on such models.
+
+`VuedaCompositePrimaryKeyFilterSet` is the correct base class for filtersets on composite primary key models. It declares no default filters. Filters for the fields that form the composite key, and any other filterable model fields, must be declared explicitly on the filterset subclass.
+
 ## Observable Failure Modes
 
 **Unknown query parameter returns 400.** A typo in a `list` query key, or a stale client sending a filter key that no longer exists in the filterset, produces an HTTP 400 with the message `"Invalid query parameter.  Valid filters are ..."`. The error response includes the valid filter set, which aids diagnosis.
@@ -100,6 +106,7 @@ The default filter UI uses only the first lookup expression (`lookupExprs[0]`) f
 - {@api py:function:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet.validate_queryset}
 - {@api py:module:vueda.core.filters}
 - {@api py:class:vueda.core.filters.VuedaSearchFilterBackend}
+- {@api py:class:vueda.core.filters.VuedaCompositePrimaryKeyFilterSet}
 - {@api py:function:vueda.info.viewsets.ModelInfoChoicesBaseViewSet.check_permissions}
 - {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}
 - {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.list}
