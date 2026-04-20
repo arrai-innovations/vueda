@@ -12,7 +12,7 @@ import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import isSet from "lodash-es/isSet.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, toRef, watch } from "vue";
+import { computed, effectScope, toRaw, toRef, watch } from "vue";
 
 /**
  * Returns the slot names for a field's help, error, and message slots.
@@ -188,7 +188,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                         `No field component found for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
                     );
                 }
-                return customField;
+                return toRaw(customField);
             });
         });
         return component;
@@ -258,7 +258,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                         `No widget component found for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
                     );
                 }
-                return customWidget;
+                return toRaw(customWidget);
             });
         });
 
