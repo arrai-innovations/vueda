@@ -395,6 +395,13 @@ class VuedaSerializer(
 
     available_actions = AvailableActionsField()
 
+    def to_representation(self, instance):
+        repr_data = super().to_representation(instance)
+        sparse_fields, _ = split_levels(self._flex_options_all["fields"])
+        if "available_actions" not in sparse_fields:
+            repr_data.pop("available_actions", None)
+        return repr_data
+
     class Meta:
         expandable_fields = {}
         fields = ["formatted_name", "available_actions"]
