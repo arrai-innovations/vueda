@@ -9,6 +9,7 @@ __all__ = (
     "IdInFilterSet",
     "ModelChoiceArrayFilter",
     "NumberArrayFilter",
+    "VuedaCompositePrimaryKeyFilterSet",
     "VuedaFilterSet",
     "VuedaSearchFilterBackend",
 )
