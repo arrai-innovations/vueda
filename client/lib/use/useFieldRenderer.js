@@ -5,7 +5,7 @@
 import { mergeTheme } from "@vueda/use/useTheme.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, markRaw, shallowReadonly, unref } from "vue";
+import { computed, effectScope, markRaw, shallowReadonly, toRaw, unref } from "vue";
 
 /**
  * @typedef {object} FieldRendererProps
@@ -83,9 +83,9 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
         const remainingSlots = computed(() =>
             Object.keys(slots).filter((slotName) => !unref(knownSlots).includes(slotName)),
         );
-        const fieldComponent = computed(() => markRaw(props.formModel.fieldComponents[props.formModelName]));
+        const fieldComponent = computed(() => markRaw(toRaw(props.formModel.fieldComponents[props.formModelName])));
         const widgetComponent = computed(() =>
-            markRaw(props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped),
+            markRaw(toRaw(props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped)),
         );
         const fieldDetail = computed(() =>
             props.isFilter
