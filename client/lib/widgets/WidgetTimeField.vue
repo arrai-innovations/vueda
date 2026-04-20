@@ -77,8 +77,10 @@ const timeValue = computed({
     >
         <template #default="{ segments }">
             <template v-for="segment in segments" :key="segment.part">
-                <TimeFieldInput v-if="segment.part === 'literal'" :part="segment.part" class="text-muted-foreground" />
-                <TimeFieldInput v-else :part="segment.part" />
+                <TimeFieldInput v-if="segment.part === 'literal'" :part="segment.part" class="text-muted-foreground">{{
+                    segment.value
+                }}</TimeFieldInput>
+                <TimeFieldInput v-else :part="segment.part">{{ segment.value }}</TimeFieldInput>
             </template>
         </template>
     </TimeField>

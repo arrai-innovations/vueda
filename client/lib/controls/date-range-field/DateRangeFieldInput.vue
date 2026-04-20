@@ -34,5 +34,6 @@ const theme = useTheme("DateRangeFieldInput", props);
         :type="props.type"
         :class="[theme('root'), props.class]"
         v-bind="$attrs"
-    />
+        ><slot
+    /></DateRangeFieldInput>
 </template>

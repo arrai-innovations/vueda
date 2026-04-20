@@ -30,5 +30,6 @@ const theme = useTheme("DateFieldInput", props);
         :part="props.part"
         :class="[theme('root'), props.class]"
         v-bind="$attrs"
-    />
+        ><slot
+    /></DateFieldInput>
 </template>

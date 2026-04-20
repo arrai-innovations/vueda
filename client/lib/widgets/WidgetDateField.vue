@@ -1,5 +1,5 @@
 <script setup>
-import { parseDate, parseDateTime } from "@internationalized/date";
+import { parseDate, parseDateTime, toCalendarDateTime } from "@internationalized/date";
 import Calendar from "@vueda/controls/calendar/Calendar.vue";
 import DateField from "@vueda/controls/date-field/DateField.vue";
 import DateFieldInput from "@vueda/controls/date-field/DateFieldInput.vue";
@@ -67,6 +67,9 @@ const dateValue = computed({
 });
 
 const onCalendarSelect = (value) => {
+    if (props.granularity !== "day" && value) {
+        value = toCalendarDateTime(value, dateValue.value ?? undefined);
+    }
     dateValue.value = value;
     if (props.granularity === "day") {
         popoverOpen.value = false;
@@ -99,8 +102,10 @@ const theme = useTheme("WidgetDateField", props);
         >
             <template #default="{ segments }">
                 <template v-for="segment in segments" :key="segment.part">
-                    <DateFieldInput v-if="segment.part === 'literal'" :part="segment.part" :class="theme('literal')" />
-                    <DateFieldInput v-else :part="segment.part" />
+                    <DateFieldInput v-if="segment.part === 'literal'" :part="segment.part" :class="theme('literal')">{{
+                        segment.value
+                    }}</DateFieldInput>
+                    <DateFieldInput v-else :part="segment.part">{{ segment.value }}</DateFieldInput>
                 </template>
                 <PopoverTrigger as-child>
                     <button

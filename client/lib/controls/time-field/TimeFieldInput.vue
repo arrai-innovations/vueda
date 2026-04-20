@@ -30,5 +30,6 @@ const theme = useTheme("TimeFieldInput", props);
         :part="props.part"
         :class="[theme('root'), props.class]"
         v-bind="$attrs"
-    />
+        ><slot
+    /></TimeFieldInput>
 </template>

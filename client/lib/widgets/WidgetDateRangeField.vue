@@ -1,5 +1,5 @@
 <script setup>
-import { parseDate, parseDateTime } from "@internationalized/date";
+import { parseDate, parseDateTime, toCalendarDateTime } from "@internationalized/date";
 import DateRangeField from "@vueda/controls/date-range-field/DateRangeField.vue";
 import DateRangeFieldInput from "@vueda/controls/date-range-field/DateRangeFieldInput.vue";
 import RangeCalendar from "@vueda/controls/range-calendar/RangeCalendar.vue";
@@ -81,6 +81,12 @@ const rangeValue = computed({
 });
 
 const onCalendarSelect = (value) => {
+    if (props.granularity !== "day" && value) {
+        value = {
+            start: value.start ? toCalendarDateTime(value.start, rangeValue.value?.start ?? undefined) : value.start,
+            end: value.end ? toCalendarDateTime(value.end, rangeValue.value?.end ?? undefined) : value.end,
+        };
+    }
     rangeValue.value = value;
     if (props.granularity === "day" && value?.start && value?.end) {
         popoverOpen.value = false;
@@ -118,8 +124,11 @@ const theme = useTheme("WidgetDateRangeField", props);
                         :part="segment.part"
                         type="start"
                         :class="theme('literal')"
-                    />
-                    <DateRangeFieldInput v-else :part="segment.part" type="start" />
+                        >{{ segment.value }}</DateRangeFieldInput
+                    >
+                    <DateRangeFieldInput v-else :part="segment.part" type="start">{{
+                        segment.value
+                    }}</DateRangeFieldInput>
                 </template>
                 <span :class="theme('separator')" aria-hidden="true">&ndash;</span>
                 <template v-for="segment in segments.end" :key="'end-' + segment.part">
@@ -128,8 +137,11 @@ const theme = useTheme("WidgetDateRangeField", props);
                         :part="segment.part"
                         type="end"
                         :class="theme('literal')"
-                    />
-                    <DateRangeFieldInput v-else :part="segment.part" type="end" />
+                        >{{ segment.value }}</DateRangeFieldInput
+                    >
+                    <DateRangeFieldInput v-else :part="segment.part" type="end">{{
+                        segment.value
+                    }}</DateRangeFieldInput>
                 </template>
                 <PopoverTrigger as-child>
                     <button

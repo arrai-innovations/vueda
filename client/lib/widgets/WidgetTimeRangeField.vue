@@ -97,8 +97,10 @@ const theme = useTheme("WidgetTimeRangeField", props);
         >
             <template #default="{ segments }">
                 <template v-for="segment in segments" :key="'start-' + segment.part">
-                    <TimeFieldInput v-if="segment.part === 'literal'" :part="segment.part" :class="theme('literal')" />
-                    <TimeFieldInput v-else :part="segment.part" />
+                    <TimeFieldInput v-if="segment.part === 'literal'" :part="segment.part" :class="theme('literal')">{{
+                        segment.value
+                    }}</TimeFieldInput>
+                    <TimeFieldInput v-else :part="segment.part">{{ segment.value }}</TimeFieldInput>
                 </template>
             </template>
         </TimeField>
@@ -118,8 +120,10 @@ const theme = useTheme("WidgetTimeRangeField", props);
         >
             <template #default="{ segments }">
                 <template v-for="segment in segments" :key="'end-' + segment.part">
-                    <TimeFieldInput v-if="segment.part === 'literal'" :part="segment.part" :class="theme('literal')" />
-                    <TimeFieldInput v-else :part="segment.part" />
+                    <TimeFieldInput v-if="segment.part === 'literal'" :part="segment.part" :class="theme('literal')">{{
+                        segment.value
+                    }}</TimeFieldInput>
+                    <TimeFieldInput v-else :part="segment.part">{{ segment.value }}</TimeFieldInput>
                 </template>
             </template>
         </TimeField>
