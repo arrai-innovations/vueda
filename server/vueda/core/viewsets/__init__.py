@@ -643,13 +643,15 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
         """
         if hasattr(self, "kwargs") and "pk" in self.kwargs:
             has_composite_primary_key = False
+            cpk_field = None
             for field in self.queryset.model._meta.fields:
                 if isinstance(field, CompositePrimaryKey):
                     has_composite_primary_key = True
+                    cpk_field = field
 
             if has_composite_primary_key:
                 # 'CompositePrimaryKey' must be named 'pk'.
-                self.kwargs["pk"] = self.kwargs["pk"].split(",")
+                self.kwargs["pk"] = cpk_field.to_python(self.kwargs["pk"])
 
         return super().get_object()
 
