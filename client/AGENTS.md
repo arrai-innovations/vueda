@@ -35,7 +35,7 @@ To get started:
 
 Scripts defined in `package.json`:
 
-- **test** - `npx --no-install vitest`
+- **test** - `npx --no-install vitest run`
 
 - **coverage** - `npm test -- run --coverage`
 
@@ -318,6 +318,32 @@ Run the full suite before marking a task complete or opening a PR:
 
 ```bash
 pnpm -C client test run
+```
+
+### Terse output
+
+For a compact summary, use `--reporter=dot` (one character per test) or `--reporter=basic` (one line per file):
+
+```bash
+pnpm -C client test run --reporter=dot
+pnpm -C client test run tests/unit/lib/components/MyComponent.spec.js --reporter=basic
+```
+
+To stop on the first failure, add `--bail=1`:
+
+```bash
+pnpm -C client test run --bail=1 --reporter=dot
+```
+
+### Piping caution
+
+**Do not pipe test output through `head` or `tail`.** Vitest spawns multiple worker processes; when `head`/`tail` exits early and sends SIGPIPE, the workers may not terminate cleanly and will continue consuming memory in the background. Running the suite again before those workers die compounds the problem and can OOM the system.
+
+To capture output for later inspection, redirect to a file instead:
+
+```bash
+pnpm -C client test run > /tmp/test-out.txt 2>&1
+grep "FAIL\|×" /tmp/test-out.txt
 ```
 
 ---

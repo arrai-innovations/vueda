@@ -67,14 +67,12 @@ vi.mock("vue-router", () => ({
     useRouter: () => ({ push: routerPush }),
 }));
 
-const defaultOnSubmissionError = vi.fn(async () => false);
 const defaultOnSubmitNotAnyModified = vi.fn(async () => undefined);
 vi.mock("@vueda/use/useObjectForm.js", async () => {
     const actual = await vi.importActual("@vueda/use/useObjectForm.js");
     return {
         __esModule: true,
         ...actual,
-        defaultOnSubmissionError,
         defaultOnSubmitNotAnyModified,
     };
 });
@@ -147,7 +145,6 @@ describe("lib/components/ActionForm.vue", () => {
         vi.unmock("vue");
         Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
-        defaultOnSubmissionError.mockClear();
         defaultOnSubmitNotAnyModified.mockClear();
         mockedUseTheme.mockClear();
         mockedUseModelConfig.mockClear();
@@ -253,11 +250,6 @@ describe("lib/components/ActionForm.vue", () => {
             const { wrapper } = mountActionForm({ runAction });
             await wrapper.find("form").trigger("submit.prevent");
             await flushPromises();
-            expect(defaultOnSubmissionError).toHaveBeenCalledWith({
-                error,
-                formContext: expect.any(Object),
-                toast: expect.any(Object),
-            });
             expect(wrapper.find('[data-qa="error-display"]').attributes("data-error")).toBe("true");
             expect(toastMock.error).toHaveBeenCalled();
         });

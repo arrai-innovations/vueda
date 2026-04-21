@@ -76,6 +76,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    /** When `false`, skips the "no changes detected" guard. Defaults to `true`. Set to `false` for forms that start empty where modification is not a meaningful concept. */
+    requireModified: {
+        type: Boolean,
+        default: true,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const formContext = inject(FormContextSymbol);

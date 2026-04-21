@@ -5,7 +5,7 @@
  * internally; callers that want the behaviour without the shell can use it directly.
  */
 import { loadingCombine } from "@arrai-innovations/reactive-helpers";
-import { defaultOnSubmissionError, defaultOnSubmitNotAnyModified } from "@vueda/use/useObjectForm.js";
+import { defaultOnSubmitNotAnyModified } from "@vueda/use/useObjectForm.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
@@ -20,6 +20,7 @@ import { toast } from "vue-sonner";
  * @property {{ errored: boolean, error: Error|null, loading: boolean|undefined }} [fetchState] - Data-fetch status.
  * @property {{ errored: boolean, error: Error|null, loading: boolean|undefined }} [actionState] - Action execution status.
  * @property {boolean} [hasInput] - Whether the form has input fields that must be validated before submission.
+ * @property {boolean} [requireModified] - When `false`, skips the "no changes detected" guard. Defaults to `true`. Set to `false` for forms that start empty (sign-in, forgot-password) where modification is not a meaningful concept.
  * @property {(reason: "success"|"cancel") => Promise<void>} [redirectTo] - Called after success or cancel.
  * @property {(response: any) => void} [onSubmissionSuccessHandler] - Replaces the default success toast and redirect.
  * @property {(args: { error: Error, formContext: import('@vueda/use/useForm.js').FormContext, toast: any }) => Promise<boolean>} [onSubmissionErrorHandler] - Replaces the default error toast.
@@ -63,29 +64,28 @@ export function useActionForm(formContext, props) {
         error: null,
     });
 
-    const combinedError = computed(() => props.fetchState.error || localActionState.error);
+    const combinedError = computed(() => props.fetchState?.error || localActionState.error);
     const combinedErrored = computed(() => !!combinedError.value);
-    const combinedLoading = computed(() => loadingCombine(props.fetchState.loading, localActionState.loading));
+    const combinedLoading = computed(() => loadingCombine(props.fetchState?.loading, localActionState.loading));
 
     let actionPromise = null;
 
     const handleError = async (error, dryRun) => {
-        if (dryRun) {
-            if (error instanceof FormValidationError) {
-                formContext.handleServerFormValidationError(error);
-            }
+        if (error instanceof FormValidationError) {
+            formContext.handleServerFormValidationError(error);
             return;
         }
-        const errorHandler = props.onSubmissionErrorHandler || defaultOnSubmissionError;
-        const handled = await errorHandler({ error, formContext, toast });
-        if (!handled) {
-            localActionState.errored = true;
-            localActionState.error = error;
-            toast.error(props.actionErrorSummary || "Action Failed", {
-                description: localActionState.error,
-                duration: 15000,
-            });
+        if (dryRun) return;
+        if (props.onSubmissionErrorHandler) {
+            const handled = await props.onSubmissionErrorHandler({ error, formContext, toast });
+            if (handled) return;
         }
+        localActionState.errored = true;
+        localActionState.error = error;
+        toast.error(props.actionErrorSummary || "Action Failed", {
+            description: localActionState.error,
+            duration: 15000,
+        });
     };
 
     const handleConfirm = async (dryRun = false) => {
@@ -93,7 +93,7 @@ export function useActionForm(formContext, props) {
         localActionState.loading = true;
         if (props.hasInput && !dryRun) {
             await nextTick();
-            if (!formContext.state.anyModified) {
+            if (props.requireModified !== false && !formContext.state.anyModified) {
                 await defaultOnSubmitNotAnyModified({ toast });
                 localActionState.loading = false;
                 return;
@@ -122,7 +122,7 @@ export function useActionForm(formContext, props) {
                 dryRun,
             });
             const response = await actionPromise;
-            if (props.actionState.errored) {
+            if (props.actionState?.errored) {
                 await handleError(props.actionState.error, dryRun);
                 return;
             }
