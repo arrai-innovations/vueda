@@ -498,11 +498,17 @@ export function useField(props, emit) {
             toRef(props, "requiredMessage"),
             toRef(state, "touched"),
             toRef(state, "valueRequiredViolation"),
+            toRef(state, "modified"),
+            computed(() => {
+                const fc = unref(formContext);
+                return fc ? fc.state.submitted : true;
+            }),
         ],
-        ([newRequired, newRequiredMessage, newTouched, newValueRequiredViolation]) => {
+        ([newRequired, newRequiredMessage, newTouched, newValueRequiredViolation, newModified, formSubmitted]) => {
             const fc = unref(formContext);
             const desiredMessage = newRequiredMessage || defaultRequiredMessage;
-            const hasViolation = newRequired && newTouched && newValueRequiredViolation;
+            const hasViolation =
+                newRequired && newTouched && newValueRequiredViolation && (newModified || formSubmitted);
             if (fc) {
                 if (hasViolation) {
                     const existingRequired = fc.state.errors[props.name]?.required;

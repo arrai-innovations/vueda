@@ -424,6 +424,15 @@ describe("lib/use/useForm.js", () => {
                     expect(formContext.state.focused).toBeNull();
                     expect(formContext.state.anyTouched).toBe(false);
                     expect(formContext.state.anyError).toBe(false);
+                    expect(formContext.state.submitted).toBe(false);
+                });
+                scopedIt("should clear submitted flag when reset after a submission attempt", () => {
+                    const { formContext } = getForm({ initialValues: { a: 1 } });
+                    formContext.reset(); // flip hasInitialized
+                    formContext.setAllTouched();
+                    expect(formContext.state.submitted).toBe(true);
+                    formContext.reset();
+                    expect(formContext.state.submitted).toBe(false);
                 });
                 scopedIt("should clone initial values deeply on reset", () => {
                     const original = { nested: { a: 1 } };
@@ -1565,6 +1574,13 @@ describe("lib/use/useForm.js", () => {
                     } finally {
                         stop();
                     }
+                });
+
+                scopedIt("should set submitted to true", () => {
+                    const { formContext } = getForm({ initialValues: { a: 1 } });
+                    expect(formContext.state.submitted).toBe(false);
+                    formContext.setAllTouched();
+                    expect(formContext.state.submitted).toBe(true);
                 });
             });
             describe("clearTouched", () => {

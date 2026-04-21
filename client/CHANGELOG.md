@@ -24,6 +24,9 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Fixes
 
+- **useField / useForm**: Required-field errors are now suppressed on blur for fields that started empty and remain empty, until the form has had a submission attempt (via `setAllTouched`) or the field has been modified. This prevents a wall of required errors when a user tabs through an empty form without typing anything. Fields without a form context retain the previous behavior (errors fire on blur immediately).
+    - _No action required for most forms. If you relied on required errors firing on blur for fields that have never been touched and were always empty (e.g. contextless fields), behavior is unchanged. For fields inside a form context, errors now require either user modification or a submission attempt before appearing._
+
 - **FieldSetSingularStackedInline**: Wait for fieldObjects to be ready before auto-creating inline row and loading initial values in FieldSetSingularStackedInline
 
 ## v2.0.3 (2026-01-27)

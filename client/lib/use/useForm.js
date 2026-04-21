@@ -41,6 +41,7 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * @property {{[path: string]: boolean}} touched - Whether each field has been touched (blurred).
  * @property {boolean} anyTouched - Whether any field has been touched.
  * @property {string|null} focused - The currently focused field (if any).
+ * @property {boolean} submitted - Whether the form has had a submission attempt (set by setAllTouched, cleared by reset).
  *
  * // *** Tracking & Modification ***
  * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} modified - Tracks modified fields.
@@ -318,6 +319,7 @@ const setAllTouched = (state) => {
     if (!state.anyTouched) {
         state.anyTouched = true;
     }
+    state.submitted = true;
 };
 
 /**
@@ -343,6 +345,9 @@ const clearAllTouched = (state) => {
     assignReactiveObject(state.touched, {});
     if (state.anyTouched) {
         state.anyTouched = false;
+    }
+    if (state.submitted) {
+        state.submitted = false;
     }
 };
 
@@ -427,8 +432,7 @@ const reset = (state, hasInitialized) => {
         assignReactiveObject(state.errors, {});
         state.anyError = false;
         assignReactiveObject(state.messages, {});
-        assignReactiveObject(state.touched, {});
-        state.anyTouched = false;
+        clearAllTouched(state);
         state.focused = null;
     } else {
         hasInitialized.value = true;
@@ -697,6 +701,7 @@ export function useForm(props) {
         touched: {},
         anyTouched: false,
         focused: null,
+        submitted: false,
 
         // *** Tracking & Modification ***
         modified: modifiedHookRegistry.computedAggregates,
