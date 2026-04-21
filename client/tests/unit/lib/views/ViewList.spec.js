@@ -593,7 +593,7 @@ scopedIt("appends new display fields without resetting hidden preferences", asyn
 
     await vue.nextTick();
 
-    expect(wrapper.vm.columns).toContain("field3");
+    expect(wrapper.vm.columns.columns).toContain("field3");
     expect(listPreferenceStoreMock.getHiddenColumns).toHaveBeenCalledTimes(1);
     expect(listPreferenceStoreMock.setHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" }, ["field1"]);
     expect(hiddenPreference).toEqual(["field1"]);
