@@ -108,19 +108,22 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "description": {
                             "choices": False,
+                            "hidden": False,
                             "label": "Description",
                             "many": False,
                             "max_length": 1024,
@@ -140,6 +143,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -151,6 +155,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -161,6 +166,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -171,6 +177,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -181,6 +188,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -191,6 +199,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -201,6 +210,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -222,19 +232,22 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "description": {
                             "choices": False,
+                            "hidden": False,
                             "label": "Description",
                             "many": False,
                             "max_length": 1024,
@@ -254,6 +267,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -265,6 +279,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -275,6 +290,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -285,6 +301,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -295,6 +312,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -305,6 +323,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -317,6 +336,7 @@ EXPECTED_RESULTS = [
                             "model": "user",
                             "app_label": "user",
                             "choices": True,
+                            "hidden": False,
                         },
                     },
                 },
@@ -338,19 +358,22 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "description": {
                             "choices": False,
+                            "hidden": False,
                             "label": "Description",
                             "many": False,
                             "max_length": 1024,
@@ -370,6 +393,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -381,6 +405,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -391,6 +416,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -401,6 +427,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -411,6 +438,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -421,6 +449,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -431,6 +460,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -448,9 +478,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -468,9 +500,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "description": {
                     "choices": False,
+                    "hidden": False,
                     "label": "Description",
                     "many": False,
                     "max_length": 1024,
@@ -484,11 +518,12 @@ EXPECTED_RESULTS = [
                     "label": "Formatted Name",
                     "type_db": "CharField",
                     "type_model": "GeneratedField",
-                    "type_serializer": "ModelField",
+                    "type_serializer": "CharField",
                     "many": False,
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "name": {
                     "label": "Name",
@@ -500,6 +535,7 @@ EXPECTED_RESULTS = [
                     "required": True,
                     "max_length": 255,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {
@@ -656,9 +692,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -677,16 +715,18 @@ EXPECTED_RESULTS = [
                     "required": True,
                     "max_length": 255,
                     "choices": False,
+                    "hidden": False,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
                     "type_db": "CharField",
                     "type_model": "GeneratedField",
-                    "type_serializer": "ModelField",
+                    "type_serializer": "CharField",
                     "many": False,
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "name": {
                     "label": "Name",
@@ -698,6 +738,7 @@ EXPECTED_RESULTS = [
                     "required": True,
                     "max_length": 255,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {},
@@ -784,6 +825,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "email": {
                             "label": "Email address",
@@ -795,6 +837,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -806,6 +849,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -823,6 +867,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -852,6 +897,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
@@ -862,6 +908,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "number_of_ordered_products": {
                             "label": "Number Of Ordered Products",
@@ -872,6 +919,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "user": {
                             "app_label": "tests",
@@ -884,6 +932,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -895,6 +944,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -905,6 +955,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -915,6 +966,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -925,6 +977,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -935,6 +988,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -945,6 +999,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -966,6 +1021,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
@@ -976,6 +1032,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "number_of_ordered_products": {
                             "label": "Number Of Ordered Products",
@@ -986,6 +1043,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "user": {
                             "app_label": "tests",
@@ -998,6 +1056,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -1009,6 +1068,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -1019,6 +1079,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -1029,6 +1090,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -1039,6 +1101,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -1049,6 +1112,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -1061,6 +1125,7 @@ EXPECTED_RESULTS = [
                             "model": "user",
                             "app_label": "user",
                             "choices": True,
+                            "hidden": False,
                         },
                     },
                 },
@@ -1082,6 +1147,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
@@ -1092,6 +1158,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "number_of_ordered_products": {
                             "label": "Number Of Ordered Products",
@@ -1102,6 +1169,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "user": {
                             "app_label": "tests",
@@ -1114,6 +1182,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -1125,6 +1194,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -1135,6 +1205,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -1145,6 +1216,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -1155,6 +1227,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -1165,6 +1238,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -1175,6 +1249,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -1192,9 +1267,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -1212,6 +1289,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
@@ -1222,6 +1300,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "number_of_ordered_products": {
                     "label": "Number Of Ordered Products",
@@ -1232,6 +1311,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "user": {
                     "app_label": "tests",
@@ -1244,6 +1324,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {},
@@ -1370,6 +1451,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "user": {
                             "app_label": "tests",
@@ -1382,6 +1464,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                     },
                 },
@@ -1404,6 +1487,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "product_option": {
                             "app_label": "store",
@@ -1416,6 +1500,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "quantity": {
                             "label": "Quantity",
@@ -1428,6 +1513,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -1445,9 +1531,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -1467,6 +1555,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "customer": {
                     "app_label": "store",
@@ -1479,6 +1568,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
@@ -1489,6 +1579,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "last_modified": {
                     "label": "Last Modified",
@@ -1499,6 +1590,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {
@@ -1795,6 +1887,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "user": {
                             "app_label": "tests",
@@ -1807,6 +1900,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                     },
                 },
@@ -1829,6 +1923,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "product_option": {
                             "app_label": "store",
@@ -1841,6 +1936,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "quantity": {
                             "label": "Quantity",
@@ -1853,6 +1949,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -1875,6 +1972,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "code": {
                             "label": "Code",
@@ -1886,6 +1984,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -1897,6 +1996,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -1918,6 +2018,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "customer": {
                             "app_label": "store",
@@ -1930,20 +2031,23 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "order_items": {
                             "app_label": "store",
                             "choices": True,
+                            "hidden": False,
                             "label": "Order Items",
                             "many": True,
                             "model": "orderitem",
@@ -1964,6 +2068,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "order_state": {
                             "app_label": "store",
@@ -1976,6 +2081,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "shipping_method": {
                             "choices": [
@@ -1983,6 +2089,7 @@ EXPECTED_RESULTS = [
                                 {"label": "Regular", "value": "regular"},
                                 {"label": "Express", "value": "express"},
                             ],
+                            "hidden": False,
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -2000,6 +2107,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "when": {
                             "label": "Date / Time",
@@ -2010,6 +2118,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "workflow_state_code": {
                             "label": "Workflow State Code",
@@ -2020,6 +2129,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "workflow_state_name": {
                             "label": "Workflow State Name",
@@ -2030,6 +2140,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -2041,6 +2152,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -2051,6 +2163,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -2061,6 +2174,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -2071,6 +2185,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -2081,6 +2196,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -2091,6 +2207,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -2112,6 +2229,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "customer": {
                             "app_label": "store",
@@ -2124,20 +2242,23 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "order_items": {
                             "app_label": "store",
                             "choices": True,
+                            "hidden": False,
                             "label": "Order Items",
                             "many": True,
                             "model": "orderitem",
@@ -2158,6 +2279,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "order_state": {
                             "app_label": "store",
@@ -2170,6 +2292,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "shipping_method": {
                             "choices": [
@@ -2177,6 +2300,7 @@ EXPECTED_RESULTS = [
                                 {"label": "Regular", "value": "regular"},
                                 {"label": "Express", "value": "express"},
                             ],
+                            "hidden": False,
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -2194,6 +2318,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "when": {
                             "label": "Date / Time",
@@ -2204,6 +2329,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "workflow_state_code": {
                             "label": "Workflow State Code",
@@ -2214,6 +2340,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "workflow_state_name": {
                             "label": "Workflow State Name",
@@ -2224,6 +2351,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -2235,6 +2363,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -2245,6 +2374,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -2255,6 +2385,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -2265,6 +2396,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -2275,6 +2407,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -2287,6 +2420,7 @@ EXPECTED_RESULTS = [
                             "model": "user",
                             "app_label": "user",
                             "choices": True,
+                            "hidden": False,
                         },
                     },
                 },
@@ -2308,6 +2442,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "customer": {
                             "app_label": "store",
@@ -2320,20 +2455,23 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "order_items": {
                             "app_label": "store",
                             "choices": True,
+                            "hidden": False,
                             "label": "Order Items",
                             "many": True,
                             "model": "orderitem",
@@ -2354,6 +2492,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "order_state": {
                             "app_label": "store",
@@ -2366,6 +2505,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "shipping_method": {
                             "choices": [
@@ -2373,6 +2513,7 @@ EXPECTED_RESULTS = [
                                 {"label": "Regular", "value": "regular"},
                                 {"label": "Express", "value": "express"},
                             ],
+                            "hidden": False,
                             "label": "Shipping Method",
                             "many": False,
                             "read_only": False,
@@ -2390,6 +2531,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "when": {
                             "label": "Date / Time",
@@ -2400,6 +2542,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "workflow_state_code": {
                             "label": "Workflow State Code",
@@ -2410,6 +2553,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "workflow_state_name": {
                             "label": "Workflow State Name",
@@ -2420,6 +2564,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -2431,6 +2576,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -2441,6 +2587,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -2451,6 +2598,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -2461,6 +2609,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -2471,6 +2620,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -2481,6 +2631,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -2498,9 +2649,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -2518,6 +2671,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "customer": {
                     "app_label": "store",
@@ -2530,20 +2684,23 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
                     "type_db": "CharField",
                     "type_model": "GeneratedField",
-                    "type_serializer": "ModelField",
+                    "type_serializer": "CharField",
                     "many": False,
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "order_items": {
                     "app_label": "store",
                     "choices": True,
+                    "hidden": False,
                     "label": "Order Items",
                     "many": True,
                     "model": "orderitem",
@@ -2564,6 +2721,7 @@ EXPECTED_RESULTS = [
                     "max_digits": 7,
                     "decimal_places": 0,
                     "choices": False,
+                    "hidden": False,
                 },
                 "order_state": {
                     "app_label": "store",
@@ -2576,6 +2734,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "shipping_method": {
                     "choices": [
@@ -2583,6 +2742,7 @@ EXPECTED_RESULTS = [
                         {"label": "Regular", "value": "regular"},
                         {"label": "Express", "value": "express"},
                     ],
+                    "hidden": False,
                     "label": "Shipping Method",
                     "many": False,
                     "read_only": False,
@@ -2600,6 +2760,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "when": {
                     "label": "Date / Time",
@@ -2610,6 +2771,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "workflow_state_code": {
                     "label": "Workflow State Code",
@@ -2620,6 +2782,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "workflow_state_name": {
                     "label": "Workflow State Name",
@@ -2630,6 +2793,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {
@@ -2757,9 +2921,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -2778,16 +2944,18 @@ EXPECTED_RESULTS = [
                     "required": True,
                     "max_length": 255,
                     "choices": False,
+                    "hidden": False,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
                     "type_db": "CharField",
                     "type_model": "GeneratedField",
-                    "type_serializer": "ModelField",
+                    "type_serializer": "CharField",
                     "many": False,
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "is_added_reason": {
                     "label": "Is Added Reason",
@@ -2798,6 +2966,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": False,
+                    "hidden": False,
                 },
                 "name": {
                     "label": "Reason",
@@ -2809,6 +2978,7 @@ EXPECTED_RESULTS = [
                     "required": True,
                     "max_length": 255,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {},
@@ -2947,6 +3117,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "current_history_id": {
                             "label": "Current History ID",
@@ -2957,9 +3128,11 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "description": {
                             "choices": False,
+                            "hidden": False,
                             "label": "Description",
                             "many": False,
                             "max_length": 1024,
@@ -2973,11 +3146,12 @@ EXPECTED_RESULTS = [
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "name": {
                             "label": "Name",
@@ -2989,6 +3163,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -3010,6 +3185,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "current_sale_date": {
                             "label": "Current Sale Date",
@@ -3020,6 +3196,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "description": {
                             "label": "Description",
@@ -3030,6 +3207,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "disabled": {
                             "label": "Disabled",
@@ -3040,6 +3218,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "distributor": {
                             "label": "Distributor",
@@ -3050,16 +3229,18 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "future_sale_dates": {
                             "label": "Future Sale Dates",
@@ -3070,6 +3251,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "internal_comments": {
                             "label": "Internal Comments",
@@ -3080,9 +3262,11 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "last_ordered": {
                             "choices": False,
+                            "hidden": False,
                             "label": "Last Ordered",
                             "many": False,
                             "read_only": False,
@@ -3102,6 +3286,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -3113,6 +3298,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "order_between": {
                             "label": "Order Between",
@@ -3125,6 +3311,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "reviews": {
                             "label": "Reviews",
@@ -3135,10 +3322,12 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "special_care": {
                             "app_label": "store",
                             "choices": True,
+                            "hidden": False,
                             "label": "Special Care",
                             "many": True,
                             "model": "specialcare",
@@ -3159,6 +3348,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -3170,6 +3360,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -3180,6 +3371,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -3190,6 +3382,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -3200,6 +3393,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -3210,6 +3404,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -3220,6 +3415,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -3241,6 +3437,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "current_sale_date": {
                             "label": "Current Sale Date",
@@ -3251,6 +3448,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "description": {
                             "label": "Description",
@@ -3261,6 +3459,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "disabled": {
                             "label": "Disabled",
@@ -3271,6 +3470,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "distributor": {
                             "label": "Distributor",
@@ -3281,16 +3481,18 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "future_sale_dates": {
                             "label": "Future Sale Dates",
@@ -3301,6 +3503,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "internal_comments": {
                             "label": "Internal Comments",
@@ -3311,9 +3514,11 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "last_ordered": {
                             "choices": False,
+                            "hidden": False,
                             "label": "Last Ordered",
                             "many": False,
                             "read_only": False,
@@ -3333,6 +3538,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -3344,6 +3550,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "order_between": {
                             "label": "Order Between",
@@ -3356,6 +3563,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "reviews": {
                             "label": "Reviews",
@@ -3366,10 +3574,12 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "special_care": {
                             "app_label": "store",
                             "choices": True,
+                            "hidden": False,
                             "label": "Special Care",
                             "many": True,
                             "model": "specialcare",
@@ -3390,6 +3600,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -3401,6 +3612,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -3411,6 +3623,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -3421,6 +3634,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -3431,6 +3645,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -3441,6 +3656,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -3453,6 +3669,7 @@ EXPECTED_RESULTS = [
                             "model": "user",
                             "app_label": "user",
                             "choices": True,
+                            "hidden": False,
                         },
                     },
                 },
@@ -3474,6 +3691,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "current_sale_date": {
                             "label": "Current Sale Date",
@@ -3484,6 +3702,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "description": {
                             "label": "Description",
@@ -3494,6 +3713,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "disabled": {
                             "label": "Disabled",
@@ -3504,6 +3724,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "distributor": {
                             "label": "Distributor",
@@ -3514,16 +3735,18 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "future_sale_dates": {
                             "label": "Future Sale Dates",
@@ -3534,6 +3757,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "internal_comments": {
                             "label": "Internal Comments",
@@ -3544,9 +3768,11 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "last_ordered": {
                             "choices": False,
+                            "hidden": False,
                             "label": "Last Ordered",
                             "many": False,
                             "read_only": False,
@@ -3566,6 +3792,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -3577,6 +3804,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "order_between": {
                             "label": "Order Between",
@@ -3589,6 +3817,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "reviews": {
                             "label": "Reviews",
@@ -3599,10 +3828,12 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "special_care": {
                             "app_label": "store",
                             "choices": True,
+                            "hidden": False,
                             "label": "Special Care",
                             "many": True,
                             "model": "specialcare",
@@ -3623,6 +3854,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -3634,6 +3866,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -3644,6 +3877,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -3654,6 +3888,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -3664,6 +3899,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -3674,6 +3910,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -3684,6 +3921,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -3701,9 +3939,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -3721,6 +3961,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "current_sale_date": {
                     "label": "Current Sale Date",
@@ -3731,6 +3972,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "description": {
                     "label": "Description",
@@ -3741,6 +3983,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "disabled": {
                     "label": "Disabled",
@@ -3751,6 +3994,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": False,
+                    "hidden": False,
                 },
                 "distributor": {
                     "label": "Distributor",
@@ -3761,16 +4005,18 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
                     "type_db": "CharField",
                     "type_model": "GeneratedField",
-                    "type_serializer": "ModelField",
+                    "type_serializer": "CharField",
                     "many": False,
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "future_sale_dates": {
                     "label": "Future Sale Dates",
@@ -3781,6 +4027,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "internal_comments": {
                     "label": "Internal Comments",
@@ -3791,9 +4038,11 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "last_ordered": {
                     "choices": False,
+                    "hidden": False,
                     "label": "Last Ordered",
                     "many": False,
                     "read_only": False,
@@ -3813,6 +4062,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "name": {
                     "label": "Name",
@@ -3824,6 +4074,7 @@ EXPECTED_RESULTS = [
                     "required": True,
                     "max_length": 255,
                     "choices": False,
+                    "hidden": False,
                 },
                 "order_between": {
                     "label": "Order Between",
@@ -3836,6 +4087,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": False,
+                    "hidden": False,
                 },
                 "reviews": {
                     "label": "Reviews",
@@ -3846,10 +4098,12 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "special_care": {
                     "app_label": "store",
                     "choices": True,
+                    "hidden": False,
                     "label": "Special Care",
                     "many": True,
                     "model": "specialcare",
@@ -3870,6 +4124,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {
@@ -4188,6 +4443,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "code": {
                             "label": "Code",
@@ -4199,6 +4455,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -4210,6 +4467,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -4232,6 +4490,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "disabled": {
                             "label": "Disabled",
@@ -4242,6 +4501,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "distributor": {
                             "label": "Distributor",
@@ -4252,6 +4512,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -4263,6 +4524,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "tangible_type": {
                             "app_label": "store",
@@ -4275,6 +4537,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                     },
                 },
@@ -4296,6 +4559,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "disabled": {
                             "label": "Disabled",
@@ -4306,16 +4570,18 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "gtin": {
                             "label": "GTIN",
@@ -4327,6 +4593,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -4338,6 +4605,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "option_type": {
                             "app_label": "store",
@@ -4350,6 +4618,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": True,
+                            "hidden": False,
                         },
                         "price": {
                             "label": "Price",
@@ -4362,6 +4631,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "product": {
                             "app_label": "store",
@@ -4374,6 +4644,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "quantity_available": {
                             "label": "Quantity Available",
@@ -4386,6 +4657,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "sku": {
                             "label": "SKU",
@@ -4397,6 +4669,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -4408,6 +4681,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -4418,6 +4692,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -4428,6 +4703,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -4438,6 +4714,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -4448,6 +4725,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -4458,6 +4736,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -4479,6 +4758,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "disabled": {
                             "label": "Disabled",
@@ -4489,16 +4769,18 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "gtin": {
                             "label": "GTIN",
@@ -4510,6 +4792,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -4521,6 +4804,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "option_type": {
                             "app_label": "store",
@@ -4533,6 +4817,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": True,
+                            "hidden": False,
                         },
                         "price": {
                             "label": "Price",
@@ -4545,6 +4830,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "product": {
                             "app_label": "store",
@@ -4557,6 +4843,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "quantity_available": {
                             "label": "Quantity Available",
@@ -4569,6 +4856,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "sku": {
                             "label": "SKU",
@@ -4580,6 +4868,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -4591,6 +4880,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -4601,6 +4891,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -4611,6 +4902,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -4621,6 +4913,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -4631,6 +4924,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -4643,6 +4937,7 @@ EXPECTED_RESULTS = [
                             "model": "user",
                             "app_label": "user",
                             "choices": True,
+                            "hidden": False,
                         },
                     },
                 },
@@ -4664,6 +4959,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "disabled": {
                             "label": "Disabled",
@@ -4674,16 +4970,18 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "gtin": {
                             "label": "GTIN",
@@ -4695,6 +4993,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -4706,6 +5005,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "option_type": {
                             "app_label": "store",
@@ -4718,6 +5018,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": True,
+                            "hidden": False,
                         },
                         "price": {
                             "label": "Price",
@@ -4730,6 +5031,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "product": {
                             "app_label": "store",
@@ -4742,6 +5044,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "quantity_available": {
                             "label": "Quantity Available",
@@ -4754,6 +5057,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "sku": {
                             "label": "SKU",
@@ -4765,6 +5069,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -4776,6 +5081,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -4786,6 +5092,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -4796,6 +5103,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -4806,6 +5114,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -4816,6 +5125,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -4826,6 +5136,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -4843,9 +5154,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -4863,6 +5176,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "disabled": {
                     "label": "Disabled",
@@ -4873,16 +5187,18 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": False,
+                    "hidden": False,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
                     "type_db": "CharField",
                     "type_model": "GeneratedField",
-                    "type_serializer": "ModelField",
+                    "type_serializer": "CharField",
                     "many": False,
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "gtin": {
                     "label": "GTIN",
@@ -4894,6 +5210,7 @@ EXPECTED_RESULTS = [
                     "required": True,
                     "max_length": 255,
                     "choices": False,
+                    "hidden": False,
                 },
                 "name": {
                     "label": "Name",
@@ -4905,6 +5222,7 @@ EXPECTED_RESULTS = [
                     "required": True,
                     "max_length": 255,
                     "choices": False,
+                    "hidden": False,
                 },
                 "option_type": {
                     "app_label": "store",
@@ -4917,6 +5235,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": False,
                     "choices": True,
+                    "hidden": False,
                 },
                 "price": {
                     "label": "Price",
@@ -4929,6 +5248,7 @@ EXPECTED_RESULTS = [
                     "max_digits": 12,
                     "decimal_places": 2,
                     "choices": False,
+                    "hidden": False,
                 },
                 "product": {
                     "app_label": "store",
@@ -4941,6 +5261,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "quantity_available": {
                     "label": "Quantity Available",
@@ -4953,6 +5274,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": False,
+                    "hidden": False,
                 },
                 "sku": {
                     "label": "SKU",
@@ -4964,6 +5286,7 @@ EXPECTED_RESULTS = [
                     "required": True,
                     "max_length": 255,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {
@@ -5160,6 +5483,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "customer": {
                             "app_label": "store",
@@ -5172,6 +5496,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "order_number": {
                             "label": "Order Number",
@@ -5184,6 +5509,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "order_state": {
                             "app_label": "store",
@@ -5196,6 +5522,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "when": {
                             "label": "Date / Time",
@@ -5206,6 +5533,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -5228,6 +5556,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "disabled": {
                             "label": "Disabled",
@@ -5238,6 +5567,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "gtin": {
                             "label": "GTIN",
@@ -5249,6 +5579,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -5260,6 +5591,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "option_type": {
                             "app_label": "store",
@@ -5272,6 +5604,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": True,
+                            "hidden": False,
                         },
                         "price": {
                             "label": "Price",
@@ -5284,6 +5617,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "product": {
                             "app_label": "store",
@@ -5296,6 +5630,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "sku": {
                             "label": "SKU",
@@ -5307,6 +5642,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -5324,9 +5660,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -5346,6 +5684,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
@@ -5356,6 +5695,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "product_option": {
                     "app_label": "store",
@@ -5368,6 +5708,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "quantity": {
                     "label": "Quantity",
@@ -5380,6 +5721,7 @@ EXPECTED_RESULTS = [
                     "max_value": 1000,
                     "min_value": 0,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {},
@@ -5468,6 +5810,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "disabled": {
                             "label": "Disabled",
@@ -5478,6 +5821,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "gtin": {
                             "label": "GTIN",
@@ -5489,6 +5833,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -5500,6 +5845,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "product": {
                             "app_label": "store",
@@ -5512,6 +5858,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "option_type": {
                             "app_label": "store",
@@ -5524,6 +5871,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": True,
+                            "hidden": False,
                         },
                         "price": {
                             "label": "Price",
@@ -5536,6 +5884,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "sku": {
                             "label": "SKU",
@@ -5547,6 +5896,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -5569,6 +5919,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "code": {
                             "label": "Code",
@@ -5580,6 +5931,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "is_added_reason": {
                             "label": "Is Added Reason",
@@ -5590,6 +5942,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Reason",
@@ -5601,6 +5954,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -5623,6 +5977,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "added_inventory_record": {
                             "app_label": "store",
@@ -5635,6 +5990,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": True,
+                            "hidden": False,
                         },
                         "archived": {
                             "label": "Archived",
@@ -5645,6 +6001,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "cost": {
                             "label": "Cost",
@@ -5657,6 +6014,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "is_added": {
                             "label": "Is Added",
@@ -5667,6 +6025,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "margin": {
                             "label": "Margin",
@@ -5679,6 +6038,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "order_item": {
                             "app_label": "store",
@@ -5691,6 +6051,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": True,
+                            "hidden": False,
                         },
                         "price": {
                             "label": "Price",
@@ -5703,6 +6064,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "quantity": {
                             "label": "Quantity",
@@ -5715,6 +6077,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "reason": {
                             "app_label": "store",
@@ -5727,6 +6090,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "when": {
                             "label": "Date / Time",
@@ -5737,6 +6101,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -5759,6 +6124,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "product_option": {
                             "app_label": "store",
@@ -5771,6 +6137,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "quantity": {
                             "label": "Quantity",
@@ -5783,6 +6150,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -5800,9 +6168,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -5822,6 +6192,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": False,
                     "choices": True,
+                    "hidden": False,
                 },
                 "archived": {
                     "label": "Archived",
@@ -5832,6 +6203,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": False,
+                    "hidden": False,
                 },
                 "cost": {
                     "label": "Cost",
@@ -5844,6 +6216,7 @@ EXPECTED_RESULTS = [
                     "max_digits": 12,
                     "decimal_places": 0,
                     "choices": False,
+                    "hidden": False,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
@@ -5854,6 +6227,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "is_added": {
                     "label": "Is Added",
@@ -5864,6 +6238,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": False,
+                    "hidden": False,
                 },
                 "margin": {
                     "label": "Margin",
@@ -5876,6 +6251,7 @@ EXPECTED_RESULTS = [
                     "max_digits": 12,
                     "decimal_places": 2,
                     "choices": False,
+                    "hidden": False,
                 },
                 "order_item": {
                     "app_label": "store",
@@ -5888,6 +6264,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": False,
                     "choices": True,
+                    "hidden": False,
                 },
                 "price": {
                     "label": "Price",
@@ -5900,6 +6277,7 @@ EXPECTED_RESULTS = [
                     "max_digits": 12,
                     "decimal_places": 2,
                     "choices": False,
+                    "hidden": False,
                 },
                 "product_option": {
                     "app_label": "store",
@@ -5912,6 +6290,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "quantity": {
                     "label": "Quantity",
@@ -5924,6 +6303,7 @@ EXPECTED_RESULTS = [
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "choices": False,
+                    "hidden": False,
                 },
                 "reason": {
                     "app_label": "store",
@@ -5936,6 +6316,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "when": {
                     "label": "Date / Time",
@@ -5946,6 +6327,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {
@@ -6225,6 +6607,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "customer": {
                             "app_label": "store",
@@ -6237,6 +6620,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                     },
                 },
@@ -6259,6 +6643,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "disabled": {
                             "label": "Disabled",
@@ -6269,6 +6654,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "gtin": {
                             "label": "GTIN",
@@ -6280,6 +6666,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -6291,6 +6678,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "product": {
                             "app_label": "store",
@@ -6303,6 +6691,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": True,
+                            "hidden": False,
                         },
                         "option_type": {
                             "app_label": "store",
@@ -6315,6 +6704,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": True,
+                            "hidden": False,
                         },
                         "price": {
                             "label": "Price",
@@ -6327,6 +6717,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "sku": {
                             "label": "SKU",
@@ -6338,6 +6729,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -6355,9 +6747,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -6377,6 +6771,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
@@ -6387,6 +6782,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "product_option": {
                     "app_label": "store",
@@ -6399,6 +6795,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "quantity": {
                     "label": "Quantity",
@@ -6411,6 +6808,7 @@ EXPECTED_RESULTS = [
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {},
@@ -6512,9 +6910,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -6534,6 +6934,7 @@ EXPECTED_RESULTS = [
                     "decimal_places": 4,
                     "max_digits": 12,
                     "choices": False,
+                    "hidden": False,
                 },
                 "depth": {
                     "label": "Depth",
@@ -6546,6 +6947,7 @@ EXPECTED_RESULTS = [
                     "decimal_places": 4,
                     "max_digits": 12,
                     "choices": False,
+                    "hidden": False,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
@@ -6556,6 +6958,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "height": {
                     "label": "Height",
@@ -6568,6 +6971,7 @@ EXPECTED_RESULTS = [
                     "decimal_places": 4,
                     "max_digits": 12,
                     "choices": False,
+                    "hidden": False,
                 },
                 "in_stock": {
                     "label": "In Stock",
@@ -6578,6 +6982,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "name": {
                     "label": "Name",
@@ -6588,6 +6993,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "number_in_stock": {
                     "label": "Number In Stock",
@@ -6600,6 +7006,7 @@ EXPECTED_RESULTS = [
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "choices": False,
+                    "hidden": False,
                 },
                 "width": {
                     "label": "Width",
@@ -6612,6 +7019,7 @@ EXPECTED_RESULTS = [
                     "decimal_places": 4,
                     "max_digits": 12,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {},

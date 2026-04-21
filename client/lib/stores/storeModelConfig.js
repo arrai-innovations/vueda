@@ -125,7 +125,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
         ];
     }
     const pkField = modelInfo.pk;
-    const fields = Object.keys(modelInfo.fields).filter((f) => f !== pkField);
+    const fields = Object.keys(modelInfo.fields).filter((f) => f !== pkField && !modelInfo.fields[f]?.hidden);
     const expandFields = modelInfo.expand.map((e) => e.name);
     const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
     const expandDetailsByName = Object.fromEntries(modelInfo.expand.map((e) => [e.name, e]));

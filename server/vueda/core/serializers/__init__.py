@@ -394,6 +394,7 @@ class VuedaSerializer(
     """
 
     available_actions = AvailableActionsField()
+    formatted_name = serializers.ReadOnlyField(style={"hidden": True})
 
     def to_representation(self, instance):
         repr_data = super().to_representation(instance)
