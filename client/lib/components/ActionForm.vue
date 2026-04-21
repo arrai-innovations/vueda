@@ -1,17 +1,12 @@
 <script setup>
-import { loadingCombine } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormChores from "@vueda/components/FormChores.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Spinner from "@vueda/feedback/spinner/Spinner.vue";
-import { defaultOnSubmissionError, defaultOnSubmitNotAnyModified } from "@vueda/use/useObjectForm.js";
+import { useActionForm } from "@vueda/use/useActionForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { FormValidationError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
-import isEmpty from "lodash-es/isEmpty.js";
-import omit from "lodash-es/omit.js";
-import { computed, inject, nextTick, onDeactivated, onUnmounted, reactive, watch } from "vue";
-import { toast } from "vue-sonner";
+import { inject } from "vue";
 
 /**
  * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides confirm and cancel button slots.
@@ -83,127 +78,12 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const localActionState = reactive({
-    loading: false,
-    errored: false,
-    error: null,
-});
-const combinedError = computed(() => {
-    return props.fetchState.error || localActionState.error;
-});
-const combinedErrored = computed(() => !!combinedError.value);
-const combinedLoading = computed(() => loadingCombine(props.fetchState.loading, localActionState.loading));
-
 const formContext = inject(FormContextSymbol);
-let actionPromise = null;
-const handleConfirm = async (dryRun = false) => {
-    formContext.setAllTouched();
-    localActionState.loading = true;
-    if (props.hasInput && !dryRun) {
-        await nextTick();
-        if (!formContext.state.anyModified) {
-            await defaultOnSubmitNotAnyModified({ toast });
-            localActionState.loading = false;
-            return;
-        }
-        if (formContext.state.anyError) {
-            const nonServerErrors = Object.entries(formContext.state.errors)
-                .map(([key, value]) => [key, omit(value, "server")])
-                .filter(([, value]) => !isEmpty(value));
-            if (nonServerErrors.length) {
-                const plural = nonServerErrors.length > 1;
-                toast.warning("Submission Blocked", {
-                    description: `Please correct the highlighted error${plural ? "s" : ""}.`,
-                    duration: 10000,
-                });
-                localActionState.loading = false;
-                return;
-            }
-        }
-    }
-
-    localActionState.errored = false;
-    localActionState.error = null;
-    try {
-        actionPromise = props.runAction({
-            formValues: formContext.state.submittingValues,
-            dryRun,
-        });
-        const response = await actionPromise;
-        if (props.actionState.errored) {
-            await handleError(props.actionState.error, dryRun);
-            return;
-        }
-        if (dryRun) {
-            return;
-        }
-
-        if (props.onSubmissionSuccessHandler) {
-            props.onSubmissionSuccessHandler(response);
-        } else {
-            toast.success(props.actionSuccessSummary || "Action Succeeded", {
-                duration: 15000,
-            });
-            if (props.redirectTo) {
-                await props.redirectTo("success");
-            }
-        }
-    } catch (error) {
-        await handleError(error, dryRun);
-    } finally {
-        actionPromise = null;
-        localActionState.loading = false;
-    }
-};
-
-const handleError = async (error, dryRun) => {
-    if (dryRun) {
-        if (error instanceof FormValidationError) {
-            formContext.handleServerFormValidationError(error);
-        }
-        return;
-    }
-    const errorHandler = props.onSubmissionErrorHandler || defaultOnSubmissionError;
-    const handled = await errorHandler({ error, formContext, toast });
-    if (!handled) {
-        localActionState.errored = true;
-        localActionState.error = error;
-        toast.error(props.actionErrorSummary || "Action Failed", {
-            description: localActionState.error,
-            duration: 15000,
-        });
-    }
-};
-const theme = useTheme("ActionForm", props);
-
-onDeactivated(() => {
-    if (actionPromise) {
-        actionPromise.cancel?.();
-    }
-});
-onUnmounted(() => {
-    if (actionPromise) {
-        actionPromise.cancel?.();
-    }
-});
-const handleCancelClick = async (e) => {
-    if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    if (props.redirectTo) {
-        await props.redirectTo("cancel");
-    }
-};
-
-watch(
-    () => props.readyToDryRun,
-    async (newVal) => {
-        if (newVal) {
-            await handleConfirm(true);
-        }
-    },
+const { combinedError, combinedErrored, combinedLoading, handleConfirm, handleCancelClick } = useActionForm(
+    formContext,
+    props,
 );
+const theme = useTheme("ActionForm", props);
 </script>
 
 <template>

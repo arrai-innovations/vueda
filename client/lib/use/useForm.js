@@ -610,13 +610,13 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *         // allow all validation to run
  *         formContext.setAllTouched();
  *         await nextTick();
- *         if (formContext.anyError) {
+ *         if (formContext.state.anyError) {
  *             return;
  *         }
- *         if (!formContext.anyModified) {
+ *         if (!formContext.state.anyModified) {
  *             return;
  *         }
- *         await submitToServer(formContext.values);
+ *         await submitToServer(formContext.state.submittingValues);
  *     } catch (e) {
  *         if (e instanceof FormValidationError) {
  *             formContext.handleServerFormValidationError(e);
