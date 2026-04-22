@@ -7,7 +7,7 @@ __all__ = (
 
 
 def get_matching_record(change, group_change_model=None):
-    """Return True if a GroupChange record matching this change exists, False otherwise."""
+    """Return GroupChange.pk if a record matching this change exists, None otherwise."""
     # Provide a way to use the model through a migration.
     if group_change_model is None:
         from vueda.user.models import GroupChange
