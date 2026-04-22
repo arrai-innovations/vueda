@@ -6,6 +6,10 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Breaking Changes
 
+- **ViewRead**:
+    - No longer delegates to `DetailView.vue`. `useDetailView` is now called directly, and the template is fully inlined. HTML attributes (class, style, data-\*, etc.) that were previously forwarded to `DetailView`'s inner `<form>` element now land on the inner content `<div>` wrapping the error display and fields.
+      _If you passed arbitrary HTML attributes to `ViewRead` and relied on them landing on the inner `<form>` element, they now land on the inner content `<div>` instead. Most usages are unaffected._
+
 - **availableFields / Field type components**:
     - Removed all type-specific `Field<Type>` components (`FieldString`, `FieldNumber`, `FieldBoolean`, `FieldDate`, `FieldDateTime`, `FieldTime`, `FieldDecimal`, `FieldDuration`, `FieldRange`, `FieldArray`, `FieldObject`, `FieldEmail`, `FieldURL`, `FieldUUID`, `FieldIP`, `FieldFile`, `FieldImage`) and their entries in `availableFields`. `FormField` is now the sole generic field component.
     - Also removed `useDevTypeGuard` (was only used internally by the removed components).
@@ -16,6 +20,9 @@ _Actions potentially required by implementers are marked with italics._
       _If you were relying on the previous default, pass an explicit redirect route that is not gated by `requireModelInfo` to avoid redirect loops._
 
 ### Features
+
+- **ViewRead**:
+    - Now emits `related-object` and `calculated-object` on mount (they were declared but never fired in the previous delegation-based implementation).
 
 - **useViewUpdate**:
     - New composable that extracts all update-view logic from `ViewUpdate.vue`. Custom shell components can call `useViewUpdate(props)` to get the same reactive state (`formInitialValue`, `formContext`, `objectForm`, `modelConfig`, `instanceObject`, `instance`, `actions`) without copying the default component.

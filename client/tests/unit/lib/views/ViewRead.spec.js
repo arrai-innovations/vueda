@@ -1,115 +1,150 @@
-import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
+import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h } from "vue";
+import { useDetailView } from "@vueda/use/useDetailView.js";
+import { useForm } from "@vueda/use/useForm.js";
+import { defineComponent, reactive } from "vue";
 
-var provideStore, mockedProvide, mockedInject;
-
-const mockedUseForm = vi.fn();
-vi.mock("@vueda/use/useForm.js", () => ({
-    useForm: mockedUseForm,
-}));
-
-const mockedUseLookupContext = vi.fn();
-vi.mock("@vueda/use/useLookupContext.js", () => ({
-    useLookupContext: mockedUseLookupContext,
-}));
-
-let detailViewEmit;
-const DetailViewStub = defineComponent({
-    name: "DetailViewStub",
-    props: ["modelValue", "app", "model", "pk", "viewName"],
-    emits: ["update:modelValue", "form-context", "form-object", "loading", "object"],
-    setup(props, { emit, attrs, slots }) {
-        detailViewEmit = emit;
-        return () =>
-            h(
-                "div",
-                {
-                    "data-qa": "detail-view",
-                    "data-app": props.app,
-                    "data-model": props.model,
-                    "data-pk": props.pk,
-                    "data-view-name": props.viewName,
-                    ...attrs,
-                },
-                Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
-            );
-    },
+vi.mock("@vueda/use/useDetailView.js", async () => {
+    const actual = await vi.importActual("@vueda/use/useDetailView.js");
+    return { ...actual, useDetailView: vi.fn() };
+});
+vi.mock("@vueda/use/useForm.js", async () => {
+    const actual = await vi.importActual("@vueda/use/useForm.js");
+    return { ...actual, useForm: vi.fn() };
 });
 
-vi.mock("@vueda/components/DetailView.vue", () => ({
-    default: DetailViewStub,
+// Stub all child components to avoid needing their dependencies.
+vi.mock("@vueda/components/ErrorDisplay.vue", () => ({
+    default: defineComponent({ name: "ErrorDisplay", template: "<div />" }),
+}));
+vi.mock("@vueda/components/FormModel.vue", () => ({
+    default: defineComponent({ name: "FormModel", template: "<div />" }),
+}));
+vi.mock("@vueda/components/LinkModelView.vue", () => ({
+    default: defineComponent({ name: "LinkModelView", template: "<div />" }),
+}));
+vi.mock("@vueda/components/PageTitle.vue", () => ({
+    default: defineComponent({ name: "PageTitle", template: "<div><slot name='button' /></div>" }),
+}));
+vi.mock("@vueda/components/StickyBar.vue", () => ({
+    default: defineComponent({ name: "StickyBar", template: "<div><slot /></div>" }),
 }));
 
-vi.mock("vue", async () => {
-    const actual = await vi.importActual("vue");
-    ({ provideStore, mockedProvide, mockedInject } = mockProvideInject(vi));
-    return {
-        __esModule: true,
-        ...actual,
-        inject: mockedInject,
-        provide: mockedProvide,
-    };
-});
-
-let ViewRead, vue;
+let mockFormContext;
+let mockDetailViewResult;
 
 beforeEach(async () => {
-    vue = await vi.importActual("vue");
-    detailViewEmit = undefined;
-    mockedUseForm.mockClear();
-    mockedUseLookupContext.mockClear();
-    ViewRead = (await import("@vueda/views/ViewRead.vue")).default;
-    provideStore.clear();
-});
-
-scopedIt("calls useLookupContext if lookup context is missing", () => {
-    mockedInject.mockReturnValueOnce(null);
-    mount(ViewRead, { props: { app: "app", model: "model", pk: "1" } });
-    expect(mockedUseLookupContext).toHaveBeenCalled();
-});
-
-scopedIt("does not call useLookupContext when lookup context exists", () => {
-    mockedInject.mockReturnValueOnce({});
-    mount(ViewRead, { props: { app: "app", model: "model", pk: "1" } });
-    expect(mockedUseLookupContext).not.toHaveBeenCalled();
-});
-
-scopedIt("passes props and attrs to DetailView and forwards slots", () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewRead, {
-        props: { app: "myApp", model: "myModel", pk: "123" },
-        attrs: { foo: "bar" },
-        slots: {
-            default: "<span>default</span>",
-            header: "<span>header</span>",
+    mockFormContext = {
+        state: reactive({ values: {}, anyModified: false }),
+        getFirstErrorField: vi.fn(() => null),
+    };
+    mockDetailViewResult = {
+        instanceObject: {
+            state: reactive({
+                object: null,
+                loading: false,
+                relatedObjects: {},
+                calculatedObjects: {},
+            }),
         },
+        instance: reactive({
+            validAndActive: true,
+            titleStr: "Read Widget",
+            pageLoading: false,
+            formId: "testApp-testModel-42-read",
+            computedWidgetProps: {},
+            combinedError: null,
+            combinedErrored: false,
+            combinedWhileText: "",
+            combinedFormProps: {},
+        }),
+        actions: reactive({
+            nonDetailActions: [],
+            detailActions: [],
+            availableTransitions: [],
+        }),
+    };
+    useDetailView.mockReturnValue(mockDetailViewResult);
+    useForm.mockReturnValue(mockFormContext);
+});
+
+afterEach(() => {
+    vi.clearAllMocks();
+});
+
+describe("lib/views/ViewRead.vue", () => {
+    describe("composable integration", () => {
+        scopedIt("calls useDetailView with viewName 'read'", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            mount(ViewRead, { props: { app: "myApp", model: "myModel", pk: "7" } });
+            const [internalOptions] = useDetailView.mock.calls[0];
+            expect(internalOptions.viewName).toBe("read");
+        });
+
+        scopedIt("passes app, model, and pk to useDetailView", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            mount(ViewRead, { props: { app: "myApp", model: "myModel", pk: "7" } });
+            const [internalOptions] = useDetailView.mock.calls[0];
+            expect(internalOptions.app).toBe("myApp");
+            expect(internalOptions.model).toBe("myModel");
+            expect(internalOptions.pk).toBe("7");
+        });
+
+        scopedIt("passes formContextProps.initialValues as formInitialValue to useDetailView", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+            const [, formInitialValue] = useDetailView.mock.calls[0];
+            expect(formInitialValue).toBeDefined();
+        });
     });
 
-    const dv = wrapper.find('[data-qa="detail-view"]');
-    expect(dv.attributes("data-app")).toBe("myApp");
-    expect(dv.attributes("data-model")).toBe("myModel");
-    expect(dv.attributes("data-pk")).toBe("123");
-    expect(dv.attributes("data-view-name")).toBe("read");
-    expect(dv.attributes("foo")).toBe("bar");
-    expect(dv.find('[data-slot="default"]').text()).toBe("default");
-    expect(dv.find('[data-slot="header"]').text()).toBe("header");
-    const formArg = mockedUseForm.mock.calls[0][0];
-    expect(vue.isReactive(formArg)).toBe(true);
-});
+    describe("emits", () => {
+        scopedIt(
+            "emits object, loading, related-object, calculated-object, form-object, form-context on mount",
+            async () => {
+                const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+                const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+                await wrapper.vm.$nextTick();
 
-scopedIt("forwards events from DetailView", async () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewRead, { props: { app: "a", model: "b", pk: "c" } });
+                expect(wrapper.emitted("object")).toBeTruthy();
+                expect(wrapper.emitted("loading")).toBeTruthy();
+                expect(wrapper.emitted("related-object")).toBeTruthy();
+                expect(wrapper.emitted("calculated-object")).toBeTruthy();
+                expect(wrapper.emitted("form-object")).toBeTruthy();
+                expect(wrapper.emitted("form-context")).toBeTruthy();
+            },
+        );
 
-    detailViewEmit("loading", true);
-    detailViewEmit("object", { id: 5 });
-    detailViewEmit("form-object", { foo: "bar" });
-    detailViewEmit("form-context", { baz: 1 });
-    await wrapper.vm.$nextTick();
+        scopedIt("form-context emit receives the formContext object", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+            await wrapper.vm.$nextTick();
 
-    expect(wrapper.emitted("loading")[0]).toEqual([true]);
-    expect(wrapper.emitted("object")[0]).toEqual([{ id: 5 }]);
-    expect(wrapper.emitted("form-object")[0]).toEqual([{ foo: "bar" }]);
-    expect(wrapper.emitted("form-context")[0]).toEqual([{ baz: 1 }]);
+            const [emittedContext] = wrapper.emitted("form-context")[0];
+            expect(emittedContext).toBe(mockFormContext);
+        });
+    });
+
+    describe("rendering", () => {
+        scopedIt("renders root element with data-qa attribute", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="read-form-root"]').exists()).toBe(true);
+        });
+
+        scopedIt("action button container has data-qa attribute", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="read-action-button"]').exists()).toBe(true);
+        });
+
+        scopedIt("attrs are forwarded to the inner content div", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            const wrapper = mount(ViewRead, {
+                props: { app: "a", model: "m", pk: "1" },
+                attrs: { "data-test": "custom-value" },
+            });
+            expect(wrapper.find('[data-qa="read-form"]').attributes("data-test")).toBe("custom-value");
+        });
+    });
 });
