@@ -32,6 +32,7 @@ from django.contrib.auth.management import create_permissions
 from django.core.management import BaseCommand
 from django.core.management import call_command
 from django.db import migrations
+from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 from django.db.transaction import atomic
 
 from vueda.user import models as vueda_models
@@ -435,24 +436,42 @@ class Command(BaseCommand):
 
         return sorted(project_dependency_migration_names)
 
+    def _get_migrations_path(self, app_config):
+        app_label = app_config.label
+        if app_label in settings.MIGRATION_MODULES:
+            module_name = settings.MIGRATION_MODULES[app_label]
+        else:
+            module_name = f"{app_config.name}.{MIGRATIONS_MODULE_NAME}"
+
+        try:
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError:
+            return None
+
+        return module.__path__[0] if module.__path__ else None
+
     def _get_vueda_generated_migration_data_for_auth_user_model(self):
         model = django_apps.get_model(settings.AUTH_USER_MODEL)
         meta = model._meta
         app_label = meta.app_label
         app_name = meta.app_config.name
 
+        app_config = django_apps.get_app_config(app_label)
+        migrations_path = self._get_migrations_path(app_config)
+
         migration_names = self._get_migration_names_from_show_migrations(app_label)
 
         migration_data = {
             "app_name": app_name,
             "app_label": app_label,
-            "migrations_path": os.path.join(meta.app_config.path, "migrations"),
+            "migrations_path": migrations_path,
             "migrations": {},
         }
 
         for migration_name in migration_names:
-            migration_path = os.path.join(*app_name.split("."), "migrations", f"{migration_name}.py")
             django_date = self._get_generated_date_for_vueda_generated_migration(app_name, migration_name)
+            migration_path = os.path.join(migrations_path, f"{migration_name}.py")
+
             if django_date:
                 if migration_name not in migration_data["migrations"]:
                     migration_data["migrations"][migration_name] = {
