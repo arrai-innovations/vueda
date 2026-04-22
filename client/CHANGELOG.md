@@ -32,6 +32,10 @@ _Actions potentially required by implementers are marked with italics._
     - New composable that extracts all list-view logic from `ViewList.vue`. Custom shell components can call `useViewList(props)` to get the same sub-grouped reactive state (`modelConfig`, `list`, `actions`, `search`, `sort`, `columns`, `pagination`) without copying the default component.
     - `ViewList.vue` is now a thin wrapper around this composable and retains its existing props, emits, and slots unchanged.
 
+- **useDetailView**:
+    - New composable that extracts all detail-view logic from `DetailView.vue`. Custom shell components can call `useDetailView(options, formInitialValue)` to get the same reactive state (`modelConfig`, `instanceObject`, `instance`, `actions`) without copying the default component.
+    - `DetailView.vue` is a thin wrapper around this composable and retains its existing props, emits, and slots unchanged.
+
 - **DetailView**:
     - Added `DetailView` as the canonical base component for `read` and `update` detail flows.
     - `DetailedView` is now deprecated and will be removed in the next major release.
