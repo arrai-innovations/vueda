@@ -77,13 +77,13 @@ The `pk` field is sent to and received from the client as a JSON string, for exa
 
 ## URL Format for Composite PKs
 
-When targeting a specific `OrderLine`, the composite key values appear in the URL as a comma-separated string:
+When targeting a specific `OrderLine`, the composite key values appear in the URL as a json string:
 
 ```
 GET /api/orderlines/["1","42"]/
 ```
 
-`VuedaViewSet` detects the composite primary key on the model and splits the `pk` URL segment on commas before passing the result to the ORM. No extra viewset configuration is needed.
+`VuedaViewSet` detects the composite primary key on the model and converts the json `pk` URL segment into a list, before passing the result to the ORM. No extra viewset configuration is needed.
 
 ## Using `reverse()` with Composite PKs
 
