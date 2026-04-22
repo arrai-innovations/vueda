@@ -9,7 +9,6 @@ from rest_framework.viewsets import ModelViewSet
 import tests.store.filtersets as my_filtersets
 import tests.store.models as my_models
 import tests.store.serializers as my_serializers
-from tests.models import Product
 from tests.permissions import IsAdminUser
 from tests.permissions import IsCartOrOrderCreator
 from vueda.core.decorators import action
@@ -98,7 +97,7 @@ class CartViewSet(VuedaViewSet):
         if request.data.get("fail"):
             raise VuedaValidationError({"detail": ["Action failed"]})
 
-        Product.objects.create(name="Dry Run Product", available_for_sale=True, buzz_words=[])
+        my_models.Distributor.objects.create(name="Dry Run", description="Dry Run Test")
         return Response({"created": True})
 
     @action(detail=True, methods=["post"], permission_classes=(IsCartOrOrderCreator,))
