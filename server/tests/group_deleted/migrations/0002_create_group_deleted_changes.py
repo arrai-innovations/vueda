@@ -6,6 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
     dependencies = [
         ("group_deleted", "0001_initial"),
+        ("vueda_user", "__latest__"),
     ]
 
     operations = [
