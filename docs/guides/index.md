@@ -30,6 +30,8 @@ Guides are task-focused recipes for implementors working on real VUEDA projects.
 - [Map Django and VUEDA Permission Names](permission-name-mapping.md): Configure and verify `PERMISSION_NAMES_MAPPING`.
 - [Add Workflow State and Transition Permissions](workflow-state-permissions.md): Layer state-based grants/denies over {@term CRUDL} permissions.
 - [Design Transition UX and Redirects](transition-ux-and-redirects.md): Integrate transitions with action routing and post-submit redirects.
+- [Manage Workflows and Generate Workflow Migrations](manage-workflows.md): Create, edit, and delete workflows through the UI, then capture those changes as a replayable migration.
+- [Manage Groups and Generate Group Migrations](manage-groups.md): Add, rename, and remove groups through the permission overview UI, then capture those changes as a replayable migration.
 
 ## Async Work and Integrations
 
