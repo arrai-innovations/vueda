@@ -20,5 +20,5 @@ class Migration(migrations.Migration):
             name="when",
             field=models.DateTimeField(auto_now_add=True),
         ),
-        migrations.RunPython(sync_group_changes, migrations.RunPython.noop),
+        migrations.RunPython(sync_group_changes, migrations.RunPython.noop, elidable=True),
     ]
