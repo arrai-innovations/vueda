@@ -207,7 +207,7 @@ class GroupChange(models.Model):
             (DELETED, DELETED),
         ),
     )
-    when = models.DateTimeField(auto_now=True)
+    when = models.DateTimeField(auto_now_add=True)
     historical_permission_codename = models.CharField(max_length=100, blank=True)
     historical_permission_content_type_app_label = models.CharField(max_length=100, blank=True)
     historical_permission_content_type_model_name = models.CharField(max_length=100, blank=True)

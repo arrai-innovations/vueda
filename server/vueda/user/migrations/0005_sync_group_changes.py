@@ -2,6 +2,7 @@
 
 from django.core.management import call_command
 from django.db import migrations
+from django.db import models
 
 
 def sync_group_changes(apps, schema_editor):
@@ -14,5 +15,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterField(
+            model_name="groupchange",
+            name="when",
+            field=models.DateTimeField(auto_now_add=True),
+        ),
         migrations.RunPython(sync_group_changes, migrations.RunPython.noop),
     ]
