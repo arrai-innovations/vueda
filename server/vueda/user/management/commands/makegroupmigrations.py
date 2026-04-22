@@ -35,6 +35,8 @@ from django.db import migrations
 from django.db.transaction import atomic
 
 from vueda.user import models as vueda_models
+from vueda.user.management.commands.utils import create_group_change
+from vueda.user.management.commands.utils import get_matching_record
 
 
 NEWLINE = os.linesep
@@ -122,6 +124,7 @@ def migrate_step(
 
 def forwards_migrate_groups(apps, schema_editor):
     content_types = apps.get_model("contenttypes", "ContentType")
+    group_changes = apps.get_model("vueda_user", "GroupChange")
     groups = apps.get_model("auth", "Group")
     permissions = apps.get_model("auth", "Permission")
 
@@ -147,6 +150,10 @@ def forwards_migrate_groups(apps, schema_editor):
             historical_permission_content_type_model_name,
             historical_permission_name,
         )
+
+        pk = get_matching_record(changed_item, group_change_model=group_changes)
+        if pk is None:
+            create_group_change(changed_item, group_change_model=group_changes)
 
 
 def backwards_migrate_groups(apps, schema_editor):
@@ -362,7 +369,9 @@ class Command(BaseCommand):
             lines[p_forwards_index] = lines[p_forwards_index].replace("dict", "make_sure_permissions_exist")
 
             backwards = inspect.getsource(backwards_migrate_groups)
+            create_group_chng = inspect.getsource(create_group_change)
             forwards = inspect.getsource(forwards_migrate_groups)
+            get_matching_rec = inspect.getsource(get_matching_record)
             group_change_types = inspect.getsource(GroupChangeTypes)
             perms_exist = inspect.getsource(make_sure_permissions_exist)
             step = inspect.getsource(migrate_step)
@@ -376,6 +385,8 @@ class Command(BaseCommand):
             lines[class_index - 1 : class_index] = [
                 # Pretty Print is not formatted as nice as black.  At least a small width is better than nothing.
                 f"{NEWLINE}changed_data = {pformat(changes)}{NEWLINE}",
+                f"{NEWLINE}{NEWLINE}{create_group_chng}",
+                f"{NEWLINE}{NEWLINE}{get_matching_rec}",
                 f"{NEWLINE}{NEWLINE}{group_change_types}",
                 f"{NEWLINE}{NEWLINE}{step}",
                 f"{NEWLINE}{NEWLINE}{forwards}",
@@ -401,7 +412,6 @@ class Command(BaseCommand):
 
     def _get_migration_names_from_show_migrations(self, app_label):
         show_migration_results = self._call_command("showmigrations", app_label)
-
         if not show_migration_results:  # Erred.  The reason will be printed to the console via the command.
             return None
 
@@ -431,34 +441,30 @@ class Command(BaseCommand):
         app_label = meta.app_label
         app_name = meta.app_config.name
 
+        migration_names = self._get_migration_names_from_show_migrations(app_label)
+
         migration_data = {
             "app_name": app_name,
             "app_label": app_label,
             "migrations_path": os.path.join(meta.app_config.path, "migrations"),
+            "migrations": {},
         }
 
-        migration_names = self._get_migration_names_from_show_migrations(app_label)
-
-        migration_dates = {}
         for migration_name in migration_names:
+            migration_path = os.path.join(*app_name.split("."), "migrations", f"{migration_name}.py")
             django_date = self._get_generated_date_for_vueda_generated_migration(app_name, migration_name)
             if django_date:
-                migration_dates[django_date] = {
-                    "name": migration_name,
-                    "path": os.path.join(*app_name.split("."), "migrations", f"{migration_name}.py"),
-                }
+                if migration_name not in migration_data["migrations"]:
+                    migration_data["migrations"][migration_name] = {
+                        "changes": {},
+                        "migration_path": migration_path,
+                    }
 
-        if migration_dates:
-            max_date = max(migration_dates)
-            migration_info = migration_dates[max_date]
+                spec = importlib.util.spec_from_file_location("migration", migration_path)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
 
-            migration_data.update(
-                {
-                    "last_migration_date": max_date,
-                    "last_migration_name": migration_info["name"],
-                    "last_migration_path": migration_info["path"],
-                }
-            )
+                migration_data["migrations"][migration_name]["changes"] = module.changed_data.copy()
 
         return migration_data
 
@@ -466,27 +472,42 @@ class Command(BaseCommand):
     def handle(self, *app_labels, **options):
         self.dry_run = options["dry_run"]
 
-        migration_data = self._get_vueda_generated_migration_data_for_auth_user_model()
+        all_migrated_data = self._get_vueda_generated_migration_data_for_auth_user_model()
+        matched_group_change_pks = set()
 
-        if "last_migration_date" in migration_data:
-            group_changes = vueda_models.GroupChange.objects.filter(
-                when__gt=migration_data["last_migration_date"]
-            ).order_by("when")
+        for migration_name in all_migrated_data["migrations"]:
+            for change in all_migrated_data["migrations"][migration_name]["changes"]:
+                pk = get_matching_record(change)
+                if pk is not None:
+                    matched_group_change_pks.add(pk)
+
+        if matched_group_change_pks:
+            changes = list(
+                vueda_models.GroupChange.objects.exclude(pk__in=matched_group_change_pks)
+                .order_by("when")
+                .values(
+                    "group_name",
+                    "group_name_old",
+                    "change_type",
+                    "when",
+                    "historical_permission_codename",
+                    "historical_permission_content_type_app_label",
+                    "historical_permission_content_type_model_name",
+                )
+            )
 
         else:
-            group_changes = vueda_models.GroupChange.objects.order_by("when")
-
-        changes = list(
-            group_changes.values(
-                "group_name",
-                "group_name_old",
-                "change_type",
-                "when",
-                "historical_permission_codename",
-                "historical_permission_content_type_app_label",
-                "historical_permission_content_type_model_name",
+            changes = list(
+                vueda_models.GroupChange.objects.order_by("when").values(
+                    "group_name",
+                    "group_name_old",
+                    "change_type",
+                    "when",
+                    "historical_permission_codename",
+                    "historical_permission_content_type_app_label",
+                    "historical_permission_content_type_model_name",
+                )
             )
-        )
 
         if not changes:
             self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No group changes detected."))
@@ -504,44 +525,14 @@ class Command(BaseCommand):
             )
             change["historical_permission_name"] = permission["name"]
 
-        if "last_migration_path" in migration_data:
-            # Compare the last migration with the changes data we have.  If they are the same, then
-            # you tried to makegroupmigrations multiple times, without faking the last created one.
-            # It is also possible that the current changes could contain the last migrations changes, and some more.
-            # In this case we need to let the user know they need to delete and try again, or fake and try again.
-            spec = importlib.util.spec_from_file_location("migration", migration_data["last_migration_path"])
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            previous_changed_data = {data["when"]: data for data in module.changed_data}
-
-            similarity = set()
-            for current_change in changes:
-                similarity.add(current_change["when"] in previous_changed_data)
-
-            if True in similarity and False in similarity:
-                self.stdout.write(
-                    self.style.ERROR(
-                        f"{NEWLINE}Group changes detected, but we can't make a migration yet.  Do one of the following:"
-                        f"""{NEWLINE}{NEWLINE}1. Delete migration "{migration_data["last_migration_name"]}", if """
-                        "uncommitted."
-                        f"""{NEWLINE}2. Fake migration "{migration_data["last_migration_name"]}"."""
-                        f'{NEWLINE}{NEWLINE}Once done, run "makegroupmigrations" again.'
-                    )
-                )
-                return
-
-            elif True in similarity:
-                self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No group changes detected."))
-                return
-
-        migration_name = self._create_and_get_empty_migration(migration_data["app_label"])
+        migration_name = self._create_and_get_empty_migration(all_migrated_data["app_label"])
         if migration_name is None:
             raise RuntimeError("Unable to find the name of the newly created migration.")
 
         if not migration_name:  # Erred.
             return
 
-        migration_file = Path(migration_data["migrations_path"]).joinpath(migration_name)
+        migration_file = Path(all_migrated_data["migrations_path"]).joinpath(migration_name)
 
         if not self.dry_run:
             auth_migration_names = self._get_migration_names_from_show_migrations("auth")
@@ -551,7 +542,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"{NEWLINE}Modified migration '{migration_name}' to migrate workflow for {migration_data['app_name']}."
+                f"{NEWLINE}Modified migration '{migration_name}' to migrate groups for {all_migrated_data['app_name']}."
             )
         )
         self.stdout.write(
