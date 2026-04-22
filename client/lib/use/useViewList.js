@@ -1,8 +1,8 @@
 /**
  * @module use/useViewList
- * @description Provides all reactive state and behavior for a paginated, sortable,
+ * @description Provides all reactive state and behaviour for a paginated, sortable,
  * searchable Django model list view. Returns sub-grouped reactive state that a custom
- * shell component binds to directly, without re-implementing route synchronisation,
+ * shell component binds to directly, without re-implementing route synchronization,
  * preference persistence, or the action/selection machinery.
  *
  * The view name `"list"` is a fixed convention throughout this composable: it maps to

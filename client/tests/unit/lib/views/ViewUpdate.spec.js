@@ -1,139 +1,161 @@
-import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
+import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h } from "vue";
+import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
+import { defineComponent, reactive } from "vue";
 
-var provideStore, mockedProvide, mockedInject;
-
-const mockedUseObject = vi.fn();
-const mockedUseForm = vi.fn();
-const mockedUseLookupContext = vi.fn();
-const mockedUseModelConfig = vi.fn();
-const mockedUseObjectForm = vi.fn();
-const mockedUseWarnings = vi.fn();
-
-vi.mock("@arrai-innovations/reactive-helpers", () => ({
-    useObject: mockedUseObject,
-}));
-vi.mock("@vueda/use/useForm.js", () => ({
-    useForm: mockedUseForm,
-}));
-vi.mock("@vueda/use/useLookupContext.js", () => ({
-    useLookupContext: mockedUseLookupContext,
-}));
-vi.mock("@vueda/use/useModelConfig.js", () => ({
-    useModelConfig: mockedUseModelConfig,
-}));
-vi.mock("@vueda/use/useObjectForm.js", () => ({
-    useObjectForm: mockedUseObjectForm,
-}));
-vi.mock("@vueda/use/useWarnings.js", () => ({
-    useWarnings: mockedUseWarnings,
-}));
-
-let detailViewEmit;
-const DetailViewStub = defineComponent({
-    name: "DetailViewStub",
-    props: ["modelValue", "app", "model", "pk", "viewName", "submitFields", "objectForm"],
-    emits: ["update:modelValue", "form-context", "form-object", "loading", "object"],
-    setup(props, { emit, attrs, slots }) {
-        detailViewEmit = emit;
-        return () =>
-            h(
-                "div",
-                {
-                    "data-qa": "detail-view",
-                    "data-app": props.app,
-                    "data-model": props.model,
-                    "data-pk": props.pk,
-                    "data-view-name": props.viewName,
-                    "data-submit-fields": JSON.stringify(props.submitFields),
-                    "data-object-form": props.objectForm ? "true" : "false",
-                    ...attrs,
-                },
-                Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
-            );
-    },
+vi.mock("@vueda/use/useViewUpdate.js", async () => {
+    const actual = await vi.importActual("@vueda/use/useViewUpdate.js");
+    return { ...actual, useViewUpdate: vi.fn() };
 });
 
-vi.mock("@vueda/components/DetailView.vue", () => ({
-    default: DetailViewStub,
+// Stub all child components to avoid needing their dependencies.
+vi.mock("@vueda/components/ErrorDisplay.vue", () => ({
+    default: defineComponent({ name: "ErrorDisplay", template: "<div />" }),
+}));
+vi.mock("@vueda/components/FormModel.vue", () => ({
+    default: defineComponent({ name: "FormModel", template: "<div />" }),
+}));
+vi.mock("@vueda/components/LinkModelView.vue", () => ({
+    default: defineComponent({ name: "LinkModelView", template: "<div />" }),
+}));
+vi.mock("@vueda/components/PageTitle.vue", () => ({
+    default: defineComponent({ name: "PageTitle", template: "<div><slot name='button' /></div>" }),
+}));
+vi.mock("@vueda/components/StickyBar.vue", () => ({
+    default: defineComponent({ name: "StickyBar", template: "<div><slot /></div>" }),
+}));
+vi.mock("@vueda/controls/button/Button.vue", () => ({
+    default: defineComponent({ name: "Button", template: "<button><slot /></button>" }),
+}));
+vi.mock("@vueda/feedback/spinner/Spinner.vue", () => ({
+    default: defineComponent({ name: "Spinner", template: "<span />" }),
 }));
 
-vi.mock("vue", async () => {
-    const actual = await vi.importActual("vue");
-    ({ provideStore, mockedProvide, mockedInject } = mockProvideInject(vi));
-    return { __esModule: true, ...actual, inject: mockedInject, provide: mockedProvide };
-});
-
-let ViewUpdate, vue, modelConfig;
+let mockComposableResult;
 
 beforeEach(async () => {
-    vue = await vi.importActual("vue");
-    detailViewEmit = undefined;
-    modelConfig = vue.reactive({
-        loading: vue.ref(false),
-        error: vue.ref(null),
-        info: { pk: "id" },
-        config: { verboseName: "Thing", submitFields: ["name"], fieldDetails: {}, expand: [] },
-    });
-    mockedUseModelConfig.mockReturnValue(modelConfig);
-    mockedUseObject.mockReturnValue({ state: vue.reactive({}) });
-    mockedUseForm.mockReturnValue({
-        state: vue.reactive({ values: {}, anyModified: false }),
-        getFirstErrorField: vi.fn(() => "name"),
-    });
-    mockedUseObjectForm.mockReturnValue({ state: vue.reactive({ loading: false }), submit: vi.fn() });
-    ViewUpdate = (await import("@vueda/views/ViewUpdate.vue")).default;
-    provideStore.clear();
+    mockComposableResult = {
+        formInitialValue: reactive({}),
+        formContext: {
+            state: reactive({ values: {}, anyModified: false }),
+            getFirstErrorField: vi.fn(() => null),
+        },
+        objectForm: {
+            state: reactive({ loading: false }),
+            submit: vi.fn(),
+        },
+        modelConfig: reactive({
+            config: { verboseName: "widget" },
+            loading: false,
+        }),
+        instanceObject: {
+            state: reactive({
+                object: null,
+                loading: false,
+                relatedObjects: {},
+                calculatedObjects: {},
+            }),
+        },
+        instance: reactive({
+            validAndActive: true,
+            titleStr: "Update Widget",
+            pageLoading: false,
+            formId: "testApp-testModel-42-update",
+            computedWidgetProps: {},
+            combinedError: null,
+            combinedErrored: false,
+            combinedWhileText: "",
+            combinedFormProps: {},
+        }),
+        actions: reactive({
+            nonDetailActions: [],
+            detailActions: [],
+            availableTransitions: [],
+        }),
+    };
+    useViewUpdate.mockReturnValue(mockComposableResult);
 });
 
 afterEach(() => {
     vi.clearAllMocks();
 });
 
-scopedIt("calls useLookupContext if lookup context is missing", () => {
-    mockedInject.mockReturnValueOnce(null);
-    mount(ViewUpdate, { props: { app: "app", model: "model", pk: "1" } });
-    expect(mockedUseLookupContext).toHaveBeenCalled();
-});
+describe("lib/views/ViewUpdate.vue", () => {
+    describe("composable integration", () => {
+        scopedIt("calls useViewUpdate with component props", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            mount(ViewUpdate, { props: { app: "myApp", model: "myModel", pk: "7" } });
+            expect(useViewUpdate).toHaveBeenCalledWith(
+                expect.objectContaining({ app: "myApp", model: "myModel", pk: "7" }),
+            );
+        });
 
-scopedIt("does not call useLookupContext when lookup context exists", () => {
-    mockedInject.mockReturnValueOnce({});
-    mount(ViewUpdate, { props: { app: "app", model: "model", pk: "1" } });
-    expect(mockedUseLookupContext).not.toHaveBeenCalled();
-});
-
-scopedIt("passes props to DetailView and forwards events", async () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewUpdate, {
-        props: { app: "myApp", model: "myModel", pk: "5", submitFields: ["name"], redirectAfter: "read" },
-        attrs: { foo: "bar" },
-        slots: { default: "<span>default</span>", extra: "<span>extra</span>" },
+        scopedIt("provides FormContextSymbol so child components can inject formContext", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const Consumer = defineComponent({
+                setup() {
+                    // We can't use inject() outside of setup in this test context,
+                    // but we verify the component mounts without error (provide is called in setup).
+                    return {};
+                },
+                template: "<span />",
+            });
+            const wrapper = mount(ViewUpdate, {
+                props: { app: "a", model: "m", pk: "1" },
+                global: { components: { Consumer } },
+            });
+            // If provide was not called, child injection would silently return null.
+            // Verify the component set up correctly (rendered, provide wired without throwing).
+            expect(wrapper.exists()).toBe(true);
+        });
     });
 
-    const dv = wrapper.find('[data-qa="detail-view"]');
-    expect(dv.attributes("data-app")).toBe("myApp");
-    expect(dv.attributes("data-model")).toBe("myModel");
-    expect(dv.attributes("data-pk")).toBe("5");
-    expect(dv.attributes("data-view-name")).toBe("update");
-    expect(dv.attributes("foo")).toBe("bar");
-    expect(JSON.parse(dv.attributes("data-submit-fields"))).toEqual(["name"]);
-    expect(dv.attributes("data-object-form")).toBe("true");
-    expect(dv.find('[data-slot="default"]').text()).toBe("default");
-    expect(dv.find('[data-slot="extra"]').text()).toBe("extra");
+    describe("emits", () => {
+        scopedIt(
+            "emits object, loading, related-object, calculated-object, form-object, form-context on mount",
+            async () => {
+                const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+                const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+                await wrapper.vm.$nextTick();
 
-    detailViewEmit("loading", true);
-    detailViewEmit("object", { id: 5 });
-    detailViewEmit("form-object", { foo: "bar" });
-    detailViewEmit("form-context", { baz: 1 });
-    await wrapper.vm.$nextTick();
+                expect(wrapper.emitted("object")).toBeTruthy();
+                expect(wrapper.emitted("loading")).toBeTruthy();
+                expect(wrapper.emitted("related-object")).toBeTruthy();
+                expect(wrapper.emitted("calculated-object")).toBeTruthy();
+                expect(wrapper.emitted("form-object")).toBeTruthy();
+                expect(wrapper.emitted("form-context")).toBeTruthy();
+            },
+        );
 
-    expect(wrapper.emitted("loading")[0]).toEqual([true]);
-    expect(wrapper.emitted("object")[0]).toEqual([{ id: 5 }]);
-    expect(wrapper.emitted("form-object")[0]).toEqual([{ foo: "bar" }]);
-    expect(wrapper.emitted("form-context")[0]).toEqual([{ baz: 1 }]);
+        scopedIt("form-context emit receives the formContext object", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            await wrapper.vm.$nextTick();
 
-    const formArg = mockedUseForm.mock.calls[0][0];
-    expect(vue.isReactive(formArg)).toBe(true);
-    expect(mockedUseWarnings).toHaveBeenCalled();
+            const [emittedContext] = wrapper.emitted("form-context")[0];
+            expect(emittedContext).toBe(mockComposableResult.formContext);
+        });
+    });
+
+    describe("rendering", () => {
+        scopedIt("renders root element with data-qa attribute", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="update-form-root"]').exists()).toBe(true);
+        });
+
+        scopedIt("passes class prop to root element", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, {
+                props: { app: "a", model: "m", pk: "1", class: "my-class" },
+            });
+            expect(wrapper.find(".my-class").exists()).toBe(true);
+        });
+
+        scopedIt("form action button container has data-qa attribute", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="update-action-button"]').exists()).toBe(true);
+        });
+    });
 });

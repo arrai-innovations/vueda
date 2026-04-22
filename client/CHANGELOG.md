@@ -17,6 +17,10 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Features
 
+- **useViewUpdate**:
+    - New composable that extracts all update-view logic from `ViewUpdate.vue`. Custom shell components can call `useViewUpdate(props)` to get the same reactive state (`formInitialValue`, `formContext`, `objectForm`, `modelConfig`, `instanceObject`, `instance`, `actions`) without copying the default component.
+    - `ViewUpdate.vue` is now a thin wrapper around this composable and retains its existing props, emits, and slots unchanged.
+
 - **useViewList**:
     - New composable that extracts all list-view logic from `ViewList.vue`. Custom shell components can call `useViewList(props)` to get the same sub-grouped reactive state (`modelConfig`, `list`, `actions`, `search`, `sort`, `columns`, `pagination`) without copying the default component.
     - `ViewList.vue` is now a thin wrapper around this composable and retains its existing props, emits, and slots unchanged.
@@ -30,6 +34,9 @@ _Actions potentially required by implementers are marked with italics._
 
 - **useField / useForm**: Required-field errors are now suppressed on blur for fields that started empty and remain empty, until the form has had a submission attempt (via `setAllTouched`) or the field has been modified. This prevents a wall of required errors when a user tabs through an empty form without typing anything. Fields without a form context retain the previous behavior (errors fire on blur immediately).
     - _No action required for most forms. If you relied on required errors firing on blur for fields that have never been touched and were always empty (e.g. contextless fields), behavior is unchanged. For fields inside a form context, errors now require either user modification or a submission attempt before appearing._
+
+- **ViewUpdate**: The `redirectAfter` prop was silently discarded and redirects after a successful update never fired. This is now fixed.
+    - _If you relied on `redirectAfter` having no effect, note that it will now redirect as documented._
 
 - **FieldSetSingularStackedInline**: Wait for fieldObjects to be ready before auto-creating inline row and loading initial values in FieldSetSingularStackedInline
 
