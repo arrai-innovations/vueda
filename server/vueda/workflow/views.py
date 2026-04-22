@@ -30,7 +30,6 @@ from simple_history.models import HistoricalChanges
 from vueda.user.mixins import LogoutMixin
 from vueda.workflow import models
 from vueda.workflow.mixins import WorkflowUrlsMixin
-from vueda.workflow.models import Workflow
 from vueda.workflow.permissions import WorkflowObjectPermissions
 
 
@@ -160,7 +159,7 @@ class WorkflowDeleteView(PermissionRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         pk = kwargs["pk"]
 
-        workflow = Workflow.objects.filter(pk=pk)
+        workflow = models.Workflow.objects.filter(pk=pk)
         if workflow.exists():
             workflow.delete()
             messages.add_message(request, messages.INFO, "Workflow deleted.")
