@@ -29,6 +29,7 @@ from simple_history.models import HistoricalChanges
 
 from vueda.user.mixins import LogoutMixin
 from vueda.workflow import models
+from vueda.workflow.globals import CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT
 from vueda.workflow.mixins import WorkflowUrlsMixin
 from vueda.workflow.permissions import WorkflowObjectPermissions
 
@@ -138,6 +139,9 @@ class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMix
         context["models_without_workflow_row"] = []
         for model in models.HasWorkflowModelMixin.__subclasses__():
             content_type = ContentType.objects.get_for_model(model)
+            # Some models don't make sense having a workflow.
+            if issubclass(model, CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT):
+                continue
             if (
                 not issubclass(model, HistoricalChanges)
                 and not hasattr(model, "pgh_tracked_model")
