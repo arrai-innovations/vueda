@@ -39,8 +39,8 @@ export default {
                 "focus-visible:border-ring focus-visible:ring-ring/50",
                 "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
                 "dark:bg-input/30 dark:hover:bg-input/50",
-                "flex w-full h-9 items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm",
-                "whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none",
+                "flex w-full h-9 items-center justify-between gap-2 rounded-vueda-control border bg-transparent px-3 py-2 text-sm",
+                "whitespace-nowrap shadow-vueda-control transition-[color,box-shadow] outline-none",
                 "focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
             ],
@@ -93,7 +93,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-col border border-input rounded-md overflow-hidden"],
+            class: ["flex flex-col border border-input rounded-vueda-control overflow-hidden"],
         },
         toolbar: {
             class: ["flex flex-row flex-wrap items-center gap-0.5 border-b border-input bg-muted/50 px-1.5 py-1"],
