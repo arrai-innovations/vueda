@@ -10,6 +10,18 @@
  * The :root and .dark blocks below provide a default light/dark palette
  * based on shadcn-ui's neutral scale. Override any variable to match your
  * brand without touching the theme JS files.
+ *
+ * Token layers:
+ *
+ * 1. Primitive color/radius tokens (:root / .dark)
+ *    The base palette and scale. Named without the --vueda- prefix.
+ *    These map through @theme to generate Tailwind utilities (bg-*, text-*, etc.).
+ *
+ * 2. Semantic --vueda-* tokens (:root only, no dark overrides unless noted)
+ *    Role-specific aliases that the theme JS files will target in Phase 2.
+ *    Radius and shadow are mapped through @theme (rounded-vueda-*, shadow-vueda-*).
+ *    Spacing and typography are :root-only; Phase 2 components reference them
+ *    via arbitrary values, e.g. gap-[var(--vueda-gap-sm)].
  */
 
 /* Tell Tailwind CSS v4 to scan vueda's lib directory for component class names.
@@ -22,10 +34,33 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
+    /* Radius scale (generates rounded-* utilities) */
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
+
+    /* Semantic radius aliases (generates rounded-vueda-* utilities)
+     * Phase 2: replaces rounded-md on controls (buttons, inputs, selects) */
+    --radius-vueda-control: var(--vueda-control-radius);
+    /* Phase 2: replaces rounded-xl on cards and panels */
+    --radius-vueda-card: var(--vueda-card-radius);
+    /* Phase 2: replaces rounded-lg on dialogs and sheets */
+    --radius-vueda-modal: var(--vueda-modal-radius);
+    /* Phase 2: replaces rounded-full on badges, tags, and avatars */
+    --radius-vueda-pill: var(--vueda-pill-radius);
+
+    /* Semantic shadow aliases (generates shadow-vueda-* utilities)
+     * Phase 2: replaces shadow-xs on form controls */
+    --shadow-vueda-control: var(--vueda-shadow-control);
+    /* Phase 2: replaces shadow-sm on cards */
+    --shadow-vueda-card: var(--vueda-shadow-card);
+    /* Phase 2: replaces shadow-md on popovers and hover cards */
+    --shadow-vueda-popover: var(--vueda-shadow-popover);
+    /* Phase 2: replaces shadow-lg on dialogs, sheets, and drawers */
+    --shadow-vueda-overlay: var(--vueda-shadow-overlay);
+
+    /* Color palette (generates bg-*, text-*, border-* utilities) */
     --color-background: var(--background);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
@@ -41,9 +76,17 @@
     --color-accent: var(--accent);
     --color-accent-foreground: var(--accent-foreground);
     --color-destructive: var(--destructive);
+    /* Phase 2: replaces text-white on destructive buttons */
+    --color-destructive-foreground: var(--destructive-foreground);
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
+    /* Phase 2: replaces hardcoded yellow/blue/green palette classes in Alert variants */
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-info: var(--info);
+    /* Phase 2: replaces bg-black/80 on dialog, sheet, and drawer overlays */
+    --color-overlay: var(--overlay);
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
@@ -55,7 +98,10 @@
 }
 
 :root {
+    /* Base radius — drives the radius scale above */
     --radius: 0.625rem;
+
+    /* Color palette */
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -71,9 +117,18 @@
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
+    /* Text on destructive-colored backgrounds; same in light and dark */
+    --destructive-foreground: oklch(0.985 0 0);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
     --ring: oklch(0.708 0 0);
+    /* Status colors — text-weight values for light mode (use /50 for border, /10 for bg).
+     * Dark mode overrides in .dark below. */
+    --success: oklch(0.527 0.154 150.069); /* ≈ green-700 */
+    --warning: oklch(0.554 0.135 66.442); /* ≈ yellow-700 */
+    --info: oklch(0.488 0.243 264.376); /* ≈ blue-700 */
+    /* Scrim for dialog/sheet/drawer overlays; same in light and dark */
+    --overlay: oklch(0 0 0 / 80%);
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
@@ -82,6 +137,44 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /* Semantic radius tokens
+     * Override these to change control/card/modal/pill shape across all components. */
+    --vueda-control-radius: var(--radius-md); /* buttons, inputs, selects */
+    --vueda-card-radius: var(--radius-xl); /* cards, panels */
+    --vueda-modal-radius: var(--radius-lg); /* dialogs, sheets */
+    --vueda-pill-radius: 9999px; /* badges, tags, avatars */
+
+    /* Semantic shadow tokens
+     * Override these to adjust elevation across all components. */
+    --vueda-shadow-control: var(--shadow-xs); /* form controls */
+    --vueda-shadow-card: var(--shadow-sm); /* cards */
+    --vueda-shadow-popover: var(--shadow-md); /* popovers, hover cards */
+    --vueda-shadow-overlay: var(--shadow-lg); /* dialogs, sheets, drawers */
+
+    /* Semantic spacing tokens
+     * Not mapped through @theme. Phase 2 components reference these as
+     * arbitrary values: gap-[var(--vueda-gap-sm)], p-[var(--vueda-section-padding)], etc. */
+    --vueda-gap-sm: 0.25rem; /* gap-1 (dominant component gap) */
+    --vueda-gap-md: 0.5rem; /* gap-2 (dominant component gap) */
+    --vueda-gap-lg: 1rem; /* gap-4 */
+    --vueda-control-px: 0.5rem; /* px-2 (horizontal control padding) */
+    --vueda-control-py: 0.25rem; /* py-1 (vertical control padding) */
+    --vueda-section-padding: 0.75rem; /* p-3 (card/panel interior padding) */
+
+    /* Semantic typography tokens
+     * Not mapped through @theme. Phase 2 components reference these as
+     * arbitrary values: text-[length:var(--vueda-text-body)], etc. */
+    --vueda-text-supporting: 0.75rem; /* text-xs (labels, captions) */
+    --vueda-text-body: 0.875rem; /* text-sm (dominant body size) */
+    --vueda-text-heading: 1.125rem; /* text-lg (page/section headings) */
+    --vueda-font-weight-ui: 500; /* font-medium (UI controls) */
+    --vueda-font-weight-label: 600; /* font-semibold (field labels, titles) */
+
+    /* Semantic motion tokens
+     * Not mapped through @theme. Phase 2 components reference these as
+     * arbitrary values: duration-[var(--vueda-duration-interaction)], etc. */
+    --vueda-duration-interaction: 200ms; /* transition duration for hover/focus states */
 }
 
 .dark {
@@ -103,6 +196,10 @@
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);
+    /* Status colors — lighter shades for readability on dark backgrounds */
+    --success: oklch(0.792 0.209 151.711); /* ≈ green-400 */
+    --warning: oklch(0.852 0.199 91.936); /* ≈ yellow-400 */
+    --info: oklch(0.707 0.165 254.624); /* ≈ blue-400 */
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.488 0.243 264.376);
