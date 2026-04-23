@@ -11,12 +11,9 @@ export default {
                     "bg-card text-card-foreground": !variant || variant === "default",
                     "border-destructive/50 text-destructive bg-destructive/10 *:data-[slot=alert-description]:text-destructive/90":
                         variant === "destructive",
-                    "border-yellow-500/50 text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950/30":
-                        variant === "warning",
-                    "border-blue-500/50 text-blue-700 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/30":
-                        variant === "info",
-                    "border-green-500/50 text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950/30":
-                        variant === "success",
+                    "border-warning/50 text-warning bg-warning/10": variant === "warning",
+                    "border-info/50 text-info bg-info/10": variant === "info",
+                    "border-success/50 text-success bg-success/10": variant === "success",
                 },
             ],
         }),

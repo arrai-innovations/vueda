@@ -19,7 +19,7 @@ export const BUTTON_VARIANT_DEFAULT = "bg-primary text-primary-foreground hover:
 
 /** Button variant: destructive action. */
 export const BUTTON_VARIANT_DESTRUCTIVE =
-    "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60";
+    "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60";
 
 /** Button variant: outline border. */
 export const BUTTON_VARIANT_OUTLINE =
