@@ -42,11 +42,7 @@ const theme = useTheme("RadioGroupItem", props);
     <RadioGroupItem data-slot="radio-group-item" v-bind="forwardedProps" :class="[theme('root'), props.class]">
         <RadioGroupIndicator data-slot="radio-group-indicator" class="relative flex items-center justify-center">
             <slot>
-                <span
-                    aria-hidden="true"
-                    class="text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none text-[8px] leading-none"
-                    >●</span
-                >
+                <span aria-hidden="true" class="size-2 rounded-full bg-primary"></span>
             </slot>
         </RadioGroupIndicator>
     </RadioGroupItem>

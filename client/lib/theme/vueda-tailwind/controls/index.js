@@ -437,7 +437,7 @@ export default {
     ButtonGroupText: {
         root: {
             class: [
-                "bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium shadow-vueda-control [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+                "bg-muted flex items-center gap-2 rounded-vueda-control border px-4 text-sm font-medium shadow-vueda-control [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
             ],
         },
     },

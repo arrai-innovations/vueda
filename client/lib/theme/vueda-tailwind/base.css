@@ -96,6 +96,9 @@
     --spacing-vueda-control-px-sm: var(--vueda-control-px-sm);
     --spacing-vueda-control-px-lg: var(--vueda-control-px-lg);
 
+    /* Motion tokens (generates animate-* utilities) */
+    --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+
     /* Color palette (generates bg-*, text-*, border-* utilities) */
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -268,6 +271,18 @@
      * Instruments feel responsive, not soft. Short, ease-out only. */
     --vueda-duration-interaction: 120ms;
     --vueda-ease-interaction: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes caret-blink {
+    0%,
+    70%,
+    100% {
+        opacity: 1;
+    }
+    20%,
+    50% {
+        opacity: 0;
+    }
 }
 
 /* ---------- Color palette: dark (primary target for operators) ----------
