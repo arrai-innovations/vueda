@@ -45,9 +45,9 @@ Django's `CompositePrimaryKey` field requires coordinated deviations at the seri
 
 **Django model delegation in `CompositePrimaryKeyField`.** The field delegates serialization and deserialization to the `CompositePrimaryKey` model field's own methods: `value_to_string` for outbound conversion and `to_python` for inbound parsing. Delegating to these model-level functions reduces VUEDA-specific logic and means that if Django changes the data format returned by those methods, the serializer field adjusts without modifications to VUEDA.
 
-**`get_object` URL conversion.** DRF's default `get_object` passes URL keyword arguments directly to the ORM lookup. Composite primary key models carry the key as a comma-separated string in the URL (for example, `["1","2"]/`). `VuedaViewSet.get_object` detects whether the model has a `CompositePrimaryKey` and splits the `pk` URL segment into a list before calling `super().get_object()`, because the ORM requires the key as a sequence.
+**`get_object` URL conversion.** DRF's default `get_object` passes URL keyword arguments directly to the ORM lookup. Composite primary key models carry the key as a json string in the URL (for example, either `[1,2]/` or `["1","2"]/`). `VuedaViewSet.get_object` detects whether the model has a `CompositePrimaryKey` and uses the composite fields `.to_python` to convert the `pk` into a json string, before calling `super().get_object()`, because the ORM requires the key as a sequence.
 
-**`reverse()` incompatibility.** Django's `reverse()` function does not accept a list or tuple as an URL argument. A composite primary key's `.pk` attribute is a list, so passing it directly to `reverse()` raises an error. The value must be converted to a comma-separated string before being passed to `reverse()`.
+**`reverse()` incompatibility.** Django's `reverse()` function does not accept a list or tuple as an URL argument. A composite primary key's `.pk` attribute is a list, so passing it directly to `reverse()` raises an error. The value must be converted to a json string before being passed to `reverse()`.
 
 ## Observable Failure Modes
 

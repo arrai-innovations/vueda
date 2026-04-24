@@ -77,10 +77,14 @@ The `pk` field is sent to and received from the client as a JSON string, for exa
 
 ## URL Format for Composite PKs
 
-When targeting a specific `OrderLine`, the composite key values appear in the URL as a json string:
+When targeting a specific `OrderLine`, the composite key values appear in the URL as a json string. Either of these two work:
 
 ```
 GET /api/orderlines/["1","42"]/
+```
+
+```
+GET /api/orderlines/[1,42]/
 ```
 
 `VuedaViewSet` detects the composite primary key on the model and converts the json `pk` URL segment into a list, before passing the result to the ORM. No extra viewset configuration is needed.
@@ -94,9 +98,8 @@ Convert `.pk` to a comma-separated string before passing it to `reverse()`:
 ```python
 from django.urls import reverse
 
-order_line = OrderLine.objects.get([1, 42])
-pk_string = ",".join(str(v) for v in order_line.pk)
-url = reverse("orderline-detail", args=[pk_string])
+order_line = OrderLine.objects.get(pk=[1, 42])
+url = reverse("orderline-detail", args=[json.dumps(order_line.pk)])
 ```
 
 ## Defining the FilterSet
