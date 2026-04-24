@@ -246,7 +246,7 @@ export default {
     DateField: {
         root: {
             class: [
-                "flex w-full rounded-vueda-control border border-input bg-transparent px-3 py-1 text-sm shadow-vueda-control transition-colors focus-within:ring-1 focus-within:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex w-full rounded-vueda-control border border-input bg-transparent px-3 py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -260,16 +260,16 @@ export default {
     DateRangeField: {
         root: {
             class: [
-                "flex w-full rounded-vueda-control border border-input bg-transparent px-3 py-1 text-sm shadow-vueda-control transition-colors focus-within:ring-1 focus-within:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex w-full rounded-vueda-control border border-input bg-transparent px-3 py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
     Input: {
         root: {
             class: [
-                "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-vueda-control border bg-transparent px-3 py-1 text-base shadow-vueda-control transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-vueda-control border bg-transparent px-3 py-1 text-base shadow-vueda-control transition-colors file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                "focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                "aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive",
             ],
         },
     },
@@ -325,14 +325,14 @@ export default {
     InputGroup: {
         root: {
             class: [
-                "group/input-group border-input dark:bg-input/30 relative flex w-full items-center rounded-vueda-control border shadow-vueda-control transition-[color,box-shadow] outline-none",
+                "group/input-group border-input dark:bg-input/30 relative flex w-full items-center rounded-vueda-control border shadow-vueda-control transition-colors",
                 "h-9 min-w-0 has-[>textarea]:h-auto",
                 "has-[>[data-align=inline-start]]:[&>input]:pl-2",
                 "has-[>[data-align=inline-end]]:[&>input]:pr-2",
                 "has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>[data-align=block-start]]:[&>input]:pb-3",
                 "has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-end]]:[&>input]:pt-3",
-                "has-[[data-slot=input-group-control]:focus-visible]:border-ring has-[[data-slot=input-group-control]:focus-visible]:ring-ring/50 has-[[data-slot=input-group-control]:focus-visible]:ring-[3px]",
-                "has-[[data-slot][aria-invalid=true]]:ring-destructive/20 has-[[data-slot][aria-invalid=true]]:border-destructive dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40",
+                "has-[[data-slot=input-group-control]:focus-visible]:border-ring has-[[data-slot=input-group-control]:focus-visible]:outline-2 has-[[data-slot=input-group-control]:focus-visible]:outline-offset-2 has-[[data-slot=input-group-control]:focus-visible]:outline-ring",
+                "has-[[data-slot][aria-invalid=true]]:border-destructive has-[[data-slot][aria-invalid=true]:focus-visible]:outline-destructive",
             ],
         },
     },
@@ -344,7 +344,7 @@ export default {
     InputOTPSlot: {
         root: {
             class: [
-                "data-[active=true]:border-ring data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:ring-destructive/20 dark:data-[active=true]:aria-invalid:ring-destructive/40 aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive dark:bg-input/30 border-input relative flex h-9 w-9 items-center justify-center border-y border-r text-sm shadow-vueda-control transition-all outline-none first:rounded-l-md first:border-l last:rounded-r-md data-[active=true]:z-10 data-[active=true]:ring-[3px]",
+                "data-[active=true]:border-ring data-[active=true]:outline-2 data-[active=true]:outline-offset-2 data-[active=true]:outline-ring data-[active=true]:aria-invalid:outline-destructive aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive dark:bg-input/30 border-input relative flex h-9 w-9 items-center justify-center border-y border-r text-sm shadow-vueda-control transition-all first:rounded-l-md first:border-l last:rounded-r-md data-[active=true]:z-10",
             ],
         },
     },
@@ -356,9 +356,9 @@ export default {
     NativeSelect: {
         root: {
             class: [
-                "border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 dark:hover:bg-input/50 h-9 w-full min-w-0 appearance-none rounded-vueda-control border bg-transparent px-3 py-2 pr-9 text-sm shadow-vueda-control transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed",
-                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                "border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 dark:hover:bg-input/50 h-9 w-full min-w-0 appearance-none rounded-vueda-control border bg-transparent px-3 py-2 pr-9 text-sm shadow-vueda-control transition-colors disabled:pointer-events-none disabled:cursor-not-allowed",
+                "focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                "aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive",
             ],
         },
     },
@@ -397,14 +397,14 @@ export default {
     NumberFieldInput: {
         root: {
             class: [
-                "flex h-9 w-full rounded-vueda-control border border-input bg-transparent py-1 text-sm text-center shadow-vueda-control transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex h-9 w-full rounded-vueda-control border border-input bg-transparent py-1 text-sm text-center shadow-vueda-control transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
     RadioGroupItem: {
         root: {
             class: [
-                "border-input text-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 aspect-square size-4 shrink-0 rounded-full border shadow-vueda-control transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+                "border-input text-primary focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive dark:bg-input/30 aspect-square size-4 shrink-0 rounded-full border shadow-vueda-control transition-colors disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -436,7 +436,7 @@ export default {
     Checkbox: {
         root: {
             class: [
-                "peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground data-[state=indeterminate]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-vueda-control transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+                "peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground data-[state=indeterminate]:border-primary focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive size-4 shrink-0 rounded-[4px] border shadow-vueda-control transition-colors disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -463,7 +463,7 @@ export default {
     Switch: {
         root: {
             class: [
-                "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-vueda-control transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+                "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-vueda-control transition-all disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
         thumb: {
@@ -475,14 +475,14 @@ export default {
     Textarea: {
         root: {
             class: [
-                "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-vueda-control border bg-transparent px-3 py-2 text-base shadow-vueda-control transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-vueda-control border bg-transparent px-3 py-2 text-base shadow-vueda-control transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
             ],
         },
     },
     TimeField: {
         root: {
             class: [
-                "flex w-full rounded-vueda-control border border-input bg-transparent px-3 py-1 text-sm shadow-vueda-control transition-colors focus-within:ring-1 focus-within:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex w-full rounded-vueda-control border border-input bg-transparent px-3 py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -496,7 +496,7 @@ export default {
     Toggle: {
         root: ({ variant, size }) => ({
             class: [
-                "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none transition-[color,box-shadow] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive whitespace-nowrap",
+                "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive whitespace-nowrap",
                 {
                     "bg-transparent": !variant || variant === "default",
                     "border border-input bg-transparent shadow-vueda-control hover:bg-accent hover:text-accent-foreground":
@@ -520,7 +520,7 @@ export default {
     ToggleGroupItem: {
         root: ({ variant, size }) => ({
             class: [
-                "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none transition-[color,box-shadow] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive whitespace-nowrap",
+                "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive whitespace-nowrap",
                 {
                     "bg-transparent": !variant || variant === "default",
                     "border border-input bg-transparent shadow-vueda-control hover:bg-accent hover:text-accent-foreground":
@@ -591,23 +591,23 @@ export default {
     SelectTrigger: {
         root: {
             class: [
-                "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-vueda-control border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-vueda-control transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+                "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-vueda-control border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-vueda-control transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
             ],
         },
     },
     TagsInput: {
         root: {
             class: [
-                "flex flex-wrap gap-2 items-center rounded-vueda-control border border-input bg-background px-2 py-1 text-sm shadow-vueda-control transition-[color,box-shadow] outline-none",
-                "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]",
-                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                "flex flex-wrap gap-2 items-center rounded-vueda-control border border-input bg-background px-2 py-1 text-sm shadow-vueda-control transition-colors",
+                "focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring",
+                "aria-invalid:border-destructive aria-invalid:focus-within:outline-destructive",
             ],
         },
     },
     TagsInputItem: {
         root: {
             class: [
-                "flex h-5 items-center rounded-md bg-secondary data-[state=active]:ring-ring data-[state=active]:ring-2 data-[state=active]:ring-offset-2 ring-offset-background",
+                "flex h-5 items-center rounded-md bg-secondary data-[state=active]:outline-2 data-[state=active]:outline-offset-2 data-[state=active]:outline-ring",
             ],
         },
     },
