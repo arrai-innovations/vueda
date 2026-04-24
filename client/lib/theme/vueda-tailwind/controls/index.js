@@ -253,7 +253,7 @@ export default {
     DateField: {
         root: {
             class: [
-                "flex w-full rounded-vueda-control border border-input bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex w-full rounded-vueda-control border border-input bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -267,7 +267,7 @@ export default {
     DateRangeField: {
         root: {
             class: [
-                "flex w-full rounded-vueda-control border border-input bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex w-full rounded-vueda-control border border-input bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -277,6 +277,7 @@ export default {
                 "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-vueda-control w-full min-w-0 rounded-vueda-control border bg-transparent px-vueda-control-px text-base shadow-vueda-control transition-colors file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
                 "focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 "aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive",
+                "read-only:bg-muted/50 read-only:cursor-default",
             ],
         },
     },
@@ -490,7 +491,7 @@ export default {
     TimeField: {
         root: {
             class: [
-                "flex w-full rounded-vueda-control border border-input bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex w-full rounded-vueda-control border border-input bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
