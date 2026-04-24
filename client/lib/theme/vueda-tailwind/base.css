@@ -159,7 +159,11 @@
     /* Structure */
     --border: oklch(0.9 0.008 250);
     --input: oklch(0.9 0.008 250);
-    --ring: oklch(0.58 0.19 254 / 0.6); /* primary @ 60% for focus */
+    /* Focus ring canon: solid 2px outline at 2px offset, primary color. WCAG 2.2
+     * SC 2.4.13. Consumed as `outline: 2px solid var(--ring); outline-offset: 2px`
+     * on :focus-visible. Destructive controls override outline-color to
+     * var(--destructive) so the ring matches the control's semantic intent. */
+    --ring: var(--primary);
 
     /* Scrim for dialog/sheet/drawer overlays; same in light and dark */
     --overlay: oklch(0.12 0.015 250 / 0.6);
@@ -172,7 +176,7 @@
     --sidebar-accent: oklch(0.93 0.008 250);
     --sidebar-accent-foreground: oklch(0.18 0.015 250);
     --sidebar-border: oklch(0.88 0.008 250);
-    --sidebar-ring: oklch(0.58 0.19 254 / 0.6);
+    --sidebar-ring: var(--ring);
 
     /* ---------- Semantic radius tokens ---------- */
     --vueda-control-radius: 2px; /* buttons, inputs, selects — slab */
@@ -279,7 +283,7 @@
 
     --border: oklch(1 0 0 / 0.08); /* low-contrast hairlines */
     --input: oklch(1 0 0 / 0.1);
-    --ring: oklch(0.68 0.17 254 / 0.7);
+    --ring: var(--primary);
 
     --sidebar: oklch(0.14 0.01 250); /* sidebar darker than content in dark mode */
     --sidebar-foreground: oklch(0.92 0.005 250);
@@ -288,7 +292,7 @@
     --sidebar-accent: oklch(0.2 0.012 250);
     --sidebar-accent-foreground: oklch(0.96 0.005 250);
     --sidebar-border: oklch(1 0 0 / 0.06);
-    --sidebar-ring: oklch(0.68 0.17 254 / 0.7);
+    --sidebar-ring: var(--ring);
 
     /* Popover / overlay shadows need more ring, less drop on dark backgrounds */
     --vueda-shadow-popover: 0 0 0 1px oklch(1 0 0 / 0.08), 0 4px 12px -2px oklch(0 0 0 / 0.5);
