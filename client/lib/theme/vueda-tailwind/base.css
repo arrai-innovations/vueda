@@ -1,15 +1,41 @@
 /**
  * vueda-tailwind baseline tokens
  *
- * This file registers the semantic color tokens that vueda-tailwind uses.
- * Import it once in your project's main CSS file, after your Tailwind import:
+ * Import once in your project's main CSS file, after your Tailwind import:
  *
  *   @import "tailwindcss";
  *   @import "@vueda/theme/vueda-tailwind/base.css";
  *
- * The :root and .dark blocks below provide a default light/dark palette
- * based on shadcn-ui's neutral scale. Override any variable to match your
- * brand without touching the theme JS files.
+ * DESIGN POSTURE: "purpose-built instrument"
+ * Density and precision over comfort. Near-monochrome. One accent.
+ * References: IBM Carbon condensed, Uber Base, Siemens iX, Porsche.
+ * NOT: Material, Apple HIG, Salesforce Lightning, Mailchimp.
+ *
+ * PALETTE STRATEGY
+ * Neutral scale is cool-tinted (hue 250, low chroma 0.01) so the UI
+ * feels adjacent to the brand blue without ever decorating with it.
+ * The blue is reserved for: the primary action in a context, the
+ * focus ring, selected-state highlights, and brand surfaces. It is
+ * not used for links-in-body, info banners, chart fills, or hover
+ * tints. Muted surfaces are the default; accent is earned.
+ *
+ * TYPOGRAPHY: IBM Plex Sans / JetBrains Mono.
+ * 13px body, 12px labels, 15px heading. 1.4 line-height on running
+ * text, 1.2 on UI. Weight discipline: 400 body, 500 UI, 600 labels
+ * and primary buttons. Never 700; never italics for UI.
+ *
+ * RADIUS: near-flat. 2px controls, 4px cards, 2px modals, 2px pills.
+ * Pills become slabs. This is intentional.
+ *
+ * SHADOWS: borders do the work. Elevation only when a surface
+ * overlays another (popover, overlay). Cards use a 1px border, not
+ * a shadow. Controls get zero shadow.
+ *
+ * KNOWN RENDERING LIMITATION: 1px borders can shimmer on Windows at
+ * fractional display scaling (150% / 175% on 4K), because Chromium
+ * splits the border across two physical pixel rows. Specific to
+ * certain hardware/display configs; accepted as-is rather than
+ * thickening every border to 2px and compromising density.
  *
  * Token layers:
  *
@@ -17,11 +43,12 @@
  *    The base palette and scale. Named without the --vueda- prefix.
  *    These map through @theme to generate Tailwind utilities (bg-*, text-*, etc.).
  *
- * 2. Semantic --vueda-* tokens (:root only, no dark overrides unless noted)
- *    Role-specific aliases that the theme JS files will target in Phase 2.
- *    Radius and shadow are mapped through @theme (rounded-vueda-*, shadow-vueda-*).
- *    Spacing and typography are :root-only; Phase 2 components reference them
- *    via arbitrary values, e.g. gap-[var(--vueda-gap-sm)].
+ * 2. Semantic --vueda-* tokens (:root, with .dark overrides for shadows)
+ *    Role-specific aliases. Radius, shadow, and font stacks are mapped through
+ *    @theme (rounded-vueda-*, shadow-vueda-*, font-sans, font-mono).
+ *    Spacing, typography sizes, control sizing, and motion are :root-only;
+ *    components reference them via arbitrary values, e.g.
+ *    h-[var(--vueda-control-height)], gap-[var(--vueda-gap-sm)].
  */
 
 /* Tell Tailwind CSS v4 to scan vueda's lib directory for component class names.
@@ -34,31 +61,29 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-    /* Radius scale (generates rounded-* utilities) */
+    /* Radius scale (generates rounded-* utilities).
+     * Base is 4px, so derived scale is: sm=0, md=2px, lg=4px, xl=8px. */
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
 
-    /* Semantic radius aliases (generates rounded-vueda-* utilities)
-     * Phase 2: replaces rounded-md on controls (buttons, inputs, selects) */
+    /* Semantic radius aliases (generates rounded-vueda-* utilities) */
     --radius-vueda-control: var(--vueda-control-radius);
-    /* Phase 2: replaces rounded-xl on cards and panels */
+    --radius-vueda-checkbox: var(--vueda-checkbox-radius);
     --radius-vueda-card: var(--vueda-card-radius);
-    /* Phase 2: replaces rounded-lg on dialogs and sheets */
     --radius-vueda-modal: var(--vueda-modal-radius);
-    /* Phase 2: replaces rounded-full on badges, tags, and avatars */
     --radius-vueda-pill: var(--vueda-pill-radius);
 
-    /* Semantic shadow aliases (generates shadow-vueda-* utilities)
-     * Phase 2: replaces shadow-xs on form controls */
+    /* Semantic shadow aliases (generates shadow-vueda-* utilities) */
     --shadow-vueda-control: var(--vueda-shadow-control);
-    /* Phase 2: replaces shadow-sm on cards */
     --shadow-vueda-card: var(--vueda-shadow-card);
-    /* Phase 2: replaces shadow-md on popovers and hover cards */
     --shadow-vueda-popover: var(--vueda-shadow-popover);
-    /* Phase 2: replaces shadow-lg on dialogs, sheets, and drawers */
     --shadow-vueda-overlay: var(--vueda-shadow-overlay);
+
+    /* Font stacks — make Tailwind's font-sans / font-mono resolve to Plex / JetBrains */
+    --font-sans: var(--vueda-font-sans);
+    --font-mono: var(--vueda-font-mono);
 
     /* Color palette (generates bg-*, text-*, border-* utilities) */
     --color-background: var(--background);
@@ -76,16 +101,13 @@
     --color-accent: var(--accent);
     --color-accent-foreground: var(--accent-foreground);
     --color-destructive: var(--destructive);
-    /* Phase 2: replaces text-white on destructive buttons */
     --color-destructive-foreground: var(--destructive-foreground);
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
-    /* Phase 2: replaces hardcoded yellow/blue/green palette classes in Alert variants */
     --color-success: var(--success);
     --color-warning: var(--warning);
     --color-info: var(--info);
-    /* Phase 2: replaces bg-black/80 on dialog, sheet, and drawer overlays */
     --color-overlay: var(--overlay);
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
@@ -98,114 +120,178 @@
 }
 
 :root {
-    /* Base radius — drives the radius scale above */
-    --radius: 0.625rem;
+    /* Base radius — drives the radius scale above.
+     * 4px base → sm=0, md=2px, lg=4px, xl=8px. Near-flat by design. */
+    --radius: 0.25rem;
 
-    /* Color palette */
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    /* Text on destructive-colored backgrounds; same in light and dark */
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    /* Status colors — text-weight values for light mode (use /50 for border, /10 for bg).
-     * Dark mode overrides in .dark below. */
-    --success: oklch(0.527 0.154 150.069); /* ≈ green-700 */
-    --warning: oklch(0.554 0.135 66.442); /* ≈ yellow-700 */
-    --info: oklch(0.488 0.243 264.376); /* ≈ blue-700 */
+    /* ---------- Color palette: light ----------
+     * Near-monochrome cool neutrals (hue 250°, chroma 0.01).
+     * Blue accent is the ONE chromatic token: oklch(0.58 0.19 254) = #0077f7. */
+
+    /* Surfaces */
+    --background: oklch(0.99 0.003 250); /* page: barely-tinted paper */
+    --foreground: oklch(0.18 0.015 250); /* body text */
+    --card: oklch(1 0 0); /* cards sit on background w/ border */
+    --card-foreground: oklch(0.18 0.015 250);
+    --popover: oklch(0.99 0.003 250);
+    --popover-foreground: oklch(0.18 0.015 250);
+
+    /* Primary = VUEDA blue. The ONE accent. */
+    --primary: oklch(0.58 0.19 254);
+    --primary-foreground: oklch(0.99 0.003 250);
+
+    /* Secondary / muted / accent are all neutral variants. Kept distinct for shadcn compat. */
+    --secondary: oklch(0.965 0.005 250);
+    --secondary-foreground: oklch(0.22 0.015 250);
+    --muted: oklch(0.965 0.005 250);
+    --muted-foreground: oklch(0.5 0.015 250);
+    --accent: oklch(0.95 0.008 250); /* hover/selected surface: one step darker than muted */
+    --accent-foreground: oklch(0.18 0.015 250);
+
+    /* Semantic status — desaturated. Operators don't need confetti.
+     * Text-weight values in light mode (use /50 for border, /10 for bg). */
+    --destructive: oklch(0.52 0.18 27);
+    --destructive-foreground: oklch(0.99 0.003 250); /* same in light and dark */
+    --success: oklch(0.5 0.12 155);
+    --warning: oklch(0.58 0.14 70);
+    --info: oklch(0.58 0.19 254); /* same as primary: info IS the accent */
+
+    /* Structure */
+    --border: oklch(0.9 0.008 250);
+    --input: oklch(0.9 0.008 250);
+    --ring: oklch(0.58 0.19 254 / 0.6); /* primary @ 60% for focus */
+
     /* Scrim for dialog/sheet/drawer overlays; same in light and dark */
-    --overlay: oklch(0 0 0 / 80%);
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --overlay: oklch(0.12 0.015 250 / 0.6);
 
-    /* Semantic radius tokens
-     * Override these to change control/card/modal/pill shape across all components. */
-    --vueda-control-radius: var(--radius-md); /* buttons, inputs, selects */
-    --vueda-card-radius: var(--radius-xl); /* cards, panels */
-    --vueda-modal-radius: var(--radius-lg); /* dialogs, sheets */
-    --vueda-pill-radius: 9999px; /* badges, tags, avatars */
+    /* Sidebar — one shade darker than background to read as chrome, not content */
+    --sidebar: oklch(0.97 0.005 250);
+    --sidebar-foreground: oklch(0.22 0.015 250);
+    --sidebar-primary: oklch(0.58 0.19 254);
+    --sidebar-primary-foreground: oklch(0.99 0.003 250);
+    --sidebar-accent: oklch(0.93 0.008 250);
+    --sidebar-accent-foreground: oklch(0.18 0.015 250);
+    --sidebar-border: oklch(0.88 0.008 250);
+    --sidebar-ring: oklch(0.58 0.19 254 / 0.6);
 
-    /* Semantic shadow tokens
-     * Override these to adjust elevation across all components. */
-    --vueda-shadow-control: var(--shadow-xs); /* form controls */
-    --vueda-shadow-card: var(--shadow-sm); /* cards */
-    --vueda-shadow-popover: var(--shadow-md); /* popovers, hover cards */
-    --vueda-shadow-overlay: var(--shadow-lg); /* dialogs, sheets, drawers */
+    /* ---------- Semantic radius tokens ---------- */
+    --vueda-control-radius: 2px; /* buttons, inputs, selects — slab */
+    /* Checkbox body — intentionally softer than the 2px slab control radius.
+     * At 16×16 the corner is a 1-pixel-ish arc that reads as "chit/chiclet"
+     * rather than "miniature slab input", differentiating it from the inputs
+     * and buttons it sits next to in a form. Diverges from --vueda-control-radius
+     * by design. */
+    --vueda-checkbox-radius: 4px;
+    --vueda-card-radius: 4px; /* cards, panels */
+    --vueda-modal-radius: 2px; /* dialogs, sheets */
+    --vueda-pill-radius: 2px; /* badges/tags are slabs, not pills. avatars get 9999px inline */
 
-    /* Semantic spacing tokens
-     * Not mapped through @theme. Phase 2 components reference these as
-     * arbitrary values: gap-[var(--vueda-gap-sm)], p-[var(--vueda-section-padding)], etc. */
-    --vueda-gap-sm: 0.25rem; /* gap-1 (dominant component gap) */
-    --vueda-gap-md: 0.5rem; /* gap-2 (dominant component gap) */
-    --vueda-gap-lg: 1rem; /* gap-4 */
-    --vueda-control-px: 0.5rem; /* px-2 (horizontal control padding) */
-    --vueda-control-py: 0.25rem; /* py-1 (vertical control padding) */
-    --vueda-section-padding: 0.75rem; /* p-3 (card/panel interior padding) */
+    /* ---------- Semantic shadow tokens ----------
+     * Controls and cards: none. Borders carry definition.
+     * Popovers and overlays: restrained elevation only when surface overlays surface. */
+    --vueda-shadow-control: 0 0 #0000;
+    --vueda-shadow-card: 0 0 #0000;
+    --vueda-shadow-popover: 0 0 0 1px oklch(0.2 0.01 250 / 0.08), 0 4px 12px -2px oklch(0.15 0.02 250 / 0.12);
+    --vueda-shadow-overlay:
+        0 0 0 1px oklch(0.2 0.01 250 / 0.12), 0 16px 40px -8px oklch(0.1 0.02 250 / 0.28),
+        0 2px 8px -2px oklch(0.1 0.02 250 / 0.16);
 
-    /* Semantic typography tokens
-     * Not mapped through @theme. Phase 2 components reference these as
-     * arbitrary values: text-[length:var(--vueda-text-body)], etc. */
-    --vueda-text-supporting: 0.75rem; /* text-xs (labels, captions) */
-    --vueda-text-body: 0.875rem; /* text-sm (dominant body size) */
-    --vueda-text-heading: 1.125rem; /* text-lg (page/section headings) */
-    --vueda-font-weight-ui: 500; /* font-medium (UI controls) */
-    --vueda-font-weight-label: 600; /* font-semibold (field labels, titles) */
+    /* ---------- Semantic spacing tokens ----------
+     * Condensed 4px grid. Tighter than shadcn defaults.
+     * Not mapped through @theme. Components reference these as arbitrary values:
+     * gap-[var(--vueda-gap-sm)], p-[var(--vueda-section-padding)], etc. */
+    --vueda-gap-sm: 0.25rem; /*  4px — inside controls */
+    --vueda-gap-md: 0.5rem; /*  8px — between controls in a row */
+    --vueda-gap-lg: 0.75rem; /* 12px — between groups */
+    --vueda-section-padding: 0.75rem; /* 12px — card/panel interior */
+    /* Legacy aliases — prefer --vueda-control-px-md / the height-paired vertical padding below */
+    --vueda-control-px: var(--vueda-control-px-md);
+    --vueda-control-py: 0.25rem; /*  4px */
 
-    /* Semantic motion tokens
-     * Not mapped through @theme. Phase 2 components reference these as
-     * arbitrary values: duration-[var(--vueda-duration-interaction)], etc. */
-    --vueda-duration-interaction: 200ms; /* transition duration for hover/focus states */
+    /* ---------- Control sizing (VUEDA canon) ----------
+     * Single system-wide height scale shared by buttons, inputs, selects,
+     * number-fields, tag-input containers, and OTP slots. Diverges from
+     * shadcn's h-9 (36px) default.
+     *   32px default — the "dense SaaS" sweet spot (Carbon condensed is 32,
+     *                  Uber Base table row is 32).
+     *   28px compact — table row edit mode, action strips.
+     *   40px lg      — primary page CTAs and auth screens. */
+    --vueda-control-height: 32px;
+    --vueda-control-height-sm: 28px;
+    --vueda-control-height-lg: 40px;
+    --vueda-control-px-sm: 0.5rem; /*  8px */
+    --vueda-control-px-md: 0.75rem; /* 12px */
+    --vueda-control-px-lg: 1.25rem; /* 20px */
+
+    /* ---------- Typography ----------
+     * 7-step scale, Carbon-like density. Dominant body = 13px.
+     * Not mapped through @theme (except --font-sans / --font-mono above).
+     * Components reference sizes via arbitrary values:
+     * text-[length:var(--vueda-text-body)], etc. */
+    --vueda-text-micro: 0.6875rem; /* 11px — caps, table subtext, keycaps */
+    --vueda-text-supporting: 0.75rem; /* 12px — labels, captions, th */
+    --vueda-text-body: 0.8125rem; /* 13px — dominant UI body */
+    --vueda-text-reading: 0.875rem; /* 14px — longer prose (docs, dialogs) */
+    --vueda-text-heading: 0.9375rem; /* 15px — section headings */
+    --vueda-text-title: 1.125rem; /* 18px — page titles */
+    --vueda-text-display: 1.375rem; /* 22px — marketing / empty-state only */
+
+    --vueda-font-weight-ui: 500; /* medium — controls */
+    --vueda-font-weight-label: 600; /* semibold — labels, primary button text, th */
+
+    /* Font stacks. Galano Grotesque licence forbids web embedding; brand
+     * stack is a Plex 600 fallback only — live brand type ships as SVG paths. */
+    --vueda-font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --vueda-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --vueda-font-brand: "Galano Grotesque", "IBM Plex Sans", sans-serif;
+
+    /* ---------- Motion ----------
+     * Instruments feel responsive, not soft. Short, ease-out only. */
+    --vueda-duration-interaction: 120ms;
+    --vueda-ease-interaction: cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* ---------- Color palette: dark (primary target for operators) ----------
+ * Surface stack: background < card < accent. All cool-neutral.
+ * Blue shifts slightly lighter for contrast on dark. */
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    /* Status colors — lighter shades for readability on dark backgrounds */
-    --success: oklch(0.792 0.209 151.711); /* ≈ green-400 */
-    --warning: oklch(0.852 0.199 91.936); /* ≈ yellow-400 */
-    --info: oklch(0.707 0.165 254.624); /* ≈ blue-400 */
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --background: oklch(0.16 0.01 250); /* near-black, cool */
+    --foreground: oklch(0.96 0.005 250);
+    --card: oklch(0.2 0.012 250); /* one step up from background */
+    --card-foreground: oklch(0.96 0.005 250);
+    --popover: oklch(0.22 0.012 250);
+    --popover-foreground: oklch(0.96 0.005 250);
+
+    --primary: oklch(0.68 0.17 254); /* lighter on dark */
+    --primary-foreground: oklch(0.16 0.01 250);
+
+    --secondary: oklch(0.24 0.012 250);
+    --secondary-foreground: oklch(0.96 0.005 250);
+    --muted: oklch(0.24 0.012 250);
+    --muted-foreground: oklch(0.68 0.012 250);
+    --accent: oklch(0.28 0.014 250);
+    --accent-foreground: oklch(0.96 0.005 250);
+
+    --destructive: oklch(0.65 0.2 27);
+    --success: oklch(0.72 0.16 155);
+    --warning: oklch(0.78 0.15 70);
+    --info: oklch(0.68 0.17 254);
+
+    --border: oklch(1 0 0 / 0.08); /* low-contrast hairlines */
+    --input: oklch(1 0 0 / 0.1);
+    --ring: oklch(0.68 0.17 254 / 0.7);
+
+    --sidebar: oklch(0.14 0.01 250); /* sidebar darker than content in dark mode */
+    --sidebar-foreground: oklch(0.92 0.005 250);
+    --sidebar-primary: oklch(0.68 0.17 254);
+    --sidebar-primary-foreground: oklch(0.16 0.01 250);
+    --sidebar-accent: oklch(0.2 0.012 250);
+    --sidebar-accent-foreground: oklch(0.96 0.005 250);
+    --sidebar-border: oklch(1 0 0 / 0.06);
+    --sidebar-ring: oklch(0.68 0.17 254 / 0.7);
+
+    /* Popover / overlay shadows need more ring, less drop on dark backgrounds */
+    --vueda-shadow-popover: 0 0 0 1px oklch(1 0 0 / 0.08), 0 4px 12px -2px oklch(0 0 0 / 0.5);
+    --vueda-shadow-overlay:
+        0 0 0 1px oklch(1 0 0 / 0.1), 0 16px 40px -8px oklch(0 0 0 / 0.7), 0 2px 8px -2px oklch(0 0 0 / 0.5);
 }
