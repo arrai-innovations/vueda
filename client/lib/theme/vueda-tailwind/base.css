@@ -24,8 +24,8 @@
  * text, 1.2 on UI. Weight discipline: 400 body, 500 UI, 600 labels
  * and primary buttons. Never 700; never italics for UI.
  *
- * RADIUS: near-flat. 2px controls, 4px cards, 2px modals, 2px pills.
- * Pills become slabs. This is intentional.
+ * RADIUS: near-flat. 2px controls, 4px cards, 2px modals, fully round
+ * pills (badges, tags, avatars). Everything else is deliberately square.
  *
  * SHADOWS: borders do the work. Elevation only when a surface
  * overlays another (popover, overlay). Cards use a 1px border, not
@@ -109,6 +109,7 @@
     --color-warning: var(--warning);
     --color-info: var(--info);
     --color-overlay: var(--overlay);
+    --color-sunken: var(--sunken);
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
@@ -167,6 +168,9 @@
 
     /* Scrim for dialog/sheet/drawer overlays; same in light and dark */
     --overlay: oklch(0.12 0.015 250 / 0.6);
+    /* Inset surface — one step below --background. Used for recessed areas:
+     * command-palette stage, code blocks, empty table trays. */
+    --sunken: oklch(0.95 0.008 250);
 
     /* Sidebar — one shade darker than background to read as chrome, not content */
     --sidebar: oklch(0.97 0.005 250);
@@ -188,7 +192,7 @@
     --vueda-checkbox-radius: 4px;
     --vueda-card-radius: 4px; /* cards, panels */
     --vueda-modal-radius: 2px; /* dialogs, sheets */
-    --vueda-pill-radius: 2px; /* badges/tags are slabs, not pills. avatars get 9999px inline */
+    --vueda-pill-radius: 9999px; /* badges, tags, avatars — fully round */
 
     /* ---------- Semantic shadow tokens ----------
      * Controls and cards: none. Borders carry definition.
@@ -284,6 +288,7 @@
     --border: oklch(1 0 0 / 0.08); /* low-contrast hairlines */
     --input: oklch(1 0 0 / 0.1);
     --ring: var(--primary);
+    --sunken: oklch(0.12 0.01 250);
 
     --sidebar: oklch(0.14 0.01 250); /* sidebar darker than content in dark mode */
     --sidebar-foreground: oklch(0.92 0.005 250);
