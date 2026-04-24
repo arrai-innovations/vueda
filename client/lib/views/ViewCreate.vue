@@ -1,5 +1,4 @@
 <script setup>
-import { useObject } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
@@ -7,16 +6,9 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Spinner from "@vueda/feedback/spinner/Spinner.vue";
-import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
-import { useForm } from "@vueda/use/useForm.js";
-import { useLookupContext } from "@vueda/use/useLookupContext.js";
-import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
-import { useObjectForm } from "@vueda/use/useObjectForm.js";
+import { useViewCreate } from "@vueda/use/useViewCreate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
-import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
-import { LookupContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject, onMounted, reactive, toRef } from "vue";
+import { onMounted, toRef } from "vue";
 
 /**
  * Form view for creating a new model instance, including a page title, a sticky submit button
@@ -84,90 +76,8 @@ const props = defineProps({
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 const emit = defineEmits(["form-object", "form-context"]);
-const viewName = "create";
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), viewName);
 
-if (!inject(LookupContextSymbol, null)) {
-    useLookupContext();
-}
-
-const filteredActions = useFilteredActions({
-    modelConfigInstance: modelConfig,
-});
-const titleStr = computed(() => {
-    return `Create ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Create Item";
-});
-
-const modelInitialValues = useModelInitialValues(
-    toRef(props, "app"),
-    toRef(props, "model"),
-    toRef(() => modelConfig.config?.displayFields),
-);
-
-const formContextProps = reactive({
-    initialValues: modelInitialValues,
-});
-const formContext = useForm(formContextProps);
-const instanceObjectProps = reactive({
-    target: {
-        app: toRef(props, "app"),
-        model: toRef(props, "model"),
-    },
-    pk: null,
-    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    params: {
-        [FIELDS_PARAM]: computed(() => {
-            const fields = [...(props.submitFields ?? modelConfig.config?.submitFields ?? [])];
-            const pkKey = modelConfig.info?.pk ?? "id";
-            if (!fields.includes(pkKey)) {
-                fields.push(pkKey);
-            }
-            return fields;
-        }),
-        [EXPAND_PARAM]: computed(() => {
-            const expand = modelConfig.config?.expand || [];
-            return expand.filter(
-                (expand) =>
-                    formContext.state?.values[expand] !== undefined && formContext.state.values[expand] !== null,
-            );
-        }),
-    },
-    intendToRetrieve: false,
-});
-const instanceObject = useObject({
-    props: instanceObjectProps,
-});
-const objectFormProps = reactive({
-    app: toRef(props, "app"),
-    model: toRef(props, "model"),
-    verboseName: computed(() => modelConfig.config?.verboseName),
-    redirectAfter: toRef(props, "redirectAfter"),
-});
-const objectForm = useObjectForm({
-    props: objectFormProps,
-    formContext,
-    instanceObject,
-});
-const combinedError = computed(() => {
-    return modelConfig.error || instanceObject.state.error || objectForm.state.error;
-});
-const combinedErrored = computed(() => !!combinedError.value);
-const combinedWhileText = computed(() =>
-    modelConfig.error
-        ? "getting model information"
-        : instanceObject.state.error
-          ? "fetching object data"
-          : objectForm.state.error
-            ? "submitting form"
-            : "",
-);
-const combinedFormProps = computed(() => {
-    return {
-        ...(modelConfig.config.formProps || {}),
-        ...(props.formProps || {}),
-    };
-});
-const formId = `form-${props.app}-${props.model}-${viewName}`;
+const { formContext, objectForm, instance, actions } = useViewCreate(props);
 
 onMounted(() => {
     emit(
@@ -176,18 +86,12 @@ onMounted(() => {
     );
     emit("form-context", formContext);
 });
-const nonDetailActions = computed(() =>
-    (filteredActions.actions || [])?.filter((n) => {
-        const a = modelConfig.config?.actionDetails?.[n];
-        return a && viewName !== n && !a.detail;
-    }),
-);
 </script>
 <template>
     <div :class="props.class">
-        <page-title :loading="modelConfig.loading" :title="titleStr">
+        <page-title :loading="instance.pageLoading" :title="instance.titleStr">
             <template #button>
-                <template v-for="actionName in nonDetailActions" :key="actionName">
+                <template v-for="actionName in actions.nonDetailActions" :key="actionName">
                     <slot
                         :app="app"
                         :label="memoizedStartCase(actionName)"
@@ -212,14 +116,14 @@ const nonDetailActions = computed(() =>
         <sticky-bar class="w-full">
             <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="update-action-buttons">
                 <slot
-                    :form="formId"
+                    :form="instance.formId"
                     label="Submit"
                     :loading="objectForm.state.loading"
                     :modifed="formContext.state.anyModified"
                     name="submit-button"
                     type="submit"
                 >
-                    <Button :form="formId" :disabled="objectForm.state.loading" type="submit">
+                    <Button :form="instance.formId" :disabled="objectForm.state.loading" type="submit">
                         <Spinner v-if="objectForm.state.loading" />
                         Submit
                     </Button>
@@ -228,19 +132,19 @@ const nonDetailActions = computed(() =>
         </sticky-bar>
         <div>
             <error-display
-                :error="combinedError"
-                :errored="combinedErrored"
+                :error="instance.combinedError"
+                :errored="instance.combinedErrored"
                 :ignore-form-validation-errors="true"
-                :while-text="combinedWhileText"
+                :while-text="instance.combinedWhileText"
             />
-            <form v-bind="$attrs" :id="formId" @submit.prevent="objectForm.submit">
+            <form v-bind="$attrs" :id="instance.formId" @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
-                    v-bind="combinedFormProps"
+                    v-bind="instance.combinedFormProps"
                     :field-props="props.fieldProps"
                     :model="model"
                     :variant="formModelVariant"
-                    :view="viewName"
+                    :view="'create'"
                     :widget-props="props.widgetProps"
                 >
                     <template v-for="(_, slot) in $slots" #[slot]="slotProps">
