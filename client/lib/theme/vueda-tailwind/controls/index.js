@@ -26,12 +26,15 @@ export default {
                     [BUTTON_VARIANT_LINK]: variant === "link",
                 },
                 {
-                    "h-9 px-4 py-2 has-[>svg]:px-3": !size || size === "default",
-                    "h-8 rounded-vueda-control gap-1.5 px-3 has-[>svg]:px-2.5": size === "sm",
-                    "h-10 rounded-vueda-control px-6 has-[>svg]:px-4": size === "lg",
-                    "size-9": size === "icon",
-                    "size-8": size === "icon-sm",
-                    "size-10": size === "icon-lg",
+                    "h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm":
+                        !size || size === "default",
+                    "h-vueda-control-sm rounded-vueda-control gap-1.5 px-vueda-control-px-sm has-[>svg]:px-vueda-control-px-sm":
+                        size === "sm",
+                    "h-vueda-control-lg rounded-vueda-control px-vueda-control-px-lg has-[>svg]:px-vueda-control-px":
+                        size === "lg",
+                    "size-vueda-control": size === "icon",
+                    "size-vueda-control-sm": size === "icon-sm",
+                    "size-vueda-control-lg": size === "icon-lg",
                 },
             ],
         }),
@@ -48,7 +51,11 @@ export default {
             ],
         }),
         trigger: {
-            class: [...BUTTON_BASE, BUTTON_VARIANT_OUTLINE, "h-9 px-4 py-2 has-[>svg]:px-3"],
+            class: [
+                ...BUTTON_BASE,
+                BUTTON_VARIANT_OUTLINE,
+                "h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm",
+            ],
         },
         dropMessage: {
             class: ["text-sm text-muted-foreground"],
@@ -198,7 +205,7 @@ export default {
     ComboboxInput: {
         root: {
             class: [
-                "placeholder:text-muted-foreground flex h-10 w-full rounded-vueda-control bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+                "placeholder:text-muted-foreground flex h-vueda-control-lg w-full rounded-vueda-control bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -246,7 +253,7 @@ export default {
     DateField: {
         root: {
             class: [
-                "flex w-full rounded-vueda-control border border-input bg-transparent px-3 py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex w-full rounded-vueda-control border border-input bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -260,14 +267,14 @@ export default {
     DateRangeField: {
         root: {
             class: [
-                "flex w-full rounded-vueda-control border border-input bg-transparent px-3 py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex w-full rounded-vueda-control border border-input bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
     Input: {
         root: {
             class: [
-                "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-vueda-control border bg-transparent px-3 py-1 text-base shadow-vueda-control transition-colors file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-vueda-control w-full min-w-0 rounded-vueda-control border bg-transparent px-vueda-control-px text-base shadow-vueda-control transition-colors file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
                 "focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 "aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive",
             ],
@@ -296,9 +303,10 @@ export default {
                 {
                     "h-6 gap-1 px-2 rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-3.5 has-[>svg]:px-2":
                         !size || size === "xs",
-                    "h-8 px-2.5 gap-1.5 rounded-vueda-control has-[>svg]:px-2.5": size === "sm",
+                    "h-vueda-control-sm px-vueda-control-px-sm gap-1.5 rounded-vueda-control has-[>svg]:px-vueda-control-px-sm":
+                        size === "sm",
                     "size-6 rounded-[calc(var(--radius)-5px)] p-0 has-[>svg]:p-0": size === "icon-xs",
-                    "size-8 p-0 has-[>svg]:p-0": size === "icon-sm",
+                    "size-vueda-control-sm p-0 has-[>svg]:p-0": size === "icon-sm",
                 },
             ],
         }),
@@ -326,7 +334,7 @@ export default {
         root: {
             class: [
                 "group/input-group border-input dark:bg-input/30 relative flex w-full items-center rounded-vueda-control border shadow-vueda-control transition-colors",
-                "h-9 min-w-0 has-[>textarea]:h-auto",
+                "h-vueda-control min-w-0 has-[>textarea]:h-auto",
                 "has-[>[data-align=inline-start]]:[&>input]:pl-2",
                 "has-[>[data-align=inline-end]]:[&>input]:pr-2",
                 "has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>[data-align=block-start]]:[&>input]:pb-3",
@@ -344,7 +352,7 @@ export default {
     InputOTPSlot: {
         root: {
             class: [
-                "data-[active=true]:border-ring data-[active=true]:outline-2 data-[active=true]:outline-offset-2 data-[active=true]:outline-ring data-[active=true]:aria-invalid:outline-destructive aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive dark:bg-input/30 border-input relative flex h-9 w-9 items-center justify-center border-y border-r text-sm shadow-vueda-control transition-all first:rounded-l-md first:border-l last:rounded-r-md data-[active=true]:z-10",
+                "data-[active=true]:border-ring data-[active=true]:outline-2 data-[active=true]:outline-offset-2 data-[active=true]:outline-ring data-[active=true]:aria-invalid:outline-destructive aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive dark:bg-input/30 border-input relative flex h-vueda-control w-vueda-control items-center justify-center border-y border-r text-sm shadow-vueda-control transition-all first:rounded-l-md first:border-l last:rounded-r-md data-[active=true]:z-10",
             ],
         },
     },
@@ -356,7 +364,7 @@ export default {
     NativeSelect: {
         root: {
             class: [
-                "border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 dark:hover:bg-input/50 h-9 w-full min-w-0 appearance-none rounded-vueda-control border bg-transparent px-3 py-2 pr-9 text-sm shadow-vueda-control transition-colors disabled:pointer-events-none disabled:cursor-not-allowed",
+                "border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 dark:hover:bg-input/50 h-vueda-control w-full min-w-0 appearance-none rounded-vueda-control border bg-transparent px-vueda-control-px pr-9 text-sm shadow-vueda-control transition-colors disabled:pointer-events-none disabled:cursor-not-allowed",
                 "focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 "aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive",
             ],
@@ -397,7 +405,7 @@ export default {
     NumberFieldInput: {
         root: {
             class: [
-                "flex h-9 w-full rounded-vueda-control border border-input bg-transparent py-1 text-sm text-center shadow-vueda-control transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex h-vueda-control w-full rounded-vueda-control border border-input bg-transparent text-sm text-center shadow-vueda-control transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -482,7 +490,7 @@ export default {
     TimeField: {
         root: {
             class: [
-                "flex w-full rounded-vueda-control border border-input bg-transparent px-3 py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+                "flex w-full rounded-vueda-control border border-input bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-colors focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -503,9 +511,9 @@ export default {
                         variant === "outline",
                 },
                 {
-                    "h-9 px-2 min-w-9": !size || size === "default",
-                    "h-8 px-1.5 min-w-8": size === "sm",
-                    "h-10 px-2.5 min-w-10": size === "lg",
+                    "h-vueda-control px-2 min-w-vueda-control": !size || size === "default",
+                    "h-vueda-control-sm px-1.5 min-w-vueda-control-sm": size === "sm",
+                    "h-vueda-control-lg px-2.5 min-w-vueda-control-lg": size === "lg",
                 },
             ],
         }),
@@ -527,9 +535,9 @@ export default {
                         variant === "outline",
                 },
                 {
-                    "h-9 px-2 min-w-9": !size || size === "default",
-                    "h-8 px-1.5 min-w-8": size === "sm",
-                    "h-10 px-2.5 min-w-10": size === "lg",
+                    "h-vueda-control px-2 min-w-vueda-control": !size || size === "default",
+                    "h-vueda-control-sm px-1.5 min-w-vueda-control-sm": size === "sm",
+                    "h-vueda-control-lg px-2.5 min-w-vueda-control-lg": size === "lg",
                 },
                 "w-auto min-w-0 shrink-0 px-3 focus:z-10 focus-visible:z-10",
                 "data-[spacing=0]:rounded-none data-[spacing=0]:shadow-none data-[spacing=0]:first:rounded-l-md data-[spacing=0]:last:rounded-r-md data-[spacing=0]:data-[variant=outline]:border-l-0 data-[spacing=0]:data-[variant=outline]:first:border-l",
@@ -591,7 +599,7 @@ export default {
     SelectTrigger: {
         root: {
             class: [
-                "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-vueda-control border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-vueda-control transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+                "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-vueda-control border bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-vueda-control data-[size=sm]:h-vueda-control-sm *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
             ],
         },
     },

@@ -39,7 +39,7 @@ export default {
                 "focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 "aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive",
                 "dark:bg-input/30 dark:hover:bg-input/50",
-                "flex w-full h-9 items-center justify-between gap-2 rounded-vueda-control border bg-transparent px-3 py-2 text-sm",
+                "flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-control border bg-transparent px-vueda-control-px text-sm",
                 "whitespace-nowrap shadow-vueda-control transition-colors",
                 "disabled:cursor-not-allowed disabled:opacity-50",
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

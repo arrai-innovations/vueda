@@ -85,6 +85,17 @@
     --font-sans: var(--vueda-font-sans);
     --font-mono: var(--vueda-font-mono);
 
+    /* Control sizing (generates h-vueda-control-*, px-vueda-control-px-* utilities).
+     * Mapped through --spacing-* so the values are available to any spacing-family
+     * utility (h-, w-, p-, m-, gap-); in practice only h-vueda-control-* and
+     * px-vueda-control-px-* are used. Unused utilities don't compile. */
+    --spacing-vueda-control: var(--vueda-control-height);
+    --spacing-vueda-control-sm: var(--vueda-control-height-sm);
+    --spacing-vueda-control-lg: var(--vueda-control-height-lg);
+    --spacing-vueda-control-px: var(--vueda-control-px-md);
+    --spacing-vueda-control-px-sm: var(--vueda-control-px-sm);
+    --spacing-vueda-control-px-lg: var(--vueda-control-px-lg);
+
     /* Color palette (generates bg-*, text-*, border-* utilities) */
     --color-background: var(--background);
     --color-foreground: var(--foreground);
