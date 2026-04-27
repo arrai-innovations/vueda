@@ -640,7 +640,6 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *         <form-label>
  *             <widget-input />
  *         </form-label>
- *         <form-help-text />
  *         <form-feedback type="error" />
  *         <form-feedback type="message" />
  *     </form-field>
@@ -648,7 +647,6 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *         <form-label>
  *             <widget-input step="1" />
  *         </form-label>
- *         <form-help-text />
  *         <form-feedback type="error" />
  *         <form-feedback type="message" />
  *     </form-field>

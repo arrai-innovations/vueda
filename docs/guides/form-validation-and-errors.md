@@ -120,14 +120,13 @@ Non-field errors; server validation that is not associated with a specific field
 </form>
 ```
 
-Field-level feedback is rendered by `FormFeedback` when inside a field context. Pair it with `FormHelpText` for help text and a second `FormFeedback` instance with `type="message"` for warnings:
+Field-level feedback is rendered by `FormFeedback` when inside a field context. `FormField` already renders the field's help text via `FieldDescription`; place a `FormFeedback` for errors and a second one with `type="message"` for warnings:
 
 ```vue
 <form-field name="email" label="Email" required>
   <form-label>
     <widget-input />
   </form-label>
-  <form-help-text />
   <form-feedback type="error" />
   <form-feedback type="message" />
 </form-field>
@@ -231,4 +230,4 @@ With the validation pipeline wired, verify these behaviors:
     - {@api vue:component:ActionForm}
     - {@api vue:component:ModelActionForm}
     - {@api vue:component:FormFeedback}
-    - {@api vue:component:FormHelpText}
+    - {@api vue:component:ShellFieldDescription}

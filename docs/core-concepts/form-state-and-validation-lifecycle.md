@@ -146,4 +146,4 @@ Structured feedback objects (where a server error entry is an object rather than
 - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
 - {@api vue:component:ActionForm}
 - {@api vue:component:FormFeedback}
-- {@api vue:component:FormHelpText}
+- {@api vue:component:ShellFieldDescription}

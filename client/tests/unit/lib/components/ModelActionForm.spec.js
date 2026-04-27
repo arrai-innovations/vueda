@@ -34,13 +34,6 @@ const FormFeedbackStub = defineComponent({
     },
 });
 
-const FormHelpTextStub = defineComponent({
-    name: "FormHelpTextStub",
-    setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-help-text" }, slots.default ? slots.default() : null);
-    },
-});
-
 const FormFieldStub = defineComponent({
     name: "FormFieldStub",
     props: ["fieldValue", "label", "name", "readOnly"],
@@ -103,7 +96,6 @@ vi.mock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper }));
 
 vi.mock("@vueda/components/ActionForm.vue", () => ({ default: ActionFormStub }));
 vi.mock("@vueda/components/FormFeedback.vue", () => ({ default: FormFeedbackStub }));
-vi.mock("@vueda/components/FormHelpText.vue", () => ({ default: FormHelpTextStub }));
 vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetReadOnly.vue", () => ({ default: WidgetReadOnlyStub }));
 

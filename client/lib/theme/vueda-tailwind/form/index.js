@@ -258,11 +258,6 @@ export default {
             class: "text-red-600 dark:text-red-400",
         },
     },
-    FormHelpText: {
-        root: ({ variant }) => ({
-            class: [variant === "simple" ? "mx-2" : "", "my-2"],
-        }),
-    },
     FormFeedback: {
         root: ({ variant }) => ({
             class: [variant === "simple" ? "mx-2" : "", "my-2"],
