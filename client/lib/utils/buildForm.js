@@ -15,25 +15,6 @@ import omit from "lodash-es/omit.js";
 import { computed, effectScope, toRaw, toRef, watch } from "vue";
 
 /**
- * Returns the slot names for a field's help, error, and message slots.
- *
- * @param {string} formModelName - The name of the field's configuration in FormModel configuration.
- * @returns {string[]} The slot names for the field's help, error, and message slots.
- */
-export const getFormChoresSlotNames = (formModelName) => {
-    return [
-        "field-label",
-        "field-help",
-        "field-errors",
-        "field-warnings",
-        `field(${formModelName})label`,
-        `field(${formModelName})help`,
-        `field(${formModelName})errors`,
-        `field(${formModelName})warnings`,
-    ];
-};
-
-/**
  * @typedef {object} StateRaw
  * @property {string[]} fields - The list of field names.
  * @property {({

@@ -37,10 +37,6 @@ vi.mock("@vueda/use/useSlotNameResolver.js", () => ({
     useSlotNameResolver: vi.fn(() => ({ possibleNames: [] })),
 }));
 
-vi.mock("@vueda/utils/buildForm.js", () => ({
-    getFormChoresSlotNames: vi.fn(() => []),
-}));
-
 vi.mock("@vueda/utils/breakpoints.js", () => ({
     breakpointsVueda: {},
 }));

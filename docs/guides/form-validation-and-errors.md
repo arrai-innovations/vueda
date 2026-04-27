@@ -120,18 +120,18 @@ Non-field errors; server validation that is not associated with a specific field
 </form>
 ```
 
-Field-level feedback is rendered by `FormFeedback` (or `FormChores`, which composes help text with error and message feedback) when inside a field context:
+Field-level feedback is rendered by `FormFeedback` when inside a field context. Pair it with `FormHelpText` for help text and a second `FormFeedback` instance with `type="message"` for warnings:
 
 ```vue
 <form-field name="email" label="Email" required>
   <form-label>
     <widget-input />
   </form-label>
-  <form-chores />
+  <form-help-text />
+  <form-feedback type="error" />
+  <form-feedback type="message" />
 </form-field>
 ```
-
-`FormChores` renders both error and message feedback for the field, using named slot conventions for customization.
 
 ### Structured Feedback Objects
 
@@ -230,5 +230,5 @@ With the validation pipeline wired, verify these behaviors:
 - Vue.js Components:
     - {@api vue:component:ActionForm}
     - {@api vue:component:ModelActionForm}
-    - {@api vue:component:FormChores}
     - {@api vue:component:FormFeedback}
+    - {@api vue:component:FormHelpText}

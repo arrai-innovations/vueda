@@ -15,7 +15,7 @@ This page explains the state model, the lifecycle transitions that mutate it, an
 
 The form state system lives entirely on the client. The server owns data integrity and validation rules; the client owns the runtime representation of form values, validation feedback, and interaction tracking. The boundary between them is the HTTP response: the server returns validation payloads, and the client ingests them into a state model that is structurally separate from local validation.
 
-`useForm` creates and provides the form context. `useField` creates and provides the field context. Both use Vue's provide/inject mechanism with symbol keys (`FormContextSymbol`, `FieldContextSymbol`), making them available to any descendant component without explicit prop threading. Feedback renderers (`FormFeedback`, `FormChores`) inject whichever context they find; field context when inside a field component, form context when at the form level; and render from the appropriate state slice.
+`useForm` creates and provides the form context. `useField` creates and provides the field context. Both use Vue's provide/inject mechanism with symbol keys (`FormContextSymbol`, `FieldContextSymbol`), making them available to any descendant component without explicit prop threading. The feedback renderer `FormFeedback` injects whichever context it finds; field context when inside a field component, form context when at the form level; and renders from the appropriate state slice.
 
 ## Form Context State Shape
 
@@ -82,7 +82,7 @@ On the server, a serializer or viewset raises `VuedaValidationError(detail, is_w
 
 The `useWarnings` composable provides a proactive warning pipeline that operates independently of form submission. It fetches warnings from the server's warnings endpoint when the form loads (or when the target object changes), and calls `handleServerFormValidationError` to inject them into form state. It also watches `state.initialValues` so that warnings are reapplied after a form reset; without this, a form reset would clear the warnings that were fetched before any submission occurred.
 
-`FormFeedback` renders warnings when used with `type="message"`. It renders with PrimeVue's `severity="warn"` (yellow styling), visually distinguishing warnings from errors (`severity="error"`, red styling). `FormChores` renders both error and message feedback for a field by composing two `FormFeedback` instances.
+`FormFeedback` renders warnings when used with `type="message"`. It renders with PrimeVue's `severity="warn"` (yellow styling), visually distinguishing warnings from errors (`severity="error"`, red styling). To render both error and message feedback for a field, place two `FormFeedback` instances in the field shell.
 
 Warnings do not participate in submission gating. The `defaultOnSubmitAnyError` function in `useObjectForm` checks only `state.errors`, stripping the `server` code to determine if blocking errors remain. `state.messages` is not consulted. A form with only warnings and no errors will submit normally.
 
@@ -146,4 +146,4 @@ Structured feedback objects (where a server error entry is an object rather than
 - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
 - {@api vue:component:ActionForm}
 - {@api vue:component:FormFeedback}
-- {@api vue:component:FormChores}
+- {@api vue:component:FormHelpText}

@@ -27,10 +27,17 @@ const ActionFormStub = defineComponent({
     },
 });
 
-const FormChoresStub = defineComponent({
-    name: "FormChoresStub",
+const FormFeedbackStub = defineComponent({
+    name: "FormFeedbackStub",
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-chores" }, slots.default ? slots.default() : null);
+        return () => h("div", { "data-qa": "form-feedback" }, slots.default ? slots.default() : null);
+    },
+});
+
+const FormHelpTextStub = defineComponent({
+    name: "FormHelpTextStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "form-help-text" }, slots.default ? slots.default() : null);
     },
 });
 
@@ -95,7 +102,8 @@ const fetchHelper = vi.fn((url, options, message, errorResolver) => {
 vi.mock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper }));
 
 vi.mock("@vueda/components/ActionForm.vue", () => ({ default: ActionFormStub }));
-vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
+vi.mock("@vueda/components/FormFeedback.vue", () => ({ default: FormFeedbackStub }));
+vi.mock("@vueda/components/FormHelpText.vue", () => ({ default: FormHelpTextStub }));
 vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetReadOnly.vue", () => ({ default: WidgetReadOnlyStub }));
 

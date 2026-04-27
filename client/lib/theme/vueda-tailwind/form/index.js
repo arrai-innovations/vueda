@@ -258,14 +258,6 @@ export default {
             class: "text-red-600 dark:text-red-400",
         },
     },
-    FormChores: {
-        root: {
-            class: [""],
-        },
-        item: {
-            class: ["grow"],
-        },
-    },
     FormHelpText: {
         root: ({ variant }) => ({
             class: [variant === "simple" ? "mx-2" : "", "my-2"],

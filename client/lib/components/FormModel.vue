@@ -1,6 +1,6 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
-import FormChores from "@vueda/components/FormChores.vue";
+import FormFeedback from "@vueda/components/FormFeedback.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -13,7 +13,6 @@ import { computed, useSlots } from "vue";
  * @example
  * ```vue
  * <script setup>
- * import FormChores from "@vueda/components/FormChores.vue";
  * import FormModel from "@vueda/components/FormModel.vue";
  * import { useForm } from "@vueda/use/useForm.js";
  * import { useIsActive } from "@vueda/use/useIsActive.js";
@@ -234,11 +233,8 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
             </div>
             <!-- form-level chores -->
             <slot name="form-level-chores">
-                <form-chores :variant="null">
-                    <template v-for="slotName in slotNames" #[slotName]="slotProps">
-                        <slot :name="slotName" v-bind="slotProps" />
-                    </template>
-                </form-chores>
+                <form-feedback type="error" :variant="null" />
+                <form-feedback type="message" :variant="null" />
             </slot>
             <div v-bind="$attrs">
                 <slot
