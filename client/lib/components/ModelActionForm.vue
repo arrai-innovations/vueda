@@ -1,6 +1,5 @@
 <script setup>
 import ActionForm from "@vueda/components/ActionForm.vue";
-import FormFeedback from "@vueda/components/FormFeedback.vue";
 import FormField from "@vueda/fields/FormField.vue";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useTheme } from "@vueda/use/useTheme.js";
@@ -241,8 +240,6 @@ const dryRun = computed(
                                         <slot name="link-item" v-bind="linkItemSlotProps" />
                                     </template>
                                 </widget-read-only>
-                                <form-feedback type="error" />
-                                <form-feedback type="message" />
                             </form-field>
                         </li>
                     </ul>

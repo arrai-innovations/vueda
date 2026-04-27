@@ -15,7 +15,7 @@ This page explains the state model, the lifecycle transitions that mutate it, an
 
 The form state system lives entirely on the client. The server owns data integrity and validation rules; the client owns the runtime representation of form values, validation feedback, and interaction tracking. The boundary between them is the HTTP response: the server returns validation payloads, and the client ingests them into a state model that is structurally separate from local validation.
 
-`useForm` creates and provides the form context. `useField` creates and provides the field context. Both use Vue's provide/inject mechanism with symbol keys (`FormContextSymbol`, `FieldContextSymbol`), making them available to any descendant component without explicit prop threading. The feedback renderer `FormFeedback` injects whichever context it finds; field context when inside a field component, form context when at the form level; and renders from the appropriate state slice.
+`useForm` creates and provides the form context. `useField` creates and provides the field context. Both use Vue's provide/inject mechanism with symbol keys (`FormContextSymbol`, `FieldContextSymbol`), making them available to any descendant component without explicit prop threading. The feedback renderers split by scope: `FormMessage` injects form context and renders non-field validation as an Alert; `FieldMessage` (rendered automatically by `FormField`) consumes field context and renders field-level validation as an inline muted line.
 
 ## Form Context State Shape
 
@@ -82,7 +82,7 @@ On the server, a serializer or viewset raises `VuedaValidationError(detail, is_w
 
 The `useWarnings` composable provides a proactive warning pipeline that operates independently of form submission. It fetches warnings from the server's warnings endpoint when the form loads (or when the target object changes), and calls `handleServerFormValidationError` to inject them into form state. It also watches `state.initialValues` so that warnings are reapplied after a form reset; without this, a form reset would clear the warnings that were fetched before any submission occurred.
 
-`FormFeedback` renders warnings when used with `type="message"`. It renders with PrimeVue's `severity="warn"` (yellow styling), visually distinguishing warnings from errors (`severity="error"`, red styling). To render both error and message feedback for a field, place two `FormFeedback` instances in the field shell.
+`FormMessage` renders warnings when used with `type="message"`, switching the underlying Alert to the `warning` variant (yellow) instead of `destructive` (red). For field-scope warnings, `FormField` automatically pairs an error `FieldMessage` with a `severity="warning"` `FieldMessage` for `state.messages`, so per-field warnings appear under the control without additional markup.
 
 Warnings do not participate in submission gating. The `defaultOnSubmitAnyError` function in `useObjectForm` checks only `state.errors`, stripping the `server` code to determine if blocking errors remain. `state.messages` is not consulted. A form with only warnings and no errors will submit normally.
 
@@ -115,9 +115,9 @@ The server-error retry behavior is the most significant design decision in this 
 
 Non-field feedback; validation messages that are not associated with a specific field; uses the stable key `non_field_errors` (defined as `NON_FIELD_ERRORS_KEY`). This key originates from the server, where DRF's exception handler rewrites top-level list errors into `{non_field_errors: [...]}`, and is preserved as a contract constant on the client.
 
-`FormFeedback` determines what to render based on its injection context. When inside a field context, it renders feedback from the field's errors or messages (depending on its `type` prop). When inside a form context but outside a field context, it renders non-field feedback from `formContext.state.errors[NON_FIELD_ERRORS_KEY]` or `formContext.state.messages[NON_FIELD_ERRORS_KEY]`. When given explicit `messages` props, it renders those directly, ignoring context.
+Two components render this state. `FormMessage` is form-scope: placed inside a form context, it reads `formContext.state.errors[NON_FIELD_ERRORS_KEY]` (or `.messages[NON_FIELD_ERRORS_KEY]` when `type="message"`) and renders a single Alert containing the messages, listed when there is more than one. `FieldMessage` is field-scope: rendered automatically by `FormField` against `fieldContext.state.errors` and `.messages`, it produces a muted line of text under the control rather than an Alert.
 
-Structured feedback objects (where a server error entry is an object rather than a string) have no wire-format template contract. The default `FormFeedback` renderer iterates the object's entries and emits one `name: value` line per entry as a fallback. Consumers that need richer rendering wrap `FormFeedback`'s `#content` slot with a purpose-built component that pattern-matches on the object's shape; see [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) for the pattern.
+Structured feedback objects (where a server error entry is an object rather than a string) have no wire-format template contract. The default `FormMessage` renderer iterates the object's entries and emits one `name: value` line per entry as a fallback. Consumers that need richer rendering override `FormMessage`'s default slot with a purpose-built component that pattern-matches on the object's shape; see [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) for the pattern.
 
 `getFirstErrorField` supports non-field errors in its priority ordering. It prepends `NON_FIELD_ERRORS_KEY` to the display fields list before searching, so non-field errors are always found first. For array fields, it searches bracket-keyed error paths (`field[0]`, `field[1]`, etc.). For fields expressed with `__`-delimited nesting (a display convention), it resolves the parent array and searches nested keys within array items.
 
@@ -133,8 +133,6 @@ Structured feedback objects (where a server error entry is an object rather than
 
 **Reserved-code violation (`server`).** Local attempts to write the `server` code now throw immediately. The typical signature is: `Error code "server" is reserved for server-originated validation and cannot be set from local validation...`. This protects submission gating semantics by preventing local validation from entering the retryable server namespace.
 
-**Structured objects without `detail`.** If a server error payload contains an object entry without a `detail` property, `FormFeedback` throws a `TypeError` during render. This is a contract violation, not a recoverable client-side fallback path: structured objects must include `detail`.
-
 ## Relevant Implementation Surface
 
 - {@api js:module:@arrai-innovations/vueda/use/useForm}
@@ -145,5 +143,6 @@ Structured feedback objects (where a server error entry is an object rather than
 - {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
 - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
 - {@api vue:component:ActionForm}
-- {@api vue:component:FormFeedback}
-- {@api vue:component:ShellFieldDescription}
+- {@api vue:component:FormMessage}
+- {@api vue:component:FieldMessage}
+- {@api vue:component:FieldDescription}

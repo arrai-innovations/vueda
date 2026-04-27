@@ -1,7 +1,7 @@
 <script setup>
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterGroup from "@vueda/components/FilterGroup.vue";
-import FormFeedback from "@vueda/components/FormFeedback.vue";
+import FormMessage from "@vueda/components/FormMessage.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import MobileSortComponent from "@vueda/components/MobileSortComponent.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
@@ -315,8 +315,8 @@ onMounted(() => {
         <!-- todo: filters return here? @submit=filterList -->
         <slot name="before-list">
             <div class="max-w-full overflow-x-auto p-1 flex flex-col gap-2">
-                <form-feedback type="error" />
-                <form-feedback type="message" />
+                <form-message type="error" />
+                <form-message type="message" />
             </div>
         </slot>
         <objects-grid

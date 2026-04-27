@@ -1,6 +1,6 @@
 <script setup>
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
-import FormFeedback from "@vueda/components/FormFeedback.vue";
+import FormMessage from "@vueda/components/FormMessage.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import { useActionForm } from "@vueda/use/useActionForm.js";
@@ -96,8 +96,8 @@ const theme = useTheme("ActionForm", props);
         <error-display :error="combinedError" :errored="combinedErrored" :ignore-form-validation-errors="true" />
         <div :class="theme('inner')" data-qa="action-form-inner">
             <div :class="theme('nonFieldErrorBlock')">
-                <form-feedback type="error" :variant="null" />
-                <form-feedback type="message" :variant="null" />
+                <form-message type="error" />
+                <form-message type="message" />
             </div>
             <form @submit.prevent="handleConfirm()">
                 <!-- Main form content area; receives `loading`, `error`, `errored`, `handleConfirm`, and `handleCancelClick` as slot props. -->

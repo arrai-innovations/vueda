@@ -83,11 +83,11 @@ const FilterGroupStub = defineComponent({
             );
     },
 });
-const FormFeedbackStub = defineComponent({
-    name: "FormFeedbackStub",
+const FormMessageStub = defineComponent({
+    name: "FormMessageStub",
     props: ["type"],
     setup(props) {
-        return () => h("div", { "data-qa": `form-feedback-${props.type}` });
+        return () => h("div", { "data-qa": `form-message-${props.type}` });
     },
 });
 const LinkModelViewStub = defineComponent({
@@ -236,7 +236,7 @@ const SelectItemStub = defineComponent({
 
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
 vi.mock("@vueda/components/FilterGroup.vue", () => ({ default: FilterGroupStub }));
-vi.mock("@vueda/components/FormFeedback.vue", () => ({ default: FormFeedbackStub }));
+vi.mock("@vueda/components/FormMessage.vue", () => ({ default: FormMessageStub }));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 vi.mock("@vueda/components/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
 vi.mock("@vueda/components/MobileSortComponent.vue", () => ({ default: MobileSortComponentStub }));

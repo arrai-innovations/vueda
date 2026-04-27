@@ -634,21 +634,17 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * </script>
  * <template>
  * <form @submit.prevent="handleSubmit">
- *     <form-feedback type="error" />
- *     <form-feedback type="message" />
+ *     <form-message type="error" />
+ *     <form-message type="message" />
  *     <form-field name="field1" label="Field 1">
  *         <form-label>
  *             <widget-input />
  *         </form-label>
- *         <form-feedback type="error" />
- *         <form-feedback type="message" />
  *     </form-field>
  *     <form-field name="field2" label="Field 2" validation="numeric" :max-value="100" :min-value="1">
  *         <form-label>
  *             <widget-input step="1" />
  *         </form-label>
- *         <form-feedback type="error" />
- *         <form-feedback type="message" />
  *     </form-field>
  *     <Button type="submit">Submit</Button>
  * </form>

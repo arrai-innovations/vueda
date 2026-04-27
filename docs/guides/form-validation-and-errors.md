@@ -110,25 +110,23 @@ In this example, blurring the `sku` field within a line item clears server error
 
 ## Non-Field and Field Feedback Rendering
 
-Non-field errors; server validation that is not associated with a specific field; arrive under the key `non_field_errors` (the DRF convention, preserved as `NON_FIELD_ERRORS_KEY` on the client). These are rendered by `FormFeedback` when it is inside a form context but outside a field context:
+Non-field errors; server validation that is not associated with a specific field; arrive under the key `non_field_errors` (the DRF convention, preserved as `NON_FIELD_ERRORS_KEY` on the client). These are rendered by `FormMessage` placed inside the form context. Multiple messages collapse into a single Alert containing a list, rather than a stack of individual Alerts:
 
 ```vue
 <form @submit.prevent="submit">
-  <form-feedback type="error" />
-  <form-feedback type="message" />
+  <form-message type="error" />
+  <form-message type="message" />
   <!-- field components -->
 </form>
 ```
 
-Field-level feedback is rendered by `FormFeedback` when inside a field context. `FormField` already renders the field's help text via `FieldDescription`; place a `FormFeedback` for errors and a second one with `type="message"` for warnings:
+Field-level feedback is rendered automatically by `FormField` via `FieldMessage` (a muted line under the control). The same `FormField` also renders help text via `FieldDescription`, so a typical field requires no explicit feedback elements:
 
 ```vue
 <form-field name="email" label="Email" required>
   <form-label>
     <widget-input />
   </form-label>
-  <form-feedback type="error" />
-  <form-feedback type="message" />
 </form-field>
 ```
 
@@ -149,20 +147,20 @@ raise VuedaValidationError(
 )
 ```
 
-The default `FormFeedback` renderer has no opinion on object shape: it iterates the object's entries and renders each as a `name: value` line. That fallback is rarely what you want for a structured payload, so the expectation is that consumers wrap `FormFeedback` (or the underlying `FormFeedbackLinkConflict`-style pattern) with a purpose-built component that pattern-matches on the shape and renders it appropriately:
+The default `FormMessage` renderer has no opinion on object shape: it iterates the object's entries and renders each as a `name: value` line. That fallback is rarely what you want for a structured payload, so the expectation is that consumers override `FormMessage`'s default slot with a purpose-built component that pattern-matches on the shape and renders it appropriately:
 
 ```vue
-<form-feedback type="error">
-  <template #content="{ line }">
-    <template v-if="line && typeof line === 'object' && Array.isArray(line.rows)">
-      <p>{{ line.detail }}</p>
+<form-message type="error">
+  <template #default="{ message }">
+    <template v-if="message && typeof message === 'object' && Array.isArray(message.rows)">
+      <p>{{ message.detail }}</p>
       <ul>
-        <li v-for="row in line.rows" :key="row">{{ row }}</li>
+        <li v-for="row in message.rows" :key="row">{{ row }}</li>
       </ul>
     </template>
-    <template v-else>{{ line }}</template>
+    <template v-else>{{ message }}</template>
   </template>
-</form-feedback>
+</form-message>
 ```
 
 Each shape gets its own renderer. This keeps the formatting next to the UI and avoids stringly typed template payloads on the wire.
@@ -179,19 +177,19 @@ For the validation pipeline to work correctly, the server must follow these conv
 
 **Keep `non_field_errors` for cross-field validation.** DRF's exception handler rewrites top-level list errors into `{non_field_errors: [...]}`. The client expects this key and renders it at the form level, not at any specific field.
 
-**Render structured feedback objects client-side.** Object-valued feedback entries do not have a wire-format template contract. The default renderer falls back to a `name: value` line per entry. If you emit structured objects, plan to render them with a purpose-built component that wraps `FormFeedback`'s `#content` slot and matches on the shape; see the structured feedback example above.
+**Render structured feedback objects client-side.** Object-valued feedback entries do not have a wire-format template contract. The default renderer falls back to a `name: value` line per entry. If you emit structured objects, plan to render them with a purpose-built component that overrides `FormMessage`'s default slot and matches on the shape; see the structured feedback example above.
 
 ## Verification Checklist
 
 With the validation pipeline wired, verify these behaviors:
 
 - Submitting a form with invalid data produces field-level error messages under the correct fields.
-- Non-field errors appear at the form level (above or below the field list, depending on `FormFeedback` placement).
+- Non-field errors appear at the form level (above or below the field list, depending on `FormMessage` placement).
 - Blurring a field that had a server error clears the error message.
 - After clearing a server error by blur, resubmitting sends the request (server-only errors do not block).
 - Local validation errors (required fields left empty, custom validate failures) block submission with a "Pre-save Validation Failed" toast.
 - Server warnings (from `is_warning=True`) appear with warning severity (yellow) and do not block submission.
-- Structured non-field error objects render through the wrapping component's `#content` slot (or, with no wrapper, as `name: value` fallback lines).
+- Structured non-field error objects render through `FormMessage`'s default slot override (or, without an override, as `name: value` fallback lines).
 - The first-error scroll navigates to `non_field_errors` first, then to the first displayed field with an error.
 
 ## Troubleshooting
@@ -229,5 +227,6 @@ With the validation pipeline wired, verify these behaviors:
 - Vue.js Components:
     - {@api vue:component:ActionForm}
     - {@api vue:component:ModelActionForm}
-    - {@api vue:component:FormFeedback}
-    - {@api vue:component:ShellFieldDescription}
+    - {@api vue:component:FormMessage}
+    - {@api vue:component:FieldMessage}
+    - {@api vue:component:FieldDescription}

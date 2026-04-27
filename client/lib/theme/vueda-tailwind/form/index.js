@@ -258,12 +258,12 @@ export default {
             class: "text-red-600 dark:text-red-400",
         },
     },
-    FormFeedback: {
-        root: ({ variant }) => ({
-            class: [variant === "simple" ? "mx-2" : "", "my-2"],
-        }),
-        messages: {
-            class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4"],
+    FormMessage: {
+        root: {
+            class: ["my-2"],
+        },
+        list: {
+            class: ["list-disc list-inside"],
         },
     },
     FormModel: {

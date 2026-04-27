@@ -17,10 +17,10 @@ const ErrorDisplayStub = defineComponent({
     },
 });
 
-const FormFeedbackStub = defineComponent({
-    name: "FormFeedbackStub",
+const FormMessageStub = defineComponent({
+    name: "FormMessageStub",
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-feedback" }, slots.default ? slots.default() : null);
+        return () => h("div", { "data-qa": "form-message" }, slots.default ? slots.default() : null);
     },
 });
 
@@ -85,7 +85,7 @@ const FeedbackSpinnerStub = defineComponent({
 });
 
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
-vi.mock("@vueda/components/FormFeedback.vue", () => ({ default: FormFeedbackStub }));
+vi.mock("@vueda/components/FormMessage.vue", () => ({ default: FormMessageStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/feedback/spinner/Spinner.vue", () => ({ default: FeedbackSpinnerStub }));
 

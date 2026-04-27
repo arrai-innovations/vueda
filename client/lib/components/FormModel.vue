@@ -1,6 +1,6 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
-import FormFeedback from "@vueda/components/FormFeedback.vue";
+import FormMessage from "@vueda/components/FormMessage.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -233,8 +233,8 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
             </div>
             <!-- form-level chores -->
             <slot name="form-level-chores">
-                <form-feedback type="error" :variant="null" />
-                <form-feedback type="message" :variant="null" />
+                <form-message type="error" />
+                <form-message type="message" />
             </slot>
             <div v-bind="$attrs">
                 <slot
