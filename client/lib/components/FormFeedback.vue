@@ -95,21 +95,6 @@ const alertVariant = computed(() => {
     return props.type === "message" ? "warning" : "destructive";
 });
 const theme = useTheme("FormFeedback", props);
-const renderDetail = (data) => {
-    const detail = data.detail;
-    if (typeof detail !== "string") {
-        throw new Error(
-            "Structured feedback object must include a string 'detail' template (e.g. { detail: '...', ... }).",
-        );
-    }
-    return detail.replace(/\$\{(\w+)\}/g, (_, key) => {
-        const value = data[key];
-        if (Array.isArray(value)) {
-            return `<ul class="${theme("messagesInnerList")}">${value.map((item) => `<li>${item}</li>`).join("")}</ul>`;
-        }
-        return value !== undefined ? value : ""; // Replace with the value or leave empty
-    });
-};
 </script>
 <template>
     <div v-if="Object.values(feedbackItems || {})?.length" :class="theme('root')" data-qa="form-feedback-root">
@@ -132,9 +117,7 @@ const renderDetail = (data) => {
                     <AlertDescription>
                         <slot name="content" :line="line" :message="message" :type="type" :severity="severity">
                             <template v-if="isObject(line)">
-                                <!-- eslint-disable-next-line vue/no-v-html -->
-                                <div v-if="allowHtml" v-html="renderDetail(line)"></div>
-                                <div v-for="[name, value] of Object.entries(line)" v-else :key="name">
+                                <div v-for="[name, value] of Object.entries(line)" :key="name">
                                     {{ name }}: {{ value }}
                                 </div>
                             </template>

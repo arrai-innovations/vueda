@@ -131,14 +131,18 @@ Field-level feedback is rendered by `FormFeedback` (or `FormChores`, which compo
 </form-field>
 ```
 
-`FormChores` renders both error and message feedback for the field, using named slot conventions for customization. For non-field feedback with structured objects, the server must emit objects with a `detail` template property:
+`FormChores` renders both error and message feedback for the field, using named slot conventions for customization.
+
+### Structured Feedback Objects
+
+Most feedback entries are plain strings. When a single message needs to carry structured payload (e.g. a list of offending rows that should render as a bullet list), the server may emit an object instead of a string:
 
 ```python
 raise VuedaValidationError(
     {
         "non_field_errors": [
             {
-                "detail": "Some rows are invalid: ${rows}",
+                "detail": "Some rows are invalid:",
                 "rows": rows,
             }
         ]
@@ -146,7 +150,23 @@ raise VuedaValidationError(
 )
 ```
 
-The `FormFeedback` renderer replaces `${token}` placeholders with the corresponding properties from the object. Array-valued properties are rendered as HTML lists. This is a hard contract: structured objects without a `detail` property throw at render time, and the client does not provide a fallback renderer for them.
+The default `FormFeedback` renderer has no opinion on object shape: it iterates the object's entries and renders each as a `name: value` line. That fallback is rarely what you want for a structured payload, so the expectation is that consumers wrap `FormFeedback` (or the underlying `FormFeedbackLinkConflict`-style pattern) with a purpose-built component that pattern-matches on the shape and renders it appropriately:
+
+```vue
+<form-feedback type="error">
+  <template #content="{ line }">
+    <template v-if="line && typeof line === 'object' && Array.isArray(line.rows)">
+      <p>{{ line.detail }}</p>
+      <ul>
+        <li v-for="row in line.rows" :key="row">{{ row }}</li>
+      </ul>
+    </template>
+    <template v-else>{{ line }}</template>
+  </template>
+</form-feedback>
+```
+
+Each shape gets its own renderer. This keeps the formatting next to the UI and avoids stringly typed template payloads on the wire.
 
 ## Server Contract Expectations
 
@@ -160,7 +180,7 @@ For the validation pipeline to work correctly, the server must follow these conv
 
 **Keep `non_field_errors` for cross-field validation.** DRF's exception handler rewrites top-level list errors into `{non_field_errors: [...]}`. The client expects this key and renders it at the form level, not at any specific field.
 
-**Treat structured feedback objects as contract-bound.** If you emit object-valued feedback entries, include a `detail` template string on each object. Missing `detail` is treated as invalid payload shape and causes a render-time `TypeError` in `FormFeedback`.
+**Render structured feedback objects client-side.** Object-valued feedback entries do not have a wire-format template contract. The default renderer falls back to a `name: value` line per entry. If you emit structured objects, plan to render them with a purpose-built component that wraps `FormFeedback`'s `#content` slot and matches on the shape; see the structured feedback example above.
 
 ## Verification Checklist
 
@@ -172,7 +192,7 @@ With the validation pipeline wired, verify these behaviors:
 - After clearing a server error by blur, resubmitting sends the request (server-only errors do not block).
 - Local validation errors (required fields left empty, custom validate failures) block submission with a "Pre-save Validation Failed" toast.
 - Server warnings (from `is_warning=True`) appear with warning severity (yellow) and do not block submission.
-- Structured non-field error objects render their `detail` template with token substitution.
+- Structured non-field error objects render through the wrapping component's `#content` slot (or, with no wrapper, as `name: value` fallback lines).
 - The first-error scroll navigates to `non_field_errors` first, then to the first displayed field with an error.
 
 ## Troubleshooting

@@ -85,17 +85,3 @@ scopedIt("falls back to form non field errors", async () => {
     await vue.nextTick();
     expect(wrapper.text()).toContain("boom");
 });
-
-scopedIt("throws a clear error when structured feedback is missing detail", () => {
-    const fieldContext = {
-        state: vue.reactive({
-            errors: { code: { rows: ["1", "2"] } },
-            messages: {},
-        }),
-    };
-    expect(() =>
-        mount(FormFeedback, {
-            global: { provide: { [FieldContextSymbol]: fieldContext } },
-        }),
-    ).toThrow("Structured feedback object must include a string 'detail' template");
-});

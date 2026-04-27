@@ -278,9 +278,6 @@ export default {
         messages: {
             class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4"],
         },
-        messagesInnerList: {
-            class: ["list-disc list-inside"],
-        },
     },
     FormModel: {
         root: {
