@@ -245,6 +245,35 @@
     --vueda-control-px-md: 0.75rem; /* 12px */
     --vueda-control-px-lg: 1.25rem; /* 20px */
 
+    /* ---------- Specialized control sizes ----------
+     * Chip / tag tier — fourth step below --vueda-control-height-lg.
+     * 4-step ladder: 40 (lg) · 32 (default) · 28 (sm) · 20 (chip). */
+    --vueda-chip-height: 20px; /* TagsInput chip, inline Badge in tables */
+
+    /* Command surface — input wrapper and footer chin heights.
+     * Only used by Command today; promote here so future searchfield-plus-chin
+     * patterns inherit the geometry. */
+    --vueda-cmd-input-height: 40px; /* Command search wrapper */
+    --vueda-cmd-footer-height: 32px; /* Command footer chin */
+
+    /* Calendar segment grid — day cells are 30×30 inside 32×32 grid slots
+     * (1px padding) so adjacent selected cells don't visually merge.
+     * --vueda-cal-day-radius is kept separate from --vueda-control-radius
+     * so range-fill compositions can override the corner independently. */
+    --vueda-cal-cell: 32px; /* grid slot */
+    --vueda-cal-day: 30px; /* inner day button */
+    --vueda-cal-day-radius: 2px;
+
+    /* ---------- Sidebar ----------
+     * 224px default (tighter than shadcn's 256px); 48px icon rail.
+     * SidebarProvider sets --sidebar-width / --sidebar-width-icon as
+     * inline CSS custom properties using these tokens so child components
+     * can reference var(--sidebar-width) without duplicating the values. */
+    --vueda-sidebar-width: 14rem; /* 224px expanded */
+    --vueda-sidebar-width-icon: 3rem; /* 48px icon-only rail */
+    --vueda-sidebar-width-mobile: 18rem; /* 288px mobile sheet */
+    --vueda-sidebar-active-rail: 2px; /* left-edge accent on active item */
+
     /* ---------- Typography ----------
      * 7-step scale, Carbon-like density. Dominant body = 13px.
      * Not mapped through @theme (except --font-sans / --font-mono above).

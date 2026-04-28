@@ -2,13 +2,7 @@
 import TooltipProvider from "@vueda/shell/tooltip/TooltipProvider.vue";
 import { provideSidebarContext } from "@vueda/use/useSidebar.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import {
-    SIDEBAR_COOKIE_MAX_AGE,
-    SIDEBAR_COOKIE_NAME,
-    SIDEBAR_KEYBOARD_SHORTCUT,
-    SIDEBAR_WIDTH,
-    SIDEBAR_WIDTH_ICON,
-} from "@vueda/utils/constants.js";
+import { SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_COOKIE_NAME, SIDEBAR_KEYBOARD_SHORTCUT } from "@vueda/utils/constants.js";
 import { defaultDocument, useEventListener, useMediaQuery, useVModel } from "@vueuse/core";
 import { computed, ref } from "vue";
 
@@ -85,8 +79,8 @@ provideSidebarContext({
         <div
             data-slot="sidebar-wrapper"
             :style="{
-                '--sidebar-width': SIDEBAR_WIDTH,
-                '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
+                '--sidebar-width': 'var(--vueda-sidebar-width)',
+                '--sidebar-width-icon': 'var(--vueda-sidebar-width-icon)',
             }"
             :class="[theme('root'), props.class]"
             v-bind="$attrs"

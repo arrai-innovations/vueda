@@ -66,7 +66,7 @@ export default {
             class: [
                 ...BUTTON_BASE,
                 BUTTON_VARIANT_GHOST,
-                "size-8 p-0 font-normal aria-selected:opacity-100 cursor-default",
+                "size-[var(--vueda-cal-day)] p-0 font-normal aria-selected:opacity-100 cursor-default",
                 "[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground",
                 "data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[selected]:opacity-100 data-[selected]:hover:bg-primary data-[selected]:hover:text-primary-foreground data-[selected]:focus:bg-primary data-[selected]:focus:text-primary-foreground",
                 "data-[disabled]:text-muted-foreground data-[disabled]:opacity-50",
@@ -85,7 +85,7 @@ export default {
             class: [
                 ...BUTTON_BASE,
                 BUTTON_VARIANT_GHOST,
-                "h-8 w-8 p-0 font-normal data-[selected]:opacity-100",
+                "h-[var(--vueda-cal-day)] w-[var(--vueda-cal-day)] p-0 font-normal data-[selected]:opacity-100",
                 "[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground",
                 "data-[selection-start]:bg-primary data-[selection-start]:text-primary-foreground data-[selection-start]:hover:bg-primary data-[selection-start]:hover:text-primary-foreground data-[selection-start]:focus:bg-primary data-[selection-start]:focus:text-primary-foreground",
                 "data-[selection-end]:bg-primary data-[selection-end]:text-primary-foreground data-[selection-end]:hover:bg-primary data-[selection-end]:hover:text-primary-foreground data-[selection-end]:focus:bg-primary data-[selection-end]:focus:text-primary-foreground",
@@ -137,7 +137,7 @@ export default {
     },
     RangeCalendarHeadCell: {
         root: {
-            class: ["w-8 rounded-md text-[0.8rem] font-normal text-muted-foreground"],
+            class: ["w-[var(--vueda-cal-cell)] rounded-md text-[0.8rem] font-normal text-muted-foreground"],
         },
     },
     RangeCalendarHeader: {
@@ -169,7 +169,7 @@ export default {
     },
     CalendarHeadCell: {
         root: {
-            class: ["text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem]"],
+            class: ["text-muted-foreground rounded-md w-[var(--vueda-cal-cell)] font-normal text-[0.8rem]"],
         },
     },
     CalendarHeader: {
@@ -616,13 +616,13 @@ export default {
     TagsInputItem: {
         root: {
             class: [
-                "flex h-5 items-center rounded-md bg-secondary data-[state=active]:outline-2 data-[state=active]:outline-offset-2 data-[state=active]:outline-ring",
+                "flex h-[var(--vueda-chip-height)] items-center rounded-md bg-secondary data-[state=active]:outline-2 data-[state=active]:outline-offset-2 data-[state=active]:outline-ring",
             ],
         },
     },
     TagsInputInput: {
         root: {
-            class: ["text-sm min-h-5 focus:outline-none flex-1 bg-transparent px-1"],
+            class: ["text-sm min-h-[var(--vueda-chip-height)] focus:outline-none flex-1 bg-transparent px-1"],
         },
     },
     TagsInputItemDelete: {
@@ -643,10 +643,10 @@ export default {
     CommandInput: {
         root: {
             class: [
-                "placeholder:text-muted-foreground flex h-10 w-full rounded-vueda-control bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+                "placeholder:text-muted-foreground flex h-[var(--vueda-cmd-input-height)] w-full rounded-vueda-control bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
-        wrapper: { class: "flex h-9 items-center gap-2 border-b px-3" },
+        wrapper: { class: "flex h-[var(--vueda-cmd-input-height)] items-center gap-2 border-b px-3" },
     },
     CommandList: {
         root: {

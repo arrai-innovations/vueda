@@ -6,7 +6,6 @@ import SheetHeader from "@vueda/shell/sheet/SheetHeader.vue";
 import SheetTitle from "@vueda/shell/sheet/SheetTitle.vue";
 import { useSidebar } from "@vueda/use/useSidebar.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { SIDEBAR_WIDTH_MOBILE } from "@vueda/utils/constants.js";
 import { reactive, toRef } from "vue";
 
 /**
@@ -56,7 +55,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
             data-mobile="true"
             :side="side"
             class="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
-            :style="{ '--sidebar-width': SIDEBAR_WIDTH_MOBILE }"
+            :style="{ '--sidebar-width': 'var(--vueda-sidebar-width-mobile)' }"
         >
             <SheetHeader class="sr-only">
                 <SheetTitle>Sidebar</SheetTitle>
