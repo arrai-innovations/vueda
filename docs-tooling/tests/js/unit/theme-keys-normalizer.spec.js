@@ -128,4 +128,148 @@ describe("ThemeKeysNormalizer", () => {
         const bundle = new ThemeKeysNormalizer().normalize({ entries: [] });
         expect(bundle).toEqual({ kind: "theme-keys", entries: [] });
     });
+
+    it("records multiple consumers of the same target in encounter order", () => {
+        const payload = {
+            entries: [
+                {
+                    name: "_Base",
+                    isMetaKey: true,
+                    description: null,
+                    source: { file: "x.js", line: 1 },
+                    slots: [{ name: "root", isFunction: false, composes: [], rawClasses: [], source: {} }],
+                },
+                {
+                    name: "Alpha",
+                    isMetaKey: false,
+                    description: null,
+                    source: { file: "x.js", line: 5 },
+                    slots: [
+                        {
+                            name: "root",
+                            isFunction: false,
+                            composes: ["_Base.root"],
+                            rawClasses: [],
+                            source: {},
+                        },
+                    ],
+                },
+                {
+                    name: "Beta",
+                    isMetaKey: false,
+                    description: null,
+                    source: { file: "x.js", line: 10 },
+                    slots: [
+                        {
+                            name: "root",
+                            isFunction: false,
+                            composes: ["_Base.root"],
+                            rawClasses: [],
+                            source: {},
+                        },
+                    ],
+                },
+            ],
+        };
+        const bundle = new ThemeKeysNormalizer().normalize(payload);
+        const base = bundle.entries.find((e) => e.name === "_Base");
+        expect(base.composedBy).toEqual([
+            { consumer: "Alpha", slot: "root", condition: null },
+            { consumer: "Beta", slot: "root", condition: null },
+        ]);
+    });
+
+    it("records multiple slot-level references from the same consumer", () => {
+        const payload = {
+            entries: [
+                {
+                    name: "_Base",
+                    isMetaKey: true,
+                    description: null,
+                    source: {},
+                    slots: [
+                        { name: "root", isFunction: false, composes: [], rawClasses: [], source: {} },
+                        { name: "label", isFunction: false, composes: [], rawClasses: [], source: {} },
+                    ],
+                },
+                {
+                    name: "Alpha",
+                    isMetaKey: false,
+                    description: null,
+                    source: {},
+                    slots: [
+                        {
+                            name: "root",
+                            isFunction: false,
+                            composes: ["_Base.root"],
+                            rawClasses: [],
+                            source: {},
+                        },
+                        {
+                            name: "label",
+                            isFunction: false,
+                            composes: ["_Base.label"],
+                            rawClasses: [],
+                            source: {},
+                        },
+                    ],
+                },
+            ],
+        };
+        const bundle = new ThemeKeysNormalizer().normalize(payload);
+        const base = bundle.entries.find((e) => e.name === "_Base");
+        expect(base.composedBy).toEqual([
+            { consumer: "Alpha", slot: "root", condition: null },
+            { consumer: "Alpha", slot: "label", condition: null },
+        ]);
+    });
+
+    it("ignores malformed compose refs without a slot segment", () => {
+        const bundle = new ThemeKeysNormalizer().normalize({
+            entries: [
+                {
+                    name: "_Base",
+                    isMetaKey: true,
+                    description: null,
+                    source: {},
+                    slots: [{ name: "root", isFunction: false, composes: [], rawClasses: [], source: {} }],
+                },
+                {
+                    name: "Alpha",
+                    isMetaKey: false,
+                    description: null,
+                    source: {},
+                    slots: [
+                        {
+                            name: "root",
+                            isFunction: false,
+                            composes: ["_Base", ".root"],
+                            rawClasses: [],
+                            source: {},
+                        },
+                    ],
+                },
+            ],
+        });
+        const base = bundle.entries.find((e) => e.name === "_Base");
+        expect(base.composedBy).toEqual([]);
+    });
+
+    it("does not mutate the input payload's slot arrays", () => {
+        const slot = { name: "root", isFunction: false, composes: ["_Base.root"], rawClasses: ["a"], source: {} };
+        const payload = {
+            entries: [
+                {
+                    name: "Alpha",
+                    isMetaKey: false,
+                    description: null,
+                    source: {},
+                    slots: [slot],
+                },
+            ],
+        };
+        new ThemeKeysNormalizer().normalize(payload);
+        expect(slot.composes).toEqual(["_Base.root"]);
+        expect(slot.rawClasses).toEqual(["a"]);
+    });
 });

@@ -290,6 +290,22 @@ describe("renderVueDocgenBundle — theme entry bidirectional link", () => {
         const page = outputs.get("vue/components/Foo.md");
         expect(page).not.toContain("Theme entry:");
     });
+
+    it("emits 'Theme entry' for each matching component when multiple are present", () => {
+        const bundle = new VueDocgenNormalizer().normalize(multiGroupPayload);
+        const outputs = renderVueDocgenBundle(bundle, {
+            themeKeysIndex: new Set(["DashboardView", "CounterWidget"]),
+        });
+        expect(outputs.get("vue/components/DashboardView.md")).toContain("Theme entry: {@api theme-key:DashboardView}");
+        expect(outputs.get("vue/components/CounterWidget.md")).toContain("Theme entry: {@api theme-key:CounterWidget}");
+    });
+
+    it("only emits 'Theme entry' on the matching component in a multi-component bundle", () => {
+        const bundle = new VueDocgenNormalizer().normalize(multiGroupPayload);
+        const outputs = renderVueDocgenBundle(bundle, { themeKeysIndex: new Set(["DashboardView"]) });
+        expect(outputs.get("vue/components/DashboardView.md")).toContain("Theme entry:");
+        expect(outputs.get("vue/components/CounterWidget.md")).not.toContain("Theme entry:");
+    });
 });
 
 describe("renderVueDocgenBundle — component index page", () => {

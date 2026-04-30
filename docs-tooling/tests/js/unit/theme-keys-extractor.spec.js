@@ -119,4 +119,87 @@ describe("ThemeKeysExtractor", () => {
         const foo = payload.entries.find((e) => e.name === "Foo");
         expect(foo.slots[0].rawClasses).toEqual(["single-class"]);
     });
+
+    it("aggregates entries across multiple source files preserving order", async () => {
+        const second = path.join(tempDir, "navigation.js");
+        await writeFile(
+            second,
+            `export default {
+    NavItem: { root: { class: ["px-1"] } },
+};
+`,
+        );
+        const extractor = new ThemeKeysExtractor();
+        await extractor.extract({ outputPath, sources: [srcPath, second] });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const names = payload.entries.map((e) => e.name);
+        expect(names).toContain("NavItem");
+        // controls.js entries appear before navigation.js entries.
+        expect(names.indexOf("Button")).toBeLessThan(names.indexOf("NavItem"));
+        expect(payload.sourceFiles.length).toBe(2);
+        // The NavItem entry is tagged with its own source file, not the first.
+        const navItem = payload.entries.find((e) => e.name === "NavItem");
+        expect(navItem.source.file).toMatch(/navigation\.js$/);
+    });
+
+    it("captures an entry with no slots as an empty slots array", async () => {
+        const code = `export default {
+    Empty: {},
+};
+`;
+        await writeFile(srcPath, code);
+        const extractor = new ThemeKeysExtractor();
+        await extractor.extract({ outputPath, sources: [srcPath] });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const empty = payload.entries.find((e) => e.name === "Empty");
+        expect(empty).toBeDefined();
+        expect(empty.slots).toEqual([]);
+    });
+
+    it("returns no entries when the file has no default-export object", async () => {
+        const code = `export const notDefault = { Foo: { root: { class: "x" } } };
+`;
+        await writeFile(srcPath, code);
+        const extractor = new ThemeKeysExtractor();
+        await extractor.extract({ outputPath, sources: [srcPath] });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        expect(payload.entries).toEqual([]);
+    });
+
+    it("skips non-literal composes entries (dynamic refs) without throwing", async () => {
+        const code = `const variantKey = "_X.root";
+export default {
+    Foo: {
+        root: {
+            composes: ["_ButtonBase.root", variantKey, \`\${variantKey}\`],
+            class: ["px-2"],
+        },
+    },
+};
+`;
+        await writeFile(srcPath, code);
+        const extractor = new ThemeKeysExtractor();
+        await extractor.extract({ outputPath, sources: [srcPath] });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const foo = payload.entries.find((e) => e.name === "Foo");
+        expect(foo.slots[0].composes).toEqual(["_ButtonBase.root"]);
+    });
+
+    it("supports string-literal entry keys", async () => {
+        const code = `export default {
+    "Quoted-Name": { root: { class: ["a"] } },
+};
+`;
+        await writeFile(srcPath, code);
+        const extractor = new ThemeKeysExtractor();
+        await extractor.extract({ outputPath, sources: [srcPath] });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        expect(payload.entries.map((e) => e.name)).toContain("Quoted-Name");
+    });
+
+    it("rejects on malformed source (parse error)", async () => {
+        await writeFile(srcPath, `export default { Foo: { root: { class: [ }; `);
+        const extractor = new ThemeKeysExtractor();
+        await expect(extractor.extract({ outputPath, sources: [srcPath] })).rejects.toThrow();
+    });
 });

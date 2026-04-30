@@ -150,4 +150,149 @@ describe("renderThemeKeysBundle", () => {
         expect(outputs.size).toBe(1);
         expect(outputs.has("theming/keys.md")).toBe(true);
     });
+
+    it("omits the Slots section when an entry has no slots", () => {
+        const bundle = {
+            kind: "theme-keys",
+            entries: [
+                {
+                    name: "Empty",
+                    isMetaKey: false,
+                    description: null,
+                    source: { file: "x.js", line: 1 },
+                    slots: [],
+                    composedBy: [],
+                },
+            ],
+        };
+        const page = renderThemeKeysBundle(bundle).get("theming/keys/Empty.md");
+        expect(page).not.toContain("## Slots");
+    });
+
+    it("omits the Composes block when a slot has no composes refs", () => {
+        // CalendarCellTrigger has composes; Button (function-form) and _ButtonGhost do not.
+        const outputs = renderThemeKeysBundle(BUNDLE);
+        const ghost = outputs.get("theming/keys/_ButtonGhost.md");
+        expect(ghost).not.toContain("Composes:");
+    });
+
+    it("omits the Classes block when a slot has no rawClasses", () => {
+        const bundle = {
+            kind: "theme-keys",
+            entries: [
+                {
+                    name: "Foo",
+                    isMetaKey: false,
+                    description: null,
+                    source: { file: "x.js", line: 1 },
+                    slots: [
+                        {
+                            name: "root",
+                            isFunction: false,
+                            composes: [],
+                            rawClasses: [],
+                            source: { file: "x.js", line: 2 },
+                        },
+                    ],
+                    composedBy: [],
+                },
+            ],
+        };
+        const page = renderThemeKeysBundle(bundle).get("theming/keys/Foo.md");
+        expect(page).not.toContain("Classes:");
+    });
+
+    it("omits the Source section when entry has no source.file", () => {
+        const bundle = {
+            kind: "theme-keys",
+            entries: [
+                {
+                    name: "Foo",
+                    isMetaKey: false,
+                    description: null,
+                    source: { file: "", line: 0 },
+                    slots: [],
+                    composedBy: [],
+                },
+            ],
+        };
+        const page = renderThemeKeysBundle(bundle).get("theming/keys/Foo.md");
+        expect(page).not.toContain("## Source");
+    });
+
+    it("renders entry description when present", () => {
+        const bundle = {
+            kind: "theme-keys",
+            entries: [
+                {
+                    name: "Foo",
+                    isMetaKey: false,
+                    description: "Hand-authored summary.",
+                    source: { file: "x.js", line: 1 },
+                    slots: [],
+                    composedBy: [],
+                },
+            ],
+        };
+        const page = renderThemeKeysBundle(bundle).get("theming/keys/Foo.md");
+        expect(page).toContain("Hand-authored summary.");
+    });
+
+    it("index page omits Components heading when only meta keys exist", () => {
+        const bundle = {
+            kind: "theme-keys",
+            entries: [
+                {
+                    name: "_Only",
+                    isMetaKey: true,
+                    description: null,
+                    source: { file: "x.js", line: 1 },
+                    slots: [],
+                    composedBy: [],
+                },
+            ],
+        };
+        const index = renderThemeKeysBundle(bundle).get("theming/keys.md");
+        expect(index).not.toContain("## Components");
+        expect(index).toContain("## Meta keys");
+    });
+
+    it("index page omits Meta keys heading when only components exist", () => {
+        const bundle = {
+            kind: "theme-keys",
+            entries: [
+                {
+                    name: "Only",
+                    isMetaKey: false,
+                    description: null,
+                    source: { file: "x.js", line: 1 },
+                    slots: [],
+                    composedBy: [],
+                },
+            ],
+        };
+        const index = renderThemeKeysBundle(bundle).get("theming/keys.md");
+        expect(index).toContain("## Components");
+        expect(index).not.toContain("## Meta keys");
+    });
+
+    it("composedBy consumer falls back to inline code when consumer is not in the bundle", () => {
+        // Consumer "Stranger" is referenced in composedBy but not present as an entry.
+        const bundle = {
+            kind: "theme-keys",
+            entries: [
+                {
+                    name: "_Base",
+                    isMetaKey: true,
+                    description: null,
+                    source: { file: "x.js", line: 1 },
+                    slots: [],
+                    composedBy: [{ consumer: "Stranger", slot: "root", condition: null }],
+                },
+            ],
+        };
+        const page = renderThemeKeysBundle(bundle).get("theming/keys/_Base.md");
+        expect(page).not.toContain("{@api theme-key:Stranger}");
+        expect(page).toContain("`Stranger`");
+    });
 });
