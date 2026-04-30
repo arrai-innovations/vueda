@@ -82,4 +82,128 @@ describe("CssTokensExtractor", () => {
         const extractor = new CssTokensExtractor();
         await expect(extractor.extract({ baseCss: cssPath })).rejects.toThrow(/outputPath/);
     });
+
+    it("assigns each declaration to the banner group at its source line", async () => {
+        const css = `:root {
+    /* ---------- Group A ---------- */
+    --a-one: 1px;
+    --a-two: 2px;
+
+    /* ---------- Group B ---------- */
+    --b-one: 3px;
+
+    /* ---------- Group C ---------- */
+    --c-one: 4px;
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const byName = Object.fromEntries(payload.scopes.root.map((d) => [d.name, d.group]));
+        expect(byName["--a-one"]).toBe("Group A");
+        expect(byName["--a-two"]).toBe("Group A");
+        expect(byName["--b-one"]).toBe("Group B");
+        expect(byName["--c-one"]).toBe("Group C");
+    });
+
+    it("falls back to the 'Base' group for declarations before any banner", async () => {
+        const css = `:root {
+    --no-banner: 1px;
+
+    /* ---------- After ---------- */
+    --after: 2px;
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const noBanner = payload.scopes.root.find((d) => d.name === "--no-banner");
+        expect(noBanner.group).toBe("Base");
+    });
+
+    it("silently skips @theme inline declarations whose value is not a var() reference", async () => {
+        const css = `@theme inline {
+    --color-primary: var(--primary);
+    --spacing-fixed: 4px;
+    --radius-bare: oklch(0.5 0 0);
+}
+
+:root {
+    --primary: oklch(0.58 0.19 254);
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        // Only the var() mapping is captured.
+        expect(Object.keys(payload.themeMapping)).toEqual(["primary"]);
+    });
+
+    it("captures dark-only tokens in scopes.dark and not in scopes.root", async () => {
+        const css = `:root {
+    --shared: 1px;
+}
+
+.dark {
+    --shared: 2px;
+    --only-dark: oklch(0.3 0 0);
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        expect(payload.scopes.root.find((d) => d.name === "--only-dark")).toBeUndefined();
+        const onlyDark = payload.scopes.dark.find((d) => d.name === "--only-dark");
+        expect(onlyDark).toBeTruthy();
+        expect(onlyDark.value).toBe("oklch(0.3 0 0)");
+    });
+
+    it("returns description: null for declarations with no trailing comment", async () => {
+        const css = `:root {
+    --plain: 4px;
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const plain = payload.scopes.root.find((d) => d.name === "--plain");
+        expect(plain.description).toBeNull();
+    });
+
+    it("does not pick up a comment on a different line as an inline description", async () => {
+        const css = `:root {
+    --foo: 4px;
+    /* this is on the next line, not trailing */
+    --bar: 5px;
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const foo = payload.scopes.root.find((d) => d.name === "--foo");
+        expect(foo.description).toBeNull();
+    });
+
+    it("preserves multi-line values across continuations", async () => {
+        const css = `:root {
+    --shadow-stack: 0 1px 2px rgba(0, 0, 0, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.05),
+        0 4px 8px rgba(0, 0, 0, 0.025);
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const shadow = payload.scopes.root.find((d) => d.name === "--shadow-stack");
+        expect(shadow.value).toContain("0 1px 2px rgba(0, 0, 0, 0.1)");
+        expect(shadow.value).toContain("0 2px 4px rgba(0, 0, 0, 0.05)");
+        expect(shadow.value).toContain("0 4px 8px rgba(0, 0, 0, 0.025)");
+    });
 });
