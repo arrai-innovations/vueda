@@ -97,7 +97,7 @@ function renderSource(node) {
     return [renderHeading(2, "Source"), "", renderCodeInline(value), ""].join("\n");
 }
 
-export function renderVueDocgenNode(node, index, filePath) {
+export function renderVueDocgenNode(node, index, filePath, options = {}) {
     const frontmatter = renderFrontmatter({
         id: node.id,
         kind: node.kind,
@@ -110,6 +110,11 @@ export function renderVueDocgenNode(node, index, filePath) {
 
     if (node.description) {
         lines.push(renderHeading(2, "Overview"), "", escapeText(node.description), "");
+    }
+
+    const themeKeysIndex = options.themeKeysIndex;
+    if (themeKeysIndex && themeKeysIndex.has(node.name)) {
+        lines.push(`Theme entry: {@api theme-key:${node.name}}`, "");
     }
 
     const propsBlock = renderProps(node);
@@ -253,10 +258,11 @@ function shouldEmitEventsPage(events) {
     return events.length > EVENTS_PAGE_COUNT_THRESHOLD || events.some((e) => e.description);
 }
 
-export function renderVueDocgenBundle(bundle) {
+export function renderVueDocgenBundle(bundle, options = {}) {
     const index = buildCanonicalIndex(bundle);
     const outputs = new Map();
     const pathMap = buildVueDocgenPathMap(bundle);
+    const themeKeysIndex = options.themeKeysIndex;
 
     // Conditionally register sub-page paths before rendering so that
     // renderVueDocgenNode can link slot/event headings only when a sub-page exists.
@@ -281,7 +287,7 @@ export function renderVueDocgenBundle(bundle) {
         }
         componentNodes.push(node);
         const filePath = pathMap.get(node.id);
-        const { content } = renderVueDocgenNode(node, index, filePath);
+        const { content } = renderVueDocgenNode(node, index, filePath, { themeKeysIndex });
         outputs.set(filePath, content);
 
         if (pathMap.has(`${node.id}:slots`)) {

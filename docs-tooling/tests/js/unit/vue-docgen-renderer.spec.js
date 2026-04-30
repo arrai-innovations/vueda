@@ -270,6 +270,28 @@ const multiGroupPayload = {
     ],
 };
 
+describe("renderVueDocgenBundle — theme entry bidirectional link", () => {
+    it("appends a 'Theme entry' line when the component name is in themeKeysIndex", () => {
+        const bundle = new VueDocgenNormalizer().normalize(sparsePayload);
+        const outputs = renderVueDocgenBundle(bundle, { themeKeysIndex: new Set(["Foo"]) });
+        const page = outputs.get("vue/components/Foo.md");
+        expect(page).toContain("Theme entry: {@api theme-key:Foo}");
+    });
+
+    it("omits the 'Theme entry' line when themeKeysIndex is absent", () => {
+        const outputs = buildOutputs(sparsePayload);
+        const page = outputs.get("vue/components/Foo.md");
+        expect(page).not.toContain("Theme entry:");
+    });
+
+    it("omits the 'Theme entry' line when the component name is not in the index", () => {
+        const bundle = new VueDocgenNormalizer().normalize(sparsePayload);
+        const outputs = renderVueDocgenBundle(bundle, { themeKeysIndex: new Set(["NotFoo"]) });
+        const page = outputs.get("vue/components/Foo.md");
+        expect(page).not.toContain("Theme entry:");
+    });
+});
+
 describe("renderVueDocgenBundle — component index page", () => {
     it("emits vue/components/index.md", () => {
         const outputs = buildOutputs(sparsePayload);

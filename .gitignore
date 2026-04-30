@@ -28,6 +28,8 @@ docs/api/
 docs/reference/api/
 docs/reference/theming/tokens/
 docs/reference/theming/tokens.md
+docs/reference/theming/keys/
+docs/reference/theming/keys.md
 docs/public/api/server/
 docs/public/api/client/
 docs/public/api/schema.yml
