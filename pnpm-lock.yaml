@@ -254,6 +254,9 @@ importers:
       ajv:
         specifier: ^8.17.1
         version: 8.17.1
+      postcss:
+        specifier: ^8.5.6
+        version: 8.5.6
       quicktype:
         specifier: ^23.2.6
         version: 23.2.6

@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 import { ComponentsExtractor } from "../js/extractors/components.js";
+import { CssTokensExtractor } from "../js/extractors/css-tokens.js";
 import { JavaScriptExtractor } from "../js/extractors/javascript.js";
+import { CssTokensNormalizer } from "../js/normalizers/css-tokens.js";
 import { OpenApiNormalizer } from "../js/normalizers/openapi.js";
 import { PdocNormalizer } from "../js/normalizers/pdoc.js";
 import { TypeDocNormalizer } from "../js/normalizers/typedoc.js";
 import { VueDocgenNormalizer } from "../js/normalizers/vue-docgen-api.js";
+import { renderCssTokensBundle } from "../js/renderers/css-tokens.js";
 import { renderOpenApiBundle } from "../js/renderers/openapi.js";
 import { renderPdocBundle } from "../js/renderers/pdoc.js";
 import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
@@ -62,6 +65,11 @@ async function extractComponents(outDir) {
     await extractor.extract({ outputPath: path.join(outDir, "vue-docgen.json") });
 }
 
+async function extractCssTokens(outDir) {
+    const extractor = new CssTokensExtractor();
+    await extractor.extract({ outputPath: path.join(outDir, "css-tokens.json") });
+}
+
 function resolveOutDir(outDir) {
     return outDir ? path.resolve(process.cwd(), outDir) : path.join(repoRoot, "docs-tooling", ".generated");
 }
@@ -73,6 +81,7 @@ function expandTargets(targets) {
         set.add("rest");
         set.add("javascript");
         set.add("components");
+        set.add("css-tokens");
         set.delete("all");
     }
     return Array.from(set);
@@ -85,6 +94,7 @@ function expandNormalizeTargets(targets) {
         set.add("vue-docgen");
         set.add("openapi");
         set.add("pdoc");
+        set.add("css-tokens");
         set.delete("all");
     }
     return Array.from(set);
@@ -107,6 +117,9 @@ async function runExtract(argv) {
                 break;
             case "components":
                 await extractComponents(outDir);
+                break;
+            case "css-tokens":
+                await extractCssTokens(outDir);
                 break;
             default:
                 throw new Error(`Unknown target: ${target}`);
@@ -132,6 +145,10 @@ async function runNormalize(argv) {
             input: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.json"),
             output: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.canonical.json"),
         },
+        "css-tokens": {
+            input: path.join(repoRoot, "docs-tooling", ".generated", "css-tokens.json"),
+            output: path.join(repoRoot, "docs-tooling", ".generated", "css-tokens.canonical.json"),
+        },
     };
 
     const requestedSources = expandNormalizeTargets(argv.source || []);
@@ -154,6 +171,9 @@ async function runNormalize(argv) {
                 break;
             case "pdoc":
                 normalizer = new PdocNormalizer();
+                break;
+            case "css-tokens":
+                normalizer = new CssTokensNormalizer();
                 break;
             default:
                 throw new Error(`Unknown source: ${source}`);
@@ -280,7 +300,15 @@ async function runRender(argv) {
             input: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.canonical.json"),
             output: path.join(repoRoot, "docs", "reference", "api"),
         },
+        "css-tokens": {
+            input: path.join(repoRoot, "docs-tooling", ".generated", "css-tokens.canonical.json"),
+            output: path.join(repoRoot, "docs", "reference"),
+        },
     };
+
+    // Sources whose output should NOT have auto-generated index.md pages
+    // appended (the renderer emits its own group/index pages).
+    const skipIndexFor = new Set(["css-tokens"]);
 
     const requestedSources = expandNormalizeTargets(argv.source || []);
 
@@ -288,11 +316,10 @@ async function runRender(argv) {
         throw new Error("input can only be used with a single source");
     }
 
-    const combinedOutputs = new Map();
-    const outputDir = path.resolve(
-        process.cwd(),
-        argv.output || defaults[requestedSources[0]]?.output || defaults.typedoc.output,
-    );
+    // Group outputs by their resolved output dir so mixed sources writing to
+    // different roots don't clobber each other's index generation.
+    const combinedByDir = new Map();
+    const skipIndexDirs = new Set();
 
     for (const source of requestedSources) {
         let renderer;
@@ -309,25 +336,43 @@ async function runRender(argv) {
             case "pdoc":
                 renderer = renderPdocBundle;
                 break;
+            case "css-tokens":
+                renderer = renderCssTokensBundle;
+                break;
             default:
                 throw new Error(`Unknown source: ${source}`);
         }
 
         const inputPath = path.resolve(process.cwd(), argv.input || defaults[source].input);
+        const sourceOutputDir = path.resolve(process.cwd(), argv.output || defaults[source].output);
         const raw = await fs.promises.readFile(inputPath, "utf-8");
         const bundle = JSON.parse(raw);
         const outputs = renderer(bundle);
+
+        if (!combinedByDir.has(sourceOutputDir)) {
+            combinedByDir.set(sourceOutputDir, new Map());
+        }
+        const bucket = combinedByDir.get(sourceOutputDir);
         for (const [filePath, contents] of outputs.entries()) {
-            combinedOutputs.set(filePath, contents);
+            bucket.set(filePath, contents);
+        }
+        if (skipIndexFor.has(source)) {
+            skipIndexDirs.add(sourceOutputDir);
         }
     }
 
-    addIndexPages(combinedOutputs);
-    await writeRenderedFiles(outputDir, combinedOutputs);
+    for (const [dir, outputs] of combinedByDir.entries()) {
+        if (!skipIndexDirs.has(dir)) {
+            addIndexPages(outputs);
+        }
+        await writeRenderedFiles(dir, outputs);
+    }
 }
 
 const defaultExcludes = [
     "reference/api",
+    "reference/theming/tokens",
+    "reference/theming/tokens.md",
     ".vitepress",
     ".generated",
     "temp",
@@ -401,7 +446,7 @@ yargs(hideBin(process.argv))
                 .option("target", {
                     alias: "t",
                     array: true,
-                    choices: ["all", "python", "rest", "javascript", "components"],
+                    choices: ["all", "python", "rest", "javascript", "components", "css-tokens"],
                     default: ["all"],
                     describe: "Which extractors to run",
                 })
@@ -420,7 +465,7 @@ yargs(hideBin(process.argv))
                 .option("source", {
                     alias: "s",
                     array: true,
-                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc"],
+                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc", "css-tokens"],
                     default: ["all"],
                     describe: "Which source format to normalize",
                 })
@@ -444,7 +489,7 @@ yargs(hideBin(process.argv))
                 .option("source", {
                     alias: "s",
                     array: true,
-                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc"],
+                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc", "css-tokens"],
                     default: ["all"],
                     describe: "Which source format to render",
                 })
