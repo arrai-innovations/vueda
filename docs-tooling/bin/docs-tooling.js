@@ -15,6 +15,7 @@ import { renderPdocBundle } from "../js/renderers/pdoc.js";
 import { renderThemeKeysBundle } from "../js/renderers/theme-keys.js";
 import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
 import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
+import { bucketRendererOutputs } from "../js/utils/bucket-renderer-outputs.js";
 import { validateReferences } from "../js/validators/references.js";
 import { execFile } from "node:child_process";
 import fs from "node:fs";
@@ -340,11 +341,6 @@ async function runRender(argv) {
         throw new Error("input can only be used with a single source");
     }
 
-    // Group outputs by their resolved output dir so mixed sources writing to
-    // different roots don't clobber each other's index generation.
-    const combinedByDir = new Map();
-    const skipIndexDirs = new Set();
-
     // If both vue-docgen and theme-keys are requested, pre-load each side's
     // canonical so the renderers can emit bidirectional cross-links.
     let themeKeysIndex;
@@ -369,6 +365,7 @@ async function runRender(argv) {
         }
     }
 
+    const renderItems = [];
     for (const source of requestedSources) {
         let renderer;
         let rendererOptions;
@@ -402,18 +399,10 @@ async function runRender(argv) {
         const raw = await fs.promises.readFile(inputPath, "utf-8");
         const bundle = JSON.parse(raw);
         const outputs = rendererOptions ? renderer(bundle, rendererOptions) : renderer(bundle);
-
-        if (!combinedByDir.has(sourceOutputDir)) {
-            combinedByDir.set(sourceOutputDir, new Map());
-        }
-        const bucket = combinedByDir.get(sourceOutputDir);
-        for (const [filePath, contents] of outputs.entries()) {
-            bucket.set(filePath, contents);
-        }
-        if (skipIndexFor.has(source)) {
-            skipIndexDirs.add(sourceOutputDir);
-        }
+        renderItems.push({ source, outputDir: sourceOutputDir, outputs });
     }
+
+    const { combinedByDir, skipIndexDirs } = bucketRendererOutputs(renderItems, { skipIndexFor });
 
     for (const [dir, outputs] of combinedByDir.entries()) {
         if (!skipIndexDirs.has(dir)) {
