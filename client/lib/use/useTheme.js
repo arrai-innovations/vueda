@@ -72,15 +72,63 @@ const getConfigValue = (configOrOverride, key, context) => {
     return isFunction(value) ? value(context) : value;
 };
 /**
- * Get the class for a config value from a config or override.
+ * Resolve the array of class values for a slot, walking `composes` references
+ * through both the global default theme and the per-instance merged override.
  *
- * @param {ThemeObject} configOrOverride - The theme config or override.
- * @param {string} key - The key to get the class value for.
- * @param {object|import('vue').UnwrapNestedRefs<object>} [context] - The context to pass if the config or config.class is a function.
+ * Composition is opt-in: a slot whose entry includes `composes: ['_MetaKey.slot', ...]`
+ * pulls in the resolved classes of those referenced slots before its own classes.
+ * Override semantics for `composes` are replace (override list wins entirely);
+ * own `class` values from default and override are still concatenated as in
+ * non-composing entries.
+ *
+ * @private
+ * @param {string} componentName - The component or meta-key name.
+ * @param {string} slotKey - The slot key within the entry.
+ * @param {ThemeObject} mergedOverride - The merged override theme tree from useThemeOverride.
+ * @param {object} context - Resolved context for function-form slots and class functions.
+ * @param {Set<string>} [visited] - Internal accumulator for cycle detection.
+ * @returns {Array} Ordered class values to combine via `combineClasses`.
  */
-const getClassValue = (configOrOverride, key, context) => {
-    const classObj = getConfigValue(configOrOverride, key, context);
-    return isFunction(classObj?.class) ? classObj.class(context) : classObj?.class;
+const resolveSlotClasses = (componentName, slotKey, mergedOverride, context, visited = new Set()) => {
+    const ref = `${componentName}.${slotKey}`;
+    if (visited.has(ref)) {
+        throw new Error(`useTheme: composition cycle detected (path: ${[...visited, ref].join(" -> ")})`);
+    }
+    const nextVisited = new Set(visited);
+    nextVisited.add(ref);
+
+    const defaultConfig = defaultTheme[componentName] || {};
+    const overrideConfig = mergedOverride?.[componentName] || {};
+
+    const defaultSlot = getConfigValue(defaultConfig, slotKey, context);
+    const overrideSlot = getConfigValue(overrideConfig, slotKey, context);
+
+    // Replace semantics: an override that defines `composes` wins entirely;
+    // otherwise the default's compose list is used.
+    const composes = overrideSlot?.composes !== undefined ? overrideSlot.composes : defaultSlot?.composes;
+
+    const classes = [];
+    if (Array.isArray(composes)) {
+        for (const composedRef of composes) {
+            const dotIdx = composedRef.indexOf(".");
+            if (dotIdx === -1) {
+                throw new Error(
+                    `useTheme: invalid composes reference "${composedRef}" at ${ref} (expected "ComponentOrMetaKey.slot")`,
+                );
+            }
+            const refComp = composedRef.slice(0, dotIdx);
+            const refSlot = composedRef.slice(dotIdx + 1);
+            classes.push(...resolveSlotClasses(refComp, refSlot, mergedOverride, context, nextVisited));
+        }
+    }
+
+    const defaultClass = isFunction(defaultSlot?.class) ? defaultSlot.class(context) : defaultSlot?.class;
+    const overrideClass = isFunction(overrideSlot?.class) ? overrideSlot.class(context) : overrideSlot?.class;
+
+    if (defaultClass !== undefined && defaultClass !== null) classes.push(defaultClass);
+    if (overrideClass !== undefined && overrideClass !== null) classes.push(overrideClass);
+
+    return classes;
 };
 
 /**
@@ -152,9 +200,9 @@ export function useTheme(componentName, props, context, keyFn) {
             es.run(() => {
                 computeds[myKey] = computed(() => {
                     const calcContext = { ...(unref(context) || {}), ...kwargs };
-                    const defaultClass = getClassValue(config, key, calcContext);
-                    const overrideClass = getClassValue(unref(themeOverride)?.[componentName] || {}, key, calcContext);
-                    return combineClasses(defaultClass, overrideClass);
+                    const mergedOverride = unref(themeOverride);
+                    const classes = resolveSlotClasses(componentName, key, mergedOverride, calcContext);
+                    return combineClasses(...classes);
                 });
             });
         }
@@ -206,6 +254,12 @@ const mergeWithCb = (objValue, srcValue, key) => {
                 combineClasses(isObjFunction ? objValue(args) : objValue, isSrcFunction ? srcValue(args) : srcValue);
         }
         return combineClasses(objValue, srcValue);
+    }
+    // `composes` uses replace semantics: an override that defines its own
+    // compose list wins entirely. Without this special-case, lodash would
+    // merge arrays index-wise, which produces surprising inheritance.
+    if (key === "composes") {
+        return srcValue;
     }
     if (isFunctionInvolved) {
         return (args) =>

@@ -59,4 +59,74 @@ describe("lib/use/useTheme.js", () => {
         local.value.Foo.base.class = "new";
         expect(merged.value.Foo.base.class).toBe("config new");
     });
+
+    scopedIt("useTheme resolves composes references and prepends them", () => {
+        setTheme({
+            _ButtonBase: { root: { class: "base" } },
+            Button: { root: { composes: ["_ButtonBase.root"], class: "own" } },
+        });
+        const fn = useTheme("Button", reactive({ themeOverride: {} }));
+        expect(fn("root")).toBe("base own");
+    });
+
+    scopedIt("useTheme propagates overrides through composes via useThemeOverride", () => {
+        setTheme({
+            _ButtonBase: { root: { class: "base" } },
+            Button: { root: { composes: ["_ButtonBase.root"], class: "own" } },
+        });
+        const props = reactive({
+            themeOverride: { _ButtonBase: { root: { class: "override-base" } } },
+        });
+        const fn = useTheme("Button", props);
+        expect(fn("root")).toBe("base override-base own");
+    });
+
+    scopedIt("useTheme composes from function-form slots and propagates context", () => {
+        setTheme({
+            _ButtonGhost: { root: { class: "ghost" } },
+            _ButtonDefault: { root: { class: "default" } },
+            Button: {
+                root: ({ variant }) => ({
+                    composes: [variant === "ghost" ? "_ButtonGhost.root" : "_ButtonDefault.root"],
+                    class: "own",
+                }),
+            },
+        });
+        const props = reactive({ themeOverride: {} });
+        const fn = useTheme("Button", props, { variant: "ghost" });
+        expect(fn("root")).toBe("ghost own");
+        const fn2 = useTheme("Button", props, { variant: "default" });
+        expect(fn2("root")).toBe("default own");
+    });
+
+    scopedIt("useTheme composes is replace, not concat, on override", () => {
+        setTheme({
+            _ButtonDefault: { root: { class: "default" } },
+            _ButtonGhost: { root: { class: "ghost" } },
+            Button: { root: { composes: ["_ButtonDefault.root"], class: "own" } },
+        });
+        const props = reactive({
+            // Replace the compose list entirely with the ghost meta key.
+            themeOverride: { Button: { root: { composes: ["_ButtonGhost.root"] } } },
+        });
+        const fn = useTheme("Button", props);
+        expect(fn("root")).toBe("ghost own");
+    });
+
+    scopedIt("useTheme detects composition cycles", () => {
+        setTheme({
+            _A: { root: { composes: ["_B.root"], class: "a" } },
+            _B: { root: { composes: ["_A.root"], class: "b" } },
+        });
+        const fn = useTheme("_A", reactive({ themeOverride: {} }));
+        expect(() => fn("root")).toThrow(/composition cycle detected/);
+    });
+
+    scopedIt("useTheme rejects malformed composes references", () => {
+        setTheme({
+            Button: { root: { composes: ["_NoSlotSpecified"], class: "own" } },
+        });
+        const fn = useTheme("Button", reactive({ themeOverride: {} }));
+        expect(() => fn("root")).toThrow(/invalid composes reference/);
+    });
 });

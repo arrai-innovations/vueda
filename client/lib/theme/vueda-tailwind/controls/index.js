@@ -2,42 +2,68 @@
  * @module theme/vueda-tailwind/controls
  * @description Tailwind CSS theme configuration for VUEDA Client control primitives.
  */
-import {
-    BUTTON_BASE,
-    BUTTON_VARIANT_DEFAULT,
-    BUTTON_VARIANT_DESTRUCTIVE,
-    BUTTON_VARIANT_GHOST,
-    BUTTON_VARIANT_LINK,
-    BUTTON_VARIANT_OUTLINE,
-    BUTTON_VARIANT_SECONDARY,
-} from "@vueda/theme/vueda-tailwind/_shared.js";
 
 export default {
-    Button: {
-        root: ({ variant, size }) => ({
+    // ---------- Button-family meta keys ----------
+    // Underscore-prefixed entries are composition primitives consumed by leaf
+    // entries via `composes`. They are full theme entries and can be overridden
+    // through setTheme / useThemeOverride; overriding `_ButtonBase` propagates
+    // to every leaf that composes from it.
+    _ButtonBase: {
+        root: {
             class: [
-                ...BUTTON_BASE,
-                {
-                    [BUTTON_VARIANT_DEFAULT]: !variant || variant === "default",
-                    [BUTTON_VARIANT_DESTRUCTIVE]: variant === "destructive",
-                    [BUTTON_VARIANT_OUTLINE]: variant === "outline",
-                    [BUTTON_VARIANT_SECONDARY]: variant === "secondary",
-                    [BUTTON_VARIANT_GHOST]: variant === "ghost",
-                    [BUTTON_VARIANT_LINK]: variant === "link",
-                },
-                {
-                    "h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm":
-                        !size || size === "default",
-                    "h-vueda-control-sm rounded-vueda-control gap-1.5 px-vueda-control-px-sm has-[>svg]:px-vueda-control-px-sm":
-                        size === "sm",
-                    "h-vueda-control-lg rounded-vueda-control px-vueda-control-px-lg has-[>svg]:px-vueda-control-px":
-                        size === "lg",
-                    "size-vueda-control": size === "icon",
-                    "size-vueda-control-sm": size === "icon-sm",
-                    "size-vueda-control-lg": size === "icon-lg",
-                },
+                "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-vueda-control text-sm font-medium transition-all",
+                "disabled:pointer-events-none disabled:opacity-50",
+                "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                "aria-invalid:border-destructive",
             ],
-        }),
+        },
+    },
+    _ButtonDefault: {
+        root: { class: "bg-primary text-primary-foreground hover:bg-primary/90" },
+    },
+    _ButtonDestructive: {
+        root: {
+            class: "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-destructive dark:bg-destructive/60",
+        },
+    },
+    _ButtonOutline: {
+        root: {
+            class: "border bg-background shadow-vueda-control hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+        },
+    },
+    _ButtonSecondary: {
+        root: { class: "bg-secondary text-secondary-foreground hover:bg-secondary/80" },
+    },
+    _ButtonGhost: {
+        root: { class: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50" },
+    },
+    _ButtonLink: {
+        root: { class: "text-primary underline-offset-4 hover:underline" },
+    },
+
+    Button: {
+        root: ({ variant, size }) => {
+            const v = variant || "default";
+            const variantKey = `_Button${v.charAt(0).toUpperCase()}${v.slice(1)}.root`;
+            return {
+                composes: ["_ButtonBase.root", variantKey],
+                class: [
+                    {
+                        "h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm":
+                            !size || size === "default",
+                        "h-vueda-control-sm rounded-vueda-control gap-1.5 px-vueda-control-px-sm has-[>svg]:px-vueda-control-px-sm":
+                            size === "sm",
+                        "h-vueda-control-lg rounded-vueda-control px-vueda-control-px-lg has-[>svg]:px-vueda-control-px":
+                            size === "lg",
+                        "size-vueda-control": size === "icon",
+                        "size-vueda-control-sm": size === "icon-sm",
+                        "size-vueda-control-lg": size === "icon-lg",
+                    },
+                ],
+            };
+        },
     },
     FileUpload: {
         root: ({ dropzone, dragging, disabled }) => ({
@@ -51,11 +77,8 @@ export default {
             ],
         }),
         trigger: {
-            class: [
-                ...BUTTON_BASE,
-                BUTTON_VARIANT_OUTLINE,
-                "h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm",
-            ],
+            composes: ["_ButtonBase.root", "_ButtonOutline.root"],
+            class: ["h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm"],
         },
         dropMessage: {
             class: ["text-sm text-muted-foreground"],
@@ -63,9 +86,8 @@ export default {
     },
     CalendarCellTrigger: {
         root: {
+            composes: ["_ButtonBase.root", "_ButtonGhost.root"],
             class: [
-                ...BUTTON_BASE,
-                BUTTON_VARIANT_GHOST,
                 "size-[var(--vueda-cal-day)] p-0 font-normal aria-selected:opacity-100 cursor-default",
                 "[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground",
                 "data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[selected]:opacity-100 data-[selected]:hover:bg-primary data-[selected]:hover:text-primary-foreground data-[selected]:focus:bg-primary data-[selected]:focus:text-primary-foreground",
@@ -77,14 +99,14 @@ export default {
     },
     CalendarNavButton: {
         root: {
-            class: [...BUTTON_BASE, BUTTON_VARIANT_OUTLINE, "size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],
+            composes: ["_ButtonBase.root", "_ButtonOutline.root"],
+            class: ["size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],
         },
     },
     RangeCalendarCellTrigger: {
         root: {
+            composes: ["_ButtonBase.root", "_ButtonGhost.root"],
             class: [
-                ...BUTTON_BASE,
-                BUTTON_VARIANT_GHOST,
                 "h-[var(--vueda-cal-day)] w-[var(--vueda-cal-day)] p-0 font-normal data-[selected]:opacity-100",
                 "[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground",
                 "data-[selection-start]:bg-primary data-[selection-start]:text-primary-foreground data-[selection-start]:hover:bg-primary data-[selection-start]:hover:text-primary-foreground data-[selection-start]:focus:bg-primary data-[selection-start]:focus:text-primary-foreground",
@@ -97,20 +119,14 @@ export default {
     },
     RangeCalendarNextButton: {
         root: {
-            class: [
-                ...BUTTON_BASE,
-                BUTTON_VARIANT_OUTLINE,
-                "absolute right-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-            ],
+            composes: ["_ButtonBase.root", "_ButtonOutline.root"],
+            class: ["absolute right-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],
         },
     },
     RangeCalendarPrevButton: {
         root: {
-            class: [
-                ...BUTTON_BASE,
-                BUTTON_VARIANT_OUTLINE,
-                "absolute left-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-            ],
+            composes: ["_ButtonBase.root", "_ButtonOutline.root"],
+            class: ["absolute left-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],
         },
     },
     RangeCalendar: {

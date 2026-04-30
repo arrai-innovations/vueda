@@ -2,7 +2,6 @@
  * @module theme/vueda-tailwind/shell
  * @description Tailwind CSS theme configuration for VUEDA Client shell primitives.
  */
-import { BUTTON_BASE, BUTTON_VARIANT_DEFAULT, BUTTON_VARIANT_OUTLINE } from "@vueda/theme/vueda-tailwind/_shared.js";
 
 export default {
     // accordion
@@ -37,12 +36,14 @@ export default {
     // alert-dialog
     AlertDialogAction: {
         root: {
-            class: [...BUTTON_BASE, BUTTON_VARIANT_DEFAULT],
+            composes: ["_ButtonBase.root", "_ButtonDefault.root"],
+            class: [],
         },
     },
     AlertDialogCancel: {
         root: {
-            class: [...BUTTON_BASE, BUTTON_VARIANT_OUTLINE, "mt-2 sm:mt-0"],
+            composes: ["_ButtonBase.root", "_ButtonOutline.root"],
+            class: ["mt-2 sm:mt-0"],
         },
     },
     AlertDialogContent: {

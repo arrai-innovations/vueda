@@ -2,7 +2,6 @@
  * @module theme/vueda-tailwind/navigation
  * @description Tailwind CSS theme configuration for VUEDA Client navigation primitives.
  */
-import { BUTTON_BASE, BUTTON_VARIANT_GHOST, BUTTON_VARIANT_OUTLINE } from "@vueda/theme/vueda-tailwind/_shared.js";
 
 export default {
     // --- Breadcrumb ---
@@ -261,18 +260,14 @@ export default {
     // --- Pagination ---
     PaginationItem: {
         root: ({ isActive }) => ({
-            class: [
-                ...BUTTON_BASE,
-                {
-                    [BUTTON_VARIANT_OUTLINE]: isActive,
-                    [BUTTON_VARIANT_GHOST]: !isActive,
-                },
-            ],
+            composes: ["_ButtonBase.root", isActive ? "_ButtonOutline.root" : "_ButtonGhost.root"],
+            class: [],
         }),
     },
     NavigationPaginationNavButton: {
         root: {
-            class: [...BUTTON_BASE, BUTTON_VARIANT_GHOST, "gap-1 px-2.5 sm:pr-2.5"],
+            composes: ["_ButtonBase.root", "_ButtonGhost.root"],
+            class: ["gap-1 px-2.5 sm:pr-2.5"],
         },
     },
     PaginationContent: {
