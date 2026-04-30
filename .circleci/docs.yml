@@ -136,6 +136,10 @@ jobs:
                   name: Validate Documentation References
                   command: |
                       cd ~/project/docs-tooling && ./bin/docs-tooling.js validate
+            - run:
+                  name: Validate Theme/CSS Source Conformance
+                  command: |
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js validate-sources
     docs-publish:
         executor: python311-node
         resource_class: medium

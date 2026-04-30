@@ -63,19 +63,19 @@ describe("ThemeKeysExtractor", () => {
 
         const cct = payload.entries.find((e) => e.name === "CalendarCellTrigger");
         const slot = cct.slots.find((s) => s.name === "root");
-        expect(slot.isFunction).toBe(false);
+        expect(slot.shape).toBe("object");
         expect(slot.composes).toEqual(["_ButtonBase.root", "_ButtonGhost.root"]);
         expect(slot.rawClasses).toEqual(["size-8", "p-0"]);
     });
 
-    it("flags function-form slots with isFunction: true and empty composes/rawClasses", async () => {
+    it("flags function-form slots with shape: function and empty composes/rawClasses", async () => {
         const extractor = new ThemeKeysExtractor();
         await extractor.extract({ outputPath, sources: [srcPath] });
         const payload = JSON.parse(await readFile(outputPath, "utf-8"));
 
         const button = payload.entries.find((e) => e.name === "Button");
         const slot = button.slots.find((s) => s.name === "root");
-        expect(slot.isFunction).toBe(true);
+        expect(slot.shape).toBe("function");
         expect(slot.composes).toEqual([]);
         expect(slot.rawClasses).toEqual([]);
     });

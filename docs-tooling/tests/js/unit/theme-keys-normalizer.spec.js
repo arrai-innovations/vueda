@@ -12,7 +12,7 @@ const RAW = {
             slots: [
                 {
                     name: "root",
-                    isFunction: false,
+                    shape: "object",
                     composes: [],
                     rawClasses: ["inline-flex"],
                     source: { file: "controls/index.js", line: 11 },
@@ -27,7 +27,7 @@ const RAW = {
             slots: [
                 {
                     name: "root",
-                    isFunction: false,
+                    shape: "object",
                     composes: [],
                     rawClasses: ["hover:bg-accent"],
                     source: { file: "controls/index.js", line: 21 },
@@ -42,7 +42,7 @@ const RAW = {
             slots: [
                 {
                     name: "root",
-                    isFunction: true,
+                    shape: "function",
                     composes: [],
                     rawClasses: [],
                     source: { file: "controls/index.js", line: 31 },
@@ -57,7 +57,7 @@ const RAW = {
             slots: [
                 {
                     name: "root",
-                    isFunction: false,
+                    shape: "object",
                     composes: ["_ButtonBase.root", "_ButtonGhost.root"],
                     rawClasses: [],
                     source: { file: "controls/index.js", line: 41 },
@@ -111,7 +111,7 @@ describe("ThemeKeysNormalizer", () => {
                     slots: [
                         {
                             name: "root",
-                            isFunction: false,
+                            shape: "object",
                             composes: ["_DoesNotExist.root"],
                             rawClasses: [],
                             source: { file: "x.js", line: 2 },
@@ -137,7 +137,7 @@ describe("ThemeKeysNormalizer", () => {
                     isMetaKey: true,
                     description: null,
                     source: { file: "x.js", line: 1 },
-                    slots: [{ name: "root", isFunction: false, composes: [], rawClasses: [], source: {} }],
+                    slots: [{ name: "root", shape: "object", composes: [], rawClasses: [], source: {} }],
                 },
                 {
                     name: "Alpha",
@@ -147,7 +147,7 @@ describe("ThemeKeysNormalizer", () => {
                     slots: [
                         {
                             name: "root",
-                            isFunction: false,
+                            shape: "object",
                             composes: ["_Base.root"],
                             rawClasses: [],
                             source: {},
@@ -162,7 +162,7 @@ describe("ThemeKeysNormalizer", () => {
                     slots: [
                         {
                             name: "root",
-                            isFunction: false,
+                            shape: "object",
                             composes: ["_Base.root"],
                             rawClasses: [],
                             source: {},
@@ -188,8 +188,8 @@ describe("ThemeKeysNormalizer", () => {
                     description: null,
                     source: {},
                     slots: [
-                        { name: "root", isFunction: false, composes: [], rawClasses: [], source: {} },
-                        { name: "label", isFunction: false, composes: [], rawClasses: [], source: {} },
+                        { name: "root", shape: "object", composes: [], rawClasses: [], source: {} },
+                        { name: "label", shape: "object", composes: [], rawClasses: [], source: {} },
                     ],
                 },
                 {
@@ -200,14 +200,14 @@ describe("ThemeKeysNormalizer", () => {
                     slots: [
                         {
                             name: "root",
-                            isFunction: false,
+                            shape: "object",
                             composes: ["_Base.root"],
                             rawClasses: [],
                             source: {},
                         },
                         {
                             name: "label",
-                            isFunction: false,
+                            shape: "object",
                             composes: ["_Base.label"],
                             rawClasses: [],
                             source: {},
@@ -232,7 +232,7 @@ describe("ThemeKeysNormalizer", () => {
                     isMetaKey: true,
                     description: null,
                     source: {},
-                    slots: [{ name: "root", isFunction: false, composes: [], rawClasses: [], source: {} }],
+                    slots: [{ name: "root", shape: "object", composes: [], rawClasses: [], source: {} }],
                 },
                 {
                     name: "Alpha",
@@ -242,7 +242,7 @@ describe("ThemeKeysNormalizer", () => {
                     slots: [
                         {
                             name: "root",
-                            isFunction: false,
+                            shape: "object",
                             composes: ["_Base", ".root"],
                             rawClasses: [],
                             source: {},
@@ -256,7 +256,7 @@ describe("ThemeKeysNormalizer", () => {
     });
 
     it("does not mutate the input payload's slot arrays", () => {
-        const slot = { name: "root", isFunction: false, composes: ["_Base.root"], rawClasses: ["a"], source: {} };
+        const slot = { name: "root", shape: "object", composes: ["_Base.root"], rawClasses: ["a"], source: {} };
         const payload = {
             entries: [
                 {

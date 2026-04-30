@@ -69,8 +69,13 @@ function renderEntryPage(entry, options) {
         for (const slot of entry.slots) {
             lines.push(renderHeading(3, renderCodeInline(slot.name)));
             lines.push("");
-            if (slot.isFunction) {
+            if (slot.shape === "function") {
                 lines.push("Variant-driven; see source.");
+                lines.push("");
+                continue;
+            }
+            if (slot.shape === "unknown") {
+                lines.push("_Unrecognized slot shape; see source._");
                 lines.push("");
                 continue;
             }

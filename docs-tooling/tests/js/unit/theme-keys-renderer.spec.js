@@ -12,7 +12,7 @@ const BUNDLE = {
             slots: [
                 {
                     name: "root",
-                    isFunction: false,
+                    shape: "object",
                     composes: [],
                     rawClasses: ["hover:bg-accent"],
                     source: { file: "controls/index.js", line: 21 },
@@ -28,7 +28,7 @@ const BUNDLE = {
             slots: [
                 {
                     name: "root",
-                    isFunction: true,
+                    shape: "function",
                     composes: [],
                     rawClasses: [],
                     source: { file: "controls/index.js", line: 31 },
@@ -44,7 +44,7 @@ const BUNDLE = {
             slots: [
                 {
                     name: "root",
-                    isFunction: false,
+                    shape: "object",
                     composes: ["_ButtonBase.root", "_ButtonGhost.root"],
                     rawClasses: ["size-8"],
                     source: { file: "controls/index.js", line: 41 },
@@ -188,7 +188,7 @@ describe("renderThemeKeysBundle", () => {
                     slots: [
                         {
                             name: "root",
-                            isFunction: false,
+                            shape: "object",
                             composes: [],
                             rawClasses: [],
                             source: { file: "x.js", line: 2 },

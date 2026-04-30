@@ -2,7 +2,7 @@
 import { ComponentsExtractor } from "../js/extractors/components.js";
 import { CssTokensExtractor } from "../js/extractors/css-tokens.js";
 import { JavaScriptExtractor } from "../js/extractors/javascript.js";
-import { ThemeKeysExtractor } from "../js/extractors/theme-keys.js";
+import { ThemeKeysExtractor, extractThemeKeysPayload } from "../js/extractors/theme-keys.js";
 import { CssTokensNormalizer } from "../js/normalizers/css-tokens.js";
 import { OpenApiNormalizer } from "../js/normalizers/openapi.js";
 import { PdocNormalizer } from "../js/normalizers/pdoc.js";
@@ -17,6 +17,7 @@ import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
 import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
 import { bucketRendererOutputs } from "../js/utils/bucket-renderer-outputs.js";
 import { validateReferences } from "../js/validators/references.js";
+import { filterDiagnosticsByFiles, formatDiagnostic, validateThemeKeysPayload } from "../js/validators/sources.js";
 import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -482,6 +483,36 @@ async function runValidate(argv) {
     }
 }
 
+async function runValidateSources(argv) {
+    const themeKeysPayload = await extractThemeKeysPayload({ repoRoot });
+    let diagnostics = validateThemeKeysPayload(themeKeysPayload);
+
+    if (argv.files && argv.files.length > 0) {
+        const rels = argv.files
+            .map((f) => path.resolve(process.cwd(), f))
+            .map((abs) => path.relative(repoRoot, abs).split(path.sep).join("/"));
+        diagnostics = filterDiagnosticsByFiles(diagnostics, rels);
+    }
+
+    const errors = diagnostics.filter((d) => d.severity === "error");
+    const warnings = diagnostics.filter((d) => d.severity === "warn");
+
+    for (const d of warnings) {
+        console.warn(formatDiagnostic(d));
+    }
+    for (const d of errors) {
+        console.error(formatDiagnostic(d));
+    }
+
+    console.error(
+        `Source validation: ${errors.length} error(s), ${warnings.length} warning(s) across ${themeKeysPayload.entries.length} theme entries.`,
+    );
+
+    if (errors.length > 0) {
+        process.exit(1);
+    }
+}
+
 yargs(hideBin(process.argv))
     .command(
         "extract",
@@ -549,6 +580,18 @@ yargs(hideBin(process.argv))
                     describe: "Output directory for rendered Markdown",
                 }),
         runRender,
+    )
+    .command(
+        "validate-sources",
+        "Validate theme/CSS source files for shape conformance and resolved references",
+        (y) =>
+            y.option("files", {
+                alias: "f",
+                array: true,
+                type: "string",
+                describe: "Specific source files to filter diagnostics to (default: all)",
+            }),
+        runValidateSources,
     )
     .command(
         "validate",
