@@ -1,6 +1,13 @@
 /**
  * @module use/useTheme
  * @description Resolves and caches component theme classes by merging the default theme with inherited and local overrides.
+ *
+ * Slot entries may declare `composes: ['_MetaKey.slot', ...]` to compose classes from other entries before
+ * their own classes. Underscore-prefixed entries (`_ButtonBase`, `_ButtonGhost`, etc.) are the convention
+ * for shared scaffolding consumed by visually-related leaf components. Composition is resolved at lookup
+ * time against the merged override theme, so `setTheme` or `useThemeOverride` on a meta key propagates to
+ * every leaf that composes from it. Override semantics for `composes` are replace (override list wins
+ * entirely); own `class` values still combine default + override as in non-composing entries.
  */
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
@@ -40,6 +47,11 @@ export const THEME_OVERRIDE_PROPS = {
 /**
  * A theme object for a particular component.
  *
+ * Slot entries may include an optional `composes` array of references to other entries' slots
+ * (`'_ButtonBase.root'`, `'Button.root'`, etc.). Referenced slots' classes are resolved first,
+ * then the slot's own `class` is appended; `setTheme` or `useThemeOverride` on a referenced
+ * key propagates through the composition chain.
+ *
  * @typedef {({
  *     [slotName: string]: {
  *         [key: string]: any,
@@ -48,6 +60,7 @@ export const THEME_OVERRIDE_PROPS = {
  *             CombinedClassesArgument |
  *             CombinedClassesArgument[]
  *         ),
+ *         ["composes"]?: string[],
  *     }
  * })} ComponentTheme
  */
@@ -172,6 +185,10 @@ export function useThemeOverride(localOverride, configOverride = null) {
 
 /**
  * A hook to get the classes for a given key and kwargs. Uses computeds for caching.
+ *
+ * If the resolved slot entry declares `composes`, the referenced slots are resolved
+ * first (recursively) and their classes prepended to the result. See the module
+ * description for composition semantics and the meta-key naming convention.
  *
  * @param {string} componentName - The name of the component.
  * @param {ThemeProps} props - The reactive or computed props to pass to the class function.
