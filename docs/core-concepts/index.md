@@ -41,6 +41,7 @@ Core Concepts explains the "why" behind VUEDA defaults and the contracts that le
 - [Cancellable Network Operations](cancellable-network-operations.md): Why cancellation is built into CRUDL and fetch helpers.
 - [Form State and Validation Lifecycle](form-state-and-validation-lifecycle.md): Client-side form graph, touched/modified/ignored state, and server error integration.
 - [Routing and View Resolution Model](routing-and-view-resolution-model.md): How CRUDL routes and action routing resolve to concrete components.
+- [Theming and Customization](theming-and-customization.md): The four-scope model — instance, component, family, brand — and the mechanisms that map to each.
 
 ## Operational Concepts
 
