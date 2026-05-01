@@ -12,6 +12,7 @@ Reference pages define stable contracts, terminology, and operational knobs for 
 
 - [Configuration Surface](configuration.md): Supported settings and integration knobs for server and client.
 - [Permissions](permissions.md): Permission layers, naming conventions, mapping configuration, and enforcement boundaries.
+- [Theming](theming.md): Default theme keys and CSS tokens shipped by `@vueda/theme/vueda-tailwind`.
 - [Glossary](glossary.md): Shared VUEDA terms used across guides, concepts, and generated API docs.
 - [Changelog](changelog/): Release-level changes and compatibility notes.
 
