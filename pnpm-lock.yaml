@@ -223,13 +223,32 @@ importers:
         version: 4.79.2(vue@3.5.27(typescript@5.9.3))
 
   docs:
+    dependencies:
+      '@arrai-innovations/reactive-helpers':
+        specifier: ^21.1.0
+        version: 21.1.0(@vueuse/core@14.2.1(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.17.22)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+      '@arrai-innovations/vueda':
+        specifier: workspace:*
+        version: link:../client
+      lodash-es:
+        specifier: ^4.17.21
+        version: 4.17.22
+      reka-ui:
+        specifier: ^2.9.5
+        version: 2.9.5(vue@3.5.27(typescript@5.9.3))
     devDependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.2.1
+        version: 4.2.1(vite@6.4.1(@types/node@25.0.9)(jiti@2.6.1)(lightningcss@1.31.1)(yaml@2.8.2))
       '@vue/compiler-sfc':
         specifier: ^3.5.13
         version: 3.5.27
       sirv:
         specifier: ^3.0.2
         version: 3.0.2
+      tailwindcss:
+        specifier: ^4.2.1
+        version: 4.2.1
       vitepress:
         specifier: ^1.6.4
         version: 1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3)
@@ -6145,6 +6164,18 @@ snapshots:
     dependencies:
       '@jcoreio/async-throttle': 1.7.0
       '@vueuse/core': 13.9.0(vue@3.5.27(typescript@5.9.3))
+      browser-util-inspect: 0.2.0
+      flexsearch: 0.7.21
+      lodash-es: 4.17.22
+      vue: 3.5.27(typescript@5.9.3)
+      vue-deepunref: 1.0.1(typescript@5.9.3)
+    transitivePeerDependencies:
+      - typescript
+
+  '@arrai-innovations/reactive-helpers@21.1.0(@vueuse/core@14.2.1(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.17.22)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
+    dependencies:
+      '@jcoreio/async-throttle': 1.7.0
+      '@vueuse/core': 14.2.1(vue@3.5.27(typescript@5.9.3))
       browser-util-inspect: 0.2.0
       flexsearch: 0.7.21
       lodash-es: 4.17.22

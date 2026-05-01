@@ -8,9 +8,17 @@
     "build": "vitepress build",
     "preview": "vitepress preview"
   },
+  "dependencies": {
+    "@arrai-innovations/reactive-helpers": "^21.1.0",
+    "@arrai-innovations/vueda": "workspace:*",
+    "lodash-es": "^4.17.21",
+    "reka-ui": "^2.9.5"
+  },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
     "@vue/compiler-sfc": "^3.5.13",
     "sirv": "^3.0.2",
+    "tailwindcss": "^4.2.1",
     "vitepress": "^1.6.4",
     "vitepress-plugin-diagrams": "^1.1.2",
     "vue": "^3.5.13"

@@ -1,6 +1,11 @@
 import "./brand.css";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
+import "./showcase.css";
+import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { setTheme } from "@vueda/use/useTheme.js";
 import DefaultTheme from "vitepress/theme";
+
+setTheme(vuedaTailwind);
 
 const theme = {
     ...DefaultTheme,

@@ -6,6 +6,7 @@ import {
     stripInlineMarkdown,
 } from "../../docs-tooling/js/utils/reference-parser.js";
 import { slugify } from "../../docs-tooling/js/utils/slugify.js";
+import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -535,6 +536,7 @@ const docsSidebar = {
     "/guides/": buildSectionSidebar("guides", "Guides"),
     "/core-concepts/": buildSectionSidebar("core-concepts", "Core Concepts"),
     "/reference/": buildSectionSidebar("reference", "Reference"),
+    "/components/": buildSectionSidebar("components", "Components"),
     "/reference/api/": buildApiSidebar(),
 };
 
@@ -566,6 +568,7 @@ export default defineConfig({
             { text: "Guides", link: "/guides" },
             { text: "Core Concepts", link: "/core-concepts" },
             { text: "Reference", link: "/reference" },
+            { text: "Components", link: "/components/" },
         ],
         sidebar: docsSidebar,
         socialLinks: [
@@ -596,6 +599,11 @@ export default defineConfig({
         },
     },
     vite: {
+        resolve: {
+            alias: {
+                "@vueda": fileURLToPath(new URL("../../client/lib/", import.meta.url)),
+            },
+        },
         server: {
             host: true,
             https: httpsConfig,
@@ -613,6 +621,6 @@ export default defineConfig({
             host: true,
             https: httpsConfig,
         },
-        plugins: [generatedAssetsPlugin()],
+        plugins: [tailwindcss(), generatedAssetsPlugin()],
     },
 });
