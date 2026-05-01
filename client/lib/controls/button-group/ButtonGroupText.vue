@@ -26,7 +26,7 @@ const theme = useTheme("ButtonGroupText", props);
 <template>
     <Primitive
         role="group"
-        data-slot="button-group"
+        data-slot="button-group-text"
         :data-orientation="props.orientation"
         :as="as"
         :as-child="asChild"
