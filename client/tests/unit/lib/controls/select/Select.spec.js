@@ -239,11 +239,11 @@ describe("lib/controls/select/Select.vue", () => {
             expect(wrapper.find('[data-slot="select-trigger"]').exists()).toBe(true);
         });
 
-        scopedIt("applies border-input and rounded-md classes", () => {
+        scopedIt("applies border-input and rounded-vueda-control classes", () => {
             const wrapper = mount(SelectTrigger);
             const el = wrapper.find('[data-slot="select-trigger"]');
             expect(el.classes()).toContain("border-input");
-            expect(el.classes()).toContain("rounded-md");
+            expect(el.classes()).toContain("rounded-vueda-control");
         });
 
         scopedIt("has data-size=default by default", () => {

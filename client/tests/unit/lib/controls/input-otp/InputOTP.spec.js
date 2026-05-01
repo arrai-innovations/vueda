@@ -117,8 +117,8 @@ describe("lib/controls/input-otp/InputOTP.vue", () => {
 
         scopedIt("applies border and sizing classes", () => {
             const wrapper = mount(InputOTPSlot, { props: { index: 0 } });
-            expect(wrapper.classes()).toContain("h-9");
-            expect(wrapper.classes()).toContain("w-9");
+            expect(wrapper.classes()).toContain("h-vueda-control");
+            expect(wrapper.classes()).toContain("w-vueda-control");
         });
 
         scopedIt("merges custom class", () => {

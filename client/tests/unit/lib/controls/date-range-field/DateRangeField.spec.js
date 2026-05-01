@@ -34,7 +34,7 @@ describe("lib/controls/date-range-field/DateRangeField.vue", () => {
             const wrapper = mount(DateRangeField);
             const el = wrapper.find('[data-slot="date-range-field"]');
             expect(el.classes()).toContain("flex");
-            expect(el.classes()).toContain("rounded-md");
+            expect(el.classes()).toContain("rounded-vueda-control");
             expect(el.classes()).toContain("border-input");
         });
 

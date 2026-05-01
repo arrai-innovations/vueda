@@ -17,8 +17,8 @@ describe("lib/controls/input/Input.vue", () => {
         scopedIt("applies base styling classes", () => {
             const wrapper = mount(Input);
             expect(wrapper.classes()).toContain("border-input");
-            expect(wrapper.classes()).toContain("rounded-md");
-            expect(wrapper.classes()).toContain("h-9");
+            expect(wrapper.classes()).toContain("rounded-vueda-control");
+            expect(wrapper.classes()).toContain("h-vueda-control");
         });
 
         scopedIt("merges custom class while preserving base classes", () => {

@@ -17,7 +17,7 @@ describe("lib/controls/textarea/Textarea.vue", () => {
         scopedIt("applies base styling classes", () => {
             const wrapper = mount(Textarea);
             expect(wrapper.classes()).toContain("border-input");
-            expect(wrapper.classes()).toContain("rounded-md");
+            expect(wrapper.classes()).toContain("rounded-vueda-control");
             expect(wrapper.classes()).toContain("min-h-16");
         });
 

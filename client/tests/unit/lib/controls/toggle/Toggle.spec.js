@@ -12,7 +12,7 @@ describe("lib/controls/toggle/Toggle.vue", () => {
         scopedIt("applies default variant and size classes", () => {
             const wrapper = mount(Toggle);
             expect(wrapper.classes()).toContain("inline-flex");
-            expect(wrapper.classes()).toContain("h-9");
+            expect(wrapper.classes()).toContain("h-vueda-control");
         });
 
         scopedIt("applies outline variant classes", () => {
@@ -22,12 +22,12 @@ describe("lib/controls/toggle/Toggle.vue", () => {
 
         scopedIt("applies sm size classes", () => {
             const wrapper = mount(Toggle, { props: { size: "sm" } });
-            expect(wrapper.classes()).toContain("h-8");
+            expect(wrapper.classes()).toContain("h-vueda-control-sm");
         });
 
         scopedIt("applies lg size classes", () => {
             const wrapper = mount(Toggle, { props: { size: "lg" } });
-            expect(wrapper.classes()).toContain("h-10");
+            expect(wrapper.classes()).toContain("h-vueda-control-lg");
         });
 
         scopedIt("merges custom class while preserving base classes", () => {

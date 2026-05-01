@@ -71,9 +71,9 @@ describe("lib/controls/button-group/ButtonGroup.vue", () => {
     });
 
     describe("ButtonGroupText", () => {
-        scopedIt("has data-slot=button-group", () => {
+        scopedIt("has data-slot=button-group-text", () => {
             const wrapper = mount(ButtonGroupText);
-            expect(wrapper.attributes("data-slot")).toBe("button-group");
+            expect(wrapper.attributes("data-slot")).toBe("button-group-text");
         });
 
         scopedIt("applies muted background and layout classes", () => {
@@ -104,7 +104,7 @@ describe("lib/controls/button-group/ButtonGroup.vue", () => {
                 slots: { default: () => h("span", {}, "Label") },
             });
             expect(wrapper.element.tagName).toBe("SPAN");
-            expect(wrapper.attributes("data-slot")).toBe("button-group");
+            expect(wrapper.attributes("data-slot")).toBe("button-group-text");
         });
 
         scopedIt("renders slot content", () => {

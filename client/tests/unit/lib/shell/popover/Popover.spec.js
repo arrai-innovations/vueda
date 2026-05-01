@@ -65,7 +65,7 @@ describe("lib/shell/popover/Popover.vue", () => {
             const wrapper = mountPopover();
             const content = wrapper.find('[data-slot="popover-content"]');
             expect(content.classes()).toContain("z-50");
-            expect(content.classes()).toContain("rounded-md");
+            expect(content.classes()).toContain("rounded-vueda-control");
             expect(content.classes()).toContain("border");
         });
 

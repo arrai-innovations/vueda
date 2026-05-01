@@ -93,10 +93,10 @@ describe("lib/controls/range-calendar/RangeCalendar.vue", () => {
             expect(wrapper.attributes("data-slot")).toBe("range-calendar-trigger");
         });
 
-        scopedIt("applies h-8 and w-8 classes", () => {
+        scopedIt("applies h-[var(--vueda-cal-day)] and w-[var(--vueda-cal-day)] classes", () => {
             const wrapper = mount(RangeCalendarCellTrigger);
-            expect(wrapper.classes()).toContain("h-8");
-            expect(wrapper.classes()).toContain("w-8");
+            expect(wrapper.classes()).toContain("h-[var(--vueda-cal-day)]");
+            expect(wrapper.classes()).toContain("w-[var(--vueda-cal-day)]");
         });
 
         scopedIt("merges custom class", () => {

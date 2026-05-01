@@ -25,8 +25,8 @@ describe("lib/controls/native-select/NativeSelect.vue", () => {
             const wrapper = mount(NativeSelect);
             const select = wrapper.find('[data-slot="native-select"]');
             expect(select.classes()).toContain("border-input");
-            expect(select.classes()).toContain("rounded-md");
-            expect(select.classes()).toContain("h-9");
+            expect(select.classes()).toContain("rounded-vueda-control");
+            expect(select.classes()).toContain("h-vueda-control");
         });
 
         scopedIt("merges custom class on the select", () => {

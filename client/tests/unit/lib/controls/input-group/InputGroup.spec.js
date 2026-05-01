@@ -38,7 +38,7 @@ describe("lib/controls/input-group/InputGroup.vue", () => {
         scopedIt("applies border and flex classes", () => {
             const wrapper = mount(InputGroup);
             expect(wrapper.classes()).toContain("flex");
-            expect(wrapper.classes()).toContain("rounded-md");
+            expect(wrapper.classes()).toContain("rounded-vueda-control");
         });
 
         scopedIt("merges custom class", () => {

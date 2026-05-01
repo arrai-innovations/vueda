@@ -213,11 +213,11 @@ describe("lib/controls/combobox/Combobox.vue", () => {
             expect(wrapper.find('[data-slot="combobox-list"]').exists()).toBe(true);
         });
 
-        scopedIt("applies z-50 and rounded-md classes", () => {
+        scopedIt("applies z-50 and rounded-vueda-control classes", () => {
             const wrapper = mount(ComboboxList);
             const el = wrapper.find('[data-slot="combobox-list"]');
             expect(el.classes()).toContain("z-50");
-            expect(el.classes()).toContain("rounded-md");
+            expect(el.classes()).toContain("rounded-vueda-control");
         });
 
         scopedIt("merges custom class", () => {

@@ -78,7 +78,7 @@ describe("lib/shell/tooltip/Tooltip.vue", () => {
             const wrapper = mountTooltip();
             const content = wrapper.find('[data-slot="tooltip-content"]');
             expect(content.classes()).toContain("z-50");
-            expect(content.classes()).toContain("rounded-md");
+            expect(content.classes()).toContain("rounded-vueda-control");
         });
 
         scopedIt("merges custom class", () => {

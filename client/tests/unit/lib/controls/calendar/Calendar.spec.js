@@ -312,7 +312,7 @@ describe("lib/controls/calendar/Calendar.vue", () => {
         scopedIt("applies size and cursor classes", () => {
             const wrapper = mount(CalendarCellTrigger);
             const el = wrapper.find('[data-slot="calendar-cell-trigger"]');
-            expect(el.classes()).toContain("size-8");
+            expect(el.classes()).toContain("size-[var(--vueda-cal-day)]");
             expect(el.classes()).toContain("cursor-default");
         });
 

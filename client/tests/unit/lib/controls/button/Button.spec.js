@@ -18,7 +18,7 @@ describe("lib/controls/button/Button.vue", () => {
         scopedIt("applies default variant classes", () => {
             const wrapper = mount(Button);
             expect(wrapper.classes()).toContain("bg-primary");
-            expect(wrapper.classes()).toContain("h-9");
+            expect(wrapper.classes()).toContain("h-vueda-control");
         });
 
         scopedIt("applies variant-specific classes", () => {
@@ -28,7 +28,7 @@ describe("lib/controls/button/Button.vue", () => {
 
         scopedIt("applies size-specific classes", () => {
             const wrapper = mount(Button, { props: { size: "lg" } });
-            expect(wrapper.classes()).toContain("h-10");
+            expect(wrapper.classes()).toContain("h-vueda-control-lg");
         });
 
         scopedIt("reflects variant prop in data-variant attribute", () => {
