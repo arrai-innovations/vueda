@@ -53,10 +53,9 @@ export default {
                     {
                         "h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm":
                             !size || size === "default",
-                        "h-vueda-control-sm rounded-vueda-control gap-1.5 px-vueda-control-px-sm has-[>svg]:px-vueda-control-px-sm":
+                        "h-vueda-control-sm gap-1.5 px-vueda-control-px-sm has-[>svg]:px-vueda-control-px-sm":
                             size === "sm",
-                        "h-vueda-control-lg rounded-vueda-control px-vueda-control-px-lg has-[>svg]:px-vueda-control-px":
-                            size === "lg",
+                        "h-vueda-control-lg px-vueda-control-px-lg has-[>svg]:px-vueda-control-px": size === "lg",
                         "size-vueda-control": size === "icon",
                         "size-vueda-control-sm": size === "icon-sm",
                         "size-vueda-control-lg": size === "icon-lg",
