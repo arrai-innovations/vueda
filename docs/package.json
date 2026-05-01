@@ -11,6 +11,11 @@
   "dependencies": {
     "@arrai-innovations/reactive-helpers": "^21.1.0",
     "@arrai-innovations/vueda": "workspace:*",
+    "@fortawesome/fontawesome-svg-core": "^7.2.0",
+    "@fortawesome/free-brands-svg-icons": "^7.2.0",
+    "@fortawesome/free-regular-svg-icons": "^7.2.0",
+    "@fortawesome/free-solid-svg-icons": "^7.2.0",
+    "@fortawesome/vue-fontawesome": "^3.2.0",
     "lodash-es": "^4.17.21",
     "reka-ui": "^2.9.5"
   },

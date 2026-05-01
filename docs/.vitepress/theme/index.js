@@ -1,12 +1,17 @@
 import "./brand.css";
+import ForceState from "./components/ForceState.vue";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
 import "./showcase.css";
+import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
+import "@fortawesome/fontawesome-svg-core/styles.css";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { setTheme } from "@vueda/use/useTheme.js";
 import throttle from "lodash-es/throttle.js";
 import { useData } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 import { defineComponent, h, watch } from "vue";
+
+faConfig.autoAddCss = false;
 
 setTheme(vuedaTailwind);
 
@@ -43,6 +48,7 @@ const theme = {
         }
 
         app.component("GlossaryTerm", GlossaryTerm);
+        app.component("ForceState", ForceState);
 
         if (typeof window !== "undefined") {
             const { router } = ctx;

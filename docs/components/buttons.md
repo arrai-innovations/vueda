@@ -16,6 +16,8 @@ import ToggleGroup from "@vueda/controls/toggle-group/ToggleGroup.vue";
 import ToggleGroupItem from "@vueda/controls/toggle-group/ToggleGroupItem.vue";
 import Kbd from "@vueda/display/kbd/Kbd.vue";
 import KbdGroup from "@vueda/display/kbd/KbdGroup.vue";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { faEllipsis, faFileExport, faFloppyDisk, faGear, faTrash } from "@fortawesome/free-solid-svg-icons";
 </script>
 
 # Buttons
@@ -25,186 +27,558 @@ button groups, toggles, switches, and the keyboard caps that pair with them.
 All variants share the same control sizing (32 / 28 / 40) and focus treatment
 (2 px solid `--ring` outline at 2 px offset).
 
-## Button — variants × sizes
+## Button — state matrix
 
-<div class="not-prose flex flex-col gap-6">
-  <div class="flex flex-wrap items-center gap-2">
-    <Button size="sm" variant="default">Save</Button>
-    <Button size="sm" variant="secondary">Save</Button>
-    <Button size="sm" variant="outline">Save</Button>
-    <Button size="sm" variant="ghost">Save</Button>
-    <Button size="sm" variant="destructive">Delete</Button>
-    <Button size="sm" variant="link">Learn more</Button>
-  </div>
-  <div class="flex flex-wrap items-center gap-2">
-    <Button variant="default">Save</Button>
-    <Button variant="secondary">Save</Button>
-    <Button variant="outline">Save</Button>
-    <Button variant="ghost">Save</Button>
-    <Button variant="destructive">Delete</Button>
-    <Button variant="link">Learn more</Button>
-  </div>
-  <div class="flex flex-wrap items-center gap-2">
-    <Button size="lg" variant="default">Save</Button>
-    <Button size="lg" variant="secondary">Save</Button>
-    <Button size="lg" variant="outline">Save</Button>
-    <Button size="lg" variant="ghost">Save</Button>
-    <Button size="lg" variant="destructive">Delete</Button>
-    <Button size="lg" variant="link">Learn more</Button>
-  </div>
+Every variant × size × state at a glance. States that normally require pointer
+interaction (`hover`, `focus-visible`) are reproduced by wrapping the example
+in `<ForceState>`, which redefines those Tailwind variants in the docs theme
+to also match a `.force-state-*` ancestor — so the matrix is verifiable
+without keyboard or mouse, using the _exact_ same utility classes the real
+component reads.
+
+<div class="not-prose grid gap-6 sm:grid-cols-2">
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      default <span class="font-normal normal-case">— primary CTA</span>
+    </header>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">lg</div>
+      <div><Button size="sm" variant="default">Save</Button></div>
+      <div><Button variant="default">Save</Button></div>
+      <div><Button size="lg" variant="default">Save</Button></div>
+    </div>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <div><ForceState state="hover"><Button variant="default">Save</Button></ForceState></div>
+      <div><ForceState state="focus"><Button variant="default">Save</Button></ForceState></div>
+      <div><Button variant="default" disabled>Save</Button></div>
+    </div>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon-sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon-lg</div>
+      <div><Button size="icon-sm" variant="default" aria-label="Save"><FontAwesomeIcon :icon="faFloppyDisk" /></Button></div>
+      <div><Button size="icon" variant="default" aria-label="Save"><FontAwesomeIcon :icon="faFloppyDisk" /></Button></div>
+      <div><Button size="icon-lg" variant="default" aria-label="Save"><FontAwesomeIcon :icon="faFloppyDisk" /></Button></div>
+    </div>
+    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span class="whitespace-nowrap">bg <code>--primary</code></span>
+      <span class="whitespace-nowrap">fg <code>--primary-foreground</code></span>
+      <span class="whitespace-nowrap">hover <code>--primary</code>/90</span>
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      secondary
+    </header>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">lg</div>
+      <div><Button size="sm" variant="secondary">Export</Button></div>
+      <div><Button variant="secondary">Export</Button></div>
+      <div><Button size="lg" variant="secondary">Export</Button></div>
+    </div>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <div><ForceState state="hover"><Button variant="secondary">Export</Button></ForceState></div>
+      <div><ForceState state="focus"><Button variant="secondary">Export</Button></ForceState></div>
+      <div><Button variant="secondary" disabled>Export</Button></div>
+    </div>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon-sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon-lg</div>
+      <div><Button size="icon-sm" variant="secondary" aria-label="Export"><FontAwesomeIcon :icon="faFileExport" /></Button></div>
+      <div><Button size="icon" variant="secondary" aria-label="Export"><FontAwesomeIcon :icon="faFileExport" /></Button></div>
+      <div><Button size="icon-lg" variant="secondary" aria-label="Export"><FontAwesomeIcon :icon="faFileExport" /></Button></div>
+    </div>
+    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span class="whitespace-nowrap">bg <code>--secondary</code></span>
+      <span class="whitespace-nowrap">fg <code>--secondary-foreground</code></span>
+      <span class="whitespace-nowrap">hover <code>--secondary</code>/80</span>
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      outline
+    </header>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">lg</div>
+      <div><Button size="sm" variant="outline">Cancel</Button></div>
+      <div><Button variant="outline">Cancel</Button></div>
+      <div><Button size="lg" variant="outline">Cancel</Button></div>
+    </div>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <div><ForceState state="hover"><Button variant="outline">Cancel</Button></ForceState></div>
+      <div><ForceState state="focus"><Button variant="outline">Cancel</Button></ForceState></div>
+      <div><Button variant="outline" disabled>Cancel</Button></div>
+    </div>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon-sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon-lg</div>
+      <div><Button size="icon-sm" variant="outline" aria-label="Settings"><FontAwesomeIcon :icon="faGear" /></Button></div>
+      <div><Button size="icon" variant="outline" aria-label="Settings"><FontAwesomeIcon :icon="faGear" /></Button></div>
+      <div><Button size="icon-lg" variant="outline" aria-label="Settings"><FontAwesomeIcon :icon="faGear" /></Button></div>
+    </div>
+    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span class="whitespace-nowrap">border <code>--border</code></span>
+      <span class="whitespace-nowrap">bg <code>--background</code></span>
+      <span class="whitespace-nowrap">hover bg <code>--accent</code></span>
+      <span class="whitespace-nowrap">hover fg <code>--accent-foreground</code></span>
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      ghost
+    </header>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">lg</div>
+      <div><Button size="sm" variant="ghost">More</Button></div>
+      <div><Button variant="ghost">More</Button></div>
+      <div><Button size="lg" variant="ghost">More</Button></div>
+    </div>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <div><ForceState state="hover"><Button variant="ghost">More</Button></ForceState></div>
+      <div><ForceState state="focus"><Button variant="ghost">More</Button></ForceState></div>
+      <div><Button variant="ghost" disabled>More</Button></div>
+    </div>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon-sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon-lg</div>
+      <div><Button size="icon-sm" variant="ghost" aria-label="More"><FontAwesomeIcon :icon="faEllipsis" /></Button></div>
+      <div><Button size="icon" variant="ghost" aria-label="More"><FontAwesomeIcon :icon="faEllipsis" /></Button></div>
+      <div><Button size="icon-lg" variant="ghost" aria-label="More"><FontAwesomeIcon :icon="faEllipsis" /></Button></div>
+    </div>
+    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span class="whitespace-nowrap">bg transparent</span>
+      <span class="whitespace-nowrap">hover bg <code>--accent</code></span>
+      <span class="whitespace-nowrap">hover fg <code>--accent-foreground</code></span>
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      destructive
+    </header>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">lg</div>
+      <div><Button size="sm" variant="destructive">Delete</Button></div>
+      <div><Button variant="destructive">Delete</Button></div>
+      <div><Button size="lg" variant="destructive">Delete</Button></div>
+    </div>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <div><ForceState state="hover"><Button variant="destructive">Delete</Button></ForceState></div>
+      <div><ForceState state="focus"><Button variant="destructive">Delete</Button></ForceState></div>
+      <div><Button variant="destructive" disabled>Delete</Button></div>
+    </div>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon-sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">icon-lg</div>
+      <div><Button size="icon-sm" variant="destructive" aria-label="Delete"><FontAwesomeIcon :icon="faTrash" /></Button></div>
+      <div><Button size="icon" variant="destructive" aria-label="Delete"><FontAwesomeIcon :icon="faTrash" /></Button></div>
+      <div><Button size="icon-lg" variant="destructive" aria-label="Delete"><FontAwesomeIcon :icon="faTrash" /></Button></div>
+    </div>
+    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span class="whitespace-nowrap">bg <code>--destructive</code></span>
+      <span class="whitespace-nowrap">fg <code>--destructive-foreground</code></span>
+      <span class="whitespace-nowrap">hover <code>--destructive</code>/90</span>
+      <span class="whitespace-nowrap">ring <code>--destructive</code></span>
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      link <span class="font-normal normal-case">— inline only</span>
+    </header>
+    <div class="flex flex-wrap items-baseline gap-3">
+      <div class="flex flex-col gap-1">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+        <Button variant="link">View audit history</Button>
+      </div>
+      <div class="flex flex-col gap-1">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover</div>
+        <ForceState state="hover"><Button variant="link">View audit history</Button></ForceState>
+      </div>
+      <div class="flex flex-col gap-1">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+        <ForceState state="focus"><Button variant="link">View audit history</Button></ForceState>
+      </div>
+      <div class="flex flex-col gap-1">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+        <Button variant="link" disabled>View audit history</Button>
+      </div>
+    </div>
+    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span class="whitespace-nowrap">fg <code>--primary</code></span>
+      <span class="whitespace-nowrap">hover underline</span>
+      <span class="whitespace-nowrap">use inside running text, not toolbars</span>
+    </footer>
+  </section>
 </div>
 
-## Disabled
+## ButtonGroup — composition matrix
 
-<div class="not-prose flex flex-wrap items-center gap-2">
-  <Button disabled>Default</Button>
-  <Button variant="secondary" disabled>Secondary</Button>
-  <Button variant="outline" disabled>Outline</Button>
-  <Button variant="destructive" disabled>Destructive</Button>
+ButtonGroup adjusts its children's border radii and shared edges so adjacent
+buttons read as a single control. The interesting axis is _composition_:
+orientation, child variant, and what kind of children sit inside (buttons,
+static text, separators). Child-button state shifts (hover, focus, disabled)
+are already covered by the [Button matrix](#button-state-matrix) above.
+
+<div class="not-prose grid gap-6 sm:grid-cols-2">
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      horizontal · outline
+    </header>
+    <ButtonGroup>
+      <Button variant="outline">Prev</Button>
+      <Button variant="outline">Next</Button>
+    </ButtonGroup>
+    <ButtonGroup>
+      <Button size="sm" variant="outline">Day</Button>
+      <Button size="sm" variant="outline">Week</Button>
+      <Button size="sm" variant="outline">Month</Button>
+      <Button size="sm" variant="outline">Quarter</Button>
+    </ButtonGroup>
+    <footer class="text-xs text-muted-foreground">
+      adjacent buttons drop inner radius and share a 1 px seam
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      horizontal · secondary
+    </header>
+    <ButtonGroup>
+      <Button size="sm" variant="secondary">$</Button>
+      <Button size="sm" variant="secondary">€</Button>
+      <Button size="sm" variant="secondary">£</Button>
+      <Button size="sm" variant="secondary">¥</Button>
+    </ButtonGroup>
+    <footer class="text-xs text-muted-foreground">
+      same composition rules apply across child variants
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      vertical
+    </header>
+    <ButtonGroup orientation="vertical">
+      <Button variant="outline">Approve</Button>
+      <Button variant="outline">Defer</Button>
+      <Button variant="outline">Reject</Button>
+    </ButtonGroup>
+    <footer class="text-xs text-muted-foreground">
+      stack actions when the parent layout reads vertically
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      with text label
+    </header>
+    <ButtonGroup>
+      <ButtonGroupText>Currency</ButtonGroupText>
+      <Button variant="outline">USD</Button>
+      <Button variant="outline">CAD</Button>
+      <Button variant="outline">EUR</Button>
+    </ButtonGroup>
+    <ButtonGroup>
+      <Button variant="outline">Sync</Button>
+      <ButtonGroupText>3 min ago</ButtonGroupText>
+    </ButtonGroup>
+    <footer class="text-xs text-muted-foreground">
+      static label or status reading sits inside the group's seam
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 sm:col-span-2">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      with separator
+    </header>
+    <ButtonGroup>
+      <Button variant="outline">Save</Button>
+      <ButtonGroupSeparator />
+      <Button variant="outline">Save and add another</Button>
+      <ButtonGroupSeparator />
+      <Button variant="outline">Save and continue</Button>
+    </ButtonGroup>
+    <footer class="text-xs text-muted-foreground">
+      use a separator when peer actions are co-equal but not interchangeable
+    </footer>
+  </section>
 </div>
 
-## Icon-only sizes
+## Toggle — state matrix
 
-<div class="not-prose flex flex-wrap items-center gap-2">
-  <Button size="icon-sm" variant="outline" aria-label="Settings">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </Button>
-  <Button size="icon" variant="outline" aria-label="Settings">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </Button>
-  <Button size="icon-lg" variant="outline" aria-label="Settings">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </Button>
+Toggle adds a `pressed` axis on top of Button's variant × size × state cube.
+Each cell shows the size row and state row twice: once unpressed, once
+pressed, so the press delta is visible against every other state.
+
+<div class="not-prose grid gap-6 sm:grid-cols-2">
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      default
+    </header>
+    <div class="grid grid-cols-[auto_repeat(3,minmax(0,1fr))] items-center gap-x-3 gap-y-1">
+      <div></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">lg</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">off</div>
+      <div><Toggle size="sm">B</Toggle></div>
+      <div><Toggle>B</Toggle></div>
+      <div><Toggle size="lg">B</Toggle></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">on</div>
+      <div><Toggle size="sm" default-pressed>B</Toggle></div>
+      <div><Toggle default-pressed>B</Toggle></div>
+      <div><Toggle size="lg" default-pressed>B</Toggle></div>
+    </div>
+    <div class="grid grid-cols-[auto_repeat(3,minmax(0,1fr))] items-center gap-x-3 gap-y-1">
+      <div></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">off</div>
+      <div><ForceState state="hover"><Toggle>B</Toggle></ForceState></div>
+      <div><ForceState state="focus"><Toggle>B</Toggle></ForceState></div>
+      <div><Toggle disabled>B</Toggle></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">on</div>
+      <div><ForceState state="hover"><Toggle default-pressed>B</Toggle></ForceState></div>
+      <div><ForceState state="focus"><Toggle default-pressed>B</Toggle></ForceState></div>
+      <div><Toggle default-pressed disabled>B</Toggle></div>
+    </div>
+    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span class="whitespace-nowrap">off bg transparent</span>
+      <span class="whitespace-nowrap">on bg <code>--accent</code></span>
+      <span class="whitespace-nowrap">on fg <code>--accent-foreground</code></span>
+      <span class="whitespace-nowrap">hover bg <code>--muted</code></span>
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      outline
+    </header>
+    <div class="grid grid-cols-[auto_repeat(3,minmax(0,1fr))] items-center gap-x-3 gap-y-1">
+      <div></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">sm</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">lg</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">off</div>
+      <div><Toggle variant="outline" size="sm">B</Toggle></div>
+      <div><Toggle variant="outline">B</Toggle></div>
+      <div><Toggle variant="outline" size="lg">B</Toggle></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">on</div>
+      <div><Toggle variant="outline" size="sm" default-pressed>B</Toggle></div>
+      <div><Toggle variant="outline" default-pressed>B</Toggle></div>
+      <div><Toggle variant="outline" size="lg" default-pressed>B</Toggle></div>
+    </div>
+    <div class="grid grid-cols-[auto_repeat(3,minmax(0,1fr))] items-center gap-x-3 gap-y-1">
+      <div></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">off</div>
+      <div><ForceState state="hover"><Toggle variant="outline">B</Toggle></ForceState></div>
+      <div><ForceState state="focus"><Toggle variant="outline">B</Toggle></ForceState></div>
+      <div><Toggle variant="outline" disabled>B</Toggle></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">on</div>
+      <div><ForceState state="hover"><Toggle variant="outline" default-pressed>B</Toggle></ForceState></div>
+      <div><ForceState state="focus"><Toggle variant="outline" default-pressed>B</Toggle></ForceState></div>
+      <div><Toggle variant="outline" default-pressed disabled>B</Toggle></div>
+    </div>
+    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span class="whitespace-nowrap">border <code>--border</code></span>
+      <span class="whitespace-nowrap">off bg <code>--background</code></span>
+      <span class="whitespace-nowrap">on bg <code>--accent</code></span>
+      <span class="whitespace-nowrap">on fg <code>--accent-foreground</code></span>
+    </footer>
+  </section>
 </div>
 
-## ButtonGroup
+## ToggleGroup — composition matrix
 
-Horizontal, vertical, with a text label, and with a separator.
+ToggleGroup's interesting axis is composition (selection mode, spacing,
+child variant), not state. Per-item states are covered by the
+[Toggle matrix](#toggle-state-matrix) above.
 
-<div class="not-prose flex flex-col gap-6">
-  <ButtonGroup>
-    <Button variant="outline">Bold</Button>
-    <Button variant="outline">Italic</Button>
-    <Button variant="outline">Underline</Button>
-  </ButtonGroup>
-  <ButtonGroup>
-    <Button variant="secondary">Day</Button>
-    <Button variant="secondary">Week</Button>
-    <Button variant="secondary">Month</Button>
-  </ButtonGroup>
-  <ButtonGroup orientation="vertical">
-    <Button variant="outline">North</Button>
-    <Button variant="outline">East</Button>
-    <Button variant="outline">South</Button>
-    <Button variant="outline">West</Button>
-  </ButtonGroup>
-  <ButtonGroup>
-    <ButtonGroupText>https://</ButtonGroupText>
-    <Button variant="outline">Copy</Button>
-  </ButtonGroup>
-  <ButtonGroup>
-    <Button variant="outline">Save</Button>
-    <ButtonGroupSeparator />
-    <Button variant="outline">Save as…</Button>
-  </ButtonGroup>
+<div class="not-prose grid gap-6 sm:grid-cols-2">
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      single · default spacing
+    </header>
+    <ToggleGroup type="single" default-value="left">
+      <ToggleGroupItem value="left">Left</ToggleGroupItem>
+      <ToggleGroupItem value="center">Center</ToggleGroupItem>
+      <ToggleGroupItem value="right">Right</ToggleGroupItem>
+    </ToggleGroup>
+    <footer class="text-xs text-muted-foreground">
+      one selected at a time, items keep their own radius
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      single · joined <span class="font-normal normal-case">(spacing="0", variant="outline")</span>
+    </header>
+    <ToggleGroup type="single" variant="outline" spacing="0" default-value="day">
+      <ToggleGroupItem value="day">Day</ToggleGroupItem>
+      <ToggleGroupItem value="week">Week</ToggleGroupItem>
+      <ToggleGroupItem value="month">Month</ToggleGroupItem>
+    </ToggleGroup>
+    <footer class="text-xs text-muted-foreground">
+      adjacent items share a 1 px seam, outer radius preserved
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 sm:col-span-2">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      multiple
+    </header>
+    <ToggleGroup type="multiple" :default-value="['bold', 'italic']">
+      <ToggleGroupItem value="bold">Bold</ToggleGroupItem>
+      <ToggleGroupItem value="italic">Italic</ToggleGroupItem>
+      <ToggleGroupItem value="underline">Underline</ToggleGroupItem>
+    </ToggleGroup>
+    <footer class="text-xs text-muted-foreground">
+      any combination selectable, each item toggles independently
+    </footer>
+  </section>
 </div>
 
-## Toggle
+## Switch — state matrix
 
-<div class="not-prose flex flex-col gap-6">
-  <div class="flex flex-wrap items-center gap-2">
-    <Toggle size="sm" default-pressed>B</Toggle>
-    <Toggle size="sm">I</Toggle>
-    <Toggle size="sm">U</Toggle>
-  </div>
-  <div class="flex flex-wrap items-center gap-2">
-    <Toggle default-pressed>Bold</Toggle>
-    <Toggle>Italic</Toggle>
-    <Toggle>Underline</Toggle>
-  </div>
-  <div class="flex flex-wrap items-center gap-2">
-    <Toggle variant="outline" default-pressed>Bold</Toggle>
-    <Toggle variant="outline">Italic</Toggle>
-    <Toggle variant="outline">Underline</Toggle>
-  </div>
-</div>
-
-## ToggleGroup
-
-Default spacing (single selection):
+Switch has no variant or size axis in the current skin, so the matrix
+collapses to `off | on` × `default | hover | focus-visible | disabled`.
 
 <div class="not-prose">
-  <ToggleGroup type="single" default-value="left">
-    <ToggleGroupItem value="left">Left</ToggleGroupItem>
-    <ToggleGroupItem value="center">Center</ToggleGroupItem>
-    <ToggleGroupItem value="right">Right</ToggleGroupItem>
-  </ToggleGroup>
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <div class="grid grid-cols-[auto_repeat(4,minmax(0,1fr))] items-center gap-x-3 gap-y-2">
+      <div></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">off</div>
+      <div><Switch /></div>
+      <div><ForceState state="hover"><Switch /></ForceState></div>
+      <div><ForceState state="focus"><Switch /></ForceState></div>
+      <div><Switch disabled /></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">on</div>
+      <div><Switch default-value /></div>
+      <div><ForceState state="hover"><Switch default-value /></ForceState></div>
+      <div><ForceState state="focus"><Switch default-value /></ForceState></div>
+      <div><Switch default-value disabled /></div>
+    </div>
+    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span class="whitespace-nowrap">off bg <code>--input</code></span>
+      <span class="whitespace-nowrap">on bg <code>--primary</code></span>
+      <span class="whitespace-nowrap">thumb <code>--background</code></span>
+      <span class="whitespace-nowrap">ring <code>--ring</code></span>
+    </footer>
+  </section>
 </div>
 
-Joined (`spacing="0"`, `variant="outline"`):
+## Kbd — content & composition
 
-<div class="not-prose">
-  <ToggleGroup type="single" variant="outline" spacing="0" default-value="day">
-    <ToggleGroupItem value="day">Day</ToggleGroupItem>
-    <ToggleGroupItem value="week">Week</ToggleGroupItem>
-    <ToggleGroupItem value="month">Month</ToggleGroupItem>
-  </ToggleGroup>
-</div>
+Kbd is a stateless typographic element, so the interesting axes are
+_content_ (does a 1-char digit look balanced next to a 3-char word?) and
+_composition_ (bare cap, grouped shortcut, embedded in another control).
 
-Multiple selection:
+<div class="not-prose grid gap-6 sm:grid-cols-2">
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      content
+    </header>
+    <div class="flex flex-wrap items-center gap-2">
+      <Kbd>K</Kbd>
+      <Kbd>1</Kbd>
+      <Kbd>⌘</Kbd>
+      <Kbd>⇧</Kbd>
+      <Kbd>⌥</Kbd>
+      <Kbd>⌃</Kbd>
+      <Kbd>⌫</Kbd>
+      <Kbd>↵</Kbd>
+      <Kbd>Esc</Kbd>
+      <Kbd>Tab</Kbd>
+      <Kbd>Enter</Kbd>
+    </div>
+    <footer class="text-xs text-muted-foreground">
+      caps share min-width so single glyphs don't collapse next to words
+    </footer>
+  </section>
 
-<div class="not-prose">
-  <ToggleGroup type="multiple" :default-value="['bold', 'italic']">
-    <ToggleGroupItem value="bold">Bold</ToggleGroupItem>
-    <ToggleGroupItem value="italic">Italic</ToggleGroupItem>
-    <ToggleGroupItem value="underline">Underline</ToggleGroupItem>
-  </ToggleGroup>
-</div>
-
-## Switch
-
-<div class="not-prose flex flex-wrap items-center gap-6">
-  <label class="inline-flex items-center gap-2 text-sm">
-    <Switch />
-    <span>Off</span>
-  </label>
-  <label class="inline-flex items-center gap-2 text-sm">
-    <Switch default-checked />
-    <span>On</span>
-  </label>
-  <label class="inline-flex items-center gap-2 text-sm opacity-50">
-    <Switch disabled />
-    <span>Disabled</span>
-  </label>
-  <label class="inline-flex items-center gap-2 text-sm opacity-50">
-    <Switch default-checked disabled />
-    <span>Disabled · on</span>
-  </label>
-</div>
-
-## Kbd
-
-Single keycaps and grouped shortcuts.
-
-<div class="not-prose flex flex-col gap-4">
-  <div class="flex flex-wrap items-center gap-2">
-    <Kbd>⌘</Kbd>
-    <Kbd>K</Kbd>
-    <Kbd>⇧</Kbd>
-    <Kbd>⌫</Kbd>
-    <Kbd>Esc</Kbd>
-  </div>
-  <KbdGroup>
-    <Kbd>⌘</Kbd>
-    <Kbd>K</Kbd>
-  </KbdGroup>
-  <div class="flex items-center gap-2">
-    <Button variant="outline">
-      Search
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      grouped shortcut
+    </header>
+    <div class="flex flex-col gap-2">
       <KbdGroup>
         <Kbd>⌘</Kbd>
         <Kbd>K</Kbd>
       </KbdGroup>
-    </Button>
-  </div>
+      <KbdGroup>
+        <Kbd>⌘</Kbd>
+        <Kbd>⇧</Kbd>
+        <Kbd>P</Kbd>
+      </KbdGroup>
+    </div>
+    <footer class="text-xs text-muted-foreground">
+      KbdGroup tightens spacing so caps read as a single chord
+    </footer>
+  </section>
+
+  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 sm:col-span-2">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      embedded in a button
+    </header>
+    <div class="flex flex-wrap items-center gap-3">
+      <Button variant="outline">
+        Search
+        <KbdGroup>
+          <Kbd>⌘</Kbd>
+          <Kbd>K</Kbd>
+        </KbdGroup>
+      </Button>
+      <Button variant="ghost" size="sm">
+        Save
+        <KbdGroup>
+          <Kbd>⌘</Kbd>
+          <Kbd>S</Kbd>
+        </KbdGroup>
+      </Button>
+    </div>
+    <footer class="text-xs text-muted-foreground">
+      pair with a button to surface the keyboard equivalent of the action
+    </footer>
+  </section>
 </div>

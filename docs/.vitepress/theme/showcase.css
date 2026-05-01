@@ -18,3 +18,28 @@
  * base.css is imported through the @vueda alias; this directive is rooted at
  * showcase.css's location and walks up to the workspace's client lib. */
 @source "../../../client/lib/";
+
+/* ---------- Forced-state shim (docs-only) ----------
+ * Paints hover / focus-visible / disabled visuals on real vueda components
+ * without real pointer interaction, so component state-matrix pages can
+ * show every state at a glance.
+ *
+ * Mirrors the variant rules in
+ *   client/lib/theme/vueda-tailwind/controls/index.js
+ * Keep selectors and color formulas in sync when those rules change.
+ *
+ * Convention: wrap showcase markup in <ForceState state="hover|focus|disabled">.
+ */
+
+/* Redefine the `hover` and `focus-visible` Tailwind variants so they match
+ * either the real pseudo-class OR a `.force-state-*` ancestor. Every existing
+ * `hover:` / `focus-visible:` utility in the vueda theme then responds to
+ * <ForceState> automatically, with no per-variant shim to maintain. */
+@custom-variant hover (&:hover, .force-state-hover &);
+@custom-variant focus-visible (&:focus-visible, .force-state-focus &);
+
+/* `disabled:` covers visuals like `disabled:opacity-50 disabled:pointer-events-none`,
+ * but not the actual disabled attribute. Buttons in the matrix that need the
+ * disabled treatment should pass the real `disabled` prop; this variant just
+ * keeps the visual side consistent if the wrapper is used on non-buttons. */
+@custom-variant disabled (&:disabled, .force-state-disabled &);
