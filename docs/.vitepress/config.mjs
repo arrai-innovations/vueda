@@ -96,15 +96,20 @@ const buildGlossaryIndex = () => {
     return index;
 };
 
-const apiPathForFile = (filePath) => {
-    const rel = path.relative(apiRoot, filePath).split(path.sep).join("/");
+const referenceRoots = [
+    { root: apiRoot, urlPrefix: "/reference/api/" },
+    { root: path.join(docsRoot, "reference", "theming"), urlPrefix: "/reference/theming/" },
+];
+
+const pathForFile = (filePath, root, urlPrefix) => {
+    const rel = path.relative(root, filePath).split(path.sep).join("/");
     if (rel.endsWith("/index.md")) {
-        return `/reference/api/${rel.slice(0, -"index.md".length)}`;
+        return `${urlPrefix}${rel.slice(0, -"index.md".length)}`;
     }
     if (rel === "index.md") {
-        return "/reference/api/";
+        return urlPrefix;
     }
-    return `/reference/api/${rel}`;
+    return `${urlPrefix}${rel}`;
 };
 
 const memberNameFromId = (memberId) => {
@@ -114,38 +119,40 @@ const memberNameFromId = (memberId) => {
 
 const buildApiIndex = () => {
     const index = new Map();
-    if (!fs.existsSync(apiRoot)) {
-        return index;
-    }
-    const files = walkFiles(apiRoot).filter((file) => file.endsWith(".md"));
-    for (const filePath of files) {
-        const raw = fs.readFileSync(filePath, "utf-8");
-        const { frontmatter, body } = parseFrontmatter(raw);
-        if (!frontmatter.id) {
+    for (const { root, urlPrefix } of referenceRoots) {
+        if (!fs.existsSync(root)) {
             continue;
         }
-        if (index.has(frontmatter.id)) {
-            throw new Error(`Duplicate API id: ${frontmatter.id}`);
-        }
-        const title = frontmatter.title || extractHeading(body) || frontmatter.id;
-        const pageHref = apiPathForFile(filePath);
-        index.set(frontmatter.id, {
-            href: pageHref,
-            title,
-            filePath,
-        });
-        if (Array.isArray(frontmatter.member_ids)) {
-            for (const memberId of frontmatter.member_ids) {
-                if (!memberId || index.has(memberId)) {
-                    continue;
+        const files = walkFiles(root).filter((file) => file.endsWith(".md"));
+        for (const filePath of files) {
+            const raw = fs.readFileSync(filePath, "utf-8");
+            const { frontmatter, body } = parseFrontmatter(raw);
+            if (!frontmatter.id) {
+                continue;
+            }
+            if (index.has(frontmatter.id)) {
+                throw new Error(`Duplicate API id: ${frontmatter.id}`);
+            }
+            const title = frontmatter.title || extractHeading(body) || frontmatter.id;
+            const pageHref = pathForFile(filePath, root, urlPrefix);
+            index.set(frontmatter.id, {
+                href: pageHref,
+                title,
+                filePath,
+            });
+            if (Array.isArray(frontmatter.member_ids)) {
+                for (const memberId of frontmatter.member_ids) {
+                    if (!memberId || index.has(memberId)) {
+                        continue;
+                    }
+                    const memberName = memberNameFromId(memberId);
+                    const anchor = slugify(memberName);
+                    index.set(memberId, {
+                        href: anchor ? `${pageHref}#${anchor}` : pageHref,
+                        title: `${title}.${memberName}`,
+                        filePath,
+                    });
                 }
-                const memberName = memberNameFromId(memberId);
-                const anchor = slugify(memberName);
-                index.set(memberId, {
-                    href: anchor ? `${pageHref}#${anchor}` : pageHref,
-                    title: `${title}.${memberName}`,
-                    filePath,
-                });
             }
         }
     }
