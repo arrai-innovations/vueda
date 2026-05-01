@@ -35,10 +35,10 @@ shifts. If a cell breaks, the change has crossed from skin into design
 language.
 
 For the mechanics of overriding any of this, see
-[Customize VUEDA Appearance](../guides/customize-vueda-appearance.md). In
+[Customize VUEDA Appearance](../../guides/customize-vueda-appearance.md). In
 brief: values (color, dimension, duration) belong in
-[CSS tokens](../reference/theming/tokens/); compositions (class arrangements,
-state recipes) belong in [theme keys](../reference/theming/keys/).
+[CSS tokens](../theming/tokens/); compositions (class arrangements,
+state recipes) belong in [theme keys](../theming/keys/).
 
 ## Button: state matrix
 
