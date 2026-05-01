@@ -7,7 +7,7 @@ type: guide
 
 # Local HTTPS Development
 
-By default, the scaffolded project runs over plain HTTP on `localhost`. That is sufficient for most feature development, but VUEDA's production defaults set `SESSION_COOKIE_SECURE = True` and `CSRF_COOKIE_SECURE = True`, and the scaffolded `settings/local.py` overrides both to `False` to compensate. If you want your local environment to match production security behavior — secure cookies, HTTPS-only — this guide walks through setting that up.
+By default, the scaffolded project runs over plain HTTP on `localhost`. That is sufficient for most feature development, but VUEDA's production defaults set `SESSION_COOKIE_SECURE = True` and `CSRF_COOKIE_SECURE = True`, and the scaffolded `settings/local.py` overrides both to `False` to compensate. If you want your local environment to match production security behavior (secure cookies, HTTPS-only), this guide walks through setting that up.
 
 This guide uses [mkcert](https://github.com/FiloSottile/mkcert) to issue a locally trusted certificate for `localhost`. No changes to the project's committed code are required; everything lives in gitignored local files.
 
@@ -80,7 +80,7 @@ keyfile  = "localhost-key.pem"
 
 Paths are relative to the working directory gunicorn is started from (`server/`). `gunicorn.conf.py` is already gitignored.
 
-gunicorn picks this file up automatically — no extra flags or Justfile changes are needed. `just serve-server` (DX template) and the manual gunicorn command from the start-building guide both pick it up as-is.
+gunicorn picks this file up automatically; no extra flags or Justfile changes are needed. `just serve-server` (DX template) and the manual gunicorn command from the start-building guide both pick it up as-is.
 
 ## Configure the Vite Dev Server
 
@@ -123,7 +123,7 @@ Replace `5173` with your actual client port if you chose a different one during 
 
 ### `settings/local.py`
 
-The scaffolded `local.py` overrides `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` directly, so those need to change too. It also disables the secure cookie flags — remove those overrides so the production defaults apply:
+The scaffolded `local.py` overrides `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` directly, so those need to change too. It also disables the secure cookie flags; remove those overrides so the production defaults apply:
 
 ```python
 from config.settings.base import *
@@ -175,7 +175,7 @@ VUEDA's `connectionHostname` utility derives the backend URL from `window.locati
 
 ## Note on `ALLOWED_HOSTS`
 
-If you use a custom local hostname instead of `localhost` — for example, a hosts-file alias like `myproject.local` — add it to `ALLOWED_HOSTS` in `config.toml`:
+If you use a custom local hostname instead of `localhost` (for example, a hosts-file alias like `myproject.local`), add it to `ALLOWED_HOSTS` in `config.toml`:
 
 ```toml
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "myproject.local"]

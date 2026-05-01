@@ -44,7 +44,7 @@ The provide/inject behavior is significant: a parent that sets an override propa
 
 Calling `setTheme({ Button: { root: { class: 'bg-amber-500' } } })` at app startup reshapes the default theme: every Button rendered anywhere in the app picks up the override as its baseline. Per-instance overrides still merge on top.
 
-This is the right scope when a consumer wants to change how one component renders system-wide — a different focus treatment, a different default size, a custom data attribute, anything that should be true everywhere the component appears. The change is component-specific; it does not affect anything that "looks like" a Button (calendar day cells, pagination items, dialog actions) without explicit configuration.
+This is the right scope when a consumer wants to change how one component renders system-wide: a different focus treatment, a different default size, a custom data attribute, anything that should be true everywhere the component appears. The change is component-specific; it does not affect anything that "looks like" a Button (calendar day cells, pagination items, dialog actions) without explicit configuration.
 
 ## Family: meta keys
 
@@ -70,13 +70,13 @@ Meta keys are theme entries with an underscore-prefixed name (`_ButtonBase`, `_B
 }
 ```
 
-Overriding `_ButtonBase` via `setTheme` propagates through every leaf that composes from it: Buttons, calendar day triggers, pagination items, dialog actions, and any other entry that explicitly opts into the family. Overrides for `composes` use replace semantics — declaring a new compose list on an override replaces the default's list entirely — while own `class` values from default and override still combine as in non-composing entries.
+Overriding `_ButtonBase` via `setTheme` propagates through every leaf that composes from it: Buttons, calendar day triggers, pagination items, dialog actions, and any other entry that explicitly opts into the family. Overrides for `composes` use replace semantics (declaring a new compose list on an override replaces the default's list entirely), while own `class` values from default and override still combine as in non-composing entries.
 
 Composition is opt-in. A leaf entry that does not declare `composes` is unaffected by meta-key overrides. This is intentional: family relationships are explicit in the default theme, not implicit by name. A third-party component bundled with a VUEDA-using app does not pick up `_ButtonBase` overrides unless its theme entries opt in.
 
 ## Brand: CSS token overrides
 
-Most brand-level concerns — primary color, accent color, control radius, control heights, focus ring, shadow stack, sidebar widths, calendar cell sizing — resolve to CSS custom properties (`--primary`, `--vueda-control-height`, `--vueda-cal-day`, `--ring`, etc.) defined in `@vueda/theme/vueda-tailwind/base.css`. The default theme's class strings reference those tokens through Tailwind utilities (`h-vueda-control`, `bg-primary`) or arbitrary-value escapes (`h-[var(--vueda-control-height)]`).
+Most brand-level concerns (primary color, accent color, control radius, control heights, focus ring, shadow stack, sidebar widths, calendar cell sizing) resolve to CSS custom properties (`--primary`, `--vueda-control-height`, `--vueda-cal-day`, `--ring`, etc.) defined in `@vueda/theme/vueda-tailwind/base.css`. The default theme's class strings reference those tokens through Tailwind utilities (`h-vueda-control`, `bg-primary`) or arbitrary-value escapes (`h-[var(--vueda-control-height)]`).
 
 A consumer rebrands by overriding the tokens in their own CSS, after the `base.css` import:
 
@@ -90,9 +90,9 @@ A consumer rebrands by overriding the tokens in their own CSS, after the `base.c
 }
 ```
 
-Every consumer of the token picks up the change instantly. No `setTheme` call is involved; no JavaScript runs. This is the right scope for skinning — the customizations adopters most often reach for fall here.
+Every consumer of the token picks up the change instantly. No `setTheme` call is involved; no JavaScript runs. This is the right scope for skinning; the customizations adopters most often reach for fall here.
 
-The token layer is broader than the JavaScript theme system in a specific sense: it cascades through CSS, so a single override affects every class that references the token, regardless of which component rendered it. The trade-off is that token overrides cannot express composition or per-component logic — those concerns belong in the JavaScript theme.
+The token layer is broader than the JavaScript theme system in a specific sense: it cascades through CSS, so a single override affects every class that references the token, regardless of which component rendered it. The trade-off is that token overrides cannot express composition or per-component logic; those concerns belong in the JavaScript theme.
 
 ## How the layers interact
 
@@ -103,7 +103,7 @@ At render time, a `useTheme` call for a given component slot resolves classes in
 3. Append the slot's own override class.
 4. Pass the resulting list to `combineClasses`, which produces a single class string.
 
-The resulting string contains Tailwind utilities. Those utilities resolve their values from the active CSS tokens. So a consumer who overrides `--primary` does not need any JavaScript change — the existing class strings (`bg-primary`, `text-primary`) automatically reflect the new value.
+The resulting string contains Tailwind utilities. Those utilities resolve their values from the active CSS tokens. So a consumer who overrides `--primary` does not need any JavaScript change; the existing class strings (`bg-primary`, `text-primary`) automatically reflect the new value.
 
 The merged override theme used in step 1 is the result of merging:
 
@@ -117,7 +117,7 @@ The merged override theme used in step 1 is the result of merging:
 
 Many customization stories that read like "change the theme" are really "rebrand via tokens." Color, radius, control heights, focus rings, shadows, and spacing are all token-routed; reaching for `setTheme` to change any of them is reaching for the wrong layer.
 
-The rule of thumb: if a customization is a value (color, dimension, duration), it is a token. If it is a composition (a different class arrangement, a different structural recipe, a new state behavior), it is the theme. Mixing the two in code is a sign the boundary is being crossed for the wrong reason — values that change between brands belong in tokens, even if the immediate use case is one component.
+The rule of thumb: if a customization is a value (color, dimension, duration), it is a token. If it is a composition (a different class arrangement, a different structural recipe, a new state behavior), it is the theme. Mixing the two in code is a sign the boundary is being crossed for the wrong reason; values that change between brands belong in tokens, even if the immediate use case is one component.
 
 The token layer is also where the design system ships its defaults. A consumer who never touches `setTheme` but overrides a few tokens has a re-skinned VUEDA. That is the supported, normal path for adopters customizing their brand.
 

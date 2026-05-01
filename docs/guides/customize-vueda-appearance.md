@@ -9,16 +9,16 @@ status: draft
 
 This guide shows the concrete recipes for each customization scope: a single instance, all instances of one component, a visual family of components, and brand-level skinning. Pick the section that matches the scope of the change you actually want; reaching for a broader mechanism than the change requires is the most common cause of customizations leaking into screens you did not intend to touch.
 
-For the conceptual model behind these mechanisms — what each scope means and how the layers interact — see [Theming and Customization](../core-concepts/theming-and-customization).
+For the conceptual model behind these mechanisms (what each scope means and how the layers interact), see [Theming and Customization](../core-concepts/theming-and-customization).
 
 ## Pick the right scope
 
-| Goal                                                                                                      | Scope     | Mechanism                  | Section                                                                 |
-| --------------------------------------------------------------------------------------------------------- | --------- | -------------------------- | ----------------------------------------------------------------------- |
-| Make this one specific element look different.                                                            | Instance  | `themeOverride` prop       | [Override one instance](#override-one-instance)                         |
-| Make every Button (or Input, or Dialog, etc.) look different across the app.                              | Component | `setTheme` on a leaf entry | [Restyle one component system-wide](#restyle-one-component-system-wide) |
-| Make every button-shaped thing — Button, calendar day cells, pagination, dialog actions — look different. | Family    | `setTheme` on a meta key   | [Restyle a visual family](#restyle-a-visual-family)                     |
-| Re-skin the whole app: brand color, control sizes, radius, focus ring, shadows.                           | Brand     | CSS token override         | [Re-skin via tokens](#re-skin-via-tokens)                               |
+| Goal                                                                                                    | Scope     | Mechanism                  | Section                                                                 |
+| ------------------------------------------------------------------------------------------------------- | --------- | -------------------------- | ----------------------------------------------------------------------- |
+| Make this one specific element look different.                                                          | Instance  | `themeOverride` prop       | [Override one instance](#override-one-instance)                         |
+| Make every Button (or Input, or Dialog, etc.) look different across the app.                            | Component | `setTheme` on a leaf entry | [Restyle one component system-wide](#restyle-one-component-system-wide) |
+| Make every button-shaped thing (Button, calendar day cells, pagination, dialog actions) look different. | Family    | `setTheme` on a meta key   | [Restyle a visual family](#restyle-a-visual-family)                     |
+| Re-skin the whole app: brand color, control sizes, radius, focus ring, shadows.                         | Brand     | CSS token override         | [Re-skin via tokens](#re-skin-via-tokens)                               |
 
 If a customization touches values (colors, dimensions, durations), it almost always belongs in tokens. If it touches composition (a different class arrangement, a different state recipe), it belongs in the JavaScript theme.
 
@@ -120,7 +120,7 @@ This is the right scope when the change is conceptually about a visual relations
 
 ## Re-skin via tokens
 
-Most rebrand-level changes — primary color, control radius, control heights, focus ring, shadow stack, sidebar widths, calendar cell sizing — resolve to CSS custom properties defined in `@vueda/theme/vueda-tailwind/base.css`. Override the tokens in your own CSS, after the `base.css` import:
+Most rebrand-level changes (primary color, control radius, control heights, focus ring, shadow stack, sidebar widths, calendar cell sizing) resolve to CSS custom properties defined in `@vueda/theme/vueda-tailwind/base.css`. Override the tokens in your own CSS, after the `base.css` import:
 
 ```css
 /* main.css */
@@ -161,4 +161,4 @@ This is the right scope for skinning. Most adopters customizing for their brand 
 
 **Overriding a leaf entry when the change is family-wide.** Patching `Button` does not affect `CalendarCellTrigger`, `PaginationItem`, or `AlertDialogAction`, even though they look like buttons. If the change is conceptually about button-shaped things, override the relevant meta key (`_ButtonBase`, `_ButtonGhost`, etc.) so all composing leaves pick it up.
 
-**Forgetting that `composes` uses replace semantics.** Declaring `composes` on an override does not append to the default's compose list — it replaces it entirely. If you intend to extend the default's composition, write the full new list.
+**Forgetting that `composes` uses replace semantics.** Declaring `composes` on an override does not append to the default's compose list; it replaces it entirely. If you intend to extend the default's composition, write the full new list.

@@ -91,9 +91,9 @@ The theme also requires a set of CSS custom properties that the class strings re
 @import "@vueda/theme/vueda-tailwind/base.css";
 ```
 
-`base.css` is the brand-customization surface. Override individual tokens after the import to re-skin the app — see [Customize VUEDA Appearance](customize-vueda-appearance#re-skin-via-tokens) for the full recipe. The default values land VUEDA in a near-monochrome cool-neutral palette with dense control sizing; consumers who want a different look should override tokens rather than fork `base.css`.
+`base.css` is the brand-customization surface. Override individual tokens after the import to re-skin the app; see [Customize VUEDA Appearance](customize-vueda-appearance#re-skin-via-tokens) for the full recipe. The default values land VUEDA in a near-monochrome cool-neutral palette with dense control sizing; consumers who want a different look should override tokens rather than fork `base.css`.
 
-The theme system itself is CSS-framework-agnostic. `setTheme` accepts any object that follows the `ThemeObject` shape (component name to slot to class map). To use a different CSS framework, provide a theme object that maps the same component and slot keys to your own classes — and either supply your own equivalent token definitions or rewrite the class strings to not depend on the VUEDA tokens.
+The theme system itself is CSS-framework-agnostic. `setTheme` accepts any object that follows the `ThemeObject` shape (component name to slot to class map). To use a different CSS framework, provide a theme object that maps the same component and slot keys to your own classes, and either supply your own equivalent token definitions or rewrite the class strings to not depend on the VUEDA tokens.
 
 This must be called **before** any VUEDA component renders. Calling it before `createApp` satisfies this requirement.
 
