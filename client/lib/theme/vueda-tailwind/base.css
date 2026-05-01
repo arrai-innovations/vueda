@@ -60,6 +60,12 @@
 /* vueda assumes `dark:` works like this */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* during dark mode transitions, we might want `!no-transition [&_*]:!no-transition` classes on the
+   document element */
+.no-transition * {
+    transition: none !important;
+}
+
 @theme inline {
     /* Radius scale (generates rounded-* utilities).
      * Base is 4px, so derived scale is: sm=0, md=2px, lg=4px, xl=8px. */
