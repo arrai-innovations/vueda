@@ -24,24 +24,33 @@ const walkFiles = (dir) => {
 
 /**
  * Build a Map<id, filePath> from API markdown files.
+ *
+ * Accepts a single root or an array of roots so callers can index multiple
+ * generated reference trees (e.g. `reference/api/` plus `reference/theming/`)
+ * into a single id space.
+ *
+ * @param {string|string[]} roots
  */
-export const buildApiIndex = (apiRoot) => {
+export const buildApiIndex = (roots) => {
     const index = new Map();
-    if (!fs.existsSync(apiRoot)) {
-        return index;
-    }
-    const files = walkFiles(apiRoot).filter((file) => file.endsWith(".md"));
-    for (const filePath of files) {
-        const raw = fs.readFileSync(filePath, "utf-8");
-        const { frontmatter } = parseFrontmatter(raw);
-        if (!frontmatter.id) {
+    const rootList = Array.isArray(roots) ? roots : [roots];
+    for (const root of rootList) {
+        if (!root || !fs.existsSync(root)) {
             continue;
         }
-        index.set(frontmatter.id, filePath);
-        if (Array.isArray(frontmatter.member_ids)) {
-            for (const memberId of frontmatter.member_ids) {
-                if (memberId) {
-                    index.set(memberId, filePath);
+        const files = walkFiles(root).filter((file) => file.endsWith(".md"));
+        for (const filePath of files) {
+            const raw = fs.readFileSync(filePath, "utf-8");
+            const { frontmatter } = parseFrontmatter(raw);
+            if (!frontmatter.id) {
+                continue;
+            }
+            index.set(frontmatter.id, filePath);
+            if (Array.isArray(frontmatter.member_ids)) {
+                for (const memberId of frontmatter.member_ids) {
+                    if (memberId) {
+                        index.set(memberId, filePath);
+                    }
                 }
             }
         }
@@ -123,12 +132,12 @@ export const scanFileRefs = (content) => {
  *
  * @param {object} options
  * @param {string[]} options.files - markdown files to scan
- * @param {string} options.apiRoot - path to docs/reference/api
+ * @param {string|string[]} options.apiRoots - path or paths to indexed reference trees (api, theming, etc.)
  * @param {string} options.glossaryFile - path to docs/reference/glossary.md
  * @returns {{ errors: { file: string, line: number, message: string }[], apiIndexSize: number, glossaryIndexSize: number }}
  */
-export const validateReferences = ({ files, apiRoot, glossaryFile }) => {
-    const apiIndex = buildApiIndex(apiRoot);
+export const validateReferences = ({ files, apiRoots, glossaryFile }) => {
+    const apiIndex = buildApiIndex(apiRoots);
     const glossaryIndex = buildGlossaryIndex(glossaryFile);
     const errors = [];
 

@@ -450,11 +450,13 @@ function collectMarkdownFiles(docsDir, excludes) {
 
 async function runValidate(argv) {
     const docsDir = path.join(repoRoot, "docs");
-    const apiRoot = path.join(docsDir, "reference", "api");
+    const apiRoots = [path.join(docsDir, "reference", "api"), path.join(docsDir, "reference", "theming")];
     const glossaryFile = path.join(docsDir, "reference", "glossary.md");
 
-    if (!fs.existsSync(apiRoot)) {
-        console.warn("warning: docs/reference/api/ not found; skipping API reference validation");
+    if (!apiRoots.some((root) => fs.existsSync(root))) {
+        console.warn(
+            "warning: no reference roots found under docs/reference/{api,theming}; skipping API reference validation",
+        );
     }
 
     let files;
@@ -468,7 +470,7 @@ async function runValidate(argv) {
         return;
     }
 
-    const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({ files, apiRoot, glossaryFile });
+    const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({ files, apiRoots, glossaryFile });
 
     console.error(
         `Checked ${files.length} file(s) against ${apiIndexSize} API ids and ${glossaryIndexSize} glossary terms`,

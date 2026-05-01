@@ -1,7 +1,7 @@
 ---
 title: Buttons
 status: brainstorming
-audience: integrator
+audience: designer
 type: reference
 ---
 
@@ -24,22 +24,44 @@ import { faEllipsis, faFileExport, faFloppyDisk, faGear, faTrash } from "@fortaw
 
 The button family covers every clickable affordance in vueda: primary buttons,
 button groups, toggles, switches, and the keyboard caps that pair with them.
-All variants share the same control sizing (32 / 28 / 40) and focus treatment
-(2 px solid `--ring` outline at 2 px offset).
+All variants share the same control sizing (32 / 28 / 40, governed by
+{@api css-token:vueda-control-height} and its sm / lg companions) and focus
+treatment (2 px solid {@api css-token:ring} outline at 2 px offset).
 
-## Button — state matrix
+This page is the visual contract the default theme guarantees. Use it as the
+target spec when you re-skin: every cell shown here should still read as the
+same control after a customization, even if its color, radius, or density
+shifts. If a cell breaks, the change has crossed from skin into design
+language.
 
-Every variant × size × state at a glance. States that normally require pointer
-interaction (`hover`, `focus-visible`) are reproduced by wrapping the example
-in `<ForceState>`, which redefines those Tailwind variants in the docs theme
-to also match a `.force-state-*` ancestor — so the matrix is verifiable
-without keyboard or mouse, using the _exact_ same utility classes the real
-component reads.
+For the mechanics of overriding any of this, see
+[Customize VUEDA Appearance](../guides/customize-vueda-appearance.md). In
+brief: values (color, dimension, duration) belong in
+[CSS tokens](../reference/theming/tokens/); compositions (class arrangements,
+state recipes) belong in [theme keys](../reference/theming/keys/).
+
+## Button: state matrix
+
+Every variant × size × state the default theme renders. The matrix below
+exercises the same Tailwind utilities the real component does, with hover and
+focus-visible reproduced via the docs harness so every cell is verifiable
+without pointer or keyboard.
+
+Theme keys: {@api theme-key:Button}, composing
+{@api theme-key:\_ButtonBase} plus one of
+{@api theme-key:\_ButtonDefault},
+{@api theme-key:\_ButtonSecondary},
+{@api theme-key:\_ButtonOutline},
+{@api theme-key:\_ButtonGhost},
+{@api theme-key:\_ButtonDestructive},
+or {@api theme-key:\_ButtonLink} per variant. To restyle every button-shaped
+surface in the app (calendar day cells, pagination items, dialog actions),
+override the matching `_Button*` meta key rather than `Button` itself.
 
 <div class="not-prose grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      default <span class="font-normal normal-case">— primary CTA</span>
+      default <span class="font-normal normal-case">(primary CTA)</span>
     </header>
     <div class="grid grid-cols-3 gap-x-3 gap-y-1">
       <div class="text-[10px] uppercase tracking-wide text-muted-foreground">sm</div>
@@ -216,7 +238,7 @@ component reads.
 
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      link <span class="font-normal normal-case">— inline only</span>
+      link <span class="font-normal normal-case">(inline only)</span>
     </header>
     <div class="flex flex-wrap items-baseline gap-3">
       <div class="flex flex-col gap-1">
@@ -244,13 +266,19 @@ component reads.
   </section>
 </div>
 
-## ButtonGroup — composition matrix
+## ButtonGroup: composition matrix
 
 ButtonGroup adjusts its children's border radii and shared edges so adjacent
 buttons read as a single control. The interesting axis is _composition_:
 orientation, child variant, and what kind of children sit inside (buttons,
 static text, separators). Child-button state shifts (hover, focus, disabled)
 are already covered by the [Button matrix](#button-state-matrix) above.
+
+Theme keys: {@api theme-key:ButtonGroup},
+{@api theme-key:ButtonGroupText},
+{@api theme-key:ButtonGroupSeparator}. The seam treatment is a child-radius
+override applied via the parent's data attributes, so re-skinning the seam
+means editing these keys, not the token layer.
 
 <div class="not-prose grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
@@ -337,11 +365,16 @@ are already covered by the [Button matrix](#button-state-matrix) above.
   </section>
 </div>
 
-## Toggle — state matrix
+## Toggle: state matrix
 
 Toggle adds a `pressed` axis on top of Button's variant × size × state cube.
 Each cell shows the size row and state row twice: once unpressed, once
 pressed, so the press delta is visible against every other state.
+
+Theme key: {@api theme-key:Toggle}. The pressed surface reads from
+{@api css-token:accent} / {@api css-token:accent-foreground}, the same pair
+that drives hover on ghost and outline buttons; rebranding the accent shifts
+all three in lockstep.
 
 <div class="not-prose grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
@@ -425,11 +458,15 @@ pressed, so the press delta is visible against every other state.
   </section>
 </div>
 
-## ToggleGroup — composition matrix
+## ToggleGroup: composition matrix
 
 ToggleGroup's interesting axis is composition (selection mode, spacing,
 child variant), not state. Per-item states are covered by the
 [Toggle matrix](#toggle-state-matrix) above.
+
+Theme keys: {@api theme-key:ToggleGroup},
+{@api theme-key:ToggleGroupItem}. Items compose from the Toggle key, so a
+restyle of {@api theme-key:Toggle} flows through here automatically.
 
 <div class="not-prose grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
@@ -475,10 +512,16 @@ child variant), not state. Per-item states are covered by the
   </section>
 </div>
 
-## Switch — state matrix
+## Switch: state matrix
 
 Switch has no variant or size axis in the current skin, so the matrix
 collapses to `off | on` × `default | hover | focus-visible | disabled`.
+
+Theme key: {@api theme-key:Switch}. Token surface: {@api css-token:input}
+(off track), {@api css-token:primary} (on track), {@api css-token:background}
+(thumb), {@api css-token:ring} (focus). Switch is the one place a brand's
+{@api css-token:primary} reads as a _fill_ rather than as a CTA; verify the
+on-track contrast against the thumb when retoning primary.
 
 <div class="not-prose">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
@@ -508,11 +551,16 @@ collapses to `off | on` × `default | hover | focus-visible | disabled`.
   </section>
 </div>
 
-## Kbd — content & composition
+## Kbd: content & composition
 
 Kbd is a stateless typographic element, so the interesting axes are
 _content_ (does a 1-char digit look balanced next to a 3-char word?) and
 _composition_ (bare cap, grouped shortcut, embedded in another control).
+
+Cap typography reads from {@api css-token:vueda-text-micro} (11px) and the
+mono stack ({@api css-token:vueda-font-mono}); the rounded chiclet shape
+follows {@api css-token:vueda-checkbox-radius} so caps match the form-control
+language rather than the slab-control language.
 
 <div class="not-prose grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
