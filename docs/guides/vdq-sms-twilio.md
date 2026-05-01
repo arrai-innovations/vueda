@@ -1,7 +1,7 @@
 ---
 title: Send SMS from VDQ with Twilio
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

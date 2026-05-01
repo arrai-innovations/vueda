@@ -1,7 +1,7 @@
 ---
 title: Design Transition UX and Redirects
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

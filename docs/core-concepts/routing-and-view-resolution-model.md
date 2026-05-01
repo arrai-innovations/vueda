@@ -1,7 +1,7 @@
 ---
 title: Routing and View Resolution Model
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

@@ -1,12 +1,12 @@
 ---
-audience: implementors
+audience: integrators
 status: draft
 type: index
 ---
 
 # Reference
 
-Reference pages define stable contracts, terminology, and operational knobs for implementors.
+Reference pages define stable contracts, terminology, and operational knobs for integrators.
 
 ## Core Reference
 

@@ -1,7 +1,7 @@
 ---
 title: Use Expand and Sparse Field Controls
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Add Workflow to a Model
-audience: implementors
+audience: integrators
 status: draft
 type: tutorial
 ---

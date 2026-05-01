@@ -1,7 +1,7 @@
 ---
 title: Contract-First Dynamic UI
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: Components
 status: brainstorming
-audience: implementor
+audience: integrator
 type: index
 ---
 

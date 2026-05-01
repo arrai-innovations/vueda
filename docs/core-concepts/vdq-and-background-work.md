@@ -1,7 +1,7 @@
 ---
 title: VDQ and Background Work Model
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

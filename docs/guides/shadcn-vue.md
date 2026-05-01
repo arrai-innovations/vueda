@@ -1,7 +1,7 @@
 ---
 title: shadcn-vue and VUEDA
 status: draft
-audience: implementor
+audience: integrator
 type: explanation
 ---
 

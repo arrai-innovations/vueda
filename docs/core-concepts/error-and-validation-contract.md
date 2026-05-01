@@ -1,7 +1,7 @@
 ---
 title: Error and Validation Contract
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

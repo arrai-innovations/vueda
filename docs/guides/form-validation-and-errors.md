@@ -1,7 +1,7 @@
 ---
 title: Handle Form Validation and Server Errors
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

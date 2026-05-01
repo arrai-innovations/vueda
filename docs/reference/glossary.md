@@ -1,7 +1,7 @@
 ---
 title: Glossary
 type: reference
-audience: implementor
+audience: integrator
 status: draft
 ---
 

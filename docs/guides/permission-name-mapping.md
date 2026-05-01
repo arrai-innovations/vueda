@@ -1,7 +1,7 @@
 ---
 title: Map Django and VUEDA Permission Names
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

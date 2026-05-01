@@ -1,6 +1,6 @@
 ---
 title: Theming
-audience: implementor
+audience: integrator
 status: draft
 type: reference
 ---

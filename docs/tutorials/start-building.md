@@ -1,5 +1,5 @@
 ---
-audience: implementors
+audience: integrators
 status: draft
 type: tutorial
 ---

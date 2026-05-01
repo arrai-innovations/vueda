@@ -1,7 +1,7 @@
 ---
 title: Permission Model (CRUDL + Object + State)
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

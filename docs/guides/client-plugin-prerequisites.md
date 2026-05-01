@@ -1,7 +1,7 @@
 ---
 title: Client Plugin Prerequisites
 status: draft
-audience: implementor
+audience: integrator
 type: how-to
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: Build Auth Views
 status: draft
-audience: implementor
+audience: integrator
 type: how-to
 ---
 

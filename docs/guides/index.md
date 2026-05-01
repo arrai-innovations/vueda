@@ -1,12 +1,12 @@
 ---
-audience: implementors
+audience: integrators
 status: draft
 type: index
 ---
 
 # Guides
 
-Guides are task-focused recipes for implementors working on real VUEDA projects. They assume you already know your domain model and need practical steps for wiring server + client behavior.
+Guides are task-focused recipes for integrators working on real VUEDA projects. They assume you already know your domain model and need practical steps for wiring server + client behavior.
 
 ## Environment & Networking
 

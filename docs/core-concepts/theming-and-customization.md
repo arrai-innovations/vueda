@@ -1,7 +1,7 @@
 ---
 title: Theming and Customization
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -9,7 +9,7 @@ status: draft
 
 VUEDA's components carry no hardcoded styles in their templates. Every class on every rendered element comes from the active theme: a JavaScript object that maps each component's slots to class strings, resolved at render time and merged with any overrides in scope. The theme is registered at app startup via {@api js:function:@arrai-innovations/vueda/use/useTheme#setTheme}, and consumers customize it through a small set of mechanisms with sharply different reach.
 
-This page explains what those mechanisms are, what each one is for, and why they map to four distinct scopes. The implementor's pilot is "find the smallest scope that covers the change you actually want."
+This page explains what those mechanisms are, what each one is for, and why they map to four distinct scopes. The integrator's pilot is "find the smallest scope that covers the change you actually want."
 
 ## The four scopes
 

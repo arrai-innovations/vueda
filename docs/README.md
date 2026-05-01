@@ -20,7 +20,8 @@ to use a different (read: shorter) title in the sidebar or browser tabs than the
 
 ### `audience`
 
-- `implementor`: focused on technical details relevant to building with VUEDA (e.g. end-users of the framework)
+- `integrator`: focused on technical details relevant to building applications with VUEDA (e.g. end-users of the framework)
+- `designer`: focused on the visual contract and customization surface (tokens, theme keys, family meta keys); concerned with reskinning or rebranding VUEDA, not building features with it
 - `contributor`: focused on details relevant to contributing to VUEDA itself (e.g. maintainers and package authors)
 
 ### `type`

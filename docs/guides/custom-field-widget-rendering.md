@@ -1,7 +1,7 @@
 ---
 title: Customize Field and Widget Rendering
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
