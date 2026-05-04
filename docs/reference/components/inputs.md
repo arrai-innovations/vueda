@@ -54,8 +54,8 @@ language.
 For the mechanics of overriding any of this, see
 [Customize VUEDA Appearance](../../guides/customize-vueda-appearance.md). In
 brief: values (color, dimension, duration) belong in
-[CSS tokens](../theming/tokens/); compositions (class arrangements,
-state recipes) belong in [theme keys](../theming/keys/).
+[CSS tokens](../theming/tokens.md); compositions (class arrangements,
+state recipes) belong in [theme keys](../theming/keys.md).
 
 Two corners worth flagging up front. The checkbox body uses
 {@api css-token:vueda-checkbox-radius} (4 px) rather than the 2 px slab
