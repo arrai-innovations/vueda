@@ -16,3 +16,7 @@ designer can move from the visual to the override surface in one click.
 
 - [Buttons](/reference/components/buttons)
 - [Inputs](/reference/components/inputs)
+
+## Shell
+
+- [Containers](/reference/components/containers)
