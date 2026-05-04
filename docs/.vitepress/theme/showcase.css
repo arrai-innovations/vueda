@@ -11,7 +11,7 @@
  * @layer rule regardless of specificity, so without `important` the showcase
  * components would inherit VitePress's chrome styling. */
 @import "tailwindcss" important;
-@import "@vueda/theme/vueda-tailwind/base.css";
+@import "@vueda/theme/vueda-tailwind/base.css" important;
 
 /* Explicitly scan the vueda client library for class names. The @source in
  * base.css is relative to its on-disk location and may not resolve when

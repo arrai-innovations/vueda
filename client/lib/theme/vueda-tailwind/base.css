@@ -31,11 +31,13 @@
  * overlays another (popover, overlay). Cards use a 1px border, not
  * a shadow. Controls get zero shadow.
  *
- * KNOWN RENDERING LIMITATION: 1px borders can shimmer on Windows at
- * fractional display scaling (150% / 175% on 4K), because Chromium
- * splits the border across two physical pixel rows. Specific to
- * certain hardware/display configs; accepted as-is rather than
- * thickening every border to 2px and compromising density.
+ * DPR-AWARE HAIRLINES: Painted edges on controls (the `hairline` and
+ * `focus-ring` utilities) are sized through three :root tokens that
+ * step from 2px down to 1px across DPR 1.0 to 2.0 in 0.25px
+ * increments. This dodges two LCD artifacts: per-side pixel-snapping
+ * shimmer at fractional Windows scaling (150% / 175%), and single-
+ * device-pixel chromatic fringing at integer DPR on RGB-stripe LCDs.
+ * See the `--vueda-hairline-width` token block for the full rationale.
  *
  * Token layers:
  *
@@ -64,6 +66,77 @@
    document element */
 .no-transition * {
     transition: none !important;
+}
+
+/* `hairline` paints a uniform inset box-shadow at the chosen color, sized by
+ * the DPR-keyed `--vueda-hairline-width` token (2px to 1px across DPR 1.0 to
+ * 2.0; see the token block in :root for the full scale). Use the `hairline-*`
+ * color variants below to swap which semantic color is painted; default is
+ * --input. State-driven swaps are expressed by stacking variants on the
+ * markup, e.g., `focus-visible:hairline-ring`, `aria-invalid:hairline-destructive`.
+ *
+ * Use `hairline` (box-shadow) for 4-sided strokes: it avoids the per-side
+ * pixel-snapping shimmer that CSS `border` produces at fractional DPR. For
+ * directional strokes (e.g. top+bottom+right only), use the `border-*-hairline`
+ * utilities below instead, which set `border-*-width` to the same DPR-keyed
+ * token. Cannot mix `hairline` and `border-*` on the same element. */
+@utility hairline {
+    box-shadow: inset 0 0 0 var(--vueda-hairline-width) var(--vueda-hairline-color, var(--input));
+}
+@utility hairline-input {
+    --vueda-hairline-color: var(--input);
+}
+@utility hairline-ring {
+    --vueda-hairline-color: var(--ring);
+}
+@utility hairline-destructive {
+    --vueda-hairline-color: var(--destructive);
+}
+@utility hairline-border {
+    --vueda-hairline-color: var(--border);
+}
+
+/* Directional border-width utilities keyed to `--vueda-hairline-width`. Use
+ * these when `hairline` (4-sided inset box-shadow) can't be used because only
+ * some sides should be stroked, e.g. a joined segmented control. Pair with a
+ * `border-*` color utility; border-style is already `solid` from Tailwind's
+ * preflight. */
+@utility border-t-hairline {
+    border-top-width: var(--vueda-hairline-width);
+}
+@utility border-b-hairline {
+    border-bottom-width: var(--vueda-hairline-width);
+}
+@utility border-l-hairline {
+    border-left-width: var(--vueda-hairline-width);
+}
+@utility border-r-hairline {
+    border-right-width: var(--vueda-hairline-width);
+}
+@utility border-y-hairline {
+    border-top-width: var(--vueda-hairline-width);
+    border-bottom-width: var(--vueda-hairline-width);
+}
+@utility border-x-hairline {
+    border-left-width: var(--vueda-hairline-width);
+    border-right-width: var(--vueda-hairline-width);
+}
+@utility border-hairline {
+    border-width: var(--vueda-hairline-width);
+}
+
+/* `focus-ring` paints the canonical focus outline at the DPR-keyed
+ * `--vueda-focus-ring-width` and `--vueda-focus-ring-offset`. The ring width
+ * is always 2x `--vueda-hairline-width` (4px down to 2px across DPR 1.0 to
+ * 2.0), so it meets the WCAG 2.2 SC 2.4.13 (AAA) 2px minimum at every DPR
+ * value. Apply via `focus-visible:focus-ring` (and similar variants). Color
+ * defaults to --ring; swap with `focus-ring-destructive` etc. */
+@utility focus-ring {
+    outline: var(--vueda-focus-ring-width) solid var(--vueda-focus-ring-color, var(--ring));
+    outline-offset: var(--vueda-focus-ring-offset);
+}
+@utility focus-ring-destructive {
+    --vueda-focus-ring-color: var(--destructive);
 }
 
 @theme inline {
@@ -180,10 +253,13 @@
     /* Structure */
     --border: oklch(0.9 0.008 250);
     --input: oklch(0.9 0.008 250);
-    /* Focus ring canon: solid 2px outline at 2px offset, primary color. WCAG 2.2
-     * SC 2.4.13. Consumed as `outline: 2px solid var(--ring); outline-offset: 2px`
-     * on :focus-visible. Destructive controls override outline-color to
-     * var(--destructive) so the ring matches the control's semantic intent. */
+    /* Focus ring canon: solid outline, primary color. Ring width is always
+     * 2x hairline-width, keeping it at 2px+ CSS at every DPR — satisfies
+     * WCAG 2.2 SC 2.4.11 (AA) and SC 2.4.13 (AAA) at all DPR values.
+     * Consumed via the `focus-ring` utility on :focus-visible. Destructive
+     * controls swap to var(--destructive) so the ring matches the control's
+     * semantic intent. Width and offset come from the DPR-keyed tokens below
+     * (`--vueda-focus-ring-width`, `--vueda-focus-ring-offset`). */
     --ring: var(--primary);
 
     /* Scrim for dialog/sheet/drawer overlays; same in light and dark */
@@ -306,6 +382,75 @@
      * Instruments feel responsive, not soft. Short, ease-out only. */
     --vueda-duration-interaction: 120ms;
     --vueda-ease-interaction: cubic-bezier(0.2, 0, 0, 1);
+
+    /* ---------- DPR-aware hairline + focus-ring widths ----------
+     * Painted edges step down from 2px to 1px across the DPR 1.0 to 2.0 range,
+     * keyed by `@media (min-resolution: ...)` overrides further below. Two LCD
+     * artifacts drive this:
+     *   - Fractional DPR (e.g., Windows 4K @ 150% / 175% scaling): the
+     *     browser's `border` code path snaps each side to the nearest device
+     *     pixel inconsistently per scroll position, producing shimmer.
+     *     Painting via inset `box-shadow` (the `hairline` utility) takes
+     *     Skia's path-rendering path, which anti-aliases uniformly.
+     *   - Integer DPR (e.g., 4K @ 100% scaling): a single device-pixel
+     *     hairline gets colored by whichever subpixel column it lands on,
+     *     producing red/blue chromatic fringing. A wider hairline forces
+     *     Skia to distribute color across adjacent subpixels.
+     * The scale is smooth (steps of 0.25px) and the three tokens move in
+     * lockstep, so the visual proportions of "hairline thickness : focus-ring
+     * gap : focus-ring thickness" stay constant when a window is dragged
+     * between monitors at different scaling, or when the browser's zoom is
+     * adjusted. This trades a tiny absolute size shift for stable proportions
+     * across DPR transitions.
+     *
+     * Steps (hairline / focus-ring-width / focus-ring-offset):
+     *   DPR < 1.25  → 2px    / 4px    / 2px
+     *   DPR ≥ 1.25  → 1.75px / 3.5px  / 1.75px
+     *   DPR ≥ 1.5   → 1.5px  / 3px    / 1.5px
+     *   DPR ≥ 1.75  → 1.25px / 2.5px  / 1.25px
+     *   DPR ≥ 2.0   → 1px    / 2px    / 1px
+     *
+     * Focus-ring-width is always 2x hairline-width, ensuring the 2px CSS
+     * minimum required by WCAG 2.2 SC 2.4.13 (AAA) at all DPR values.
+     */
+    --vueda-hairline-width: 2px; /* inset box-shadow width painted by `hairline` */
+    --vueda-focus-ring-width: 4px; /* outline width painted by `focus-ring`; always 2x hairline-width */
+    --vueda-focus-ring-offset: 2px; /* outline-offset for `focus-ring`; equals hairline-width to keep gap-to-stroke proportions constant */
+}
+
+/* DPR-keyed overrides for the hairline + focus-ring scale. Must follow the
+ * base :root declarations in source order so the media-query rules win on
+ * cascade when they match (all `:root` selectors share specificity). The
+ * `min-resolution` queries stack inclusively: at DPR 2.0 all four matched
+ * blocks below contribute, the last one (1px) wins. See the
+ * `--vueda-hairline-width` token block above for full rationale. */
+@media (min-resolution: 1.25dppx) {
+    :root {
+        --vueda-hairline-width: 1.75px;
+        --vueda-focus-ring-width: 3.5px;
+        --vueda-focus-ring-offset: 1.75px;
+    }
+}
+@media (min-resolution: 1.5dppx) {
+    :root {
+        --vueda-hairline-width: 1.5px;
+        --vueda-focus-ring-width: 3px;
+        --vueda-focus-ring-offset: 1.5px;
+    }
+}
+@media (min-resolution: 1.75dppx) {
+    :root {
+        --vueda-hairline-width: 1.25px;
+        --vueda-focus-ring-width: 2.5px;
+        --vueda-focus-ring-offset: 1.25px;
+    }
+}
+@media (min-resolution: 2dppx) {
+    :root {
+        --vueda-hairline-width: 1px;
+        --vueda-focus-ring-width: 2px;
+        --vueda-focus-ring-offset: 1px;
+    }
 }
 
 @keyframes caret-blink {
