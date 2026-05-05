@@ -26,3 +26,4 @@ designer can move from the visual to the override surface in one click.
 ## Shell
 
 - [Containers](/reference/components/containers)
+- [Sidebar](/reference/components/sidebar)

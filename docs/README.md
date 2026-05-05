@@ -113,6 +113,27 @@ Examples:
 - `{@term CRUDL}`
 - `{@term Model Info}`
 
+## HTML blocks inside VuedaDemo
+
+Markdown ends an HTML block at the first blank line. Any blank line inside a `<VuedaDemo>` (or any other HTML block) splits it into separate fragments, so closing tags end up in a different block from their openers. Vue's template compiler then sees unclosed elements and throws `Element X is not closed`.
+
+**Rule: no blank lines inside `<VuedaDemo>` or any other HTML block used in docs.**
+
+Use comments to visually separate sections if needed:
+
+```html
+<VuedaDemo>
+    <SidebarProvider>
+        <Sidebar>
+            <!-- Operations group -->
+            <SidebarMenuItem>...</SidebarMenuItem>
+            <!-- Workspace group -->
+            <SidebarMenuItem>...</SidebarMenuItem>
+        </Sidebar>
+    </SidebarProvider>
+</VuedaDemo>
+```
+
 ## Backticks vs Links
 
 Use backticks and custom refs for different purposes:
