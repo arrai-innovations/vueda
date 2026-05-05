@@ -473,6 +473,7 @@ export default {
         root: {
             class: [
                 "peer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground hairline size-6 shrink-0 rounded-[4px] shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+                "data-[state=checked]:[--vueda-hairline-color:transparent] data-[state=indeterminate]:[--vueda-hairline-color:transparent]",
                 "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive aria-invalid:data-[state=checked]:bg-destructive aria-invalid:data-[state=checked]:text-destructive-foreground aria-invalid:data-[state=indeterminate]:bg-destructive aria-invalid:data-[state=indeterminate]:text-destructive-foreground",
             ],

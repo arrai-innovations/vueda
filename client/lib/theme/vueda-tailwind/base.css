@@ -455,9 +455,11 @@
     --vueda-hairline-width: 2px; /* inset box-shadow width painted by `hairline` */
     --vueda-focus-ring-width: 4px; /* outline width painted by `focus-ring`; always 2x hairline-width */
     --vueda-focus-ring-offset: 4px; /* outline-offset for `focus-ring`; equals hairline-width to keep gap-to-stroke proportions constant */
-    /* Gap color for `focus-ring-shadow`. Defaults to --background; override per
-     * surface (e.g. [--vueda-focus-ring-gap-color:var(--card)]) when the control
-     * sits on a card or other non-background surface. */
+    /* Gap color for `focus-ring-shadow`. The gap MUST be an opaque surface color;
+     * a transparent gap does not work because a transparent box-shadow layer does
+     * not mask the ring shadow behind it, collapsing the gap visually. Defaults to
+     * --background; scope-override when a control sits on a different surface:
+     * [--vueda-focus-ring-gap-color:var(--card)], var(--popover), etc. */
     --vueda-focus-ring-gap-color: var(--background);
 }
 
@@ -535,7 +537,7 @@
     --info: oklch(0.68 0.17 254);
 
     --border: oklch(1 0 0 / 0.08); /* low-contrast hairlines */
-    --input: oklch(1 0 0 / 0.1);
+    --input: oklch(0.26 0.009 250);
     --ring: var(--primary);
     --sunken: oklch(0.12 0.01 250);
 
