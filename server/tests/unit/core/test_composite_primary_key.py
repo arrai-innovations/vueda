@@ -43,12 +43,11 @@ class TestCompositeKey:
         product_1 = store_models.ProductCompositePK.objects.create(name="Product 1")
         order_1 = store_models.OrderCompositePK.objects.create(order_number="1234")
         order_item_1 = store_models.OrderItemCompositePK.objects.create(order=order_1, product=product_1, quantity=1)
-        field = order_item_1._meta.get_field("pk")
 
         response = api_client.get(
             reverse(
                 "store.orderitemcompositepk-detail",
-                args=(field.value_to_string(order_item_1),),
+                args=(json.dumps(order_item_1.pk),),
             ),
             format="json",
             data={
@@ -62,5 +61,4 @@ class TestCompositeKey:
         data = response.json()
 
         assert response.status_code == HTTPStatus.OK, pformat(data)
-
         assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
