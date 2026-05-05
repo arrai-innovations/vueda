@@ -608,6 +608,9 @@ export default defineConfig({
         resolve: {
             alias: {
                 "@vueda": fileURLToPath(new URL("../../client/lib/", import.meta.url)),
+                "@internationalized/date": fileURLToPath(
+                    new URL("../../client/node_modules/@internationalized/date", import.meta.url),
+                ),
             },
         },
         server: {
