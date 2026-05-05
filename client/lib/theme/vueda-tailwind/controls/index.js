@@ -428,8 +428,16 @@ export default {
     RadioGroupItem: {
         root: {
             class: [
-                "text-primary dark:bg-input/30 hairline aspect-square size-4 shrink-0 rounded-full shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 focus-visible:hairline-ring focus-visible:focus-ring aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-destructive",
+                "text-primary dark:bg-input/30 hairline aspect-square size-6 shrink-0 rounded-full shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50",
+                "focus-visible:hairline-ring focus-visible:focus-ring",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-destructive aria-invalid:text-destructive",
             ],
+        },
+        indicator: {
+            class: ["relative flex items-center justify-center"],
+        },
+        dot: {
+            class: ["size-2 rounded-full bg-current"],
         },
     },
     ButtonGroup: {
@@ -460,8 +468,13 @@ export default {
     Checkbox: {
         root: {
             class: [
-                "peer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground hairline size-4 shrink-0 rounded-[4px] shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 focus-visible:hairline-ring focus-visible:focus-ring aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-destructive",
+                "peer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground hairline size-6 shrink-0 rounded-[4px] shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+                "focus-visible:hairline-ring focus-visible:focus-ring",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-destructive aria-invalid:data-[state=checked]:bg-destructive aria-invalid:data-[state=checked]:text-destructive-foreground aria-invalid:data-[state=indeterminate]:bg-destructive aria-invalid:data-[state=indeterminate]:text-destructive-foreground",
             ],
+        },
+        indicator: {
+            class: ["grid place-content-center text-current transition-none"],
         },
     },
     Slider: {

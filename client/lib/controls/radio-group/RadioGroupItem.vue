@@ -40,9 +40,9 @@ const theme = useTheme("RadioGroupItem", props);
 
 <template>
     <RadioGroupItem data-slot="radio-group-item" v-bind="forwardedProps" :class="[theme('root'), props.class]">
-        <RadioGroupIndicator data-slot="radio-group-indicator" class="relative flex items-center justify-center">
+        <RadioGroupIndicator data-slot="radio-group-indicator" :class="theme('indicator')">
             <slot>
-                <span aria-hidden="true" class="size-2 rounded-full bg-primary"></span>
+                <span aria-hidden="true" :class="theme('dot')"></span>
             </slot>
         </RadioGroupIndicator>
     </RadioGroupItem>

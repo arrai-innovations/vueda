@@ -415,7 +415,7 @@
      */
     --vueda-hairline-width: 2px; /* inset box-shadow width painted by `hairline` */
     --vueda-focus-ring-width: 4px; /* outline width painted by `focus-ring`; always 2x hairline-width */
-    --vueda-focus-ring-offset: 2px; /* outline-offset for `focus-ring`; equals hairline-width to keep gap-to-stroke proportions constant */
+    --vueda-focus-ring-offset: 4px; /* outline-offset for `focus-ring`; equals hairline-width to keep gap-to-stroke proportions constant */
 }
 
 /* DPR-keyed overrides for the hairline + focus-ring scale. Must follow the
@@ -428,28 +428,28 @@
     :root {
         --vueda-hairline-width: 1.75px;
         --vueda-focus-ring-width: 3.5px;
-        --vueda-focus-ring-offset: 1.75px;
+        --vueda-focus-ring-offset: 3.5px;
     }
 }
 @media (min-resolution: 1.5dppx) {
     :root {
         --vueda-hairline-width: 1.5px;
         --vueda-focus-ring-width: 3px;
-        --vueda-focus-ring-offset: 1.5px;
+        --vueda-focus-ring-offset: 3px;
     }
 }
 @media (min-resolution: 1.75dppx) {
     :root {
         --vueda-hairline-width: 1.25px;
         --vueda-focus-ring-width: 2.5px;
-        --vueda-focus-ring-offset: 1.25px;
+        --vueda-focus-ring-offset: 2.5px;
     }
 }
 @media (min-resolution: 2dppx) {
     :root {
         --vueda-hairline-width: 1px;
         --vueda-focus-ring-width: 2px;
-        --vueda-focus-ring-offset: 1px;
+        --vueda-focus-ring-offset: 2px;
     }
 }
 

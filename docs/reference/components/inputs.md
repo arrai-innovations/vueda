@@ -440,49 +440,41 @@ Theme key: {@api theme-key:Checkbox}. The body is a 16 × 16 chiclet at
 the 2 px slab {@api css-token:vueda-control-radius} so the box reads as a
 chit rather than a miniature input next to its label.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<div class="not-prose">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      tri-state
-    </header>
-    <div class="grid grid-cols-3 gap-x-3 gap-y-1 items-center">
+    <div class="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-4 gap-y-2 items-center">
+      <div></div>
       <div class="text-[10px] uppercase tracking-wide text-muted-foreground">unchecked</div>
       <div class="text-[10px] uppercase tracking-wide text-muted-foreground">checked</div>
       <div class="text-[10px] uppercase tracking-wide text-muted-foreground">indeterminate</div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
       <div><Checkbox /></div>
       <div><Checkbox :default-value="true" /></div>
       <div><Checkbox default-value="indeterminate" /></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus</div>
+      <div><ForceState state="focus"><Checkbox /></ForceState></div>
+      <div><ForceState state="focus"><Checkbox :default-value="true" /></ForceState></div>
+      <div><ForceState state="focus"><Checkbox default-value="indeterminate" /></ForceState></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <div><Checkbox disabled /></div>
+      <div><Checkbox :default-value="true" disabled /></div>
+      <div><Checkbox default-value="indeterminate" disabled /></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid</div>
+      <div><Checkbox aria-invalid="true" /></div>
+      <div><Checkbox aria-invalid="true" :default-value="true" /></div>
+      <div><Checkbox aria-invalid="true" default-value="indeterminate" /></div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid + focus</div>
+      <div><ForceState state="focus"><Checkbox aria-invalid="true" /></ForceState></div>
+      <div><ForceState state="focus"><Checkbox aria-invalid="true" :default-value="true" /></ForceState></div>
+      <div><ForceState state="focus"><Checkbox aria-invalid="true" default-value="indeterminate" /></ForceState></div>
     </div>
     <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
       <span class="whitespace-nowrap">checked bg <code>--primary</code></span>
       <span class="whitespace-nowrap">checked fg <code>--primary-foreground</code></span>
       <span class="whitespace-nowrap">indeterminate same as checked</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      interaction states
-    </header>
-    <div class="grid grid-cols-3 gap-x-3 gap-y-1 items-center">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid</div>
-      <div><ForceState state="focus"><Checkbox /></ForceState></div>
-      <div><Checkbox disabled /></div>
-      <div><Checkbox aria-invalid="true" /></div>
-    </div>
-    <div class="grid grid-cols-3 gap-x-3 gap-y-1 items-center">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus + on</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled + on</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid + on</div>
-      <div><ForceState state="focus"><Checkbox :default-value="true" /></ForceState></div>
-      <div><Checkbox :default-value="true" disabled /></div>
-      <div><Checkbox :default-value="true" aria-invalid="true" /></div>
-    </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
       <span class="whitespace-nowrap">focus outline <code>--ring</code></span>
       <span class="whitespace-nowrap">invalid border <code>--destructive</code></span>
+      <span class="whitespace-nowrap">invalid + checked bg <code>--destructive</code></span>
     </footer>
   </section>
 </div>

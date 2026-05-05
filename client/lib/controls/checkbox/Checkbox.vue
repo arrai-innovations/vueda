@@ -53,10 +53,7 @@ const icon = useIcons("Checkbox");
 
 <template>
     <CheckboxRoot v-slot="slotProps" data-slot="checkbox" v-bind="forwarded" :class="[theme('root'), props.class]">
-        <CheckboxIndicator
-            data-slot="checkbox-indicator"
-            class="grid place-content-center text-current transition-none"
-        >
+        <CheckboxIndicator data-slot="checkbox-indicator" :class="theme('indicator')">
             <slot v-bind="slotProps">
                 <component
                     :is="icon('indeterminate').component"
