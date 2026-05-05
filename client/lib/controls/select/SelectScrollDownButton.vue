@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { SelectScrollDownButton, useForwardProps } from "reka-ui";
@@ -26,6 +27,7 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwardedProps = useForwardProps(delegatedProps);
 
 const theme = useTheme("SelectScrollDownButton", props);
+const icon = useIcons("SelectScrollDownButton");
 </script>
 
 <template>
@@ -35,7 +37,12 @@ const theme = useTheme("SelectScrollDownButton", props);
         :class="[theme('root'), props.class]"
     >
         <slot>
-            <span aria-hidden="true" class="select-none">▾</span>
+            <component
+                :is="icon('caretDown').component"
+                v-if="icon('caretDown')"
+                v-bind="icon('caretDown').props"
+                aria-hidden="true"
+            />
         </slot>
     </SelectScrollDownButton>
 </template>

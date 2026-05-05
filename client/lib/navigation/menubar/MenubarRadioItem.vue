@@ -1,5 +1,6 @@
 <script setup>
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { MenubarItemIndicator, MenubarRadioItem } from "reka-ui";
@@ -36,13 +37,21 @@ const emits = defineEmits({
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("MenubarRadioItem", props);
+const icon = useIcons("MenubarRadioItem");
 </script>
 
 <template>
     <MenubarRadioItem data-slot="menubar-radio-item" v-bind="forwarded" :class="[theme('root'), props.class]">
         <span :class="theme('indicator')">
             <MenubarItemIndicator>
-                <slot name="indicator">•</slot>
+                <slot name="indicator">
+                    <component
+                        :is="icon('circle').component"
+                        v-if="icon('circle')"
+                        v-bind="icon('circle').props"
+                        aria-hidden="true"
+                    />
+                </slot>
             </MenubarItemIndicator>
         </span>
         <slot />

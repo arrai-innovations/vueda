@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { SelectItem, SelectItemIndicator, SelectItemText, useForwardProps } from "reka-ui";
@@ -32,6 +33,7 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwardedProps = useForwardProps(delegatedProps);
 
 const theme = useTheme("SelectItem", props);
+const icon = useIcons("SelectItem");
 </script>
 
 <template>
@@ -39,7 +41,12 @@ const theme = useTheme("SelectItem", props);
         <span class="absolute right-2 flex size-3.5 items-center justify-center">
             <SelectItemIndicator>
                 <slot name="indicator-icon">
-                    <span aria-hidden="true" class="select-none">✓</span>
+                    <component
+                        :is="icon('check').component"
+                        v-if="icon('check')"
+                        v-bind="icon('check').props"
+                        aria-hidden="true"
+                    />
                 </slot>
             </SelectItemIndicator>
         </span>

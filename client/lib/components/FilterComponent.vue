@@ -7,6 +7,7 @@ import Popover from "@vueda/shell/popover/Popover.vue";
 import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import { useFilterField } from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useModelChoices } from "@vueda/use/useModelChoices.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -282,6 +283,7 @@ const theme = useTheme(
         errored: toRef(props, "errored"),
     }),
 );
+const icon = useIcons("FilterComponent");
 
 watch(
     toRef(formState, "initialValues"),
@@ -323,7 +325,12 @@ watch(
                         :remove-filter="removeFilter"
                         :show-state="internalShowState"
                     >
-                        <span>✖️</span>
+                        <component
+                            :is="icon('close').component"
+                            v-if="icon('close')"
+                            v-bind="icon('close').props"
+                            aria-hidden="true"
+                        />
                     </slot>
                 </Button>
             </slot>
@@ -351,7 +358,12 @@ watch(
                         :remove-filter="removeFilter"
                         :show-state="internalShowState"
                     >
-                        <span>➕</span>
+                        <component
+                            :is="icon('plus').component"
+                            v-if="icon('plus')"
+                            v-bind="icon('plus').props"
+                            aria-hidden="true"
+                        />
                     </slot>
                     <!-- @slot [filter-dropdown-button-label, filter-dropdown-button-label(filterName)] Label text inside the dropdown button. -->
                     <slot
@@ -373,9 +385,20 @@ watch(
                         :name="resolvedSlotNames.dropdownButtonSuffix.name"
                         :show-state="internalShowState"
                     >
-                        <span>
-                            {{ hasFilterValue ? (internalShowState ? "▲" : "▼") : "" }}
-                        </span>
+                        <template v-if="hasFilterValue">
+                            <component
+                                :is="icon('caretUp').component"
+                                v-if="internalShowState && icon('caretUp')"
+                                v-bind="icon('caretUp').props"
+                                aria-hidden="true"
+                            />
+                            <component
+                                :is="icon('caretDown').component"
+                                v-else-if="icon('caretDown')"
+                                v-bind="icon('caretDown').props"
+                                aria-hidden="true"
+                            />
+                        </template>
                     </slot>
                 </Button>
             </slot>

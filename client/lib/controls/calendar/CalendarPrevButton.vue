@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { CalendarPrev, useForwardProps } from "reka-ui";
@@ -15,6 +16,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("CalendarNavButton", props);
+const icon = useIcons("CalendarPrevButton");
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwardedProps = useForwardProps(delegatedProps);
 </script>
@@ -22,7 +24,12 @@ const forwardedProps = useForwardProps(delegatedProps);
 <template>
     <CalendarPrev data-slot="calendar-prev-button" :class="[theme('root'), props.class]" v-bind="forwardedProps">
         <slot>
-            <span aria-hidden="true" class="select-none">‹</span>
+            <component
+                :is="icon('chevronLeft').component"
+                v-if="icon('chevronLeft')"
+                v-bind="icon('chevronLeft').props"
+                aria-hidden="true"
+            />
         </slot>
     </CalendarPrev>
 </template>

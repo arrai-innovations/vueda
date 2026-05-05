@@ -1,6 +1,7 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
 import FileUpload from "@vueda/controls/file-upload/FileUpload.vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
@@ -25,6 +26,7 @@ const widgetContext = useWidget(props, emit);
 /** @type {import('@vueda/use/useField.js').FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
 const theme = useWidgetTheme("WidgetImage", props, widgetContext.state);
+const icon = useIcons("WidgetImage");
 
 if (fieldContext) {
     watch(
@@ -55,7 +57,12 @@ const onRemove = () => {
             <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
                 <img alt="Image" :src="widgetContext.state.combinedValue" width="250" data-qa="image-preview" />
                 <Button variant="ghost" size="icon-sm" data-qa="image-remove" @click="onRemove">
-                    <span aria-hidden="true" class="select-none">✕</span>
+                    <component
+                        :is="icon('close').component"
+                        v-if="icon('close')"
+                        v-bind="icon('close').props"
+                        aria-hidden="true"
+                    />
                     <span class="sr-only">Remove image</span>
                 </Button>
             </div>

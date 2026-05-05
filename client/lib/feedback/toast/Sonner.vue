@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Toaster as Sonner } from "vue-sonner";
 
@@ -34,6 +35,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("Sonner", props);
+const icon = useIcons("Sonner");
 </script>
 
 <template>
@@ -57,19 +59,47 @@ const theme = useTheme("Sonner", props);
     >
         <template #success-icon>
             <!-- Replaces the success toast icon; receives no slot props. -->
-            <slot name="success-icon"><span aria-hidden="true" class="select-none">✓</span></slot>
+            <slot name="success-icon">
+                <component
+                    :is="icon('check').component"
+                    v-if="icon('check')"
+                    v-bind="icon('check').props"
+                    aria-hidden="true"
+                />
+            </slot>
         </template>
         <template #info-icon>
             <!-- Replaces the info toast icon; receives no slot props. -->
-            <slot name="info-icon"><span aria-hidden="true" class="select-none">ℹ</span></slot>
+            <slot name="info-icon">
+                <component
+                    :is="icon('info').component"
+                    v-if="icon('info')"
+                    v-bind="icon('info').props"
+                    aria-hidden="true"
+                />
+            </slot>
         </template>
         <template #warning-icon>
             <!-- Replaces the warning toast icon; receives no slot props. -->
-            <slot name="warning-icon"><span aria-hidden="true" class="select-none">⚠</span></slot>
+            <slot name="warning-icon">
+                <component
+                    :is="icon('triangleExclamation').component"
+                    v-if="icon('triangleExclamation')"
+                    v-bind="icon('triangleExclamation').props"
+                    aria-hidden="true"
+                />
+            </slot>
         </template>
         <template #error-icon>
             <!-- Replaces the error toast icon; receives no slot props. -->
-            <slot name="error-icon"><span aria-hidden="true" class="select-none">✕</span></slot>
+            <slot name="error-icon">
+                <component
+                    :is="icon('close').component"
+                    v-if="icon('close')"
+                    v-bind="icon('close').props"
+                    aria-hidden="true"
+                />
+            </slot>
         </template>
         <template #loading-icon>
             <!-- Replaces the loading toast icon; receives no slot props. -->
@@ -79,7 +109,14 @@ const theme = useTheme("Sonner", props);
         </template>
         <template #close-icon>
             <!-- Replaces the close toast icon; receives no slot props. -->
-            <slot name="close-icon"><span aria-hidden="true" class="select-none">✕</span></slot>
+            <slot name="close-icon">
+                <component
+                    :is="icon('close').component"
+                    v-if="icon('close')"
+                    v-bind="icon('close').props"
+                    aria-hidden="true"
+                />
+            </slot>
         </template>
     </Sonner>
 </template>

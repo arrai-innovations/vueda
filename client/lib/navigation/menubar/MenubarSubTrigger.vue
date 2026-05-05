@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { MenubarSubTrigger, useForwardProps } from "reka-ui";
@@ -30,6 +31,7 @@ const props = defineProps({
 const delegatedProps = reactiveOmit(props, "class", "themeOverride", "inset");
 const forwardedProps = useForwardProps(delegatedProps);
 const theme = useTheme("MenubarSubTrigger", props);
+const icon = useIcons("MenubarSubTrigger");
 </script>
 
 <template>
@@ -40,6 +42,13 @@ const theme = useTheme("MenubarSubTrigger", props);
         :class="[theme('root'), props.class]"
     >
         <slot />
-        <span :class="theme('iconWrapper')" aria-hidden="true"><slot name="icon">›</slot></span>
+        <span :class="theme('iconWrapper')" aria-hidden="true"
+            ><slot name="icon">
+                <component
+                    :is="icon('chevronRight').component"
+                    v-if="icon('chevronRight')"
+                    v-bind="icon('chevronRight').props"
+                /> </slot
+        ></span>
     </MenubarSubTrigger>
 </template>

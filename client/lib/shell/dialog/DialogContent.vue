@@ -1,6 +1,7 @@
 <script setup>
 import DialogOverlay from "./DialogOverlay.vue";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { DialogClose, DialogContent, DialogPortal } from "reka-ui";
@@ -45,6 +46,7 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("DialogContent", props);
+const icon = useIcons("DialogContent");
 </script>
 
 <template>
@@ -59,7 +61,14 @@ const theme = useTheme("DialogContent", props);
 
             <DialogClose v-if="showCloseButton" data-slot="dialog-close" :class="theme('close')">
                 <!-- Replaces the close-button icon; receives no slot props. -->
-                <slot name="close-icon">✕</slot>
+                <slot name="close-icon">
+                    <component
+                        :is="icon('close').component"
+                        v-if="icon('close')"
+                        v-bind="icon('close').props"
+                        aria-hidden="true"
+                    />
+                </slot>
                 <span class="sr-only">Close</span>
             </DialogClose>
         </DialogContent>

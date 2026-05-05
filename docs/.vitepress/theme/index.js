@@ -4,7 +4,22 @@ import GlossaryTerm from "./components/GlossaryTerm.vue";
 import "./showcase.css";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
-import { faCheck, faMinus } from "@fortawesome/free-solid-svg-icons";
+import {
+    faCaretDown,
+    faCaretUp,
+    faCheck,
+    faChevronLeft,
+    faChevronRight,
+    faCircle,
+    faCircleInfo,
+    faDownload,
+    faEllipsis,
+    faGripVertical,
+    faMinus,
+    faPlus,
+    faTriangleExclamation,
+    faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { setIcons } from "@vueda/use/useIcons.js";
@@ -21,6 +36,21 @@ setIcons({
     Checkbox: {
         check: { component: FontAwesomeIcon, props: { icon: faCheck } },
         indeterminate: { component: FontAwesomeIcon, props: { icon: faMinus } },
+    },
+    Default: {
+        caretDown: { component: FontAwesomeIcon, props: { icon: faCaretDown } },
+        caretUp: { component: FontAwesomeIcon, props: { icon: faCaretUp } },
+        check: { component: FontAwesomeIcon, props: { icon: faCheck } },
+        chevronLeft: { component: FontAwesomeIcon, props: { icon: faChevronLeft } },
+        chevronRight: { component: FontAwesomeIcon, props: { icon: faChevronRight } },
+        circle: { component: FontAwesomeIcon, props: { icon: faCircle } },
+        close: { component: FontAwesomeIcon, props: { icon: faXmark } },
+        download: { component: FontAwesomeIcon, props: { icon: faDownload } },
+        ellipsis: { component: FontAwesomeIcon, props: { icon: faEllipsis } },
+        gripVertical: { component: FontAwesomeIcon, props: { icon: faGripVertical } },
+        info: { component: FontAwesomeIcon, props: { icon: faCircleInfo } },
+        plus: { component: FontAwesomeIcon, props: { icon: faPlus } },
+        triangleExclamation: { component: FontAwesomeIcon, props: { icon: faTriangleExclamation } },
     },
 });
 

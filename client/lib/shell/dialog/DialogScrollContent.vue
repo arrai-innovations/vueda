@@ -1,5 +1,6 @@
 <script setup>
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { DialogClose, DialogContent, DialogOverlay, DialogPortal } from "reka-ui";
@@ -42,6 +43,7 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("DialogScrollContent", props);
+const icon = useIcons("DialogScrollContent");
 </script>
 
 <template>
@@ -64,7 +66,14 @@ const theme = useTheme("DialogScrollContent", props);
 
                 <DialogClose :class="theme('close')">
                     <!-- Replaces the close-button icon; receives no slot props. -->
-                    <slot name="close-icon">✕</slot>
+                    <slot name="close-icon">
+                        <component
+                            :is="icon('close').component"
+                            v-if="icon('close')"
+                            v-bind="icon('close').props"
+                            aria-hidden="true"
+                        />
+                    </slot>
                     <span class="sr-only">Close</span>
                 </DialogClose>
             </DialogContent>

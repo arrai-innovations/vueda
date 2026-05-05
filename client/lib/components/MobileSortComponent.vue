@@ -9,6 +9,7 @@ import Drawer from "@vueda/shell/drawer/Drawer.vue";
 import DrawerContent from "@vueda/shell/drawer/DrawerContent.vue";
 import DrawerHeader from "@vueda/shell/drawer/DrawerHeader.vue";
 import DrawerTitle from "@vueda/shell/drawer/DrawerTitle.vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { computed } from "vue";
@@ -101,6 +102,7 @@ const toggleDirection = (index) => {
 const sortedCount = computed(() => props.sorted.length);
 const sortedCountBadge = computed(() => (sortedCount.value ? String(sortedCount.value) : undefined));
 const theme = useTheme("MobileSortComponent", props);
+const icon = useIcons("MobileSortComponent");
 </script>
 <template>
     <!-- Button that opens the sort drawer; receives `label`, `size`, `severity`, and `badge` as slot props. -->
@@ -145,8 +147,15 @@ const theme = useTheme("MobileSortComponent", props);
                         <div v-for="item in computedSorted" :key="item.field" :class="theme('draggableItem')">
                             <div :class="theme('draggableItemInner')">
                                 <!-- Drag handle shown for each sort row; receives `class` and `text` as slot props. -->
-                                <slot name="drag-handle" :class="theme('dragHandle')" text="⋮⋮">
-                                    <span :class="theme('dragHandle')">⋮⋮</span>
+                                <slot name="drag-handle" :class="theme('dragHandle')">
+                                    <span :class="theme('dragHandle')">
+                                        <component
+                                            :is="icon('gripVertical').component"
+                                            v-if="icon('gripVertical')"
+                                            v-bind="icon('gripVertical').props"
+                                            aria-hidden="true"
+                                        />
+                                    </span>
                                 </slot>
                                 <span :class="theme('sortOrderText')">{{ item.index + 1 }}</span>
                                 <Select

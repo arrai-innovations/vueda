@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit, useVModel } from "@vueuse/core";
 
@@ -31,6 +32,7 @@ const modelValue = useVModel(props, "modelValue", emit, {
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
 const theme = useTheme("NativeSelect", props);
+const icon = useIcons("NativeSelect");
 </script>
 
 <template>
@@ -46,11 +48,16 @@ const theme = useTheme("NativeSelect", props);
         <!-- Replaces the dropdown chevron icon; receives no slot props. -->
         <slot name="icon">
             <span
-                class="text-muted-foreground pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-center leading-4 opacity-50 select-none"
+                class="text-muted-foreground pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-center leading-4 opacity-50"
                 aria-hidden="true"
                 data-slot="native-select-icon"
-                >▾</span
             >
+                <component
+                    :is="icon('caretDown').component"
+                    v-if="icon('caretDown')"
+                    v-bind="icon('caretDown').props"
+                />
+            </span>
         </slot>
     </div>
 </template>

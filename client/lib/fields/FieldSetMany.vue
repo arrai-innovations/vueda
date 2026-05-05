@@ -4,6 +4,7 @@ import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
 import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { watchIfDev } from "@vueda/utils/dev.js";
 import { computed, useAttrs } from "vue";
@@ -59,6 +60,7 @@ const onDestroy = (index) => {
     fieldContext.state.value = (fieldContext.state.value ?? []).filter((_, i) => i !== index);
 };
 const theme = useTheme("FieldSetMany", props);
+const icon = useIcons("FieldSetMany");
 </script>
 <template>
     <div data-qa="field-set-many">
@@ -90,7 +92,12 @@ const theme = useTheme("FieldSetMany", props);
                             <!-- @slot [destroy] Override the delete button for a row. -->
                             <slot name="destroy" @click="onDestroy(index)">
                                 <Button variant="ghost" size="icon-sm" @click="onDestroy(index)">
-                                    <span aria-hidden="true" class="select-none">✕</span>
+                                    <component
+                                        :is="icon('close').component"
+                                        v-if="icon('close')"
+                                        v-bind="icon('close').props"
+                                        aria-hidden="true"
+                                    />
                                     <span class="sr-only">Remove entry</span>
                                 </Button>
                             </slot>

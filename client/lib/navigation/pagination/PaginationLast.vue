@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { PaginationLast, useForwardProps } from "reka-ui";
@@ -31,13 +32,19 @@ const props = defineProps({
 const delegatedProps = reactiveOmit(props, "class", "size", "themeOverride");
 const forwarded = useForwardProps(delegatedProps);
 const theme = useTheme("NavigationPaginationNavButton", props);
+const icon = useIcons("PaginationLast");
 </script>
 
 <template>
     <PaginationLast data-slot="pagination-last" :class="[theme('root'), props.class]" v-bind="forwarded">
         <slot>
             <span class="hidden sm:block">Last</span>
-            <span aria-hidden="true" class="select-none">›</span>
+            <component
+                :is="icon('chevronRight').component"
+                v-if="icon('chevronRight')"
+                v-bind="icon('chevronRight').props"
+                aria-hidden="true"
+            />
         </slot>
     </PaginationLast>
 </template>

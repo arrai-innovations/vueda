@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { NavigationMenuTrigger, useForwardProps } from "reka-ui";
@@ -26,6 +27,7 @@ const props = defineProps({
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwardedProps = useForwardProps(delegatedProps);
 const theme = useTheme("NavigationMenuTrigger", props);
+const icon = useIcons("NavigationMenuTrigger");
 </script>
 
 <template>
@@ -38,7 +40,12 @@ const theme = useTheme("NavigationMenuTrigger", props);
         <span
             class="relative top-[1px] ml-1 size-3 transition duration-300 group-data-[state=open]:rotate-180"
             aria-hidden="true"
-            ><slot name="icon">▼</slot></span
-        >
+            ><slot name="icon">
+                <component
+                    :is="icon('caretDown').component"
+                    v-if="icon('caretDown')"
+                    v-bind="icon('caretDown').props"
+                /> </slot
+        ></span>
     </NavigationMenuTrigger>
 </template>

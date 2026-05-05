@@ -119,7 +119,10 @@ export function useIcons(componentName) {
         if (override?.[componentName]?.[iconName]) {
             return override[componentName][iconName];
         }
-        return defaultRegistry[componentName]?.[iconName] ?? null;
+        if (override?.Default?.[iconName]) {
+            return override.Default[iconName];
+        }
+        return defaultRegistry[componentName]?.[iconName] ?? defaultRegistry.Default?.[iconName] ?? null;
     };
 }
 

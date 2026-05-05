@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
@@ -16,11 +17,14 @@ const props = defineProps({
 });
 
 const theme = useTheme("BreadcrumbEllipsis", props);
+const icon = useIcons("BreadcrumbEllipsis");
 </script>
 
 <template>
     <span data-slot="breadcrumb-ellipsis" role="presentation" aria-hidden="true" :class="[theme('root'), props.class]">
-        <slot name="icon">…</slot>
+        <slot name="icon">
+            <component :is="icon('ellipsis').component" v-if="icon('ellipsis')" v-bind="icon('ellipsis').props" />
+        </slot>
         <span :class="theme('label')">More</span>
     </span>
 </template>

@@ -12,6 +12,7 @@ import ComboboxTrigger from "@vueda/controls/combobox/ComboboxTrigger.vue";
 import ComboboxViewport from "@vueda/controls/combobox/ComboboxViewport.vue";
 import ComboboxVirtualizer from "@vueda/controls/combobox/ComboboxVirtualizer.vue";
 import { useComboboxSearch } from "@vueda/use/useComboboxSearch.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
@@ -174,6 +175,7 @@ const handleOpenChange = (open) => {
 };
 
 const theme = useTheme("WidgetCombobox", props);
+const icon = useIcons("WidgetCombobox");
 </script>
 <template>
     <template v-if="props.readonly">
@@ -212,7 +214,13 @@ const theme = useTheme("WidgetCombobox", props);
                 <span v-else class="text-muted-foreground">{{ effectivePlaceholder }}</span>
                 <!-- Replaces the dropdown chevron icon; receives no slot props. -->
                 <slot name="icon">
-                    <span aria-hidden="true" class="size-4 text-center leading-4 opacity-50 select-none">▾</span>
+                    <component
+                        :is="icon('caretDown').component"
+                        v-if="icon('caretDown')"
+                        v-bind="icon('caretDown').props"
+                        aria-hidden="true"
+                        class="opacity-50"
+                    />
                 </slot>
             </ComboboxTrigger>
         </ComboboxAnchor>
@@ -237,7 +245,12 @@ const theme = useTheme("WidgetCombobox", props);
                         >
                             {{ item[comboboxSearch.optionLabel] }}
                             <ComboboxItemIndicator>
-                                <span aria-hidden="true" class="select-none">✓</span>
+                                <component
+                                    :is="icon('check').component"
+                                    v-if="icon('check')"
+                                    v-bind="icon('check').props"
+                                    aria-hidden="true"
+                                />
                             </ComboboxItemIndicator>
                         </ComboboxItem>
                     </ComboboxGroup>
@@ -254,7 +267,12 @@ const theme = useTheme("WidgetCombobox", props);
                     >
                         {{ isApiMode ? option[comboboxSearch.optionLabel] : option[props.optionLabel] }}
                         <ComboboxItemIndicator>
-                            <span aria-hidden="true" class="select-none">✓</span>
+                            <component
+                                :is="icon('check').component"
+                                v-if="icon('check')"
+                                v-bind="icon('check').props"
+                                aria-hidden="true"
+                            />
                         </ComboboxItemIndicator>
                     </ComboboxItem>
                 </ComboboxVirtualizer>

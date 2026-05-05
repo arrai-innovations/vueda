@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { SelectIcon, SelectTrigger, useForwardProps } from "reka-ui";
@@ -33,6 +34,7 @@ const delegatedProps = reactiveOmit(props, "class", "size", "themeOverride");
 const forwardedProps = useForwardProps(delegatedProps);
 
 const theme = useTheme("SelectTrigger", props);
+const icon = useIcons("SelectTrigger");
 </script>
 
 <template>
@@ -46,7 +48,13 @@ const theme = useTheme("SelectTrigger", props);
         <SelectIcon as-child>
             <!-- Replaces the dropdown chevron icon; receives no slot props. -->
             <slot name="icon">
-                <span aria-hidden="true" class="size-4 opacity-50 select-none text-center leading-4">▾</span>
+                <component
+                    :is="icon('caretDown').component"
+                    v-if="icon('caretDown')"
+                    v-bind="icon('caretDown').props"
+                    aria-hidden="true"
+                    class="size-4 opacity-50"
+                />
             </slot>
         </SelectIcon>
     </SelectTrigger>

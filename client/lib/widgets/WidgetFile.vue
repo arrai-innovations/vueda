@@ -1,6 +1,7 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
 import FileUpload from "@vueda/controls/file-upload/FileUpload.vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
@@ -34,6 +35,7 @@ const widgetContext = useWidget(props, emit);
 /** @type {import('@vueda/use/useField.js').FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
 const theme = useWidgetTheme("WidgetFile", props, widgetContext.state);
+const icon = useIcons("WidgetFile");
 
 if (fieldContext) {
     watch(
@@ -89,11 +91,21 @@ const fileURL = computed(() => {
                 <a :class="theme('link')" :href="fileURL">{{ fileName }}</a>
                 <div :class="theme('buttonGroup')">
                     <Button variant="ghost" size="icon-sm" data-qa="file-remove" @click="onRemoveFile">
-                        <span aria-hidden="true" class="select-none">✕</span>
+                        <component
+                            :is="icon('close').component"
+                            v-if="icon('close')"
+                            v-bind="icon('close').props"
+                            aria-hidden="true"
+                        />
                         <span class="sr-only">Remove file</span>
                     </Button>
                     <Button variant="ghost" size="icon-sm" data-qa="file-download" @click="onDownload">
-                        <span aria-hidden="true" class="select-none">⇩</span>
+                        <component
+                            :is="icon('download').component"
+                            v-if="icon('download')"
+                            v-bind="icon('download').props"
+                            aria-hidden="true"
+                        />
                         <span class="sr-only">Download file</span>
                     </Button>
                 </div>

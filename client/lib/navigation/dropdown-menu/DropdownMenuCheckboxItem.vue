@@ -1,5 +1,6 @@
 <script setup>
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { DropdownMenuCheckboxItem, DropdownMenuItemIndicator } from "reka-ui";
@@ -38,6 +39,7 @@ const emits = defineEmits({
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("DropdownMenuCheckboxItem", props);
+const icon = useIcons("DropdownMenuCheckboxItem");
 </script>
 
 <template>
@@ -48,7 +50,14 @@ const theme = useTheme("DropdownMenuCheckboxItem", props);
     >
         <span :class="theme('indicator')">
             <DropdownMenuItemIndicator>
-                <slot name="check-icon">✓</slot>
+                <slot name="check-icon">
+                    <component
+                        :is="icon('check').component"
+                        v-if="icon('check')"
+                        v-bind="icon('check').props"
+                        aria-hidden="true"
+                    />
+                </slot>
             </DropdownMenuItemIndicator>
         </span>
         <slot />

@@ -1,5 +1,6 @@
 <script setup>
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ContextMenuItemIndicator, ContextMenuRadioItem } from "reka-ui";
@@ -36,13 +37,21 @@ const emits = defineEmits({
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("ContextMenuRadioItem", props);
+const icon = useIcons("ContextMenuRadioItem");
 </script>
 
 <template>
     <ContextMenuRadioItem data-slot="context-menu-radio-item" v-bind="forwarded" :class="[theme('root'), props.class]">
         <span :class="theme('indicator')">
             <ContextMenuItemIndicator>
-                <slot name="indicator">•</slot>
+                <slot name="indicator">
+                    <component
+                        :is="icon('circle').component"
+                        v-if="icon('circle')"
+                        v-bind="icon('circle').props"
+                        aria-hidden="true"
+                    />
+                </slot>
             </ContextMenuItemIndicator>
         </span>
         <slot />

@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { PaginationEllipsis } from "reka-ui";
@@ -22,13 +23,19 @@ const props = defineProps({
 });
 
 const theme = useTheme("PaginationEllipsis", props);
+const icon = useIcons("PaginationEllipsis");
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 </script>
 
 <template>
     <PaginationEllipsis data-slot="pagination-ellipsis" v-bind="delegatedProps" :class="[theme('root'), props.class]">
         <slot>
-            <span aria-hidden="true" class="select-none">⋯</span>
+            <component
+                :is="icon('ellipsis').component"
+                v-if="icon('ellipsis')"
+                v-bind="icon('ellipsis').props"
+                aria-hidden="true"
+            />
             <span class="sr-only">More pages</span>
         </slot>
     </PaginationEllipsis>

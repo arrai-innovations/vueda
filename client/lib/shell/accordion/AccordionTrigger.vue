@@ -1,4 +1,5 @@
 <script setup>
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { AccordionHeader, AccordionTrigger } from "reka-ui";
@@ -25,6 +26,7 @@ const props = defineProps({
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const theme = useTheme("AccordionTrigger", props);
+const icon = useIcons("AccordionTrigger");
 </script>
 
 <template>
@@ -32,7 +34,14 @@ const theme = useTheme("AccordionTrigger", props);
         <AccordionTrigger data-slot="accordion-trigger" v-bind="delegatedProps" :class="[theme('root'), props.class]">
             <slot />
             <slot name="icon">
-                <span :class="theme('icon')">▼</span>
+                <span :class="theme('icon')">
+                    <component
+                        :is="icon('caretDown').component"
+                        v-if="icon('caretDown')"
+                        v-bind="icon('caretDown').props"
+                        aria-hidden="true"
+                    />
+                </span>
             </slot>
         </AccordionTrigger>
     </AccordionHeader>
