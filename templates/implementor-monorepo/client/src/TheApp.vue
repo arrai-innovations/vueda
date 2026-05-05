@@ -1,8 +1,8 @@
 <script setup>
-import FeedbackToaster from "@vueda/feedback/toast/FeedbackToaster.vue";
+import Sonner from "@vueda/feedback/toast/Sonner.vue";
 </script>
 
 <template>
-    <FeedbackToaster />
+    <Sonner />
     <RouterView />
 </template>
