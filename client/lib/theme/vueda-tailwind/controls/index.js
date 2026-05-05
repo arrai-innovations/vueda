@@ -368,13 +368,17 @@ export default {
     InputOTPSlot: {
         root: {
             class: [
-                "dark:bg-input/30 border-hairline border-input relative flex h-vueda-control w-vueda-control items-center justify-center text-sm shadow-vueda-control transition-all first:rounded-l-md last:rounded-r-md [&:not(:first-child)]:[margin-left:calc(-1*var(--vueda-hairline-width))] data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:focus-ring aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:focus-ring-destructive",
+                "dark:bg-input/30 border-hairline border-input relative flex h-vueda-control w-vueda-control items-center justify-center text-sm shadow-vueda-control transition-all first:rounded-l-md last:rounded-r-md [&:not(:first-child)]:[margin-left:calc(-1*var(--vueda-hairline-width))] data-[active=true]:z-10 data-[active=true]:border-ring aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive",
             ],
         },
     },
     InputOTP: {
         root: {
-            class: ["flex items-center gap-2 has-disabled:opacity-50"],
+            class: [
+                "flex items-center gap-2 has-disabled:opacity-50",
+                "has-[[data-active=true]]:focus-ring",
+                "aria-invalid:has-[[data-active=true]]:focus-ring-destructive",
+            ],
         },
     },
     NativeSelect: {
