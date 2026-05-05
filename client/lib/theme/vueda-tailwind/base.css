@@ -62,10 +62,9 @@
 /* vueda assumes `dark:` works like this */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* during dark mode transitions, we might want `!no-transition [&_*]:!no-transition` classes on the
-   document element */
-.no-transition * {
-    transition: none !important;
+/* during dark mode transitions, apply `!no-transition [&_*]:!no-transition` on the document element */
+@utility no-transition {
+    transition: none;
 }
 
 /* `hairline` paints a uniform inset box-shadow at the chosen color, sized by
