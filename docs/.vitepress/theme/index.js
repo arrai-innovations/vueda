@@ -4,7 +4,10 @@ import GlossaryTerm from "./components/GlossaryTerm.vue";
 import "./showcase.css";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
+import { faCheck, faMinus } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import { setIcons } from "@vueda/use/useIcons.js";
 import { setTheme } from "@vueda/use/useTheme.js";
 import throttle from "lodash-es/throttle.js";
 import { useData } from "vitepress";
@@ -14,6 +17,12 @@ import { defineComponent, h, watch } from "vue";
 faConfig.autoAddCss = false;
 
 setTheme(vuedaTailwind);
+setIcons({
+    Checkbox: {
+        check: { component: FontAwesomeIcon, props: { icon: faCheck } },
+        indeterminate: { component: FontAwesomeIcon, props: { icon: faMinus } },
+    },
+});
 
 const DarkModeTransitionGuard = defineComponent({
     setup() {

@@ -1,5 +1,6 @@
 <script setup>
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { CheckboxIndicator, CheckboxRoot } from "reka-ui";
@@ -47,6 +48,7 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
 const theme = useTheme("Checkbox", props);
+const icon = useIcons("Checkbox");
 </script>
 
 <template>
@@ -56,8 +58,18 @@ const theme = useTheme("Checkbox", props);
             class="grid place-content-center text-current transition-none"
         >
             <slot v-bind="slotProps">
-                <span v-if="slotProps.state === 'indeterminate'" aria-hidden="true" class="select-none">−</span>
-                <span v-else aria-hidden="true" class="select-none">✓</span>
+                <component
+                    :is="icon('indeterminate').component"
+                    v-if="slotProps.state === 'indeterminate' && icon('indeterminate')"
+                    v-bind="icon('indeterminate').props"
+                    aria-hidden="true"
+                />
+                <component
+                    :is="icon('check').component"
+                    v-else-if="icon('check')"
+                    v-bind="icon('check').props"
+                    aria-hidden="true"
+                />
             </slot>
         </CheckboxIndicator>
     </CheckboxRoot>
