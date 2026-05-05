@@ -83,6 +83,9 @@
 @utility hairline {
     --vueda-hairline-shadow: inset 0 0 0 var(--vueda-hairline-width) var(--vueda-hairline-color, var(--input));
     box-shadow: var(--vueda-hairline-shadow), var(--vueda-focus-shadow, 0 0 0 0 transparent);
+    @media (forced-colors: active) {
+        border: 1px solid ButtonBorder;
+    }
 }
 @utility hairline-input {
     --vueda-hairline-color: var(--input);
@@ -152,15 +155,24 @@
  * `--vueda-focus-shadow`, so both declarations resolve identically
  * regardless of CSS cascade order.
  *
- * Forced-colors (Windows High Contrast): box-shadow is suppressed by the
- * browser in forced-colors mode. TODO: add a @media (forced-colors: active)
- * layer that restores outline. */
+ * Forced-colors (Windows High Contrast): the browser zeroes out box-shadow in
+ * forced-colors mode, so the nested @media block restores a plain outline using
+ * system color keywords. `ButtonText` is guaranteed to contrast against
+ * `ButtonFace` (the control background color in forced-colors mode) regardless
+ * of which High Contrast theme the user has chosen. Fixed 2px width and 2px
+ * offset — no DPR stepping needed since forced-colors environments handle their
+ * own contrast and pixel geometry. */
 @utility focus-ring-shadow {
+    outline: none;
     --vueda-focus-shadow:
         0 0 0 var(--vueda-focus-ring-offset) var(--vueda-focus-ring-gap-color, var(--background)),
         0 0 0 calc(var(--vueda-focus-ring-offset) + var(--vueda-focus-ring-width))
             var(--vueda-focus-ring-color, var(--ring));
     box-shadow: var(--vueda-hairline-shadow, 0 0 0 0 transparent), var(--vueda-focus-shadow);
+    @media (forced-colors: active) {
+        outline: 2px solid ButtonText;
+        outline-offset: 2px;
+    }
 }
 @utility focus-ring-shadow-destructive {
     --vueda-focus-ring-color: var(--destructive);
