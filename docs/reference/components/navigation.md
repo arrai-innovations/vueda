@@ -61,7 +61,7 @@ Theme keys: {@api theme-key:BreadcrumbList}, {@api theme-key:BreadcrumbItem},
 {@api theme-key:BreadcrumbLink}, {@api theme-key:BreadcrumbPage},
 {@api theme-key:BreadcrumbSeparator}, {@api theme-key:BreadcrumbEllipsis}.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       anatomy
@@ -141,7 +141,7 @@ Theme keys: {@api theme-key:BreadcrumbList}, {@api theme-key:BreadcrumbItem},
       <span class="whitespace-nowrap">page: aria-current="page", aria-disabled</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Pagination
 
@@ -154,7 +154,7 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
 {@api theme-key:PaginationItem}, {@api theme-key:NavigationPaginationNavButton},
 {@api theme-key:PaginationEllipsis}.
 
-<div class="not-prose grid gap-6">
+<VuedaDemo class="grid gap-6">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       default <span class="font-normal normal-case">(sibling-count=1, page 5 of 10)</span>
@@ -222,7 +222,7 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
       <span class="whitespace-nowrap">disabled: pointer-events-none, opacity-50 on all items</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## NavigationMenu
 
@@ -236,7 +236,7 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
 {@api theme-key:NavigationMenuLink}, {@api theme-key:NavigationMenuViewport},
 {@api theme-key:NavigationMenuIndicator}.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       trigger states
@@ -299,7 +299,7 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
       <span class="whitespace-nowrap">hover/focus link: bg <code>--accent</code></span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Menubar
 
@@ -314,7 +314,7 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
 {@api theme-key:MenubarCheckboxItem}, {@api theme-key:MenubarRadioItem},
 {@api theme-key:MenubarShortcut}.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       bar &amp; trigger states
@@ -393,4 +393,4 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       <span class="whitespace-nowrap">disabled: opacity-50 pointer-events-none</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>

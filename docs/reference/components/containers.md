@@ -89,7 +89,7 @@ Token surface: {@api css-token:card} (fill),
 (stroke), {@api css-token:vueda-card-radius} (corners),
 {@api css-token:vueda-shadow-card} (drop).
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       header + content
@@ -238,7 +238,7 @@ Token surface: {@api css-token:card} (fill),
       <span class="whitespace-nowrap">the shell is the whole component; no header required</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Accordion
 
@@ -253,7 +253,7 @@ the base layer.
 Theme keys: {@api theme-key:Accordion}, {@api theme-key:AccordionItem},
 {@api theme-key:AccordionTrigger}, {@api theme-key:AccordionContent}.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       FAQ pattern — single, collapsible
@@ -311,7 +311,7 @@ Theme keys: {@api theme-key:Accordion}, {@api theme-key:AccordionItem},
       <span class="whitespace-nowrap">disabled trigger: <code>opacity 50</code>, no pointer events</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Collapsible
 
@@ -322,7 +322,7 @@ component contributes show / hide behavior and `data-state` attributes, and
 the consumer brings the chrome. Use it when you want disclosure without
 the FAQ-style row treatment of {@api theme-key:Accordion}.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       bare — closed
@@ -366,7 +366,7 @@ the FAQ-style row treatment of {@api theme-key:Accordion}.
       <span class="whitespace-nowrap"><code>data-state</code> on trigger and panel drives the chrome</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Item / ItemGroup
 
@@ -384,7 +384,7 @@ auxiliary rows. {@api theme-key:ItemGroup} is a vertical flex column;
 The default Item is `bg-transparent`; an `is-link` (or anchor) item raises
 to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       variants — default · outline · muted
@@ -532,7 +532,7 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
       <span class="whitespace-nowrap">outer border belongs to the parent; items stay default (transparent)</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Stepper
 
@@ -550,7 +550,7 @@ Theme keys: {@api theme-key:Stepper}, {@api theme-key:StepperItem},
 {@api theme-key:StepperTitle}, {@api theme-key:StepperDescription},
 {@api theme-key:StepperSeparator}.
 
-<div class="not-prose flex flex-col gap-6">
+<VuedaDemo class="flex flex-col gap-6">
   <section class="flex flex-col gap-3">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       4 steps — completed · completed · active · future
@@ -625,7 +625,7 @@ Theme keys: {@api theme-key:Stepper}, {@api theme-key:StepperItem},
       <span class="whitespace-nowrap">disabled propagates opacity 50 to indicator + trailing separator</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## ScrollArea
 
@@ -638,7 +638,7 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
 {@api theme-key:ScrollBar} (track + thumb). The thumb reads from
 {@api css-token:border}.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       vertical
@@ -700,7 +700,7 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
       <span class="whitespace-nowrap">card's rounded corners clip the scroll viewport</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Separator
 
@@ -714,7 +714,7 @@ Theme key: {@api theme-key:Separator}. The default theme does not ship a
 labeled "OR" variant; compose two separators around a span when you need
 one.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       horizontal — section break
@@ -762,4 +762,4 @@ one.
       <span class="whitespace-nowrap">Separator does not ship a labeled variant; compose two with a span between</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>

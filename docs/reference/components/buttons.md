@@ -58,7 +58,7 @@ or {@api theme-key:\_ButtonLink} per variant. To restyle every button-shaped
 surface in the app (calendar day cells, pagination items, dialog actions),
 override the matching `_Button*` meta key rather than `Button` itself.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       default <span class="font-normal normal-case">(primary CTA)</span>
@@ -264,7 +264,7 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <span class="whitespace-nowrap">use inside running text, not toolbars</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## ButtonGroup: composition matrix
 
@@ -280,7 +280,7 @@ Theme keys: {@api theme-key:ButtonGroup},
 override applied via the parent's data attributes, so re-skinning the seam
 means editing these keys, not the token layer.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       horizontal · outline
@@ -363,7 +363,7 @@ means editing these keys, not the token layer.
       use a separator when peer actions are co-equal but not interchangeable
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Toggle: state matrix
 
@@ -376,7 +376,7 @@ Theme key: {@api theme-key:Toggle}. The pressed surface reads from
 that drives hover on ghost and outline buttons; rebranding the accent shifts
 all three in lockstep.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       default
@@ -456,7 +456,7 @@ all three in lockstep.
       <span class="whitespace-nowrap">on fg <code>--accent-foreground</code></span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## ToggleGroup: composition matrix
 
@@ -468,7 +468,7 @@ Theme keys: {@api theme-key:ToggleGroup},
 {@api theme-key:ToggleGroupItem}. Items compose from the Toggle key, so a
 restyle of {@api theme-key:Toggle} flows through here automatically.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       single · default spacing
@@ -510,7 +510,7 @@ restyle of {@api theme-key:Toggle} flows through here automatically.
       any combination selectable, each item toggles independently
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Switch: state matrix
 
@@ -523,7 +523,7 @@ Theme key: {@api theme-key:Switch}. Token surface: {@api css-token:input}
 {@api css-token:primary} reads as a _fill_ rather than as a CTA; verify the
 on-track contrast against the thumb when retoning primary.
 
-<div class="not-prose">
+<VuedaDemo>
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <div class="grid grid-cols-[auto_repeat(4,minmax(0,1fr))] items-center gap-x-3 gap-y-2">
       <div></div>
@@ -549,7 +549,7 @@ on-track contrast against the thumb when retoning primary.
       <span class="whitespace-nowrap">ring <code>--ring</code></span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Kbd: content & composition
 
@@ -562,7 +562,7 @@ mono stack ({@api css-token:vueda-font-mono}); the rounded chiclet shape
 follows {@api css-token:vueda-checkbox-radius} so caps match the form-control
 language rather than the slab-control language.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       content
@@ -629,4 +629,4 @@ language rather than the slab-control language.
       pair with a button to surface the keyboard equivalent of the action
     </footer>
   </section>
-</div>
+</VuedaDemo>

@@ -59,7 +59,7 @@ Token surface: {@api css-token:border} (container border),
 {@api css-token:ring} (focus ring), {@api css-token:accent} (active
 segment fill), {@api css-token:muted} (read-only fill).
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       date-only (default)
@@ -166,7 +166,7 @@ segment fill), {@api css-token:muted} (read-only fill).
       <span class="whitespace-nowrap">border <code>--destructive</code></span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## DateRangeField: composition matrix
 
@@ -180,7 +180,7 @@ is the consumer's responsibility and typically rendered as a plain
 Theme keys: {@api theme-key:DateRangeField},
 {@api theme-key:DateRangeFieldInput}. Token surface mirrors DateField.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       default
@@ -256,7 +256,7 @@ Theme keys: {@api theme-key:DateRangeField},
       <span class="whitespace-nowrap">disabled opacity 50</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## TimeField: composition matrix
 
@@ -267,7 +267,7 @@ DateField: `{ segments }` as a flat array, iterated with `TimeFieldInput`.
 Theme keys: {@api theme-key:TimeField}, {@api theme-key:TimeFieldInput}.
 Token surface mirrors DateField.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       24-hour
@@ -357,7 +357,7 @@ Token surface mirrors DateField.
       <span class="whitespace-nowrap">disabled opacity 50</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Calendar: state matrix
 
@@ -374,7 +374,7 @@ Theme keys: {@api theme-key:Calendar}, {@api theme-key:CalendarCell},
 {@api css-token:muted-foreground} (outside-month and disabled cells),
 {@api css-token:destructive} (unavailable cells).
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       default (today highlighted)
@@ -441,7 +441,7 @@ Theme keys: {@api theme-key:Calendar}, {@api theme-key:CalendarCell},
       <span class="whitespace-nowrap">nav buttons and cells not interactive</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## RangeCalendar: state matrix
 
@@ -453,7 +453,7 @@ the rounded-corner transitions at the selection boundaries.
 Theme keys: {@api theme-key:RangeCalendar}, {@api theme-key:RangeCalendarCell},
 {@api theme-key:RangeCalendarCellTrigger}. Token surface mirrors Calendar.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       with range (Apr 10 – Apr 24)
@@ -476,4 +476,4 @@ Theme keys: {@api theme-key:RangeCalendar}, {@api theme-key:RangeCalendarCell},
       <span class="whitespace-nowrap">click to start a selection</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>

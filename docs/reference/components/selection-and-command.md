@@ -82,7 +82,7 @@ Token surface: {@api css-token:border} (trigger stroke),
 {@api css-token:popover} (content fill),
 {@api css-token:accent} (highlighted item fill).
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       trigger states
@@ -266,7 +266,7 @@ Token surface: {@api css-token:border} (trigger stroke),
       <span class="whitespace-nowrap">disabled opacity-50 pointer-events-none</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Combobox
 
@@ -287,7 +287,7 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
 {@api theme-key:ComboboxEmpty}, {@api theme-key:ComboboxSeparator},
 {@api theme-key:ComboboxItemIndicator}.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       anchor + trigger — live; click to open list
@@ -390,7 +390,7 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
       <span class="whitespace-nowrap">empty <code>py-6 text-center text-sm</code></span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Command
 
@@ -412,7 +412,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
 {@api theme-key:CommandEmpty}, {@api theme-key:CommandSeparator},
 {@api theme-key:CommandDialog}.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       inline palette — groups, shortcuts, separator; type to filter live
@@ -558,4 +558,4 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
       <span class="whitespace-nowrap">slot content goes directly into Command root</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>

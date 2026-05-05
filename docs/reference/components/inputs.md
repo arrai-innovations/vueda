@@ -75,7 +75,7 @@ input).
 Theme key: {@api theme-key:Label}. Typography reads from
 {@api css-token:vueda-text-body} (13 px) at weight 500.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       content
@@ -109,7 +109,7 @@ Theme key: {@api theme-key:Label}. Typography reads from
       <span class="whitespace-nowrap"><code>peer-disabled:opacity-50</code> cascades from sibling input</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Input: state matrix
 
@@ -124,7 +124,7 @@ Theme key: {@api theme-key:Input}. Token surface: {@api css-token:input}
 outline), {@api css-token:destructive} (invalid outline),
 {@api css-token:muted} (read-only fill).
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       validation states
@@ -189,7 +189,7 @@ outline), {@api css-token:destructive} (invalid outline),
       <span class="whitespace-nowrap">password masking comes from the browser</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Textarea: state matrix
 
@@ -200,7 +200,7 @@ so the box grows with its content rather than scrolling internally.
 
 Theme key: {@api theme-key:Textarea}. Token surface mirrors Input.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       validation states
@@ -241,7 +241,7 @@ Theme key: {@api theme-key:Textarea}. Token surface mirrors Input.
       <span class="whitespace-nowrap">resize disabled (height comes from content)</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## NativeSelect: state matrix
 
@@ -254,7 +254,7 @@ Theme keys: {@api theme-key:NativeSelect},
 {@api theme-key:NativeSelectOptGroup}. The chevron color reads from
 {@api css-token:muted-foreground} at 50% opacity.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       default
@@ -330,7 +330,7 @@ Theme keys: {@api theme-key:NativeSelect},
       <span class="whitespace-nowrap">wrapper opacity 50 when select disabled</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## NumberField: state matrix
 
@@ -345,7 +345,7 @@ Theme keys: {@api theme-key:NumberField},
 {@api theme-key:NumberFieldInput}. Numerals render as `tabular-nums` so
 columns of values stay aligned.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       default
@@ -426,7 +426,7 @@ columns of values stay aligned.
       <span class="whitespace-nowrap">opacity 50 across input and steppers</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## Checkbox: state matrix
 
@@ -440,7 +440,7 @@ Theme key: {@api theme-key:Checkbox}. The body is a 16 × 16 chiclet at
 the 2 px slab {@api css-token:vueda-control-radius} so the box reads as a
 chit rather than a miniature input next to its label.
 
-<div class="not-prose">
+<VuedaDemo>
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <div class="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-4 gap-y-2 items-center">
       <div></div>
@@ -477,7 +477,7 @@ chit rather than a miniature input next to its label.
       <span class="whitespace-nowrap">invalid + checked bg <code>--destructive</code></span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## RadioGroup: state matrix
 
@@ -489,7 +489,7 @@ Theme keys: {@api theme-key:RadioGroup},
 {@api theme-key:RadioGroupItem}. The selected dot is a geometric circle
 inside the item, not a glyph, so it stays stable across font hydration.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       vertical
@@ -562,7 +562,7 @@ inside the item, not a glyph, so it stays stable across font hydration.
       <span class="whitespace-nowrap">invalid border <code>--destructive</code></span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## TagsInput: composition matrix
 
@@ -580,7 +580,7 @@ Theme keys: {@api theme-key:TagsInput},
 {@api css-token:vueda-chip-height} (20 px), the fourth step of the
 control-height ladder below sm.
 
-<div class="not-prose grid gap-6">
+<VuedaDemo class="grid gap-6">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       with chips
@@ -642,7 +642,7 @@ control-height ladder below sm.
       <span class="whitespace-nowrap">opacity 50 across container, chips, delete buttons</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>
 
 ## InputOTP: composition matrix
 
@@ -659,7 +659,7 @@ Theme keys: {@api theme-key:InputOTP},
 focus surface as Input, with adjacent slots sharing seams via
 `first:rounded-l-md` / `last:rounded-r-md` rules.
 
-<div class="not-prose grid gap-6 sm:grid-cols-2">
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
     <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       6-digit, fresh
@@ -739,4 +739,4 @@ focus surface as Input, with adjacent slots sharing seams via
       <span class="whitespace-nowrap">no caret on disabled slot</span>
     </footer>
   </section>
-</div>
+</VuedaDemo>

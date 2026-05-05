@@ -1,6 +1,7 @@
 import "./brand.css";
 import ForceState from "./components/ForceState.vue";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
+import VuedaDemo from "./components/VuedaDemo.vue";
 import "./showcase.css";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -88,6 +89,7 @@ const theme = {
 
         app.component("GlossaryTerm", GlossaryTerm);
         app.component("ForceState", ForceState);
+        app.component("VuedaDemo", VuedaDemo);
 
         if (typeof window !== "undefined") {
             const { router } = ctx;
