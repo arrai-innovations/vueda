@@ -437,7 +437,7 @@ export default {
             class: ["relative flex items-center justify-center"],
         },
         dot: {
-            class: ["size-2 rounded-full bg-current"],
+            class: ["size-3 rounded-full bg-current"],
         },
     },
     ButtonGroup: {
