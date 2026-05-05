@@ -81,7 +81,8 @@
  * utilities below instead, which set `border-*-width` to the same DPR-keyed
  * token. Cannot mix `hairline` and `border-*` on the same element. */
 @utility hairline {
-    box-shadow: inset 0 0 0 var(--vueda-hairline-width) var(--vueda-hairline-color, var(--input));
+    --vueda-hairline-shadow: inset 0 0 0 var(--vueda-hairline-width) var(--vueda-hairline-color, var(--input));
+    box-shadow: var(--vueda-hairline-shadow), var(--vueda-focus-shadow, 0 0 0 0 transparent);
 }
 @utility hairline-input {
     --vueda-hairline-color: var(--input);
@@ -136,6 +137,32 @@
     outline-offset: var(--vueda-focus-ring-offset);
 }
 @utility focus-ring-destructive {
+    --vueda-focus-ring-color: var(--destructive);
+}
+
+/* `focus-ring-shadow` is the box-shadow alternative to `focus-ring` (outline).
+ * Use it on elements that already use `hairline` so the border and focus ring
+ * share Skia's path renderer and snap together rather than rasterizing
+ * independently. The gap is painted with `--vueda-focus-ring-gap-color`
+ * (defaults to --background); scope-override on card surfaces via
+ * [--vueda-focus-ring-gap-color:var(--card)].
+ *
+ * The `hairline` utility sets `--vueda-hairline-shadow` and declares
+ * box-shadow using both vars. This utility does the same with
+ * `--vueda-focus-shadow`, so both declarations resolve identically
+ * regardless of CSS cascade order.
+ *
+ * Forced-colors (Windows High Contrast): box-shadow is suppressed by the
+ * browser in forced-colors mode. TODO: add a @media (forced-colors: active)
+ * layer that restores outline. */
+@utility focus-ring-shadow {
+    --vueda-focus-shadow:
+        0 0 0 var(--vueda-focus-ring-offset) var(--vueda-focus-ring-gap-color, var(--background)),
+        0 0 0 calc(var(--vueda-focus-ring-offset) + var(--vueda-focus-ring-width))
+            var(--vueda-focus-ring-color, var(--ring));
+    box-shadow: var(--vueda-hairline-shadow, 0 0 0 0 transparent), var(--vueda-focus-shadow);
+}
+@utility focus-ring-shadow-destructive {
     --vueda-focus-ring-color: var(--destructive);
 }
 
@@ -416,6 +443,10 @@
     --vueda-hairline-width: 2px; /* inset box-shadow width painted by `hairline` */
     --vueda-focus-ring-width: 4px; /* outline width painted by `focus-ring`; always 2x hairline-width */
     --vueda-focus-ring-offset: 4px; /* outline-offset for `focus-ring`; equals hairline-width to keep gap-to-stroke proportions constant */
+    /* Gap color for `focus-ring-shadow`. Defaults to --background; override per
+     * surface (e.g. [--vueda-focus-ring-gap-color:var(--card)]) when the control
+     * sits on a card or other non-background surface. */
+    --vueda-focus-ring-gap-color: var(--background);
 }
 
 /* DPR-keyed overrides for the hairline + focus-ring scale. Must follow the
