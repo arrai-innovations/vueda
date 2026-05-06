@@ -1,7 +1,7 @@
 <script setup>
 import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import FormField from "@vueda/fields/FormField.vue";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
@@ -149,7 +149,7 @@ onBeforeUnmount(clearCooldownTimer);
                         :disabled="loading || timer"
                         @click="handleSendCode"
                     >
-                        <Spinner v-if="loading" />
+                        <LoadingSpinnerInline v-if="loading" />
                         {{
                             timer
                                 ? `Send ${form.values?.method} again in ${cooldownSeconds}s`
@@ -157,7 +157,7 @@ onBeforeUnmount(clearCooldownTimer);
                         }}
                     </Button>
                     <Button :disabled="loading || !form.values?.code" type="submit">
-                        <Spinner v-if="loading" />
+                        <LoadingSpinnerInline v-if="loading" />
                         Verify
                     </Button>
                 </div>

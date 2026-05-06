@@ -125,7 +125,7 @@ vi.mock("@vueda/components/FormModel.vue", () => ({ default: FormModelStub }));
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/feedback/spinner/Spinner.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
 
 vi.mock("vue", async () => {
     const actual = await vi.importActual("vue");

@@ -96,7 +96,7 @@ vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetSelectDropdown.vue", () => ({ default: WidgetSelectDropdownStub }));
 vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/feedback/spinner/Spinner.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
 vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part, THEME_OVERRIDE_PROPS: {} }));
 vi.mock("vue-sonner", () => ({ toast: toastMock }));

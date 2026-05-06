@@ -46,11 +46,6 @@ export default {
             class: "animate-pulse rounded-md bg-primary/10",
         },
     },
-    Spinner: {
-        root: {
-            class: "inline-block size-4 animate-spin select-none",
-        },
-    },
     Sonner: {
         root: {
             class: "toaster group",

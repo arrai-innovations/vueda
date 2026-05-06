@@ -103,9 +103,14 @@ const icon = useIcons("Sonner");
         </template>
         <template #loading-icon>
             <!-- Replaces the loading toast icon; receives no slot props. -->
-            <slot name="loading-icon"
-                ><span aria-hidden="true" class="inline-block animate-spin select-none">◌</span></slot
-            >
+            <slot name="loading-icon">
+                <component
+                    :is="icon('loading').component"
+                    v-if="icon('loading')"
+                    v-bind="icon('loading').props"
+                    aria-hidden="true"
+                />
+            </slot>
         </template>
         <template #close-icon>
             <!-- Replaces the close toast icon; receives no slot props. -->

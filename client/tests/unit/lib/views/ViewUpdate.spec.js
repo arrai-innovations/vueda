@@ -27,8 +27,8 @@ vi.mock("@vueda/components/StickyBar.vue", () => ({
 vi.mock("@vueda/controls/button/Button.vue", () => ({
     default: defineComponent({ name: "Button", template: "<button><slot /></button>" }),
 }));
-vi.mock("@vueda/feedback/spinner/Spinner.vue", () => ({
-    default: defineComponent({ name: "Spinner", template: "<span />" }),
+vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({
+    default: defineComponent({ name: "LoadingSpinnerInline", template: "<span />" }),
 }));
 
 let mockComposableResult;

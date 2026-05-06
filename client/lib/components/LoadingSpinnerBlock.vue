@@ -1,19 +1,18 @@
 <script setup>
-import Spinner from "@vueda/feedback/spinner/Spinner.vue";
-import { inject } from "vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 
 /**
- * Renders a block-level loading spinner. Uses a Spinner by
- * default, but accepts a replacement via the `vuedaLoadingSpinnerBlock`
- * injection key so consuming applications can substitute their own component.
+ * Renders the configured loading icon for block-level loading placeholders. The
+ * icon entry is resolved from `useIcons("LoadingSpinnerBlock")`, falling back
+ * to `Default.loading`.
  */
 defineOptions({});
 
-// Try to inject the provided component, or use the default
-const loadingSpinnerComponent = inject("vuedaLoadingSpinnerBlock", null);
+const icon = useIcons("LoadingSpinnerBlock");
 </script>
 
 <template>
-    <component :is="loadingSpinnerComponent" v-if="loadingSpinnerComponent" />
-    <Spinner v-else />
+    <span v-if="icon('loading')" role="status" aria-label="Loading">
+        <component :is="icon('loading').component" v-bind="icon('loading').props" aria-hidden="true" />
+    </span>
 </template>

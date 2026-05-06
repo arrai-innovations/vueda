@@ -1,8 +1,8 @@
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
 import ClickToCopyText from "@vueda/components/ClickToCopyText.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import FormField from "@vueda/fields/FormField.vue";
 import Dialog from "@vueda/shell/dialog/Dialog.vue";
 import DialogContent from "@vueda/shell/dialog/DialogContent.vue";
@@ -183,7 +183,7 @@ const doAfterSuccess = async (response) => {
             <!-- Replaces the primary submit button; receives `loading` as a slot prop. -->
             <slot name="confirm-button" v-bind="{ loading }">
                 <Button :disabled="loading || form.values?.method == null" type="submit">
-                    <Spinner v-if="loading" />
+                    <LoadingSpinnerInline v-if="loading" />
                     {{ step !== STEPS.CHOOSE ? "Verify Device" : "Choose Device" }}
                 </Button>
             </slot>

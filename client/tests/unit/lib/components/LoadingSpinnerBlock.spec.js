@@ -1,31 +1,48 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import Spinner from "@vueda/feedback/spinner/Spinner.vue";
+import { setIcons } from "@vueda/use/useIcons.js";
 import { defineComponent, h } from "vue";
 
 describe("lib/components/LoadingSpinnerBlock.vue", () => {
     let LoadingSpinnerBlock;
+    const LoadingIcon = defineComponent({
+        name: "LoadingIcon",
+        setup(_, { attrs }) {
+            return () => h("i", { "data-qa": "loading-icon", ...attrs });
+        },
+    });
 
     beforeEach(async () => {
+        setIcons({
+            Default: {
+                loading: { component: LoadingIcon, props: { spin: true } },
+            },
+        });
         LoadingSpinnerBlock = (await import("@vueda/components/LoadingSpinnerBlock.vue")).default;
     });
 
-    scopedIt("renders Spinner by default", () => {
+    scopedIt("renders the configured loading icon", () => {
         const wrapper = mount(LoadingSpinnerBlock);
-        expect(wrapper.findComponent(Spinner).exists()).toBe(true);
+        expect(wrapper.findComponent(LoadingIcon).exists()).toBe(true);
     });
 
-    scopedIt("uses injected component when provided", () => {
+    scopedIt("uses component-specific icon entries when provided", () => {
         const CustomSpinner = defineComponent({
             name: "CustomSpinner",
             setup(_, { attrs }) {
                 return () => h("div", { "data-qa": "custom-spinner", ...attrs });
             },
         });
-        const wrapper = mount(LoadingSpinnerBlock, {
-            global: { provide: { vuedaLoadingSpinnerBlock: CustomSpinner } },
+        setIcons({
+            LoadingSpinnerBlock: {
+                loading: { component: CustomSpinner },
+            },
+            Default: {
+                loading: { component: LoadingIcon },
+            },
         });
+        const wrapper = mount(LoadingSpinnerBlock);
         expect(wrapper.findComponent(CustomSpinner).exists()).toBe(true);
-        expect(wrapper.findComponent(Spinner).exists()).toBe(false);
+        expect(wrapper.findComponent(LoadingIcon).exists()).toBe(false);
     });
 });

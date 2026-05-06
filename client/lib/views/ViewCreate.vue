@@ -2,10 +2,10 @@
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import { useViewCreate } from "@vueda/use/useViewCreate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { onMounted, toRef } from "vue";
@@ -124,7 +124,7 @@ onMounted(() => {
                     type="submit"
                 >
                     <Button :form="instance.formId" :disabled="objectForm.state.loading" type="submit">
-                        <Spinner v-if="objectForm.state.loading" />
+                        <LoadingSpinnerInline v-if="objectForm.state.loading" />
                         Submit
                     </Button>
                 </slot>

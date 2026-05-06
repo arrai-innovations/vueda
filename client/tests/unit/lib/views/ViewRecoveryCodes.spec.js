@@ -80,7 +80,7 @@ vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() 
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part }));
 vi.mock("@vueuse/core", () => ({ useClipboard: () => useClipboardMock() }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/feedback/spinner/Spinner.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
 vi.mock("@vueda/feedback/alert/Alert.vue", () => ({ default: FeedbackAlertStub }));
 vi.mock("@vueda/feedback/alert/AlertDescription.vue", () => ({ default: FeedbackAlertDescriptionStub }));
 

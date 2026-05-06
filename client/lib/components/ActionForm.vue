@@ -1,8 +1,8 @@
 <script setup>
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormMessage from "@vueda/components/FormMessage.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import { useActionForm } from "@vueda/use/useActionForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -129,7 +129,7 @@ const theme = useTheme("ActionForm", props);
                             :disabled="formContext.state.anyError"
                         >
                             <Button type="submit" :disabled="combinedLoading || formContext.state.anyError">
-                                <Spinner v-if="combinedLoading" />
+                                <LoadingSpinnerInline v-if="combinedLoading" />
                                 Yes, continue
                             </Button>
                         </slot>
@@ -142,7 +142,7 @@ const theme = useTheme("ActionForm", props);
                             @click="handleCancelClick"
                         >
                             <Button variant="ghost" :disabled="combinedLoading" @click="handleCancelClick">
-                                <Spinner v-if="combinedLoading" />
+                                <LoadingSpinnerInline v-if="combinedLoading" />
                                 Cancel, go back
                             </Button>
                         </slot>

@@ -1,9 +1,9 @@
 <script setup>
 import AuthForm from "@vueda/components/AuthForm.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Alert from "@vueda/feedback/alert/Alert.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
-import Spinner from "@vueda/feedback/spinner/Spinner.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";
@@ -119,17 +119,17 @@ const theme = useTheme("ViewRecoveryCodes");
                     work anymore.
                 </div>
                 <Button :disabled="loading" type="submit">
-                    <Spinner v-if="loading" />
+                    <LoadingSpinnerInline v-if="loading" />
                     Generate new recovery codes
                 </Button>
                 <Button variant="ghost" :disabled="loading" @click="handleCancelClick">
-                    <Spinner v-if="loading" />
+                    <LoadingSpinnerInline v-if="loading" />
                     Go Back
                 </Button>
             </div>
             <div v-else data-qa="view-recovery-codes-form-action-bar-invalid">
                 <Button :disabled="loading" @click="handleCancelClick">
-                    <Spinner v-if="loading" />
+                    <LoadingSpinnerInline v-if="loading" />
                     Go Back
                 </Button>
             </div>
