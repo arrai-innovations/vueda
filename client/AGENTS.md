@@ -1,6 +1,6 @@
 # Agent Guidelines: `@arrai-innovations/vueda`
 
-This directory contains **`@arrai-innovations/vueda`**, a Vue 3 component library built with **Vite**. Consuming projects use an alias `@vueda` that resolves directly to the `lib/` source directory. This allows customization developers to import uncompiled components and composables.
+This directory contains **`@arrai-innovations/vueda`**, a Vue 3 component library built with **Vite**. Consuming projects use an alias `@vueda` that resolves directly to the `lib/` source directory. This allows customization developers to import uncompiled components and composables. The library source (`lib/`) is **plain JavaScript** (no TypeScript). There are no `.ts` files. Type information is expressed through JSDoc annotations.
 
 ---
 
