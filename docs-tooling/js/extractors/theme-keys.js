@@ -2,10 +2,11 @@
  * Theme keys extraction (structural only, no descriptions).
  *
  * Walks the default-export ObjectExpression of each vueda-tailwind theme
- * source file (controls/index.js, navigation/index.js, shell/index.js, plus
- * the inline entries declared in the top-level index.js) and produces a raw
- * JSON payload describing every theme entry, its slots, statically-resolved
- * `composes` references, and class arrays.
+ * source file and produces a raw JSON payload describing every theme entry,
+ * its slots, statically-resolved `composes` references, and class arrays.
+ *
+ * The extractor does not evaluate imports or spread elements in the top-level
+ * theme index, so category files must be listed explicitly.
  *
  * Function-form slots are flagged but not enumerated (variant-driven).
  */
@@ -17,8 +18,15 @@ import { fileURLToPath } from "node:url";
 
 const DEFAULT_SOURCES = [
     "client/lib/theme/vueda-tailwind/controls/index.js",
+    "client/lib/theme/vueda-tailwind/grid/index.js",
+    "client/lib/theme/vueda-tailwind/objects-grid/index.js",
+    "client/lib/theme/vueda-tailwind/form/index.js",
     "client/lib/theme/vueda-tailwind/navigation/index.js",
     "client/lib/theme/vueda-tailwind/shell/index.js",
+    "client/lib/theme/vueda-tailwind/widgets/index.js",
+    "client/lib/theme/vueda-tailwind/views/index.js",
+    "client/lib/theme/vueda-tailwind/display/index.js",
+    "client/lib/theme/vueda-tailwind/feedback/index.js",
     "client/lib/theme/vueda-tailwind/index.js",
 ];
 
