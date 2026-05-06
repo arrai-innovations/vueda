@@ -1,0 +1,192 @@
+---
+title: ObjectsGrid
+status: brainstorming
+audience: designer
+type: reference
+---
+
+<script setup>
+import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import {
+    faArrowDownLong,
+    faArrowUpLong,
+    faEllipsis,
+    faPen,
+    faSort,
+} from "@fortawesome/free-solid-svg-icons";
+import { ref } from "vue";
+
+const fields = [
+    { name: "account", label: "Account" },
+    { name: "owner", label: "Owner" },
+    { name: "status", label: "Status" },
+    { name: "updated", label: "Updated" },
+    { name: "mrr", label: "MRR" },
+    { name: "actions", label: "" },
+];
+
+const compactFields = fields.slice(0, 5);
+
+const accounts = [
+    { id: 1, account: "Northwind Logistics", owner: "Mara Tani", status: "Active", statusTone: "primary", updated: "2026-04-26 14:08", mrr: "$14,028.50", initials: "NL" },
+    { id: 2, account: "Acme Coffee Roasters", owner: "Jordan Reyes", status: "Renewed", statusTone: "warning", updated: "2026-04-26 09:42", mrr: "$2,440.00", initials: "AC" },
+    { id: 3, account: "Hightower Mfg.", owner: "Priya Subramanian", status: "At risk", statusTone: "primary", updated: "2026-04-25 17:15", mrr: "$8,915.20", initials: "HM" },
+    { id: 4, account: "Pemberton & Vale", owner: "Linnea Borg", status: "Trial", statusTone: null, updated: "2026-04-25 11:02", mrr: "$612.00", initials: "PV" },
+];
+
+const statusClasses = {
+    primary: "border-primary/30 bg-primary/10 text-primary",
+    warning: "border-warning/40 bg-warning/10 text-warning",
+};
+
+const sorted = ref(["-updated"]);
+const multiSorted = ref(["account", "-mrr"]);
+</script>
+
+# ObjectsGrid
+
+ObjectsGrid is VUEDA's native responsive object list, predating the shadcn-vue Table primitives. It is not a wrapper around the `Table` family. One component renders the same dataset as a table above its `tableBreakpoint` and as label/value cards below it.
+
+This page is the visual contract the default skin guarantees for {@api vue:component:ObjectsGrid}, {@api vue:component:ObjectsGridTableHeader}, {@api vue:component:ObjectsGridBodyCell}, {@api vue:component:ObjectsGridCardCell}, {@api vue:component:ObjectsGridBodyCellSkeleton}, and {@api vue:component:ObjectsGridCardCellSkeleton}. Use it as the target when re-skinning. If a row breaks after a customization, the change has crossed from skin into design language.
+
+For how to change any of this, see [Customize VUEDA Appearance](../../guides/customize-vueda-appearance.md). Values belong in [CSS tokens](../theming/tokens.md); compositions belong in [theme keys](../theming/keys.md).
+
+## Table Layout
+
+The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overflow-x-auto`) carries no border or background; those come from the enclosing surface. Header cells use {@api theme-key:ObjectsGridTableHeader} `root`; sortable headers invert to `bg-neutral-600 text-white` on hover. Body cells use {@api theme-key:ObjectsGridBodyCell} `root`, default `h-[3.5rem] px-1 lg:px-2 align-middle` — the 56 px row height is the legacy source default. The demo forces table mode with `tableBreakpoint="xs"`.
+
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+    <span class="font-semibold uppercase tracking-wide">table layout · populated</span>
+    <span class="font-mono">sorted: {{ sorted.join(", ") }}</span>
+  </header>
+  <div class="rounded-md border border-border overflow-hidden">
+    <ClientOnly>
+      <ObjectsGrid v-model:sorted="sorted" :objects-in-order="accounts" :fields="fields" :sortables="['account', 'owner', 'status', 'updated', 'mrr']" table-breakpoint="xs" :field-props="{ statusClasses }">
+        <template #sort-icon="{ ascending, descending }">
+          <FontAwesomeIcon v-if="ascending" :icon="faArrowUpLong" />
+          <FontAwesomeIcon v-else-if="descending" :icon="faArrowDownLong" />
+          <FontAwesomeIcon v-else :icon="faSort" />
+        </template>
+        <template #[`field(account)`]="{ obj, formatted }">
+          <span class="inline-flex min-w-0 items-center gap-2">
+            <span class="inline-flex size-6 shrink-0 items-center justify-center rounded-sm border border-border bg-muted font-mono text-[10px] font-semibold text-muted-foreground">{{ obj.initials }}</span>
+            <span class="truncate">{{ formatted }}</span>
+          </span>
+        </template>
+        <template #[`field(status)`]="{ obj, statusClasses }">
+          <span :class="['inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', statusClasses[obj.statusTone] ?? 'border-border bg-muted text-muted-foreground']">{{ obj.status }}</span>
+        </template>
+        <template #[`field(actions)`]>
+          <span class="inline-flex gap-1">
+            <button class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Edit" type="button"><FontAwesomeIcon :icon="faPen" /></button>
+            <button class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="More" type="button"><FontAwesomeIcon :icon="faEllipsis" /></button>
+          </span>
+        </template>
+      </ObjectsGrid>
+    </ClientOnly>
+  </div>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span class="whitespace-nowrap">header: <code>ObjectsGridTableHeader</code></span>
+    <span class="whitespace-nowrap">cells: <code>ObjectsGridBodyCell</code> · default <code>h-[3.5rem] px-1 lg:px-2</code></span>
+    <span class="whitespace-nowrap">sort fallback: emoji glyphs — override via the <code>sort-icon</code> slot</span>
+  </footer>
+</VuedaDemo>
+
+## Card Layout
+
+Below `tableBreakpoint` the same data renders as a grid of cards. Each row uses {@api theme-key:ObjectsGrid} `bodyRow` for the card border and padding; each field renders a label via {@api theme-key:ObjectsGridCardCell} `header` and a value via `value`. No column count is set by default. Add `grid-cols-x` to `bodyRowGroup` in a theme override to control cards per row. The demo uses `tableBreakpoint="inf"` so cards remain visible at every practical viewport width.
+
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">card layout · same rows and fields</header>
+  <ClientOnly>
+    <ObjectsGrid :objects-in-order="accounts.slice(0, 3)" :fields="compactFields" table-breakpoint="inf" :field-props="{ statusClasses }">
+      <template #[`field(account)`]="{ obj, formatted }">
+        <span class="inline-flex min-w-0 items-center gap-2">
+          <span class="inline-flex size-6 shrink-0 items-center justify-center rounded-sm border border-border bg-muted font-mono text-[10px] font-semibold text-muted-foreground">{{ obj.initials }}</span>
+          <span class="truncate">{{ formatted }}</span>
+        </span>
+      </template>
+      <template #[`field(status)`]="{ obj, statusClasses }">
+        <span :class="['inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', statusClasses[obj.statusTone] ?? 'border-border bg-muted text-muted-foreground']">{{ obj.status }}</span>
+      </template>
+    </ObjectsGrid>
+  </ClientOnly>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span class="whitespace-nowrap">card border: <code>bodyRow</code></span>
+    <span class="whitespace-nowrap">field label: <code>ObjectsGridCardCell.header</code></span>
+    <span class="whitespace-nowrap">field value: <code>ObjectsGridCardCell.value</code></span>
+  </footer>
+</VuedaDemo>
+
+The card grid columns are not set by default. Projects supply `grid-cols-x` via `themeOverride` as appropriate for their layout context.
+
+## Sort States
+
+The `sort-icon` slot defaults to emoji glyphs (↕ ⬆ ⬇) as a placeholder; provide your own icon set via the slot. When a column is part of a multi-sort, a priority badge appears via {@api theme-key:ObjectsGridTableHeader} `multiSortNumber`. The demo shows all header states at once.
+
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+    <span class="font-semibold uppercase tracking-wide">multi-sort header states</span>
+    <span class="font-mono">sorted: {{ multiSorted.join(", ") }}</span>
+  </header>
+  <div class="rounded-md border border-border overflow-hidden">
+    <ClientOnly>
+      <ObjectsGrid v-model:sorted="multiSorted" :objects-in-order="accounts.slice(0, 2)" :fields="compactFields" :sortables="['account', 'owner', 'status', 'updated', 'mrr']" table-breakpoint="xs">
+        <template #sort-icon="{ ascending, descending }">
+          <FontAwesomeIcon v-if="ascending" :icon="faArrowUpLong" />
+          <FontAwesomeIcon v-else-if="descending" :icon="faArrowDownLong" />
+          <FontAwesomeIcon v-else :icon="faSort" />
+        </template>
+      </ObjectsGrid>
+    </ClientOnly>
+  </div>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span class="whitespace-nowrap">plain name: ascending</span>
+    <span class="whitespace-nowrap">hyphen prefix: descending</span>
+    <span class="whitespace-nowrap">Ctrl click: add or remove sort key</span>
+  </footer>
+</VuedaDemo>
+
+## Loading and Empty
+
+While loading, each cell is replaced by a `Skeleton` sized to its field type: `h-6 w-24` for text, `h-6 w-16` for dates, `h-6 w-full` as the fallback. When there are no rows and loading is false, the `emptyText` string renders centered in the body via {@api theme-key:ObjectsGrid} `emptyText`.
+
+<VuedaDemo class="grid gap-6 lg:grid-cols-2">
+  <section class="flex flex-col gap-3">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">table skeletons</header>
+    <div class="rounded-md border border-border overflow-hidden">
+      <ClientOnly>
+        <ObjectsGrid loading :skeleton-rows="3" :objects-in-order="[]" :fields="compactFields" table-breakpoint="xs" />
+      </ClientOnly>
+    </div>
+  </section>
+  <section class="flex flex-col gap-3">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">card skeletons</header>
+    <ClientOnly>
+      <ObjectsGrid loading :skeleton-rows="2" :objects-in-order="[]" :fields="compactFields" table-breakpoint="inf" />
+    </ClientOnly>
+  </section>
+  <section class="flex flex-col gap-3 lg:col-span-2">
+    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">empty state</header>
+    <div class="rounded-md border border-border overflow-hidden">
+      <ClientOnly>
+        <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="No accounts match the current filters." table-breakpoint="xs" />
+      </ClientOnly>
+    </div>
+  </section>
+</VuedaDemo>
+
+## Customization Surface
+
+Use tokens for color, type, radius, border, shadow, and density decisions that should apply across the component. Use theme keys when changing the composition: table wrappers, row groups, header cells, card label/value pairs, and skeleton placement.
+
+The highest-value keys are:
+
+- {@api theme-key:ObjectsGrid} `root`, `table`, `headerRowGroup`, `headerRow`, `headerCell`, `bodyRowGroup`, `bodyRow`, `cardContainer`, `emptyText`.
+- {@api theme-key:ObjectsGridTableHeader} `root`, `label`, `sortIcon`, `multiSortNumber`.
+- {@api theme-key:ObjectsGridBodyCell} for table cell chrome and the nested `WidgetLabel` override used in form/grid compositions.
+- {@api theme-key:ObjectsGridCardCell} `header` and `value`.
+
+Per-instance props stay useful even when the global theme is stable: `fieldClasses`, `tableFieldClasses`, `cardFieldClasses`, `headerClasses`, `tableHeaderClasses`, and `cardHeaderClasses` let a single grid tune numeric columns, action column widths, and compact fields without adding a global variant.

@@ -30,4 +30,5 @@ designer can move from the visual to the override surface in one click.
 
 ## Grid
 
+- [ObjectsGrid](/reference/components/objectsgrid)
 - [Tables](/reference/components/tables)
