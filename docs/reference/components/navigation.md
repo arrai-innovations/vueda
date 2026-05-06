@@ -62,10 +62,7 @@ Theme keys: {@api theme-key:BreadcrumbList}, {@api theme-key:BreadcrumbItem},
 {@api theme-key:BreadcrumbSeparator}, {@api theme-key:BreadcrumbEllipsis}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      anatomy
-    </header>
+  <DemoCard title="anatomy">
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
@@ -100,17 +97,13 @@ Theme keys: {@api theme-key:BreadcrumbList}, {@api theme-key:BreadcrumbItem},
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">list: flex-wrap, gap-1.5 sm:gap-2.5, text-sm</span>
       <span class="whitespace-nowrap">separator: svg size-3.5</span>
       <span class="whitespace-nowrap">ellipsis: size-9 click target</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      link states
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="link states">
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
@@ -134,13 +127,13 @@ Theme keys: {@api theme-key:BreadcrumbList}, {@api theme-key:BreadcrumbItem},
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">link fg <code>--muted-foreground</code></span>
       <span class="whitespace-nowrap">link hover fg <code>--foreground</code></span>
       <span class="whitespace-nowrap">page: font-normal, fg <code>--foreground</code></span>
       <span class="whitespace-nowrap">page: aria-current="page", aria-disabled</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Pagination
@@ -155,10 +148,7 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
 {@api theme-key:PaginationEllipsis}.
 
 <VuedaDemo class="grid gap-6">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      default <span class="font-normal normal-case">(sibling-count=1, page 5 of 10)</span>
-    </header>
+  <DemoCard title="default" description="(sibling-count=1, page 5 of 10)">
     <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="5">
       <PaginationContent v-slot="{ items }">
         <PaginationPrevious />
@@ -171,17 +161,13 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
         <PaginationNext />
       </PaginationContent>
     </Pagination>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">active item composes <code>_ButtonOutline</code></span>
       <span class="whitespace-nowrap">inactive items compose <code>_ButtonGhost</code></span>
       <span class="whitespace-nowrap">nav buttons: gap-1, px-2.5, show label at sm+</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      show-edges <span class="font-normal normal-case">(first/last buttons + edge page numbers)</span>
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="show-edges" description="(first/last buttons + edge page numbers)">
     <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="5" :show-edges="true">
       <PaginationContent v-slot="{ items }">
         <PaginationFirst />
@@ -196,16 +182,12 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
         <PaginationLast />
       </PaginationContent>
     </Pagination>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">PaginationFirst / PaginationLast share NavigationPaginationNavButton key</span>
       <span class="whitespace-nowrap">show-edges always includes page 1 and last page in the number list</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      disabled
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled">
     <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="5" disabled>
       <PaginationContent v-slot="{ items }">
         <PaginationPrevious />
@@ -218,10 +200,10 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
         <PaginationNext />
       </PaginationContent>
     </Pagination>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">disabled: pointer-events-none, opacity-50 on all items</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## NavigationMenu
@@ -237,10 +219,7 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
 {@api theme-key:NavigationMenuIndicator}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      trigger states
-    </header>
+  <DemoCard title="trigger states">
     <NavigationMenu :viewport="false">
       <NavigationMenuList>
         <NavigationMenuItem>
@@ -252,8 +231,8 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
       </NavigationMenuList>
     </NavigationMenu>
     <div class="grid grid-cols-2 gap-x-3 gap-y-1 pt-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover / focus-visible</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">open</div>
+      <StateLabel>hover / focus-visible</StateLabel>
+      <StateLabel>open</StateLabel>
       <div>
         <div class="inline-flex h-9 items-center justify-center rounded-vueda-control bg-accent text-accent-foreground px-4 py-2 text-sm font-medium outline-2 outline-offset-2 outline-ring">
           Products <span class="ml-1 opacity-60 text-xs">&#8964;</span>
@@ -265,19 +244,15 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
         </div>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">h-9 · rounded-vueda-control · text-sm font-medium</span>
       <span class="whitespace-nowrap">hover/focus bg <code>--accent</code></span>
       <span class="whitespace-nowrap">open bg <code>--accent/50</code></span>
       <span class="whitespace-nowrap">focus-visible: 2px outline <code>--ring</code></span>
       <span class="whitespace-nowrap">caret rotates 180° on open</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      content anatomy <span class="font-normal normal-case">(static panel)</span>
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="content anatomy" description="(static panel)">
     <div class="bg-popover text-popover-foreground rounded-vueda-control border shadow overflow-hidden p-2 flex flex-col gap-0.5">
       <a href="#" class="flex flex-col gap-1 rounded-sm p-2 text-sm hover:bg-accent hover:text-accent-foreground">
         <span class="font-medium leading-none">Components</span>
@@ -292,13 +267,13 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
         <span class="text-muted-foreground text-xs leading-snug">Integration and customization</span>
       </a>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">viewport: bg <code>--popover</code>, rounded, border, shadow</span>
       <span class="whitespace-nowrap">link: flex-col, gap-1, p-2, rounded-sm, text-sm</span>
       <span class="whitespace-nowrap">active link: bg <code>--accent/50</code></span>
       <span class="whitespace-nowrap">hover/focus link: bg <code>--accent</code></span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Menubar
@@ -315,10 +290,7 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
 {@api theme-key:MenubarShortcut}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      bar &amp; trigger states
-    </header>
+  <DemoCard title="bar &amp; trigger states">
     <Menubar>
       <MenubarMenu>
         <MenubarTrigger>File</MenubarTrigger>
@@ -331,7 +303,7 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       </MenubarMenu>
     </Menubar>
     <div class="grid grid-cols-2 gap-x-3 gap-y-1 pt-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">hover / focus / open</div>
+      <StateLabel>hover / focus / open</StateLabel>
       <div></div>
       <div>
         <div class="bg-background flex h-9 w-fit items-center gap-1 rounded-vueda-control border p-1 shadow-vueda-control">
@@ -339,16 +311,12 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
         </div>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">bar: bg <code>--background</code>, h-9, rounded, border, shadow</span>
       <span class="whitespace-nowrap">trigger hover/focus/open: bg <code>--accent</code>, fg <code>--accent-foreground</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      content anatomy <span class="font-normal normal-case">(static panel)</span>
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="content anatomy" description="(static panel)">
     <div class="bg-popover text-popover-foreground min-w-48 rounded-vueda-control border p-1 shadow-vueda-popover">
       <div class="px-2 py-1.5 text-sm font-medium">File</div>
       <div class="bg-border -mx-1 my-1 h-px"></div>
@@ -385,12 +353,12 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
         Large Text
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">content: bg <code>--popover</code>, min-w-48, rounded, border, shadow</span>
       <span class="whitespace-nowrap">item hover/focus: bg <code>--accent</code></span>
       <span class="whitespace-nowrap">indicator: size-3.5, absolute left-2</span>
       <span class="whitespace-nowrap">shortcut: text-xs tracking-widest ml-auto</span>
       <span class="whitespace-nowrap">disabled: opacity-50 pointer-events-none</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>

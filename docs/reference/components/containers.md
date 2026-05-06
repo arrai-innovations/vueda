@@ -90,10 +90,7 @@ Token surface: {@api css-token:card} (fill),
 {@api css-token:vueda-shadow-card} (drop).
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      header + content
-    </header>
+  <DemoCard title="header + content">
     <Card>
       <CardHeader>
         <CardTitle>Invoice 2024-10-0482</CardTitle>
@@ -106,16 +103,12 @@ Token surface: {@api css-token:card} (fill),
         </p>
       </CardContent>
     </Card>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">gap-6 between children</span>
       <span class="whitespace-nowrap">py-6 on root, px-6 on each child</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      header + action
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="header + action">
     <Card>
       <CardHeader>
         <CardTitle>Payment reminders</CardTitle>
@@ -130,15 +123,11 @@ Token surface: {@api css-token:card} (fill),
         </p>
       </CardContent>
     </Card>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">header grid becomes <code>[1fr auto]</code> when action is present</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      header + content + footer
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="header + content + footer">
     <Card>
       <CardHeader>
         <CardTitle>Archive invoice</CardTitle>
@@ -154,15 +143,11 @@ Token surface: {@api css-token:card} (fill),
         <Button size="sm">Archive</Button>
       </CardFooter>
     </Card>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">CardFooter is a flex row; consumer aligns it</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      border-b on header — tight grouping
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="border-b on header — tight grouping">
     <Card>
       <CardHeader class="border-b">
         <CardTitle>Transactions</CardTitle>
@@ -190,16 +175,12 @@ Token surface: {@api css-token:card} (fill),
         </table>
       </CardContent>
     </Card>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap"><code>[.border-b]:pb-6</code> picks up the rule</span>
       <span class="whitespace-nowrap">consumer adds <code>border-b</code> on the header</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      border-t on footer — danger zone
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="border-t on footer — danger zone">
     <Card>
       <CardHeader>
         <CardTitle>Danger zone</CardTitle>
@@ -214,15 +195,11 @@ Token surface: {@api css-token:card} (fill),
         <Button size="sm" variant="destructive">Delete customer…</Button>
       </CardFooter>
     </Card>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap"><code>[.border-t]:pt-6</code> on footer</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      content-only — metric tile
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="content-only — metric tile">
     <Card>
       <CardContent>
         <div class="flex items-baseline gap-2">
@@ -234,10 +211,10 @@ Token surface: {@api css-token:card} (fill),
         </p>
       </CardContent>
     </Card>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">the shell is the whole component; no header required</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Accordion
@@ -254,10 +231,7 @@ Theme keys: {@api theme-key:Accordion}, {@api theme-key:AccordionItem},
 {@api theme-key:AccordionTrigger}, {@api theme-key:AccordionContent}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      FAQ pattern — single, collapsible
-    </header>
+  <DemoCard title="FAQ pattern — single, collapsible">
     <Accordion type="single" collapsible default-value="terms">
       <AccordionItem value="overdue">
         <AccordionTrigger>When does an invoice become overdue?</AccordionTrigger>
@@ -283,16 +257,12 @@ Theme keys: {@api theme-key:Accordion}, {@api theme-key:AccordionItem},
         </AccordionContent>
       </AccordionItem>
     </Accordion>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">border-b between items, suppressed on last</span>
       <span class="whitespace-nowrap">content inner uses <code>pt-0 pb-4</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      disabled item
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled item">
     <Accordion type="single" collapsible>
       <AccordionItem value="2fa">
         <AccordionTrigger>Two-factor authentication</AccordionTrigger>
@@ -307,10 +277,10 @@ Theme keys: {@api theme-key:Accordion}, {@api theme-key:AccordionItem},
         <AccordionContent>Idle sessions expire after 30 minutes by default.</AccordionContent>
       </AccordionItem>
     </Accordion>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">disabled trigger: <code>opacity 50</code>, no pointer events</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Collapsible
@@ -323,10 +293,7 @@ the consumer brings the chrome. Use it when you want disclosure without
 the FAQ-style row treatment of {@api theme-key:Accordion}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      bare — closed
-    </header>
+  <DemoCard title="bare — closed">
     <Collapsible>
       <CollapsibleTrigger as-child>
         <button type="button" class="flex items-center gap-2 text-sm font-medium">
@@ -340,15 +307,11 @@ the FAQ-style row treatment of {@api theme-key:Accordion}.
         </p>
       </CollapsibleContent>
     </Collapsible>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">trigger and panel are consumer-styled</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      bare — open by default
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="bare — open by default">
     <Collapsible default-open>
       <CollapsibleTrigger as-child>
         <button type="button" class="flex items-center gap-2 text-sm font-medium">
@@ -362,10 +325,10 @@ the FAQ-style row treatment of {@api theme-key:Accordion}.
         </p>
       </CollapsibleContent>
     </Collapsible>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap"><code>data-state</code> on trigger and panel drives the chrome</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Item / ItemGroup
@@ -385,10 +348,7 @@ The default Item is `bg-transparent`; an `is-link` (or anchor) item raises
 to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      variants — default · outline · muted
-    </header>
+  <DemoCard title="variants — default · outline · muted">
     <ItemGroup class="gap-2">
       <Item>
         <ItemContent>
@@ -409,12 +369,8 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
         </ItemContent>
       </Item>
     </ItemGroup>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      sizes — sm · md
-    </header>
+  </DemoCard>
+  <DemoCard title="sizes — sm · md">
     <ItemGroup class="gap-2">
       <Item size="sm" variant="outline">
         <ItemMedia variant="icon"><FontAwesomeIcon :icon="faClock" /></ItemMedia>
@@ -429,12 +385,8 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
         </ItemContent>
       </Item>
     </ItemGroup>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      ItemMedia — icon · image · none
-    </header>
+  </DemoCard>
+  <DemoCard title="ItemMedia — icon · image · none">
     <ItemGroup class="gap-2">
       <Item variant="outline">
         <ItemMedia variant="icon"><FontAwesomeIcon :icon="faFile" /></ItemMedia>
@@ -457,12 +409,8 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
         </ItemContent>
       </Item>
     </ItemGroup>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      ItemActions — trailing buttons
-    </header>
+  </DemoCard>
+  <DemoCard title="ItemActions — trailing buttons">
     <ItemGroup class="gap-2">
       <Item variant="outline">
         <ItemMedia variant="icon"><FontAwesomeIcon :icon="faFileExport" /></ItemMedia>
@@ -488,12 +436,8 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
         </ItemActions>
       </Item>
     </ItemGroup>
-  </section>
-
-  <section class="flex flex-col gap-3 sm:col-span-2">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      ItemGroup + ItemSeparator — divider rows
-    </header>
+  </DemoCard>
+  <DemoCard title="ItemGroup + ItemSeparator — divider rows" class="sm:col-span-2">
     <ItemGroup class="rounded-md border overflow-hidden">
       <Item>
         <ItemMedia variant="icon"><FontAwesomeIcon :icon="faUser" /></ItemMedia>
@@ -528,10 +472,10 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
         </ItemActions>
       </Item>
     </ItemGroup>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">outer border belongs to the parent; items stay default (transparent)</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Stepper
@@ -551,10 +495,7 @@ Theme keys: {@api theme-key:Stepper}, {@api theme-key:StepperItem},
 {@api theme-key:StepperSeparator}.
 
 <VuedaDemo class="flex flex-col gap-6">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      4 steps — completed · completed · active · future
-    </header>
+  <DemoCard title="4 steps — completed · completed · active · future">
     <Stepper :default-value="3">
       <StepperItem :step="1" completed>
         <StepperTrigger>
@@ -588,17 +529,13 @@ Theme keys: {@api theme-key:Stepper}, {@api theme-key:StepperItem},
         </StepperTrigger>
       </StepperItem>
     </Stepper>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">active <code>bg-primary</code></span>
       <span class="whitespace-nowrap">completed <code>bg-accent</code></span>
       <span class="whitespace-nowrap">future <code>text-muted-foreground/50</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      with a disabled step
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="with a disabled step">
     <Stepper :default-value="2">
       <StepperItem :step="1" completed>
         <StepperTrigger>
@@ -621,10 +558,10 @@ Theme keys: {@api theme-key:Stepper}, {@api theme-key:StepperItem},
         </StepperTrigger>
       </StepperItem>
     </Stepper>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">disabled propagates opacity 50 to indicator + trailing separator</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## ScrollArea
@@ -639,10 +576,7 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
 {@api css-token:border}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      vertical
-    </header>
+  <DemoCard title="vertical">
     <div class="rounded-md border overflow-hidden">
       <ScrollArea style="height: 200px;" class="p-3">
         <ul class="m-0 list-none p-0 text-sm leading-relaxed">
@@ -665,16 +599,12 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
         </ul>
       </ScrollArea>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">10 px scrollbar</span>
       <span class="whitespace-nowrap">thumb <code>bg-border</code>, rounded-full</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      inside a Card
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="inside a Card">
     <Card class="py-0">
       <CardHeader class="border-b py-4">
         <CardTitle class="text-sm">Activity</CardTitle>
@@ -696,10 +626,10 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
         </ul>
       </ScrollArea>
     </Card>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">card's rounded corners clip the scroll viewport</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Separator
@@ -715,10 +645,7 @@ labeled "OR" variant; compose two separators around a span when you need
 one.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      horizontal — section break
-    </header>
+  <DemoCard title="horizontal — section break">
     <div class="rounded-md border p-4">
       <div class="text-sm font-medium">Account</div>
       <p class="mt-1 text-xs text-muted-foreground">Change the email and password used to sign in.</p>
@@ -726,15 +653,11 @@ one.
       <div class="text-sm font-medium">Billing</div>
       <p class="mt-1 text-xs text-muted-foreground">Plan, payment method, invoices.</p>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">1 px <code>bg-border</code>, full width</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      vertical — inline items
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="vertical — inline items">
     <div class="inline-flex w-fit items-center gap-3 rounded-md border px-3 py-2 text-sm font-medium">
       <span>Overview</span>
       <Separator orientation="vertical" class="h-4" />
@@ -744,22 +667,18 @@ one.
       <Separator orientation="vertical" class="h-4" />
       <span class="text-muted-foreground">Reports</span>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">parent sets an explicit height for vertical</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 sm:col-span-2">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      labeled — composed "OR"
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="labeled — composed &quot;OR&quot;" class="sm:col-span-2">
     <div class="flex items-center gap-3">
       <Separator class="flex-1" />
       <span class="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">or</span>
       <Separator class="flex-1" />
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">Separator does not ship a labeled variant; compose two with a span between</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>

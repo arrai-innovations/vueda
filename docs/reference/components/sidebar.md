@@ -385,10 +385,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
 <VuedaDemo>
   <SidebarProvider>
     <div class="grid w-full gap-6 sm:grid-cols-2">
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarMenuButton — states
-        </header>
+      <DemoCard title="SidebarMenuButton — states">
         <p class="text-xs text-muted-foreground">idle / hover / active / disabled · <code>isActive</code>, <code>aria-disabled</code></p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarMenu>
@@ -420,16 +417,13 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             </SidebarMenuItem>
           </SidebarMenu>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">hover bg <code>--sidebar-accent</code></span>
           <span class="whitespace-nowrap">active: bg + font-medium</span>
           <span class="whitespace-nowrap">disabled: opacity-50 pointer-events-none</span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarMenuButton — sizes
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="SidebarMenuButton — sizes">
         <p class="text-xs text-muted-foreground">sm 28 px / default 32 px / lg 48 px · <code>size</code> prop</p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarMenu>
@@ -453,16 +447,13 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             </SidebarMenuItem>
           </SidebarMenu>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">sm: h-7 text-xs</span>
           <span class="whitespace-nowrap">default: h-8 text-sm</span>
           <span class="whitespace-nowrap">lg: h-12 text-sm</span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarMenuButton — outline variant
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="SidebarMenuButton — outline variant">
         <p class="text-xs text-muted-foreground">org / tenant switcher · <code>variant="outline"</code></p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarMenuButton as="a" href="#" variant="outline" @click.prevent>
@@ -471,16 +462,13 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             <FontAwesomeIcon :icon="faChevronDown" class="ml-auto size-3 shrink-0 text-muted-foreground" />
           </SidebarMenuButton>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">bg <code>--background</code> · 1 px inset shadow</span>
           <span class="whitespace-nowrap">hover: shadow shifts to <code>--sidebar-accent</code></span>
           <span class="whitespace-nowrap">signals "independent of sidebar surface"</span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarMenuBadge
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="SidebarMenuBadge">
         <p class="text-xs text-muted-foreground">count badge at right edge · absolute-positioned peer of menu-button</p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarMenu>
@@ -507,16 +495,13 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             </SidebarMenuItem>
           </SidebarMenu>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">h-5 min-w-5 rounded-md tabular-nums</span>
           <span class="whitespace-nowrap">fg shifts on active peer: <code>--sidebar-accent-foreground</code></span>
           <span class="whitespace-nowrap">hidden when rail collapses</span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarMenuAction — show-on-hover
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="SidebarMenuAction — show-on-hover">
         <p class="text-xs text-muted-foreground">kebab fades in on parent hover · <code>show-on-hover</code> prop</p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarMenu>
@@ -540,15 +525,12 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             </SidebarMenuItem>
           </SidebarMenu>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">show-on-hover: opacity-0 → opacity-100 on parent group hover/focus-within</span>
           <span class="whitespace-nowrap">w-5 aspect-square, absolute top-1.5 right-1</span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarMenuSub — indent rail
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="SidebarMenuSub — indent rail">
         <p class="text-xs text-muted-foreground">left border rail under open parent · active dot on current item</p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarMenu>
@@ -572,16 +554,13 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             </SidebarMenuItem>
           </SidebarMenu>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">border-l <code>--sidebar-border</code> · mx-3.5 px-2.5</span>
           <span class="whitespace-nowrap">sub-button active: bg <code>--sidebar-accent</code></span>
           <span class="whitespace-nowrap">hidden when rail collapses</span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarGroupLabel + SidebarGroupAction
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="SidebarGroupLabel + SidebarGroupAction">
         <p class="text-xs text-muted-foreground">11 px uppercase eyebrow + 20 px ghost action</p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarGroup class="p-0">
@@ -591,16 +570,13 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             </SidebarGroupAction>
           </SidebarGroup>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">label: h-8 text-xs font-medium tracking-wide opacity-70</span>
           <span class="whitespace-nowrap">action: w-5 absolute top-3.5 right-3</span>
           <span class="whitespace-nowrap">both hidden when rail collapses</span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarSeparator
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="SidebarSeparator">
         <p class="text-xs text-muted-foreground">full-bleed 1 px hairline · <code>bg-sidebar-border</code></p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarMenu>
@@ -621,15 +597,12 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             </SidebarMenuItem>
           </SidebarMenu>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">mx-2 w-auto (source default)</span>
           <span class="whitespace-nowrap">design target: full-bleed like table hairlines</span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarMenuSkeleton
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="SidebarMenuSkeleton">
         <p class="text-xs text-muted-foreground">icon + variable-width text bar · <code>show-icon</code> prop</p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarMenu>
@@ -638,28 +611,22 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             <SidebarMenuItem><SidebarMenuSkeleton :show-icon="true" /></SidebarMenuItem>
           </SidebarMenu>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">h-8 gap-2 px-2 · icon: size-4 rounded-md</span>
           <span class="whitespace-nowrap">text bar width: random 50–90% per instance</span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarInput
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="SidebarInput">
         <p class="text-xs text-muted-foreground">h-8 search field · <code>bg-background</code> on <code>bg-sidebar</code></p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarInput placeholder="Search…" type="search" />
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">bg <code>--background</code> · h-8 · shadow-none</span>
           <span class="whitespace-nowrap">contrast: 1 px border on sidebar surface</span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          User footer block
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="User footer block">
         <p class="text-xs text-muted-foreground">composed pattern · not a dedicated component</p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarFooter class="p-0">
@@ -673,16 +640,13 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             </button>
           </SidebarFooter>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">avatar: size-8 rounded-full bg <code>--sidebar-accent</code></span>
           <span class="whitespace-nowrap">name: text-sm font-medium</span>
           <span class="whitespace-nowrap">role: text-xs <code>--muted-foreground</code></span>
-        </footer>
-      </section>
-      <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-        <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          SidebarTrigger
-        </header>
+        </template>
+      </DemoCard>
+      <DemoCard title="SidebarTrigger">
         <p class="text-xs text-muted-foreground">28 px ghost · default icon is Unicode placeholder ◫ · override via <code>#icon</code> slot</p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2 flex items-center gap-2">
           <SidebarTrigger />
@@ -692,12 +656,12 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
             </template>
           </SidebarTrigger>
         </div>
-        <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <template #footer>
           <span class="whitespace-nowrap">left: default Unicode ◫ glyph</span>
           <span class="whitespace-nowrap">right: <code>fa-regular fa-rectangle-list</code> via #icon slot</span>
           <span class="whitespace-nowrap">h-7 w-7 ghost button</span>
-        </footer>
-      </section>
+        </template>
+      </DemoCard>
     </div>
   </SidebarProvider>
 </VuedaDemo>

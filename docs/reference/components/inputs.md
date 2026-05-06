@@ -76,10 +76,7 @@ Theme key: {@api theme-key:Label}. Typography reads from
 {@api css-token:vueda-text-body} (13 px) at weight 500.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      content
-    </header>
+  <DemoCard title="content">
     <div class="flex flex-col gap-2">
       <Label for="lbl-default">Company name</Label>
       <Input id="lbl-default" placeholder="Acme, Inc." />
@@ -91,24 +88,20 @@ Theme key: {@api theme-key:Label}. Typography reads from
       </Label>
       <Input id="lbl-icon" readonly value="2026-04-23 14:22:06" />
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">fg <code>--foreground</code></span>
       <span class="whitespace-nowrap">gap-2 between icon and text</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      paired with disabled input
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="paired with disabled input">
     <div class="flex flex-col gap-2">
       <Label for="lbl-peer" class="peer-disabled:opacity-50">Legacy ID</Label>
       <Input id="lbl-peer" class="peer" disabled placeholder="—" />
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap"><code>peer-disabled:opacity-50</code> cascades from sibling input</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Input: state matrix
@@ -125,70 +118,59 @@ outline), {@api css-token:destructive} (invalid outline),
 {@api css-token:muted} (read-only fill).
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      validation states
-    </header>
+  <DemoCard title="validation states">
     <div class="grid grid-cols-3 gap-x-3 gap-y-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">filled</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <StateLabel>default</StateLabel>
+      <StateLabel>filled</StateLabel>
+      <StateLabel>focus-visible</StateLabel>
       <div><Input placeholder="Search invoices…" /></div>
       <div><Input value="INV-2026-0418-A1" /></div>
       <div><ForceState state="focus" as="block"><Input value="Focused" /></ForceState></div>
     </div>
     <div class="grid grid-cols-3 gap-x-3 gap-y-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid + focus</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid + filled</div>
+      <StateLabel>invalid</StateLabel>
+      <StateLabel>invalid + focus</StateLabel>
+      <StateLabel>invalid + filled</StateLabel>
       <div><Input aria-invalid="true" value="not-an-email" /></div>
       <div><ForceState state="focus" as="block"><Input aria-invalid="true" value="not-an-email" /></ForceState></div>
       <div><Input aria-invalid="true" placeholder="required" /></div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">border <code>--input</code></span>
       <span class="whitespace-nowrap">focus outline <code>--ring</code></span>
       <span class="whitespace-nowrap">invalid border <code>--destructive</code></span>
       <span class="whitespace-nowrap">invalid outline <code>--destructive</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      read modes
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="read modes">
     <div class="grid grid-cols-3 gap-x-3 gap-y-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">read/write</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">readonly</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <StateLabel>read/write</StateLabel>
+      <StateLabel>readonly</StateLabel>
+      <StateLabel>disabled</StateLabel>
       <div><Input value="Editable text" /></div>
       <div><Input readonly value="2026-04-23T14:22:06Z" /></div>
       <div><Input disabled value="Archived" /></div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">readonly fill <code>--muted</code>/50</span>
       <span class="whitespace-nowrap">disabled opacity 50</span>
       <span class="whitespace-nowrap">disabled has no pointer events</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 sm:col-span-2">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      input types
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="input types" class="sm:col-span-2">
     <div class="grid grid-cols-3 gap-x-3 gap-y-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">type=text</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">type=password</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">type=file</div>
+      <StateLabel>type=text</StateLabel>
+      <StateLabel>type=password</StateLabel>
+      <StateLabel>type=file</StateLabel>
       <div><Input value="Acme, Inc." /></div>
       <div><Input type="password" value="verysecret" /></div>
       <div><Input type="file" /></div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">file picker chrome is a per-OS native control</span>
       <span class="whitespace-nowrap">password masking comes from the browser</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Textarea: state matrix
@@ -201,46 +183,39 @@ so the box grows with its content rather than scrolling internally.
 Theme key: {@api theme-key:Textarea}. Token surface mirrors Input.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      validation states
-    </header>
+  <DemoCard title="validation states">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+      <StateLabel>default</StateLabel>
       <Textarea placeholder="Add a note to the invoice…" />
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <StateLabel>focus-visible</StateLabel>
       <ForceState state="focus" as="block"><Textarea value="Focused for review." /></ForceState>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid</div>
+      <StateLabel>invalid</StateLabel>
       <Textarea aria-invalid="true" value="Missing required detail." />
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">min-h-16</span>
       <span class="whitespace-nowrap">px-3 py-2</span>
       <span class="whitespace-nowrap">grows with content</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      read modes
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="read modes">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">filled, multi-line</div>
+      <StateLabel>filled, multi-line</StateLabel>
       <Textarea value="Reconciled against bank feed 2026-04-18. Two entries in the memo column match the ledger on a +1-day offset, investigated and cleared." />
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <StateLabel>disabled</StateLabel>
       <Textarea disabled value="This document has been finalised and cannot be edited." />
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">disabled opacity 50</span>
       <span class="whitespace-nowrap">resize disabled (height comes from content)</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## NativeSelect: state matrix
@@ -255,12 +230,9 @@ Theme keys: {@api theme-key:NativeSelect},
 {@api css-token:muted-foreground} at 50% opacity.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      default
-    </header>
+  <DemoCard title="default">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">closed</div>
+      <StateLabel>closed</StateLabel>
       <NativeSelect>
         <NativeSelectOption>Draft</NativeSelectOption>
         <NativeSelectOption>Ready to send</NativeSelectOption>
@@ -270,7 +242,7 @@ Theme keys: {@api theme-key:NativeSelect},
       </NativeSelect>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <StateLabel>focus-visible</StateLabel>
       <ForceState state="focus" as="block">
         <NativeSelect>
           <NativeSelectOption>Draft</NativeSelectOption>
@@ -279,16 +251,12 @@ Theme keys: {@api theme-key:NativeSelect},
         </NativeSelect>
       </ForceState>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">px-3 pr-9 (chevron gutter)</span>
       <span class="whitespace-nowrap">chevron <code>--muted-foreground</code>/50</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      with optgroup
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="with optgroup">
     <NativeSelect>
       <NativeSelectOptGroup label="Sales documents">
         <NativeSelectOption>Invoice</NativeSelectOption>
@@ -300,36 +268,28 @@ Theme keys: {@api theme-key:NativeSelect},
         <NativeSelectOption>Receipt</NativeSelectOption>
       </NativeSelectOptGroup>
     </NativeSelect>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">optgroup label rendering is browser-native</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      invalid
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="invalid">
     <NativeSelect aria-invalid="true">
       <NativeSelectOption>— select —</NativeSelectOption>
       <NativeSelectOption>Net 15</NativeSelectOption>
       <NativeSelectOption>Net 30</NativeSelectOption>
     </NativeSelect>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">border <code>--destructive</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      disabled
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled">
     <NativeSelect disabled>
       <NativeSelectOption>Not available</NativeSelectOption>
     </NativeSelect>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">wrapper opacity 50 when select disabled</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## NumberField: state matrix
@@ -346,12 +306,9 @@ Theme keys: {@api theme-key:NumberField},
 columns of values stay aligned.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      default
-    </header>
+  <DemoCard title="default">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">resting</div>
+      <StateLabel>resting</StateLabel>
       <NumberField :default-value="42">
         <NumberFieldContent>
           <NumberFieldDecrement />
@@ -361,7 +318,7 @@ columns of values stay aligned.
       </NumberField>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
+      <StateLabel>focus-visible</StateLabel>
       <ForceState state="focus" as="block">
         <NumberField :default-value="42">
           <NumberFieldContent>
@@ -372,17 +329,13 @@ columns of values stay aligned.
         </NumberField>
       </ForceState>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">tabular-nums</span>
       <span class="whitespace-nowrap">text-center</span>
       <span class="whitespace-nowrap">steppers inside the input box</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      at minimum
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="at minimum">
     <NumberField :default-value="0" :min="0">
       <NumberFieldContent>
         <NumberFieldDecrement />
@@ -390,15 +343,11 @@ columns of values stay aligned.
         <NumberFieldIncrement />
       </NumberFieldContent>
     </NumberField>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">decrement opacity 20 when at <code>min</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      locale-formatted
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="locale-formatted">
     <NumberField :default-value="1250" :format-options="{ style: 'currency', currency: 'USD' }">
       <NumberFieldContent>
         <NumberFieldDecrement />
@@ -406,15 +355,11 @@ columns of values stay aligned.
         <NumberFieldIncrement />
       </NumberFieldContent>
     </NumberField>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">formatOptions: <code>{ style: 'currency' }</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      disabled
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled">
     <NumberField :default-value="42" disabled>
       <NumberFieldContent>
         <NumberFieldDecrement />
@@ -422,10 +367,10 @@ columns of values stay aligned.
         <NumberFieldIncrement />
       </NumberFieldContent>
     </NumberField>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">opacity 50 across input and steppers</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Checkbox: state matrix
@@ -441,42 +386,42 @@ the 2 px slab {@api css-token:vueda-control-radius} so the box reads as a
 chit rather than a miniature input next to its label.
 
 <VuedaDemo>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+  <DemoCard>
     <div class="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-4 gap-y-2 items-center">
       <div></div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">unchecked</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">checked</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">indeterminate</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">default</div>
+      <StateLabel>unchecked</StateLabel>
+      <StateLabel>checked</StateLabel>
+      <StateLabel>indeterminate</StateLabel>
+      <StateLabel>default</StateLabel>
       <div><Checkbox /></div>
       <div><Checkbox :default-value="true" /></div>
       <div><Checkbox default-value="indeterminate" /></div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus</div>
+      <StateLabel>focus</StateLabel>
       <div><ForceState state="focus"><Checkbox /></ForceState></div>
       <div><ForceState state="focus"><Checkbox :default-value="true" /></ForceState></div>
       <div><ForceState state="focus"><Checkbox default-value="indeterminate" /></ForceState></div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <StateLabel>disabled</StateLabel>
       <div><Checkbox disabled /></div>
       <div><Checkbox :default-value="true" disabled /></div>
       <div><Checkbox default-value="indeterminate" disabled /></div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid</div>
+      <StateLabel>invalid</StateLabel>
       <div><Checkbox aria-invalid="true" /></div>
       <div><Checkbox aria-invalid="true" :default-value="true" /></div>
       <div><Checkbox aria-invalid="true" default-value="indeterminate" /></div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid + focus</div>
+      <StateLabel>invalid + focus</StateLabel>
       <div><ForceState state="focus"><Checkbox aria-invalid="true" /></ForceState></div>
       <div><ForceState state="focus"><Checkbox aria-invalid="true" :default-value="true" /></ForceState></div>
       <div><ForceState state="focus"><Checkbox aria-invalid="true" default-value="indeterminate" /></ForceState></div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">checked bg <code>--primary</code></span>
       <span class="whitespace-nowrap">checked fg <code>--primary-foreground</code></span>
       <span class="whitespace-nowrap">indeterminate same as checked</span>
       <span class="whitespace-nowrap">focus outline <code>--ring</code></span>
       <span class="whitespace-nowrap">invalid border <code>--destructive</code></span>
       <span class="whitespace-nowrap">invalid + checked bg <code>--destructive</code></span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## RadioGroup: state matrix
@@ -490,10 +435,7 @@ Theme keys: {@api theme-key:RadioGroup},
 inside the item, not a glyph, so it stays stable across font hydration.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      vertical
-    </header>
+  <DemoCard title="vertical">
     <RadioGroup default-value="net30">
       <div class="flex items-center gap-2">
         <RadioGroupItem id="terms-15" value="net15" />
@@ -512,16 +454,12 @@ inside the item, not a glyph, so it stays stable across font hydration.
         <Label for="terms-receipt">Due on receipt</Label>
       </div>
     </RadioGroup>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">selected dot <code>--primary</code></span>
       <span class="whitespace-nowrap">border <code>--input</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      horizontal
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="horizontal">
     <RadioGroup default-value="draft" class="flex flex-row gap-5">
       <div class="flex items-center gap-2">
         <RadioGroupItem id="status-draft" value="draft" />
@@ -536,32 +474,28 @@ inside the item, not a glyph, so it stays stable across font hydration.
         <Label for="status-paid">Paid</Label>
       </div>
     </RadioGroup>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">orientation handled by parent layout</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 sm:col-span-2">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      item state matrix
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="item state matrix" class="sm:col-span-2">
     <div class="grid grid-cols-5 gap-x-3 gap-y-1 items-center">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">unchecked</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">checked</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid</div>
+      <StateLabel>unchecked</StateLabel>
+      <StateLabel>checked</StateLabel>
+      <StateLabel>focus</StateLabel>
+      <StateLabel>disabled</StateLabel>
+      <StateLabel>invalid</StateLabel>
       <div><RadioGroup><RadioGroupItem value="a" /></RadioGroup></div>
       <div><RadioGroup default-value="a"><RadioGroupItem value="a" /></RadioGroup></div>
       <div><ForceState state="focus"><RadioGroup><RadioGroupItem value="a" /></RadioGroup></ForceState></div>
       <div><RadioGroup><RadioGroupItem value="a" disabled /></RadioGroup></div>
       <div><RadioGroup><RadioGroupItem value="a" aria-invalid="true" /></RadioGroup></div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">focus outline <code>--ring</code></span>
       <span class="whitespace-nowrap">invalid border <code>--destructive</code></span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## TagsInput: composition matrix
@@ -581,10 +515,7 @@ Theme keys: {@api theme-key:TagsInput},
 control-height ladder below sm.
 
 <VuedaDemo class="grid gap-6">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      with chips
-    </header>
+  <DemoCard title="with chips">
     <TagsInput :default-value="['accounts-receivable', 'q2-2026', 'overdue']">
       <TagsInputItem v-for="tag in ['accounts-receivable', 'q2-2026', 'overdue']" :key="tag" :value="tag">
         <TagsInputItemText />
@@ -592,29 +523,21 @@ control-height ladder below sm.
       </TagsInputItem>
       <TagsInputInput placeholder="Add tag…" />
     </TagsInput>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">gap-2 between chips</span>
       <span class="whitespace-nowrap">item bg <code>--secondary</code></span>
       <span class="whitespace-nowrap">active chip outline <code>--ring</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      empty
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="empty">
     <TagsInput>
       <TagsInputInput placeholder="Type and press Enter to add" />
     </TagsInput>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">container reads as a single input until chips arrive</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      invalid
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="invalid">
     <TagsInput :default-value="['one', 'two', 'three']" aria-invalid="true">
       <TagsInputItem v-for="tag in ['one', 'two', 'three']" :key="tag" :value="tag">
         <TagsInputItemText />
@@ -622,15 +545,11 @@ control-height ladder below sm.
       </TagsInputItem>
       <TagsInputInput placeholder="Max 3 reached" disabled />
     </TagsInput>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">container border <code>--destructive</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      disabled
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled">
     <TagsInput :default-value="['archived', 'read-only']" disabled>
       <TagsInputItem v-for="tag in ['archived', 'read-only']" :key="tag" :value="tag">
         <TagsInputItemText />
@@ -638,10 +557,10 @@ control-height ladder below sm.
       </TagsInputItem>
       <TagsInputInput />
     </TagsInput>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">opacity 50 across container, chips, delete buttons</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## InputOTP: composition matrix
@@ -660,39 +579,28 @@ focus surface as Input, with adjacent slots sharing seams via
 `first:rounded-l-md` / `last:rounded-r-md` rules.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      6-digit, fresh
-    </header>
+  <DemoCard title="6-digit, fresh">
     <InputOTP :maxlength="6">
       <InputOTPGroup>
         <InputOTPSlot v-for="i in 6" :key="i" :index="i - 1" />
       </InputOTPGroup>
     </InputOTP>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">first slot becomes active when the field is focused</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      partially filled
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="partially filled">
     <InputOTP :maxlength="6" default-value="294">
       <InputOTPGroup>
         <InputOTPSlot v-for="i in 6" :key="i" :index="i - 1" />
       </InputOTPGroup>
     </InputOTP>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">filled slots show the entered digit</span>
       <span class="whitespace-nowrap">empty slots stay blank</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      grouped with separator
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="grouped with separator">
     <InputOTP :maxlength="6" default-value="81502">
       <InputOTPGroup>
         <InputOTPSlot :index="0" />
@@ -706,37 +614,29 @@ focus surface as Input, with adjacent slots sharing seams via
         <InputOTPSlot :index="5" />
       </InputOTPGroup>
     </InputOTP>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">separator is a typographic glyph, not a control</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      complete, invalid
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="complete, invalid">
     <InputOTP :maxlength="6" default-value="999999" aria-invalid="true">
       <InputOTPGroup>
         <InputOTPSlot v-for="i in 6" :key="i" :index="i - 1" />
       </InputOTPGroup>
     </InputOTP>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">slot border <code>--destructive</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 sm:col-span-2">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      disabled
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled" class="sm:col-span-2">
     <InputOTP :maxlength="4" disabled>
       <InputOTPGroup>
         <InputOTPSlot v-for="i in 4" :key="i" :index="i - 1" />
       </InputOTPGroup>
     </InputOTP>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">opacity 50 across all slots</span>
       <span class="whitespace-nowrap">no caret on disabled slot</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>

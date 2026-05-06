@@ -82,8 +82,7 @@ Popover is the anchored action panel. Width and padding are caller-supplied, not
 Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popover}, {@api css-token:popover-foreground}, {@api css-token:border}, {@api css-token:vueda-control-radius}, {@api css-token:vueda-shadow-popover}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-3">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">default · w-72 · form in a popover</header>
+  <DemoCard title="default · w-72 · form in a popover">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <Popover>
@@ -111,13 +110,12 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
         </Popover>
       </ClientOnly>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">surface: <code>PopoverContent</code></span>
       <span class="whitespace-nowrap">width + padding: caller-supplied</span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">sm · w-60 p-3 · utility info</header>
+    </template>
+  </DemoCard>
+  <DemoCard title="sm · w-60 p-3 · utility info">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <Popover>
@@ -133,12 +131,11 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
         </Popover>
       </ClientOnly>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">info-only · no actions</span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">lg · w-80 · destructive action</header>
+    </template>
+  </DemoCard>
+  <DemoCard title="lg · w-80 · destructive action">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <Popover>
@@ -166,10 +163,10 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
         </Popover>
       </ClientOnly>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span>destructive confirm stays inside the surface, not a Dialog</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## DropdownMenu
@@ -179,8 +176,7 @@ DropdownMenu and ContextMenu share the same panel and item components — a desi
 Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuItem}, {@api theme-key:DropdownMenuLabel}, {@api theme-key:DropdownMenuSeparator}. Token surface: {@api css-token:popover}, {@api css-token:popover-foreground}, {@api css-token:accent}, {@api css-token:destructive}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-3">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">row actions · mixed items</header>
+  <DemoCard title="row actions · mixed items">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <DropdownMenu>
@@ -234,13 +230,12 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
         </DropdownMenu>
       </ClientOnly>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span>icons: muted at rest · accent on highlight</span>
       <span>destructive: text tint only at rest</span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">checkbox + radio items</header>
+    </template>
+  </DemoCard>
+  <DemoCard title="checkbox + radio items">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <DropdownMenu>
@@ -267,13 +262,12 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
         </DropdownMenu>
       </ClientOnly>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span>check: drawn SVG path · not a font glyph</span>
       <span class="whitespace-nowrap">radio dot: <code>circle r="3"</code></span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">with submenu · disabled item</header>
+    </template>
+  </DemoCard>
+  <DemoCard title="with submenu · disabled item">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <DropdownMenu>
@@ -321,13 +315,12 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
         </DropdownMenu>
       </ClientOnly>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span>submenu: same surface · separate portal</span>
       <span>disabled: muted text · pointer-events-none</span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 lg:col-span-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">open panel anatomy — item state matrix · static</header>
+    </template>
+  </DemoCard>
+  <DemoCard title="open panel anatomy — item state matrix · static" class="lg:col-span-3">
     <div class="flex flex-wrap gap-8 items-start">
       <div class="bg-popover text-popover-foreground rounded-vueda-control border p-1 shadow-vueda-popover w-52 shrink-0 text-sm">
         <div class="px-2 py-1.5 text-sm font-medium">INV-2026-0418-A1</div>
@@ -366,14 +359,14 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
         </div>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span>icon at rest: <code>text-muted-foreground</code></span>
       <span>highlighted: <code>bg-accent text-accent-foreground</code> · icon inherits accent</span>
       <span>destructive at rest: foreground tint only · icon <code>text-destructive</code></span>
       <span>destructive focused: adds <code>bg-destructive/10</code></span>
       <span>disabled: <code>opacity-50 pointer-events-none</code></span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## ContextMenu
@@ -381,8 +374,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
 ContextMenu uses the same panel and item primitives as DropdownMenu; the only difference is the trigger (right-click on a region rather than a button click). Any theme change to {@api theme-key:ContextMenuContent} or {@api theme-key:ContextMenuItem} must be mirrored in the DropdownMenu keys to keep both surfaces visually identical.
 
 <VuedaDemo class="grid gap-6">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">on a list row · right-click to open</header>
+  <DemoCard title="on a list row · right-click to open">
     <ClientOnly>
       <ContextMenu>
         <ContextMenuTrigger class="flex cursor-default select-none items-center justify-between rounded-vueda-control border border-dashed border-border bg-muted/30 px-4 py-3 text-sm hover:bg-muted/50">
@@ -422,11 +414,11 @@ ContextMenu uses the same panel and item primitives as DropdownMenu; the only di
         </ContextMenuContent>
       </ContextMenu>
     </ClientOnly>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span>same surface + item primitive as DropdownMenu</span>
       <span>trigger: any right-click region · not a button</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Tooltip
@@ -436,8 +428,7 @@ Tooltip inverts the shared overlay surface: `bg-foreground` / `text-background` 
 Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreground}, {@api css-token:background}, {@api css-token:vueda-control-radius}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">bottom · default placement</header>
+  <DemoCard title="bottom · default placement">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <TooltipProvider>
@@ -452,9 +443,8 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         </TooltipProvider>
       </ClientOnly>
     </div>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">top</header>
+  </DemoCard>
+  <DemoCard title="top">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <TooltipProvider>
@@ -467,9 +457,8 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         </TooltipProvider>
       </ClientOnly>
     </div>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">right</header>
+  </DemoCard>
+  <DemoCard title="right">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <TooltipProvider>
@@ -484,9 +473,8 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         </TooltipProvider>
       </ClientOnly>
     </div>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">left</header>
+  </DemoCard>
+  <DemoCard title="left">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <TooltipProvider>
@@ -501,9 +489,8 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         </TooltipProvider>
       </ClientOnly>
     </div>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">with keyboard shortcut</header>
+  </DemoCard>
+  <DemoCard title="with keyboard shortcut">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <TooltipProvider>
@@ -519,12 +506,11 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         </TooltipProvider>
       </ClientOnly>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap"><code>kbd</code>: border + bg at <code>/20</code> against foreground surface</span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">wrapped · long content</header>
+    </template>
+  </DemoCard>
+  <DemoCard title="wrapped · long content">
     <div class="flex justify-center py-4">
       <ClientOnly>
         <TooltipProvider>
@@ -539,12 +525,11 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         </TooltipProvider>
       </ClientOnly>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">max-width: caller-supplied via <code>class</code></span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 sm:col-span-2 lg:col-span-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">surface anatomy — inverted tokens · arrow · kbd · static</header>
+    </template>
+  </DemoCard>
+  <DemoCard title="surface anatomy — inverted tokens · arrow · kbd · static" class="sm:col-span-2 lg:col-span-3">
     <div class="flex flex-wrap gap-8 items-start pt-2">
       <div class="flex flex-col items-center">
         <span class="text-[10px] uppercase tracking-wide text-muted-foreground self-start mb-2">plain label</span>
@@ -565,13 +550,13 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         <div class="size-2.5 bg-foreground rotate-45 rounded-[2px] -mt-[4px]"></div>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span>surface: <code>bg-foreground text-background</code> · inverts the shared overlay palette</span>
       <span>radius: same <code>--vueda-control-radius</code> as all overlays</span>
       <span>arrow: rotated square · <code>size-2.5 rotate-45 rounded-[2px]</code> · same fill as surface</span>
       <span><code>kbd</code>: <code>border-background/20 bg-background/10</code> against the inverted surface</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Customization Surface

@@ -154,28 +154,25 @@ The `sort-icon` slot defaults to emoji glyphs (↕ ⬆ ⬇) as a placeholder; pr
 While loading, each cell is replaced by a `Skeleton` sized to its field type: `h-6 w-24` for text, `h-6 w-16` for dates, `h-6 w-full` as the fallback. When there are no rows and loading is false, the `emptyText` string renders centered in the body via {@api theme-key:ObjectsGrid} `emptyText`.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">table skeletons</header>
+  <DemoCard title="table skeletons">
     <div class="rounded-md border border-border overflow-hidden">
       <ClientOnly>
         <ObjectsGrid loading :skeleton-rows="3" :objects-in-order="[]" :fields="compactFields" table-breakpoint="xs" />
       </ClientOnly>
     </div>
-  </section>
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">card skeletons</header>
+  </DemoCard>
+  <DemoCard title="card skeletons">
     <ClientOnly>
       <ObjectsGrid loading :skeleton-rows="2" :objects-in-order="[]" :fields="compactFields" table-breakpoint="inf" />
     </ClientOnly>
-  </section>
-  <section class="flex flex-col gap-3 lg:col-span-2">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">empty state</header>
+  </DemoCard>
+  <DemoCard title="empty state" class="lg:col-span-2">
     <div class="rounded-md border border-border overflow-hidden">
       <ClientOnly>
         <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="No accounts match the current filters." table-breakpoint="xs" />
       </ClientOnly>
     </div>
-  </section>
+  </DemoCard>
 </VuedaDemo>
 
 ## Customization Surface

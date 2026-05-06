@@ -70,10 +70,7 @@ Theme keys: {@api theme-key:Alert}, {@api theme-key:AlertTitle},
 {@api css-token:border}.
 
 <VuedaDemo class="grid gap-6">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      variants
-    </header>
+  <DemoCard title="variants">
     <div class="grid gap-3 lg:grid-cols-2">
       <Alert>
         <FontAwesomeIcon :icon="faBell" />
@@ -114,12 +111,12 @@ Theme keys: {@api theme-key:Alert}, {@api theme-key:AlertTitle},
         </AlertClose>
       </Alert>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">status bg <code>/10</code></span>
       <span class="whitespace-nowrap">status border <code>/50</code></span>
       <span class="whitespace-nowrap">icon column only when direct SVG child exists</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
   <section class="grid gap-3 rounded-vueda-card border border-border p-4 lg:grid-cols-2">
     <div class="flex flex-col gap-3">
       <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -158,40 +155,31 @@ Theme key: {@api theme-key:Badge}. Token surface:
 {@api css-token:border}, and {@api css-token:vueda-control-radius}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      variants
-    </header>
+  <DemoCard title="variants">
     <div class="flex flex-wrap items-center gap-2">
       <Badge>Active</Badge>
       <Badge variant="secondary">Draft</Badge>
       <Badge variant="destructive">Void</Badge>
       <Badge variant="outline">Archived</Badge>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">radius <code>--vueda-control-radius</code></span>
       <span class="whitespace-nowrap">padding <code>px-2 py-0.5</code></span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      with icons
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="with icons">
     <div class="flex flex-wrap items-center gap-2">
       <Badge><FontAwesomeIcon :icon="faCircleCheck" /> Reconciled</Badge>
       <Badge variant="secondary"><FontAwesomeIcon :icon="faHourglassHalf" /> Pending</Badge>
       <Badge variant="destructive"><FontAwesomeIcon :icon="faLock" /> Locked</Badge>
       <Badge variant="outline"><FontAwesomeIcon :icon="faClock" /> Scheduled</Badge>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">icon size <code>3</code></span>
       <span class="whitespace-nowrap">gap <code>1</code></span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 lg:col-span-2">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      table context
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="table context" class="lg:col-span-2">
     <div class="overflow-x-auto rounded-vueda-control border border-border">
       <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] border-b border-border bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         <span>ID</span>
@@ -218,7 +206,7 @@ Theme key: {@api theme-key:Badge}. Token surface:
         <span><Badge variant="destructive"><FontAwesomeIcon :icon="faCircleExclamation" /> Overdue</Badge></span>
       </div>
     </div>
-  </section>
+  </DemoCard>
 </VuedaDemo>
 
 ## Loading icon: registry controlled
@@ -234,10 +222,7 @@ Awesome spins its own SVG; a Lucide-based app can provide a Lucide icon with
 the classes it expects.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      configured loading icon
-    </header>
+  <DemoCard title="configured loading icon">
     <div class="flex flex-wrap items-center gap-8">
       <div class="flex min-w-16 flex-col items-center gap-2">
         <span class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">inline</span>
@@ -251,22 +236,19 @@ the classes it expects.
         </Button>
       </div>
     </div>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      status copy
-    </header>
+  </DemoCard>
+  <DemoCard title="status copy">
     <div class="flex flex-wrap items-center gap-4">
       <span class="inline-flex items-center gap-2 text-sm text-muted-foreground">
         <LoadingSpinnerInline />
         Reconciling 24 entries
       </span>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">icon key <code>Default.loading</code></span>
       <span class="whitespace-nowrap">animation owned by icon props</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Progress: state matrix
@@ -281,10 +263,7 @@ primary-only.
 Theme key: {@api theme-key:Progress}. Token surface: {@api css-token:primary}.
 
 <VuedaDemo class="grid gap-6">
-  <section class="flex flex-col gap-4 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      determinate values
-    </header>
+  <DemoCard title="determinate values">
     <div class="grid gap-4">
       <div class="grid gap-1">
         <div class="flex justify-between font-mono text-xs text-muted-foreground">
@@ -308,12 +287,12 @@ Theme key: {@api theme-key:Progress}. Token surface: {@api css-token:primary}.
         <Progress :model-value="100" :max="100" />
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">height <code>h-2</code></span>
       <span class="whitespace-nowrap">track <code>--primary</code>/20</span>
       <span class="whitespace-nowrap">indicator <code>--primary</code></span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Skeleton: composition matrix
@@ -329,21 +308,15 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
 {@api css-token:primary}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      text rows
-    </header>
+  <DemoCard title="text rows">
     <div class="grid gap-2">
       <Skeleton class="h-3 w-3/5" />
       <Skeleton class="h-3 w-full" />
       <Skeleton class="h-3 w-11/12" />
       <Skeleton class="h-3 w-1/2" />
     </div>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      card footprint
-    </header>
+  </DemoCard>
+  <DemoCard title="card footprint">
     <div class="grid gap-3 rounded-vueda-card border border-border bg-card p-3">
       <Skeleton class="h-28 w-full rounded-vueda-card" />
       <Skeleton class="h-4 w-2/3" />
@@ -354,11 +327,8 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
         <Skeleton class="h-5 w-24" />
       </div>
     </div>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 lg:col-span-2">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      table rows
-    </header>
+  </DemoCard>
+  <DemoCard title="table rows" class="lg:col-span-2">
     <div class="overflow-x-auto rounded-vueda-control border border-border">
       <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] border-b border-border bg-muted/50 px-3 py-2">
         <Skeleton class="h-3 w-12" />
@@ -385,7 +355,7 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
         <Skeleton class="h-5 w-14" />
       </div>
     </div>
-  </section>
+  </DemoCard>
 </VuedaDemo>
 
 ## Sonner: variant matrix
@@ -402,10 +372,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
 {@api css-token:border}, and {@api css-token:vueda-control-radius}.
 
 <VuedaDemo class="grid gap-6">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      types with default glyphs
-    </header>
+  <DemoCard title="types with default glyphs">
     <div class="grid gap-2 lg:grid-cols-2">
       <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
         <span class="mt-0.5 font-mono text-sm leading-none">ℹ</span>
@@ -467,17 +434,14 @@ Theme key: {@api theme-key:Sonner}. Token surface:
         </button>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">bg <code>--popover</code></span>
       <span class="whitespace-nowrap">fg <code>--popover-foreground</code></span>
       <span class="whitespace-nowrap">border <code>--border</code></span>
       <span class="whitespace-nowrap">icons from <code>useIcons</code></span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      Font Awesome override
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="Font Awesome override">
     <div class="grid gap-2 lg:grid-cols-2">
       <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
         <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5 text-success" />
@@ -500,10 +464,10 @@ Theme key: {@api theme-key:Sonner}. Token surface:
         </button>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">slot names <code>success-icon</code>, <code>info-icon</code>, <code>warning-icon</code>, <code>error-icon</code>, <code>loading-icon</code>, <code>close-icon</code></span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## HoverCard: composition matrix
@@ -520,10 +484,7 @@ Theme key: {@api theme-key:HoverCardContent}. Token surface:
 elevation comes from {@api css-token:vueda-shadow-popover}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      profile summary
-    </header>
+  <DemoCard title="profile summary">
     <div class="w-64 rounded-vueda-control border border-border bg-popover p-4 text-popover-foreground shadow-vueda-popover">
       <div class="flex items-center gap-3">
         <div class="flex size-10 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">JO</div>
@@ -544,16 +505,13 @@ elevation comes from {@api css-token:vueda-shadow-popover}.
         <dd>1,284 invoices</dd>
       </dl>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">width <code>w-64</code></span>
       <span class="whitespace-nowrap">padding <code>p-4</code></span>
       <span class="whitespace-nowrap">radius <code>--vueda-control-radius</code></span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      record summary
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="record summary">
     <div class="w-64 rounded-vueda-control border border-border bg-popover p-4 text-popover-foreground shadow-vueda-popover">
       <div class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Customer</div>
       <div class="mt-1 text-sm font-medium leading-tight">Granger Holdings</div>
@@ -569,9 +527,9 @@ elevation comes from {@api css-token:vueda-shadow-popover}.
         <dd class="font-mono">$50,000</dd>
       </dl>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">summary, not actionable</span>
       <span class="whitespace-nowrap">use Popover when the panel needs buttons</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>

@@ -83,13 +83,10 @@ Token surface: {@api css-token:border} (trigger stroke),
 {@api css-token:accent} (highlighted item fill).
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      trigger states
-    </header>
+  <DemoCard title="trigger states">
     <div class="grid grid-cols-2 gap-x-3 gap-y-2">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">placeholder</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">filled</div>
+      <StateLabel>placeholder</StateLabel>
+      <StateLabel>filled</StateLabel>
       <div>
         <Select>
           <SelectTrigger class="w-full">
@@ -116,8 +113,8 @@ Token surface: {@api css-token:border} (trigger stroke),
       </div>
     </div>
     <div class="grid grid-cols-2 gap-x-3 gap-y-2">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">focus-visible</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">invalid</div>
+      <StateLabel>focus-visible</StateLabel>
+      <StateLabel>invalid</StateLabel>
       <div>
         <ForceState state="focus" as="block">
           <Select default-value="net30">
@@ -142,7 +139,7 @@ Token surface: {@api css-token:border} (trigger stroke),
       </div>
     </div>
     <div class="grid grid-cols-2 gap-x-3 gap-y-2">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <StateLabel>disabled</StateLabel>
       <div></div>
       <div>
         <Select default-value="net30">
@@ -155,24 +152,18 @@ Token surface: {@api css-token:border} (trigger stroke),
         </Select>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">border <code>--border</code></span>
       <span class="whitespace-nowrap">placeholder fg <code>--muted-foreground</code></span>
       <span class="whitespace-nowrap">focus outline <code>--ring</code></span>
       <span class="whitespace-nowrap">invalid outline <code>--destructive</code></span>
       <span class="whitespace-nowrap">disabled opacity-50</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      trigger sizes
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="trigger sizes">
     <div class="grid grid-cols-2 gap-x-3 gap-y-2">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">sm · 28px</div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">
-        default · 32px <span class="font-normal normal-case">(canon)</span>
-      </div>
+      <StateLabel>sm · 28px</StateLabel>
+      <StateLabel>default · 32px <span class="font-normal normal-case">(canon)</span></StateLabel>
       <div>
         <Select default-value="net30">
           <SelectTrigger size="sm" class="w-full">
@@ -196,20 +187,16 @@ Token surface: {@api css-token:border} (trigger stroke),
         </Select>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap"><code>size="sm"</code> → 28px via <code>--vueda-control-height-sm</code></span>
       <span class="whitespace-nowrap"><code>size="default"</code> → 32px (canon)</span>
       <span class="whitespace-nowrap">no lg variant on SelectTrigger</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 sm:col-span-2">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      open content anatomy — groups, labels, separator, indicator, highlighted, disabled
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="open content anatomy — groups, labels, separator, indicator, highlighted, disabled" class="sm:col-span-2">
     <div class="flex gap-8 flex-wrap items-start">
       <div class="flex flex-col gap-2">
-        <div class="text-[10px] uppercase tracking-wide text-muted-foreground">trigger · open (interactive)</div>
+        <StateLabel>trigger · open (interactive)</StateLabel>
         <Select default-value="net30">
           <SelectTrigger class="w-52">
             <SelectValue />
@@ -231,7 +218,7 @@ Token surface: {@api css-token:border} (trigger stroke),
         </Select>
       </div>
       <div class="flex flex-col gap-2">
-        <div class="text-[10px] uppercase tracking-wide text-muted-foreground">content panel · static anatomy</div>
+        <StateLabel>content panel · static anatomy</StateLabel>
         <div class="bg-popover text-popover-foreground rounded-vueda-control border shadow-vueda-popover p-1 w-52 text-sm">
           <div class="text-muted-foreground px-2 py-1.5 text-xs">Standard</div>
           <div class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 bg-accent text-accent-foreground">
@@ -257,15 +244,15 @@ Token surface: {@api css-token:border} (trigger stroke),
         </div>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">content bg <code>--popover</code></span>
       <span class="whitespace-nowrap">label fg <code>--muted-foreground</code>, text-xs</span>
       <span class="whitespace-nowrap">highlighted bg <code>--accent</code>, fg <code>--accent-foreground</code></span>
       <span class="whitespace-nowrap">check indicator absolute right-2</span>
       <span class="whitespace-nowrap">separator <code>--border</code></span>
       <span class="whitespace-nowrap">disabled opacity-50 pointer-events-none</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Combobox
@@ -288,10 +275,7 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
 {@api theme-key:ComboboxItemIndicator}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      anchor + trigger — live; click to open list
-    </header>
+  <DemoCard title="anchor + trigger — live; click to open list">
     <div>
       <div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">placeholder</div>
       <Combobox>
@@ -334,17 +318,13 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
         </ComboboxList>
       </Combobox>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">trigger uses hairline border + shadow-vueda-control</span>
       <span class="whitespace-nowrap">list width tracks trigger via <code>--reka-combobox-trigger-width</code></span>
       <span class="whitespace-nowrap">check indicator from ComboboxItemIndicator</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      open list anatomy — search input, grouped items, empty state
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="open list anatomy — search input, grouped items, empty state">
     <div class="flex flex-col gap-4">
       <div>
         <div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">filtered results</div>
@@ -383,13 +363,13 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
         </div>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">list bg <code>--popover</code></span>
       <span class="whitespace-nowrap">search row <code>h-9 border-b</code> separates from items</span>
       <span class="whitespace-nowrap">highlighted bg <code>--accent</code></span>
       <span class="whitespace-nowrap">empty <code>py-6 text-center text-sm</code></span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Command
@@ -413,10 +393,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
 {@api theme-key:CommandDialog}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      inline palette — groups, shortcuts, separator; type to filter live
-    </header>
+  <DemoCard title="inline palette — groups, shortcuts, separator; type to filter live">
     <div class="rounded-md border bg-popover text-popover-foreground overflow-hidden">
       <Command>
         <CommandInput placeholder="Type a command or search..." />
@@ -449,18 +426,14 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
         </CommandList>
       </Command>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">command bg <code>--popover</code></span>
       <span class="whitespace-nowrap">highlighted bg <code>--accent</code></span>
       <span class="whitespace-nowrap">shortcut fg <code>--muted-foreground</code>, text-xs tracking-widest</span>
       <span class="whitespace-nowrap">separator <code>--border</code>, -mx-1</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      empty state — no items match; disabled item
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="empty state — no items match; disabled item">
     <div class="rounded-md border bg-popover text-popover-foreground overflow-hidden">
       <Command>
         <CommandInput placeholder="Type a command or search..." />
@@ -488,20 +461,16 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
       Type something that does not match any item label to trigger the empty
       state. Disabled items are excluded from selection and keyboard navigation.
     </p>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">CommandEmpty renders only when <code>filtered.count === 0</code></span>
       <span class="whitespace-nowrap"><code>py-6 text-center text-sm</code></span>
       <span class="whitespace-nowrap">disabled opacity-50 pointer-events-none</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4 sm:col-span-2">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      CommandDialog — Command wrapped in a modal; click to open live demo
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="CommandDialog — Command wrapped in a modal; click to open live demo" class="sm:col-span-2">
     <div class="flex items-start gap-6 flex-wrap">
       <div class="flex flex-col gap-2">
-        <div class="text-[10px] uppercase tracking-wide text-muted-foreground">trigger pattern</div>
+        <StateLabel>trigger pattern</StateLabel>
         <button
           class="hairline flex h-vueda-control items-center gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm text-muted-foreground shadow-vueda-control hover:text-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow"
           @click="commandOpen = true"
@@ -552,10 +521,10 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
         </p>
       </div>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">dialog bg <code>--background</code></span>
       <span class="whitespace-nowrap">scrim <code>oklch(0.12 0.015 250 / 0.6)</code></span>
       <span class="whitespace-nowrap">slot content goes directly into Command root</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>

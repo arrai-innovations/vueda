@@ -85,10 +85,7 @@ Seven additional keys cover the inner elements:
 {@api theme-key:TableCaption} (`text-muted-foreground mt-4 text-sm`).
 
 <VuedaDemo class="flex flex-col gap-6">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      full anatomy — header · body · footer · caption
-    </header>
+  <DemoCard title="full anatomy — header · body · footer · caption">
     <div class="rounded-md border border-border overflow-hidden">
       <Table>
         <TableCaption>Recent invoices · all amounts in USD.</TableCaption>
@@ -139,16 +136,13 @@ Seven additional keys cover the inner elements:
         </TableFooter>
       </Table>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">container: <code>relative w-full overflow-auto</code></span>
       <span class="whitespace-nowrap">footer: <code>bg-muted/50 border-t font-medium</code></span>
       <span class="whitespace-nowrap">caption: <code>caption-bottom mt-4 text-sm text-muted-foreground</code></span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      selected row — data-[state=selected]:bg-muted
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="selected row — data-[state=selected]:bg-muted">
     <div class="rounded-md border border-border overflow-hidden">
       <Table>
         <TableHeader>
@@ -181,12 +175,12 @@ Seven additional keys cover the inner elements:
         </TableBody>
       </Table>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">selected fills to <code>bg-muted</code> (neutral tint) in the default theme</span>
       <span class="whitespace-nowrap">hover fills to <code>bg-muted/50</code></span>
       <span class="whitespace-nowrap"><code>border-b transition-colors</code> on every row</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Density
@@ -199,10 +193,7 @@ level, or by patching the theme keys for a given context. The demos below use
 `class` prop overrides to show each tier.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-3">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      default — 32 px rows
-    </header>
+  <DemoCard title="default — 32 px rows">
     <div class="rounded-md border border-border overflow-hidden">
       <Table>
         <TableHeader>
@@ -231,14 +222,11 @@ level, or by patching the theme keys for a given context. The demos below use
         </TableBody>
       </Table>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">theme default: <code>h-10</code> head, <code>p-2</code> cells</span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      compact — 28 px rows
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="compact — 28 px rows">
     <div class="rounded-md border border-border overflow-hidden">
       <Table>
         <TableHeader>
@@ -267,14 +255,11 @@ level, or by patching the theme keys for a given context. The demos below use
         </TableBody>
       </Table>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">override: <code>!h-8</code> head, <code>!py-1</code> cells</span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      condensed — 24 px rows
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="condensed — 24 px rows">
     <div class="rounded-md border border-border overflow-hidden">
       <Table>
         <TableHeader>
@@ -303,10 +288,10 @@ level, or by patching the theme keys for a given context. The demos below use
         </TableBody>
       </Table>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">override: <code>!h-7 !text-[11px]</code> head, <code>!py-0.5 !text-[11px]</code> cells</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## TableEmpty
@@ -323,10 +308,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
 **filtered-empty** (no matches, clear-filters CTA).
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      empty — first-run, primary CTA
-    </header>
+  <DemoCard title="empty — first-run, primary CTA">
     <div class="rounded-md border border-border overflow-hidden">
       <Table>
         <TableHeader>
@@ -351,15 +333,12 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
         </TableBody>
       </Table>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">content is a flex column with <code>gap</code></span>
       <span class="whitespace-nowrap">icon, strong, span, and action compose naturally</span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      loading — spinner + message
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="loading — spinner + message">
     <div class="rounded-md border border-border overflow-hidden">
       <Table>
         <TableHeader>
@@ -378,14 +357,11 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
         </TableBody>
       </Table>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">spinning icon via <code>spin</code> prop on FontAwesomeIcon</span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      error — destructive icon, retry CTA
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="error — destructive icon, retry CTA">
     <div class="rounded-md border border-border overflow-hidden">
       <Table>
         <TableHeader>
@@ -410,14 +386,11 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
         </TableBody>
       </Table>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">icon color is consumer-provided, not from theme key</span>
-    </footer>
-  </section>
-  <section class="flex flex-col gap-3">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      filtered-empty — no matches, clear CTA
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="filtered-empty — no matches, clear CTA">
     <div class="rounded-md border border-border overflow-hidden">
       <Table>
         <TableHeader>
@@ -440,10 +413,10 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
         </TableBody>
       </Table>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">use ghost or tertiary CTA so it doesn't compete with primary actions</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## DataTable recipe

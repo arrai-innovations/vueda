@@ -60,12 +60,9 @@ Token surface: {@api css-token:border} (container border),
 segment fill), {@api css-token:muted} (read-only fill).
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      date-only (default)
-    </header>
+  <DemoCard title="date-only (default)">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">empty</div>
+      <StateLabel>empty</StateLabel>
       <DateField>
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -75,7 +72,7 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">filled</div>
+      <StateLabel>filled</StateLabel>
       <DateField :default-value="dateValue">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -84,19 +81,15 @@ segment fill), {@api css-token:muted} (read-only fill).
         </template>
       </DateField>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">container border <code>--border</code></span>
       <span class="whitespace-nowrap">placeholder text <code>--muted-foreground</code></span>
       <span class="whitespace-nowrap">click a segment to see focus ring</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      datetime (granularity="minute")
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="datetime (granularity=&quot;minute&quot;)">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">empty</div>
+      <StateLabel>empty</StateLabel>
       <DateField granularity="minute">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -106,7 +99,7 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">with seconds</div>
+      <StateLabel>with seconds</StateLabel>
       <DateField granularity="second">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -115,18 +108,14 @@ segment fill), {@api css-token:muted} (read-only fill).
         </template>
       </DateField>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">granularity controls which segments appear</span>
       <span class="whitespace-nowrap">accepts "day" | "hour" | "minute" | "second"</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      read modes
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="read modes">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">readonly</div>
+      <StateLabel>readonly</StateLabel>
       <DateField :default-value="dateValue" readonly>
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -136,7 +125,7 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <StateLabel>disabled</StateLabel>
       <DateField :default-value="dateValue" disabled>
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -145,16 +134,12 @@ segment fill), {@api css-token:muted} (read-only fill).
         </template>
       </DateField>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">readonly fill <code>--muted</code>/50</span>
       <span class="whitespace-nowrap">disabled opacity 50</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      invalid
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="invalid">
     <DateField aria-invalid="true">
       <template #default="{ segments }">
         <template v-for="item in segments" :key="item.part">
@@ -162,10 +147,10 @@ segment fill), {@api css-token:muted} (read-only fill).
         </template>
       </template>
     </DateField>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">border <code>--destructive</code></span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## DateRangeField: composition matrix
@@ -181,12 +166,9 @@ Theme keys: {@api theme-key:DateRangeField},
 {@api theme-key:DateRangeFieldInput}. Token surface mirrors DateField.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      default
-    </header>
+  <DemoCard title="default">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">empty</div>
+      <StateLabel>empty</StateLabel>
       <DateRangeField>
         <template #default="{ segments }">
           <template v-for="item in segments.start" :key="`s-${item.part}`">
@@ -200,7 +182,7 @@ Theme keys: {@api theme-key:DateRangeField},
       </DateRangeField>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">filled</div>
+      <StateLabel>filled</StateLabel>
       <DateRangeField :default-value="rangeValue">
         <template #default="{ segments }">
           <template v-for="item in segments.start" :key="`s-${item.part}`">
@@ -213,18 +195,14 @@ Theme keys: {@api theme-key:DateRangeField},
         </template>
       </DateRangeField>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">start and end share the same container chrome</span>
       <span class="whitespace-nowrap">separator is consumer markup</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      read modes
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="read modes">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">readonly</div>
+      <StateLabel>readonly</StateLabel>
       <DateRangeField :default-value="rangeValue" readonly>
         <template #default="{ segments }">
           <template v-for="item in segments.start" :key="`s-${item.part}`">
@@ -238,7 +216,7 @@ Theme keys: {@api theme-key:DateRangeField},
       </DateRangeField>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <StateLabel>disabled</StateLabel>
       <DateRangeField :default-value="rangeValue" disabled>
         <template #default="{ segments }">
           <template v-for="item in segments.start" :key="`s-${item.part}`">
@@ -251,11 +229,11 @@ Theme keys: {@api theme-key:DateRangeField},
         </template>
       </DateRangeField>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">readonly fill <code>--muted</code>/50</span>
       <span class="whitespace-nowrap">disabled opacity 50</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## TimeField: composition matrix
@@ -268,12 +246,9 @@ Theme keys: {@api theme-key:TimeField}, {@api theme-key:TimeFieldInput}.
 Token surface mirrors DateField.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      24-hour
-    </header>
+  <DemoCard title="24-hour">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">empty (hour:minute)</div>
+      <StateLabel>empty (hour:minute)</StateLabel>
       <TimeField :hour-cycle="24">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -283,7 +258,7 @@ Token surface mirrors DateField.
       </TimeField>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">with seconds</div>
+      <StateLabel>with seconds</StateLabel>
       <TimeField :hour-cycle="24" granularity="second" :default-value="timeValueSec">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -292,18 +267,14 @@ Token surface mirrors DateField.
         </template>
       </TimeField>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">granularity controls which segments appear</span>
       <span class="whitespace-nowrap">colons are literal segments</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      12-hour
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="12-hour">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">empty</div>
+      <StateLabel>empty</StateLabel>
       <TimeField :hour-cycle="12">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -313,7 +284,7 @@ Token surface mirrors DateField.
       </TimeField>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">filled</div>
+      <StateLabel>filled</StateLabel>
       <TimeField :hour-cycle="12" :default-value="timeValue">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -322,18 +293,14 @@ Token surface mirrors DateField.
         </template>
       </TimeField>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">AM/PM segment appended when hourCycle=12</span>
       <span class="whitespace-nowrap">segment bg <code>--accent</code> on focus</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      read modes
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="read modes">
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">readonly</div>
+      <StateLabel>readonly</StateLabel>
       <TimeField :default-value="timeValue" :hour-cycle="24" readonly>
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -343,7 +310,7 @@ Token surface mirrors DateField.
       </TimeField>
     </div>
     <div class="flex flex-col gap-1">
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">disabled</div>
+      <StateLabel>disabled</StateLabel>
       <TimeField :default-value="timeValue" :hour-cycle="24" disabled>
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -352,11 +319,11 @@ Token surface mirrors DateField.
         </template>
       </TimeField>
     </div>
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">readonly fill <code>--muted</code>/50</span>
       <span class="whitespace-nowrap">disabled opacity 50</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Calendar: state matrix
@@ -375,72 +342,49 @@ Theme keys: {@api theme-key:Calendar}, {@api theme-key:CalendarCell},
 {@api css-token:destructive} (unavailable cells).
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      default (today highlighted)
-    </header>
+  <DemoCard title="default (today highlighted)">
     <Calendar :default-placeholder="placeholderMay" />
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">today bg <code>--accent</code></span>
       <span class="whitespace-nowrap">no selection</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      with selected date
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="with selected date">
     <Calendar :default-value="calendarSelected" :default-placeholder="placeholderMay" />
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">selected bg <code>--primary</code></span>
       <span class="whitespace-nowrap">selected fg <code>--primary-foreground</code></span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      month-and-year layout
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="month-and-year layout">
     <Calendar layout="month-and-year" :default-placeholder="placeholderMay" />
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">layout="month-and-year" replaces static heading with dropdowns</span>
       <span class="whitespace-nowrap">also accepts "month-only" and "year-only"</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      unavailable dates
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="unavailable dates">
     <Calendar :default-placeholder="placeholderMay" :is-date-unavailable="isDateUnavailable" />
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">unavailable fg <code>--destructive-foreground</code></span>
       <span class="whitespace-nowrap">unavailable text line-through</span>
       <span class="whitespace-nowrap">days 8, 15, 22 marked unavailable in this demo</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      disabled dates
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled dates">
     <Calendar :default-placeholder="placeholderMay" :is-date-disabled="isDateDisabled" />
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">disabled cells opacity 50</span>
       <span class="whitespace-nowrap">days before the 5th disabled in this demo</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      disabled calendar
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled calendar">
     <Calendar :default-placeholder="placeholderMay" disabled />
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">entire calendar at opacity 50</span>
       <span class="whitespace-nowrap">nav buttons and cells not interactive</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## RangeCalendar: state matrix
@@ -454,26 +398,19 @@ Theme keys: {@api theme-key:RangeCalendar}, {@api theme-key:RangeCalendarCell},
 {@api theme-key:RangeCalendarCellTrigger}. Token surface mirrors Calendar.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      with range (Apr 10 – Apr 24)
-    </header>
+  <DemoCard title="with range (Apr 10 – Apr 24)">
     <RangeCalendar :default-value="rangeValue" :default-placeholder="placeholderApr" />
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">range fill <code>--accent</code></span>
       <span class="whitespace-nowrap">endpoints bg <code>--primary</code></span>
       <span class="whitespace-nowrap">rounded corners at selection-start and selection-end</span>
-    </footer>
-  </section>
-
-  <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
-    <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      default (empty, today highlighted)
-    </header>
+    </template>
+  </DemoCard>
+  <DemoCard title="default (empty, today highlighted)">
     <RangeCalendar :default-placeholder="placeholderMay" />
-    <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <template #footer>
       <span class="whitespace-nowrap">today bg <code>--accent</code></span>
       <span class="whitespace-nowrap">click to start a selection</span>
-    </footer>
-  </section>
+    </template>
+  </DemoCard>
 </VuedaDemo>
