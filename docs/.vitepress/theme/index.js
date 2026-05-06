@@ -1,6 +1,8 @@
 import "./brand.css";
+import DemoCard from "./components/DemoCard.vue";
 import ForceState from "./components/ForceState.vue";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
+import StateLabel from "./components/StateLabel.vue";
 import VuedaDemo from "./components/VuedaDemo.vue";
 import "./showcase.css";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
@@ -89,8 +91,10 @@ const theme = {
             DefaultTheme.enhanceApp(ctx);
         }
 
+        app.component("DemoCard", DemoCard);
         app.component("GlossaryTerm", GlossaryTerm);
         app.component("ForceState", ForceState);
+        app.component("StateLabel", StateLabel);
         app.component("VuedaDemo", VuedaDemo);
 
         if (typeof window !== "undefined") {
