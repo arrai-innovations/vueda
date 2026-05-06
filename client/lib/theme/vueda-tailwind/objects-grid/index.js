@@ -42,14 +42,12 @@ export default {
         },
         bodyRowGroup: {
             class: ({ isTable }) => [
-                "grid",
                 "print:block",
-                "p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4",
-                // don't add grid-cols-x here.
-                // projects should set their own via theme-override
-                // as appropriate for their individual cases.
-                "grid-flow-row",
                 {
+                    // don't add grid-cols-x here.
+                    // projects should set their own via theme-override
+                    // as appropriate for their individual cases.
+                    "grid grid-flow-row p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4": !isTable,
                     "!table-row-group": isTable,
                 },
             ],
