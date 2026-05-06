@@ -16,6 +16,9 @@ To get started:
 
 - Run tests: `just test-client` (accepts extra vitest args, paths relative to `client/`)
 
+    **Testing scope:** this is a component library with no standalone dev app. "Test" means Vitest unit tests -- do not attempt to start a Vite dev server or verify components by rendering them in a browser. Unit tests are the only automated verification available. If something cannot be confirmed by a unit test, say so explicitly rather than trying to serve or scrape rendered output.
+
+
     ```bash
     just test-client
     just test-client tests/unit/lib/views/ViewWorkflowTransition.spec.js

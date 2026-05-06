@@ -113,6 +113,18 @@ Examples:
 - `{@term CRUDL}`
 - `{@term Model Info}`
 
+## Verifying VuedaDemo blocks
+
+`VuedaDemo` blocks exist so that humans can review rendered component output visually in the VitePress site. Do not attempt to start the VitePress dev server or fetch its rendered HTML to verify a demo. There is no automated way to inspect visual output.
+
+When you write or edit a `VuedaDemo` block, confirm correctness by:
+
+1. Checking that the markup is syntactically valid (no unclosed tags, no blank lines inside the block -- see below).
+2. Ensuring any referenced components are imported or globally registered in the docs site.
+3. Running `just check-eslint` and `just check-prettier` to pass linting and formatting.
+
+If the demo cannot be verified without a running browser, say so explicitly rather than attempting to curl or scrape the dev server.
+
 ## HTML blocks inside VuedaDemo
 
 Markdown ends an HTML block at the first blank line. Any blank line inside a `<VuedaDemo>` (or any other HTML block) splits it into separate fragments, so closing tags end up in a different block from their openers. Vue's template compiler then sees unclosed elements and throws `Element X is not closed`.
