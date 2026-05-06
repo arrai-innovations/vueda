@@ -27,3 +27,7 @@ designer can move from the visual to the override surface in one click.
 
 - [Containers](/reference/components/containers)
 - [Sidebar](/reference/components/sidebar)
+
+## Grid
+
+- [Tables](/reference/components/tables)
