@@ -19,6 +19,7 @@ designer can move from the visual to the override surface in one click.
 - [Selection + Command](/reference/components/selection-and-command)
 - [Date + Time](/reference/components/datetime)
 - [Feedback + Loading](/reference/components/feedback-and-loading)
+- [Overlays](/reference/components/overlays)
 
 ## Navigation
 
