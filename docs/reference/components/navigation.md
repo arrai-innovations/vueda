@@ -98,9 +98,9 @@ Theme keys: {@api theme-key:BreadcrumbList}, {@api theme-key:BreadcrumbItem},
       </BreadcrumbList>
     </Breadcrumb>
     <template #footer>
-      <span class="whitespace-nowrap">list: flex-wrap, gap-1.5 sm:gap-2.5, text-sm</span>
-      <span class="whitespace-nowrap">separator: svg size-3.5</span>
-      <span class="whitespace-nowrap">ellipsis: size-9 click target</span>
+      <span>list: flex-wrap, gap-1.5 sm:gap-2.5, text-sm</span>
+      <span>separator: svg size-3.5</span>
+      <span>ellipsis: size-9 click target</span>
     </template>
   </DemoCard>
   <DemoCard title="link states">
@@ -128,10 +128,10 @@ Theme keys: {@api theme-key:BreadcrumbList}, {@api theme-key:BreadcrumbItem},
       </BreadcrumbList>
     </Breadcrumb>
     <template #footer>
-      <span class="whitespace-nowrap">link fg <code>--muted-foreground</code></span>
-      <span class="whitespace-nowrap">link hover fg <code>--foreground</code></span>
-      <span class="whitespace-nowrap">page: font-normal, fg <code>--foreground</code></span>
-      <span class="whitespace-nowrap">page: aria-current="page", aria-disabled</span>
+      <span>link fg <code>--muted-foreground</code></span>
+      <span>link hover fg <code>--foreground</code></span>
+      <span>page: font-normal, fg <code>--foreground</code></span>
+      <span>page: aria-current="page", aria-disabled</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -162,9 +162,9 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
       </PaginationContent>
     </Pagination>
     <template #footer>
-      <span class="whitespace-nowrap">active item composes <code>_ButtonOutline</code></span>
-      <span class="whitespace-nowrap">inactive items compose <code>_ButtonGhost</code></span>
-      <span class="whitespace-nowrap">nav buttons: gap-1, px-2.5, show label at sm+</span>
+      <span>active item composes <code>_ButtonOutline</code></span>
+      <span>inactive items compose <code>_ButtonGhost</code></span>
+      <span>nav buttons: gap-1, px-2.5, show label at sm+</span>
     </template>
   </DemoCard>
   <DemoCard title="show-edges" description="(first/last buttons + edge page numbers)">
@@ -183,8 +183,8 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
       </PaginationContent>
     </Pagination>
     <template #footer>
-      <span class="whitespace-nowrap">PaginationFirst / PaginationLast share NavigationPaginationNavButton key</span>
-      <span class="whitespace-nowrap">show-edges always includes page 1 and last page in the number list</span>
+      <span>PaginationFirst / PaginationLast share NavigationPaginationNavButton key</span>
+      <span>show-edges always includes page 1 and last page in the number list</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled">
@@ -201,7 +201,7 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
       </PaginationContent>
     </Pagination>
     <template #footer>
-      <span class="whitespace-nowrap">disabled: pointer-events-none, opacity-50 on all items</span>
+      <span>disabled: pointer-events-none, opacity-50 on all items</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -245,11 +245,11 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">h-9 · rounded-vueda-control · text-sm font-medium</span>
-      <span class="whitespace-nowrap">hover/focus bg <code>--accent</code></span>
-      <span class="whitespace-nowrap">open bg <code>--accent/50</code></span>
-      <span class="whitespace-nowrap">focus-visible: 2px outline <code>--ring</code></span>
-      <span class="whitespace-nowrap">caret rotates 180° on open</span>
+      <span>h-9 · rounded-vueda-control · text-sm font-medium</span>
+      <span>hover/focus bg <code>--accent</code></span>
+      <span>open bg <code>--accent/50</code></span>
+      <span>focus-visible: 2px outline <code>--ring</code></span>
+      <span>caret rotates 180° on open</span>
     </template>
   </DemoCard>
   <DemoCard title="content anatomy" description="(static panel)">
@@ -268,10 +268,10 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
       </a>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">viewport: bg <code>--popover</code>, rounded, border, shadow</span>
-      <span class="whitespace-nowrap">link: flex-col, gap-1, p-2, rounded-sm, text-sm</span>
-      <span class="whitespace-nowrap">active link: bg <code>--accent/50</code></span>
-      <span class="whitespace-nowrap">hover/focus link: bg <code>--accent</code></span>
+      <span>viewport: bg <code>--popover</code>, rounded, border, shadow</span>
+      <span>link: flex-col, gap-1, p-2, rounded-sm, text-sm</span>
+      <span>active link: bg <code>--accent/50</code></span>
+      <span>hover/focus link: bg <code>--accent</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -312,8 +312,8 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">bar: bg <code>--background</code>, h-9, rounded, border, shadow</span>
-      <span class="whitespace-nowrap">trigger hover/focus/open: bg <code>--accent</code>, fg <code>--accent-foreground</code></span>
+      <span>bar: bg <code>--background</code>, h-9, rounded, border, shadow</span>
+      <span>trigger hover/focus/open: bg <code>--accent</code>, fg <code>--accent-foreground</code></span>
     </template>
   </DemoCard>
   <DemoCard title="content anatomy" description="(static panel)">
@@ -354,11 +354,11 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">content: bg <code>--popover</code>, min-w-48, rounded, border, shadow</span>
-      <span class="whitespace-nowrap">item hover/focus: bg <code>--accent</code></span>
-      <span class="whitespace-nowrap">indicator: size-3.5, absolute left-2</span>
-      <span class="whitespace-nowrap">shortcut: text-xs tracking-widest ml-auto</span>
-      <span class="whitespace-nowrap">disabled: opacity-50 pointer-events-none</span>
+      <span>content: bg <code>--popover</code>, min-w-48, rounded, border, shadow</span>
+      <span>item hover/focus: bg <code>--accent</code></span>
+      <span>indicator: size-3.5, absolute left-2</span>
+      <span>shortcut: text-xs tracking-widest ml-auto</span>
+      <span>disabled: opacity-50 pointer-events-none</span>
     </template>
   </DemoCard>
 </VuedaDemo>

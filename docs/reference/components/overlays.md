@@ -111,8 +111,8 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
       </ClientOnly>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">surface: <code>PopoverContent</code></span>
-      <span class="whitespace-nowrap">width + padding: caller-supplied</span>
+      <span>surface: <code>PopoverContent</code></span>
+      <span>width + padding: caller-supplied</span>
     </template>
   </DemoCard>
   <DemoCard title="sm · w-60 p-3 · utility info">
@@ -132,7 +132,7 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
       </ClientOnly>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">info-only · no actions</span>
+      <span>info-only · no actions</span>
     </template>
   </DemoCard>
   <DemoCard title="lg · w-80 · destructive action">
@@ -264,7 +264,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
     </div>
     <template #footer>
       <span>check: drawn SVG path · not a font glyph</span>
-      <span class="whitespace-nowrap">radio dot: <code>circle r="3"</code></span>
+      <span>radio dot: <code>circle r="3"</code></span>
     </template>
   </DemoCard>
   <DemoCard title="with submenu · disabled item">
@@ -507,7 +507,7 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
       </ClientOnly>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap"><code>kbd</code>: border + bg at <code>/20</code> against foreground surface</span>
+      <span><code>kbd</code>: border + bg at <code>/20</code> against foreground surface</span>
     </template>
   </DemoCard>
   <DemoCard title="wrapped · long content">
@@ -526,7 +526,7 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
       </ClientOnly>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">max-width: caller-supplied via <code>class</code></span>
+      <span>max-width: caller-supplied via <code>class</code></span>
     </template>
   </DemoCard>
   <DemoCard title="surface anatomy — inverted tokens · arrow · kbd · static" class="sm:col-span-2 lg:col-span-3">

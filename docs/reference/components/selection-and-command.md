@@ -153,11 +153,11 @@ Token surface: {@api css-token:border} (trigger stroke),
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">border <code>--border</code></span>
-      <span class="whitespace-nowrap">placeholder fg <code>--muted-foreground</code></span>
-      <span class="whitespace-nowrap">focus outline <code>--ring</code></span>
-      <span class="whitespace-nowrap">invalid outline <code>--destructive</code></span>
-      <span class="whitespace-nowrap">disabled opacity-50</span>
+      <span>border <code>--border</code></span>
+      <span>placeholder fg <code>--muted-foreground</code></span>
+      <span>focus outline <code>--ring</code></span>
+      <span>invalid outline <code>--destructive</code></span>
+      <span>disabled opacity-50</span>
     </template>
   </DemoCard>
   <DemoCard title="trigger sizes">
@@ -188,9 +188,9 @@ Token surface: {@api css-token:border} (trigger stroke),
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap"><code>size="sm"</code> → 28px via <code>--vueda-control-height-sm</code></span>
-      <span class="whitespace-nowrap"><code>size="default"</code> → 32px (canon)</span>
-      <span class="whitespace-nowrap">no lg variant on SelectTrigger</span>
+      <span><code>size="sm"</code> → 28px via <code>--vueda-control-height-sm</code></span>
+      <span><code>size="default"</code> → 32px (canon)</span>
+      <span>no lg variant on SelectTrigger</span>
     </template>
   </DemoCard>
   <DemoCard title="open content anatomy — groups, labels, separator, indicator, highlighted, disabled" class="sm:col-span-2">
@@ -245,12 +245,12 @@ Token surface: {@api css-token:border} (trigger stroke),
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">content bg <code>--popover</code></span>
-      <span class="whitespace-nowrap">label fg <code>--muted-foreground</code>, text-xs</span>
-      <span class="whitespace-nowrap">highlighted bg <code>--accent</code>, fg <code>--accent-foreground</code></span>
-      <span class="whitespace-nowrap">check indicator absolute right-2</span>
-      <span class="whitespace-nowrap">separator <code>--border</code></span>
-      <span class="whitespace-nowrap">disabled opacity-50 pointer-events-none</span>
+      <span>content bg <code>--popover</code></span>
+      <span>label fg <code>--muted-foreground</code>, text-xs</span>
+      <span>highlighted bg <code>--accent</code>, fg <code>--accent-foreground</code></span>
+      <span>check indicator absolute right-2</span>
+      <span>separator <code>--border</code></span>
+      <span>disabled opacity-50 pointer-events-none</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -319,9 +319,9 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
       </Combobox>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">trigger uses hairline border + shadow-vueda-control</span>
-      <span class="whitespace-nowrap">list width tracks trigger via <code>--reka-combobox-trigger-width</code></span>
-      <span class="whitespace-nowrap">check indicator from ComboboxItemIndicator</span>
+      <span>trigger uses hairline border + shadow-vueda-control</span>
+      <span>list width tracks trigger via <code>--reka-combobox-trigger-width</code></span>
+      <span>check indicator from ComboboxItemIndicator</span>
     </template>
   </DemoCard>
   <DemoCard title="open list anatomy — search input, grouped items, empty state">
@@ -364,10 +364,10 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">list bg <code>--popover</code></span>
-      <span class="whitespace-nowrap">search row <code>h-9 border-b</code> separates from items</span>
-      <span class="whitespace-nowrap">highlighted bg <code>--accent</code></span>
-      <span class="whitespace-nowrap">empty <code>py-6 text-center text-sm</code></span>
+      <span>list bg <code>--popover</code></span>
+      <span>search row <code>h-9 border-b</code> separates from items</span>
+      <span>highlighted bg <code>--accent</code></span>
+      <span>empty <code>py-6 text-center text-sm</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -427,10 +427,10 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
       </Command>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">command bg <code>--popover</code></span>
-      <span class="whitespace-nowrap">highlighted bg <code>--accent</code></span>
-      <span class="whitespace-nowrap">shortcut fg <code>--muted-foreground</code>, text-xs tracking-widest</span>
-      <span class="whitespace-nowrap">separator <code>--border</code>, -mx-1</span>
+      <span>command bg <code>--popover</code></span>
+      <span>highlighted bg <code>--accent</code></span>
+      <span>shortcut fg <code>--muted-foreground</code>, text-xs tracking-widest</span>
+      <span>separator <code>--border</code>, -mx-1</span>
     </template>
   </DemoCard>
   <DemoCard title="empty state — no items match; disabled item">
@@ -462,9 +462,9 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
       state. Disabled items are excluded from selection and keyboard navigation.
     </p>
     <template #footer>
-      <span class="whitespace-nowrap">CommandEmpty renders only when <code>filtered.count === 0</code></span>
-      <span class="whitespace-nowrap"><code>py-6 text-center text-sm</code></span>
-      <span class="whitespace-nowrap">disabled opacity-50 pointer-events-none</span>
+      <span>CommandEmpty renders only when <code>filtered.count === 0</code></span>
+      <span><code>py-6 text-center text-sm</code></span>
+      <span>disabled opacity-50 pointer-events-none</span>
     </template>
   </DemoCard>
   <DemoCard title="CommandDialog — Command wrapped in a modal; click to open live demo" class="sm:col-span-2">
@@ -522,9 +522,9 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">dialog bg <code>--background</code></span>
-      <span class="whitespace-nowrap">scrim <code>oklch(0.12 0.015 250 / 0.6)</code></span>
-      <span class="whitespace-nowrap">slot content goes directly into Command root</span>
+      <span>dialog bg <code>--background</code></span>
+      <span>scrim <code>oklch(0.12 0.015 250 / 0.6)</code></span>
+      <span>slot content goes directly into Command root</span>
     </template>
   </DemoCard>
 </VuedaDemo>

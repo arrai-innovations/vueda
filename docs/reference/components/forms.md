@@ -71,7 +71,7 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
     </FieldGroup>
     <template #footer>
       <span>default orientation</span>
-      <span class="whitespace-nowrap">label: <code>FieldLabel</code> · content column: <code>FieldContent</code></span>
+      <span>label: <code>FieldLabel</code> · content column: <code>FieldContent</code></span>
     </template>
   </DemoCard>
   <DemoCard title="horizontal — label left, flex-row">
@@ -89,7 +89,7 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
     </FieldGroup>
     <template #footer>
       <span>label and content sit side by side</span>
-      <span class="whitespace-nowrap">label grows via <code>flex-auto</code></span>
+      <span>label grows via <code>flex-auto</code></span>
     </template>
   </DemoCard>
   <DemoCard title="responsive — vertical then horizontal at @md">
@@ -192,7 +192,7 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
     </FieldGroup>
     <template #footer>
       <span>border shifts to <code>--ring</code> on focus</span>
-      <span class="whitespace-nowrap">ring: <code>--ring/30</code> · 2px · 2px offset</span>
+      <span>ring: <code>--ring/30</code> · 2px · 2px offset</span>
     </template>
   </DemoCard>
   <DemoCard title="filled / valid · trailing check">
@@ -211,7 +211,7 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
     </FieldGroup>
     <template #footer>
       <span>trailing status icon: absolute in relative wrapper</span>
-      <span class="whitespace-nowrap">valid glyph: <code>text-success</code></span>
+      <span>valid glyph: <code>text-success</code></span>
     </template>
   </DemoCard>
   <DemoCard title="error · single message">
@@ -329,7 +329,7 @@ Theme key: {@api theme-key:FormMessage}. Token surface: {@api css-token:destruct
     </Alert>
     <template #footer>
       <span>one error → single line inside Alert</span>
-      <span class="whitespace-nowrap"><code>FormMessage</code> wraps this pattern automatically</span>
+      <span><code>FormMessage</code> wraps this pattern automatically</span>
     </template>
   </DemoCard>
   <DemoCard title="multiple errors · single Alert with list">

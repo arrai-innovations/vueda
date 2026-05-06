@@ -82,9 +82,9 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">container border <code>--border</code></span>
-      <span class="whitespace-nowrap">placeholder text <code>--muted-foreground</code></span>
-      <span class="whitespace-nowrap">click a segment to see focus ring</span>
+      <span>container border <code>--border</code></span>
+      <span>placeholder text <code>--muted-foreground</code></span>
+      <span>click a segment to see focus ring</span>
     </template>
   </DemoCard>
   <DemoCard title="datetime (granularity=&quot;minute&quot;)">
@@ -109,8 +109,8 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">granularity controls which segments appear</span>
-      <span class="whitespace-nowrap">accepts "day" | "hour" | "minute" | "second"</span>
+      <span>granularity controls which segments appear</span>
+      <span>accepts "day" | "hour" | "minute" | "second"</span>
     </template>
   </DemoCard>
   <DemoCard title="read modes">
@@ -135,8 +135,8 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">readonly fill <code>--muted</code>/50</span>
-      <span class="whitespace-nowrap">disabled opacity 50</span>
+      <span>readonly fill <code>--muted</code>/50</span>
+      <span>disabled opacity 50</span>
     </template>
   </DemoCard>
   <DemoCard title="invalid">
@@ -148,7 +148,7 @@ segment fill), {@api css-token:muted} (read-only fill).
       </template>
     </DateField>
     <template #footer>
-      <span class="whitespace-nowrap">border <code>--destructive</code></span>
+      <span>border <code>--destructive</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -196,8 +196,8 @@ Theme keys: {@api theme-key:DateRangeField},
       </DateRangeField>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">start and end share the same container chrome</span>
-      <span class="whitespace-nowrap">separator is consumer markup</span>
+      <span>start and end share the same container chrome</span>
+      <span>separator is consumer markup</span>
     </template>
   </DemoCard>
   <DemoCard title="read modes">
@@ -230,8 +230,8 @@ Theme keys: {@api theme-key:DateRangeField},
       </DateRangeField>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">readonly fill <code>--muted</code>/50</span>
-      <span class="whitespace-nowrap">disabled opacity 50</span>
+      <span>readonly fill <code>--muted</code>/50</span>
+      <span>disabled opacity 50</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -268,8 +268,8 @@ Token surface mirrors DateField.
       </TimeField>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">granularity controls which segments appear</span>
-      <span class="whitespace-nowrap">colons are literal segments</span>
+      <span>granularity controls which segments appear</span>
+      <span>colons are literal segments</span>
     </template>
   </DemoCard>
   <DemoCard title="12-hour">
@@ -294,8 +294,8 @@ Token surface mirrors DateField.
       </TimeField>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">AM/PM segment appended when hourCycle=12</span>
-      <span class="whitespace-nowrap">segment bg <code>--accent</code> on focus</span>
+      <span>AM/PM segment appended when hourCycle=12</span>
+      <span>segment bg <code>--accent</code> on focus</span>
     </template>
   </DemoCard>
   <DemoCard title="read modes">
@@ -320,8 +320,8 @@ Token surface mirrors DateField.
       </TimeField>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">readonly fill <code>--muted</code>/50</span>
-      <span class="whitespace-nowrap">disabled opacity 50</span>
+      <span>readonly fill <code>--muted</code>/50</span>
+      <span>disabled opacity 50</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -345,44 +345,44 @@ Theme keys: {@api theme-key:Calendar}, {@api theme-key:CalendarCell},
   <DemoCard title="default (today highlighted)">
     <Calendar :default-placeholder="placeholderMay" />
     <template #footer>
-      <span class="whitespace-nowrap">today bg <code>--accent</code></span>
-      <span class="whitespace-nowrap">no selection</span>
+      <span>today bg <code>--accent</code></span>
+      <span>no selection</span>
     </template>
   </DemoCard>
   <DemoCard title="with selected date">
     <Calendar :default-value="calendarSelected" :default-placeholder="placeholderMay" />
     <template #footer>
-      <span class="whitespace-nowrap">selected bg <code>--primary</code></span>
-      <span class="whitespace-nowrap">selected fg <code>--primary-foreground</code></span>
+      <span>selected bg <code>--primary</code></span>
+      <span>selected fg <code>--primary-foreground</code></span>
     </template>
   </DemoCard>
   <DemoCard title="month-and-year layout">
     <Calendar layout="month-and-year" :default-placeholder="placeholderMay" />
     <template #footer>
-      <span class="whitespace-nowrap">layout="month-and-year" replaces static heading with dropdowns</span>
-      <span class="whitespace-nowrap">also accepts "month-only" and "year-only"</span>
+      <span>layout="month-and-year" replaces static heading with dropdowns</span>
+      <span>also accepts "month-only" and "year-only"</span>
     </template>
   </DemoCard>
   <DemoCard title="unavailable dates">
     <Calendar :default-placeholder="placeholderMay" :is-date-unavailable="isDateUnavailable" />
     <template #footer>
-      <span class="whitespace-nowrap">unavailable fg <code>--destructive-foreground</code></span>
-      <span class="whitespace-nowrap">unavailable text line-through</span>
-      <span class="whitespace-nowrap">days 8, 15, 22 marked unavailable in this demo</span>
+      <span>unavailable fg <code>--destructive-foreground</code></span>
+      <span>unavailable text line-through</span>
+      <span>days 8, 15, 22 marked unavailable in this demo</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled dates">
     <Calendar :default-placeholder="placeholderMay" :is-date-disabled="isDateDisabled" />
     <template #footer>
-      <span class="whitespace-nowrap">disabled cells opacity 50</span>
-      <span class="whitespace-nowrap">days before the 5th disabled in this demo</span>
+      <span>disabled cells opacity 50</span>
+      <span>days before the 5th disabled in this demo</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled calendar">
     <Calendar :default-placeholder="placeholderMay" disabled />
     <template #footer>
-      <span class="whitespace-nowrap">entire calendar at opacity 50</span>
-      <span class="whitespace-nowrap">nav buttons and cells not interactive</span>
+      <span>entire calendar at opacity 50</span>
+      <span>nav buttons and cells not interactive</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -401,16 +401,16 @@ Theme keys: {@api theme-key:RangeCalendar}, {@api theme-key:RangeCalendarCell},
   <DemoCard title="with range (Apr 10 – Apr 24)">
     <RangeCalendar :default-value="rangeValue" :default-placeholder="placeholderApr" />
     <template #footer>
-      <span class="whitespace-nowrap">range fill <code>--accent</code></span>
-      <span class="whitespace-nowrap">endpoints bg <code>--primary</code></span>
-      <span class="whitespace-nowrap">rounded corners at selection-start and selection-end</span>
+      <span>range fill <code>--accent</code></span>
+      <span>endpoints bg <code>--primary</code></span>
+      <span>rounded corners at selection-start and selection-end</span>
     </template>
   </DemoCard>
   <DemoCard title="default (empty, today highlighted)">
     <RangeCalendar :default-placeholder="placeholderMay" />
     <template #footer>
-      <span class="whitespace-nowrap">today bg <code>--accent</code></span>
-      <span class="whitespace-nowrap">click to start a selection</span>
+      <span>today bg <code>--accent</code></span>
+      <span>click to start a selection</span>
     </template>
   </DemoCard>
 </VuedaDemo>

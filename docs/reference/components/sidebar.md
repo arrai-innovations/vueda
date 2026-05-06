@@ -418,9 +418,9 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarMenu>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">hover bg <code>--sidebar-accent</code></span>
-          <span class="whitespace-nowrap">active: bg + font-medium</span>
-          <span class="whitespace-nowrap">disabled: opacity-50 pointer-events-none</span>
+          <span>hover bg <code>--sidebar-accent</code></span>
+          <span>active: bg + font-medium</span>
+          <span>disabled: opacity-50 pointer-events-none</span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarMenuButton — sizes">
@@ -448,9 +448,9 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarMenu>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">sm: h-7 text-xs</span>
-          <span class="whitespace-nowrap">default: h-8 text-sm</span>
-          <span class="whitespace-nowrap">lg: h-12 text-sm</span>
+          <span>sm: h-7 text-xs</span>
+          <span>default: h-8 text-sm</span>
+          <span>lg: h-12 text-sm</span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarMenuButton — outline variant">
@@ -463,9 +463,9 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarMenuButton>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">bg <code>--background</code> · 1 px inset shadow</span>
-          <span class="whitespace-nowrap">hover: shadow shifts to <code>--sidebar-accent</code></span>
-          <span class="whitespace-nowrap">signals "independent of sidebar surface"</span>
+          <span>bg <code>--background</code> · 1 px inset shadow</span>
+          <span>hover: shadow shifts to <code>--sidebar-accent</code></span>
+          <span>signals "independent of sidebar surface"</span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarMenuBadge">
@@ -496,9 +496,9 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarMenu>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">h-5 min-w-5 rounded-md tabular-nums</span>
-          <span class="whitespace-nowrap">fg shifts on active peer: <code>--sidebar-accent-foreground</code></span>
-          <span class="whitespace-nowrap">hidden when rail collapses</span>
+          <span>h-5 min-w-5 rounded-md tabular-nums</span>
+          <span>fg shifts on active peer: <code>--sidebar-accent-foreground</code></span>
+          <span>hidden when rail collapses</span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarMenuAction — show-on-hover">
@@ -526,8 +526,8 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarMenu>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">show-on-hover: opacity-0 → opacity-100 on parent group hover/focus-within</span>
-          <span class="whitespace-nowrap">w-5 aspect-square, absolute top-1.5 right-1</span>
+          <span>show-on-hover: opacity-0 → opacity-100 on parent group hover/focus-within</span>
+          <span>w-5 aspect-square, absolute top-1.5 right-1</span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarMenuSub — indent rail">
@@ -555,9 +555,9 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarMenu>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">border-l <code>--sidebar-border</code> · mx-3.5 px-2.5</span>
-          <span class="whitespace-nowrap">sub-button active: bg <code>--sidebar-accent</code></span>
-          <span class="whitespace-nowrap">hidden when rail collapses</span>
+          <span>border-l <code>--sidebar-border</code> · mx-3.5 px-2.5</span>
+          <span>sub-button active: bg <code>--sidebar-accent</code></span>
+          <span>hidden when rail collapses</span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarGroupLabel + SidebarGroupAction">
@@ -571,9 +571,9 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarGroup>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">label: h-8 text-xs font-medium tracking-wide opacity-70</span>
-          <span class="whitespace-nowrap">action: w-5 absolute top-3.5 right-3</span>
-          <span class="whitespace-nowrap">both hidden when rail collapses</span>
+          <span>label: h-8 text-xs font-medium tracking-wide opacity-70</span>
+          <span>action: w-5 absolute top-3.5 right-3</span>
+          <span>both hidden when rail collapses</span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarSeparator">
@@ -598,8 +598,8 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarMenu>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">mx-2 w-auto (source default)</span>
-          <span class="whitespace-nowrap">design target: full-bleed like table hairlines</span>
+          <span>mx-2 w-auto (source default)</span>
+          <span>design target: full-bleed like table hairlines</span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarMenuSkeleton">
@@ -612,8 +612,8 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarMenu>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">h-8 gap-2 px-2 · icon: size-4 rounded-md</span>
-          <span class="whitespace-nowrap">text bar width: random 50–90% per instance</span>
+          <span>h-8 gap-2 px-2 · icon: size-4 rounded-md</span>
+          <span>text bar width: random 50–90% per instance</span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarInput">
@@ -622,8 +622,8 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           <SidebarInput placeholder="Search…" type="search" />
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">bg <code>--background</code> · h-8 · shadow-none</span>
-          <span class="whitespace-nowrap">contrast: 1 px border on sidebar surface</span>
+          <span>bg <code>--background</code> · h-8 · shadow-none</span>
+          <span>contrast: 1 px border on sidebar surface</span>
         </template>
       </DemoCard>
       <DemoCard title="User footer block">
@@ -641,9 +641,9 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarFooter>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">avatar: size-8 rounded-full bg <code>--sidebar-accent</code></span>
-          <span class="whitespace-nowrap">name: text-sm font-medium</span>
-          <span class="whitespace-nowrap">role: text-xs <code>--muted-foreground</code></span>
+          <span>avatar: size-8 rounded-full bg <code>--sidebar-accent</code></span>
+          <span>name: text-sm font-medium</span>
+          <span>role: text-xs <code>--muted-foreground</code></span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarTrigger">
@@ -657,9 +657,9 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           </SidebarTrigger>
         </div>
         <template #footer>
-          <span class="whitespace-nowrap">left: default Unicode ◫ glyph</span>
-          <span class="whitespace-nowrap">right: <code>fa-regular fa-rectangle-list</code> via #icon slot</span>
-          <span class="whitespace-nowrap">h-7 w-7 ghost button</span>
+          <span>left: default Unicode ◫ glyph</span>
+          <span>right: <code>fa-regular fa-rectangle-list</code> via #icon slot</span>
+          <span>h-7 w-7 ghost button</span>
         </template>
       </DemoCard>
     </div>

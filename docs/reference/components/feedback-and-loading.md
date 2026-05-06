@@ -112,9 +112,9 @@ Theme keys: {@api theme-key:Alert}, {@api theme-key:AlertTitle},
       </Alert>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">status bg <code>/10</code></span>
-      <span class="whitespace-nowrap">status border <code>/50</code></span>
-      <span class="whitespace-nowrap">icon column only when direct SVG child exists</span>
+      <span>status bg <code>/10</code></span>
+      <span>status border <code>/50</code></span>
+      <span>icon column only when direct SVG child exists</span>
     </template>
   </DemoCard>
   <section class="grid gap-3 rounded-vueda-card border border-border p-4 lg:grid-cols-2">
@@ -163,8 +163,8 @@ Theme key: {@api theme-key:Badge}. Token surface:
       <Badge variant="outline">Archived</Badge>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">radius <code>--vueda-control-radius</code></span>
-      <span class="whitespace-nowrap">padding <code>px-2 py-0.5</code></span>
+      <span>radius <code>--vueda-control-radius</code></span>
+      <span>padding <code>px-2 py-0.5</code></span>
     </template>
   </DemoCard>
   <DemoCard title="with icons">
@@ -175,8 +175,8 @@ Theme key: {@api theme-key:Badge}. Token surface:
       <Badge variant="outline"><FontAwesomeIcon :icon="faClock" /> Scheduled</Badge>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">icon size <code>3</code></span>
-      <span class="whitespace-nowrap">gap <code>1</code></span>
+      <span>icon size <code>3</code></span>
+      <span>gap <code>1</code></span>
     </template>
   </DemoCard>
   <DemoCard title="table context" class="lg:col-span-2">
@@ -245,8 +245,8 @@ the classes it expects.
       </span>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">icon key <code>Default.loading</code></span>
-      <span class="whitespace-nowrap">animation owned by icon props</span>
+      <span>icon key <code>Default.loading</code></span>
+      <span>animation owned by icon props</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -288,9 +288,9 @@ Theme key: {@api theme-key:Progress}. Token surface: {@api css-token:primary}.
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">height <code>h-2</code></span>
-      <span class="whitespace-nowrap">track <code>--primary</code>/20</span>
-      <span class="whitespace-nowrap">indicator <code>--primary</code></span>
+      <span>height <code>h-2</code></span>
+      <span>track <code>--primary</code>/20</span>
+      <span>indicator <code>--primary</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -435,10 +435,10 @@ Theme key: {@api theme-key:Sonner}. Token surface:
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">bg <code>--popover</code></span>
-      <span class="whitespace-nowrap">fg <code>--popover-foreground</code></span>
-      <span class="whitespace-nowrap">border <code>--border</code></span>
-      <span class="whitespace-nowrap">icons from <code>useIcons</code></span>
+      <span>bg <code>--popover</code></span>
+      <span>fg <code>--popover-foreground</code></span>
+      <span>border <code>--border</code></span>
+      <span>icons from <code>useIcons</code></span>
     </template>
   </DemoCard>
   <DemoCard title="Font Awesome override">
@@ -465,7 +465,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">slot names <code>success-icon</code>, <code>info-icon</code>, <code>warning-icon</code>, <code>error-icon</code>, <code>loading-icon</code>, <code>close-icon</code></span>
+      <span>slot names <code>success-icon</code>, <code>info-icon</code>, <code>warning-icon</code>, <code>error-icon</code>, <code>loading-icon</code>, <code>close-icon</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -506,9 +506,9 @@ elevation comes from {@api css-token:vueda-shadow-popover}.
       </dl>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">width <code>w-64</code></span>
-      <span class="whitespace-nowrap">padding <code>p-4</code></span>
-      <span class="whitespace-nowrap">radius <code>--vueda-control-radius</code></span>
+      <span>width <code>w-64</code></span>
+      <span>padding <code>p-4</code></span>
+      <span>radius <code>--vueda-control-radius</code></span>
     </template>
   </DemoCard>
   <DemoCard title="record summary">
@@ -528,8 +528,8 @@ elevation comes from {@api css-token:vueda-shadow-popover}.
       </dl>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">summary, not actionable</span>
-      <span class="whitespace-nowrap">use Popover when the panel needs buttons</span>
+      <span>summary, not actionable</span>
+      <span>use Popover when the panel needs buttons</span>
     </template>
   </DemoCard>
 </VuedaDemo>

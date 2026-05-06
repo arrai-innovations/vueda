@@ -137,9 +137,9 @@ Seven additional keys cover the inner elements:
       </Table>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">container: <code>relative w-full overflow-auto</code></span>
-      <span class="whitespace-nowrap">footer: <code>bg-muted/50 border-t font-medium</code></span>
-      <span class="whitespace-nowrap">caption: <code>caption-bottom mt-4 text-sm text-muted-foreground</code></span>
+      <span>container: <code>relative w-full overflow-auto</code></span>
+      <span>footer: <code>bg-muted/50 border-t font-medium</code></span>
+      <span>caption: <code>caption-bottom mt-4 text-sm text-muted-foreground</code></span>
     </template>
   </DemoCard>
   <DemoCard title="selected row — data-[state=selected]:bg-muted">
@@ -176,9 +176,9 @@ Seven additional keys cover the inner elements:
       </Table>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">selected fills to <code>bg-muted</code> (neutral tint) in the default theme</span>
-      <span class="whitespace-nowrap">hover fills to <code>bg-muted/50</code></span>
-      <span class="whitespace-nowrap"><code>border-b transition-colors</code> on every row</span>
+      <span>selected fills to <code>bg-muted</code> (neutral tint) in the default theme</span>
+      <span>hover fills to <code>bg-muted/50</code></span>
+      <span><code>border-b transition-colors</code> on every row</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -223,7 +223,7 @@ level, or by patching the theme keys for a given context. The demos below use
       </Table>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">theme default: <code>h-10</code> head, <code>p-2</code> cells</span>
+      <span>theme default: <code>h-10</code> head, <code>p-2</code> cells</span>
     </template>
   </DemoCard>
   <DemoCard title="compact — 28 px rows">
@@ -256,7 +256,7 @@ level, or by patching the theme keys for a given context. The demos below use
       </Table>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">override: <code>!h-8</code> head, <code>!py-1</code> cells</span>
+      <span>override: <code>!h-8</code> head, <code>!py-1</code> cells</span>
     </template>
   </DemoCard>
   <DemoCard title="condensed — 24 px rows">
@@ -289,7 +289,7 @@ level, or by patching the theme keys for a given context. The demos below use
       </Table>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">override: <code>!h-7 !text-[11px]</code> head, <code>!py-0.5 !text-[11px]</code> cells</span>
+      <span>override: <code>!h-7 !text-[11px]</code> head, <code>!py-0.5 !text-[11px]</code> cells</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -334,8 +334,8 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
       </Table>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">content is a flex column with <code>gap</code></span>
-      <span class="whitespace-nowrap">icon, strong, span, and action compose naturally</span>
+      <span>content is a flex column with <code>gap</code></span>
+      <span>icon, strong, span, and action compose naturally</span>
     </template>
   </DemoCard>
   <DemoCard title="loading — spinner + message">
@@ -358,7 +358,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
       </Table>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">spinning icon via <code>spin</code> prop on FontAwesomeIcon</span>
+      <span>spinning icon via <code>spin</code> prop on FontAwesomeIcon</span>
     </template>
   </DemoCard>
   <DemoCard title="error — destructive icon, retry CTA">
@@ -387,7 +387,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
       </Table>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">icon color is consumer-provided, not from theme key</span>
+      <span>icon color is consumer-provided, not from theme key</span>
     </template>
   </DemoCard>
   <DemoCard title="filtered-empty — no matches, clear CTA">
@@ -414,7 +414,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
       </Table>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">use ghost or tertiary CTA so it doesn't compete with primary actions</span>
+      <span>use ghost or tertiary CTA so it doesn't compete with primary actions</span>
     </template>
   </DemoCard>
 </VuedaDemo>

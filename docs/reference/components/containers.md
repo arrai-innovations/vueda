@@ -104,8 +104,8 @@ Token surface: {@api css-token:card} (fill),
       </CardContent>
     </Card>
     <template #footer>
-      <span class="whitespace-nowrap">gap-6 between children</span>
-      <span class="whitespace-nowrap">py-6 on root, px-6 on each child</span>
+      <span>gap-6 between children</span>
+      <span>py-6 on root, px-6 on each child</span>
     </template>
   </DemoCard>
   <DemoCard title="header + action">
@@ -124,7 +124,7 @@ Token surface: {@api css-token:card} (fill),
       </CardContent>
     </Card>
     <template #footer>
-      <span class="whitespace-nowrap">header grid becomes <code>[1fr auto]</code> when action is present</span>
+      <span>header grid becomes <code>[1fr auto]</code> when action is present</span>
     </template>
   </DemoCard>
   <DemoCard title="header + content + footer">
@@ -144,7 +144,7 @@ Token surface: {@api css-token:card} (fill),
       </CardFooter>
     </Card>
     <template #footer>
-      <span class="whitespace-nowrap">CardFooter is a flex row; consumer aligns it</span>
+      <span>CardFooter is a flex row; consumer aligns it</span>
     </template>
   </DemoCard>
   <DemoCard title="border-b on header — tight grouping">
@@ -176,8 +176,8 @@ Token surface: {@api css-token:card} (fill),
       </CardContent>
     </Card>
     <template #footer>
-      <span class="whitespace-nowrap"><code>[.border-b]:pb-6</code> picks up the rule</span>
-      <span class="whitespace-nowrap">consumer adds <code>border-b</code> on the header</span>
+      <span><code>[.border-b]:pb-6</code> picks up the rule</span>
+      <span>consumer adds <code>border-b</code> on the header</span>
     </template>
   </DemoCard>
   <DemoCard title="border-t on footer — danger zone">
@@ -196,7 +196,7 @@ Token surface: {@api css-token:card} (fill),
       </CardFooter>
     </Card>
     <template #footer>
-      <span class="whitespace-nowrap"><code>[.border-t]:pt-6</code> on footer</span>
+      <span><code>[.border-t]:pt-6</code> on footer</span>
     </template>
   </DemoCard>
   <DemoCard title="content-only — metric tile">
@@ -212,7 +212,7 @@ Token surface: {@api css-token:card} (fill),
       </CardContent>
     </Card>
     <template #footer>
-      <span class="whitespace-nowrap">the shell is the whole component; no header required</span>
+      <span>the shell is the whole component; no header required</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -258,8 +258,8 @@ Theme keys: {@api theme-key:Accordion}, {@api theme-key:AccordionItem},
       </AccordionItem>
     </Accordion>
     <template #footer>
-      <span class="whitespace-nowrap">border-b between items, suppressed on last</span>
-      <span class="whitespace-nowrap">content inner uses <code>pt-0 pb-4</code></span>
+      <span>border-b between items, suppressed on last</span>
+      <span>content inner uses <code>pt-0 pb-4</code></span>
     </template>
   </DemoCard>
   <DemoCard title="disabled item">
@@ -278,7 +278,7 @@ Theme keys: {@api theme-key:Accordion}, {@api theme-key:AccordionItem},
       </AccordionItem>
     </Accordion>
     <template #footer>
-      <span class="whitespace-nowrap">disabled trigger: <code>opacity 50</code>, no pointer events</span>
+      <span>disabled trigger: <code>opacity 50</code>, no pointer events</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -308,7 +308,7 @@ the FAQ-style row treatment of {@api theme-key:Accordion}.
       </CollapsibleContent>
     </Collapsible>
     <template #footer>
-      <span class="whitespace-nowrap">trigger and panel are consumer-styled</span>
+      <span>trigger and panel are consumer-styled</span>
     </template>
   </DemoCard>
   <DemoCard title="bare — open by default">
@@ -326,7 +326,7 @@ the FAQ-style row treatment of {@api theme-key:Accordion}.
       </CollapsibleContent>
     </Collapsible>
     <template #footer>
-      <span class="whitespace-nowrap"><code>data-state</code> on trigger and panel drives the chrome</span>
+      <span><code>data-state</code> on trigger and panel drives the chrome</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -473,7 +473,7 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
       </Item>
     </ItemGroup>
     <template #footer>
-      <span class="whitespace-nowrap">outer border belongs to the parent; items stay default (transparent)</span>
+      <span>outer border belongs to the parent; items stay default (transparent)</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -530,9 +530,9 @@ Theme keys: {@api theme-key:Stepper}, {@api theme-key:StepperItem},
       </StepperItem>
     </Stepper>
     <template #footer>
-      <span class="whitespace-nowrap">active <code>bg-primary</code></span>
-      <span class="whitespace-nowrap">completed <code>bg-accent</code></span>
-      <span class="whitespace-nowrap">future <code>text-muted-foreground/50</code></span>
+      <span>active <code>bg-primary</code></span>
+      <span>completed <code>bg-accent</code></span>
+      <span>future <code>text-muted-foreground/50</code></span>
     </template>
   </DemoCard>
   <DemoCard title="with a disabled step">
@@ -559,7 +559,7 @@ Theme keys: {@api theme-key:Stepper}, {@api theme-key:StepperItem},
       </StepperItem>
     </Stepper>
     <template #footer>
-      <span class="whitespace-nowrap">disabled propagates opacity 50 to indicator + trailing separator</span>
+      <span>disabled propagates opacity 50 to indicator + trailing separator</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -600,8 +600,8 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
       </ScrollArea>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">10 px scrollbar</span>
-      <span class="whitespace-nowrap">thumb <code>bg-border</code>, rounded-full</span>
+      <span>10 px scrollbar</span>
+      <span>thumb <code>bg-border</code>, rounded-full</span>
     </template>
   </DemoCard>
   <DemoCard title="inside a Card">
@@ -627,7 +627,7 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
       </ScrollArea>
     </Card>
     <template #footer>
-      <span class="whitespace-nowrap">card's rounded corners clip the scroll viewport</span>
+      <span>card's rounded corners clip the scroll viewport</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -654,7 +654,7 @@ one.
       <p class="mt-1 text-xs text-muted-foreground">Plan, payment method, invoices.</p>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">1 px <code>bg-border</code>, full width</span>
+      <span>1 px <code>bg-border</code>, full width</span>
     </template>
   </DemoCard>
   <DemoCard title="vertical — inline items">
@@ -668,7 +668,7 @@ one.
       <span class="text-muted-foreground">Reports</span>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">parent sets an explicit height for vertical</span>
+      <span>parent sets an explicit height for vertical</span>
     </template>
   </DemoCard>
   <DemoCard title="labeled — composed &quot;OR&quot;" class="sm:col-span-2">
@@ -678,7 +678,7 @@ one.
       <Separator class="flex-1" />
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">Separator does not ship a labeled variant; compose two with a span between</span>
+      <span>Separator does not ship a labeled variant; compose two with a span between</span>
     </template>
   </DemoCard>
 </VuedaDemo>

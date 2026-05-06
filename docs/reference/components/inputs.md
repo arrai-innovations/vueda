@@ -89,8 +89,8 @@ Theme key: {@api theme-key:Label}. Typography reads from
       <Input id="lbl-icon" readonly value="2026-04-23 14:22:06" />
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">fg <code>--foreground</code></span>
-      <span class="whitespace-nowrap">gap-2 between icon and text</span>
+      <span>fg <code>--foreground</code></span>
+      <span>gap-2 between icon and text</span>
     </template>
   </DemoCard>
   <DemoCard title="paired with disabled input">
@@ -99,7 +99,7 @@ Theme key: {@api theme-key:Label}. Typography reads from
       <Input id="lbl-peer" class="peer" disabled placeholder="—" />
     </div>
     <template #footer>
-      <span class="whitespace-nowrap"><code>peer-disabled:opacity-50</code> cascades from sibling input</span>
+      <span><code>peer-disabled:opacity-50</code> cascades from sibling input</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -136,10 +136,10 @@ outline), {@api css-token:destructive} (invalid outline),
       <div><Input aria-invalid="true" placeholder="required" /></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">border <code>--input</code></span>
-      <span class="whitespace-nowrap">focus outline <code>--ring</code></span>
-      <span class="whitespace-nowrap">invalid border <code>--destructive</code></span>
-      <span class="whitespace-nowrap">invalid outline <code>--destructive</code></span>
+      <span>border <code>--input</code></span>
+      <span>focus outline <code>--ring</code></span>
+      <span>invalid border <code>--destructive</code></span>
+      <span>invalid outline <code>--destructive</code></span>
     </template>
   </DemoCard>
   <DemoCard title="read modes">
@@ -152,9 +152,9 @@ outline), {@api css-token:destructive} (invalid outline),
       <div><Input disabled value="Archived" /></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">readonly fill <code>--muted</code>/50</span>
-      <span class="whitespace-nowrap">disabled opacity 50</span>
-      <span class="whitespace-nowrap">disabled has no pointer events</span>
+      <span>readonly fill <code>--muted</code>/50</span>
+      <span>disabled opacity 50</span>
+      <span>disabled has no pointer events</span>
     </template>
   </DemoCard>
   <DemoCard title="input types" class="sm:col-span-2">
@@ -167,8 +167,8 @@ outline), {@api css-token:destructive} (invalid outline),
       <div><Input type="file" /></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">file picker chrome is a per-OS native control</span>
-      <span class="whitespace-nowrap">password masking comes from the browser</span>
+      <span>file picker chrome is a per-OS native control</span>
+      <span>password masking comes from the browser</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -197,9 +197,9 @@ Theme key: {@api theme-key:Textarea}. Token surface mirrors Input.
       <Textarea aria-invalid="true" value="Missing required detail." />
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">min-h-16</span>
-      <span class="whitespace-nowrap">px-3 py-2</span>
-      <span class="whitespace-nowrap">grows with content</span>
+      <span>min-h-16</span>
+      <span>px-3 py-2</span>
+      <span>grows with content</span>
     </template>
   </DemoCard>
   <DemoCard title="read modes">
@@ -212,8 +212,8 @@ Theme key: {@api theme-key:Textarea}. Token surface mirrors Input.
       <Textarea disabled value="This document has been finalised and cannot be edited." />
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">disabled opacity 50</span>
-      <span class="whitespace-nowrap">resize disabled (height comes from content)</span>
+      <span>disabled opacity 50</span>
+      <span>resize disabled (height comes from content)</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -252,8 +252,8 @@ Theme keys: {@api theme-key:NativeSelect},
       </ForceState>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">px-3 pr-9 (chevron gutter)</span>
-      <span class="whitespace-nowrap">chevron <code>--muted-foreground</code>/50</span>
+      <span>px-3 pr-9 (chevron gutter)</span>
+      <span>chevron <code>--muted-foreground</code>/50</span>
     </template>
   </DemoCard>
   <DemoCard title="with optgroup">
@@ -269,7 +269,7 @@ Theme keys: {@api theme-key:NativeSelect},
       </NativeSelectOptGroup>
     </NativeSelect>
     <template #footer>
-      <span class="whitespace-nowrap">optgroup label rendering is browser-native</span>
+      <span>optgroup label rendering is browser-native</span>
     </template>
   </DemoCard>
   <DemoCard title="invalid">
@@ -279,7 +279,7 @@ Theme keys: {@api theme-key:NativeSelect},
       <NativeSelectOption>Net 30</NativeSelectOption>
     </NativeSelect>
     <template #footer>
-      <span class="whitespace-nowrap">border <code>--destructive</code></span>
+      <span>border <code>--destructive</code></span>
     </template>
   </DemoCard>
   <DemoCard title="disabled">
@@ -287,7 +287,7 @@ Theme keys: {@api theme-key:NativeSelect},
       <NativeSelectOption>Not available</NativeSelectOption>
     </NativeSelect>
     <template #footer>
-      <span class="whitespace-nowrap">wrapper opacity 50 when select disabled</span>
+      <span>wrapper opacity 50 when select disabled</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -330,9 +330,9 @@ columns of values stay aligned.
       </ForceState>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">tabular-nums</span>
-      <span class="whitespace-nowrap">text-center</span>
-      <span class="whitespace-nowrap">steppers inside the input box</span>
+      <span>tabular-nums</span>
+      <span>text-center</span>
+      <span>steppers inside the input box</span>
     </template>
   </DemoCard>
   <DemoCard title="at minimum">
@@ -344,7 +344,7 @@ columns of values stay aligned.
       </NumberFieldContent>
     </NumberField>
     <template #footer>
-      <span class="whitespace-nowrap">decrement opacity 20 when at <code>min</code></span>
+      <span>decrement opacity 20 when at <code>min</code></span>
     </template>
   </DemoCard>
   <DemoCard title="locale-formatted">
@@ -356,7 +356,7 @@ columns of values stay aligned.
       </NumberFieldContent>
     </NumberField>
     <template #footer>
-      <span class="whitespace-nowrap">formatOptions: <code>{ style: 'currency' }</code></span>
+      <span>formatOptions: <code>{ style: 'currency' }</code></span>
     </template>
   </DemoCard>
   <DemoCard title="disabled">
@@ -368,7 +368,7 @@ columns of values stay aligned.
       </NumberFieldContent>
     </NumberField>
     <template #footer>
-      <span class="whitespace-nowrap">opacity 50 across input and steppers</span>
+      <span>opacity 50 across input and steppers</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -414,12 +414,12 @@ chit rather than a miniature input next to its label.
       <div><ForceState state="focus"><Checkbox aria-invalid="true" default-value="indeterminate" /></ForceState></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">checked bg <code>--primary</code></span>
-      <span class="whitespace-nowrap">checked fg <code>--primary-foreground</code></span>
-      <span class="whitespace-nowrap">indeterminate same as checked</span>
-      <span class="whitespace-nowrap">focus outline <code>--ring</code></span>
-      <span class="whitespace-nowrap">invalid border <code>--destructive</code></span>
-      <span class="whitespace-nowrap">invalid + checked bg <code>--destructive</code></span>
+      <span>checked bg <code>--primary</code></span>
+      <span>checked fg <code>--primary-foreground</code></span>
+      <span>indeterminate same as checked</span>
+      <span>focus outline <code>--ring</code></span>
+      <span>invalid border <code>--destructive</code></span>
+      <span>invalid + checked bg <code>--destructive</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -455,8 +455,8 @@ inside the item, not a glyph, so it stays stable across font hydration.
       </div>
     </RadioGroup>
     <template #footer>
-      <span class="whitespace-nowrap">selected dot <code>--primary</code></span>
-      <span class="whitespace-nowrap">border <code>--input</code></span>
+      <span>selected dot <code>--primary</code></span>
+      <span>border <code>--input</code></span>
     </template>
   </DemoCard>
   <DemoCard title="horizontal">
@@ -475,7 +475,7 @@ inside the item, not a glyph, so it stays stable across font hydration.
       </div>
     </RadioGroup>
     <template #footer>
-      <span class="whitespace-nowrap">orientation handled by parent layout</span>
+      <span>orientation handled by parent layout</span>
     </template>
   </DemoCard>
   <DemoCard title="item state matrix" class="sm:col-span-2">
@@ -492,8 +492,8 @@ inside the item, not a glyph, so it stays stable across font hydration.
       <div><RadioGroup><RadioGroupItem value="a" aria-invalid="true" /></RadioGroup></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">focus outline <code>--ring</code></span>
-      <span class="whitespace-nowrap">invalid border <code>--destructive</code></span>
+      <span>focus outline <code>--ring</code></span>
+      <span>invalid border <code>--destructive</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -524,9 +524,9 @@ control-height ladder below sm.
       <TagsInputInput placeholder="Add tag…" />
     </TagsInput>
     <template #footer>
-      <span class="whitespace-nowrap">gap-2 between chips</span>
-      <span class="whitespace-nowrap">item bg <code>--secondary</code></span>
-      <span class="whitespace-nowrap">active chip outline <code>--ring</code></span>
+      <span>gap-2 between chips</span>
+      <span>item bg <code>--secondary</code></span>
+      <span>active chip outline <code>--ring</code></span>
     </template>
   </DemoCard>
   <DemoCard title="empty">
@@ -534,7 +534,7 @@ control-height ladder below sm.
       <TagsInputInput placeholder="Type and press Enter to add" />
     </TagsInput>
     <template #footer>
-      <span class="whitespace-nowrap">container reads as a single input until chips arrive</span>
+      <span>container reads as a single input until chips arrive</span>
     </template>
   </DemoCard>
   <DemoCard title="invalid">
@@ -546,7 +546,7 @@ control-height ladder below sm.
       <TagsInputInput placeholder="Max 3 reached" disabled />
     </TagsInput>
     <template #footer>
-      <span class="whitespace-nowrap">container border <code>--destructive</code></span>
+      <span>container border <code>--destructive</code></span>
     </template>
   </DemoCard>
   <DemoCard title="disabled">
@@ -558,7 +558,7 @@ control-height ladder below sm.
       <TagsInputInput />
     </TagsInput>
     <template #footer>
-      <span class="whitespace-nowrap">opacity 50 across container, chips, delete buttons</span>
+      <span>opacity 50 across container, chips, delete buttons</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -586,7 +586,7 @@ focus surface as Input, with adjacent slots sharing seams via
       </InputOTPGroup>
     </InputOTP>
     <template #footer>
-      <span class="whitespace-nowrap">first slot becomes active when the field is focused</span>
+      <span>first slot becomes active when the field is focused</span>
     </template>
   </DemoCard>
   <DemoCard title="partially filled">
@@ -596,8 +596,8 @@ focus surface as Input, with adjacent slots sharing seams via
       </InputOTPGroup>
     </InputOTP>
     <template #footer>
-      <span class="whitespace-nowrap">filled slots show the entered digit</span>
-      <span class="whitespace-nowrap">empty slots stay blank</span>
+      <span>filled slots show the entered digit</span>
+      <span>empty slots stay blank</span>
     </template>
   </DemoCard>
   <DemoCard title="grouped with separator">
@@ -615,7 +615,7 @@ focus surface as Input, with adjacent slots sharing seams via
       </InputOTPGroup>
     </InputOTP>
     <template #footer>
-      <span class="whitespace-nowrap">separator is a typographic glyph, not a control</span>
+      <span>separator is a typographic glyph, not a control</span>
     </template>
   </DemoCard>
   <DemoCard title="complete, invalid">
@@ -625,7 +625,7 @@ focus surface as Input, with adjacent slots sharing seams via
       </InputOTPGroup>
     </InputOTP>
     <template #footer>
-      <span class="whitespace-nowrap">slot border <code>--destructive</code></span>
+      <span>slot border <code>--destructive</code></span>
     </template>
   </DemoCard>
   <DemoCard title="disabled" class="sm:col-span-2">
@@ -635,8 +635,8 @@ focus surface as Input, with adjacent slots sharing seams via
       </InputOTPGroup>
     </InputOTP>
     <template #footer>
-      <span class="whitespace-nowrap">opacity 50 across all slots</span>
-      <span class="whitespace-nowrap">no caret on disabled slot</span>
+      <span>opacity 50 across all slots</span>
+      <span>no caret on disabled slot</span>
     </template>
   </DemoCard>
 </VuedaDemo>

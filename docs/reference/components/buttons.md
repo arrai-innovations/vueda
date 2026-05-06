@@ -85,9 +85,9 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button size="icon-lg" variant="default" aria-label="Save"><FontAwesomeIcon :icon="faFloppyDisk" /></Button></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">bg <code>--primary</code></span>
-      <span class="whitespace-nowrap">fg <code>--primary-foreground</code></span>
-      <span class="whitespace-nowrap">hover <code>--primary</code>/90</span>
+      <span>bg <code>--primary</code></span>
+      <span>fg <code>--primary-foreground</code></span>
+      <span>hover <code>--primary</code>/90</span>
     </template>
   </DemoCard>
   <DemoCard title="secondary">
@@ -116,9 +116,9 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button size="icon-lg" variant="secondary" aria-label="Export"><FontAwesomeIcon :icon="faFileExport" /></Button></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">bg <code>--secondary</code></span>
-      <span class="whitespace-nowrap">fg <code>--secondary-foreground</code></span>
-      <span class="whitespace-nowrap">hover <code>--secondary</code>/80</span>
+      <span>bg <code>--secondary</code></span>
+      <span>fg <code>--secondary-foreground</code></span>
+      <span>hover <code>--secondary</code>/80</span>
     </template>
   </DemoCard>
   <DemoCard title="outline">
@@ -147,10 +147,10 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button size="icon-lg" variant="outline" aria-label="Settings"><FontAwesomeIcon :icon="faGear" /></Button></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">border <code>--border</code></span>
-      <span class="whitespace-nowrap">bg <code>--background</code></span>
-      <span class="whitespace-nowrap">hover bg <code>--accent</code></span>
-      <span class="whitespace-nowrap">hover fg <code>--accent-foreground</code></span>
+      <span>border <code>--border</code></span>
+      <span>bg <code>--background</code></span>
+      <span>hover bg <code>--accent</code></span>
+      <span>hover fg <code>--accent-foreground</code></span>
     </template>
   </DemoCard>
   <DemoCard title="ghost">
@@ -179,9 +179,9 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button size="icon-lg" variant="ghost" aria-label="More"><FontAwesomeIcon :icon="faEllipsis" /></Button></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">bg transparent</span>
-      <span class="whitespace-nowrap">hover bg <code>--accent</code></span>
-      <span class="whitespace-nowrap">hover fg <code>--accent-foreground</code></span>
+      <span>bg transparent</span>
+      <span>hover bg <code>--accent</code></span>
+      <span>hover fg <code>--accent-foreground</code></span>
     </template>
   </DemoCard>
   <DemoCard title="destructive">
@@ -210,10 +210,10 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button size="icon-lg" variant="destructive" aria-label="Delete"><FontAwesomeIcon :icon="faTrash" /></Button></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">bg <code>--destructive</code></span>
-      <span class="whitespace-nowrap">fg <code>--destructive-foreground</code></span>
-      <span class="whitespace-nowrap">hover <code>--destructive</code>/90</span>
-      <span class="whitespace-nowrap">ring <code>--destructive</code></span>
+      <span>bg <code>--destructive</code></span>
+      <span>fg <code>--destructive-foreground</code></span>
+      <span>hover <code>--destructive</code>/90</span>
+      <span>ring <code>--destructive</code></span>
     </template>
   </DemoCard>
   <DemoCard title="link" description="(inline only)">
@@ -236,9 +236,9 @@ override the matching `_Button*` meta key rather than `Button` itself.
       </div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">fg <code>--primary</code></span>
-      <span class="whitespace-nowrap">hover underline</span>
-      <span class="whitespace-nowrap">use inside running text, not toolbars</span>
+      <span>fg <code>--primary</code></span>
+      <span>hover underline</span>
+      <span>use inside running text, not toolbars</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -355,10 +355,10 @@ all three in lockstep.
       <div><Toggle default-pressed disabled>B</Toggle></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">off bg transparent</span>
-      <span class="whitespace-nowrap">on bg <code>--accent</code></span>
-      <span class="whitespace-nowrap">on fg <code>--accent-foreground</code></span>
-      <span class="whitespace-nowrap">hover bg <code>--muted</code></span>
+      <span>off bg transparent</span>
+      <span>on bg <code>--accent</code></span>
+      <span>on fg <code>--accent-foreground</code></span>
+      <span>hover bg <code>--muted</code></span>
     </template>
   </DemoCard>
   <DemoCard title="outline">
@@ -391,10 +391,10 @@ all three in lockstep.
       <div><Toggle variant="outline" default-pressed disabled>B</Toggle></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">border <code>--border</code></span>
-      <span class="whitespace-nowrap">off bg <code>--background</code></span>
-      <span class="whitespace-nowrap">on bg <code>--accent</code></span>
-      <span class="whitespace-nowrap">on fg <code>--accent-foreground</code></span>
+      <span>border <code>--border</code></span>
+      <span>off bg <code>--background</code></span>
+      <span>on bg <code>--accent</code></span>
+      <span>on fg <code>--accent-foreground</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -467,10 +467,10 @@ on-track contrast against the thumb when retoning primary.
       <div><Switch default-value disabled /></div>
     </div>
     <template #footer>
-      <span class="whitespace-nowrap">off bg <code>--input</code></span>
-      <span class="whitespace-nowrap">on bg <code>--primary</code></span>
-      <span class="whitespace-nowrap">thumb <code>--background</code></span>
-      <span class="whitespace-nowrap">ring <code>--ring</code></span>
+      <span>off bg <code>--input</code></span>
+      <span>on bg <code>--primary</code></span>
+      <span>thumb <code>--background</code></span>
+      <span>ring <code>--ring</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
