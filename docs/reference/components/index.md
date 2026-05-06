@@ -35,3 +35,7 @@ designer can move from the visual to the override surface in one click.
 
 - [ObjectsGrid](/reference/components/objectsgrid)
 - [Tables](/reference/components/tables)
+
+## Views
+
+- [CRUDL Views](/reference/components/views-crudl)
