@@ -36,7 +36,7 @@ class TestCompositeKey:
     def test_data(self):
         return VuedaCompositeKeyTestData()
 
-    def test_object_data(self, test_data, api_client):
+    def test_object_data_no_fields(self, test_data, api_client):
         user = test_data.users["test_customer_1@example.com"]
         api_client.force_authenticate(user=user)
 
@@ -62,3 +62,93 @@ class TestCompositeKey:
 
         assert response.status_code == HTTPStatus.OK, pformat(data)
         assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
+
+    def test_object_data_with_fields(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        product_1 = store_models.ProductCompositePK.objects.create(name="Product 1")
+        order_1 = store_models.OrderCompositePK.objects.create(order_number="1234")
+        order_item_1 = store_models.OrderItemCompositePK.objects.create(order=order_1, product=product_1, quantity=1)
+
+        response = api_client.get(
+            reverse(
+                "store.orderitemcompositepk-detail",
+                args=(json.dumps(order_item_1.pk),),
+            ),
+            format="json",
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                    "order",
+                    "product",
+                ],
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    "pk",
+                    "formatted_name",
+                ],
+            },
+        )
+
+        data = response.json()
+
+        assert response.status_code == HTTPStatus.OK, pformat(data)
+        assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
+        assert data["formatted_name"] == product_1.name  # Verify the formatted_name is not None
+        assert [tuple(x) for x in data["order"]["order_items_composite_pks"]] == [tuple(order_item_1.pk)]
+
+    def test_object_data_no_expanded_fields(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        product_1 = store_models.ProductCompositePK.objects.create(name="Product 1")
+        order_1 = store_models.OrderCompositePK.objects.create(order_number="1234")
+        order_item_1 = store_models.OrderItemCompositePK.objects.create(order=order_1, product=product_1, quantity=1)
+
+        response = api_client.get(
+            reverse(
+                "store.ordercompositepk-detail",
+                args=(order_1.pk,),
+            ),
+            format="json",
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                    "order_items_composite_pks",
+                ],
+            },
+        )
+
+        data = response.json()
+
+        assert response.status_code == HTTPStatus.OK, pformat(data)
+        assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])
+
+    def test_object_data_with_expanded_fields(self, test_data, api_client):
+        user = test_data.users["test_customer_1@example.com"]
+        api_client.force_authenticate(user=user)
+
+        product_1 = store_models.ProductCompositePK.objects.create(name="Product 1")
+        order_1 = store_models.OrderCompositePK.objects.create(order_number="1234")
+        order_item_1 = store_models.OrderItemCompositePK.objects.create(order=order_1, product=product_1, quantity=1)
+
+        response = api_client.get(
+            reverse(
+                "store.ordercompositepk-detail",
+                args=(order_1.pk,),
+            ),
+            format="json",
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                    "order_items_composite_pks",
+                ],
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    "id",
+                    "order_items_composite_pks.pk",
+                    "order_items_composite_pks.formatted_name",
+                ],
+            },
+        )
+
+        data = response.json()
+
+        assert response.status_code == HTTPStatus.OK, pformat(data)
+        assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])
