@@ -38,7 +38,13 @@ jobs:
                       echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
                       export PATH="$HOME/.local/bin:$PATH"
                       pnpm --version
-            - utils/add_npm_config
+            - utils/add_npm_config:
+                  registry: npm.arrai.dev
+                  token: $NPM_ARRAI_DEV_TOKEN
+                  scopes: |
+                      @arrai-innovations:registry=https://npm.arrai.dev/
+                      @fortawesome:registry=https://npm.arrai.dev/
+                      @awesome.me:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
@@ -107,7 +113,13 @@ jobs:
                       echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
                       export PATH="$HOME/.local/bin:$PATH"
                       pnpm --version
-            - utils/add_npm_config
+            - utils/add_npm_config:
+                  registry: npm.arrai.dev
+                  token: $NPM_ARRAI_DEV_TOKEN
+                  scopes: |
+                      @arrai-innovations:registry=https://npm.arrai.dev/
+                      @fortawesome:registry=https://npm.arrai.dev/
+                      @awesome.me:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
@@ -160,7 +172,13 @@ jobs:
                       echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
                       export PATH="$HOME/.local/bin:$PATH"
                       pnpm --version
-            - utils/add_npm_config
+            - utils/add_npm_config:
+                  registry: npm.arrai.dev
+                  token: $NPM_ARRAI_DEV_TOKEN
+                  scopes: |
+                      @arrai-innovations:registry=https://npm.arrai.dev/
+                      @fortawesome:registry=https://npm.arrai.dev/
+                      @awesome.me:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}

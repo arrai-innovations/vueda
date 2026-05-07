@@ -43,7 +43,13 @@ jobs:
         resource_class: medium+
         steps:
             - checkout
-            - utils/add_npm_config
+            - utils/add_npm_config:
+                  registry: npm.arrai.dev
+                  token: $NPM_ARRAI_DEV_TOKEN
+                  scopes: |
+                      @arrai-innovations:registry=https://npm.arrai.dev/
+                      @fortawesome:registry=https://npm.arrai.dev/
+                      @awesome.me:registry=https://npm.arrai.dev/
             - run:
                   name: Install Dependencies
                   command: pnpm install
