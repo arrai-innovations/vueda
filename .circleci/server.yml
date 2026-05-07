@@ -126,7 +126,13 @@ workflows:
                   hook_manager: lefthook
                   install_deps: true
                   setup:
-                      - utils/add_npm_config
+                      - utils/add_npm_config:
+                            registry: npm.arrai.dev
+                            token: $NPM_ARRAI_DEV_TOKEN
+                            scopes: |
+                                @arrai-innovations:registry=https://npm.arrai.dev/
+                                @fortawesome:registry=https://npm.arrai.dev/
+                                @awesome.me:registry=https://npm.arrai.dev/
                       - run:
                             name: Install server dev dependencies
                             command: |
@@ -154,7 +160,13 @@ workflows:
                   create_badges: false
                   install_deps: true
                   setup:
-                      - utils/add_npm_config
+                      - utils/add_npm_config:
+                            registry: npm.arrai.dev
+                            token: $NPM_ARRAI_DEV_TOKEN
+                            scopes: |
+                                @arrai-innovations:registry=https://npm.arrai.dev/
+                                @fortawesome:registry=https://npm.arrai.dev/
+                                @awesome.me:registry=https://npm.arrai.dev/
                       - run:
                             name: Install server dev dependencies
                             command: |
