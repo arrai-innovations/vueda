@@ -1,13 +1,13 @@
 ---
-title: Work with Composite Primary Keys
+title: Set Up CRUDL for a Composite Primary Key Model
 type: how-to
 audience: implementor
 status: draft
 ---
 
-# Work with Composite Primary Keys
+# Set Up CRUDL for a Composite Primary Key Model
 
-This guide covers using Django's composite primary key feature in VUEDA. A composite primary key identifies each row using the combined values of two or more fields instead of a single generated `id`. VUEDA adds support for composite primary keys in serializers, viewsets, and filtersets so they work within the standard model-info contract.
+This guide covers using Django's composite primary key feature in VUEDA. A composite primary key identifies each row using the combined values of two or more fields instead of a single generated `id`. VUEDA adds support for composite primary keys in serializers, viewsets, and filtersets, so they work within the standard model-info contract.
 
 For how Django defines composite primary key models, see the [Django documentation](https://docs.djangoproject.com/en/dev/topics/composite-primary-key/). This guide assumes familiarity with VUEDA's standard serializer, viewset, and filterset patterns. If you have not set up a basic CRUDL surface yet, read [Create a CRUDL Surface for a New Model](./create-crudl-surface) first.
 
