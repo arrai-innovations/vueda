@@ -6,7 +6,7 @@ orbs:
     pypi: arrai/pypi@3.1.0
     pytest: arrai/pytest@9.1.1
     pip-audit: arrai/pip-audit@1.0.4
-    utils: arrai/utils@1.21.1
+    utils: arrai/utils@1.22.0
 
 parameters:
     run-client-workflows:
