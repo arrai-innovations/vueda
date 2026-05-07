@@ -191,6 +191,12 @@ class InvoiceBaseViewSet(ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
 
+class OrderCompositePKViewSet(VuedaViewSet):
+    queryset = my_models.OrderCompositePK.objects.all()
+    serializer_class = my_serializers.OrderCompositePKSerializer
+    ordering_fields = ["order_number", "order_date"]
+
+
 class OrderItemCompositePKViewSet(VuedaViewSet):
     queryset = my_models.OrderItemCompositePK.objects.all()
     serializer_class = my_serializers.OrderItemCompositePKSerializer

@@ -57,6 +57,11 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "OrderItem", "list"),
             ("store", "OrderItem", "read"),
             ("store", "OrderItem", "update"),
+            ("store", "OrderCompositePK", "create"),
+            ("store", "OrderCompositePK", "delete"),
+            ("store", "OrderCompositePK", "list"),
+            ("store", "OrderCompositePK", "read"),
+            ("store", "OrderCompositePK", "update"),
             ("store", "OrderItemCompositePK", "create"),
             ("store", "OrderItemCompositePK", "delete"),
             ("store", "OrderItemCompositePK", "list"),
@@ -126,6 +131,9 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "OrderItem", "create"),
             ("store", "OrderItem", "list"),
             ("store", "OrderItem", "read"),
+            ("store", "OrderCompositePK", "create"),
+            ("store", "OrderCompositePK", "list"),
+            ("store", "OrderCompositePK", "read"),
             ("store", "OrderItemCompositePK", "create"),
             ("store", "OrderItemCompositePK", "list"),
             ("store", "OrderItemCompositePK", "read"),
@@ -191,6 +199,7 @@ class TestModelInfoSerializer:
         info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
         info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)
+        info.register(store_serializers.OrderCompositePKSerializer, store_viewsets.OrderCompositePKViewSet)
         info.register(store_serializers.OrderItemCompositePKSerializer, store_viewsets.OrderItemCompositePKViewSet)
         info.register(
             store_serializers.OrderItemAltCompositePKSerializer, store_viewsets.OrderItemAltCompositePKViewSet
@@ -295,7 +304,7 @@ class TestModelInfoSerializer:
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
         assert response.status_code == HTTPStatus.OK, str(response.data)
-        assert response.data["totalRecords"] == 14  # noqa: PLR2004
+        assert response.data["totalRecords"] == 15  # noqa: PLR2004
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",

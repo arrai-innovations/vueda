@@ -555,7 +555,23 @@ class OrderCompositePKSerializer(VuedaSerializer):
             "id",
             "order_number",
             "order_date",
+            "order_items_composite_pks",
         ] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "order_items_composite_pks": (
+                "tests.store.serializers.OrderItemCompositePKSerializer",
+                {
+                    "many": True,
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        "pk",
+                        "order",
+                        "product",
+                        "quantity",
+                    ],
+                },
+            ),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
 class ProductCompositePKSerializer(VuedaSerializer):
