@@ -19,8 +19,6 @@ Before you begin:
 
 Django requires the composite primary key field on the model to be named `pk`. Any other name is not valid.
 
-The model must be registered with both a serializer and a viewset.
-
 ## Defining the Model
 
 Use `models.CompositePrimaryKey` on a field named `pk`, and pass the column names of the fields that together identify each row:
@@ -77,25 +75,26 @@ The `pk` field is sent to and received from the client as a JSON string, for exa
 
 ## URL Format for Composite PKs
 
-When targeting a specific `OrderLine`, the composite key values appear in the URL as a json string. Either of these two work:
+To request a specific OrderLine, encode the composite key as a JSON string in the pk URL segment. Individual pks can be strings or integers:
 
 ```
-GET /api/orderlines/["1","42"]/
+GET /api/orderlines/[1,"42"]/
 ```
 
+PKs and a product type:
+
 ```
-GET /api/orderlines/[1,42]/
+GET /api/orderlines/["1",42,"digital"]/
 ```
 
 `VuedaViewSet` detects the composite primary key on the model and converts the json `pk` URL segment into a list, before passing the result to the ORM. No extra viewset configuration is needed.
 
 ## Using `reverse()` with Composite PKs
 
-Django's `reverse()` function cannot take a composite primary key's `pk` directly, because it is a list. Passing it directly to `reverse()` will raise an error.
-
-Convert `.pk` to a comma-separated string before passing it to `reverse()`:
+Serialize `.pk` to its JSON string form before passing it to `reverse()`. Passing it directly as a list will raise an error.
 
 ```python
+import json
 from django.urls import reverse
 
 order_line = OrderLine.objects.get(pk=[1, 42])
@@ -104,7 +103,7 @@ url = reverse("orderline-detail", args=[json.dumps(order_line.pk)])
 
 ## Defining the FilterSet
 
-`VuedaFilterSet` adds a default `id` filter. Because composite primary key models have no `id` field, using `VuedaFilterSet` as the base will cause errors. Use `VuedaCompositePrimaryKeyFilterSet` instead:
+Use VuedaCompositePrimaryKeyFilterSet as the base, because it declares no default filters. Every filter you need (including ones for the fields that make up the composite key) must be declared explicitly. See [Composite Primary Key Filtering](../core-concepts/filtering-and-ordering-semantics#composite-primary-key-filtering) for the underlying constraint.
 
 ```python
 from django_filters import rest_framework
@@ -120,8 +119,6 @@ class OrderLineFilterSet(VuedaCompositePrimaryKeyFilterSet):
         model = OrderLine
         fields = ["quantity"]
 ```
-
-You can declare a filter for each field that makes up the composite key, and for any other model fields that need filtering. `VuedaCompositePrimaryKeyFilterSet` provides no default filters, so every filter you need must be declared explicitly.
 
 ## Relevant Implementation Surface
 
