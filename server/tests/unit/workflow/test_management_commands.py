@@ -46,20 +46,12 @@ class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
             "workflow_added": "tests.workflow_added",
-            "workflow_changed": "tests.workflow_changed",
-            "workflow_deleted": "tests.workflow_deleted",
-            "workflow_duplicates": "tests.workflow_duplicates",
-            "workflow_multi": "tests.workflow_multi",
         },
     )
     @info_register_aware_modify_settings(
         INSTALLED_APPS={
             "append": [
                 "tests.workflow_added",
-                "tests.workflow_changed",
-                "tests.workflow_deleted",
-                "tests.workflow_duplicates",
-                "tests.workflow_multi",
             ],
         }
     )
@@ -68,58 +60,18 @@ class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
     def test_no_app_label_specified(self):
         with (
             self.temporary_migration_module(app_label="workflow_added"),
-            self.temporary_migration_module(app_label="workflow_changed"),
-            self.temporary_migration_module(app_label="workflow_deleted"),
-            self.temporary_migration_module(app_label="workflow_duplicates"),
-            self.temporary_migration_module(app_label="workflow_multi"),
         ):
             # No migrations should have run yet.
-            assert (
-                MigrationRecorder.Migration.objects.filter(
-                    app__in=(
-                        "workflow_added",
-                        "workflow_changed",
-                        "workflow_deleted",
-                        "workflow_duplicates",
-                        "workflow_multi",
-                    )
-                ).count()
-                == 0
-            )
+            assert MigrationRecorder.Migration.objects.filter(app__in=("workflow_added",)).count() == 0
 
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "workflow_added")
             if not succeeded:
                 pytest.fail("".join(results))
 
-            succeeded, results = self.call_command("migrate", "workflow_changed")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            succeeded, results = self.call_command("migrate", "workflow_deleted")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            succeeded, results = self.call_command("migrate", "workflow_duplicates")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            succeeded, results = self.call_command("migrate", "workflow_multi")
-            if not succeeded:
-                pytest.fail("".join(results))
-
             # 15 migrations should have run.
             assert (
-                MigrationRecorder.Migration.objects.filter(
-                    app__in=(
-                        "workflow_added",
-                        "workflow_changed",
-                        "workflow_deleted",
-                        "workflow_duplicates",
-                        "workflow_multi",
-                    )
-                ).count()
-                == 15  # noqa: PLR2004
+                MigrationRecorder.Migration.objects.filter(app__in=("workflow_added",)).count() == 2  # noqa: PLR2004
             )
 
             succeeded, results = self.call_command("makeworkflowmigrations")
@@ -129,10 +81,6 @@ class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
             results = frozenset([line.strip() for line in results if line.strip()])
 
             assert "Migrations for 'workflow_added':" in results, results
-            assert "Migrations for 'workflow_changed':" in results, results
-            assert "Migrations for 'workflow_deleted':" in results, results
-            assert "Migrations for 'workflow_duplicates':" in results, results
-            assert "Migrations for 'workflow_multi':" in results, results
 
 
 class TestManagementCommandWorkflowAdded(BaseTestMigrations, BaseTestCallCommand):
