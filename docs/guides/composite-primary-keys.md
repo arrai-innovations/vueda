@@ -89,7 +89,7 @@ PKs and a product type:
 GET /api/orderlines/["1",42,"digital"]/
 ```
 
-`VuedaViewSet` detects the composite primary key on the model and converts the json `pk` URL segment into a list, before passing the result to the ORM. No extra viewset configuration is needed.
+`VuedaViewSet` detects the composite primary key on the model and converts the JSON `pk` URL segment into a list, before passing the result to the ORM. No extra viewset configuration is needed.
 
 ## Using `reverse()` with Composite PKs
 
