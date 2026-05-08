@@ -272,14 +272,18 @@ the classes it expects.
 
 ## Progress: state matrix
 
-Progress is determinate by default. The indicator moves with `translateX`
-rather than width to match Reka UI's semantics and keep transitions smooth;
-the canonical height is 8 px (`h-2`), with the track at `primary/20` and the
-indicator at `primary`. Status tones (success, warning, destructive) and
-indeterminate styling are open design questions; the current theme is
-primary-only.
+The indicator moves with `translateX` rather than width to match Reka UI's
+semantics and keep transitions smooth. The canonical height is 8 px (`h-2`),
+with the track at `primary/20` and the indicator at `primary`. The `size` prop
+exposes `sm` (4 px) and `lg` (12 px) variants for inline-row indicators and
+prominent task progress. Status tones (`success`, `warning`, `destructive`)
+swap track and indicator to the matching status surface, mirroring the alert
+status recipe. Omitting `max` leaves the bar in Reka's indeterminate state and
+animates the indicator across the track.
 
-Theme key: {@api theme-key:Progress}. Token surface: {@api css-token:primary}.
+Theme key: {@api theme-key:Progress}. Token surface: {@api css-token:primary},
+{@api css-token:success}, {@api css-token:warning},
+{@api css-token:destructive}.
 
 <VuedaDemo class="grid gap-6">
   <DemoCard title="determinate values">
@@ -310,6 +314,87 @@ Theme key: {@api theme-key:Progress}. Token surface: {@api css-token:primary}.
       <span>height <code>h-2</code></span>
       <span>track <code>--primary</code>/20</span>
       <span>indicator <code>--primary</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="size variants">
+    <div class="grid gap-4">
+      <div class="grid gap-1">
+        <div class="flex justify-between font-mono text-xs text-muted-foreground">
+          <span>Inline row indicator</span>
+          <span>40%</span>
+        </div>
+        <Progress size="sm" :model-value="40" :max="100" />
+      </div>
+      <div class="grid gap-1">
+        <div class="flex justify-between font-mono text-xs text-muted-foreground">
+          <span>Default</span>
+          <span>40%</span>
+        </div>
+        <Progress :model-value="40" :max="100" />
+      </div>
+      <div class="grid gap-1">
+        <div class="flex justify-between font-mono text-xs text-muted-foreground">
+          <span>Bulk import</span>
+          <span>40%</span>
+        </div>
+        <Progress size="lg" :model-value="40" :max="100" />
+      </div>
+    </div>
+    <template #footer>
+      <span><code>size="sm"</code> 4px</span>
+      <span><code>size="md"</code> 8px</span>
+      <span><code>size="lg"</code> 12px</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="status tones">
+    <div class="grid gap-4">
+      <div class="grid gap-1">
+        <div class="flex justify-between font-mono text-xs text-muted-foreground">
+          <span>Job complete</span>
+          <span>100%</span>
+        </div>
+        <Progress tone="success" :model-value="100" :max="100" />
+      </div>
+      <div class="grid gap-1">
+        <div class="flex justify-between font-mono text-xs text-muted-foreground">
+          <span>Quota nearing limit</span>
+          <span>82%</span>
+        </div>
+        <Progress tone="warning" :model-value="82" :max="100" />
+      </div>
+      <div class="grid gap-1">
+        <div class="flex justify-between font-mono text-xs text-muted-foreground">
+          <span>Quota exceeded</span>
+          <span>112%</span>
+        </div>
+        <Progress tone="destructive" :model-value="100" :max="100" />
+      </div>
+    </div>
+    <template #footer>
+      <span>track <code>--{tone}</code>/20</span>
+      <span>indicator <code>--{tone}</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="indeterminate">
+    <div class="grid gap-4">
+      <div class="grid gap-1">
+        <div class="flex justify-between font-mono text-xs text-muted-foreground">
+          <span>Connecting</span>
+          <span>...</span>
+        </div>
+        <Progress />
+      </div>
+      <div class="grid gap-1">
+        <div class="flex justify-between font-mono text-xs text-muted-foreground">
+          <span>Verifying</span>
+          <span>...</span>
+        </div>
+        <Progress tone="warning" />
+      </div>
+    </div>
+    <template #footer>
+      <span>omit <code>max</code> for indeterminate</span>
+      <span>indicator sweeps left to right</span>
     </template>
   </DemoCard>
 </VuedaDemo>

@@ -232,6 +232,7 @@
 
     /* Motion tokens (generates animate-* utilities) */
     --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+    --animate-vueda-progress-slide: vueda-progress-slide 1.4s var(--vueda-ease-interaction) infinite;
 
     /* Color palette (generates bg-*, text-*, border-* utilities) */
     --color-background: var(--background);
@@ -528,6 +529,17 @@
     20%,
     50% {
         opacity: 0;
+    }
+}
+
+/* Indeterminate Progress sweep — indicator at 40% width travels from
+ * fully off-screen left (-100%) to fully off-screen right (250% = 100% / 40%). */
+@keyframes vueda-progress-slide {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(250%);
     }
 }
 

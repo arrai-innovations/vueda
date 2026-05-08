@@ -21,6 +21,12 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Features
 
+- **Progress**:
+    - Added `size` prop accepting `sm` (4px), `md` (8px, default), and `lg` (12px) to control track and indicator height. The value is also reflected as a `data-size` attribute on the root for consumer CSS hooks.
+    - Added `tone` prop accepting `success`, `warning`, and `destructive` to swap track and indicator from the primary surface to the matching status surface (`bg-{tone}/20` track, `bg-{tone}` indicator).
+    - Indeterminate state (when `max` is omitted) now animates via the new `--animate-vueda-progress-slide` motion token. The component drops the determinate inline `transform` style in this state so the keyframe sweep drives the indicator.
+      _If you currently rely on `Progress` rendering with a static indicator at `translateX(-100%)` when `max` is omitted, pass `:max="100"` (or another finite value) explicitly to keep determinate behavior._
+
 - **ViewRead**:
     - Now emits `related-object` and `calculated-object` on mount (they were declared but never fired in the previous delegation-based implementation).
 

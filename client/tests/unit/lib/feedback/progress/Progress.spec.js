@@ -28,21 +28,98 @@ describe("lib/feedback/progress/Progress.vue", () => {
         });
 
         scopedIt("sets indicator transform based on modelValue", () => {
-            const wrapper = mount(Progress, { props: { modelValue: 75 } });
+            const wrapper = mount(Progress, { props: { modelValue: 75, max: 100 } });
             const indicator = wrapper.find("[data-slot='progress-indicator']");
             expect(indicator.attributes("style")).toContain("translateX(-25%)");
         });
 
         scopedIt("sets indicator transform to -100% when modelValue is 0", () => {
-            const wrapper = mount(Progress, { props: { modelValue: 0 } });
+            const wrapper = mount(Progress, { props: { modelValue: 0, max: 100 } });
             const indicator = wrapper.find("[data-slot='progress-indicator']");
             expect(indicator.attributes("style")).toContain("translateX(-100%)");
         });
 
         scopedIt("sets indicator transform to 0% when modelValue equals max", () => {
-            const wrapper = mount(Progress, { props: { modelValue: 100 } });
+            const wrapper = mount(Progress, { props: { modelValue: 100, max: 100 } });
             const indicator = wrapper.find("[data-slot='progress-indicator']");
             expect(indicator.attributes("style")).toContain("translateX(-0%)");
+        });
+    });
+
+    describe("size variants", () => {
+        scopedIt("uses h-2 by default", () => {
+            const wrapper = mount(Progress);
+            expect(wrapper.classes()).toContain("h-2");
+        });
+
+        scopedIt("applies h-1 when size is sm", () => {
+            const wrapper = mount(Progress, { props: { size: "sm" } });
+            expect(wrapper.classes()).toContain("h-1");
+            expect(wrapper.classes()).not.toContain("h-2");
+        });
+
+        scopedIt("applies h-3 when size is lg", () => {
+            const wrapper = mount(Progress, { props: { size: "lg" } });
+            expect(wrapper.classes()).toContain("h-3");
+            expect(wrapper.classes()).not.toContain("h-2");
+        });
+
+        scopedIt("forwards size as data-size attribute", () => {
+            const wrapper = mount(Progress, { props: { size: "lg" } });
+            expect(wrapper.attributes("data-size")).toBe("lg");
+        });
+    });
+
+    describe("tone variants", () => {
+        scopedIt("uses primary track and indicator by default", () => {
+            const wrapper = mount(Progress);
+            const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(wrapper.classes()).toContain("bg-primary/20");
+            expect(indicator.classes()).toContain("bg-primary");
+        });
+
+        scopedIt("applies success tone classes", () => {
+            const wrapper = mount(Progress, { props: { tone: "success" } });
+            const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(wrapper.classes()).toContain("bg-success/20");
+            expect(wrapper.classes()).not.toContain("bg-primary/20");
+            expect(indicator.classes()).toContain("bg-success");
+            expect(indicator.classes()).not.toContain("bg-primary");
+        });
+
+        scopedIt("applies warning tone classes", () => {
+            const wrapper = mount(Progress, { props: { tone: "warning" } });
+            const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(wrapper.classes()).toContain("bg-warning/20");
+            expect(indicator.classes()).toContain("bg-warning");
+        });
+
+        scopedIt("applies destructive tone classes", () => {
+            const wrapper = mount(Progress, { props: { tone: "destructive" } });
+            const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(wrapper.classes()).toContain("bg-destructive/20");
+            expect(indicator.classes()).toContain("bg-destructive");
+        });
+    });
+
+    describe("indeterminate state", () => {
+        scopedIt("omits the inline transform style when max is undefined", () => {
+            const wrapper = mount(Progress, { props: { max: undefined } });
+            const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(indicator.attributes("style")).toBeUndefined();
+        });
+
+        scopedIt("retains the inline transform style when max is defined", () => {
+            const wrapper = mount(Progress, { props: { modelValue: 50, max: 100 } });
+            const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(indicator.attributes("style")).toContain("translateX(-50%)");
+        });
+
+        scopedIt("ships indeterminate animation classes on the indicator", () => {
+            const wrapper = mount(Progress);
+            const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(indicator.classes()).toContain("data-[state=indeterminate]:w-2/5");
+            expect(indicator.classes()).toContain("data-[state=indeterminate]:animate-vueda-progress-slide");
         });
     });
 });

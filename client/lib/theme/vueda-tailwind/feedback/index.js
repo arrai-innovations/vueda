@@ -42,12 +42,31 @@ export default {
         },
     },
     Progress: {
-        root: {
-            class: "bg-primary/20 relative h-2 w-full overflow-hidden rounded-full",
-        },
-        indicator: {
-            class: "bg-primary h-full w-full flex-1 transition-all",
-        },
+        root: ({ size, tone }) => ({
+            class: [
+                "relative w-full overflow-hidden rounded-full",
+                {
+                    "h-1": size === "sm",
+                    "h-2": !size || size === "md",
+                    "h-3": size === "lg",
+                    "bg-primary/20": !tone,
+                    "bg-success/20": tone === "success",
+                    "bg-warning/20": tone === "warning",
+                    "bg-destructive/20": tone === "destructive",
+                },
+            ],
+        }),
+        indicator: ({ tone }) => ({
+            class: [
+                "h-full w-full flex-1 transition-all data-[state=indeterminate]:w-2/5 data-[state=indeterminate]:animate-vueda-progress-slide",
+                {
+                    "bg-primary": !tone,
+                    "bg-success": tone === "success",
+                    "bg-warning": tone === "warning",
+                    "bg-destructive": tone === "destructive",
+                },
+            ],
+        }),
     },
     Skeleton: {
         root: {
