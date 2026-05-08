@@ -72,13 +72,13 @@ just test-docs-tooling-py -x --lf
 We use a custom commitlint configuration based on [Conventional Commits](https://www.conventionalcommits.org/).
 Valid types:
 
-```
+```text
 build, ci, chore, content, docs, feat, fix, perf, refactor, remove, revert, style, test, wip
 ```
 
 Example:
 
-```
+```text
 fix(UserSerializer): correct password validation logic
 ```
 

@@ -23,7 +23,7 @@ Sparse field selection and {@term Expand} selection use the query parameter name
 
 On the wire, a request that selects specific fields and expands looks like:
 
-```
+```text
 GET /routes/myapp/widget/1/?f=id&f=name&f=status&e=owner
 ```
 

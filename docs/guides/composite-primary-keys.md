@@ -79,13 +79,13 @@ The `pk` field is sent to and received from the client as a JSON string, for exa
 
 To request a specific OrderLine, encode the composite key as a JSON string in the pk URL segment. Individual pks can be strings or integers:
 
-```
+```text
 GET /api/orderlines/[1,"42"]/
 ```
 
 PKs and a product type:
 
-```
+```text
 GET /api/orderlines/["1",42,"digital"]/
 ```
 

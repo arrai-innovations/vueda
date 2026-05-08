@@ -280,13 +280,13 @@ The dispatch queue uses celery to run tasks.
 Celery can be used with a number of different [backends](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html).
 You will need to select the backend you want to you and then configure the `CELERY_BROKER_URL` in your environment, for example:
 
-```
+```text
 CELERY_BROKER_URL=redis://localhost:6379/3
 ```
 
 For email sending, you need to have the following environment variables set (via env vars or your config loader):
 
-```
+```text
 ANYMAIL_MAILGUN_API_KEY=
 ANYMAIL_MAILGUN_API_URL=
 ANYMAIL_WEBHOOK_SECRET=
@@ -295,7 +295,7 @@ ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY=
 
 For SMS sending, you need to have the following environment variables set (via env vars or your config loader):
 
-```
+```text
 TWILIO_ACCOUNT_SID=""
 TWILIO_AUTH_TOKEN=""
 TWILIO_WEBHOOK_URL=""

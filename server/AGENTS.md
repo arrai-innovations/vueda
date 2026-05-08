@@ -44,13 +44,13 @@
 
 We use a custom commitlint configuration based on [Conventional Commits](https://www.conventionalcommits.org/). It is customized to have the following valid types:
 
-```
+```text
 build, ci, chore, content, docs, feat, fix, perf, refactor, remove, revert, style, test, wip
 ```
 
 **Example**:
 
-```
+```text
 fix(UserSerializer): correct password validation logic
 ```
 
