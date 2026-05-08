@@ -18,7 +18,7 @@ export default {
     },
     BreadcrumbLink: {
         root: {
-            class: "hover:text-foreground transition-colors",
+            class: "hover:text-foreground transition-colors rounded-vueda-control focus-visible:focus-ring",
         },
     },
     BreadcrumbPage: {
@@ -32,9 +32,13 @@ export default {
         },
     },
     BreadcrumbEllipsis: {
-        root: {
-            class: "flex size-9 items-center justify-center",
-        },
+        root: ({ interactive }) => ({
+            class: [
+                "flex size-7 items-center justify-center",
+                interactive &&
+                    "cursor-pointer rounded-vueda-control transition-colors hover:bg-accent hover:text-foreground focus-visible:focus-ring",
+            ],
+        }),
         label: { class: "sr-only" },
     },
 
@@ -245,7 +249,7 @@ export default {
             class: "data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:fade-in top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden",
         },
         arrow: {
-            class: "bg-border relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm shadow-md",
+            class: "bg-popover border-l border-t border-border relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm",
         },
     },
     NavigationMenuViewport: {
@@ -253,7 +257,7 @@ export default {
             class: "absolute top-full left-0 isolate z-50 flex justify-center",
         },
         root: {
-            class: "origin-top-center bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 relative mt-1.5 h-[var(--reka-navigation-menu-viewport-height)] w-full overflow-hidden rounded-vueda-control border shadow md:w-[var(--reka-navigation-menu-viewport-width)] left-[var(--reka-navigation-menu-viewport-left)]",
+            class: "origin-top-center bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 relative mt-1.5 h-[var(--reka-navigation-menu-viewport-height)] w-full overflow-hidden rounded-vueda-control border shadow-vueda-popover md:w-[var(--reka-navigation-menu-viewport-width)] left-[var(--reka-navigation-menu-viewport-left)]",
         },
     },
 
