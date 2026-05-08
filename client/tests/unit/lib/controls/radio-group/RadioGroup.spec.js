@@ -62,17 +62,17 @@ describe("lib/controls/radio-group/RadioGroup.vue", () => {
             expect(wrapper.find('[data-slot="radio-group-indicator"]').exists()).toBe(true);
         });
 
-        scopedIt("applies size-4 and rounded-full classes", () => {
+        scopedIt("applies size-6 and rounded-full classes", () => {
             const wrapper = mount(RadioGroupItem);
             const el = wrapper.find('[data-slot="radio-group-item"]');
-            expect(el.classes()).toContain("size-4");
+            expect(el.classes()).toContain("size-6");
             expect(el.classes()).toContain("rounded-full");
         });
 
-        scopedIt("applies border and shrink-0 classes", () => {
+        scopedIt("applies hairline and shrink-0 classes", () => {
             const wrapper = mount(RadioGroupItem);
             const el = wrapper.find('[data-slot="radio-group-item"]');
-            expect(el.classes()).toContain("border");
+            expect(el.classes()).toContain("hairline");
             expect(el.classes()).toContain("shrink-0");
         });
 

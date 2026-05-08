@@ -1,6 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h, reactive } from "vue";
+import { defineComponent, h, markRaw, reactive } from "vue";
 
 const ControlButtonStub = defineComponent({
     name: "ControlButtonStub",
@@ -21,18 +21,20 @@ const ControlButtonStub = defineComponent({
     },
 });
 
-const ManyComponentStub = defineComponent({
-    name: "ManyComponentStub",
-    props: ["name", "required"],
-    setup(props) {
-        return () =>
-            h("div", {
-                "data-qa": "many-component",
-                "data-name": props.name,
-                "data-required": String(props.required),
-            });
-    },
-});
+const ManyComponentStub = markRaw(
+    defineComponent({
+        name: "ManyComponentStub",
+        props: ["name", "required"],
+        setup(props) {
+            return () =>
+                h("div", {
+                    "data-qa": "many-component",
+                    "data-name": props.name,
+                    "data-required": String(props.required),
+                });
+        },
+    }),
+);
 
 const SlotButton = defineComponent({
     name: "SlotButton",

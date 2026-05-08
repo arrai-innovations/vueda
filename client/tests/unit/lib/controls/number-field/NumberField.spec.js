@@ -83,11 +83,11 @@ describe("lib/controls/number-field/NumberField.vue", () => {
             expect(wrapper.find('[data-slot="input"]').exists()).toBe(true);
         });
 
-        scopedIt("applies h-vueda-control and border-input classes", () => {
+        scopedIt("applies h-vueda-control and hairline classes", () => {
             const wrapper = mount(NumberFieldInput);
             const el = wrapper.find('[data-slot="input"]');
             expect(el.classes()).toContain("h-vueda-control");
-            expect(el.classes()).toContain("border-input");
+            expect(el.classes()).toContain("hairline");
         });
 
         scopedIt("applies text-center class", () => {

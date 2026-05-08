@@ -1,5 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { mount } from "@vue/test-utils";
+import { config, mount } from "@vue/test-utils";
 import { computed, defineComponent, h, reactive, ref, toRef } from "vue";
 
 const FilterComponentStub = defineComponent({
@@ -68,15 +68,20 @@ vi.mock("vue-router", () => ({ useRoute: () => route }));
 let FilterGroup, vue;
 
 describe("lib/components/FilterGroup.vue", () => {
+    let previousStubs;
+
     beforeEach(async () => {
         vue = await import("vue");
         FilterGroup = (await import("@vueda/components/FilterGroup.vue")).default;
         useSlotNameResolver.mockClear();
         stopFns.length = 0;
         route.query = {};
+        previousStubs = config.global.stubs;
+        config.global.stubs = { ...previousStubs, "router-link": true };
     });
 
     afterEach(() => {
+        config.global.stubs = previousStubs;
         vi.resetModules();
         vi.clearAllMocks();
     });

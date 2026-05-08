@@ -239,10 +239,10 @@ describe("lib/controls/select/Select.vue", () => {
             expect(wrapper.find('[data-slot="select-trigger"]').exists()).toBe(true);
         });
 
-        scopedIt("applies border-input and rounded-vueda-control classes", () => {
+        scopedIt("applies hairline and rounded-vueda-control classes", () => {
             const wrapper = mount(SelectTrigger);
             const el = wrapper.find('[data-slot="select-trigger"]');
-            expect(el.classes()).toContain("border-input");
+            expect(el.classes()).toContain("hairline");
             expect(el.classes()).toContain("rounded-vueda-control");
         });
 

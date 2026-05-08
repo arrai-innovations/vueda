@@ -30,12 +30,12 @@ describe("lib/controls/time-field/TimeField.vue", () => {
             expect(wrapper.find('[data-slot="time-field"]').exists()).toBe(true);
         });
 
-        scopedIt("applies border and layout classes", () => {
+        scopedIt("applies hairline and layout classes", () => {
             const wrapper = mount(TimeField);
             const el = wrapper.find('[data-slot="time-field"]');
             expect(el.classes()).toContain("flex");
             expect(el.classes()).toContain("rounded-vueda-control");
-            expect(el.classes()).toContain("border-input");
+            expect(el.classes()).toContain("hairline");
         });
 
         scopedIt("applies text-sm class", () => {

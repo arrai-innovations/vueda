@@ -2,6 +2,7 @@
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
+import { computed, normalizeClass } from "vue";
 import { OTPInput } from "vue-input-otp";
 
 /**
@@ -61,13 +62,15 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
 const theme = useTheme("InputOTP", props);
+
+const containerClass = computed(() => normalizeClass([theme("root"), props.class]));
 </script>
 
 <template>
     <OTPInput
         v-slot="slotProps"
         v-bind="{ ...forwarded, ...$attrs }"
-        :container-class="[theme('root'), props.class]"
+        :container-class="containerClass"
         data-slot="input-otp"
         class="disabled:cursor-not-allowed"
     >

@@ -30,12 +30,12 @@ describe("lib/controls/date-field/DateField.vue", () => {
             expect(wrapper.find('[data-slot="date-field"]').exists()).toBe(true);
         });
 
-        scopedIt("applies border and layout classes", () => {
+        scopedIt("applies hairline and layout classes", () => {
             const wrapper = mount(DateField);
             const el = wrapper.find('[data-slot="date-field"]');
             expect(el.classes()).toContain("flex");
             expect(el.classes()).toContain("rounded-vueda-control");
-            expect(el.classes()).toContain("border-input");
+            expect(el.classes()).toContain("hairline");
         });
 
         scopedIt("applies text-sm class", () => {

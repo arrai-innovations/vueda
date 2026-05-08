@@ -19,6 +19,7 @@ vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: FieldRendererSt
 
 const WidgetCheckboxStub = defineComponent({
     name: "WidgetCheckboxStub",
+    inheritAttrs: false,
     emits: ["update:model-value"],
     setup(_, { emit }) {
         return () =>
