@@ -17,6 +17,7 @@ __all__ = (
 )
 
 import inspect
+from typing import ClassVar
 
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
@@ -426,7 +427,7 @@ class VuedaSerializer(
 
     available_actions = AvailableActionsField()
 
-    serializer_field_mapping = {
+    serializer_field_mapping: ClassVar[dict] = {
         **serializers.ModelSerializer.serializer_field_mapping,
         CompositePrimaryKey: CompositePrimaryKeyField,
     }
