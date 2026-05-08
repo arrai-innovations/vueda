@@ -2,6 +2,7 @@ import json
 from http import HTTPStatus
 from pprint import pformat
 from typing import ClassVar
+from typing import TypedDict
 
 import pytest
 from django.conf import settings
@@ -29,6 +30,65 @@ class VuedaCompositeKeyTestData(BaseTestUserMixin, BaseTestGroupMixin):
             "groups": ["Customer"],
         },
     }
+
+
+class _ProductCompositePKExpand(TypedDict):
+    id: int
+    name: str
+    formatted_name: str
+
+
+class _OrderCompositePKExpand(TypedDict):
+    id: int
+    order_number: str
+    order_date: str
+    order_items_composite_pks: list[list[int]]
+    formatted_name: str
+
+
+class _OrderItemCompositePKInExpand(TypedDict):
+    pk: str  # JSON-encoded composite key, e.g. '["1", "1"]'
+    order: int
+    product: int
+    quantity: int
+    formatted_name: str | None  # None when not resolved via viewset annotation
+
+
+class _OrderItemCompositePKInExpandFiltered(TypedDict):
+    pk: str  # JSON-encoded composite key, e.g. '["4", "4"]'
+    formatted_name: str | None
+
+
+class _OrderItemCompositePKDetail(TypedDict):
+    pk: str  # JSON-encoded composite key, e.g. '["1", "1"]'
+    order: _OrderCompositePKExpand
+    product: _ProductCompositePKExpand
+    quantity: int
+    formatted_name: str
+    available_actions: list[str]
+
+
+class _OrderItemCompositePKDetailSparseFields(TypedDict):
+    # Response when FIELDS_PARAM=[pk, formatted_name]: expands still included via wildcard
+    pk: str  # JSON-encoded composite key, e.g. '["2", "2"]'
+    order: _OrderCompositePKExpand
+    product: _ProductCompositePKExpand
+    formatted_name: str
+
+
+class _OrderCompositePKDetail(TypedDict):
+    id: int
+    order_number: str
+    order_date: str
+    order_items_composite_pks: list[_OrderItemCompositePKInExpand]
+    formatted_name: str
+    available_actions: list[str]
+
+
+class _OrderCompositePKDetailSparseFields(TypedDict):
+    # Response when FIELDS_PARAM=[id, order_items_composite_pks.pk, order_items_composite_pks.formatted_name]
+    id: int
+    order_items_composite_pks: list[_OrderItemCompositePKInExpandFiltered]
 
 
 @pytest.mark.django_db
@@ -59,7 +119,7 @@ class TestCompositeKey:
             },
         )
 
-        data = response.json()
+        data: _OrderItemCompositePKDetail = response.json()
 
         assert response.status_code == HTTPStatus.OK, pformat(data)
         assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
@@ -90,7 +150,7 @@ class TestCompositeKey:
             },
         )
 
-        data = response.json()
+        data: _OrderItemCompositePKDetailSparseFields = response.json()
 
         assert response.status_code == HTTPStatus.OK, pformat(data)
         assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
@@ -118,7 +178,7 @@ class TestCompositeKey:
             },
         )
 
-        data = response.json()
+        data: _OrderCompositePKDetail = response.json()
 
         assert response.status_code == HTTPStatus.OK, pformat(data)
         assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])
@@ -149,7 +209,7 @@ class TestCompositeKey:
             },
         )
 
-        data = response.json()
+        data: _OrderCompositePKDetailSparseFields = response.json()
 
         assert response.status_code == HTTPStatus.OK, pformat(data)
         assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])
