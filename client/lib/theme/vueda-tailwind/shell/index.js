@@ -362,8 +362,14 @@ export default {
 
     // popover
     PopoverContent: {
-        root: {
-            class: "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-72 rounded-vueda-control border p-4 shadow-vueda-popover origin-(--reka-popover-content-transform-origin) outline-hidden",
+        root: ({ size }) => {
+            const sizeClass = size === "sm" ? "w-60 p-3" : size === "lg" ? "w-90 p-5" : "w-72 p-4";
+            return {
+                class: [
+                    "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 rounded-vueda-control border shadow-vueda-popover origin-(--reka-popover-content-transform-origin) outline-hidden",
+                    sizeClass,
+                ],
+            };
         },
     },
 
@@ -565,7 +571,7 @@ export default {
     // tooltip
     TooltipContent: {
         root: {
-            class: "bg-foreground text-background animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit rounded-vueda-control px-3 py-1.5 text-xs text-balance",
+            class: "bg-foreground text-background animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit rounded-vueda-control px-3 py-1.5 text-xs font-medium text-balance",
         },
         arrow: {
             class: "bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]",

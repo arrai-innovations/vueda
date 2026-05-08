@@ -3,6 +3,7 @@ import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { PopoverContent, PopoverPortal } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
  * The floating content panel of a popover, rendered inside a portal.
@@ -43,6 +44,12 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
     /** When true, prevents auto-focusing the first focusable element. */
     trapFocus: { type: Boolean, default: undefined },
+    /**
+     * Surface size variant. `sm` (w-60 / p-3) for compact utility popovers,
+     * `default` (w-72 / p-4) for general use, `lg` (w-90 / p-5) for richer
+     * confirmation or form popovers.
+     */
+    size: { type: String, default: "default" },
 });
 const emits = defineEmits({
     /** Emitted when focus moves inside the content after it opens. */
@@ -59,10 +66,10 @@ const emits = defineEmits({
     interactOutside: null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "class", "size", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
-const theme = useTheme("PopoverContent", props);
+const theme = useTheme("PopoverContent", props, reactive({ size: toRef(props, "size") }));
 </script>
 
 <template>
