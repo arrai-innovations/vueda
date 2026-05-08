@@ -9,7 +9,7 @@ export default {
             class: "relative w-full overflow-auto",
         },
         table: {
-            class: "w-full caption-bottom text-sm",
+            class: "w-full caption-bottom text-body",
         },
     },
     TableBody: {
@@ -19,7 +19,7 @@ export default {
     },
     TableCaption: {
         root: {
-            class: "text-muted-foreground mt-4 text-sm",
+            class: "text-muted-foreground mt-4 text-body",
         },
     },
     TableCell: {

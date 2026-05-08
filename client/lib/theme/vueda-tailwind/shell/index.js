@@ -15,7 +15,7 @@ export default {
     },
     AccordionContent: {
         root: {
-            class: "data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm",
+            class: "data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-body",
         },
         inner: {
             class: "pt-0 pb-4",
@@ -23,7 +23,7 @@ export default {
     },
     AccordionTrigger: {
         root: {
-            class: "flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-sm font-medium transition-all hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
+            class: "flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-body font-medium transition-all hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
         },
         header: {
             class: "flex",
@@ -104,7 +104,7 @@ export default {
     },
     CardDescription: {
         root: {
-            class: "text-muted-foreground text-sm",
+            class: "text-muted-foreground text-body",
         },
     },
     CardAction: {
@@ -306,7 +306,7 @@ export default {
     ItemDescription: {
         root: {
             class: [
-                "text-muted-foreground line-clamp-2 text-sm leading-normal font-normal text-balance",
+                "text-muted-foreground line-clamp-2 text-body leading-normal font-normal text-balance",
                 "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
             ],
         },
@@ -349,7 +349,7 @@ export default {
     },
     ItemTitle: {
         root: {
-            class: "flex w-fit items-center gap-2 text-sm leading-snug font-medium",
+            class: "flex w-fit items-center gap-2 text-body leading-snug font-medium",
         },
     },
 
