@@ -61,7 +61,7 @@ The mixin defines a fixed update sequence for nested writes:
 
 This sequence is not configurable. Custom save logic that depends on reverse relations being present before the parent save, or that expects parent save to happen before direct relation updates, will conflict with this ordering.
 
-This sequence has diverged from the default, due to a bug discovered in drf-writeable-nested. A test has been created (in TestCreateIssueExpectedFailure) that will fail if things are fixed in drf-writable-nested. We will review the need for the overriding code if this occurs. The original sequence had #3 and #4 reversed.
+This sequence has diverged from the default, due to a bug discovered in drf-writable-nested. A test has been created (in TestCreateIssueExpectedFailure) that will fail if things are fixed in drf-writable-nested. We will review the need for the overriding code if this occurs. The original sequence had `#3` and `#4` reversed.
 
 ## Observable Failure Modes
 
