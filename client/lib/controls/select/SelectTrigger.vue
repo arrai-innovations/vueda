@@ -18,7 +18,7 @@ const props = defineProps({
     class: { type: [String, Array, Object], default: undefined },
     /**
      * Visual size variant.
-     * @type {'default' | 'sm'}
+     * @type {'default' | 'sm' | 'lg'}
      */
     size: { type: String, default: "default" },
     /** When true, prevents user interaction. */

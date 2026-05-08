@@ -610,13 +610,15 @@ export default {
     SelectItem: {
         root: {
             class: [
-                "focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+                "focus:bg-accent focus:text-accent-foreground data-[state=checked]:bg-primary/10 [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
             ],
         },
     },
     SelectLabel: {
         root: {
-            class: ["text-muted-foreground px-2 py-1.5 text-xs"],
+            class: [
+                "text-muted-foreground px-2 py-1.5 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em]",
+            ],
         },
     },
     SelectScrollDownButton: {
@@ -637,7 +639,7 @@ export default {
     SelectTrigger: {
         root: {
             class: [
-                "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 hairline flex w-fit items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-vueda-control data-[size=sm]:h-vueda-control-sm *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 focus-visible:hairline-ring focus-visible:focus-ring-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
+                "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 hover:hairline-border-strong hairline flex w-fit items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-vueda-control data-[size=sm]:h-vueda-control-sm data-[size=lg]:h-vueda-control-lg data-[size=lg]:px-vueda-control-px-lg *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 focus-visible:hairline-ring focus-visible:focus-ring-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
             ],
         },
     },
@@ -674,7 +676,9 @@ export default {
     },
     Command: {
         root: {
-            class: ["bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md"],
+            class: [
+                "bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-vueda-card",
+            ],
         },
     },
     CommandInput: {
@@ -699,7 +703,9 @@ export default {
         root: {
             class: ["text-foreground overflow-hidden p-1"],
         },
-        heading: { class: "px-2 py-1.5 text-xs font-medium text-muted-foreground" },
+        heading: {
+            class: "px-2 py-1.5 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em] text-muted-foreground",
+        },
     },
     CommandItem: {
         root: {
@@ -721,5 +727,15 @@ export default {
     CommandDialog: {
         content: { class: "overflow-hidden p-0" },
         header: { class: "sr-only" },
+    },
+    CommandFooter: {
+        root: {
+            class: [
+                "flex h-[var(--vueda-cmd-footer-height)] items-center justify-between gap-3 border-t bg-muted px-[var(--vueda-control-px-md)] text-[length:var(--vueda-text-supporting)] text-muted-foreground",
+                "[&_kbd]:inline-flex [&_kbd]:h-[18px] [&_kbd]:min-w-[18px] [&_kbd]:items-center [&_kbd]:justify-center [&_kbd]:rounded-[2px] [&_kbd]:border [&_kbd]:bg-background [&_kbd]:px-1 [&_kbd]:font-mono [&_kbd]:text-[10px] [&_kbd]:font-medium [&_kbd]:text-foreground",
+            ],
+        },
+        hints: { class: "inline-flex items-center gap-3" },
+        hint: { class: "inline-flex items-center gap-1.5" },
     },
 };

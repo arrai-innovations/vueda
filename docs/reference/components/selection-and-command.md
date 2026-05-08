@@ -34,6 +34,7 @@ import CommandItem from "@vueda/controls/command/CommandItem.vue";
 import CommandList from "@vueda/controls/command/CommandList.vue";
 import CommandSeparator from "@vueda/controls/command/CommandSeparator.vue";
 import CommandShortcut from "@vueda/controls/command/CommandShortcut.vue";
+import CommandFooter from "@vueda/controls/command/CommandFooter.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faBuilding, faCheck, faChartBar, faChevronDown, faFileLines, faMagnifyingGlass, faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { ref } from "vue";
@@ -390,7 +391,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
 {@api theme-key:CommandList}, {@api theme-key:CommandGroup},
 {@api theme-key:CommandItem}, {@api theme-key:CommandShortcut},
 {@api theme-key:CommandEmpty}, {@api theme-key:CommandSeparator},
-{@api theme-key:CommandDialog}.
+{@api theme-key:CommandFooter}, {@api theme-key:CommandDialog}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="inline palette — groups, shortcuts, separator; type to filter live">
@@ -431,6 +432,41 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
       <span>highlighted bg <code>--accent</code></span>
       <span>shortcut fg <code>--muted-foreground</code>, text-xs tracking-widest</span>
       <span>separator <code>--border</code>, -mx-1</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="footer chin — keyboard hints below CommandList">
+    <div class="rounded-md border bg-popover text-popover-foreground overflow-hidden">
+      <Command>
+        <CommandInput placeholder="Type a command or search..." />
+        <CommandList>
+          <CommandGroup heading="Actions">
+            <CommandItem value="footer-new-invoice">
+              <FontAwesomeIcon :icon="faFileLines" />
+              New invoice
+              <CommandShortcut>⌘ N</CommandShortcut>
+            </CommandItem>
+            <CommandItem value="footer-find-customer">
+              <FontAwesomeIcon :icon="faBuilding" />
+              Find customer
+              <CommandShortcut>⌘ K</CommandShortcut>
+            </CommandItem>
+          </CommandGroup>
+        </CommandList>
+        <CommandFooter>
+          <template #start>
+            <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+            <span><kbd>↵</kbd> select</span>
+          </template>
+          <template #end>
+            <span><kbd>Esc</kbd> close</span>
+          </template>
+        </CommandFooter>
+      </Command>
+    </div>
+    <template #footer>
+      <span>chin height <code>--vueda-cmd-footer-height</code> (32px)</span>
+      <span>chin bg <code>--muted</code>, top border <code>--border</code></span>
+      <span>kbd 18px, mono 10px, 1px border, 2px radius</span>
     </template>
   </DemoCard>
   <DemoCard title="empty state — no items match; disabled item">

@@ -98,6 +98,9 @@
 @utility hairline-border {
     --vueda-hairline-color: var(--border);
 }
+@utility hairline-border-strong {
+    --vueda-hairline-color: var(--border-strong);
+}
 
 /* Directional border-width utilities keyed to `--vueda-hairline-width`. Use
  * these when `hairline` (4-sided inset box-shadow) can't be used because only
@@ -248,6 +251,7 @@
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
     --color-border: var(--border);
+    --color-border-strong: var(--border-strong);
     --color-input: var(--input);
     --color-ring: var(--ring);
     --color-success: var(--success);
@@ -304,6 +308,10 @@
 
     /* Structure */
     --border: oklch(0.9 0.008 250);
+    /* One step darker than --border. Hover-border tint on input-shell controls
+     * (SelectTrigger, etc): a subtle darkening that signals affordance without
+     * triggering the focus ring. */
+    --border-strong: oklch(0.82 0.012 250);
     --input: oklch(0.9 0.008 250);
     /* Focus ring canon: solid outline, primary color. Ring width is always
      * 2x hairline-width, keeping it at 2px+ CSS at every DPR — satisfies
@@ -550,6 +558,7 @@
     --info: oklch(0.68 0.17 254);
 
     --border: oklch(1 0 0 / 0.08); /* low-contrast hairlines */
+    --border-strong: oklch(1 0 0 / 0.16); /* hover-border tint */
     --input: oklch(0.26 0.009 250);
     --ring: var(--primary);
     --sunken: oklch(0.12 0.01 250);

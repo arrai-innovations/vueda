@@ -160,10 +160,13 @@ describe("lib/controls/select/Select.vue", () => {
             expect(wrapper.attributes("data-slot")).toBe("select-label");
         });
 
-        scopedIt("applies muted text and text-xs classes", () => {
+        scopedIt("applies micro-eyebrow typography (sans 11px 600 uppercase 0.04em)", () => {
             const wrapper = mount(SelectLabel);
             expect(wrapper.classes()).toContain("text-muted-foreground");
-            expect(wrapper.classes()).toContain("text-xs");
+            expect(wrapper.classes()).toContain("text-[length:var(--vueda-text-micro)]");
+            expect(wrapper.classes()).toContain("font-semibold");
+            expect(wrapper.classes()).toContain("uppercase");
+            expect(wrapper.classes()).toContain("tracking-[0.04em]");
         });
 
         scopedIt("merges custom class", () => {
@@ -254,6 +257,11 @@ describe("lib/controls/select/Select.vue", () => {
         scopedIt("has data-size=sm when size=sm", () => {
             const wrapper = mount(SelectTrigger, { props: { size: "sm" } });
             expect(wrapper.find('[data-slot="select-trigger"]').attributes("data-size")).toBe("sm");
+        });
+
+        scopedIt("has data-size=lg when size=lg", () => {
+            const wrapper = mount(SelectTrigger, { props: { size: "lg" } });
+            expect(wrapper.find('[data-slot="select-trigger"]').attributes("data-size")).toBe("lg");
         });
 
         scopedIt("merges custom class", () => {
