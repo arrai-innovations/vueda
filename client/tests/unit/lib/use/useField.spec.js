@@ -1163,7 +1163,7 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.submittingValue).toEqual("primitive");
                 });
             });
-            describe.skip("initialValue", () => {});
+            describe.todo("initialValue");
             describe("valueIsInitial", () => {
                 scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
