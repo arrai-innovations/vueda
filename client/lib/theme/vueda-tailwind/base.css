@@ -543,6 +543,28 @@
     }
 }
 
+/* Sonner toast type tints. Surface stays popover; the toast root carries
+ * the type color, which the icon and title pick up via `color: inherit`.
+ * Description is reset to `--muted-foreground` so the type tint reads as
+ * a glance cue (icon + title) rather than coloring the whole body.
+ * Specificity bumped past vue-sonner's stock rules with the `[data-type]`
+ * attribute. See DESIGN.md § Feedback. */
+[data-sonner-toast][data-styled="true"][data-type="success"] {
+    color: var(--success);
+}
+[data-sonner-toast][data-styled="true"][data-type="info"] {
+    color: var(--info);
+}
+[data-sonner-toast][data-styled="true"][data-type="warning"] {
+    color: var(--warning);
+}
+[data-sonner-toast][data-styled="true"][data-type="error"] {
+    color: var(--destructive);
+}
+[data-sonner-toast][data-styled="true"] [data-description] {
+    color: var(--muted-foreground);
+}
+
 /* ---------- Color palette: dark (primary target for operators) ----------
  * Surface stack: background < card < accent. All cool-neutral.
  * Blue shifts slightly lighter for contrast on dark. */
