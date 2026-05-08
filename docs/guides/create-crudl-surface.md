@@ -34,7 +34,7 @@ VUEDA's conventions begin at the model layer. Extend `VuedaModel` to inherit the
 
 **Custom generated-field expression.** Override the `formatted_name` field with a different expression; for example, `Cast(F("order_number"), output_field=CharField())`. This keeps the value database-persisted while deriving it from a different source.
 
-**Null field with a lookup expression.** Set `formatted_name = None` on the model and define `formatted_name_lookup_expression` as a string pointing to an alternate field path (e.g., `"data__formatted_name"`). `VuedaViewSet` annotates every queryset with this expression in `get_queryset`, so `formatted_name` returns the resolved value in all list and retrieve responses. Choice endpoints use the same annotation when resolving labels.
+**Null field with a lookup expression.** Set `formatted_name = None` on the model and define `formatted_name_lookup_expression` as a string pointing to an alternate field path (e.g., `"data__formatted_name"`). `VuedaViewSet` annotates every queryset with this expression in `get_queryset`, so `formatted_name` returns the resolved value in all list and retrieve responses. When the model appears as an expanded field in another serializer, `VuedaListSerializer` applies the same annotation to the related queryset, so `formatted_name` is populated in expand responses as well. Choice endpoints use the same annotation when resolving labels.
 
 **Null field with a Python method.** Set `formatted_name = None` on the model and implement a `get_formatted_name()` method for runtime computation. This is the most flexible option but requires explicit wiring in the serializer (covered in the next section). Choice endpoints resolve labels using a priority order: `get_formatted_name()` method, then `formatted_name_lookup_expression` annotation, then the direct `formatted_name` field, then static field choices.
 
@@ -220,6 +220,7 @@ With all pieces in place, verify the surface end-to-end:
     - {@api py:class:vueda.core.filters.VuedaFilterSet}
     - {@api py:class:vueda.core.routers.VuedaRouter}
     - {@api py:function:vueda.info.registration.register}
+    - {@api py:class:vueda.core.serializers.VuedaListSerializer}
     - {@api py:class:vueda.core.serializers.PrimaryKeyListSerializer}
 - REST:
     - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}

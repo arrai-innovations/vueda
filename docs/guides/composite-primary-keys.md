@@ -51,7 +51,7 @@ class OrderLine(VuedaModel):
 
 Because `OrderLine` has no `id` field, `formatted_name` must either use a lookup expression pointing to another field or implement `get_formatted_name()`. Setting `formatted_name = None` without providing one of these alternatives will cause list and retrieve endpoints to return `null` for `formatted_name`, and will cause choice endpoints to fail with a 500 error.
 
-When `formatted_name_lookup_expression` is set, `VuedaViewSet` annotates the queryset with the expression in `get_queryset`, so `formatted_name` returns the resolved value in all regular API responses, not just from choice endpoints.
+When `formatted_name_lookup_expression` is set, `VuedaViewSet` annotates the queryset with the expression in `get_queryset` for direct requests. When the model appears as an expanded field in another serializer, `VuedaListSerializer` applies the same annotation to the related queryset. Together, `formatted_name` returns the resolved value across all regular API responses — direct list, retrieve, and expand responses — not just from choice endpoints.
 
 ## Defining the Serializer
 
@@ -126,6 +126,7 @@ class OrderLineFilterSet(VuedaCompositePrimaryKeyFilterSet):
 
 - Python:
     - {@api py:class:vueda.core.serializers.VuedaSerializer}
+    - {@api py:class:vueda.core.serializers.VuedaListSerializer}
     - {@api py:class:vueda.core.serializers.fields.CompositePrimaryKeyField}
     - {@api py:class:vueda.core.viewsets.VuedaViewSet}
     - {@api py:function:vueda.core.viewsets.VuedaViewSet.get_object}
