@@ -61,7 +61,7 @@ Transition execution is a separate authorization surface from CRUDL operations. 
 
 Workflow endpoints impose an additional viewset-level gate: the `vueda_workflow.read_workflow` permission must be present before any workflow endpoint (object state, permitted transitions, execute transition) processes. This check runs at the viewset `check_permissions` phase, before object-specific authorization.
 
-Queue Item endpoints impose an additional viewset-level gate: the `vueda_vdq.can_resend` permission must be present for the `Resend` action to be permitted.
+Queue Item (VDQ resend queue) endpoints impose an additional viewset-level gate: the requesting user must have the `vueda_vdq.can_resend` permission for the `Resend` action to be permitted.
 
 For a complete explanation of the workflow overlay model, including state permission evaluation, how model-scope bypass works, and the details of transition gates, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
 
