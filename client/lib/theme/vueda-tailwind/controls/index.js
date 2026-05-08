@@ -431,7 +431,7 @@ export default {
     NumberFieldInput: {
         root: {
             class: [
-                "flex h-vueda-control w-full rounded-vueda-control hairline bg-transparent text-sm text-center shadow-vueda-control transition-shadow placeholder:text-muted-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow disabled:cursor-not-allowed disabled:opacity-50",
+                "flex h-vueda-control w-full rounded-vueda-control hairline bg-transparent font-mono tabular-nums text-sm text-center shadow-vueda-control transition-shadow placeholder:text-muted-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },
@@ -478,7 +478,7 @@ export default {
     Checkbox: {
         root: {
             class: [
-                "peer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground hairline size-6 shrink-0 rounded-[4px] shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+                "peer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground hairline size-6 shrink-0 rounded-vueda-checkbox shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
                 "data-[state=checked]:[--vueda-hairline-color:transparent] data-[state=indeterminate]:[--vueda-hairline-color:transparent]",
                 "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive aria-invalid:data-[state=checked]:bg-destructive aria-invalid:data-[state=checked]:text-destructive-foreground aria-invalid:data-[state=indeterminate]:bg-destructive aria-invalid:data-[state=indeterminate]:text-destructive-foreground",
@@ -644,7 +644,7 @@ export default {
     TagsInput: {
         root: {
             class: [
-                "flex flex-wrap gap-2 items-center rounded-vueda-control hairline bg-background px-2 py-1 text-sm shadow-vueda-control transition-shadow",
+                "flex flex-wrap gap-2 items-center rounded-vueda-control hairline bg-background dark:bg-input/30 px-2 py-1 text-sm shadow-vueda-control transition-shadow",
                 "has-[input:focus-visible]:hairline-ring [&:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow",
                 "aria-invalid:hairline-destructive [&[aria-invalid]:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow-destructive",
             ],
@@ -653,7 +653,7 @@ export default {
     TagsInputItem: {
         root: {
             class: [
-                "flex h-[var(--vueda-chip-height)] items-center rounded-md bg-secondary data-[state=active]:focus-ring",
+                "flex h-[var(--vueda-chip-height)] items-center rounded-vueda-pill bg-secondary data-[state=active]:focus-ring",
             ],
         },
     },
