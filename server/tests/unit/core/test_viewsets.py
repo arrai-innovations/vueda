@@ -8,7 +8,9 @@ from django.urls import reverse
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from tests.conftest import BaseTestAssertResponseMixin
+from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestModelViewSet
+from tests.conftest import BaseTestUserMixin
 from tests.models import Employee
 from tests.models import Product
 from tests.models import Timesheet
@@ -775,3 +777,224 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert error_key in response.data
         assert str(response.data[error_key][0]) == f"Object with pk={missing_pk} does not exist."
         assert self.model.objects.filter(pk=existing_pk).exists()
+
+
+@pytest.mark.django_db
+class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Timesheet Updater": [
+            ("tests", "Timesheet", "update"),
+        ]
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_my_user@example.com": {
+            "name": "Test User update",
+            "password": "testpass",
+            "groups": ["Timesheet Updater"],
+        },
+    }
+
+    def test_update_timesheet_with_existing_field(self, api_client):
+        user = self.users["test_my_user@example.com"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
+            ),
+            data={
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert "period_start" in response.data
+        assert "period_end" in response.data
+        assert "employee" not in response.data
+
+    def test_update_timesheet_with_non_existing_field(self, api_client):
+        user = self.users["test_my_user@example.com"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,une"},
+            ),
+            data={
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+                "une": "ssss",
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "period_end" in response.data
+        assert "employee" not in response.data
+        assert "une" in response.data
+
+    def test_expand_with_existing_expands(self, api_client):
+        user = self.users["test_my_user@example.com"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,foo"},
+            ),
+            data={
+                "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-12345"},
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert "period_start" in response.data
+        assert "period_end" in response.data
+        assert "employee" in response.data
+        assert "foo" in response.data
+        assert "user" in response.data["employee"]
+
+    def test_expand_with_non_existing_expands(self, api_client):
+        user = self.users["test_my_user@example.com"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "foo,label10"},
+            ),
+            data={
+                "employee": e1.pk,
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "label10" in response.data
+
+    def test_expand_with_existing_fields(self, api_client):
+        user = self.users["test_my_user@example.com"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end,employee",
+                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
+                },
+            ),
+            data={
+                "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-123456"},
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert "period_start" in response.data
+        assert "period_end" in response.data
+        assert "employee" in response.data
+        assert "user" in response.data["employee"]
+
+    def test_expand_with_non_existing_fields(self, api_client):
+        user = self.users["test_my_user@example.com"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-12348",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end,employee,invalid_field_name",
+                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
+                },
+            ),
+            data={
+                "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-123456"},
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+                "invalid_field_name": "invalid_value",
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "invalid_field_name" in response.data
+        assert "period_start" not in response.data
