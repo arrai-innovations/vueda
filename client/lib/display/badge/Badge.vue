@@ -17,6 +17,11 @@ const props = defineProps({
      */
     variant: { type: String, default: undefined },
     /**
+     * Render as a numeric badge (count / digit). Switches to a fixed-width mono recipe so
+     * single-, double-, and triple-digit values align across rows.
+     */
+    numeric: { type: Boolean, default: false },
+    /**
      * Additional CSS classes to apply to the root element.
      * @type {import('vue').HTMLAttributes['class']}
      */
@@ -29,7 +34,11 @@ const props = defineProps({
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 
-const theme = useTheme("Badge", props, reactive({ variant: toRef(props, "variant") }));
+const theme = useTheme(
+    "Badge",
+    props,
+    reactive({ variant: toRef(props, "variant"), numeric: toRef(props, "numeric") }),
+);
 </script>
 
 <template>

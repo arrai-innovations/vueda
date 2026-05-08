@@ -68,10 +68,12 @@ export default {
         },
     },
     Badge: {
-        root: ({ variant }) => ({
+        root: ({ variant, numeric }) => ({
             class: [
-                "inline-flex items-center justify-center rounded-vueda-control border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive transition-colors overflow-hidden",
+                "inline-flex items-center justify-center rounded-vueda-control border py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive aria-invalid:focus-ring-shadow-destructive transition-colors overflow-hidden",
                 {
+                    "px-2": !numeric,
+                    "font-mono tabular-nums min-w-5 px-1": numeric,
                     "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90":
                         !variant || variant === "default",
                     "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90":
