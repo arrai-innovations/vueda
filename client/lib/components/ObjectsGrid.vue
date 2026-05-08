@@ -120,6 +120,12 @@ const props = defineProps({
         type: Number,
         default: 25,
     },
+    /** Row-height density tier in table layout: `default` 32px, `compact` 28px, `condensed` 24px. */
+    density: {
+        type: String,
+        default: "default",
+        validator: (value) => ["default", "compact", "condensed"].includes(value),
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits(["update:sorted", "update:isTable"]);
@@ -211,7 +217,7 @@ watch(
 );
 </script>
 <template>
-    <div :class="theme('root')" data-qa="objects-grid-root">
+    <div :class="theme('root')" :data-density="density" data-qa="objects-grid-root">
         <div :class="theme('table')" data-qa="objects-grid-table" role="table">
             <div :class="theme('headerRowGroup')" data-qa="objects-grid-header-row-group" role="rowgroup">
                 <div :class="theme('headerRow')" data-qa="objects-grid-header-row" role="row">
@@ -229,6 +235,7 @@ watch(
                                 )
                             "
                             :data-header="field?.name"
+                            :data-numeric="field?.numeric || undefined"
                             data-qa="objects-grid-header"
                             role="columnheader"
                             @click="sortClick($event, field?.name)"
@@ -359,6 +366,7 @@ watch(
                                     :column-index="columnIndex"
                                     :column-count="fields.length"
                                     :data-field="field?.name"
+                                    :data-numeric="field?.numeric || undefined"
                                     :field="field"
                                     :field-props="fieldProps"
                                     :obj="obj"

@@ -125,4 +125,52 @@ describe("lib/components/ObjectsGrid.vue", () => {
         await nextTick();
         expect(wrapper.findAll('[data-qa="body-cell"]').length).toBe(1);
     });
+
+    describe("density prop", () => {
+        scopedIt("defaults data-density to 'default' on the root", () => {
+            const wrapper = mount(ObjectsGrid, { props: { fields: [{ name: "a" }], objectsInOrder: [] } });
+            expect(wrapper.find('[data-qa="objects-grid-root"]').attributes("data-density")).toBe("default");
+        });
+
+        scopedIt.each(["default", "compact", "condensed"])(
+            "forwards density=%s as data-density on the root",
+            (density) => {
+                const wrapper = mount(ObjectsGrid, {
+                    props: { fields: [{ name: "a" }], objectsInOrder: [], density },
+                });
+                expect(wrapper.find('[data-qa="objects-grid-root"]').attributes("data-density")).toBe(density);
+            },
+        );
+    });
+
+    describe("data-numeric forwarding", () => {
+        scopedIt("sets data-numeric on the header cell when field.numeric is true", () => {
+            tableRef.value = true;
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "qty", numeric: true }], objectsInOrder: [] },
+            });
+            expect(wrapper.find('[data-qa="objects-grid-header"]').attributes("data-numeric")).toBe("true");
+        });
+
+        scopedIt("omits data-numeric on the header cell when field.numeric is falsy", () => {
+            tableRef.value = true;
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "qty" }], objectsInOrder: [] },
+            });
+            expect(wrapper.find('[data-qa="objects-grid-header"]').attributes("data-numeric")).toBeUndefined();
+        });
+
+        scopedIt("forwards data-numeric to body cells in table mode when field.numeric is true", async () => {
+            tableRef.value = true;
+            const wrapper = mount(ObjectsGrid, {
+                props: {
+                    fields: [{ name: "qty", numeric: true }],
+                    objectsInOrder: [{ id: 1, qty: 5 }],
+                    pkKey: "id",
+                },
+            });
+            await nextTick();
+            expect(wrapper.find('[data-qa="body-cell"]').attributes("data-numeric")).toBe("true");
+        });
+    });
 });
