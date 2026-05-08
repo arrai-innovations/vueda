@@ -208,6 +208,7 @@
     --radius-vueda-card: var(--vueda-card-radius);
     --radius-vueda-modal: var(--vueda-modal-radius);
     --radius-vueda-pill: var(--vueda-pill-radius);
+    --radius-vueda-cal-day: var(--vueda-cal-day-radius);
 
     /* Semantic shadow aliases (generates shadow-vueda-* utilities) */
     --shadow-vueda-control: var(--vueda-shadow-control);

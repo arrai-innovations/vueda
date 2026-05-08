@@ -142,7 +142,7 @@ export default {
     RangeCalendarCell: {
         root: {
             class: [
-                "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([data-selected])]:bg-accent first:[&:has([data-selected])]:rounded-l-md last:[&:has([data-selected])]:rounded-r-md [&:has([data-selected][data-selection-end])]:rounded-r-md [&:has([data-selected][data-selection-start])]:rounded-l-md",
+                "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([data-selected])]:bg-accent first:[&:has([data-selected])]:rounded-l-vueda-cal-day last:[&:has([data-selected])]:rounded-r-vueda-cal-day [&:has([data-selected][data-selection-end])]:rounded-r-vueda-cal-day [&:has([data-selected][data-selection-start])]:rounded-l-vueda-cal-day",
             ],
         },
     },
@@ -173,9 +173,7 @@ export default {
     },
     CalendarCell: {
         root: {
-            class: [
-                "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex-1 [&:has([data-selected])]:rounded-md [&:has([data-selected])]:bg-accent",
-            ],
+            class: ["relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex-1"],
         },
     },
     CalendarGridRow: {
