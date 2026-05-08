@@ -96,15 +96,11 @@ class TemplateTagsDataField(serializers.JSONField):
     This field is for clients to know what component to use.
     """
 
-    pass
-
 
 class TemplatedTextField(serializers.JSONField):
     """
     This field is for client widget mapping purpose.
     """
-
-    pass
 
 
 class CompositePrimaryKeyField(serializers.CharField):

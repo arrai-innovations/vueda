@@ -77,8 +77,6 @@ class AtomicModelViewSetMixin(
 ):
     """Combines all three atomic write mixins: create, update, and destroy."""
 
-    pass
-
 
 class AtomicModelViewSet(
     AtomicCreateModelViewSetMixin,
@@ -91,8 +89,6 @@ class AtomicModelViewSet(
     """
     A Base ViewSet that wraps atomic transactions around create, update, and destroy.
     """
-
-    pass
 
 
 class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.GenericViewSet):
@@ -673,8 +669,6 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
 class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
     """``VuedaViewSet`` extended with ``simple-history`` audit endpoints."""
-
-    pass
 
 
 class VuedaReadOnlyViewSet(
