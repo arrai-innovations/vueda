@@ -30,7 +30,7 @@ const theme = useTheme("ComboboxGroup", props);
 
 <template>
     <ComboboxGroup data-slot="combobox-group" v-bind="delegatedProps" :class="[theme('root'), props.class]">
-        <ComboboxLabel v-if="heading" class="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+        <ComboboxLabel v-if="heading" data-slot="combobox-group-heading" :class="theme('heading')">
             {{ heading }}
         </ComboboxLabel>
         <slot />

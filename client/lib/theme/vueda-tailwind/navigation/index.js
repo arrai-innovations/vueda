@@ -70,7 +70,7 @@ export default {
     },
     DropdownMenuLabel: {
         root: {
-            class: "px-2 py-1.5 text-sm font-medium data-[inset]:pl-8",
+            class: "text-muted-foreground px-2 py-1.5 font-mono text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase data-[inset]:pl-8",
         },
     },
     DropdownMenuSeparator: {
@@ -80,7 +80,7 @@ export default {
     },
     DropdownMenuShortcut: {
         root: {
-            class: "text-muted-foreground ml-auto text-xs tracking-widest",
+            class: "text-muted-foreground ml-auto font-mono text-[length:var(--vueda-text-micro)] font-medium leading-none",
         },
     },
     DropdownMenuSubTrigger: {
@@ -123,7 +123,7 @@ export default {
     },
     ContextMenuLabel: {
         root: {
-            class: "text-foreground px-2 py-1.5 text-sm font-medium data-[inset]:pl-8",
+            class: "text-muted-foreground px-2 py-1.5 font-mono text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase data-[inset]:pl-8",
         },
     },
     ContextMenuSeparator: {
@@ -133,7 +133,7 @@ export default {
     },
     ContextMenuShortcut: {
         root: {
-            class: "text-muted-foreground ml-auto text-xs tracking-widest",
+            class: "text-muted-foreground ml-auto font-mono text-[length:var(--vueda-text-micro)] font-medium leading-none",
         },
     },
     ContextMenuSubTrigger: {
@@ -185,7 +185,7 @@ export default {
     },
     MenubarLabel: {
         root: {
-            class: "px-2 py-1.5 text-sm font-medium data-[inset]:pl-8",
+            class: "text-muted-foreground px-2 py-1.5 font-mono text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase data-[inset]:pl-8",
         },
     },
     MenubarSeparator: {
@@ -195,7 +195,7 @@ export default {
     },
     MenubarShortcut: {
         root: {
-            class: "text-muted-foreground ml-auto text-xs tracking-widest",
+            class: "text-muted-foreground ml-auto font-mono text-[length:var(--vueda-text-micro)] font-medium leading-none",
         },
     },
     MenubarSubTrigger: {

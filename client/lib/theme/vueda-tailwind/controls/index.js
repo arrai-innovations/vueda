@@ -230,6 +230,9 @@ export default {
         root: {
             class: ["overflow-hidden p-1 text-foreground"],
         },
+        heading: {
+            class: "text-muted-foreground px-2 py-1.5 font-mono text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase",
+        },
     },
     ComboboxInput: {
         root: {
