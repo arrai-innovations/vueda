@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from django.conf import settings
@@ -15,7 +16,7 @@ from vueda import info
 
 
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
             ("contenttypes", "ContentType", "read"),
@@ -156,7 +157,7 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
         ],
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_admin@example.com": {
             "name": "Test Admin",
             "password": "testpass",

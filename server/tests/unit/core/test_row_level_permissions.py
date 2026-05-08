@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 import pytest
 from django.urls import reverse
 
@@ -9,7 +11,7 @@ from tests.models import Product
 
 @pytest.mark.django_db
 class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, BaseTestUserMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("tests", "Product", "read"),
             ("tests", "Product", "list"),
@@ -32,7 +34,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         ],
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_super_user@example.com": {
             "name": "Test Super User",
             "password": "testpass",

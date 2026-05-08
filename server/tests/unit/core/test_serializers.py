@@ -1,4 +1,5 @@
 from datetime import date
+from typing import ClassVar
 
 import pytest
 from django.conf import settings
@@ -25,13 +26,13 @@ from vueda.core.viewsets import get_recursive_expands_and_fields
 
 @pytest.mark.django_db
 class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
             ("tests", "Timesheet", "update"),
         ]
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_my_user@example.com": {
             "name": "Test User update",
             "password": "testpass",
@@ -497,13 +498,13 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
 
 @pytest.mark.django_db
 class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
             ("tests", "Timesheet", "update"),
         ]
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_my_user@example.com": {
             "name": "Test User update",
             "password": "testpass",
@@ -671,13 +672,13 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
 
 @pytest.mark.django_db
 class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
             ("tests", "Timesheet", "update"),
         ]
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_my_user@example.com": {
             "name": "Test User update",
             "password": "testpass",
@@ -799,13 +800,13 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
 
 @pytest.mark.django_db
 class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
             ("tests", "Timesheet", "update"),
         ]
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_nested_initial_data@example.com": {
             "name": "Test Nested Initial Data User",
             "password": "testpass",

@@ -1,6 +1,7 @@
 import json
 from http import HTTPStatus
 from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from django.conf import settings
@@ -12,7 +13,7 @@ from tests.store import models as store_models
 
 
 class VuedaCompositeKeyTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Customer": [
             ("contenttypes", "ContentType", "read"),
             ("store", "OrderCompositePK", "read"),
@@ -21,7 +22,7 @@ class VuedaCompositeKeyTestData(BaseTestUserMixin, BaseTestGroupMixin):
         ]
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_customer_1@example.com": {
             "name": "Test Customer 1",
             "password": "testpass",

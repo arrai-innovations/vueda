@@ -1,4 +1,5 @@
 from datetime import date
+from typing import ClassVar
 
 import pytest
 from django.conf import settings
@@ -13,7 +14,7 @@ from tests.models import Timesheet
 
 @pytest.mark.django_db
 class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, BaseTestUserMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
             ("tests", "Timesheet", "read"),
         ],
@@ -31,7 +32,7 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
         ],
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_user+timesheet+reader@example.com": {
             "name": "Test User reader",
             "password": "testpass",

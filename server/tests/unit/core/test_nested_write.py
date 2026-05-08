@@ -12,6 +12,8 @@ created objects are absent from current_ids and are therefore deleted immediatel
 being created.  The fixed order (delete first, then create) avoids the problem entirely.
 """
 
+from typing import ClassVar
+
 import pytest
 from django.urls import reverse
 from rest_framework import status
@@ -60,13 +62,13 @@ class TestCreateIssueExpectedFailure:
 
 @pytest.mark.django_db
 class TestCreateIssue(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Invoice Updater": [
             ("store", "Invoice", "update"),
         ]
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "invoice_updater@example.com": {
             "name": "Invoice Updater",
             "password": "testpass",

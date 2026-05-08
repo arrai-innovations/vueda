@@ -5,6 +5,7 @@ import importlib
 import io
 from collections import OrderedDict
 from http import HTTPStatus
+from typing import ClassVar
 
 import pytest
 from django import db
@@ -127,7 +128,7 @@ class BaseTestAssertResponseMixin:
 
 
 class BaseTestGroupMixin:
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
             ("tests", "Timesheet", "read"),
             ("tests", "TimesheetEntry", "read"),
@@ -173,7 +174,7 @@ class BaseTestGroupMixin:
 
 
 class BaseTestUserMixin:
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "testuser@example.com": {
             "name": "Test User",
             "password": "testpass",

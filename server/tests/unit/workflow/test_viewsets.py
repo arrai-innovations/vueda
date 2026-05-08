@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import ClassVar
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -17,8 +18,8 @@ from vueda.workflow.models import WorkflowPermission
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
 class TestWorkflowViewSet(BaseTestUserMixin):
-    groups_to_create = {}
-    users_to_create = {
+    groups_to_create: ClassVar[dict] = {}
+    users_to_create: ClassVar[dict] = {
         "workflow-user@example.com": {
             "name": "Workflow User",
             "password": "password",

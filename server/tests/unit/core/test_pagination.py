@@ -1,5 +1,6 @@
 from datetime import date
 from http import HTTPStatus
+from typing import ClassVar
 from unittest.mock import patch
 
 import pytest
@@ -17,7 +18,7 @@ from vueda.core.pagination import VUEDAPageNumberPagination
 
 @pytest.mark.django_db
 class TestPagination(BaseTestCommonModelViewSet):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("tests", "Product", "read"),
             ("tests", "Product", "list"),
@@ -25,7 +26,7 @@ class TestPagination(BaseTestCommonModelViewSet):
         ],
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_admin@example.com": {
             "name": "Test Admin",
             "password": "testpass",
@@ -121,7 +122,7 @@ class TestPagination(BaseTestCommonModelViewSet):
 
 @pytest.mark.django_db
 class TestColumnTotals(BaseTestCommonModelViewSet):
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_admin@example.com": {
             "name": "Test Admin",
             "password": "testpass",

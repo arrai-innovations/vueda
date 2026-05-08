@@ -3,6 +3,7 @@ import os
 from copy import deepcopy
 from http import HTTPStatus
 from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from django.db import connections
@@ -49,7 +50,7 @@ def log_to_db(settings):
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
 class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
             ("contenttypes", "ContentType", "read"),
@@ -59,7 +60,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         ],
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_admin@example.com": {
             "name": "Test Admin",
             "password": "testpass",

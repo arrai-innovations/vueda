@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 import pytest
 from django.db import connection
 from django.urls import reverse
@@ -15,7 +17,7 @@ from vueda.core.filters import VuedaSearchFilterBackend
 
 
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
             ("contenttypes", "ContentType", "read"),
@@ -34,7 +36,7 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
         ],
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_admin@example.com": {
             "name": "Test Admin",
             "password": "testpass",

@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import ClassVar
 
 import pytest
 from django.urls import reverse
@@ -9,13 +10,13 @@ from tests.conftest import BaseTestUserMixin
 
 @pytest.mark.django_db
 class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
             ("tests", "Timesheet", "read"),
         ],
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_user+timesheet+reader@example.com": {
             "name": "Test User reader",
             "password": "testpass",

@@ -1,5 +1,6 @@
 import datetime
 from http import HTTPStatus
+from typing import ClassVar
 
 import pytest
 from django.conf import settings
@@ -44,7 +45,7 @@ class TestProductViewSet(BaseTestModelViewSet):
     model = Product
     has_delete_permission = False
 
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("tests", "Product", "read"),
             ("tests", "Product", "list"),
@@ -54,7 +55,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         ],
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_admin@example.com": {
             "name": "Test Admin",
             "password": "testpass",
@@ -483,7 +484,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     model = Timesheet
     has_delete_permission = True
 
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("tests", "Timesheet", "read"),
             ("tests", "Timesheet", "list"),
@@ -494,7 +495,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         ],
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_admin@example.com": {
             "name": "Test Admin",
             "password": "testpass",

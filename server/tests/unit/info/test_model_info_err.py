@@ -2,6 +2,7 @@
 # for by default, because they are designed to have issues.
 from http import HTTPStatus
 from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from django.conf import settings
@@ -20,7 +21,7 @@ from vueda.core.routers import IncludeAppInRouteNameRouter
 
 
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Customer": [
             ("contenttypes", "ContentType", "read"),
             ("erring", "RelatedObjectsAreMissingData", "read"),
@@ -28,7 +29,7 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
         ]
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_customer_1@example.com": {
             "name": "Test Customer 1",
             "password": "testpass",
@@ -152,7 +153,7 @@ class TestModelInfoErrs:
 
 
 class VuedaWorkflowTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Customer": [
             ("contenttypes", "ContentType", "read"),
             ("erring", "MoSoVoWo", "read"),
@@ -182,7 +183,7 @@ class VuedaWorkflowTestData(BaseTestUserMixin, BaseTestGroupMixin):
         ]
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "test_customer_1@example.com": {
             "name": "Test Customer 1",
             "password": "testpass",

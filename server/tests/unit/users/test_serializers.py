@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 import pytest
 from django.contrib.auth import get_user_model
 
@@ -11,7 +13,7 @@ from vueda.user.serializers import WhoIsSerializer
 
 @pytest.mark.django_db
 class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
             ("tests", "Timesheet", "read"),
         ],
@@ -20,7 +22,7 @@ class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
         ],
     }
 
-    users_to_create = {
+    users_to_create: ClassVar[dict] = {
         "testuser@example.com": {
             "name": "Test User",
             "password": "testpass",
