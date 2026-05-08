@@ -13,6 +13,8 @@ __all__ = (
     "TemplatedTextField",
 )
 
+from django.core.serializers.base import DeserializationError
+from django.core.serializers.base import SerializationError
 from django.http import Http404
 from django.utils.itercompat import is_iterable
 from rest_framework import serializers
@@ -128,9 +130,15 @@ class CompositePrimaryKeyField(serializers.CharField):
 
         # Get the CompositePrimaryKey field off the model, so we can call value_to_string.
         composite_primary_key = self.parent.Meta.model._meta.pk
-        return composite_primary_key.value_to_string(obj)
+        try:
+            return composite_primary_key.value_to_string(obj)
+        except Exception as e:
+            raise SerializationError(f"{e}: ({self.parent.Meta.model}:pk={composite_primary_key}) pk was '{value}'")
 
     def to_internal_value(self, data):
         # Get the CompositePrimaryKey field off the model, so we can call to_python.
         composite_primary_key = self.parent.Meta.model._meta.pk
-        return composite_primary_key.to_python(data)
+        try:
+            return composite_primary_key.to_python(data)
+        except Exception as e:
+            raise DeserializationError.WithData(e, self.parent.Meta.model, composite_primary_key, data)
