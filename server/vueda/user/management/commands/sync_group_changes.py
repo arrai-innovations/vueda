@@ -40,7 +40,7 @@ class Command(BaseCommand):
                     for line_no, line in enumerate(f):
                         if line_no > 20:  # noqa: PLR2004
                             break
-                        if line == MIGRATION_MODIFIED_COMMENT:
+                        if line.startswith(MIGRATION_MODIFIED_COMMENT.strip()):
                             yield migration_file
                             break
 
