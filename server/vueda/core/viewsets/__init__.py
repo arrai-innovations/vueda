@@ -236,6 +236,9 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
             permitted_expands = frozenset(serializer.context["permitted_expands"])
 
         if hasattr(serializer, "Meta"):
+            for value in WILDCARD_VALUES:
+                valid_wildcard_fields.add(value)
+
             if "formatted_name" not in valid_fields and hasattr(serializer.Meta, "model"):
                 formatted_name = getattr(serializer.Meta.model, "formatted_name_lookup_expression", None)
                 if isinstance(formatted_name, str):
@@ -251,7 +254,6 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     )  # No permitted expands
 
                 for value in WILDCARD_VALUES:
-                    valid_wildcard_fields.add(value)
                     valid_wildcard_expands.add(value)
 
                 for field_name, serializer_data in serializer.Meta.expandable_fields.items():
