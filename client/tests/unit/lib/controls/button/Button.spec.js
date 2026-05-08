@@ -31,6 +31,20 @@ describe("lib/controls/button/Button.vue", () => {
             expect(wrapper.classes()).toContain("h-vueda-control-lg");
         });
 
+        scopedIt("link variant uses inline-flow sizing (h-auto, px-0) instead of control sizing", () => {
+            const wrapper = mount(Button, { props: { variant: "link" } });
+            expect(wrapper.classes()).toContain("h-auto");
+            expect(wrapper.classes()).toContain("px-0");
+            expect(wrapper.classes()).not.toContain("h-vueda-control");
+            expect(wrapper.classes()).not.toContain("px-vueda-control-px");
+        });
+
+        scopedIt("link variant ignores size prop for height/padding", () => {
+            const wrapper = mount(Button, { props: { variant: "link", size: "lg" } });
+            expect(wrapper.classes()).toContain("h-auto");
+            expect(wrapper.classes()).not.toContain("h-vueda-control-lg");
+        });
+
         scopedIt("reflects variant prop in data-variant attribute", () => {
             const wrapper = mount(Button, { props: { variant: "destructive" } });
             expect(wrapper.attributes("data-variant")).toBe("destructive");

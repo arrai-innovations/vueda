@@ -47,6 +47,12 @@ export default {
         root: ({ variant, size }) => {
             const v = variant || "default";
             const variantKey = `_Button${v.charAt(0).toUpperCase()}${v.slice(1)}.root`;
+            if (v === "link") {
+                return {
+                    composes: ["_ButtonBase.root", variantKey],
+                    class: ["h-auto px-0"],
+                };
+            }
             return {
                 composes: ["_ButtonBase.root", variantKey],
                 class: [
@@ -554,9 +560,7 @@ export default {
     },
     ToggleGroup: {
         root: {
-            class: [
-                "group/toggle-group flex w-fit items-center gap-[--spacing(var(--gap))] rounded-vueda-control data-[spacing=default]:data-[variant=outline]:shadow-vueda-control",
-            ],
+            class: ["group/toggle-group flex w-fit items-center gap-[--spacing(var(--gap))] rounded-vueda-control"],
         },
     },
     ToggleGroupItem: {
