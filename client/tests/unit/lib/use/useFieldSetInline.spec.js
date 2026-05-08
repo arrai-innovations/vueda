@@ -1,4 +1,4 @@
-import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
+import { mockProvideInject, scopedIt, withSetup } from "@tests/unit/utils.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 
@@ -54,7 +54,7 @@ describe("lib/use/useFieldSetInline.js", () => {
         vi.clearAllMocks();
     });
 
-    const mountFieldSet = (propsOverrides = {}, contextOverrides = {}) => {
+    const mountFieldSet = async (propsOverrides = {}, contextOverrides = {}) => {
         const parentFormModel = vue.reactive({
             app: "app",
             model: "model",
@@ -94,22 +94,24 @@ describe("lib/use/useFieldSetInline.js", () => {
 
         const emit = vi.fn();
         const slotNames = [];
-        const instance = useFieldSetInline({
-            props,
-            emit,
-            slotNames,
-            fieldSetContext,
-        });
+        const instance = await withSetup(() =>
+            useFieldSetInline({
+                props,
+                emit,
+                slotNames,
+                fieldSetContext,
+            }),
+        );
         return { instance, props, fieldSetContext, emit };
     };
 
     scopedIt("getEmptyFieldObject returns initial values", async () => {
-        const { instance } = mountFieldSet();
+        const { instance } = await mountFieldSet();
         expect(instance.getEmptyFieldObject()).toEqual({ a: "init-a", b: "init-b" });
     });
 
     scopedIt("doCreate adds object and toggles visibility", async () => {
-        const { instance, fieldSetContext } = mountFieldSet({ visible: false });
+        const { instance, fieldSetContext } = await mountFieldSet({ visible: false });
         await flushPromises();
         expect(instance.state.internalVisible).toBe(false);
         instance.doCreate();
@@ -120,8 +122,8 @@ describe("lib/use/useFieldSetInline.js", () => {
         expect(instance.state.userHasToggled).toBe(true);
     });
 
-    scopedIt("handleSelected updates selected array", () => {
-        const { instance, fieldSetContext } = mountFieldSet();
+    scopedIt("handleSelected updates selected array", async () => {
+        const { instance, fieldSetContext } = await mountFieldSet();
         instance.handleSelected(true, 2);
         expect(instance.state.selected).toEqual([2]);
         expect(fieldSetContext.ignore).toHaveBeenCalledWith("fs[2]");
@@ -134,8 +136,8 @@ describe("lib/use/useFieldSetInline.js", () => {
         expect(fieldSetContext.removeIgnore).toHaveBeenCalledWith("fs[2]");
     });
 
-    scopedIt("removeObject removes index and clears state", () => {
-        const { instance, fieldSetContext } = mountFieldSet();
+    scopedIt("removeObject removes index and clears state", async () => {
+        const { instance, fieldSetContext } = await mountFieldSet();
         fieldSetContext.state.value = [{ id: 1 }, { id: 2 }, { id: 3 }];
         instance.removeObject(1);
         expect(fieldSetContext.blur).toHaveBeenCalled();
@@ -144,8 +146,8 @@ describe("lib/use/useFieldSetInline.js", () => {
         expect(fieldSetContext.clearMessages).toHaveBeenCalledWith(1);
     });
 
-    scopedIt("toggleVisibility modifies internal state when uncontrolled", () => {
-        const { instance, emit } = mountFieldSet();
+    scopedIt("toggleVisibility modifies internal state when uncontrolled", async () => {
+        const { instance, emit } = await mountFieldSet();
         const start = instance.state.internalVisible;
         instance.toggleVisibility();
         expect(instance.state.internalVisible).toBe(!start);
@@ -154,7 +156,7 @@ describe("lib/use/useFieldSetInline.js", () => {
     });
 
     scopedIt("toggleVisibility emits update when visible prop used", async () => {
-        const { instance, emit } = mountFieldSet({ visible: true });
+        const { instance, emit } = await mountFieldSet({ visible: true });
         await flushPromises();
         expect(instance.state.internalVisible).toBe(true);
         instance.toggleVisibility();
@@ -162,8 +164,8 @@ describe("lib/use/useFieldSetInline.js", () => {
         expect(instance.state.internalVisible).toBe(true);
     });
 
-    scopedIt("refFn stores element references", () => {
-        const { instance } = mountFieldSet();
+    scopedIt("refFn stores element references", async () => {
+        const { instance } = await mountFieldSet();
         const el = {
             scrollIntoView: vi.fn(),
             parentNode: { querySelector: vi.fn() },
@@ -174,7 +176,7 @@ describe("lib/use/useFieldSetInline.js", () => {
     });
 
     scopedIt("mergedFormModelProps merges values and reacts to prop changes", async () => {
-        const { props } = mountFieldSet(
+        const { props } = await mountFieldSet(
             {
                 fields: ["fs__child", "expandable"],
                 expand: ["expandable"],
@@ -211,7 +213,7 @@ describe("lib/use/useFieldSetInline.js", () => {
     });
 
     scopedIt("fieldNames are derived from props.fields", async () => {
-        const { instance, props } = mountFieldSet({ fields: ["fs__one", "other", "fs__two"] });
+        const { instance, props } = await mountFieldSet({ fields: ["fs__one", "other", "fs__two"] });
 
         expect(instance.state.fieldNames).toEqual(["one", "two"]);
 

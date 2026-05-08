@@ -301,6 +301,30 @@ export const mockEventListener = (vi) => {
 };
 
 /**
+ * Run a composable inside a synthetic component setup() so it has a real
+ * component instance for provide(), inject(), and lifecycle hooks.
+ *
+ * The synthetic app is unmounted automatically when the test finishes.
+ *
+ * @param {() => T} composable - Invoked once during setup; its return value is forwarded to the caller.
+ * @returns {Promise<T>} The composable's return value.
+ * @template T
+ */
+export async function withSetup(composable) {
+    const { createApp } = await vi.importActual("vue");
+    let result;
+    const app = createApp({
+        setup() {
+            result = composable();
+            return () => null;
+        },
+    });
+    app.mount(document.createElement("div"));
+    onTestFinished(() => app.unmount());
+    return result;
+}
+
+/**
  * Run a test in a fresh Vue effect scope.
  *
  * Use for tests that touch Vue reactivity, lifecycle hooks, provide/inject,

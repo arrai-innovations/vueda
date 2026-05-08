@@ -1,5 +1,5 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
-import { scopedIt } from "@tests/unit/utils.js";
+import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
@@ -88,8 +88,8 @@ describe("lib/use/useDetailView.js", () => {
     });
 
     describe("return shape", () => {
-        scopedIt("returns modelConfig, instanceObject, instance group, and actions group", () => {
-            const result = useDetailView(props, formInitialValue);
+        scopedIt("returns modelConfig, instanceObject, instance group, and actions group", async () => {
+            const result = await withSetup(() => useDetailView(props, formInitialValue));
 
             expect(result).toHaveProperty("modelConfig");
             expect(result).toHaveProperty("instanceObject");
@@ -97,8 +97,8 @@ describe("lib/use/useDetailView.js", () => {
             expect(result).toHaveProperty("actions");
         });
 
-        scopedIt("instance group contains expected keys", () => {
-            const { instance } = useDetailView(props, formInitialValue);
+        scopedIt("instance group contains expected keys", async () => {
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
 
             expect(instance).not.toHaveProperty("instanceObject");
             expect(instance).toHaveProperty("validAndActive");
@@ -112,8 +112,8 @@ describe("lib/use/useDetailView.js", () => {
             expect(instance).toHaveProperty("combinedFormProps");
         });
 
-        scopedIt("actions group contains expected keys", () => {
-            const { actions } = useDetailView(props, formInitialValue);
+        scopedIt("actions group contains expected keys", async () => {
+            const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
 
             expect(actions).toHaveProperty("nonDetailActions");
             expect(actions).toHaveProperty("detailActions");
@@ -122,57 +122,57 @@ describe("lib/use/useDetailView.js", () => {
     });
 
     describe("validAndActive", () => {
-        scopedIt("is true when active, all required props present, and model config loaded", () => {
-            const { instance } = useDetailView(props, formInitialValue);
+        scopedIt("is true when active, all required props present, and model config loaded", async () => {
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.validAndActive).toBe(true);
         });
 
-        scopedIt("is false when isActive is false", () => {
+        scopedIt("is false when isActive is false", async () => {
             useIsActive.mockReturnValue(ref(false));
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.validAndActive).toBe(false);
         });
 
-        scopedIt("is false when pk is missing", () => {
+        scopedIt("is false when pk is missing", async () => {
             props.pk = "";
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.validAndActive).toBe(false);
         });
 
-        scopedIt("is false when model config is still loading", () => {
+        scopedIt("is false when model config is still loading", async () => {
             mockModelConfig.loading = true;
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.validAndActive).toBe(false);
         });
 
-        scopedIt("is false when model config has no fetchFields", () => {
+        scopedIt("is false when model config has no fetchFields", async () => {
             mockModelConfig.config.fetchFields = undefined;
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.validAndActive).toBe(false);
         });
     });
 
     describe("titleStr", () => {
-        scopedIt("combines capitalized viewName with model verbose name", () => {
-            const { instance } = useDetailView(props, formInitialValue);
+        scopedIt("combines capitalized viewName with model verbose name", async () => {
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.titleStr).toBe("Read Widget");
         });
 
-        scopedIt("uses update viewName correctly", () => {
+        scopedIt("uses update viewName correctly", async () => {
             props.viewName = "update";
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.titleStr).toBe("Update Widget");
         });
     });
 
     describe("formId", () => {
-        scopedIt("is built from app, model, pk, and viewName", () => {
-            const { instance } = useDetailView(props, formInitialValue);
+        scopedIt("is built from app, model, pk, and viewName", async () => {
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.formId).toBe("testApp-testModel-42-read");
         });
 
         scopedIt("updates reactively when pk changes", async () => {
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             props.pk = "99";
             await nextTick();
             expect(instance.formId).toBe("testApp-testModel-99-read");
@@ -180,49 +180,49 @@ describe("lib/use/useDetailView.js", () => {
     });
 
     describe("error combination", () => {
-        scopedIt("combinedErrored is false when no errors are present", () => {
-            const { instance } = useDetailView(props, formInitialValue);
+        scopedIt("combinedErrored is false when no errors are present", async () => {
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.combinedErrored).toBe(false);
             expect(instance.combinedError).toBeFalsy();
         });
 
-        scopedIt("surfaces model config error", () => {
+        scopedIt("surfaces model config error", async () => {
             const err = new Error("config error");
             mockModelConfig.error = err;
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.combinedError).toBe(err);
             expect(instance.combinedErrored).toBe(true);
             expect(instance.combinedWhileText).toBe("getting model information");
         });
 
-        scopedIt("surfaces instance fetch error", () => {
+        scopedIt("surfaces instance fetch error", async () => {
             const err = new Error("fetch error");
             mockInstanceObject.state.error = err;
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.combinedError).toBe(err);
             expect(instance.combinedWhileText).toBe("fetching object data");
         });
 
-        scopedIt("surfaces objectForm submit error", () => {
+        scopedIt("surfaces objectForm submit error", async () => {
             const err = new Error("submit error");
             props.objectForm = { state: reactive({ loading: false, submitErrored: false, error: err }) };
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.combinedError).toBe(err);
             expect(instance.combinedWhileText).toBe("submitting form");
         });
     });
 
     describe("combinedFormProps", () => {
-        scopedIt("merges model config formProps with explicit formProps override", () => {
+        scopedIt("merges model config formProps with explicit formProps override", async () => {
             mockModelConfig.config.formProps = { layout: "stacked" };
             props.formProps = { layout: "inline", dense: true };
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.combinedFormProps).toEqual({ layout: "inline", dense: true });
         });
     });
 
     describe("actions", () => {
-        scopedIt("nonDetailActions excludes the current view action and detail actions", () => {
+        scopedIt("nonDetailActions excludes the current view action and detail actions", async () => {
             // viewName is "read", getActionName("read") returns "retrieve"
             // so "retrieve" is excluded as the current-view action; "destroy" is detail-level
             mockModelConfig.config.actionDetails = {
@@ -235,13 +235,13 @@ describe("lib/use/useDetailView.js", () => {
                 id: "42",
                 available_actions: ["create", "retrieve", "destroy"],
             };
-            const { actions } = useDetailView(props, formInitialValue);
+            const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(actions.nonDetailActions).toContain("create");
             expect(actions.nonDetailActions).not.toContain("retrieve");
             expect(actions.nonDetailActions).not.toContain("destroy");
         });
 
-        scopedIt("detailActions excludes the current view and non-detail actions", () => {
+        scopedIt("detailActions excludes the current view and non-detail actions", async () => {
             mockModelConfig.config.actionDetails = {
                 create: { detail: false },
                 delete: { detail: true },
@@ -251,36 +251,36 @@ describe("lib/use/useDetailView.js", () => {
                 id: "42",
                 available_actions: ["create", "delete"],
             };
-            const { actions } = useDetailView(props, formInitialValue);
+            const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(actions.detailActions).toContain("delete");
             expect(actions.detailActions).not.toContain("create");
         });
 
-        scopedIt("availableTransitions maps transition codes from objectTransitions", () => {
+        scopedIt("availableTransitions maps transition codes from objectTransitions", async () => {
             mockTransitions.transitions = [{ code: "approve" }, { code: "reject" }];
-            const { actions } = useDetailView(props, formInitialValue);
+            const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(actions.availableTransitions).toEqual(["approve", "reject"]);
         });
 
-        scopedIt("availableTransitions is undefined when transitions is undefined", () => {
+        scopedIt("availableTransitions is undefined when transitions is undefined", async () => {
             mockTransitions.transitions = undefined;
-            const { actions } = useDetailView(props, formInitialValue);
+            const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(actions.availableTransitions).toBeUndefined();
         });
     });
 
     describe("computedWidgetProps", () => {
-        scopedIt("merges widgetProps with calculatedObject from instance state", () => {
+        scopedIt("merges widgetProps with calculatedObject from instance state", async () => {
             props.widgetProps = { size: "sm" };
             mockInstanceObject.state.calculatedObject = { extra: "data" };
-            const { instance } = useDetailView(props, formInitialValue);
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.computedWidgetProps).toEqual({ size: "sm", extra: "data" });
         });
     });
 
     describe("useObject setup", () => {
-        scopedIt("calls useObject with correct target, pk, and pkKey", () => {
-            useDetailView(props, formInitialValue);
+        scopedIt("calls useObject with correct target, pk, and pkKey", async () => {
+            await withSetup(() => useDetailView(props, formInitialValue));
             expect(useObject).toHaveBeenCalledWith(
                 expect.objectContaining({
                     props: expect.objectContaining({
@@ -294,9 +294,9 @@ describe("lib/use/useDetailView.js", () => {
             );
         });
 
-        scopedIt("pkKey falls back to 'id' when modelConfig.info.pk is missing", () => {
+        scopedIt("pkKey falls back to 'id' when modelConfig.info.pk is missing", async () => {
             delete mockModelConfig.info.pk;
-            useDetailView(props, formInitialValue);
+            await withSetup(() => useDetailView(props, formInitialValue));
             const objectProps = useObject.mock.calls[0][0].props;
             expect(objectProps.pkKey).toBe("id");
         });

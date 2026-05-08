@@ -1,4 +1,4 @@
-import { scopedIt } from "@tests/unit/utils.js";
+import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 
 describe("lib/use/useFormModel.js", () => {
@@ -75,7 +75,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
             await flushPromises();
@@ -122,7 +122,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -153,7 +153,7 @@ describe("lib/use/useFormModel.js", () => {
                 expandDetails: {},
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -183,7 +183,7 @@ describe("lib/use/useFormModel.js", () => {
                 expandDetails: {},
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -223,7 +223,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -252,7 +252,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -278,7 +278,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -301,7 +301,7 @@ describe("lib/use/useFormModel.js", () => {
             });
             modelConfig.config.fields = ["name"];
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -331,7 +331,7 @@ describe("lib/use/useFormModel.js", () => {
             });
             modelConfig.config.fieldProps = { code: { readOnly: true } };
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -375,7 +375,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -401,7 +401,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -424,7 +424,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -457,7 +457,7 @@ describe("lib/use/useFormModel.js", () => {
             });
             let errorThrown = null;
             try {
-                useFormModel(props);
+                await withSetup(() => useFormModel(props));
                 modelConfig.config.fieldDetails = props.fieldDetails;
                 await vue.nextTick();
             } catch (err) {
@@ -489,7 +489,7 @@ describe("lib/use/useFormModel.js", () => {
             });
             let errorThrown = null;
             try {
-                useFormModel(props);
+                await withSetup(() => useFormModel(props));
                 modelConfig.config.fieldDetails = props.fieldDetails;
                 modelConfig.config.expandDetails = props.expandDetails;
                 await vue.nextTick();
@@ -532,7 +532,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -564,7 +564,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -595,7 +595,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -622,7 +622,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -646,7 +646,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -671,7 +671,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -699,7 +699,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -722,7 +722,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -757,7 +757,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -785,7 +785,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -810,7 +810,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             await flushPromises();
 
@@ -837,7 +837,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -865,7 +865,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -892,7 +892,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -919,7 +919,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -941,10 +941,10 @@ describe("lib/use/useFormModel.js", () => {
                 fieldDetails: {},
                 expandDetails: {},
             });
-            expect(() => useFormModel(props)).not.toThrow();
+            await withSetup(() => useFormModel(props));
             let errorThrown = null;
             try {
-                useFormModel(props);
+                await withSetup(() => useFormModel(props));
                 modelConfig.config.fieldDetails = { test: {} };
                 await vue.nextTick();
             } catch (err) {
