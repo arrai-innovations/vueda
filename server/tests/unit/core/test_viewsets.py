@@ -1,6 +1,8 @@
 import datetime
+import json
 from http import HTTPStatus
 from typing import ClassVar
+from typing import TypedDict
 
 import pytest
 from django.conf import settings
@@ -14,6 +16,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.models import Employee
 from tests.models import Product
 from tests.models import Timesheet
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.test_model_info import VuedaTestData
@@ -998,3 +1001,127 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         self.assert_response(response, 400)
         assert "invalid_field_name" in response.data
         assert "period_start" not in response.data
+
+
+class _OrderItemCompositePKResponse(TypedDict):
+    pk: str  # JSON-encoded composite key, e.g. '["1", "1"]'
+    order: int
+    product: int
+    quantity: int
+    formatted_name: str
+    available_actions: list[str]
+
+
+class _OrderItemCompositePKInExpandResponse(TypedDict):
+    pk: str  # JSON-encoded composite key, e.g. '["1", "1"]'
+    order: int
+    product: int
+    quantity: int
+    formatted_name: str
+
+
+class _OrderCompositePKWithExpandResponse(TypedDict):
+    id: int
+    order_number: str
+    order_date: str
+    order_items_composite_pks: list[_OrderItemCompositePKInExpandResponse]
+    formatted_name: str
+    available_actions: list[str]
+
+
+@pytest.mark.django_db
+class TestNoExtraFieldsFormattedNameLookupExpression(
+    BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin
+):
+    groups_to_create: ClassVar[dict] = {
+        "Order Updater": [
+            ("store", "OrderCompositePK", "update"),
+            ("store", "OrderItemCompositePK", "update"),
+        ]
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_order_updater@example.com": {
+            "name": "Test Order Updater",
+            "password": "testpass",
+            "groups": ["Order Updater"],
+        },
+    }
+
+    @pytest.fixture
+    def order_item(self):
+        product = store_models.ProductCompositePK.objects.create(name="Test Product")
+        order = store_models.OrderCompositePK.objects.create(order_number="9999")
+        return store_models.OrderItemCompositePK.objects.create(order=order, product=product, quantity=5)
+
+    def test_formatted_name_on_main_model_no_error(self, order_item, api_client):
+        user = self.users["test_order_updater@example.com"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.patch(
+            reverse(
+                "store.orderitemcompositepk-detail",
+                args=(json.dumps(order_item.pk),),
+            ),
+            data={"formatted_name": "test value"},
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+
+        data: _OrderItemCompositePKResponse = response.json()
+        assert data["formatted_name"] == "Test Product", data
+
+    def test_invalid_field_message_includes_formatted_name_main_model(self, order_item, api_client):
+        user = self.users["test_order_updater@example.com"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.patch(
+            reverse(
+                "store.orderitemcompositepk-detail",
+                args=(json.dumps(order_item.pk),),
+            ),
+            data={"xxx_invalid_field": "value"},
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "xxx_invalid_field" in response.data
+        assert "formatted_name" in response.data["xxx_invalid_field"][0]
+
+    def test_formatted_name_on_expanded_model_no_error(self, order_item, api_client):
+        user = self.users["test_order_updater@example.com"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.patch(
+            reverse(
+                "store.ordercompositepk-detail",
+                kwargs={"pk": order_item.order.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items_composite_pks"},
+            ),
+            data={"formatted_name": str(order_item.order.order_number)},
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+
+        data: _OrderCompositePKWithExpandResponse = response.json()
+        assert data["order_items_composite_pks"][0]["formatted_name"] == "Test Product", data
+
+    def test_invalid_field_message_includes_formatted_name_expanded_model(self, order_item, api_client):
+        user = self.users["test_order_updater@example.com"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.patch(
+            reverse(
+                "store.ordercompositepk-detail",
+                kwargs={"pk": order_item.order.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items_composite_pks"},
+            ),
+            data={"xxx_invalid_field": "value"},
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "xxx_invalid_field" in response.data
+        assert "formatted_name" in response.data["xxx_invalid_field"][0]
