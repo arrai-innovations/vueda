@@ -116,6 +116,12 @@ describe("lib/shell/item/Item.vue", () => {
             expect(wrapper.classes()).toContain("items-center");
         });
 
+        scopedIt("applies mono supporting-text treatment", () => {
+            const wrapper = mount(ItemHeader);
+            expect(wrapper.classes()).toContain("font-mono");
+            expect(wrapper.classes()).toContain("text-muted-foreground");
+        });
+
         scopedIt("merges custom class", () => {
             const wrapper = mount(ItemHeader, { props: { class: "my-header" } });
             expect(wrapper.classes()).toContain("my-header");
@@ -132,6 +138,12 @@ describe("lib/shell/item/Item.vue", () => {
             const wrapper = mount(ItemFooter);
             expect(wrapper.classes()).toContain("justify-between");
             expect(wrapper.classes()).toContain("basis-full");
+        });
+
+        scopedIt("applies mono supporting-text treatment", () => {
+            const wrapper = mount(ItemFooter);
+            expect(wrapper.classes()).toContain("font-mono");
+            expect(wrapper.classes()).toContain("text-muted-foreground");
         });
 
         scopedIt("merges custom class", () => {

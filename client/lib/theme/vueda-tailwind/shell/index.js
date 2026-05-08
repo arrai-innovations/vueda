@@ -313,7 +313,7 @@ export default {
     },
     ItemFooter: {
         root: {
-            class: "flex basis-full items-center justify-between gap-2",
+            class: "flex basis-full items-center justify-between gap-2 font-mono text-[length:var(--vueda-text-supporting)] text-muted-foreground",
         },
     },
     ItemGroup: {
@@ -323,7 +323,7 @@ export default {
     },
     ItemHeader: {
         root: {
-            class: "flex basis-full items-center justify-between gap-2",
+            class: "flex basis-full items-center justify-between gap-2 font-mono text-[length:var(--vueda-text-supporting)] text-muted-foreground",
         },
     },
     ItemMedia: {
@@ -532,6 +532,7 @@ export default {
     StepperSeparator: {
         root: {
             class: [
+                "flex-1 h-0.5 min-w-6 rounded-sm mt-4 transition-colors",
                 "bg-muted",
                 "group-data-[disabled]:bg-muted group-data-[disabled]:opacity-50",
                 "group-data-[state=completed]:bg-accent",
