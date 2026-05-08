@@ -10,6 +10,7 @@ const { provideStore, mockedProvide, mockedInject } = mockProvideInject(vi);
 const { clearUnmounted, unmountedFunctions, mockedOnUnmounted } = mockLifecycle(vi);
 const reservedServerCodeMsg =
     'Error code "server" is reserved for server-originated validation and cannot be set from local validation. Use a non-reserved code (e.g. "validate" or custom) for client validation.';
+let useIdCounter = 0;
 vi.mock("vue", async () => {
     const original = await vi.importActual("vue");
     return {
@@ -18,6 +19,7 @@ vi.mock("vue", async () => {
         provide: mockedProvide,
         inject: mockedInject,
         onUnmounted: mockedOnUnmounted,
+        useId: () => `test-id-${++useIdCounter}`,
     };
 });
 
