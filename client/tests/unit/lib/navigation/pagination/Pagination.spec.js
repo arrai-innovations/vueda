@@ -1,11 +1,13 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import Pagination from "@vueda/navigation/pagination/Pagination.vue";
+import PaginationBar from "@vueda/navigation/pagination/PaginationBar.vue";
 import PaginationContent from "@vueda/navigation/pagination/PaginationContent.vue";
 import PaginationEllipsis from "@vueda/navigation/pagination/PaginationEllipsis.vue";
 import PaginationFirst from "@vueda/navigation/pagination/PaginationFirst.vue";
 import PaginationItem from "@vueda/navigation/pagination/PaginationItem.vue";
 import PaginationLast from "@vueda/navigation/pagination/PaginationLast.vue";
+import PaginationMeta from "@vueda/navigation/pagination/PaginationMeta.vue";
 import PaginationNext from "@vueda/navigation/pagination/PaginationNext.vue";
 import PaginationPrevious from "@vueda/navigation/pagination/PaginationPrevious.vue";
 
@@ -152,6 +154,55 @@ describe("lib/navigation/pagination/Pagination.vue", () => {
         scopedIt("has data-slot=pagination-ellipsis", () => {
             const wrapper = mount(PaginationEllipsis);
             expect(wrapper.attributes("data-slot")).toBe("pagination-ellipsis");
+        });
+    });
+
+    describe("PaginationBar", () => {
+        scopedIt("has data-slot=pagination-bar", () => {
+            const wrapper = mount(PaginationBar);
+            expect(wrapper.attributes("data-slot")).toBe("pagination-bar");
+        });
+
+        scopedIt("applies bar chrome classes", () => {
+            const wrapper = mount(PaginationBar);
+            const classes = wrapper.classes();
+            expect(classes).toContain("flex");
+            expect(classes).toContain("justify-between");
+            expect(classes).toContain("border-t");
+            expect(classes).toContain("bg-card");
+            expect(classes).toContain("rounded-b-vueda-card");
+        });
+
+        scopedIt("merges custom class", () => {
+            const wrapper = mount(PaginationBar, { props: { class: "my-bar" } });
+            expect(wrapper.classes()).toContain("my-bar");
+            expect(wrapper.classes()).toContain("flex");
+        });
+
+        scopedIt("renders slot content", () => {
+            const wrapper = mount(PaginationBar, { slots: { default: "<span>meta</span>" } });
+            expect(wrapper.text()).toBe("meta");
+        });
+    });
+
+    describe("PaginationMeta", () => {
+        scopedIt("has data-slot=pagination-meta", () => {
+            const wrapper = mount(PaginationMeta);
+            expect(wrapper.attributes("data-slot")).toBe("pagination-meta");
+        });
+
+        scopedIt("applies mono supporting-text classes", () => {
+            const wrapper = mount(PaginationMeta);
+            const classes = wrapper.classes();
+            expect(classes).toContain("font-mono");
+            expect(classes).toContain("text-muted-foreground");
+            expect(classes).toContain("whitespace-nowrap");
+            expect(classes.some((c) => c.includes("--vueda-text-supporting"))).toBe(true);
+        });
+
+        scopedIt("renders slot content", () => {
+            const wrapper = mount(PaginationMeta, { slots: { default: "441 invoices" } });
+            expect(wrapper.text()).toBe("441 invoices");
         });
     });
 });
