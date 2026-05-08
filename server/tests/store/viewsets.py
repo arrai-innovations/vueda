@@ -205,7 +205,7 @@ class OrderItemCompositePKViewSet(VuedaViewSet):
 
     @action(detail=False, methods=["post"], permission_classes=(), bulk=True)
     def test_action(self, request):
-        return None
+        return Response(status=204)
 
 
 class OrderItemAltCompositePKViewSet(VuedaViewSet):
