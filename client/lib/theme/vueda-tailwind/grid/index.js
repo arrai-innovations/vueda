@@ -6,10 +6,10 @@
 export default {
     Table: {
         container: {
-            class: "relative w-full overflow-auto",
+            class: "relative w-full overflow-auto rounded-vueda-card border border-border bg-card",
         },
         table: {
-            class: "w-full caption-bottom text-body",
+            class: "w-full caption-bottom text-body border-separate border-spacing-0 [font-variant-numeric:tabular-nums_slashed-zero]",
         },
     },
     TableBody: {
@@ -42,7 +42,7 @@ export default {
     },
     TableHead: {
         root: {
-            class: "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+            class: "text-foreground h-10 px-2 text-left align-middle font-semibold text-[length:var(--vueda-text-supporting)] whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         },
     },
     TableHeader: {
@@ -52,7 +52,7 @@ export default {
     },
     TableRow: {
         root: {
-            class: "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",
+            class: "hover:bg-muted/50 data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09] data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)] border-b transition-colors",
         },
     },
 };
