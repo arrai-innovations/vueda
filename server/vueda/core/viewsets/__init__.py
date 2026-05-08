@@ -647,7 +647,8 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
         if hasattr(self, "kwargs") and "pk" in self.kwargs:
             has_composite_primary_key = False
             cpk_field = None
-            for field in self.queryset.model._meta.fields:
+            model = getattr(self.queryset, "model", self.get_queryset().model)
+            for field in model._meta.fields:
                 if isinstance(field, CompositePrimaryKey):
                     has_composite_primary_key = True
                     cpk_field = field

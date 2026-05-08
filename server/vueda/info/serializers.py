@@ -504,7 +504,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # key has no ordering fields set up on the view and there are no objects created.
         # Once this pull request (https://github.com/arrai-innovations/vueda/pull/19) is
         # deployed, this code will be removed, because we don't use get_valid_fields.
-        if has_composite_primary_key and not queryset and getattr(view, "ordering_fields", None) is None:
+        if has_composite_primary_key and not queryset.exists() and getattr(view, "ordering_fields", None) is None:
             return ordering_data
 
         for field_name, _title in OrderingFilter().get_valid_fields(queryset, view):
