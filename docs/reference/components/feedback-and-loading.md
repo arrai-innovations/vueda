@@ -8,6 +8,7 @@ type: reference
 <script setup>
 import Badge from "@vueda/display/badge/Badge.vue";
 import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertActions from "@vueda/feedback/alert/AlertActions.vue";
 import AlertClose from "@vueda/feedback/alert/AlertClose.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
@@ -63,7 +64,8 @@ manually: the grid template selects between `[16px_1fr]` and `[0_1fr]` based
 on `has-[>svg]`.
 
 Theme keys: {@api theme-key:Alert}, {@api theme-key:AlertTitle},
-{@api theme-key:AlertDescription}, {@api theme-key:AlertClose}. Token surface:
+{@api theme-key:AlertDescription}, {@api theme-key:AlertActions},
+{@api theme-key:AlertClose}. Token surface:
 {@api css-token:card}, {@api css-token:card-foreground},
 {@api css-token:destructive}, {@api css-token:warning},
 {@api css-token:info}, {@api css-token:success}, and
@@ -138,6 +140,23 @@ Theme keys: {@api theme-key:Alert}, {@api theme-key:AlertTitle},
       </Alert>
     </div>
   </section>
+  <DemoCard title="with actions">
+    <Alert variant="warning">
+      <FontAwesomeIcon :icon="faTriangleExclamation" />
+      <AlertTitle>Tax table expires in 7 days</AlertTitle>
+      <AlertDescription>
+        Renew the table or configure manual rates before 2026-05-01.
+      </AlertDescription>
+      <AlertActions>
+        <Button variant="ghost" size="sm">Dismiss</Button>
+        <Button variant="outline" size="sm">Renew</Button>
+      </AlertActions>
+    </Alert>
+    <template #footer>
+      <span><code>AlertActions</code> aligns under title / description column</span>
+      <span>icon spans both rows when description is present</span>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Badge: variant matrix

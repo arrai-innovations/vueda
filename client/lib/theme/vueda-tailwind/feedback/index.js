@@ -6,14 +6,17 @@ export default {
     Alert: {
         root: ({ variant }) => ({
             class: [
-                "relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
+                "relative w-full rounded-vueda-card border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:row-span-2 [&>svg]:translate-y-0.5 [&>svg]:text-current",
                 {
                     "bg-card text-card-foreground": !variant || variant === "default",
                     "border-destructive/50 text-destructive bg-destructive/10 *:data-[slot=alert-description]:text-destructive/90":
                         variant === "destructive",
-                    "border-warning/50 text-warning bg-warning/10": variant === "warning",
-                    "border-info/50 text-info bg-info/10": variant === "info",
-                    "border-success/50 text-success bg-success/10": variant === "success",
+                    "border-warning/50 text-warning bg-warning/10 *:data-[slot=alert-description]:text-warning/90":
+                        variant === "warning",
+                    "border-info/50 text-info bg-info/10 *:data-[slot=alert-description]:text-info/90":
+                        variant === "info",
+                    "border-success/50 text-success bg-success/10 *:data-[slot=alert-description]:text-success/90":
+                        variant === "success",
                 },
             ],
         }),
@@ -31,6 +34,11 @@ export default {
     AlertDescription: {
         root: {
             class: "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
+        },
+    },
+    AlertActions: {
+        root: {
+            class: "col-start-2 mt-2 inline-flex gap-2",
         },
     },
     Progress: {
