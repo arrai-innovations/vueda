@@ -71,7 +71,9 @@ const warningsSlot = useSlotNameResolver(
             <!-- @slot [field(fieldName)label, field-label] Override the label content for this field. -->
             <slot :name="labelSlot.name" :label="fieldContext.state.label" :required="fieldContext.state.required">
                 {{ fieldContext.state.label }}
-                <span v-if="fieldContext.state.required" aria-hidden="true">*</span>
+                <span v-if="fieldContext.state.required" aria-hidden="true" class="text-destructive font-medium"
+                    >*</span
+                >
             </slot>
         </FieldLabel>
         <FieldContent>

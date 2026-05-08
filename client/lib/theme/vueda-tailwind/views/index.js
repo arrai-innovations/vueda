@@ -51,7 +51,11 @@ export default {
     },
     ActionForm: {
         root: {
-            class: ["max-w-7xl"],
+            class: [
+                "max-w-7xl",
+                "bg-accent/30 border border-border rounded-vueda-card p-4",
+                "shadow-[inset_3px_0_0_var(--ring)]",
+            ],
         },
         inner: {
             class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4 mt-1"],

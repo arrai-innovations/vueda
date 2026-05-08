@@ -294,6 +294,24 @@ export default {
             class: [],
         },
     },
+    FormSection: {
+        root: {
+            class: ["flex flex-col gap-3.5 pt-1", "[&+&]:mt-2 [&+&]:border-t [&+&]:border-border [&+&]:pt-4"],
+        },
+    },
+    FormSectionTitle: {
+        root: {
+            class: "flex items-baseline gap-3 font-semibold text-sm",
+        },
+    },
+    FormActions: {
+        root: {
+            class: "flex flex-wrap gap-2 pt-2 mt-1",
+        },
+        spacer: {
+            class: "flex-1",
+        },
+    },
     FormHiddenFeedback: {
         root: {
             class: "min-w-min",

@@ -177,9 +177,9 @@ export default {
                 return {
                     class: [
                         base,
-                        "flex-row items-center",
-                        "[&>[data-slot=field-label]]:flex-auto",
-                        "has-[>[data-slot=field-content]]:items-start has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
+                        "flex-row items-start",
+                        "[&>[data-slot=field-label]]:w-48 [&>[data-slot=field-label]]:shrink-0 [&>[data-slot=field-label]]:pt-2 [&>[data-slot=field-label]]:text-right [&>[data-slot=field-label]]:justify-end",
+                        "has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
                     ],
                 };
             }
@@ -187,9 +187,9 @@ export default {
                 return {
                     class: [
                         base,
-                        "flex-col [&>*]:w-full [&>.sr-only]:w-auto @md/field-group:flex-row @md/field-group:items-center @md/field-group:[&>*]:w-auto",
-                        "@md/field-group:[&>[data-slot=field-label]]:flex-auto",
-                        "@md/field-group:has-[>[data-slot=field-content]]:items-start @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
+                        "flex-col [&>*]:w-full [&>.sr-only]:w-auto @md/field-group:flex-row @md/field-group:items-start @md/field-group:[&>*]:w-auto",
+                        "@md/field-group:[&>[data-slot=field-label]]:w-48 @md/field-group:[&>[data-slot=field-label]]:shrink-0 @md/field-group:[&>[data-slot=field-label]]:pt-2 @md/field-group:[&>[data-slot=field-label]]:text-right @md/field-group:[&>[data-slot=field-label]]:justify-end",
+                        "@md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
                     ],
                 };
             }
@@ -207,7 +207,7 @@ export default {
     FieldDescription: {
         root: {
             class: [
-                "text-muted-foreground text-sm leading-normal font-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
+                "text-muted-foreground text-[length:var(--vueda-text-supporting)] leading-[1.4] font-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
                 "last:mt-0 nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5",
                 "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
             ],
@@ -235,8 +235,8 @@ export default {
     FieldMessage: {
         root: ({ severity }) => ({
             class: [
-                "text-sm font-normal",
-                severity === "error" ? "text-destructive" : "text-amber-600 dark:text-amber-500",
+                "text-[length:var(--vueda-text-supporting)] leading-[1.4] font-medium",
+                severity === "error" ? "text-destructive" : "text-warning",
             ],
         }),
         list: {

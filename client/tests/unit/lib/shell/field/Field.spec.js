@@ -31,7 +31,7 @@ describe("lib/shell/field/Field.vue", () => {
         scopedIt("applies horizontal layout classes when orientation=horizontal", () => {
             const wrapper = mount(Field, { props: { orientation: "horizontal" } });
             expect(wrapper.classes()).toContain("flex-row");
-            expect(wrapper.classes()).toContain("items-center");
+            expect(wrapper.classes()).toContain("items-start");
         });
 
         scopedIt("reflects orientation in data-orientation attribute", () => {
@@ -155,10 +155,10 @@ describe("lib/shell/field/Field.vue", () => {
             expect(wrapper.attributes("data-slot")).toBe("field-description");
         });
 
-        scopedIt("applies muted text and text-sm classes", () => {
+        scopedIt("applies muted text and supporting text size classes", () => {
             const wrapper = mount(FieldDescription);
             expect(wrapper.classes()).toContain("text-muted-foreground");
-            expect(wrapper.classes()).toContain("text-sm");
+            expect(wrapper.classes()).toContain("text-[length:var(--vueda-text-supporting)]");
         });
 
         scopedIt("merges custom class", () => {
@@ -216,12 +216,12 @@ describe("lib/shell/field/Field.vue", () => {
             expect(wrapper.find('[data-slot="field-message"]').classes()).toContain("text-destructive");
         });
 
-        scopedIt("uses role=status and amber text for warning severity", () => {
+        scopedIt("uses role=status and text-warning for warning severity", () => {
             const wrapper = mount(FieldMessage, { props: { messages: ["Watch out"], severity: "warning" } });
             const el = wrapper.find('[data-slot="field-message"]');
             expect(el.attributes("role")).toBe("status");
             expect(el.attributes("data-severity")).toBe("warning");
-            expect(el.classes()).toContain("text-amber-600");
+            expect(el.classes()).toContain("text-warning");
         });
 
         scopedIt("merges custom class", () => {
