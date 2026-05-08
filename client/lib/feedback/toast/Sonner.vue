@@ -46,7 +46,7 @@ const icon = useIcons("Sonner");
             '--normal-bg': 'var(--popover)',
             '--normal-text': 'var(--popover-foreground)',
             '--normal-border': 'var(--border)',
-            '--border-radius': 'var(--radius)',
+            '--border-radius': 'var(--vueda-card-radius)',
         }"
         :position="position"
         :close-button="closeButton"
@@ -57,70 +57,44 @@ const icon = useIcons("Sonner");
         :gap="gap"
         :as="as"
     >
-        <template #success-icon>
+        <template v-if="$slots['success-icon'] || icon('check')" #success-icon>
             <!-- Replaces the success toast icon; receives no slot props. -->
             <slot name="success-icon">
-                <component
-                    :is="icon('check').component"
-                    v-if="icon('check')"
-                    v-bind="icon('check').props"
-                    aria-hidden="true"
-                />
+                <component :is="icon('check').component" v-bind="icon('check').props" aria-hidden="true" />
             </slot>
         </template>
-        <template #info-icon>
+        <template v-if="$slots['info-icon'] || icon('info')" #info-icon>
             <!-- Replaces the info toast icon; receives no slot props. -->
             <slot name="info-icon">
-                <component
-                    :is="icon('info').component"
-                    v-if="icon('info')"
-                    v-bind="icon('info').props"
-                    aria-hidden="true"
-                />
+                <component :is="icon('info').component" v-bind="icon('info').props" aria-hidden="true" />
             </slot>
         </template>
-        <template #warning-icon>
+        <template v-if="$slots['warning-icon'] || icon('triangleExclamation')" #warning-icon>
             <!-- Replaces the warning toast icon; receives no slot props. -->
             <slot name="warning-icon">
                 <component
                     :is="icon('triangleExclamation').component"
-                    v-if="icon('triangleExclamation')"
                     v-bind="icon('triangleExclamation').props"
                     aria-hidden="true"
                 />
             </slot>
         </template>
-        <template #error-icon>
+        <template v-if="$slots['error-icon'] || icon('close')" #error-icon>
             <!-- Replaces the error toast icon; receives no slot props. -->
             <slot name="error-icon">
-                <component
-                    :is="icon('close').component"
-                    v-if="icon('close')"
-                    v-bind="icon('close').props"
-                    aria-hidden="true"
-                />
+                <component :is="icon('close').component" v-bind="icon('close').props" aria-hidden="true" />
             </slot>
         </template>
-        <template #loading-icon>
+        <template v-if="$slots['loading-icon'] || icon('loading')" #loading-icon>
             <!-- Replaces the loading toast icon; receives no slot props. -->
             <slot name="loading-icon">
-                <component
-                    :is="icon('loading').component"
-                    v-if="icon('loading')"
-                    v-bind="icon('loading').props"
-                    aria-hidden="true"
-                />
+                <component :is="icon('loading').component" v-bind="icon('loading').props" aria-hidden="true" />
             </slot>
         </template>
-        <template #close-icon>
+        <template v-if="$slots['close-icon'] || icon('close')" #close-icon>
             <!-- Replaces the close toast icon; receives no slot props. -->
             <slot name="close-icon">
-                <component
-                    :is="icon('close').component"
-                    v-if="icon('close')"
-                    v-bind="icon('close').props"
-                    aria-hidden="true"
-                />
+                <component :is="icon('close').component" v-bind="icon('close').props" aria-hidden="true" />
             </slot>
         </template>
     </Sonner>
