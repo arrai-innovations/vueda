@@ -45,6 +45,14 @@ export default {
         emptyText: {
             class: ["text-center"],
         },
+        emptyContent: {
+            class: [
+                "flex flex-col items-center justify-center gap-2.5 py-10 text-center text-muted-foreground",
+                "[&>[data-slot=icon]]:text-xl [&>[data-slot=icon]]:text-muted-foreground/70",
+                "data-[variant=loading]:[&>[data-slot=icon]]:animate-spin",
+                "data-[variant=error]:[&>[data-slot=icon]]:text-destructive/80",
+            ],
+        },
         bodyRowGroup: {
             class: ({ isTable }) => [
                 "print:block",

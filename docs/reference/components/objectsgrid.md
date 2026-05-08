@@ -151,7 +151,7 @@ The `sort-icon` slot defaults to emoji glyphs (↕ ⬆ ⬇) as a placeholder; pr
 
 ## Loading and Empty
 
-While loading, each cell is replaced by a `Skeleton` sized to its field type: `h-6 w-24` for text, `h-6 w-16` for dates, `h-6 w-full` as the fallback. When there are no rows and loading is false, the `emptyText` string renders centered in the body via {@api theme-key:ObjectsGrid} `emptyText`.
+While loading, each cell is replaced by a `Skeleton` sized to its field type: `h-6 w-24` for text, `h-6 w-16` for dates, `h-6 w-full` as the fallback. When there are no rows and loading is false, the empty-state row renders inside {@api theme-key:ObjectsGrid} `emptyContent` — a flex column with an icon (resolved from `useIcons("ObjectsGrid")` keyed by the active variant), the `emptyText` prop as the title, and any consumer-provided description / CTA via the `empty` slot. The `emptyVariant` prop (`empty` | `loading` | `error` | `filtered`) drives `data-variant` on the content wrapper so the theme spins the icon on `loading` and recolors it to `--destructive` on `error`. Pass `:empty-text="null"` to suppress the empty-state row entirely (used by inline grids embedded in forms).
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
   <DemoCard title="table skeletons">
@@ -166,10 +166,31 @@ While loading, each cell is replaced by a `Skeleton` sized to its field type: `h
       <ObjectsGrid loading :skeleton-rows="2" :objects-in-order="[]" :fields="compactFields" table-breakpoint="inf" />
     </ClientOnly>
   </DemoCard>
-  <DemoCard title="empty state" class="lg:col-span-2">
+  <DemoCard title="empty — first-run">
     <div class="rounded-md border border-border overflow-hidden">
       <ClientOnly>
-        <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="No accounts match the current filters." table-breakpoint="xs" />
+        <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="No accounts yet." table-breakpoint="xs" />
+      </ClientOnly>
+    </div>
+  </DemoCard>
+  <DemoCard title="filtered — no matches">
+    <div class="rounded-md border border-border overflow-hidden">
+      <ClientOnly>
+        <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="No accounts match the current filters." empty-variant="filtered" table-breakpoint="xs" />
+      </ClientOnly>
+    </div>
+  </DemoCard>
+  <DemoCard title="loading — spinner + message">
+    <div class="rounded-md border border-border overflow-hidden">
+      <ClientOnly>
+        <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="Loading accounts…" empty-variant="loading" table-breakpoint="xs" />
+      </ClientOnly>
+    </div>
+  </DemoCard>
+  <DemoCard title="error — destructive icon">
+    <div class="rounded-md border border-border overflow-hidden">
+      <ClientOnly>
+        <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="Could not load accounts." empty-variant="error" table-breakpoint="xs" />
       </ClientOnly>
     </div>
   </DemoCard>
@@ -181,7 +202,7 @@ Use tokens for color, type, radius, border, shadow, and density decisions that s
 
 The highest-value keys are:
 
-- {@api theme-key:ObjectsGrid} `root`, `table`, `headerRowGroup`, `headerRow`, `headerCell`, `bodyRowGroup`, `bodyRow`, `cardContainer`, `emptyText`.
+- {@api theme-key:ObjectsGrid} `root`, `table`, `headerRowGroup`, `headerRow`, `headerCell`, `bodyRowGroup`, `bodyRow`, `cardContainer`, `emptyText`, `emptyContent`.
 - {@api theme-key:ObjectsGridTableHeader} `root`, `label`, `sortIcon`, `multiSortNumber`.
 - {@api theme-key:ObjectsGridBodyCell} for table cell chrome and the nested `WidgetLabel` override used in form/grid compositions.
 - {@api theme-key:ObjectsGridCardCell} `header` and `value`.

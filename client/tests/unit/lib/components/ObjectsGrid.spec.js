@@ -143,6 +143,68 @@ describe("lib/components/ObjectsGrid.vue", () => {
         );
     });
 
+    describe("empty state", () => {
+        scopedIt("renders default body with emptyText as title", () => {
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyText: "Nothing here." },
+            });
+            const empty = wrapper.find('[data-qa="objects-grid-body-row-group-empty"]');
+            expect(empty.exists()).toBe(true);
+            expect(empty.find("strong").text()).toBe("Nothing here.");
+        });
+
+        scopedIt("suppresses the empty row when emptyText is null and no slot is provided", () => {
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyText: null },
+            });
+            expect(wrapper.find('[data-qa="objects-grid-body-row-group-empty"]').exists()).toBe(false);
+        });
+
+        scopedIt("forwards emptyVariant as data-variant on the content wrapper", () => {
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyVariant: "loading" },
+            });
+            const content = wrapper.find('[data-qa="objects-grid-body-row-group-empty"] [data-variant]');
+            expect(content.attributes("data-variant")).toBe("loading");
+        });
+
+        scopedIt("default-named empty slot replaces the default body", () => {
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyText: "fallback" },
+                slots: { empty: '<span data-qa="custom-empty">Custom empty body</span>' },
+            });
+            expect(wrapper.find('[data-qa="custom-empty"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="objects-grid-body-row-group-empty"] strong').exists()).toBe(false);
+        });
+
+        scopedIt("renders the empty row when only the empty slot is provided (no emptyText)", () => {
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyText: null },
+                slots: { empty: '<span data-qa="custom-empty">Custom</span>' },
+            });
+            expect(wrapper.find('[data-qa="custom-empty"]').exists()).toBe(true);
+        });
+
+        scopedIt("renders the icon registered for the active variant via useIcons", async () => {
+            const IconStub = defineComponent({
+                name: "IconStub",
+                props: ["tone"],
+                setup(props) {
+                    return () => h("i", { "data-qa": "registered-icon", "data-tone": props.tone });
+                },
+            });
+            const { setIcons } = await import("@vueda/use/useIcons.js");
+            setIcons({ ObjectsGrid: { error: { component: IconStub, props: { tone: "danger" } } } });
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyVariant: "error" },
+            });
+            const icon = wrapper.find('[data-qa="registered-icon"]');
+            expect(icon.exists()).toBe(true);
+            expect(icon.attributes("data-slot")).toBe("icon");
+            expect(icon.attributes("data-tone")).toBe("danger");
+        });
+    });
+
     describe("data-numeric forwarding", () => {
         scopedIt("sets data-numeric on the header cell when field.numeric is true", () => {
             tableRef.value = true;

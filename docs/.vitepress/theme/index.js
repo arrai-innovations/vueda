@@ -16,8 +16,10 @@ import {
     faCircle,
     faCircleInfo,
     faCircleNotch,
+    faCircleQuestion,
     faDownload,
     faEllipsis,
+    faFolderOpen,
     faGripVertical,
     faMinus,
     faPlus,
@@ -40,6 +42,11 @@ setIcons({
     Checkbox: {
         check: { component: FontAwesomeIcon, props: { icon: faCheck } },
         indeterminate: { component: FontAwesomeIcon, props: { icon: faMinus } },
+    },
+    ObjectsGrid: {
+        empty: { component: FontAwesomeIcon, props: { icon: faFolderOpen } },
+        error: { component: FontAwesomeIcon, props: { icon: faTriangleExclamation } },
+        filtered: { component: FontAwesomeIcon, props: { icon: faCircleQuestion } },
     },
     Default: {
         caretDown: { component: FontAwesomeIcon, props: { icon: faCaretDown } },

@@ -6,6 +6,7 @@ import ObjectsGridBodyCellSkeleton from "@vueda/components/ObjectsGridBodyCellSk
 import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
 import ObjectsGridCardCellSkeleton from "@vueda/components/ObjectsGridCardCellSkeleton.vue";
 import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
@@ -82,10 +83,16 @@ const props = defineProps({
         type: Boolean,
         default: undefined,
     },
-    /** Text displayed when the grid has no rows to show. */
+    /** Text displayed when the grid has no rows to show. Pass `null` to suppress the empty-state row entirely. */
     emptyText: {
         type: String,
         default: "No records found.",
+    },
+    /** Empty-state variant: `empty` (default), `loading`, `error`, or `filtered`. Drives `data-variant` on the empty content wrapper. */
+    emptyVariant: {
+        type: String,
+        default: "empty",
+        validator: (value) => ["empty", "loading", "error", "filtered"].includes(value),
     },
     /** Tailwind breakpoint at which the layout switches from card to table view. */
     tableBreakpoint: {
@@ -170,6 +177,9 @@ const sortClick = (e, fieldName) => {
     emit("update:sorted", newSorted);
 };
 
+const icons = useIcons("ObjectsGrid");
+const emptyIconEntry = computed(() => icons(props.emptyVariant));
+
 const directionlessSorted = computed(() => props.sorted.map((field) => field.replace(/^-/, "")));
 const themeContext = reactive({
     isTable,
@@ -185,6 +195,7 @@ const theme = useTheme("ObjectsGrid", props, themeContext, (key, kwargs) => {
 // todo: use useSlotNameResolver to make generic field and header slot names while retaining the ability to override
 //  single fields by name
 const slots = useSlots();
+const hasEmptySlot = computed(() => !!slots.empty);
 const slotNameResolvers = reactive({});
 const fieldNames = computed(() => props.fields.map((field) => field?.name));
 const slotNameResolverEffectScope = effectScope();
@@ -298,14 +309,26 @@ watch(
                 </div>
             </div>
             <div
-                v-else-if="!objectsInOrder?.length && !loading && emptyText"
+                v-else-if="!objectsInOrder?.length && !loading && (hasEmptySlot || emptyText)"
                 :class="theme('bodyRowGroup')"
                 data-qa="objects-grid-body-row-group-empty"
                 role="rowgroup"
             >
-                <div :class="theme('bodyRow')" role="row">
+                <div :class="[theme('bodyRow'), 'col-span-full']" role="row">
                     <div :class="theme('emptyText')" role="cell">
-                        {{ emptyText }}
+                        <div :class="theme('emptyContent')" :data-variant="emptyVariant">
+                            <!-- @slot Replaces the default empty-state body. Receives `variant` (the resolved emptyVariant). Compose icon (with `data-slot="icon"`), title, description, and actions. -->
+                            <slot name="empty" :variant="emptyVariant">
+                                <component
+                                    :is="emptyIconEntry.component"
+                                    v-if="emptyIconEntry"
+                                    v-bind="emptyIconEntry.props"
+                                    aria-hidden="true"
+                                    data-slot="icon"
+                                />
+                                <strong v-if="emptyText" class="font-semibold text-foreground">{{ emptyText }}</strong>
+                            </slot>
+                        </div>
                     </div>
                 </div>
             </div>
