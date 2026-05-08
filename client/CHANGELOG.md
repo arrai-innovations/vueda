@@ -21,6 +21,12 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Features
 
+- **ObjectsGrid**:
+    - Card-mode `bodyRowGroup` now defaults to a 1 / 2 / 3 column responsive grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`). Projects can still override per-list via `useTheme`.
+      _If you previously set custom `grid-cols-*` classes on the bodyRowGroup via theme override, the override continues to win. If you relied on the previous unset behavior (single implicit column), set `grid-cols-1` (or your preferred override) explicitly._
+    - `ObjectsGridCardCell` label / value typography aligns with the form-field read-only row recipe: the label is 10px sans 600 uppercase with `0.06em` tracking on `--muted-foreground`; the value is 13px sans 400 on `--foreground`. Card mode now reads as a compact label/value detail pane per row.
+      _If you depended on the previous neutral-900 semibold header or neutral-800 normal value styling, override `ObjectsGridCardCell.header` / `.value` via `useTheme`._
+
 - **Progress**:
     - Added `size` prop accepting `sm` (4px), `md` (8px, default), and `lg` (12px) to control track and indicator height. The value is also reflected as a `data-size` attribute on the root for consumer CSS hooks.
     - Added `tone` prop accepting `success`, `warning`, and `destructive` to swap track and indicator from the primary surface to the matching status surface (`bg-{tone}/20` track, `bg-{tone}` indicator).

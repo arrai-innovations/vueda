@@ -49,10 +49,9 @@ export default {
             class: ({ isTable }) => [
                 "print:block",
                 {
-                    // don't add grid-cols-x here.
-                    // projects should set their own via theme-override
-                    // as appropriate for their individual cases.
-                    "grid grid-flow-row p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4": !isTable,
+                    // 1 / 2 / 3 column responsive default; projects override via theme as needed.
+                    "grid grid-flow-row grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4":
+                        !isTable,
                     "!table-row-group": isTable,
                 },
             ],
@@ -126,10 +125,15 @@ export default {
     },
     ObjectsGridCardCell: {
         header: {
-            class: ["self-baseline", "text-neutral-900 dark:text-white", "font-semibold", "select-none"],
+            class: [
+                "self-baseline whitespace-nowrap",
+                "text-[10px] font-semibold uppercase tracking-[0.06em]",
+                "text-muted-foreground",
+                "select-none",
+            ],
         },
         value: {
-            class: ["self-baseline", "text-neutral-800 dark:text-neutral-200", "font-normal"],
+            class: ["self-baseline", "text-[13px] font-normal text-foreground"],
         },
     },
     ObjectsGridBodyCell: {
