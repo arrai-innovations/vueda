@@ -10,7 +10,6 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getAppModelDotName, memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
-import { computedAsync } from "@vueuse/core";
 import isEmpty from "lodash-es/isEmpty.js";
 import { computed, inject, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
@@ -60,15 +59,6 @@ const titleStr = computed(() => {
     return `Transitions for ${memoizedStartCase(modelConfig.info?.verbose_name)}`;
 });
 const selectedAction = ref(null);
-
-const modelWorkflowTransitions = computedAsync(async () => {
-    try {
-        await workflow.fetchWorkflowTransition(props.app, props.model);
-        return workflow.workflowTransitions[appModelKey.value] || [];
-    } catch (error) {
-        return [];
-    }
-}, []);
 
 const transitionsForPk = (pk) => {
     const entry = workflow.objectTransitions?.[appModelKey.value]?.[pk];
@@ -142,9 +132,7 @@ const handleSubmit = async () => {
             </template>
         </page-title>
         <div :class="theme('inner')">
-            available workflow transitions for {{ modelConfig.info?.verbose_name }} are {{ modelWorkflowTransitions }}
             <div v-if="availableTransitions.length">
-                <p>the available transitions for the select objects are</p>
                 <form @submit.prevent="handleSubmit">
                     <RadioGroup v-model="selectedAction" name="dynamic">
                         <div

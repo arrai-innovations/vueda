@@ -183,6 +183,31 @@ export default {
             class: [],
         },
     },
+    ViewNotFound: {
+        root: {
+            class: [],
+        },
+        title: {
+            class: [],
+        },
+    },
+    ViewActionNotFound: {
+        root: {
+            class: [],
+        },
+        title: {
+            class: [],
+        },
+        description: {
+            class: [],
+        },
+        suggestions: {
+            class: [],
+        },
+        link: {
+            class: [],
+        },
+    },
     ViewAction: {
         root: {
             class: [],

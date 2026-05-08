@@ -4,11 +4,11 @@ coverage
 site
 .git
 .uv-cache
-.venv
+.venv*
 .claude
 __pycache__
 **/.uv-cache/**
-**/.venv/**
+**/.venv*/**
 **/.claude/**
 
 # lockfiles and package metadata
