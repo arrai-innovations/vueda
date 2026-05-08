@@ -43,6 +43,39 @@ describe("lib/controls/time-field/TimeField.vue", () => {
             expect(wrapper.find('[data-slot="time-field"]').classes()).toContain("text-sm");
         });
 
+        scopedIt("applies dark-mode input tint", () => {
+            const wrapper = mount(TimeField);
+            expect(wrapper.find('[data-slot="time-field"]').classes()).toContain("dark:bg-input/30");
+        });
+
+        scopedIt("applies aria-invalid destructive ring classes", () => {
+            const wrapper = mount(TimeField);
+            const classes = wrapper.find('[data-slot="time-field"]').classes();
+            expect(classes).toContain("aria-invalid:hairline-destructive");
+            expect(classes).toContain("focus-within:aria-invalid:focus-ring-shadow-destructive");
+        });
+
+        scopedIt("applies default size geometry", () => {
+            const wrapper = mount(TimeField);
+            const classes = wrapper.find('[data-slot="time-field"]').classes();
+            expect(classes).toContain("h-vueda-control");
+            expect(classes).toContain("px-vueda-control-px");
+        });
+
+        scopedIt("applies sm size geometry", () => {
+            const wrapper = mount(TimeField, { props: { size: "sm" } });
+            const classes = wrapper.find('[data-slot="time-field"]').classes();
+            expect(classes).toContain("h-vueda-control-sm");
+            expect(classes).toContain("px-vueda-control-px-sm");
+        });
+
+        scopedIt("applies lg size geometry", () => {
+            const wrapper = mount(TimeField, { props: { size: "lg" } });
+            const classes = wrapper.find('[data-slot="time-field"]').classes();
+            expect(classes).toContain("h-vueda-control-lg");
+            expect(classes).toContain("px-vueda-control-px-lg");
+        });
+
         scopedIt("merges custom class", () => {
             const wrapper = mount(TimeField, { props: { class: "my-time-field" } });
             expect(wrapper.find('[data-slot="time-field"]').classes()).toContain("my-time-field");
@@ -65,10 +98,12 @@ describe("lib/controls/time-field/TimeField.vue", () => {
             expect(wrapper.find('[data-slot="time-field-input"]').attributes("part")).toBe("minute");
         });
 
-        scopedIt("applies tabular-nums and caret-transparent classes", () => {
+        scopedIt("applies mono / medium / slashed-zero feature settings and caret-transparent classes", () => {
             const wrapper = mount(TimeFieldInput, { props: { part: "hour" } });
             const el = wrapper.find('[data-slot="time-field-input"]');
-            expect(el.classes()).toContain("tabular-nums");
+            expect(el.classes()).toContain("font-mono");
+            expect(el.classes()).toContain("font-medium");
+            expect(el.classes()).toContain("[font-feature-settings:'tnum','zero']");
             expect(el.classes()).toContain("caret-transparent");
         });
 

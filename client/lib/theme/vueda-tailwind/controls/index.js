@@ -208,6 +208,16 @@ export default {
             class: ["p-3"],
         },
     },
+    CalendarFooter: {
+        root: {
+            class: ["flex items-center justify-between gap-2 mt-2 pt-2 border-t"],
+        },
+        summary: {
+            class: [
+                "font-mono font-medium text-[length:var(--vueda-text-supporting)] leading-none text-muted-foreground [font-feature-settings:'tnum','zero']",
+            ],
+        },
+    },
     ComboboxAnchor: {
         root: {
             class: ["w-[200px]"],
@@ -267,30 +277,42 @@ export default {
     DateFieldInput: {
         root: {
             class: [
-                "inline rounded-sm px-0.5 text-center tabular-nums caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
+                "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
             ],
         },
     },
     DateField: {
-        root: {
+        root: ({ size }) => ({
             class: [
-                "flex w-full rounded-vueda-control hairline bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
+                {
+                    "h-vueda-control px-vueda-control-px": !size || size === "default",
+                    "h-vueda-control-sm px-vueda-control-px-sm": size === "sm",
+                    "h-vueda-control-lg px-vueda-control-px-lg": size === "lg",
+                },
             ],
-        },
+        }),
     },
     DateRangeFieldInput: {
         root: {
             class: [
-                "inline rounded-sm px-0.5 text-center tabular-nums caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
+                "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
             ],
         },
     },
     DateRangeField: {
-        root: {
+        root: ({ size }) => ({
             class: [
-                "flex w-full rounded-vueda-control hairline bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
+                {
+                    "h-vueda-control px-vueda-control-px": !size || size === "default",
+                    "h-vueda-control-sm px-vueda-control-px-sm": size === "sm",
+                    "h-vueda-control-lg px-vueda-control-px-lg": size === "lg",
+                },
             ],
-        },
+        }),
     },
     Input: {
         root: {
@@ -528,16 +550,22 @@ export default {
         },
     },
     TimeField: {
-        root: {
+        root: ({ size }) => ({
             class: [
-                "flex w-full rounded-vueda-control hairline bg-transparent px-vueda-control-px py-1 text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
+                {
+                    "h-vueda-control px-vueda-control-px": !size || size === "default",
+                    "h-vueda-control-sm px-vueda-control-px-sm": size === "sm",
+                    "h-vueda-control-lg px-vueda-control-px-lg": size === "lg",
+                },
             ],
-        },
+        }),
     },
     TimeFieldInput: {
         root: {
             class: [
-                "inline rounded-sm px-0.5 text-center tabular-nums caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
+                "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
             ],
         },
     },

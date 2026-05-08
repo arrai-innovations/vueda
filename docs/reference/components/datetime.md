@@ -14,7 +14,9 @@ import DateRangeFieldInput from "@vueda/controls/date-range-field/DateRangeField
 import TimeField from "@vueda/controls/time-field/TimeField.vue";
 import TimeFieldInput from "@vueda/controls/time-field/TimeFieldInput.vue";
 import Calendar from "@vueda/controls/calendar/Calendar.vue";
+import CalendarFooter from "@vueda/controls/calendar/CalendarFooter.vue";
 import RangeCalendar from "@vueda/controls/range-calendar/RangeCalendar.vue";
+import Button from "@vueda/controls/button/Button.vue";
 
 const dateValue = new CalendarDate(2026, 5, 10);
 const placeholderMay = new CalendarDate(2026, 5, 1);
@@ -149,6 +151,42 @@ segment fill), {@api css-token:muted} (read-only fill).
     </DateField>
     <template #footer>
       <span>border <code>--destructive</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="size variants">
+    <div class="flex flex-col gap-1">
+      <StateLabel>sm (28px)</StateLabel>
+      <DateField :default-value="dateValue" size="sm">
+        <template #default="{ segments }">
+          <template v-for="item in segments" :key="item.part">
+            <DateFieldInput :part="item.part">{{ item.value }}</DateFieldInput>
+          </template>
+        </template>
+      </DateField>
+    </div>
+    <div class="flex flex-col gap-1">
+      <StateLabel>default (32px)</StateLabel>
+      <DateField :default-value="dateValue">
+        <template #default="{ segments }">
+          <template v-for="item in segments" :key="item.part">
+            <DateFieldInput :part="item.part">{{ item.value }}</DateFieldInput>
+          </template>
+        </template>
+      </DateField>
+    </div>
+    <div class="flex flex-col gap-1">
+      <StateLabel>lg (40px)</StateLabel>
+      <DateField :default-value="dateValue" size="lg">
+        <template #default="{ segments }">
+          <template v-for="item in segments" :key="item.part">
+            <DateFieldInput :part="item.part">{{ item.value }}</DateFieldInput>
+          </template>
+        </template>
+      </DateField>
+    </div>
+    <template #footer>
+      <span>shared control-height scale (§ 4.2)</span>
+      <span>also accepted by DateRangeField and TimeField</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -411,6 +449,35 @@ Theme keys: {@api theme-key:RangeCalendar}, {@api theme-key:RangeCalendarCell},
     <template #footer>
       <span>today bg <code>--accent</code></span>
       <span>click to start a selection</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## CalendarFooter
+
+CalendarFooter is the chin paired with `Calendar` or `RangeCalendar` inside
+date-picker popovers. It carries a `border-t` and renders a leading mono
+range summary alongside a trailing action row. The summary span uses the
+same mono / tabular / slashed-zero treatment as segment text so multi-day
+range labels stay digit-aligned.
+
+Theme keys: {@api theme-key:CalendarFooter}. Token surface:
+{@api css-token:border} (top divider),
+{@api css-token:muted-foreground} (summary text).
+
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
+  <DemoCard title="range summary + actions">
+    <RangeCalendar :default-value="rangeValue" :default-placeholder="placeholderApr" />
+    <CalendarFooter>
+      <template #summary>Apr 10, 2026 → Apr 24, 2026 · 14 days</template>
+      <template #actions>
+        <Button variant="ghost" size="sm">Clear</Button>
+        <Button size="sm">Apply</Button>
+      </template>
+    </CalendarFooter>
+    <template #footer>
+      <span>summary text mono + tabular</span>
+      <span>top border <code>--border</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>

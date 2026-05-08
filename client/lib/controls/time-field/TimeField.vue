@@ -3,6 +3,7 @@ import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { TimeFieldRoot } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
  * A segment-based time input built on Reka UI's TimeFieldRoot. Users tab
@@ -52,6 +53,11 @@ const props = defineProps({
     name: { type: String, default: undefined },
     /** When true, the field is required. */
     required: { type: Boolean, default: false },
+    /**
+     * Size variant of the segment field shell.
+     * @type {'default' | 'sm' | 'lg'}
+     */
+    size: { type: String, default: "default" },
     /** The element or component to render as. */
     as: { type: [String, Object], default: undefined },
     /** When true, merges props onto the child element instead of rendering a wrapper. */
@@ -65,10 +71,16 @@ const emits = defineEmits({
     "update:placeholder": null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "class", "size", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
-const theme = useTheme("TimeField", props);
+const theme = useTheme(
+    "TimeField",
+    props,
+    reactive({
+        size: toRef(props, "size"),
+    }),
+);
 </script>
 
 <template>
