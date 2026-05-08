@@ -18,8 +18,8 @@ describe("lib/controls/checkbox/Checkbox.vue", () => {
         scopedIt("applies base sizing classes", () => {
             const wrapper = mount(Checkbox);
             const root = wrapper.find('[data-slot="checkbox"]');
-            expect(root.classes()).toContain("size-4");
-            expect(root.classes()).toContain("rounded-[4px]");
+            expect(root.classes()).toContain("size-6");
+            expect(root.classes()).toContain("rounded-vueda-checkbox");
         });
 
         scopedIt("merges custom class on the root", () => {
