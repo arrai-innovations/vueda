@@ -124,9 +124,6 @@ class CompositePrimaryKeyField(serializers.CharField):
             def __init__(self, pk):
                 self.pk = pk
 
-            def value_from_object(self):
-                return self.pk
-
         obj = PK(value)
 
         # Get the CompositePrimaryKey field off the model, so we can call value_to_string.
