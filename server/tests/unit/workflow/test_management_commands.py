@@ -69,7 +69,7 @@ class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
             if not succeeded:
                 pytest.fail("".join(results))
 
-            # 15 migrations should have run.
+            # 2 migrations should have run.
             assert (
                 MigrationRecorder.Migration.objects.filter(app__in=("workflow_added",)).count() == 2  # noqa: PLR2004
             )
