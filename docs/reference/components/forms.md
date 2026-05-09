@@ -179,14 +179,12 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       <span>border: <code>--border</code></span>
     </template>
   </DemoCard>
-  <DemoCard title="focused · static specimen">
+  <DemoCard title="focused">
     <FieldGroup>
       <Field>
         <FieldLabel>Customer code</FieldLabel>
         <FieldContent>
-          <div class="relative">
-            <Input model-value="GRG-00" class="outline outline-2 outline-offset-2 outline-ring/30 border-ring" />
-          </div>
+          <ForceState state="focus"><Input model-value="GRG-00" /></ForceState>
         </FieldContent>
       </Field>
     </FieldGroup>

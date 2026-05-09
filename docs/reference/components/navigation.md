@@ -210,8 +210,9 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
 
 NavigationMenu renders a horizontal list of triggers that open flyout content panels through a
 shared viewport. The viewport renders inside the NavigationMenu root element (not in a portal),
-so the open content panel is shown as a static anatomy panel. Trigger states use the live
-component alongside raw-class approximations for the interactive states.
+so the open content panel is shown as a static anatomy panel. Every trigger state below is the
+live component rendered in that state, so what you see is exactly what your customization will
+produce.
 
 Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList},
 {@api theme-key:NavigationMenuTrigger}, {@api theme-key:NavigationMenuContent},
@@ -230,18 +231,40 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
-    <div class="grid grid-cols-2 gap-x-3 gap-y-1 pt-1">
-      <StateLabel>hover / focus-visible</StateLabel>
+    <div class="grid grid-cols-3 gap-x-3 gap-y-1 pt-1">
+      <StateLabel>hover</StateLabel>
+      <StateLabel>focus-visible</StateLabel>
       <StateLabel>open</StateLabel>
       <div>
-        <div class="inline-flex h-9 items-center justify-center rounded-vueda-control bg-accent text-accent-foreground px-4 py-2 text-sm font-medium outline-2 outline-offset-2 outline-ring">
-          Products <span class="ml-1 opacity-60 text-xs">&#8964;</span>
-        </div>
+        <ForceState state="hover">
+          <NavigationMenu :viewport="false">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </ForceState>
       </div>
       <div>
-        <div class="inline-flex h-9 items-center justify-center rounded-vueda-control bg-accent/50 text-accent-foreground px-4 py-2 text-sm font-medium">
-          Products <span class="ml-1 opacity-60 text-xs rotate-180 inline-block">&#8964;</span>
-        </div>
+        <ForceState state="focus">
+          <NavigationMenu :viewport="false">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </ForceState>
+      </div>
+      <div>
+        <NavigationMenu :viewport="false" default-value="products">
+          <NavigationMenuList>
+            <NavigationMenuItem value="products">
+              <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
       </div>
     </div>
     <template #footer>
