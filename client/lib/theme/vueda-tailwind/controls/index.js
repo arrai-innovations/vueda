@@ -47,10 +47,16 @@ export default {
         root: ({ variant, size }) => {
             const v = variant || "default";
             const variantKey = `_Button${v.charAt(0).toUpperCase()}${v.slice(1)}.root`;
+            const cooldownClass = [
+                "data-[state=cooldown]:text-muted-foreground",
+                "data-[state=cooldown]:cursor-default",
+                "data-[state=cooldown]:hover:bg-transparent",
+                "data-[state=cooldown]:hover:text-muted-foreground",
+            ];
             if (v === "link") {
                 return {
                     composes: ["_ButtonBase.root", variantKey],
-                    class: ["h-auto px-0"],
+                    class: ["h-auto px-0", ...cooldownClass],
                 };
             }
             return {
@@ -66,6 +72,7 @@ export default {
                         "size-vueda-control-sm": size === "icon-sm",
                         "size-vueda-control-lg": size === "icon-lg",
                     },
+                    ...cooldownClass,
                 ],
             };
         },

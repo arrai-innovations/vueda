@@ -380,6 +380,85 @@ export default {
         buttons: {
             class: ["flex flex-col gap-2 pt-4"],
         },
+        recoveryToggle: {
+            class: ["self-start"],
+        },
+        recoveryInput: {
+            class: ["font-mono tracking-[0.04em]"],
+        },
+        cooldownChip: {
+            class: [
+                "inline-flex items-center justify-center px-2 py-0.5 rounded-full",
+                "bg-muted/70 text-muted-foreground",
+                "font-mono text-[11px] font-medium leading-none tabular-nums",
+            ],
+        },
+    },
+    ViewSetupDevice: {
+        steps: {
+            class: ["flex items-center gap-2 mb-4"],
+        },
+        step: {
+            class: ["flex items-center gap-2", "data-[state=upcoming]:opacity-60"],
+        },
+        stepNum: {
+            class: [
+                "flex items-center justify-center shrink-0",
+                "w-[18px] h-[18px] rounded-full",
+                "text-[11px] font-semibold leading-none",
+                "border border-border bg-background text-muted-foreground",
+                "data-[state=current]:bg-primary data-[state=current]:text-primary-foreground data-[state=current]:border-primary",
+                "data-[state=done]:bg-primary/15 data-[state=done]:text-primary data-[state=done]:border-primary/40",
+            ],
+        },
+        stepLabel: {
+            class: [
+                "text-[11px] font-semibold uppercase tracking-[0.06em] leading-none",
+                "text-muted-foreground",
+                "data-[state=current]:text-foreground",
+                "data-[state=done]:text-foreground",
+            ],
+        },
+        stepDivider: {
+            class: ["flex-1 h-px bg-border"],
+        },
+        manualKey: {
+            class: [
+                "flex items-center gap-2 px-3 py-[10px] mt-2",
+                "rounded-vueda-control border border-border bg-background",
+            ],
+        },
+        manualKeyLabel: {
+            class: [
+                "text-[10px] font-semibold uppercase tracking-[0.06em] leading-none",
+                "text-muted-foreground shrink-0",
+            ],
+        },
+        manualKeyValue: {
+            class: [
+                "font-mono text-[12.5px] font-medium leading-none",
+                "text-foreground select-all truncate min-w-0 flex-1",
+            ],
+        },
+        done: {
+            class: ["flex flex-col items-center text-center gap-3 py-6"],
+        },
+        doneIcon: {
+            class: [
+                "flex items-center justify-center",
+                "w-12 h-12 rounded-full bg-primary/15 text-primary",
+                "text-[24px] leading-none",
+            ],
+        },
+        doneTitle: {
+            class: ["text-[16px] font-semibold leading-[1.3] text-foreground"],
+        },
+        doneDescription: {
+            class: ["text-[13px] font-normal leading-[1.5] text-muted-foreground max-w-[44ch]"],
+        },
+        doneActions: {
+            class: ["flex gap-2 mt-2"],
+        },
     },
     ViewWorkflowTransition: {
         root: {

@@ -68,40 +68,26 @@ const FeedbackSpinnerStub = defineComponent({
     },
 });
 
-const ShellDialogStub = defineComponent({
-    name: "ShellDialogStub",
-    props: ["open"],
-    setup(props, { slots }) {
-        return () => (props.open ? h("div", { "data-qa": "dialog" }, slots.default ? slots.default() : null) : null);
-    },
-});
-
-const ShellDialogContentStub = defineComponent({
-    name: "ShellDialogContentStub",
+const InputOTPStub = defineComponent({
+    name: "InputOTPStub",
+    props: ["maxlength"],
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "dialog-content" }, slots.default ? slots.default() : null);
+        return () => h("div", { "data-qa": "input-otp" }, slots.default ? slots.default() : null);
     },
 });
 
-const ShellDialogHeaderStub = defineComponent({
-    name: "ShellDialogHeaderStub",
+const InputOTPGroupStub = defineComponent({
+    name: "InputOTPGroupStub",
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "dialog-header" }, slots.default ? slots.default() : null);
+        return () => h("div", { "data-qa": "input-otp-group" }, slots.default ? slots.default() : null);
     },
 });
 
-const ShellDialogTitleStub = defineComponent({
-    name: "ShellDialogTitleStub",
-    setup(_, { slots }) {
-        return () => h("div", { "data-qa": "dialog-title" }, slots.default ? slots.default() : null);
-    },
-});
-
-const ClickToCopyTextStub = defineComponent({
-    name: "ClickToCopyTextStub",
-    props: ["text"],
-    setup(props) {
-        return () => h("div", { "data-qa": "click-to-copy", "data-text": props.text });
+const InputOTPSlotStub = defineComponent({
+    name: "InputOTPSlotStub",
+    props: ["index"],
+    setup() {
+        return () => h("div", { "data-qa": "input-otp-slot" });
     },
 });
 
@@ -109,17 +95,16 @@ const useModelConfigMock = vi.fn();
 const storeUserMock = vi.fn();
 
 vi.mock("@vueda/components/AuthForm.vue", () => ({ default: AuthFormStub }));
-vi.mock("@vueda/components/ClickToCopyText.vue", () => ({ default: ClickToCopyTextStub }));
 vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetSelectDropdown.vue", () => ({ default: WidgetSelectDropdownStub }));
 vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/input-otp/InputOTP.vue", () => ({ default: InputOTPStub }));
+vi.mock("@vueda/controls/input-otp/InputOTPGroup.vue", () => ({ default: InputOTPGroupStub }));
+vi.mock("@vueda/controls/input-otp/InputOTPSlot.vue", () => ({ default: InputOTPSlotStub }));
 vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
-vi.mock("@vueda/shell/dialog/Dialog.vue", () => ({ default: ShellDialogStub }));
-vi.mock("@vueda/shell/dialog/DialogContent.vue", () => ({ default: ShellDialogContentStub }));
-vi.mock("@vueda/shell/dialog/DialogHeader.vue", () => ({ default: ShellDialogHeaderStub }));
-vi.mock("@vueda/shell/dialog/DialogTitle.vue", () => ({ default: ShellDialogTitleStub }));
 vi.mock("vue-sonner", () => ({ toast: toastMock }));
+vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => useModelConfigMock() }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part, THEME_OVERRIDE_PROPS: {} }));
@@ -209,5 +194,57 @@ describe("lib/views/ViewSetupDevice.vue", () => {
         await handler();
         expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.DONE);
         expect(routerPush).toHaveBeenCalledWith("/dashboard");
+    });
+
+    scopedIt("renders DONE confirmation step when no return path is set", async () => {
+        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+        wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+        const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
+        await handler();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.DONE);
+        expect(wrapper.find("[data-qa=view-setup-device-done]").exists()).toBe(true);
+        expect(wrapper.find("[data-qa=view-setup-device-continue]").exists()).toBe(true);
+    });
+
+    scopedIt("Continue button on DONE pushes to returnPath when present", async () => {
+        routeMock.query = { returnPath: "/after" };
+        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+        wrapper.vm.step = wrapper.vm.STEPS.DONE;
+        await wrapper.vm.$nextTick();
+        const continueBtn = wrapper.find("[data-qa=view-setup-device-continue]");
+        expect(continueBtn.exists()).toBe(true);
+        await continueBtn.trigger("click");
+        expect(routerPush).toHaveBeenCalledWith("/after");
+    });
+
+    scopedIt("renders InputOTP on VERIFY step", async () => {
+        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+        wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find("[data-qa=view-setup-device-otp]").exists()).toBe(true);
+    });
+
+    scopedIt("renders inline manual key when totp secret is present", async () => {
+        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+        wrapper.vm.totpSvgDataUri = "data:image";
+        wrapper.vm.totpSecret = "ABCDEFG";
+        await wrapper.vm.$nextTick();
+        const key = wrapper.find("[data-qa=view-setup-device-manual-key]");
+        expect(key.exists()).toBe(true);
+        expect(wrapper.find("[data-qa=view-setup-device-manual-key-value]").text()).toContain("ABCDEFG");
+    });
+
+    scopedIt("renders the step indicator with current state", async () => {
+        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+        await wrapper.vm.$nextTick();
+        const choose = wrapper.find("[data-qa=view-setup-device-step-1]");
+        expect(choose.exists()).toBe(true);
+        expect(choose.attributes("data-state")).toBe("current");
+        expect(choose.attributes("aria-current")).toBe("step");
+        wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find("[data-qa=view-setup-device-step-1]").attributes("data-state")).toBe("done");
+        expect(wrapper.find("[data-qa=view-setup-device-step-2]").attributes("data-state")).toBe("current");
     });
 });

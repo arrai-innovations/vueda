@@ -91,12 +91,39 @@ const toastMock = {
 };
 const routerPush = vi.fn();
 
+const InputOTPStub = defineComponent({
+    name: "InputOTPStub",
+    props: ["maxlength"],
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "input-otp" }, slots.default ? slots.default() : null);
+    },
+});
+
+const InputOTPGroupStub = defineComponent({
+    name: "InputOTPGroupStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "input-otp-group" }, slots.default ? slots.default() : null);
+    },
+});
+
+const InputOTPSlotStub = defineComponent({
+    name: "InputOTPSlotStub",
+    props: ["index"],
+    setup() {
+        return () => h("div", { "data-qa": "input-otp-slot" });
+    },
+});
+
 vi.mock("@vueda/components/AuthorizingForm.vue", () => ({ default: AuthorizingFormStub }));
 vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetSelectDropdown.vue", () => ({ default: WidgetSelectDropdownStub }));
 vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/input-otp/InputOTP.vue", () => ({ default: InputOTPStub }));
+vi.mock("@vueda/controls/input-otp/InputOTPGroup.vue", () => ({ default: InputOTPGroupStub }));
+vi.mock("@vueda/controls/input-otp/InputOTPSlot.vue", () => ({ default: InputOTPSlotStub }));
 vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
 vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part, THEME_OVERRIDE_PROPS: {} }));
 vi.mock("vue-sonner", () => ({ toast: toastMock }));
@@ -143,10 +170,18 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         await flushPromises();
         expect(userStore.getTwoFactorAuthMethod).toHaveBeenCalled();
         expect(wrapper.vm.methods).toEqual(["sms"]);
-        expect(wrapper.vm.computedOptions).toEqual([
-            { label: "SMS", value: "sms" },
-            { label: "2FA Recovery Code", value: "recovery" },
-        ]);
+        expect(wrapper.vm.computedOptions).toEqual([{ label: "SMS", value: "sms" }]);
+    });
+
+    scopedIt("toggleRecovery flips the recovery flag and clears method", async () => {
+        const wrapper = mount(ViewTwoFactorAuth);
+        wrapper.vm.form.values = { method: "sms" };
+        wrapper.vm.toggleRecovery();
+        expect(wrapper.vm.useRecoveryCode).toBe(true);
+        expect(wrapper.vm.form.values.method).toBe("recovery");
+        wrapper.vm.toggleRecovery();
+        expect(wrapper.vm.useRecoveryCode).toBe(false);
+        expect(wrapper.vm.form.values.method).toBeUndefined();
     });
 
     scopedIt("redirects when methods fetch returns unauthorized", async () => {
