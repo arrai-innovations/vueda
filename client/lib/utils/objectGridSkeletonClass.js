@@ -11,7 +11,7 @@
  */
 export function getSkeletonClassForField(field) {
     if (!field) {
-        return "h-6 w-full";
+        return "h-3 w-full";
     }
 
     if (field.skeletonClass) {
@@ -19,24 +19,24 @@ export function getSkeletonClassForField(field) {
     }
 
     if (field.name === "selected_") {
-        return "size-6 rounded-full";
+        return "size-4 rounded-vueda-control";
     }
 
     if (field.typeSerializer === "BooleanField") {
-        return "h-6 w-12 rounded-full";
+        return "h-3.5 w-12 rounded-full";
     }
 
     if (field.choices || field.typeDb === "CharField") {
-        return "h-6 w-24";
+        return "h-3 w-24";
     }
 
     if (field.typeDb === "DateField" || field.typeDb === "DateTimeField") {
-        return "h-6 w-16";
+        return "h-3 w-16";
     }
 
     if (field.typeDb === "ForeignKey" || field.formatted) {
-        return "h-6 w-40";
+        return "h-3 w-40";
     }
 
-    return "h-6 w-full";
+    return "h-3 w-full";
 }
