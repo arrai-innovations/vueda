@@ -8,6 +8,7 @@ import "./showcase.css";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import {
+    faArrowUpRightFromSquare,
     faCaretDown,
     faCaretUp,
     faCheck,
@@ -17,12 +18,16 @@ import {
     faCircleInfo,
     faCircleNotch,
     faCircleQuestion,
+    faCopy,
     faDownload,
     faEllipsis,
+    faFloppyDisk,
     faFolderOpen,
     faGripVertical,
     faMinus,
     faPlus,
+    faPrint,
+    faShieldHalved,
     faTriangleExclamation,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
@@ -56,12 +61,17 @@ setIcons({
         chevronRight: { component: FontAwesomeIcon, props: { icon: faChevronRight } },
         circle: { component: FontAwesomeIcon, props: { icon: faCircle } },
         close: { component: FontAwesomeIcon, props: { icon: faXmark } },
+        copy: { component: FontAwesomeIcon, props: { icon: faCopy } },
         download: { component: FontAwesomeIcon, props: { icon: faDownload } },
         ellipsis: { component: FontAwesomeIcon, props: { icon: faEllipsis } },
+        externalLink: { component: FontAwesomeIcon, props: { icon: faArrowUpRightFromSquare } },
+        floppyDisk: { component: FontAwesomeIcon, props: { icon: faFloppyDisk } },
         gripVertical: { component: FontAwesomeIcon, props: { icon: faGripVertical } },
         info: { component: FontAwesomeIcon, props: { icon: faCircleInfo } },
         loading: { component: FontAwesomeIcon, props: { icon: faCircleNotch, spin: true } },
         plus: { component: FontAwesomeIcon, props: { icon: faPlus } },
+        print: { component: FontAwesomeIcon, props: { icon: faPrint } },
+        shieldHalved: { component: FontAwesomeIcon, props: { icon: faShieldHalved } },
         triangleExclamation: { component: FontAwesomeIcon, props: { icon: faTriangleExclamation } },
     },
 });

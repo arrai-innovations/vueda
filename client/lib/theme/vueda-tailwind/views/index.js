@@ -346,7 +346,7 @@ export default {
             class: [],
         },
         inner: {
-            class: ["my-4 border border-2 rounded-md py-4 px-2"],
+            class: ["my-4 border border-border rounded-vueda-card py-4 px-2"],
         },
         messageContainer: {
             class: ["mx-4 my-6 print:hidden"],
@@ -355,16 +355,29 @@ export default {
             class: ["m-4 gap-4 justify-center grow select-all flex"],
         },
         list: {
-            class: ["items-center flex max-w-64 flex-wrap"],
+            class: ["grid grid-cols-2 gap-x-6 gap-y-1 px-2 py-1", "select-all m-0 list-none"],
         },
         listItem: {
-            class: ["text-center mb-2 pl-8"],
+            class: [
+                "grid grid-cols-[22px_1fr] items-baseline gap-2",
+                "font-mono text-[14px] font-medium leading-[1.6] tracking-[0.04em]",
+                "text-foreground",
+            ],
+        },
+        listItemNum: {
+            class: ["text-right font-mono text-[11px] font-normal leading-[1.6]", "text-muted-foreground tabular-nums"],
         },
         actionBarTitleTextContainer: {
             class: ["flex flex-col my-4"],
         },
         savingOptionButtons: {
-            class: ["flex items-center gap-4 justify-center mx-4 mb-4 print:hidden"],
+            class: ["flex items-center gap-2 justify-center mx-4 mb-4 print:hidden"],
+        },
+        savingOptionButton: {
+            class: ["min-w-[120px]"],
+        },
+        emptyActions: {
+            class: ["flex flex-col sm:flex-row gap-2 justify-center"],
         },
         actionBar: {
             class: ["flex flex-col gap-2 justify-center min-w-min print:hidden"],

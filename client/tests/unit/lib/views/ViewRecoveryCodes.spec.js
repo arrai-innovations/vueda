@@ -21,17 +21,14 @@ const AuthFormStub = defineComponent({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["copied"],
     emits: ["click"],
     setup(_, { emit, slots }) {
         return () => {
             const children = slots.default?.();
-            const label = children?.[0]?.children;
             return h(
                 "button",
                 {
                     "data-qa": "prime-button",
-                    "data-label": typeof label === "string" ? label.trim() : undefined,
                     onClick: () => emit("click"),
                 },
                 children,
@@ -64,6 +61,12 @@ const FeedbackAlertDescriptionStub = defineComponent({
         return () => h("div", { "data-qa": "feedback-alert-description" }, slots.default ? slots.default() : null);
     },
 });
+const FeedbackAlertTitleStub = defineComponent({
+    name: "FeedbackAlertTitleStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "feedback-alert-title" }, slots.default ? slots.default() : null);
+    },
+});
 
 const ClickToCopyTextStub = defineComponent({
     name: "ClickToCopyTextStub",
@@ -78,11 +81,13 @@ vi.mock("@vueda/components/ClickToCopyText.vue", () => ({ default: ClickToCopyTe
 vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock() }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part }));
+vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
 vi.mock("@vueuse/core", () => ({ useClipboard: () => useClipboardMock() }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
 vi.mock("@vueda/feedback/alert/Alert.vue", () => ({ default: FeedbackAlertStub }));
 vi.mock("@vueda/feedback/alert/AlertDescription.vue", () => ({ default: FeedbackAlertDescriptionStub }));
+vi.mock("@vueda/feedback/alert/AlertTitle.vue", () => ({ default: FeedbackAlertTitleStub }));
 
 const toastMock = {
     success: vi.fn(),
@@ -95,12 +100,23 @@ const toastMock = {
 vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
-vi.mock("vue-router", () => ({ useRouter: () => ({ push: routerPush }) }));
+const routerHasRoute = vi.fn(() => true);
+vi.mock("vue-router", () => ({ useRouter: () => ({ push: routerPush, hasRoute: routerHasRoute }) }));
 
 let ViewRecoveryCodes;
 let activeRef;
 let userStore;
 let clipboardState;
+
+/**
+ * Find the first stubbed Button whose visible text contains the given label.
+ *
+ * @param {import('@vue/test-utils').VueWrapper} wrapper
+ * @param {string} label
+ * @returns {import('@vue/test-utils').DOMWrapper}
+ */
+const findButtonByLabel = (wrapper, label) =>
+    wrapper.findAll('[data-qa="prime-button"]').find((btn) => btn.text().includes(label));
 
 describe("lib/views/ViewRecoveryCodes.vue", () => {
     beforeEach(async () => {
@@ -119,6 +135,8 @@ describe("lib/views/ViewRecoveryCodes.vue", () => {
         storeUserMock.mockReturnValue(userStore);
         Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
+        routerHasRoute.mockClear();
+        routerHasRoute.mockReturnValue(true);
         clipboardState.copy.mockClear();
         ViewRecoveryCodes = (await import("@vueda/views/ViewRecoveryCodes.vue")).default;
     });
@@ -135,13 +153,51 @@ describe("lib/views/ViewRecoveryCodes.vue", () => {
         expect(userStore.getRecoveryCodes).toHaveBeenCalled();
         const items = wrapper.findAll('[data-qa="view-recovery-codes-form-list-item"]');
         expect(items).toHaveLength(2);
-        expect(items[0].text().trim()).toBe("one");
+        expect(items[0].text()).toContain("one");
+        expect(items[1].text()).toContain("two");
     });
 
-    scopedIt("shows error message when no totp devices", () => {
+    scopedIt("renders deterministic numeric prefix on each list item", async () => {
         const wrapper = mount(ViewRecoveryCodes);
-        expect(wrapper.find('[data-qa="feedback-alert"]').attributes("data-variant")).toBe("destructive");
+        userStore.loggedInUser.totp_devices = [{ id: 1 }];
+        activeRef.value = true;
+        await flushPromises();
+        const items = wrapper.findAll('[data-qa="view-recovery-codes-form-list-item"]');
+        expect(items[0].text()).toContain("1.");
+        expect(items[1].text()).toContain("2.");
+    });
+
+    scopedIt("renders warning empty branch with set-up CTA when no totp devices", () => {
+        const wrapper = mount(ViewRecoveryCodes);
+        const alert = wrapper.find('[data-qa="feedback-alert"]');
+        expect(alert.attributes("data-variant")).toBe("warning");
+        expect(wrapper.find('[data-qa="feedback-alert-title"]').text()).toContain("Set up two-factor first");
+        expect(findButtonByLabel(wrapper, "Set up a device")).toBeTruthy();
         expect(userStore.getRecoveryCodes).not.toHaveBeenCalled();
+    });
+
+    scopedIt("set-up button routes to setup-device when registered", async () => {
+        const wrapper = mount(ViewRecoveryCodes);
+        await findButtonByLabel(wrapper, "Set up a device").trigger("click");
+        expect(routerHasRoute).toHaveBeenCalledWith("setup-device");
+        expect(routerPush).toHaveBeenCalledWith({ name: "setup-device" });
+    });
+
+    scopedIt("set-up button no-ops when setup-device route is not registered", async () => {
+        routerHasRoute.mockReturnValue(false);
+        const wrapper = mount(ViewRecoveryCodes);
+        await findButtonByLabel(wrapper, "Set up a device").trigger("click");
+        expect(routerPush).not.toHaveBeenCalled();
+    });
+
+    scopedIt("populated alert renders title with one-line description", async () => {
+        const wrapper = mount(ViewRecoveryCodes);
+        userStore.loggedInUser.totp_devices = [{ id: 1 }];
+        activeRef.value = true;
+        await flushPromises();
+        const title = wrapper.find('[data-qa="feedback-alert-title"]');
+        expect(title.exists()).toBe(true);
+        expect(title.text()).toContain("Each code works once");
     });
 
     scopedIt("handleSuccess updates codes and shows toast", async () => {
@@ -153,7 +209,7 @@ describe("lib/views/ViewRecoveryCodes.vue", () => {
         expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("generated"));
         const items = wrapper.findAll('[data-qa="view-recovery-codes-form-list-item"]');
         expect(items).toHaveLength(1);
-        expect(items[0].text().trim()).toBe("new1");
+        expect(items[0].text()).toContain("new1");
     });
 
     scopedIt("download, print, and copy actions operate on codes", async () => {
@@ -179,9 +235,9 @@ describe("lib/views/ViewRecoveryCodes.vue", () => {
         const originalPrint = window.print;
         window.print = printMock;
 
-        await wrapper.find('[data-label="Download"]').trigger("click");
-        await wrapper.find('[data-label="Print"]').trigger("click");
-        await wrapper.find('[data-label="Copy All"]').trigger("click");
+        await findButtonByLabel(wrapper, "Download").trigger("click");
+        await findButtonByLabel(wrapper, "Print").trigger("click");
+        await findButtonByLabel(wrapper, "Copy All").trigger("click");
 
         expect(document.createElement).toHaveBeenCalledWith("a");
         expect(appendSpy).toHaveBeenCalledWith(anchor);

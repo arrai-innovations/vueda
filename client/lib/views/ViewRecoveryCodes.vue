@@ -4,11 +4,14 @@ import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Alert from "@vueda/feedback/alert/Alert.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
+import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
 import { computed, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import { toast } from "vue-sonner";
 
 /**
@@ -20,6 +23,7 @@ defineOptions({});
 
 const userStore = storeUser();
 const isActive = useIsActive();
+const router = useRouter();
 const recoveryCodes = ref(null);
 const hasTotpdevices = computed(() => userStore.loggedInUser?.totp_devices?.length > 0);
 
@@ -59,8 +63,15 @@ const handleSuccess = (response) => {
     toast.success("New recovery codes generated successfully.");
 };
 
+const goToSetupDevice = async () => {
+    if (router.hasRoute("setup-device")) {
+        await router.push({ name: "setup-device" });
+    }
+};
+
 const { copied, copy } = useClipboard();
 const theme = useTheme("ViewRecoveryCodes");
+const icon = useIcons("ViewRecoveryCodes");
 </script>
 
 <template>
@@ -76,38 +87,61 @@ const theme = useTheme("ViewRecoveryCodes");
                 <strong data-qa="view-recovery-codes-form-inner-title"> Unused Recovery codes: </strong>
                 <div :class="theme('messageContainer')" data-qa="view-recovery-codes-form-message-container">
                     <Alert variant="warning">
+                        <AlertTitle>Each code works once.</AlertTitle>
                         <AlertDescription>
-                            Keep your recovery codes in a safe spot. These codes are the last resort for accessing your
-                            account in case you lose your password and second factors. If you cannot find these codes,
-                            you <strong>will</strong> lose access to your account.
+                            Store these codes somewhere safe. They are the last way to reach your account if you lose
+                            your password and second factor.
                         </AlertDescription>
                     </Alert>
                 </div>
                 <div :class="theme('listContainer')" data-qa="view-recovery-codes-form-list-container">
-                    <ul :class="theme('list')" data-qa="view-recovery-codes-form-list">
+                    <ol :class="theme('list')" data-qa="view-recovery-codes-form-list">
                         <li
-                            v-for="code in recoveryCodes"
+                            v-for="(code, index) in recoveryCodes"
                             :key="code"
                             :class="theme('listItem')"
                             data-qa="view-recovery-codes-form-list-item"
                         >
-                            {{ code }}
+                            <span :class="theme('listItemNum')" aria-hidden="true">{{ index + 1 }}.</span>
+                            <span>{{ code }}</span>
                         </li>
-                    </ul>
+                    </ol>
                 </div>
 
                 <div :class="theme('savingOptionButtons')" data-qa="view-recovery-codes-saving-options">
-                    <Button class="w-32" variant="secondary" size="sm" @click="downloadCodes">Download</Button>
-                    <Button class="w-32" variant="secondary" size="sm" @click="printPage">Print</Button>
-                    <Button class="w-32" :variant="copied ? 'default' : 'secondary'" size="sm" @click="copy(codesText)">
+                    <Button :class="theme('savingOptionButton')" variant="outline" size="sm" @click="downloadCodes">
+                        <component
+                            :is="icon('floppyDisk').component"
+                            v-if="icon('floppyDisk')"
+                            v-bind="icon('floppyDisk').props"
+                            aria-hidden="true"
+                        />
+                        Download
+                    </Button>
+                    <Button :class="theme('savingOptionButton')" variant="outline" size="sm" @click="printPage">
+                        <component
+                            :is="icon('print').component"
+                            v-if="icon('print')"
+                            v-bind="icon('print').props"
+                            aria-hidden="true"
+                        />
+                        Print
+                    </Button>
+                    <Button :class="theme('savingOptionButton')" variant="outline" size="sm" @click="copy(codesText)">
+                        <component
+                            :is="icon('copy').component"
+                            v-if="icon('copy')"
+                            v-bind="icon('copy').props"
+                            aria-hidden="true"
+                        />
                         {{ copied ? "Copied!" : "Copy All" }}
                     </Button>
                 </div>
             </div>
-            <Alert v-else variant="destructive">
+            <Alert v-else variant="warning">
+                <AlertTitle>Set up two-factor first.</AlertTitle>
                 <AlertDescription>
-                    You don't have 2FA enabled. Set up a two-factor authentication device first to view or generate
-                    recovery codes.
+                    Recovery codes back up a second-factor device. Add one to view or generate codes.
                 </AlertDescription>
             </Alert>
         </template>
@@ -127,8 +161,12 @@ const theme = useTheme("ViewRecoveryCodes");
                     Go Back
                 </Button>
             </div>
-            <div v-else data-qa="view-recovery-codes-form-action-bar-invalid">
-                <Button :disabled="loading" @click="handleCancelClick">
+            <div v-else :class="theme('emptyActions')" data-qa="view-recovery-codes-form-action-bar-invalid">
+                <Button :disabled="loading" @click="goToSetupDevice">
+                    <LoadingSpinnerInline v-if="loading" />
+                    Set up a device
+                </Button>
+                <Button variant="ghost" :disabled="loading" @click="handleCancelClick">
                     <LoadingSpinnerInline v-if="loading" />
                     Go Back
                 </Button>
