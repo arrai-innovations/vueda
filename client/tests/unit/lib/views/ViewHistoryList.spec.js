@@ -43,7 +43,7 @@ vi.mock("vue-router", () => ({
 let objectsGridProps;
 const ObjectsGridStub = defineComponent({
     name: "ObjectsGridStub",
-    props: ["fields"],
+    props: ["fields", "rowAttrs"],
     setup(props, { attrs, slots }) {
         objectsGridProps = props;
         return () =>
@@ -159,6 +159,7 @@ scopedIt("does not call useLookupContext when lookup context exists", () => {
 
 scopedIt("toggles field column based on table mode", async () => {
     mockedInject.mockReturnValueOnce({});
+    mockInstanceList.state.objectsInOrder = [{ history_id: 1, history_date: "2026-04-26T12:00:00Z", num_changes: 0 }];
     const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
     await vue.nextTick();
     expect(objectsGridProps.fields.some((f) => f && f.name === "field")).toBe(true);
@@ -166,6 +167,42 @@ scopedIt("toggles field column based on table mode", async () => {
     await vue.nextTick();
     expect(objectsGridProps.fields.some((f) => f && f.name === "field")).toBe(false);
     wrapper.unmount();
+});
+
+scopedIt("renders the dedicated empty state when no history rows are present", async () => {
+    mockedInject.mockReturnValueOnce({});
+    const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+    await vue.nextTick();
+    expect(wrapper.find('[data-qa="view-history-empty"]').exists()).toBe(true);
+    expect(wrapper.find('[data-qa="objects-grid"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain("No history yet");
+    wrapper.unmount();
+});
+
+scopedIt("renders the grid (not the empty state) while history is loading", async () => {
+    mockedInject.mockReturnValueOnce({});
+    mockInstanceList.state.loading = true;
+    const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+    await vue.nextTick();
+    expect(wrapper.find('[data-qa="view-history-empty"]').exists()).toBe(false);
+    expect(wrapper.find('[data-qa="objects-grid"]').exists()).toBe(true);
+    wrapper.unmount();
+});
+
+scopedIt("emits data-rev-start on the first row of a revision and data-rev-child on siblings", async () => {
+    mockedInject.mockReturnValueOnce({});
+    mockInstanceList.state.objectsInOrder = [{ history_id: 1, history_date: "2026-04-26T12:00:00Z", num_changes: 0 }];
+    mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+    await vue.nextTick();
+    expect(typeof objectsGridProps.rowAttrs).toBe("function");
+    const startAttrs = objectsGridProps.rowAttrs({ parent_row: 0, history_id: 1, field: "name" });
+    const childAttrs = objectsGridProps.rowAttrs({ parent_row: 0, field: "amount" });
+    const noneAttrs = objectsGridProps.rowAttrs({ field: "name" });
+    expect(startAttrs["data-rev-start"]).toBe("true");
+    expect(startAttrs["data-rev-child"]).toBeUndefined();
+    expect(childAttrs["data-rev-child"]).toBe("true");
+    expect(childAttrs["data-rev-start"]).toBeUndefined();
+    expect(noneAttrs).toBeNull();
 });
 
 scopedIt("calls router.back when Back button clicked", async () => {

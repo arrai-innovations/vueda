@@ -280,6 +280,63 @@ export default {
         root: {
             class: [],
         },
+        // Revision-grouped row binding: 2px primary left-stripe on the first cell of every
+        // row that belongs to a revision (start + child rows). Suppresses ObjectsGrid's own
+        // border so the parent card carries chrome.
+        row: {
+            class: [
+                "data-[rev-start=true]:[&>*:first-child]:border-l-2",
+                "data-[rev-start=true]:[&>*:first-child]:border-primary",
+                "data-[rev-child=true]:[&>*:first-child]:border-l-2",
+                "data-[rev-child=true]:[&>*:first-child]:border-primary",
+            ],
+        },
+        // Old/new diff cells: leading glyph, faint tonal background, mono font for whitespace
+        // and unicode preservation.
+        diff: {
+            class: [
+                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-vueda-control",
+                "font-mono text-[12px] leading-[1.4]",
+                "before:font-semibold before:text-[11px]",
+                "data-[side=old]:bg-[color-mix(in_oklab,var(--destructive)_7%,transparent)]",
+                "data-[side=old]:text-foreground",
+                "data-[side=old]:before:content-['−'] data-[side=old]:before:text-destructive",
+                "data-[side=new]:bg-[color-mix(in_oklab,var(--success)_8%,transparent)]",
+                "data-[side=new]:text-foreground",
+                "data-[side=new]:before:content-['+'] data-[side=new]:before:text-success",
+                "data-[empty=true]:italic data-[empty=true]:text-muted-foreground",
+                "data-[empty=true]:bg-transparent",
+                "data-[empty=true]:before:content-['·'] data-[empty=true]:before:text-muted-foreground",
+            ],
+        },
+        // Dedicated empty state: clock-in-circle on a tinted muted bg, title + description.
+        empty: {
+            class: [
+                "flex flex-col items-center justify-center gap-2",
+                "py-12 px-6 text-center",
+                "rounded-vueda-card border border-border bg-card",
+            ],
+        },
+        emptyIcon: {
+            class: [
+                "flex items-center justify-center",
+                "w-10 h-10 rounded-full bg-muted/50 text-muted-foreground",
+                "text-[16px] leading-none",
+            ],
+        },
+        emptyTitle: {
+            class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
+        },
+        emptyDesc: {
+            class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground max-w-[44ch]"],
+        },
+        // Two-line history-date cell: absolute timestamp on top, relative phrase below.
+        cellDate: {
+            class: ["text-[12px] leading-[1.3] text-foreground"],
+        },
+        cellDateRel: {
+            class: ["text-[11px] leading-[1.3] text-muted-foreground"],
+        },
     },
     ViewNotFound: {
         root: {

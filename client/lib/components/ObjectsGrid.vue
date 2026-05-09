@@ -127,6 +127,11 @@ const props = defineProps({
         type: Number,
         default: 25,
     },
+    /** Function `(obj, rowIndex) => attrs` returning extra attributes (typically `data-*`) merged onto the body row element. */
+    rowAttrs: {
+        type: Function,
+        default: () => null,
+    },
     /** Row-height density tier in table layout: `default` 32px, `compact` 28px, `condensed` 24px. */
     density: {
         type: String,
@@ -339,6 +344,7 @@ watch(
                     :class="[theme('bodyRow')]"
                     data-qa="objects-grid-row"
                     role="row"
+                    v-bind="rowAttrs(obj, rowIndex) || {}"
                 >
                     <component
                         :is="isTable ? EmptyComponent : 'div'"

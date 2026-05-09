@@ -4,6 +4,7 @@ import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -210,8 +211,31 @@ const evenColumn = (obj) => {
     return obj.parent_row % 2 === 0;
 };
 const theme = useTheme("ViewHistoryList");
+const icons = useIcons("ViewHistoryList");
 const formatHistoryDate = (date) => {
     return date ? DateTime.fromISO(date).toLocaleString(DateTime.DATETIME_MED) : "";
+};
+// Static relative phrase resolved once at render (history rows are after-the-fact and rarely
+// re-render; avoid a global ticker until a UX need is demonstrated).
+const formatRelativeHistoryDate = (date) => {
+    return date ? DateTime.fromISO(date).toRelative() : "";
+};
+// Show the dedicated empty state only after loading settles with zero rows. While loading,
+// keep the grid visible so its skeleton rows render.
+const hasHistory = computed(() => !!instanceList.state.loading || (instanceList.state.objectsInOrder?.length ?? 0) > 0);
+const rowAttrs = (obj) => {
+    if (obj?.parent_row === undefined || obj?.parent_row === null) {
+        return null;
+    }
+    // The first row of a revision carries the meta columns; subsequent rows in the same
+    // revision share the same `parent_row` index but have only `field`, `old`, `new` set.
+    // The grouping ordering in `computedChangeObjects` guarantees siblings are contiguous.
+    const isStart = obj.history_id !== undefined && obj.history_id !== null;
+    return {
+        "data-rev-start": isStart ? "true" : undefined,
+        "data-rev-child": !isStart ? "true" : undefined,
+        class: theme("row"),
+    };
 };
 const slots = useSlots();
 </script>
@@ -223,7 +247,20 @@ const slots = useSlots();
             </template>
         </page-title>
         <slot name="before-list" />
-        <div class="flex flex-row">
+        <div v-if="!hasHistory" :class="theme('empty')" data-qa="view-history-empty">
+            <!-- @slot empty Replaces the dedicated history empty-state body. Receives no slot props. -->
+            <slot name="empty">
+                <div :class="theme('emptyIcon')" aria-hidden="true">
+                    <component :is="icons('clock').component" v-if="icons('clock')" v-bind="icons('clock').props" />
+                </div>
+                <strong :class="theme('emptyTitle')">No history yet</strong>
+                <p :class="theme('emptyDesc')">
+                    This record has no recorded changes. Once edits are made, they appear here grouped by revision with
+                    a per-field old to new diff.
+                </p>
+            </slot>
+        </div>
+        <div v-else class="flex flex-row">
             <objects-grid
                 v-bind="$attrs"
                 :calculated-objects="instanceList.state.calculatedObjects"
@@ -238,39 +275,90 @@ const slots = useSlots();
                 :loading="loading"
                 :objects-in-order="computedCalculatedObjects"
                 :related-objects="instanceList.state.relatedObjects"
+                :row-attrs="rowAttrs"
                 :table-breakpoint="tableBreakpoint"
                 @update:is-table="handleIsTableUpdate"
             >
                 <template v-for="field in calculatedHistoryFields" :key="field" #[`field(${field})`]="{ obj }">
                     <slot :name="`field(${field})`" v-bind="{ obj }">
-                        {{ field === "history_date" ? formatHistoryDate(obj[field]) : obj[field] }}
+                        <template v-if="field === 'history_date'">
+                            <span v-if="obj[field]" :class="theme('cellDate')">
+                                {{ formatHistoryDate(obj[field]) }}
+                            </span>
+                            <span v-if="obj[field]" :class="theme('cellDateRel')">
+                                {{ formatRelativeHistoryDate(obj[field]) }}
+                            </span>
+                        </template>
+                        <template v-else>
+                            {{ obj[field] }}
+                        </template>
                     </slot>
                 </template>
                 <template #field(new)="{ obj }">
-                    <slot name="field(new)">
+                    <slot name="field(new)" v-bind="{ obj }">
                         <template v-if="!isTable">
-                            <div v-for="changed in obj.changes" :key="changed.field">
-                                {{ changed.new }}
-                            </div>
+                            <span
+                                v-for="changed in obj.changes"
+                                :key="changed.field"
+                                :class="theme('diff')"
+                                data-side="new"
+                                :data-empty="
+                                    changed.new === null || changed.new === undefined || changed.new === ''
+                                        ? 'true'
+                                        : undefined
+                                "
+                            >
+                                {{
+                                    changed.new === null || changed.new === undefined || changed.new === ""
+                                        ? "empty"
+                                        : changed.new
+                                }}
+                            </span>
                         </template>
                         <template v-else>
-                            <div>
-                                {{ obj.new }}
-                            </div>
+                            <span
+                                :class="theme('diff')"
+                                data-side="new"
+                                :data-empty="
+                                    obj.new === null || obj.new === undefined || obj.new === '' ? 'true' : undefined
+                                "
+                            >
+                                {{ obj.new === null || obj.new === undefined || obj.new === "" ? "empty" : obj.new }}
+                            </span>
                         </template>
                     </slot>
                 </template>
                 <template #field(old)="{ obj }">
-                    <slot name="field(old)">
+                    <slot name="field(old)" v-bind="{ obj }">
                         <template v-if="!isTable">
-                            <div v-for="changed in obj.changes" :key="changed.field">
-                                {{ changed.old }}
-                            </div>
+                            <span
+                                v-for="changed in obj.changes"
+                                :key="changed.field"
+                                :class="theme('diff')"
+                                data-side="old"
+                                :data-empty="
+                                    changed.old === null || changed.old === undefined || changed.old === ''
+                                        ? 'true'
+                                        : undefined
+                                "
+                            >
+                                {{
+                                    changed.old === null || changed.old === undefined || changed.old === ""
+                                        ? "empty"
+                                        : changed.old
+                                }}
+                            </span>
                         </template>
                         <template v-else>
-                            <div>
-                                {{ obj.old }}
-                            </div>
+                            <span
+                                :class="theme('diff')"
+                                data-side="old"
+                                :data-empty="
+                                    obj.old === null || obj.old === undefined || obj.old === '' ? 'true' : undefined
+                                "
+                            >
+                                {{ obj.old === null || obj.old === undefined || obj.old === "" ? "empty" : obj.old }}
+                            </span>
                         </template>
                     </slot>
                 </template>
