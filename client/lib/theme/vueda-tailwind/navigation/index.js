@@ -326,7 +326,7 @@ export default {
     },
     SidebarInput: {
         root: {
-            class: "bg-background h-8 w-full shadow-none",
+            class: "bg-background h-8 w-full shadow-none [--vueda-hairline-color:var(--sidebar-border)]! focus-visible:[--vueda-hairline-color:var(--sidebar-ring)]!",
         },
     },
     SidebarMenuItem: {
@@ -337,7 +337,7 @@ export default {
     SidebarMenuSub: {
         root: {
             class: [
-                "border-sidebar-border mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5",
+                "border-sidebar-border mx-3 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5",
                 "group-data-[collapsible=icon]:hidden",
             ],
         },
@@ -364,8 +364,8 @@ export default {
     SidebarGroupLabel: {
         root: {
             class: [
-                "text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium transition-[margin,opacity] duration-200 ease-linear focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring [&>svg]:size-4 [&>svg]:shrink-0",
-                "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
+                "text-muted-foreground flex h-6 shrink-0 items-center px-2 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.08em] transition-[margin,opacity] duration-200 ease-linear focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring [&>svg]:size-4 [&>svg]:shrink-0",
+                "group-data-[collapsible=icon]:-mt-6 group-data-[collapsible=icon]:opacity-0",
             ],
         },
     },
@@ -378,16 +378,23 @@ export default {
         },
     },
     SidebarMenuBadge: {
-        root: {
+        root: ({ tone }) => ({
             class: [
-                "text-sidebar-foreground pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums select-none",
-                "peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[active=true]/menu-button:text-sidebar-accent-foreground",
+                "pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-vueda-control px-1 font-mono text-[length:var(--vueda-text-micro)] font-semibold tabular-nums select-none",
                 "peer-data-[size=sm]/menu-button:top-1",
                 "peer-data-[size=default]/menu-button:top-1.5",
                 "peer-data-[size=lg]/menu-button:top-2.5",
+                {
+                    "bg-sidebar-accent text-sidebar-foreground peer-data-[active=true]/menu-button:bg-[color-mix(in_oklab,var(--sidebar-primary)_14%,transparent)] peer-data-[active=true]/menu-button:text-sidebar-primary":
+                        !tone || tone === "neutral",
+                    "bg-[color-mix(in_oklab,var(--sidebar-primary)_14%,transparent)] text-sidebar-primary":
+                        tone === "primary",
+                    "bg-[color-mix(in_oklab,var(--destructive)_14%,transparent)] text-destructive":
+                        tone === "destructive",
+                },
                 "group-data-[collapsible=icon]:hidden",
             ],
-        },
+        }),
     },
     SidebarRail: {
         root: {
@@ -403,7 +410,7 @@ export default {
     },
     SidebarSeparator: {
         root: {
-            class: "bg-sidebar-border mx-2 w-auto",
+            class: "bg-sidebar-border my-1",
         },
     },
     SidebarTrigger: {
@@ -430,9 +437,10 @@ export default {
     SidebarMenuSubButton: {
         root: ({ size }) => ({
             class: [
-                "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-vueda-control px-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+                "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground relative flex min-w-0 -translate-x-px items-center gap-2 rounded-vueda-control px-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
                 "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
-                { "text-xs": size === "sm", "text-sm": size === "md" },
+                "data-[active=true]:before:absolute data-[active=true]:before:inset-y-0 data-[active=true]:before:left-[-11px] data-[active=true]:before:w-(--vueda-sidebar-active-rail) data-[active=true]:before:bg-sidebar-primary data-[active=true]:before:content-['']",
+                { "h-6 text-xs": size === "sm", "h-7 text-sm": size === "md" },
                 "group-data-[collapsible=icon]:hidden",
             ],
         }),
@@ -484,7 +492,10 @@ export default {
     SidebarMenuButtonChild: {
         root: ({ variant, size }) => ({
             class: [
-                "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-vueda-control p-2 text-left text-sm transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+                "peer/menu-button relative flex w-full items-center gap-2 rounded-vueda-control p-2 text-left text-sm transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+                "data-[active=true]:before:absolute data-[active=true]:before:inset-y-0 data-[active=true]:before:left-0 data-[active=true]:before:w-(--vueda-sidebar-active-rail) data-[active=true]:before:bg-sidebar-primary data-[active=true]:before:content-['']",
+                "group-data-[collapsible=icon]:data-[active=true]:before:-left-2",
+                "data-[active=true]:[&>svg]:text-sidebar-primary",
                 {
                     "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground": !variant || variant === "default",
                     "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]":

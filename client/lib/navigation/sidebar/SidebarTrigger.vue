@@ -1,10 +1,13 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useSidebar } from "@vueda/use/useSidebar.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
- * A button that toggles the sidebar open or closed.
+ * A button that toggles the sidebar open or closed. The toggle glyph resolves through
+ * `useIcons("SidebarTrigger").("toggle")`; consumers register a default (canon is
+ * `fa-regular fa-rectangle-list`) via `setIcons` or replace per-instance via the `icon` slot.
  */
 defineOptions({});
 
@@ -18,6 +21,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("SidebarTrigger", props);
+const icon = useIcons("SidebarTrigger");
 const { toggleSidebar } = useSidebar();
 </script>
 
@@ -32,7 +36,12 @@ const { toggleSidebar } = useSidebar();
     >
         <!-- Replaces the sidebar toggle icon; receives no slot props. -->
         <slot name="icon">
-            <span aria-hidden="true" class="select-none">◫</span>
+            <component
+                :is="icon('toggle').component"
+                v-if="icon('toggle')"
+                v-bind="icon('toggle').props"
+                aria-hidden="true"
+            />
         </slot>
         <span class="sr-only">Toggle Sidebar</span>
     </Button>

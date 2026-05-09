@@ -55,7 +55,24 @@ _Actions potentially required by implementers are marked with italics._
     - `DetailedView` is now deprecated and will be removed in the next major release.
       _If you import `@vueda/components/DetailedView.vue`, switch to `@vueda/components/DetailView.vue`._
 
+- **SidebarMenuBadge**:
+    - New `tone` prop accepting `neutral` (default), `primary`, and `destructive`. The value is reflected as `data-tone` on the badge and drives the chromatic treatment: `neutral` paints `--sidebar-accent` and auto-promotes to a `--sidebar-primary` `color-mix` tint when the ancestor menu button is active; `primary` and `destructive` force their respective tints. Type recipe also changes — `font-mono` at 11px / 600 / `tabular-nums`, with `rounded-vueda-control` (slab) replacing `rounded-md`.
+      _If you styled `SidebarMenuBadge` via theme override against the previous `text-xs font-medium tabular-nums rounded-md` recipe, your override continues to win. To use the kit recipe, drop the override._
+
+- **SidebarTrigger**:
+    - Toggle glyph now resolves through `useIcons("SidebarTrigger").("toggle")`. The previous Unicode `◫` placeholder is removed.
+      _Register the canonical glyph (or any other) via `setIcons({ SidebarTrigger: { toggle: { component: ..., props: ... } } })`. The `icon` named slot continues to work as a per-instance escape hatch. With no registration and no slot, the button renders only its `sr-only` label._
+
 ### Fixes
+
+- **Sidebar (visual refinements, theme keys)**: A batch of kit-aligned theme-key tweaks across the Sidebar family. Override slots via `useTheme` if you depended on the previous values.
+    - **`SidebarGroupLabel`** — adopts the page-level eyebrow recipe: `text-muted-foreground`, `h-6`, `text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.08em]`, `rounded-md` removed; collapsible-icon hide step shrinks from `-mt-8` to `-mt-6`.
+    - **`SidebarMenuButtonChild`** — active state now paints a 2px `--sidebar-primary` rail via `::before` (token: `--vueda-sidebar-active-rail`) and flips the leading icon to `--sidebar-primary`. The `data-[active=true]:font-medium` weight bump is removed (it shifted layout by ~1px and read as jitter on hover). In collapsed (icon-only) mode, the rail shifts to `-left-2` so it lands flush with the 48px panel edge. Base also drops `overflow-hidden` (the inner span's `truncate` handles its own clipping).
+    - **`SidebarMenuSubButton`** — active state paints the same 2px `--sidebar-primary` rail at `before:left-[-11px]` so it lands on the sub-list's `border-l` indent rail. Sub-button `size="sm"` now sets `h-6` alongside `text-xs` (was: only `text-xs`, height stayed `h-7`).
+    - **`SidebarMenuSub`** — horizontal margin tightens from `mx-3.5` to `mx-3`.
+    - **`SidebarSeparator`** — full-bleed: `mx-2 w-auto` removed, `my-1` added.
+    - **`SidebarMenuSkeleton`** — icon-skeleton radius changes from `rounded-md` to `rounded-vueda-checkbox`.
+    - **`SidebarInput`** — overrides `--vueda-hairline-color` to `--sidebar-border` (and to `--sidebar-ring` on focus) so the search input's edge and focus ring use the sidebar palette rather than the generic `--input` / `--ring` (visible mismatch in dark mode).
 
 - **useField / useForm**: Required-field errors are now suppressed on blur for fields that started empty and remain empty, until the form has had a submission attempt (via `setAllTouched`) or the field has been modified. This prevents a wall of required errors when a user tabs through an empty form without typing anything. Fields without a form context retain the previous behavior (errors fire on blur immediately).
     - _No action required for most forms. If you relied on required errors firing on blur for fields that have never been touched and were always empty (e.g. contextless fields), behavior is unchanged. For fields inside a form context, errors now require either user modification or a submission attempt before appearing._
