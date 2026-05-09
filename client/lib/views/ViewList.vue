@@ -205,28 +205,6 @@ onMounted(() => {
             </template>
             <template #under-actions>
                 <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
-                    <div :class="theme('actionButtonGroupBar')" data-qa="view-list-action-buttons">
-                        <template v-for="actionName in actions.bulkActions" :key="actionName">
-                            <!-- @slot [bulk-action-button, button] Replaces an individual bulk action button. -->
-                            <slot :name="bulkActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
-                                <link-model-view
-                                    button
-                                    :pk="themedButtonSlotProps[actionName].selectedObjects"
-                                    v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
-                                />
-                            </slot>
-                        </template>
-                        <template v-for="actionName in actions.availableTransitions" :key="actionName">
-                            <!-- @slot [workflow-action-button, button] Replaces an individual workflow/transition action button. -->
-                            <slot :name="workflowActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
-                                <link-model-view
-                                    button
-                                    :pk="themedButtonSlotProps[actionName].selectedObjects"
-                                    v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
-                                />
-                            </slot>
-                        </template>
-                    </div>
                     <div :class="theme('listControlBar')">
                         <slot name="search" v-bind="themedSearchSlotProps">
                             <InputGroup>
@@ -273,7 +251,36 @@ onMounted(() => {
                 </div>
             </template>
         </page-title>
+        <div
+            v-if="actions.selectedObjects.length > 0"
+            :class="theme('bulkActionsBar')"
+            data-qa="view-list-bulk-actions"
+        >
+            <div :class="theme('actionButtonGroupBar')" data-qa="view-list-action-buttons">
+                <template v-for="actionName in actions.bulkActions" :key="actionName">
+                    <!-- @slot [bulk-action-button, button] Replaces an individual bulk action button. -->
+                    <slot :name="bulkActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
+                        <link-model-view
+                            button
+                            :pk="themedButtonSlotProps[actionName].selectedObjects"
+                            v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
+                        />
+                    </slot>
+                </template>
+                <template v-for="actionName in actions.availableTransitions" :key="actionName">
+                    <!-- @slot [workflow-action-button, button] Replaces an individual workflow/transition action button. -->
+                    <slot :name="workflowActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
+                        <link-model-view
+                            button
+                            :pk="themedButtonSlotProps[actionName].selectedObjects"
+                            v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
+                        />
+                    </slot>
+                </template>
+            </div>
+        </div>
         <sticky-bar :class="theme('filterGroupBar')">
+            <span :class="theme('filterGroupBarEyebrow')" data-qa="view-list-filter-eyebrow">Filters</span>
             <filter-group
                 v-model="list.listState.filterArgs"
                 :app="props.app"

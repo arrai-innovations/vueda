@@ -174,22 +174,34 @@ export default {
             class: [],
         },
         filterGroupBar: {
-            class: ["w-full"],
+            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px] border-b border-border bg-muted/25"],
+        },
+        filterGroupBarEyebrow: {
+            class: [
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "text-muted-foreground leading-none",
+            ],
         },
         sortComponentDiv: {
-            class: ["flex flex-row justify-end"],
+            class: ["flex flex-row justify-end ml-auto"],
         },
         objectsGrid: {
-            class: ["w-full"],
+            class: ["w-full border-0 rounded-none"],
         },
         underActionsBar: {
-            class: ["w-full flex flex-col sm:flex-row sm:justify-between gap-1 mb-1"],
+            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3 border-b border-border bg-card"],
+        },
+        bulkActionsBar: {
+            class: [
+                "w-full flex items-center flex-wrap gap-[10px] px-5 py-[10px]",
+                "border-b border-border bg-primary/[0.06] text-[12px] font-medium",
+            ],
         },
         actionButtonGroupBar: {
             class: ["flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"],
         },
         listControlBar: {
-            class: ["flex flex-row gap-1 2xl:gap-2"],
+            class: ["flex flex-row gap-1 2xl:gap-2 ml-auto"],
         },
         columnTotalCell: {
             class: "border-t-2",
