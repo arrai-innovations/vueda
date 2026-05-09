@@ -205,7 +205,7 @@ const dryRun = computed(
             <slot :name="slot" v-bind="slotProps || {}" />
         </template>
         <template #action-form-inner="{ combinedLoading }">
-            <div :class="theme('selectedObjects')" data-qa="action-form-selected-objects">
+            <div :class="theme('selectedObjects')" data-qa="action-form-selected-objects" data-tone="neutral">
                 <!-- @slot [selected-objects] Override the list of selected objects shown above the confirmation form. -->
                 <slot
                     :loading="combinedLoading"
@@ -214,7 +214,7 @@ const dryRun = computed(
                     :pks="pksAsString"
                     :theme="theme"
                 >
-                    <p>You have selected the following {{ unref(modelVerboseName) }}:</p>
+                    <span :class="theme('selectedObjectsLabel')"> Selected {{ unref(modelVerboseName) }} </span>
                     <div v-if="combinedLoading">
                         <p>Loading objects...</p>
                     </div>
@@ -241,6 +241,9 @@ const dryRun = computed(
                                     </template>
                                 </widget-read-only>
                             </form-field>
+                            <span :class="theme('listItemPk')" data-qa="action-form-list-item-pk">
+                                {{ pk }}
+                            </span>
                         </li>
                     </ul>
                 </slot>

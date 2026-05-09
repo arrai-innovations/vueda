@@ -161,6 +161,16 @@ describe("lib/components/ModelActionForm.vue", () => {
             expect(mockedUseTheme).toHaveBeenCalledWith("ModelActionForm", expect.any(Object));
         });
 
+        scopedIt("tags the selected-objects container with neutral tone and renders pk chips", () => {
+            const { wrapper } = mountModelActionForm();
+            const container = wrapper.get('[data-qa="action-form-selected-objects"]');
+            expect(container.attributes("data-tone")).toBe("neutral");
+            const pkChips = wrapper.findAll('[data-qa="action-form-list-item-pk"]');
+            expect(pkChips).toHaveLength(2);
+            expect(pkChips[0].text()).toBe("1");
+            expect(pkChips[1].text()).toBe("2");
+        });
+
         scopedIt("shows loading placeholder when fetchState.loading", () => {
             const { wrapper } = mountModelActionForm({ fetchState: { loading: true, objectsInOrder: [{ id: 1 }] } });
             expect(wrapper.findAll('[data-qa="action-form-list-item"]').length).toBe(0);

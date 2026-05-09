@@ -65,6 +65,72 @@ scopedIt("renders ActionForm when model config is loaded", () => {
     expect(arg.pk).toBe("5");
 });
 
+scopedIt("wraps ModelActionForm in a danger-toned card with a banner", () => {
+    const modelConfig = reactive({ info: { pk: "id", verboseName: "thing", verboseNamePlural: "things" } });
+    mockedUseViewDestroy.mockReturnValue({
+        modelConfig,
+        handleDelete: vi.fn(),
+        instanceList: { state: reactive({}) },
+    });
+
+    const wrapper = mount(ViewDestroy, { props: { app: "a", model: "thing", pk: "5" } });
+
+    const card = wrapper.get('[data-qa="view-destroy-card"]');
+    expect(card.attributes("data-tone")).toBe("danger");
+    const title = wrapper.get('[data-qa="view-destroy-banner-title"]');
+    expect(title.text()).toContain("permanently delete");
+    expect(title.text()).toContain("thing");
+    expect(wrapper.get('[data-qa="view-destroy-banner-description"]').text()).toContain(
+        "This action cannot be undone.",
+    );
+    expect(wrapper.findComponent(ModelActionFormStub).exists()).toBe(true);
+});
+
+scopedIt("renders linkedObjectCounts entries in the banner", () => {
+    const modelConfig = reactive({ info: { pk: "id", verboseName: "thing", verboseNamePlural: "things" } });
+    mockedUseViewDestroy.mockReturnValue({
+        modelConfig,
+        handleDelete: vi.fn(),
+        instanceList: { state: reactive({}) },
+    });
+
+    const wrapper = mount(ViewDestroy, {
+        props: {
+            app: "a",
+            model: "thing",
+            pk: ["5", "6"],
+            linkedObjectCounts: [
+                { verboseNamePlural: "comments", count: 12 },
+                { verboseNamePlural: "tags", count: 3 },
+            ],
+        },
+    });
+
+    const counts = wrapper.get('[data-qa="view-destroy-banner-counts"]');
+    expect(counts.text()).toContain("12 comments will also be removed.");
+    expect(counts.text()).toContain("3 tags will also be removed.");
+    expect(wrapper.find('[data-qa="view-destroy-banner-description"]').exists()).toBe(false);
+    // Bulk title pluralizes via verboseNamePlural.
+    expect(wrapper.get('[data-qa="view-destroy-banner-title"]').text()).toContain("2 things");
+});
+
+scopedIt("custom banner slot overrides default chrome", () => {
+    const modelConfig = reactive({ info: { pk: "id" } });
+    mockedUseViewDestroy.mockReturnValue({
+        modelConfig,
+        handleDelete: vi.fn(),
+        instanceList: { state: reactive({}) },
+    });
+
+    const wrapper = mount(ViewDestroy, {
+        props: { app: "a", model: "thing", pk: "5" },
+        slots: { "view-destroy-banner": '<div data-qa="custom-banner">custom</div>' },
+    });
+
+    expect(wrapper.find('[data-qa="custom-banner"]').exists()).toBe(true);
+    expect(wrapper.find('[data-qa="view-destroy-banner"]').exists()).toBe(false);
+});
+
 scopedIt("renders a loading spinner while model info is empty", () => {
     const modelConfig = reactive({ info: {} });
     mockedUseViewDestroy.mockReturnValue({ modelConfig, handleDelete: vi.fn(), instanceList: { state: reactive({}) } });
