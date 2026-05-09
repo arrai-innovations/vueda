@@ -75,7 +75,7 @@ export default {
                     // first and last don't help us here.
                     {
                         "!table-row": isTable,
-                        "p-1 2xs:p-2 2xl:p-4 rounded-md border 2xs:border-2 overflow-y-auto": !isTable,
+                        "p-1 2xs:p-2 2xl:p-4 rounded-vueda-card border border-border overflow-y-auto": !isTable,
                     },
                 ];
             },
@@ -110,8 +110,7 @@ export default {
                 "[[data-numeric]_&]:flex-row-reverse",
                 {
                     "cursor-pointer": sortable,
-                    "hover:bg-neutral-600 dark:hover:bg-neutral-300": sortable,
-                    "hover:text-white dark:hover:text-neutral-900": sortable,
+                    "hover:bg-accent hover:text-accent-foreground": sortable,
                     "hover:rounded": sortable,
                 },
             ],

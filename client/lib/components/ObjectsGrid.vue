@@ -97,7 +97,7 @@ const props = defineProps({
     /** Tailwind breakpoint at which the layout switches from card to table view. */
     tableBreakpoint: {
         type: String,
-        default: "md",
+        default: "lg",
         description: "When to switch to table layout.",
     },
     /** Field names that are sortable; clicking their headers emits a sort event. */
