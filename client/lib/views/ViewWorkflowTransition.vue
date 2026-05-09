@@ -5,6 +5,7 @@ import Button from "@vueda/controls/button/Button.vue";
 import RadioGroup from "@vueda/controls/radio-group/RadioGroup.vue";
 import RadioGroupItem from "@vueda/controls/radio-group/RadioGroupItem.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -49,6 +50,7 @@ const workflow = storeWorkflow();
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const theme = useTheme("ViewWorkflowTransition", props);
+const icon = useIcons("ViewWorkflowTransition");
 
 if (!inject(LookupContextSymbol, null)) {
     useLookupContext();
@@ -64,6 +66,19 @@ const transitionsForPk = (pk) => {
     const entry = workflow.objectTransitions?.[appModelKey.value]?.[pk];
     return entry?.transitions || [];
 };
+
+const currentStateName = computed(() => {
+    if (!appModelKey.value || Array.isArray(props.pk) || !props.pk) {
+        return null;
+    }
+    return workflow.objectStates?.[appModelKey.value]?.[props.pk]?.state?.name || null;
+});
+
+const emptyTitleStr = computed(() => {
+    return currentStateName.value
+        ? `No transitions available from ${currentStateName.value}.`
+        : "No transitions available.";
+});
 
 const availableTransitions = computed(() => {
     if (!appModelKey.value) {
@@ -95,7 +110,7 @@ watch(
             }
             return;
         }
-        await workflow.fetchObjectTransitions(app, model, pk);
+        await Promise.all([workflow.fetchObjectTransitions(app, model, pk), workflow.fetchObjectState(app, model, pk)]);
     },
     { immediate: true },
 );
@@ -147,8 +162,18 @@ const handleSubmit = async () => {
                     <Button :disabled="!selectedAction" type="submit">execute transition</Button>
                 </form>
             </div>
-            <div v-else>
-                <p>no transition available for selected {{ modelConfig.info?.verbose_name }}</p>
+            <div v-else :class="theme('empty')" data-qa="view-workflow-transition-empty">
+                <div :class="theme('emptyIcon')" aria-hidden="true">
+                    <component :is="icon('flag').component" v-if="icon('flag')" v-bind="icon('flag').props" />
+                </div>
+                <strong :class="theme('emptyTitle')">{{ emptyTitleStr }}</strong>
+                <p :class="theme('emptyDesc')">
+                    There are no further actions for this
+                    {{ memoizedStartCase(modelConfig.info?.verbose_name) }}.
+                </p>
+                <div :class="theme('emptyAction')">
+                    <Button variant="ghost" @click="router.back()">Back to detail view</Button>
+                </div>
             </div>
         </div>
     </div>

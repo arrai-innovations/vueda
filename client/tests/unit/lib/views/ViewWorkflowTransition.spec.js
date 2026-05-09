@@ -92,14 +92,17 @@ vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
 
 const fetchWorkflowTransition = vi.fn();
 const fetchObjectTransitions = vi.fn();
+const fetchObjectState = vi.fn();
 const executeTransition = vi.fn();
 
 const workflowStore = {
     workflowTransitions: { "a.m": [] },
     objectTransitions: { "a.m": {} },
+    objectStates: { "a.m": {} },
     loading: false,
     fetchWorkflowTransition,
     fetchObjectTransitions,
+    fetchObjectState,
     executeTransition,
 };
 
@@ -127,7 +130,10 @@ beforeEach(async () => {
     provideStore.clear();
     fetchWorkflowTransition.mockClear();
     fetchObjectTransitions.mockClear();
+    fetchObjectState.mockClear();
     executeTransition.mockClear();
+    workflowStore.objectStates = { "a.m": {} };
+    workflowStore.objectTransitions = { "a.m": {} };
     Object.values(toastMock).forEach((fn) => fn.mockClear());
     routerBack.mockClear();
 });
@@ -175,6 +181,36 @@ scopedIt("submits transition and shows success toast", async () => {
     expect(executeTransition).toHaveBeenCalledWith("a", "m", "1", "a", expect.any(Object));
     expect(toastMock.success).toHaveBeenCalledWith("transition succeeded");
     expect(routerBack).toHaveBeenCalled();
+});
+
+scopedIt("renders the terminal-state empty branch with state-named title and back CTA", async () => {
+    mockedInject.mockReturnValueOnce({});
+    workflowStore.objectStates = {
+        "a.m": {
+            1: { state: { code: "paid", name: "Paid" } },
+        },
+    };
+    workflowStore.objectTransitions = { "a.m": { 1: { transitions: [] } } };
+    const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+    await vue.nextTick();
+    const empty = wrapper.find('[data-qa="view-workflow-transition-empty"]');
+    expect(empty.exists()).toBe(true);
+    expect(empty.text()).toContain("No transitions available from Paid.");
+    expect(fetchObjectState).toHaveBeenCalledWith("a", "m", "1");
+    const backButton = empty.findAll('[data-qa="button"]').at(-1);
+    await backButton.trigger("click");
+    expect(routerBack).toHaveBeenCalled();
+});
+
+scopedIt("falls back to a generic empty title when state name is unavailable", async () => {
+    mockedInject.mockReturnValueOnce({});
+    workflowStore.objectTransitions = { "a.m": { 1: { transitions: [] } } };
+    const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+    await vue.nextTick();
+    const empty = wrapper.find('[data-qa="view-workflow-transition-empty"]');
+    expect(empty.exists()).toBe(true);
+    expect(empty.text()).toContain("No transitions available.");
+    expect(empty.text()).not.toContain("from");
 });
 
 scopedIt("shows error toast when submission fails", async () => {

@@ -632,6 +632,31 @@ export default {
         radioOption: {
             class: ["flex items-center gap-2"],
         },
+        // Terminal-state empty branch: dashed-border tinted panel with a centred 36px circle
+        // icon, one-line title, short description, and a forward-pointing escape CTA.
+        empty: {
+            class: [
+                "flex flex-col items-center justify-center gap-2",
+                "py-12 px-6 text-center",
+                "rounded-vueda-card border-2 border-dashed border-border bg-muted/30",
+            ],
+        },
+        emptyIcon: {
+            class: [
+                "flex items-center justify-center",
+                "w-9 h-9 rounded-full bg-muted text-muted-foreground",
+                "text-[18px] leading-none",
+            ],
+        },
+        emptyTitle: {
+            class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
+        },
+        emptyDesc: {
+            class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground max-w-[44ch]"],
+        },
+        emptyAction: {
+            class: ["mt-2 flex justify-center"],
+        },
     },
     ViewRecoveryCodes: {
         root: {
