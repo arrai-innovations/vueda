@@ -311,6 +311,11 @@ export default {
             class: [],
         },
     },
+    ViewActivate: {
+        root: {
+            class: [],
+        },
+    },
     ViewTwoFactorAuth: {
         root: {
             class: [],
