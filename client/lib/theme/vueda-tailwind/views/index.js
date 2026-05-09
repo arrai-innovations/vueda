@@ -7,6 +7,7 @@ export default {
     PageTitle: {
         root: ({ headerClass, sticky }) => ({
             class: [
+                "border-b border-border",
                 headerClass,
                 {
                     "sticky top-0 z-30": sticky,
@@ -14,7 +15,7 @@ export default {
             ],
         }),
         container: {
-            class: ["flex flex-col gap-1 my-1"],
+            class: ["flex flex-col"],
         },
         titleContainer: {
             class: [
@@ -22,31 +23,43 @@ export default {
                 "sm:flex-row sm:justify-between",
                 "items-baseline justify-between",
                 "gap-2 md:gap-4",
+                "px-5 py-3",
             ],
         },
         titleWrapper: {
-            class: ["flex items-baseline flex-wrap", "min-w-min"],
+            class: ["flex flex-col gap-1", "min-w-min"],
+        },
+        eyebrow: {
+            class: [
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "text-muted-foreground leading-none",
+            ],
+        },
+        titleRow: {
+            class: ["flex items-baseline flex-wrap gap-2"],
         },
         title: {
-            class: ["font-bold leading-relaxed text-3xl"],
+            class: ["text-[22px] font-semibold leading-[1.2] tracking-[-0.005em]"],
         },
-        spacer: {
-            class: ["flex-1 min-w-6", "hidden sm:block", "border-neutral-300 dark:border-neutral-600 border-t-2"],
-        },
-        divider: {
-            class: ["block sm:hidden", "border-neutral-300 dark:border-neutral-600 border-t-2"],
+        titleSuffix: {
+            class: ["text-muted-foreground text-[13px]/[1.4] font-normal font-mono"],
         },
         buttons: {
             class: ["flex gap-1 flex-wrap", "justify-end", "self-center"],
         },
         subtitleContainer: {
-            class: ["w-full flex flex-wrap", "items-baseline justify-between", "gap-2 md:gap-4 lg:gap-7"],
+            class: [
+                "w-full flex flex-wrap",
+                "items-baseline justify-between",
+                "gap-2 md:gap-4 lg:gap-7",
+                "bg-muted/25 border-t border-border px-5 py-[10px]",
+            ],
         },
         footer: {
             class: [],
         },
         gradient: {
-            class: ["w-full h-2 md:h-3 lg:h-4"],
+            class: ["w-full h-3"],
         },
     },
     ActionForm: {
