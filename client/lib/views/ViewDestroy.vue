@@ -126,6 +126,8 @@ const computedBannerTitle = computed(() => {
                     :app="app"
                     :model="model"
                     :pk="pk"
+                    :bare="true"
+                    tone="danger"
                     :run-action="handleDelete"
                     :fetch-state="instanceList.state"
                     v-bind="$attrs"

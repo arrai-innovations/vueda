@@ -1,6 +1,7 @@
 <script setup>
 import ActionForm from "@vueda/components/ActionForm.vue";
 import FormField from "@vueda/fields/FormField.vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
@@ -8,12 +9,11 @@ import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constan
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
-import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
 import startCase from "lodash-es/startCase.js";
-import { computed, inject, toRef, unref, useSlots } from "vue";
+import { computed, toRef, unref, useSlots } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /**
@@ -21,6 +21,11 @@ import { useRoute, useRouter } from "vue-router";
  * bulk operation) against one or more model instances. It displays the
  * selected objects, a confirmation message, and handles submission, dry-run
  * validation, and post-action redirect to the appropriate list or detail view.
+ *
+ * Renders a tone-tracked confirmation card with a banner, a selected-objects
+ * chip-row panel, and a confirm-prompt panel. The `bare` prop suppresses the
+ * card chrome and banner so a parent view (such as `ViewDestroy`) can wrap
+ * the form in its own toned card.
  */
 
 defineOptions({
@@ -82,8 +87,38 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    /**
+     * Sentiment tone that drives the banner and card accents.
+     * One of `info` (default confirmations), `success` (activate / restore),
+     * `warning` (irreversible non-destructive), or `danger` (destructive).
+     * Routed via `data-tone` on the card root and consumed by Tailwind v4
+     * `group-data-[tone=…]/model-action-form:` variants.
+     */
+    tone: {
+        type: String,
+        default: "info",
+        validator: (value) => ["info", "success", "warning", "danger", "neutral"].includes(value),
+    },
+    /** Optional banner title; defaults to a sentence built from action + model name. */
+    bannerTitle: {
+        type: String,
+        default: undefined,
+    },
+    /** Optional banner description; defaults to "Review the selected records before continuing." */
+    bannerDescription: {
+        type: String,
+        default: undefined,
+    },
+    /**
+     * When true, suppress the card chrome and tone-tracked banner. Used by
+     * parent views (such as `ViewDestroy`) that wrap the form in their own
+     * toned card.
+     */
+    bare: {
+        type: Boolean,
+        default: false,
+    },
 });
-const formContext = inject(FormContextSymbol);
 
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
@@ -104,6 +139,7 @@ const actionErrorSummaryComputed = computed(() => {
 const pks = computed(() => props.fetchState?.objectsInOrder?.map((obj) => obj.id));
 const pksAsString = computed(() => unref(pks)?.map((pk) => pk.toString()));
 const bulk = computed(() => unref(pks)?.length > 1);
+const pkCount = computed(() => unref(pks)?.length ?? 0);
 
 const modelVerboseName = computed(() =>
     unref(bulk)
@@ -119,6 +155,32 @@ const computedConfirmMessage = computed(
     () =>
         `Are you sure you want to ${unref(computedActionVerboseNameLowerCase)} the selected ${unref(modelVerboseName)}?`,
 );
+
+const computedBannerTitle = computed(() => {
+    if (props.bannerTitle) {
+        return props.bannerTitle;
+    }
+    return startCase(`${unref(computedActionVerboseNameLowerCase)} ${unref(modelVerboseName)}`);
+});
+
+const computedBannerDescription = computed(() => {
+    if (props.bannerDescription) {
+        return props.bannerDescription;
+    }
+    return "Review the selected records before continuing.";
+});
+
+const bannerIconName = computed(() => {
+    switch (props.tone) {
+        case "success":
+            return "circleCheck";
+        case "warning":
+        case "danger":
+            return "triangleExclamation";
+        default:
+            return "info";
+    }
+});
 
 const route = useRoute();
 const redirectTo = async (result) => {
@@ -185,6 +247,7 @@ const defaultRunAction = ({ formValues, dryRun }) => {
     );
 };
 const theme = useTheme("ModelActionForm", props);
+const icon = useIcons("ModelActionForm");
 const slots = useSlots();
 const dryRun = computed(
     () => !!(props.app && props.model && props.action && props.enableDryRun && pks.value.length > 0),
@@ -205,59 +268,128 @@ const dryRun = computed(
             <slot :name="slot" v-bind="slotProps || {}" />
         </template>
         <template #action-form-inner="{ combinedLoading }">
-            <div :class="theme('selectedObjects')" data-qa="action-form-selected-objects" data-tone="neutral">
-                <!-- @slot [selected-objects] Override the list of selected objects shown above the confirmation form. -->
+            <component
+                :is="bare ? 'div' : 'section'"
+                :class="bare ? theme('bare') : theme('card')"
+                :data-tone="bare ? undefined : tone"
+                :data-qa="bare ? undefined : 'model-action-form-card'"
+            >
+                <!-- @slot [action-banner] Override the tone-tracked banner shown above the confirmation body. Only rendered when `bare` is false. -->
                 <slot
-                    :loading="combinedLoading"
-                    name="selected-objects"
-                    :objects="fetchState?.objectsMap"
-                    :pks="pksAsString"
-                    :theme="theme"
+                    v-if="!bare"
+                    name="action-banner"
+                    :tone="tone"
+                    :title="computedBannerTitle"
+                    :description="computedBannerDescription"
+                    :action="action"
+                    :pk-count="pkCount"
+                    :model-verbose-name="modelVerboseName"
                 >
-                    <span :class="theme('selectedObjectsLabel')"> Selected {{ unref(modelVerboseName) }} </span>
-                    <div v-if="combinedLoading">
-                        <p>Loading objects...</p>
-                    </div>
-                    <ul v-else :class="theme('list')" data-qa="action-form-list">
-                        <li
-                            v-for="pk in pksAsString"
-                            :key="pk"
-                            :class="theme('listItem')"
-                            data-qa="action-form-list-item"
+                    <div :class="theme('banner')" data-qa="model-action-form-banner">
+                        <div
+                            v-if="$slots['banner-icon'] || icon(bannerIconName)"
+                            :class="theme('bannerIcon')"
+                            aria-hidden="true"
                         >
-                            <form-field :field-value="pk" :label="pk" :name="pk" :read-only="true">
-                                <widget-read-only
-                                    :app="app"
-                                    :foreign-key-obj="fetchState.objectsMap.get(pk)"
-                                    :hidden="true"
-                                    :invalid="false"
-                                    :loading="combinedLoading"
-                                    :model="model"
-                                    :warning="false"
+                            <!-- @slot [banner-icon] Replaces the icon shown in the action banner; receives `tone` and `iconName` as slot props. -->
+                            <slot name="banner-icon" :tone="tone" :icon-name="bannerIconName">
+                                <component
+                                    :is="icon(bannerIconName).component"
+                                    v-bind="icon(bannerIconName).props"
+                                    aria-hidden="true"
+                                />
+                            </slot>
+                        </div>
+                        <div :class="theme('bannerBody')">
+                            <div :class="theme('bannerTitle')" data-qa="model-action-form-banner-title">
+                                {{ computedBannerTitle }}
+                            </div>
+                            <p :class="theme('bannerDesc')" data-qa="model-action-form-banner-desc">
+                                {{ computedBannerDescription }}
+                            </p>
+                            <!-- @slot [banner-meta] Optional mono meta strip rendered below the banner description (e.g. "action archive · scope 4 selected"). -->
+                            <div
+                                v-if="$slots['banner-meta']"
+                                :class="theme('bannerMeta')"
+                                data-qa="model-action-form-banner-meta"
+                            >
+                                <slot name="banner-meta" :tone="tone" :action="action" :pk-count="pkCount" />
+                            </div>
+                        </div>
+                    </div>
+                </slot>
+                <div :class="theme('body')" data-qa="model-action-form-body">
+                    <div :class="theme('selectedObjects')" data-qa="action-form-selected-objects" data-tone="neutral">
+                        <!-- @slot [selected-objects] Override the list of selected objects shown above the confirmation form. -->
+                        <slot
+                            :loading="combinedLoading"
+                            name="selected-objects"
+                            :objects="fetchState?.objectsMap"
+                            :pks="pksAsString"
+                            :theme="theme"
+                        >
+                            <div :class="theme('selectedHead')">
+                                <span :class="theme('selectedObjectsLabel')">
+                                    Selected {{ unref(modelVerboseName) }}
+                                </span>
+                                <span
+                                    v-if="pkCount > 0"
+                                    :class="theme('selectedHeadCount')"
+                                    data-qa="action-form-selected-count"
                                 >
-                                    <template #link-item="linkItemSlotProps">
-                                        <!-- @slot [link-item] Override the link rendered for each selected object in the default list. -->
-                                        <slot name="link-item" v-bind="linkItemSlotProps" />
-                                    </template>
-                                </widget-read-only>
-                            </form-field>
-                            <span :class="theme('listItemPk')" data-qa="action-form-list-item-pk">
-                                {{ pk }}
-                            </span>
-                        </li>
-                    </ul>
-                </slot>
-            </div>
-            <div :class="theme('message')" data-qa="action-form-message">
-                <!-- @slot [confirm-error-message] Override the error message shown when the action has validation errors. -->
-                <slot v-if="formContext.state.anyError" name="confirm-error-message">
-                    <p>Please see the error message above.</p>
-                </slot>
-                <!-- @slot [confirm-message] Override the confirmation prompt shown before submitting. -->
-                <slot v-else name="confirm-message">
-                    <p>{{ computedConfirmMessage }}</p>
-                </slot>
-            </div>
+                                    {{ pkCount }} of {{ pkCount }} selected
+                                </span>
+                            </div>
+                            <div v-if="combinedLoading">
+                                <p>Loading objects...</p>
+                            </div>
+                            <ul v-else :class="theme('list')" data-qa="action-form-list">
+                                <li
+                                    v-for="pk in pksAsString"
+                                    :key="pk"
+                                    :class="theme('listItem')"
+                                    data-qa="action-form-list-item"
+                                >
+                                    <form-field :field-value="pk" :label="pk" :name="pk" :read-only="true">
+                                        <widget-read-only
+                                            :app="app"
+                                            :foreign-key-obj="fetchState.objectsMap.get(pk)"
+                                            :hidden="true"
+                                            :invalid="false"
+                                            :loading="combinedLoading"
+                                            :model="model"
+                                            :warning="false"
+                                        >
+                                            <template #link-item="linkItemSlotProps">
+                                                <!-- @slot [link-item] Override the link rendered for each selected object in the default list. -->
+                                                <slot name="link-item" v-bind="linkItemSlotProps" />
+                                            </template>
+                                        </widget-read-only>
+                                    </form-field>
+                                    <span :class="theme('listItemPk')" data-qa="action-form-list-item-pk">
+                                        {{ pk }}
+                                    </span>
+                                </li>
+                            </ul>
+                        </slot>
+                    </div>
+                    <div :class="theme('message')" data-qa="action-form-message">
+                        <!-- @slot [confirm-message] Override the confirmation prompt shown before submitting. -->
+                        <slot name="confirm-message">
+                            <p :class="theme('messageText')">{{ computedConfirmMessage }}</p>
+                        </slot>
+                    </div>
+                    <!-- @slot [extra-fields] Additional FormField inputs rendered below the confirm prompt, inside the card body. -->
+                    <div v-if="$slots['extra-fields']" :class="theme('extraFields')" data-qa="action-form-extra-fields">
+                        <slot
+                            name="extra-fields"
+                            :loading="combinedLoading"
+                            :pks="pksAsString"
+                            :objects="fetchState?.objectsMap"
+                        />
+                    </div>
+                </div>
+            </component>
         </template>
     </action-form>
 </template>

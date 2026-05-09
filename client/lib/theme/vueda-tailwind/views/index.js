@@ -64,14 +64,10 @@ export default {
     },
     ActionForm: {
         root: {
-            class: [
-                "max-w-7xl",
-                "bg-accent/30 border border-border rounded-vueda-card p-4",
-                "shadow-[inset_3px_0_0_var(--ring)]",
-            ],
+            class: ["max-w-7xl"],
         },
         inner: {
-            class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4 mt-1"],
+            class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4"],
         },
         selectedObjects: {
             class: [],
@@ -79,8 +75,21 @@ export default {
         message: {
             class: [],
         },
+        // Pinned actions strip: horizontal row with a top hairline and a tinted-muted bg
+        // closing the card body. Wraps on narrow viewports rather than stacking column.
         buttons: {
-            class: ["flex flex-col lg:flex-row gap-1 md:gap-2 flex-wrap lg:flex-nowrap pt-4"],
+            class: [
+                "flex flex-row flex-wrap items-center gap-2",
+                "px-4 py-3 mt-2",
+                "border-t border-border bg-muted/25",
+                "rounded-b-vueda-card",
+            ],
+        },
+        buttonsSpacer: {
+            class: ["flex-1 min-w-0"],
+        },
+        buttonsHint: {
+            class: ["ml-auto text-[12px] leading-none text-muted-foreground", "inline-flex items-center gap-1.5"],
         },
         list: {
             class: ["flex flex-col gap-1 md:gap-2 lg:max-w-max"],
@@ -92,22 +101,152 @@ export default {
             // class: ["max-w-full overflow-x-auto p-1 2xs:p-2 2xl:p-4 flex flex-col gap-2"],
             class: "",
         },
+        // Structured per-field validation alert. Renders when formContext.state.anyError
+        // is set and at least one field carries an error. Tone tracks danger via
+        // data-tone="danger" on the alert root; routed through Tailwind v4
+        // `group-data-[tone=danger]/action-form-validation:` if needed by future skins.
+        validation: {
+            class: [
+                "flex items-start gap-3 p-3 mb-2",
+                "rounded-vueda-card border border-destructive/40",
+                "bg-[color-mix(in_oklab,var(--destructive)_6%,transparent)]",
+            ],
+        },
+        validationIcon: {
+            class: [
+                "flex items-center justify-center shrink-0",
+                "w-9 h-9 rounded-full bg-destructive text-destructive-foreground",
+                "text-[18px] leading-none",
+            ],
+        },
+        validationBody: {
+            class: ["flex flex-col gap-1 min-w-0"],
+        },
+        validationTitle: {
+            class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
+        },
+        validationDesc: {
+            class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
+        },
+        validationList: {
+            class: ["flex flex-col gap-0.5 m-0 mt-1 p-0 list-none"],
+        },
+        validationListItem: {
+            class: ["flex items-baseline gap-2 text-[12px] leading-[1.5]"],
+        },
+        validationField: {
+            class: ["font-mono text-[11.5px] font-medium text-foreground shrink-0"],
+        },
+        validationMsg: {
+            class: ["text-[12px] font-normal text-muted-foreground"],
+        },
     },
     ModelActionForm: {
         root: {
             class: [],
         },
+        // Bare wrapper used when the form is embedded in an outer toned card
+        // (e.g. ViewDestroy). No card chrome; chip-row tone routing still works
+        // via the parent group scope.
+        bare: {
+            class: ["contents"],
+        },
+        // Canonical confirmation card. Opens a `group/model-action-form` named
+        // group so descendants can opt into tone via
+        // `group-data-[tone=…]/model-action-form:` variants. data-tone on the
+        // root drives info / success / warning / danger / neutral accents.
+        card: {
+            class: [
+                "group/model-action-form",
+                "rounded-vueda-card border bg-card overflow-hidden",
+                // info (default)
+                "data-[tone=info]:border-border",
+                "data-[tone=info]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--ring)_8%,transparent)]",
+                // success
+                "data-[tone=success]:border-success/50",
+                "data-[tone=success]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--success)_8%,transparent)]",
+                // warning
+                "data-[tone=warning]:border-warning/50",
+                "data-[tone=warning]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--warning)_8%,transparent)]",
+                // danger
+                "data-[tone=danger]:border-destructive/50",
+                "data-[tone=danger]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--destructive)_8%,transparent)]",
+            ],
+        },
+        // Tone-tracked banner. Background and border tint route from the card's
+        // data-tone via group-data-[tone=…]/model-action-form: variants.
+        banner: {
+            class: [
+                "flex items-start gap-3 p-4",
+                "border-b",
+                // info
+                "group-data-[tone=info]/model-action-form:border-border",
+                "group-data-[tone=info]/model-action-form:bg-[color-mix(in_oklab,var(--info)_6%,transparent)]",
+                // success
+                "group-data-[tone=success]/model-action-form:border-success/20",
+                "group-data-[tone=success]/model-action-form:bg-[color-mix(in_oklab,var(--success)_6%,transparent)]",
+                // warning
+                "group-data-[tone=warning]/model-action-form:border-warning/20",
+                "group-data-[tone=warning]/model-action-form:bg-[color-mix(in_oklab,var(--warning)_6%,transparent)]",
+                // danger
+                "group-data-[tone=danger]/model-action-form:border-destructive/20",
+                "group-data-[tone=danger]/model-action-form:bg-destructive/[0.06]",
+            ],
+        },
+        bannerIcon: {
+            class: [
+                "flex items-center justify-center shrink-0",
+                "w-9 h-9 rounded-full",
+                "text-[18px] font-semibold leading-none",
+                // info
+                "group-data-[tone=info]/model-action-form:bg-info group-data-[tone=info]/model-action-form:text-info-foreground",
+                // success
+                "group-data-[tone=success]/model-action-form:bg-success group-data-[tone=success]/model-action-form:text-success-foreground",
+                // warning
+                "group-data-[tone=warning]/model-action-form:bg-warning group-data-[tone=warning]/model-action-form:text-warning-foreground",
+                // danger
+                "group-data-[tone=danger]/model-action-form:bg-destructive group-data-[tone=danger]/model-action-form:text-destructive-foreground",
+            ],
+        },
+        bannerBody: {
+            class: ["flex flex-col gap-1 min-w-0"],
+        },
+        bannerTitle: {
+            class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
+        },
+        bannerDesc: {
+            class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
+        },
+        // Optional mono meta strip below the description. OBS-011 mono recipe
+        // for machine-readable values; OBS-015 eyebrow letter-spacing.
+        bannerMeta: {
+            class: ["font-mono text-[11px] font-normal leading-[1.5] tracking-[0.04em]", "text-muted-foreground"],
+        },
+        body: {
+            class: ["p-4 flex flex-col gap-3"],
+        },
         inner: {
             class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4 mt-1"],
         },
+        // Selected-objects panel: tinted-muted bg, hairline, rounded card radius.
+        // Tone routing routes destructive when nested in a danger card (either
+        // the surrounding ViewDestroy or the ModelActionForm itself).
         selectedObjects: {
             class: [
                 "rounded-vueda-card bg-muted/25 border border-border p-3",
                 "flex flex-col gap-2",
-                // When the surrounding ViewDestroy card is in danger tone, tint the
-                // selected-records container with a destructive wash + hairline.
+                // Tint when surrounding ViewDestroy card is in danger tone.
                 "group-data-[tone=danger]/view-destroy:bg-destructive/[0.06] group-data-[tone=danger]/view-destroy:border-destructive/40",
+                // Same when the ModelActionForm card itself is in danger tone.
+                "group-data-[tone=danger]/model-action-form:bg-destructive/[0.06] group-data-[tone=danger]/model-action-form:border-destructive/40",
             ],
+        },
+        // Eyebrow head: label + count, separated. OBS-015 eyebrow recipe.
+        selectedHead: {
+            class: ["flex flex-row items-baseline justify-between flex-wrap gap-2"],
+        },
+        selectedHeadCount: {
+            class: ["font-mono text-[11px] font-normal leading-none tabular-nums", "text-muted-foreground"],
         },
         selectedObjectsLabel: {
             class: [
@@ -115,12 +254,29 @@ export default {
                 "text-muted-foreground leading-none",
             ],
         },
+        // Confirm-prompt panel: tinted-muted bg with a 2px primary left rule.
+        // Multi-paragraph guidance accommodated via flex-col on the inner.
         message: {
-            class: [],
+            class: [
+                "flex flex-col gap-1.5",
+                "rounded-vueda-control bg-muted/25",
+                "border-l-2 border-primary/60",
+                "px-3 py-2.5",
+            ],
+        },
+        messageText: {
+            class: ["text-[13px] leading-[1.5] text-foreground m-0"],
+        },
+        // Extra-fields slot below the prompt; standard form-field stack.
+        extraFields: {
+            class: ["flex flex-col gap-3"],
         },
         buttons: {
             class: ["flex flex-col lg:flex-row gap-1 md:gap-2 flex-wrap lg:flex-nowrap"],
         },
+        // Chip-row dialect (Group D names retained for backwards compat with
+        // ViewDestroy; complement keys `selectedHead` / `selectedHeadCount`
+        // added above to align with the kit's preferred recipe).
         list: {
             class: ["flex flex-row flex-wrap gap-2"],
         },
@@ -129,9 +285,8 @@ export default {
                 "inline-flex items-center gap-2 px-2 py-1 rounded-vueda-control",
                 "border border-border bg-card",
                 "text-[12px] font-medium text-foreground leading-none",
-                // Danger tone tints chip text + border with destructive when the
-                // surrounding card is in danger context.
                 "group-data-[tone=danger]/view-destroy:border-destructive/40 group-data-[tone=danger]/view-destroy:bg-card",
+                "group-data-[tone=danger]/model-action-form:border-destructive/40 group-data-[tone=danger]/model-action-form:bg-card",
             ],
         },
         listItemLabel: {
@@ -141,6 +296,7 @@ export default {
             class: [
                 "text-[11px] font-normal font-mono text-muted-foreground leading-none",
                 "group-data-[tone=danger]/view-destroy:text-destructive/80",
+                "group-data-[tone=danger]/model-action-form:text-destructive/80",
             ],
         },
         nonFieldErrorBlock: {

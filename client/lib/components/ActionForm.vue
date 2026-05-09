@@ -4,12 +4,18 @@ import FormMessage from "@vueda/components/FormMessage.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { useActionForm } from "@vueda/use/useActionForm.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
-import { inject } from "vue";
+import { computed, inject } from "vue";
 
 /**
  * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides confirm and cancel button slots.
+ *
+ * Renders a pinned actions strip (confirm + cancel + optional hint) and, when
+ * the form has unresolved per-field errors, a structured validation alert
+ * sourced from `formContext.state.errors`.
  */
 defineOptions({
     inheritAttrs: false,
@@ -89,6 +95,34 @@ const { combinedError, combinedErrored, combinedLoading, handleConfirm, handleCa
     props,
 );
 const theme = useTheme("ActionForm", props);
+const icon = useIcons("ActionForm");
+
+/**
+ * Per-field validation entries derived from `formContext.state.errors`.
+ * Each entry is `{ field, messages: string[] }`. Non-field errors are
+ * surfaced separately via `<form-message type="error" />` and are excluded
+ * from the per-field list.
+ */
+const validationEntries = computed(() => {
+    const errors = formContext?.state?.errors || {};
+    const entries = [];
+    for (const [field, codes] of Object.entries(errors)) {
+        if (field === NON_FIELD_ERRORS_KEY) continue;
+        if (!codes || typeof codes !== "object") continue;
+        const messages = Object.values(codes).filter(Boolean);
+        if (messages.length === 0) continue;
+        entries.push({ field, messages });
+    }
+    return entries;
+});
+
+const showValidation = computed(() => !!formContext?.state?.anyError && validationEntries.value.length > 0);
+const validationCount = computed(() => validationEntries.value.length);
+const validationTitle = computed(() => {
+    const n = validationCount.value;
+    if (n === 0) return "Cannot run action";
+    return `Cannot run action — ${n} ${n === 1 ? "field needs" : "fields need"} attention`;
+});
 </script>
 
 <template>
@@ -111,6 +145,54 @@ const theme = useTheme("ActionForm", props);
                         handleCancelClick,
                     }"
                 />
+                <!-- @slot [validation-summary] Override the structured per-field validation alert shown when `formContext.state.anyError` is set; receives `entries`, `count`, and `title`. -->
+                <slot
+                    v-if="showValidation"
+                    name="validation-summary"
+                    :entries="validationEntries"
+                    :count="validationCount"
+                    :title="validationTitle"
+                >
+                    <div :class="theme('validation')" role="alert" data-tone="danger" data-qa="action-form-validation">
+                        <div
+                            v-if="$slots['validation-icon'] || icon('triangleExclamation')"
+                            :class="theme('validationIcon')"
+                            aria-hidden="true"
+                        >
+                            <!-- @slot [validation-icon] Replaces the icon shown in the validation alert. -->
+                            <slot name="validation-icon">
+                                <component
+                                    :is="icon('triangleExclamation').component"
+                                    v-bind="icon('triangleExclamation').props"
+                                    aria-hidden="true"
+                                />
+                            </slot>
+                        </div>
+                        <div :class="theme('validationBody')">
+                            <div :class="theme('validationTitle')" data-qa="action-form-validation-title">
+                                {{ validationTitle }}
+                            </div>
+                            <p :class="theme('validationDesc')" data-qa="action-form-validation-desc">
+                                Resolve the highlighted fields, then try again.
+                            </p>
+                            <ul :class="theme('validationList')" data-qa="action-form-validation-list">
+                                <li
+                                    v-for="entry in validationEntries"
+                                    :key="entry.field"
+                                    :class="theme('validationListItem')"
+                                    data-qa="action-form-validation-item"
+                                >
+                                    <span :class="theme('validationField')" data-qa="action-form-validation-field">
+                                        {{ entry.field }}
+                                    </span>
+                                    <span :class="theme('validationMsg')">
+                                        {{ entry.messages.join("; ") }}
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </slot>
                 <!-- Action bar containing the confirm and cancel buttons; receives `loading`, `handleConfirm`, and `handleCancelClick` as slot props. -->
                 <slot
                     :loading="combinedLoading"
@@ -146,6 +228,19 @@ const theme = useTheme("ActionForm", props);
                                 Cancel, go back
                             </Button>
                         </slot>
+                        <!-- @slot [actions-hint] Optional right-aligned hint shown in the actions strip (e.g. keyboard shortcut, reversibility note, audit hint). -->
+                        <div
+                            v-if="$slots['actions-hint']"
+                            :class="theme('buttonsSpacer')"
+                            data-qa="action-form-buttons-spacer"
+                        ></div>
+                        <div
+                            v-if="$slots['actions-hint']"
+                            :class="theme('buttonsHint')"
+                            data-qa="action-form-buttons-hint"
+                        >
+                            <slot name="actions-hint" />
+                        </div>
                     </div>
                 </slot>
             </form>
