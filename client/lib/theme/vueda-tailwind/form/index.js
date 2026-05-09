@@ -12,7 +12,7 @@ export default {
             class: ["flex flex-col"],
         },
         label: {
-            class: ["ml-2 leading-7", "text-neutral-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-muted-foreground"],
         },
         header: {
             class: ["flex", "items-center", "justify-between"],
@@ -32,16 +32,16 @@ export default {
             class: [],
         },
         inner: {
-            class: ["flex flex-row flex-wrap gap1 2xs:gap-2"],
+            class: ["flex flex-row flex-wrap gap-1 2xs:gap-2"],
         },
         header: {
             class: ["flex items-baseline gap-1 2xs:gap-2"],
         },
         title: {
-            class: "ml-2 leading-7 text-neutral-900 dark:text-white text-lg",
+            class: "ml-2 leading-7 text-foreground text-lg",
         },
         label: {
-            class: ["ml-2 leading-7", "text-neutral-900/60 dark:text-white/60"],
+            class: ["ml-2 leading-7", "text-muted-foreground"],
         },
         field: {
             class: [
@@ -57,13 +57,13 @@ export default {
             class: ["flex flex-col"],
         },
         hr: {
-            class: "w-full flex-1 border-neutral-300 dark:border-neutral-600 border-t-2 my-2",
+            class: "w-full flex-1 border-border border-t-2 my-2",
         },
         titleBar: {
             class: "ml-2 leading-7 flex items-baseline gap-1 2xs:gap-2 2xl:gap-4",
         },
         title: {
-            class: ["text-neutral-900 dark:text-white"],
+            class: ["text-foreground"],
         },
         field: {
             class: [
@@ -86,53 +86,6 @@ export default {
         },
         itemActionBar: {
             class: "flex gap-1 2xs:gap-2 2xl:gap-4 items-baseline",
-        },
-        createButton: {
-            class: "grow",
-        },
-    },
-    FieldSetSingularStackedInline: {
-        root: {
-            class: [],
-        },
-        label: {
-            calss: [],
-        },
-        outer: {
-            class: ["flex items-baseline gap-2"],
-        },
-        header: {
-            class: "ml-2 leading-7",
-        },
-        actionBar: {
-            class: "grow-0 flex gap-1 2xs:gap-2 2xl:gap-4",
-        },
-        itemActionBar: {
-            class: "flex gap-1 2xs:gap-2 2xl:gap-4 items-baseline",
-        },
-        fieldInner: {
-            class: [],
-        },
-        inner: {
-            class: ["flex flex-col"],
-        },
-        hr: {
-            class: "w-full flex-1 border-neutral-300 dark:border-neutral-600 border-t-2 my-2",
-        },
-        titleBar: {
-            class: "ml-2 leading-7 flex items-baseline gap-1 2xs:gap-2 2xl:gap-4",
-        },
-        title: {
-            class: ["text-neutral-900 dark:text-white"],
-        },
-        inlineRows: {
-            class: [],
-        },
-        inLineCreateButton: {
-            class: ["!w-full h-full"],
-        },
-        toggleButton: {
-            class: [],
         },
         createButton: {
             class: "grow",
@@ -171,13 +124,13 @@ export default {
             class: ["flex flex-col"],
         },
         hr: {
-            class: "w-full flex-1 border-neutral-300 dark:border-neutral-600 border-t-2 my-2",
+            class: "w-full flex-1 border-border border-t-2 my-2",
         },
         titleBar: {
             class: "ml-2 leading-7 flex items-baseline gap-1 2xs:gap-2 2xl:gap-4",
         },
         title: {
-            class: ["text-neutral-900 dark:text-white"],
+            class: ["text-foreground"],
         },
         actionBar: {
             class: "grow-0 flex gap-1 2xs:gap-2 2xl:gap-4",
