@@ -50,15 +50,24 @@ export default {
             };
         },
         inner: {
-            //bg-zinc-100 dark:bg-zinc-800 pt-[2px]
-            class: ["bg-white dark:bg-black", "pt-2"],
+            class: ["bg-card border-b border-border px-5 py-[10px] flex items-center flex-wrap gap-2"],
+        },
+        primary: {
+            class: ["flex flex-wrap gap-1.5 mr-auto"],
+        },
+        secondary: {
+            class: ["flex flex-wrap gap-1.5 items-center"],
+        },
+        dirty: {
+            class: [
+                "inline-flex items-center justify-center",
+                "h-[22px] px-2 rounded-full",
+                "bg-primary/[0.12] text-primary",
+                "text-[10px] font-semibold uppercase tracking-[0.06em] leading-none",
+            ],
         },
         gradient: {
-            class: [
-                //w-full h-1 md:h-2 2xl:h-4 bg-gradient-to-b from-zinc-100 to-transparent dark:from-zinc-800 dark:to-transparent
-                "w-full h-1 md:h-2 2xl:h-4",
-                "bg-gradient-to-b from-white to-transparent dark:from-black dark:to-transparent",
-            ],
+            class: ["w-full h-3", "bg-gradient-to-b from-card to-transparent"],
         },
     },
     FilterGroup: {

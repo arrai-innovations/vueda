@@ -114,21 +114,26 @@ onMounted(() => {
             </template>
         </page-title>
         <sticky-bar class="w-full">
-            <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="update-action-buttons">
-                <slot
-                    :form="instance.formId"
-                    label="Submit"
-                    :loading="objectForm.state.loading"
-                    :modifed="formContext.state.anyModified"
-                    name="submit-button"
-                    type="submit"
+            <template #primary>
+                <div
+                    class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
+                    data-qa="update-action-buttons"
                 >
-                    <Button :form="instance.formId" :disabled="objectForm.state.loading" type="submit">
-                        <LoadingSpinnerInline v-if="objectForm.state.loading" />
-                        Submit
-                    </Button>
-                </slot>
-            </div>
+                    <slot
+                        :form="instance.formId"
+                        label="Submit"
+                        :loading="objectForm.state.loading"
+                        :modified="formContext.state.anyModified"
+                        name="submit-button"
+                        type="submit"
+                    >
+                        <Button :form="instance.formId" :disabled="objectForm.state.loading" type="submit">
+                            <LoadingSpinnerInline v-if="objectForm.state.loading" />
+                            Submit
+                        </Button>
+                    </slot>
+                </div>
+            </template>
         </sticky-bar>
         <div>
             <error-display

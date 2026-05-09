@@ -27,7 +27,10 @@ vi.mock("@vueda/components/PageTitle.vue", () => ({
     default: defineComponent({ name: "PageTitle", template: "<div><slot name='button' /></div>" }),
 }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({
-    default: defineComponent({ name: "StickyBar", template: "<div><slot /></div>" }),
+    default: defineComponent({
+        name: "StickyBar",
+        template: "<div><slot /><slot name='primary' /><slot name='secondary' /></div>",
+    }),
 }));
 
 let mockFormContext;

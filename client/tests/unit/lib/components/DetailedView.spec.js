@@ -66,7 +66,12 @@ const PageTitleStub = defineComponent({
 const StickyBarStub = defineComponent({
     name: "StickyBarStub",
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "sticky-bar" }, slots.default ? slots.default() : null);
+        return () =>
+            h("div", { "data-qa": "sticky-bar" }, [
+                slots.default ? slots.default() : null,
+                slots.primary ? slots.primary() : null,
+                slots.secondary ? slots.secondary() : null,
+            ]);
     },
 });
 const ButtonStub = defineComponent({

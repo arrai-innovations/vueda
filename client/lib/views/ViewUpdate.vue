@@ -6,10 +6,11 @@ import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
-import { onMounted, provide, readonly, toRef, useSlots } from "vue";
+import { computed, onMounted, provide, readonly, toRef, useSlots } from "vue";
 
 /**
  * Editable detail view that loads a model instance, presents it in a form, and submits changes
@@ -130,6 +131,9 @@ const slots = useSlots();
 
 const { formContext, objectForm, instanceObject, instance, actions } = useViewUpdate(props);
 
+const stickyBarTheme = useTheme("StickyBar", {});
+const dirtyClass = computed(() => stickyBarTheme("dirty"));
+
 provide(FormContextSymbol, formContext);
 
 onMounted(() => {
@@ -179,64 +183,78 @@ onMounted(() => {
             </template>
         </page-title>
         <sticky-bar class="w-full">
-            <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="update-action-button">
-                <!-- @slot [submit-button] Override the submit button shown in the sticky action bar. -->
-                <slot
-                    :form="instance.formId"
-                    label="Submit"
-                    :loading="objectForm.state.loading"
-                    :modified="formContext.state.anyModified"
-                    name="submit-button"
-                    type="submit"
-                >
-                    <Button :form="instance.formId" :disabled="objectForm.state.loading" type="submit">
-                        <LoadingSpinnerInline v-if="objectForm.state.loading" />
-                        Submit
-                    </Button>
-                </slot>
-                <template v-for="actionName in actions.detailActions" :key="actionName">
-                    <!-- @slot [action-button] Override an individual action link button in the sticky bar. -->
+            <template #primary>
+                <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="update-action-button">
+                    <!-- @slot [submit-button] Override the submit button shown in the sticky action bar. -->
                     <slot
-                        :app="app"
-                        :label="memoizedStartCase(actionName)"
-                        :model="model"
-                        name="action-button"
-                        :pk="pk"
-                        :view="actionName"
+                        :form="instance.formId"
+                        label="Submit"
+                        :loading="objectForm.state.loading"
+                        :modified="formContext.state.anyModified"
+                        name="submit-button"
+                        type="submit"
                     >
-                        <link-model-view
+                        <Button :form="instance.formId" :disabled="objectForm.state.loading" type="submit">
+                            <LoadingSpinnerInline v-if="objectForm.state.loading" />
+                            Submit
+                        </Button>
+                    </slot>
+                    <template v-for="actionName in actions.detailActions" :key="actionName">
+                        <!-- @slot [action-button] Override an individual action link button in the sticky bar. -->
+                        <slot
                             :app="app"
-                            button
                             :label="memoizedStartCase(actionName)"
                             :model="model"
+                            name="action-button"
                             :pk="pk"
-                            severity="secondary"
                             :view="actionName"
-                        />
-                    </slot>
-                </template>
-                <template v-for="transition in actions.availableTransitions" :key="transition">
-                    <!-- @slot [transition-button] Override an individual workflow transition button in the sticky bar. -->
-                    <slot
-                        :app="app"
-                        :label="memoizedStartCase(transition)"
-                        :model="model"
-                        name="transition-button"
-                        :pk="pk"
-                        :view="transition"
-                    >
-                        <link-model-view
+                        >
+                            <link-model-view
+                                :app="app"
+                                button
+                                :label="memoizedStartCase(actionName)"
+                                :model="model"
+                                :pk="pk"
+                                severity="secondary"
+                                :view="actionName"
+                            />
+                        </slot>
+                    </template>
+                    <template v-for="transition in actions.availableTransitions" :key="transition">
+                        <!-- @slot [transition-button] Override an individual workflow transition button in the sticky bar. -->
+                        <slot
                             :app="app"
-                            button
                             :label="memoizedStartCase(transition)"
                             :model="model"
+                            name="transition-button"
                             :pk="pk"
-                            severity="secondary"
                             :view="transition"
-                        />
-                    </slot>
-                </template>
-            </div>
+                        >
+                            <link-model-view
+                                :app="app"
+                                button
+                                :label="memoizedStartCase(transition)"
+                                :model="model"
+                                :pk="pk"
+                                severity="secondary"
+                                :view="transition"
+                            />
+                        </slot>
+                    </template>
+                </div>
+            </template>
+            <template #secondary>
+                <span
+                    v-if="formContext.state.anyModified"
+                    :class="dirtyClass"
+                    data-qa="update-dirty-indicator"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <span aria-hidden="true">●</span>
+                    Unsaved changes
+                </span>
+            </template>
         </sticky-bar>
         <div :class="props.outerClass" data-qa="update-form">
             <error-display

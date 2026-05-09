@@ -99,50 +99,52 @@ onMounted(() => {
             </template>
         </page-title>
         <sticky-bar class="w-full">
-            <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="read-action-button">
-                <template v-for="actionName in actions.detailActions" :key="actionName">
-                    <!-- @slot [action-button] Override an individual action link button in the sticky bar. -->
-                    <slot
-                        :app="app"
-                        :label="memoizedStartCase(actionName)"
-                        :model="model"
-                        name="action-button"
-                        :pk="pk"
-                        :view="actionName"
-                    >
-                        <link-model-view
+            <template #primary>
+                <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="read-action-button">
+                    <template v-for="actionName in actions.detailActions" :key="actionName">
+                        <!-- @slot [action-button] Override an individual action link button in the sticky bar. -->
+                        <slot
                             :app="app"
-                            button
                             :label="memoizedStartCase(actionName)"
                             :model="model"
+                            name="action-button"
                             :pk="pk"
-                            severity="secondary"
                             :view="actionName"
-                        />
-                    </slot>
-                </template>
-                <template v-for="transition in actions.availableTransitions" :key="transition">
-                    <!-- @slot [transition-button] Override an individual workflow transition button in the sticky bar. -->
-                    <slot
-                        :app="app"
-                        :label="memoizedStartCase(transition)"
-                        :model="model"
-                        name="transition-button"
-                        :pk="pk"
-                        :view="transition"
-                    >
-                        <link-model-view
+                        >
+                            <link-model-view
+                                :app="app"
+                                button
+                                :label="memoizedStartCase(actionName)"
+                                :model="model"
+                                :pk="pk"
+                                severity="secondary"
+                                :view="actionName"
+                            />
+                        </slot>
+                    </template>
+                    <template v-for="transition in actions.availableTransitions" :key="transition">
+                        <!-- @slot [transition-button] Override an individual workflow transition button in the sticky bar. -->
+                        <slot
                             :app="app"
-                            button
                             :label="memoizedStartCase(transition)"
                             :model="model"
+                            name="transition-button"
                             :pk="pk"
-                            severity="secondary"
                             :view="transition"
-                        />
-                    </slot>
-                </template>
-            </div>
+                        >
+                            <link-model-view
+                                :app="app"
+                                button
+                                :label="memoizedStartCase(transition)"
+                                :model="model"
+                                :pk="pk"
+                                severity="secondary"
+                                :view="transition"
+                            />
+                        </slot>
+                    </template>
+                </div>
+            </template>
         </sticky-bar>
         <div v-bind="$attrs" data-qa="read-form">
             <error-display
