@@ -3,7 +3,6 @@ import FieldSetStackedInlineRow from "@vueda/components/FieldSetStackedInlineRow
 import Button from "@vueda/controls/button/Button.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
 import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
-import Separator from "@vueda/shell/separator/Separator.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
@@ -51,7 +50,7 @@ watch(
 </script>
 
 <template>
-    <div :class="theme('root')" v-bind="$attrs">
+    <div :class="theme('root')" data-vueda-fieldset v-bind="$attrs">
         <div :class="theme('inner')">
             <div :class="theme('titleBar')">
                 <div v-if="fieldSetInline.state.hidable" data-qa="field-set-stacked-inline-header-toggle">
@@ -102,7 +101,6 @@ watch(
                     </slot>
                 </div>
             </div>
-            <Separator :class="theme('hr')" />
             <!-- @slot [field-set-level-chores, fieldset-field-set-level-chores, field(fieldName)field-set-level-chores] Replaces the validation block for this fieldset. -->
             <slot :name="fieldSetInline.resolvedSlotNames['field-set-level-chores'].name">
                 <FieldDescription v-if="fieldSetContext.state.help">

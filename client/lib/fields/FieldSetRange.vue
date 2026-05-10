@@ -88,7 +88,7 @@ watch(
 );
 </script>
 <template>
-    <div :class="theme('root')" data-qa="field-set-many">
+    <div :class="theme('root')" data-qa="field-set-many" data-vueda-fieldset>
         <div :class="theme('header')">
             <label :class="theme('label')" :for="fieldContext.state.name">
                 {{ fieldContext.state.label }}

@@ -68,9 +68,19 @@ const remainingSlotNames = computed(() => {
     const knownSlotNames = ["default", ...slotNames.flatMap((name) => unref(fieldSetSlotNames?.[name]?.possibleNames))];
     return slotNames.filter((slotName) => !knownSlotNames.includes(slotName));
 });
+
+const rowState = computed(() => {
+    if (props.fieldSetContextState?.selected?.includes?.(props.index)) {
+        return "selected-for-destroy";
+    }
+    if (props.pk === undefined || props.pk === null) {
+        return "dirty";
+    }
+    return null;
+});
 </script>
 <template>
-    <div v-if="formModel.expand?.length" :class="theme('root')">
+    <div v-if="formModel.expand?.length" :class="[theme('root'), 'group/row']" :data-state="rowState ?? undefined">
         <div v-if="fieldSetSlotNames['before-fields'].name" :class="theme('beforeFields')">
             <slot name="before-fields" />
         </div>

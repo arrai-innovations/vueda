@@ -6,16 +6,25 @@
 export default {
     FieldSetMany: {
         root: {
-            class: [],
+            class: [
+                "bg-card border rounded-vueda-card overflow-clip",
+                "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
+            ],
         },
         inner: {
-            class: ["flex flex-col"],
+            class: ["flex flex-col p-3 gap-2"],
         },
         label: {
-            class: ["ml-2 leading-7", "text-muted-foreground"],
+            class: [
+                "leading-none",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+            ],
         },
         header: {
-            class: ["flex", "items-center", "justify-between"],
+            class: [
+                "flex items-center justify-between gap-2 px-3 py-2 -mx-3 -mt-3 mb-1 border-b border-border",
+                "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
+            ],
         },
         row: {
             class: ["flex", "flex-wrap", "gap-1", "2xs:gap-2", "flex-row"],
@@ -29,7 +38,10 @@ export default {
     },
     FieldSetRange: {
         root: {
-            class: [],
+            class: [
+                "bg-card border rounded-vueda-card overflow-clip p-3",
+                "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
+            ],
         },
         inner: {
             class: ["flex flex-row flex-wrap gap-1 2xs:gap-2"],
@@ -38,10 +50,16 @@ export default {
             class: ["flex items-baseline gap-1 2xs:gap-2"],
         },
         title: {
-            class: "ml-2 leading-7 text-foreground text-lg",
+            class: [
+                "leading-none",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+            ],
         },
         label: {
-            class: ["ml-2 leading-7", "text-muted-foreground"],
+            class: [
+                "leading-none",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+            ],
         },
         field: {
             class: [
@@ -51,19 +69,26 @@ export default {
     },
     FieldSetStackedInline: {
         root: {
-            class: [],
+            class: [
+                "bg-card border rounded-vueda-card overflow-clip",
+                "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
+            ],
         },
         inner: {
-            class: ["flex flex-col"],
+            class: ["flex flex-col p-3 gap-2"],
         },
         hr: {
-            class: "w-full flex-1 border-border border-t-2 my-2",
+            class: "hidden",
         },
         titleBar: {
-            class: "ml-2 leading-7 flex items-baseline gap-1 2xs:gap-2 2xl:gap-4",
+            class: [
+                "flex items-center gap-2 2xs:gap-3 px-3 py-2 -mx-3 -mt-3 mb-1 border-b border-border",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none text-muted-foreground",
+                "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
+            ],
         },
         title: {
-            class: ["text-foreground"],
+            class: [],
         },
         field: {
             class: [
@@ -72,7 +97,7 @@ export default {
             ],
         },
         inlineRows: {
-            class: [" divide-y divide-solid"],
+            class: ["flex flex-col gap-2"],
         },
         inlineRow: {},
         inLineCreateButton: {
@@ -82,24 +107,28 @@ export default {
             class: [],
         },
         actionBar: {
-            class: "grow-0 flex gap-1 2xs:gap-2 2xl:gap-4",
+            class: "grow-0 flex gap-1 2xs:gap-2 2xl:gap-4 ml-auto",
         },
         itemActionBar: {
             class: "flex gap-1 2xs:gap-2 2xl:gap-4 items-baseline",
         },
         createButton: {
-            class: "grow",
+            class: [],
         },
     },
     FieldSetStackedInlineRow: {
         root: {
-            class: [],
+            class: [
+                "flex items-start gap-3 border rounded-vueda-card p-2.5",
+                "data-[state=dirty]:border-l-2 data-[state=dirty]:border-l-primary",
+                "data-[state=selected-for-destroy]:bg-destructive/5 data-[state=selected-for-destroy]:border-destructive/40",
+            ],
         },
         beforeFields: {
-            class: [],
+            class: ["w-6 shrink-0"],
         },
         afterFields: {
-            class: [],
+            class: ["shrink-0"],
         },
         fieldInner: {
             class: [],
@@ -110,30 +139,37 @@ export default {
             ],
         },
         fields: {
-            class: [],
+            class: ["flex-1 min-w-0"],
         },
         actionBarOuter: {
-            class: ["flex py-2"],
+            class: ["flex gap-1 2xs:gap-2 items-start shrink-0"],
         },
     },
     FieldSetTabularInline: {
         root: {
-            class: [],
+            class: [
+                "bg-card border rounded-vueda-card overflow-clip",
+                "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
+            ],
         },
         inner: {
             class: ["flex flex-col"],
         },
         hr: {
-            class: "w-full flex-1 border-border border-t-2 my-2",
+            class: "hidden",
         },
         titleBar: {
-            class: "ml-2 leading-7 flex items-baseline gap-1 2xs:gap-2 2xl:gap-4",
+            class: [
+                "flex items-center gap-2 2xs:gap-3 px-3 py-2 border-b border-border",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none text-muted-foreground",
+                "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
+            ],
         },
         title: {
-            class: ["text-foreground"],
+            class: [],
         },
         actionBar: {
-            class: "grow-0 flex gap-1 2xs:gap-2 2xl:gap-4",
+            class: "grow-0 flex gap-1 2xs:gap-2 2xl:gap-4 ml-auto",
         },
         itemActionBar: {
             class: "flex gap-1 2xs:gap-2 2xl:gap-4 items-baseline",

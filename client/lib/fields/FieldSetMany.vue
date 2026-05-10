@@ -63,60 +63,62 @@ const theme = useTheme("FieldSetMany", props);
 const icon = useIcons("FieldSetMany");
 </script>
 <template>
-    <div data-qa="field-set-many">
-        <div :class="theme('header')">
-            <!-- @slot [label] Override the field label. -->
-            <slot :field-label="fieldContext.state.label" :field-name="fieldContext.state.name" name="label">
-                <label :class="theme('label')" :for="fieldContext.state.name">
-                    {{ fieldContext.state.label }}
-                </label>
-            </slot>
-            <!-- @slot [add] Override the add button. -->
-            <slot name="add" @click="onAdd">
-                <Button variant="outline" size="sm" @click="onAdd"
-                    ><span aria-hidden="true" class="select-none">+</span> Add</Button
-                >
-            </slot>
-        </div>
-        <div v-if="fieldProps?.length">
-            <template v-for="(fieldProp, index) in fieldProps" :key="index">
-                <!-- @slot [field(fieldName)] Override the rendered row for a specific field entry. -->
-                <slot :name="`field(${fieldProp.name})`" v-bind="{ fieldProps, index }">
-                    <div :class="theme('row')">
-                        <div :class="theme('component')">
-                            <component :is="props.manyComponent" v-bind="fieldProp" :required="index > 0">
-                                <slot :hidden="true" />
-                            </component>
-                        </div>
-                        <div v-if="index">
-                            <!-- @slot [destroy] Override the delete button for a row. -->
-                            <slot name="destroy" @click="onDestroy(index)">
-                                <Button variant="ghost" size="icon-sm" @click="onDestroy(index)">
-                                    <component
-                                        :is="icon('close').component"
-                                        v-if="icon('close')"
-                                        v-bind="icon('close').props"
-                                        aria-hidden="true"
-                                    />
-                                    <span class="sr-only">Remove entry</span>
-                                </Button>
-                            </slot>
-                        </div>
-                    </div>
+    <div :class="theme('root')" data-qa="field-set-many" data-vueda-fieldset>
+        <div :class="theme('inner')">
+            <div :class="theme('header')">
+                <!-- @slot [label] Override the field label. -->
+                <slot :field-label="fieldContext.state.label" :field-name="fieldContext.state.name" name="label">
+                    <label :class="theme('label')" :for="fieldContext.state.name">
+                        {{ fieldContext.state.label }}
+                    </label>
                 </slot>
-            </template>
+                <!-- @slot [add] Override the add button. -->
+                <slot name="add" @click="onAdd">
+                    <Button variant="outline" size="sm" @click="onAdd"
+                        ><span aria-hidden="true" class="select-none">+</span> Add</Button
+                    >
+                </slot>
+            </div>
+            <div v-if="fieldProps?.length">
+                <template v-for="(fieldProp, index) in fieldProps" :key="index">
+                    <!-- @slot [field(fieldName)] Override the rendered row for a specific field entry. -->
+                    <slot :name="`field(${fieldProp.name})`" v-bind="{ fieldProps, index }">
+                        <div :class="theme('row')">
+                            <div :class="theme('component')">
+                                <component :is="props.manyComponent" v-bind="fieldProp" :required="index > 0">
+                                    <slot :hidden="true" />
+                                </component>
+                            </div>
+                            <div v-if="index">
+                                <!-- @slot [destroy] Override the delete button for a row. -->
+                                <slot name="destroy" @click="onDestroy(index)">
+                                    <Button variant="ghost" size="icon-sm" @click="onDestroy(index)">
+                                        <component
+                                            :is="icon('close').component"
+                                            v-if="icon('close')"
+                                            v-bind="icon('close').props"
+                                            aria-hidden="true"
+                                        />
+                                        <span class="sr-only">Remove entry</span>
+                                    </Button>
+                                </slot>
+                            </div>
+                        </div>
+                    </slot>
+                </template>
+            </div>
+            <!-- @slot [field-set-level-chores] Override the validation block (help, errors, warnings) for this field set. -->
+            <slot name="field-set-level-chores">
+                <FieldDescription v-if="fieldContext.state.help">
+                    {{ fieldContext.state.help }}
+                </FieldDescription>
+                <FieldMessage :messages="Object.values(fieldContext.state.errors)" />
+                <FieldMessage
+                    v-if="Object.keys(fieldContext.state.messages).length"
+                    severity="warning"
+                    :messages="Object.values(fieldContext.state.messages)"
+                />
+            </slot>
         </div>
-        <!-- @slot [field-set-level-chores] Override the validation block (help, errors, warnings) for this field set. -->
-        <slot name="field-set-level-chores">
-            <FieldDescription v-if="fieldContext.state.help">
-                {{ fieldContext.state.help }}
-            </FieldDescription>
-            <FieldMessage :messages="Object.values(fieldContext.state.errors)" />
-            <FieldMessage
-                v-if="Object.keys(fieldContext.state.messages).length"
-                severity="warning"
-                :messages="Object.values(fieldContext.state.messages)"
-            />
-        </slot>
     </div>
 </template>

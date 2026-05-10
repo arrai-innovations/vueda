@@ -5,7 +5,6 @@ import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
 import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
-import Separator from "@vueda/shell/separator/Separator.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import {
     FIELD_SET_TABULAR_INLINE_EMITS,
@@ -70,6 +69,7 @@ watch(
         ref="test"
         :class="fieldSetTabularInline.theme('root')"
         data-qa="field-set-tabular-inline-root"
+        data-vueda-fieldset
         v-bind="$attrs"
     >
         <div :class="fieldSetTabularInline.theme('inner')" data-qa="field-set-tabular-inline-inner">
@@ -126,7 +126,6 @@ watch(
                     </slot>
                 </div>
             </div>
-            <Separator :class="fieldSetTabularInline.theme('hr')" />
             <!-- @slot [field-set-level-chores] Replaces the validation block rendered above the rows. -->
             <slot name="field-set-level-chores">
                 <FieldDescription v-if="fieldSetTabularInline.fieldSetContext.state.help">
