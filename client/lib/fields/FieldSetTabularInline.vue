@@ -74,6 +74,9 @@ const showEmptyState = computed(
         ),
 );
 
+const rowAttrsFn = (_obj, rowIndex) =>
+    fieldSetTabularInline.state.selected.includes(rowIndex) ? { "data-state": "marked-destroy" } : null;
+
 watch(
     () => fieldSetTabularInline.fieldSetContext.state.value,
     (value) => {
@@ -183,115 +186,100 @@ watch(
                     </slot>
                 </div>
             </div>
-            <objects-grid
-                :class="
-                    combineClasses(fieldSetTabularInline.theme('objectsGrid'), {
-                        [fieldSetTabularInline.theme('objectsGridHidden')]:
-                            !fieldSetTabularInline.state.internalVisible,
-                    })
-                "
-                :empty-text="null"
-                :field-classes="{
-                    selected_: 'text-center',
-                }"
-                :fields="fieldSetTabularInline.state.computedFieldObjects"
-                :objects-in-order="fieldSetTabularInline.fieldSetContext.state.value"
-                :table-breakpoint="$attrs.tableBreakpoint || 'lg'"
-                v-bind="omit($attrs, ['class', 'hidden'])"
-                @update:is-table="fieldSetTabularInline.handleIsTableUpdate"
-            >
-                <template
-                    v-for="fieldObj in fieldSetTabularInline.state.fieldObjects"
-                    :key="fieldObj.name"
-                    #[`header(${fieldObj.name})`]="headerSlotProps"
+            <div :class="fieldSetTabularInline.theme('body')" data-flush="true" data-qa="field-set-tabular-inline-body">
+                <objects-grid
+                    :class="
+                        combineClasses(fieldSetTabularInline.theme('objectsGrid'), {
+                            [fieldSetTabularInline.theme('objectsGridHidden')]:
+                                !fieldSetTabularInline.state.internalVisible,
+                        })
+                    "
+                    :empty-text="null"
+                    :field-classes="{
+                        selected_: 'text-center',
+                    }"
+                    :fields="fieldSetTabularInline.state.computedFieldObjects"
+                    :objects-in-order="fieldSetTabularInline.fieldSetContext.state.value"
+                    :row-attrs="rowAttrsFn"
+                    :table-breakpoint="$attrs.tableBreakpoint || 'lg'"
+                    v-bind="omit($attrs, ['class', 'hidden'])"
+                    @update:is-table="fieldSetTabularInline.handleIsTableUpdate"
                 >
-                    <!-- @slot [header(fieldName)] Override the header label cell for a specific column. -->
-                    <slot :name="`header(${fieldObj.name})`" v-bind="headerSlotProps">
-                        <div :class="headerSlotProps.class" :data-card-header="headerSlotProps['data-card-header']">
-                            <!--                            <widget-label-context-by-props-->
-                            <!--                                :field-set-tabular-inline="fieldSetTabularInline"-->
-                            <!--                                :field-value-path="`${fieldSetTabularInline.fieldSetContext.state.name}[${headerSlotProps.rowIndex || '0'}].${headerSlotProps.field.fieldName}`"-->
-                            <!--                                :row-index="headerSlotProps.rowIndex"-->
-                            <!--                                v-bind="headerSlotProps"-->
-                            <!--                            />-->
-                        </div>
-                    </slot>
-                </template>
-                <template #[`field(item-action-bar)`]="objectGridFieldSlotProps">
-                    <!-- @slot [item-action-bar] Override the action bar cell rendered in each row. -->
-                    <slot name="item-action-bar">
-                        <div
-                            v-if="fieldSetTabularInline.state.actions?.length"
-                            :class="fieldSetTabularInline.theme('itemActionBar')"
-                            data-qa="field-set-tabular-inline-item-action-bar"
-                        >
-                            <template v-for="action in fieldSetTabularInline.state.actions">
-                                <template v-if="action.fieldName === 'destroy'">
-                                    <!-- @slot [destroy-button, fieldset-destroy-button, field(fieldName)destroy-button] Button to delete a new (unsaved) tabular inline row. -->
-                                    <slot
-                                        v-if="!objectGridFieldSlotProps.pk"
-                                        :action="action"
-                                        :label="action.label"
-                                        :name="fieldSetTabularInline.resolvedSlotNames['destroy-button'].name"
-                                        :row-index="objectGridFieldSlotProps.rowIndex"
-                                        :selected="
-                                            fieldSetTabularInline.state.selected.includes(
-                                                objectGridFieldSlotProps.rowIndex,
-                                            )
-                                        "
-                                        :theme="fieldSetTabularInline.theme"
-                                        :value="action.value"
-                                        verb="destroy"
-                                        @click="fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)"
-                                    >
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
+                    <template
+                        v-for="fieldObj in fieldSetTabularInline.state.fieldObjects"
+                        :key="fieldObj.name"
+                        #[`header(${fieldObj.name})`]="headerSlotProps"
+                    >
+                        <!-- @slot [header(fieldName)] Override the header label cell for a specific column. -->
+                        <slot :name="`header(${fieldObj.name})`" v-bind="headerSlotProps">
+                            <div :class="headerSlotProps.class" :data-card-header="headerSlotProps['data-card-header']">
+                                <!--                            <widget-label-context-by-props-->
+                                <!--                                :field-set-tabular-inline="fieldSetTabularInline"-->
+                                <!--                                :field-value-path="`${fieldSetTabularInline.fieldSetContext.state.name}[${headerSlotProps.rowIndex || '0'}].${headerSlotProps.field.fieldName}`"-->
+                                <!--                                :row-index="headerSlotProps.rowIndex"-->
+                                <!--                                v-bind="headerSlotProps"-->
+                                <!--                            />-->
+                            </div>
+                        </slot>
+                    </template>
+                    <template #[`field(item-action-bar)`]="objectGridFieldSlotProps">
+                        <!-- @slot [item-action-bar] Override the action bar cell rendered in each row. -->
+                        <slot name="item-action-bar">
+                            <div
+                                v-if="fieldSetTabularInline.state.actions?.length"
+                                :class="fieldSetTabularInline.theme('itemActionBar')"
+                                data-qa="field-set-tabular-inline-item-action-bar"
+                            >
+                                <template v-for="action in fieldSetTabularInline.state.actions">
+                                    <template v-if="action.fieldName === 'destroy'">
+                                        <!-- @slot [destroy-button, fieldset-destroy-button, field(fieldName)destroy-button] Button to delete a new (unsaved) tabular inline row. -->
+                                        <slot
+                                            v-if="!objectGridFieldSlotProps.pk"
+                                            :action="action"
+                                            :label="action.label"
+                                            :name="fieldSetTabularInline.resolvedSlotNames['destroy-button'].name"
+                                            :row-index="objectGridFieldSlotProps.rowIndex"
+                                            :selected="
+                                                fieldSetTabularInline.state.selected.includes(
+                                                    objectGridFieldSlotProps.rowIndex,
+                                                )
+                                            "
+                                            :theme="fieldSetTabularInline.theme"
+                                            :value="action.value"
+                                            verb="destroy"
                                             @click="
                                                 fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)
                                             "
                                         >
-                                            Delete
-                                        </Button>
-                                    </slot>
-                                    <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox, field(fieldName)destroy-checkbox] Checkbox to mark an existing tabular inline row for deletion. -->
-                                    <slot
-                                        v-else
-                                        :action="action"
-                                        :contextless="true"
-                                        label="Destroy?"
-                                        :model-value="
-                                            fieldSetTabularInline.state.selected.includes(
-                                                objectGridFieldSlotProps.rowIndex,
-                                            )
-                                        "
-                                        :name="fieldSetTabularInline.resolvedSlotNames['destroy-checkbox'].name"
-                                        :required="false"
-                                        :row-index="objectGridFieldSlotProps.rowIndex"
-                                        :theme="fieldSetTabularInline.theme"
-                                        :value="action.value"
-                                        verb="destroy"
-                                        @update:model-value="
-                                            (isSelected) =>
-                                                fieldSetTabularInline.handleSelected(
-                                                    isSelected,
-                                                    objectGridFieldSlotProps.rowIndex,
-                                                )
-                                        "
-                                    >
-                                        <widget-checkbox
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                @click="
+                                                    fieldSetTabularInline.removeObject(
+                                                        objectGridFieldSlotProps.rowIndex,
+                                                    )
+                                                "
+                                            >
+                                                Delete
+                                            </Button>
+                                        </slot>
+                                        <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox, field(fieldName)destroy-checkbox] Checkbox to mark an existing tabular inline row for deletion. -->
+                                        <slot
+                                            v-else
+                                            :action="action"
                                             :contextless="true"
-                                            :input-id="`selected-row-${objectGridFieldSlotProps.rowIndex}`"
                                             label="Destroy?"
                                             :model-value="
                                                 fieldSetTabularInline.state.selected.includes(
                                                     objectGridFieldSlotProps.rowIndex,
                                                 )
                                             "
-                                            name="destroy-checkbox"
+                                            :name="fieldSetTabularInline.resolvedSlotNames['destroy-checkbox'].name"
                                             :required="false"
-                                            size="small"
-                                            :value="objectGridFieldSlotProps.rowIndex"
+                                            :row-index="objectGridFieldSlotProps.rowIndex"
+                                            :theme="fieldSetTabularInline.theme"
+                                            :value="action.value"
+                                            verb="destroy"
                                             @update:model-value="
                                                 (isSelected) =>
                                                     fieldSetTabularInline.handleSelected(
@@ -299,106 +287,141 @@ watch(
                                                         objectGridFieldSlotProps.rowIndex,
                                                     )
                                             "
-                                        />
-                                    </slot>
-                                </template>
-                                <template v-else>
-                                    <!-- @slot [item-action-button, fieldset-item-action-button, field(fieldName)item-action-button] Button for a non-destroy row action in the tabular inline. -->
-                                    <slot
-                                        :name="fieldSetTabularInline.resolvedSlotNames['item-action-button'].name"
-                                        v-bind="{
-                                            objectGridFieldSlotProps,
-                                            action,
-                                            fieldSetContextState: fieldSetTabularInline.fieldSetContext.state,
-                                            rowValueName: `${fieldSetTabularInline.fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
-                                            doCreate: fieldSetTabularInline.doCreate,
-                                        }"
-                                    >
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            @click="
-                                                ($event) =>
-                                                    action.action({
-                                                        objectGridFieldSlotProps,
-                                                        action,
-                                                        fieldSetContextState:
-                                                            fieldSetTabularInline.fieldSetContext.state,
-                                                        rowValueName: `${fieldSetTabularInline.fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
-                                                        event: $event,
-                                                        doCreate: fieldSetTabularInline.doCreate,
-                                                    })
-                                            "
                                         >
-                                            {{ action.label }}
-                                        </Button>
-                                    </slot>
+                                            <widget-checkbox
+                                                :contextless="true"
+                                                :input-id="`selected-row-${objectGridFieldSlotProps.rowIndex}`"
+                                                label="Destroy?"
+                                                :model-value="
+                                                    fieldSetTabularInline.state.selected.includes(
+                                                        objectGridFieldSlotProps.rowIndex,
+                                                    )
+                                                "
+                                                name="destroy-checkbox"
+                                                :required="false"
+                                                size="small"
+                                                :value="objectGridFieldSlotProps.rowIndex"
+                                                @update:model-value="
+                                                    (isSelected) =>
+                                                        fieldSetTabularInline.handleSelected(
+                                                            isSelected,
+                                                            objectGridFieldSlotProps.rowIndex,
+                                                        )
+                                                "
+                                            />
+                                        </slot>
+                                        <span
+                                            v-if="
+                                                fieldSetTabularInline.state.selected.includes(
+                                                    objectGridFieldSlotProps.rowIndex,
+                                                )
+                                            "
+                                            :key="`destroy-pill-${action.fieldName}-${objectGridFieldSlotProps.rowIndex}`"
+                                            :class="fieldSetTabularInline.theme('destroyPill')"
+                                            data-qa="field-set-tabular-inline-destroy-pill"
+                                            aria-hidden="true"
+                                        >
+                                            Will destroy
+                                        </span>
+                                    </template>
+                                    <template v-else>
+                                        <!-- @slot [item-action-button, fieldset-item-action-button, field(fieldName)item-action-button] Button for a non-destroy row action in the tabular inline. -->
+                                        <slot
+                                            :name="fieldSetTabularInline.resolvedSlotNames['item-action-button'].name"
+                                            v-bind="{
+                                                objectGridFieldSlotProps,
+                                                action,
+                                                fieldSetContextState: fieldSetTabularInline.fieldSetContext.state,
+                                                rowValueName: `${fieldSetTabularInline.fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
+                                                doCreate: fieldSetTabularInline.doCreate,
+                                            }"
+                                        >
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                @click="
+                                                    ($event) =>
+                                                        action.action({
+                                                            objectGridFieldSlotProps,
+                                                            action,
+                                                            fieldSetContextState:
+                                                                fieldSetTabularInline.fieldSetContext.state,
+                                                            rowValueName: `${fieldSetTabularInline.fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
+                                                            event: $event,
+                                                            doCreate: fieldSetTabularInline.doCreate,
+                                                        })
+                                                "
+                                            >
+                                                {{ action.label }}
+                                            </Button>
+                                        </slot>
+                                    </template>
                                 </template>
-                            </template>
-                        </div>
-                    </slot>
-                </template>
-                <template
-                    v-for="(fieldObj, foIndex) in fieldSetTabularInline.state.fieldObjects"
-                    :key="`${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}-${objectGridFieldSlotProps.columnIndex}`"
-                    #[`field(${fieldObj.name})`]="objectGridFieldSlotProps"
-                >
-                    <a
-                        v-if="foIndex === 0"
-                        :id="`field-set-tabular-inline-anchor-${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}`"
-                        :ref="(el) => fieldSetTabularInline.refFn(el)"
-                        data-qa="field-set-tabular-inline-anchor"
-                        :data-row-index="objectGridFieldSlotProps.rowIndex"
-                    />
-                    <field-renderer
-                        :field-props="fieldSetTabularInline.state.computedFieldProps"
-                        :form-model="fieldSetTabularInline.formModel"
-                        :form-model-name="fieldObj.name"
-                        :object-grid-field-slot-props="objectGridFieldSlotProps"
-                        v-bind="{ doCreate: fieldSetTabularInline.doCreate }"
+                            </div>
+                        </slot>
+                    </template>
+                    <template
+                        v-for="(fieldObj, foIndex) in fieldSetTabularInline.state.fieldObjects"
+                        :key="`${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}-${objectGridFieldSlotProps.columnIndex}`"
+                        #[`field(${fieldObj.name})`]="objectGridFieldSlotProps"
                     >
-                        <template
-                            v-for="slotName in fieldSetTabularInline.state.remainingSlotNames"
-                            #[slotName]="slotProps"
-                        >
-                            <slot :name="slotName" v-bind="slotProps" />
-                        </template>
-                    </field-renderer>
-                </template>
-
-                <template #row-after-objects="slotProps">
-                    <div
-                        v-if="
-                            !fieldSetTabularInline.state.isTable &&
-                            !fieldSetTabularInline.state.computedFieldProps.readOnly &&
-                            fieldSetTabularInline.state.showCreateButton
-                        "
-                        key="create-row"
-                        :class="combineClasses(fieldSetTabularInline.theme('createButtonCard'), slotProps.class)"
-                        data-qa="field-set-tabular-inline-create-row"
-                        role="row"
-                    >
-                        <!-- @slot [create-button-inline, fieldset-create-button-inline, field(fieldName)create-button-inline] Inline create button shown as a card-layout row. -->
-                        <slot
-                            :class="fieldSetTabularInline.theme('inLineCreateButton')"
+                        <a
+                            v-if="foIndex === 0"
+                            :id="`field-set-tabular-inline-anchor-${fieldObj.name}-${objectGridFieldSlotProps.rowIndex}`"
+                            :ref="(el) => fieldSetTabularInline.refFn(el)"
+                            data-qa="field-set-tabular-inline-anchor"
+                            :data-row-index="objectGridFieldSlotProps.rowIndex"
+                        />
+                        <field-renderer
                             :field-props="fieldSetTabularInline.state.computedFieldProps"
-                            label="Create"
-                            :name="fieldSetTabularInline.resolvedSlotNames['create-button-inline'].name"
-                            verb="createInline"
-                            @click="fieldSetTabularInline.doCreate"
+                            :form-model="fieldSetTabularInline.formModel"
+                            :form-model-name="fieldObj.name"
+                            :object-grid-field-slot-props="objectGridFieldSlotProps"
+                            v-bind="{ doCreate: fieldSetTabularInline.doCreate }"
                         >
-                            <Button
-                                variant="ghost"
-                                size="sm"
+                            <template
+                                v-for="slotName in fieldSetTabularInline.state.remainingSlotNames"
+                                #[slotName]="slotProps"
+                            >
+                                <slot :name="slotName" v-bind="slotProps" />
+                            </template>
+                        </field-renderer>
+                    </template>
+
+                    <template #row-after-objects="slotProps">
+                        <div
+                            v-if="
+                                !fieldSetTabularInline.state.isTable &&
+                                !fieldSetTabularInline.state.computedFieldProps.readOnly &&
+                                fieldSetTabularInline.state.showCreateButton
+                            "
+                            key="create-row"
+                            :class="combineClasses(fieldSetTabularInline.theme('createButtonCard'), slotProps.class)"
+                            data-qa="field-set-tabular-inline-create-row"
+                            role="row"
+                        >
+                            <!-- @slot [create-button-inline, fieldset-create-button-inline, field(fieldName)create-button-inline] Inline create button shown as a card-layout row. -->
+                            <slot
                                 :class="fieldSetTabularInline.theme('inLineCreateButton')"
+                                :field-props="fieldSetTabularInline.state.computedFieldProps"
+                                label="Create"
+                                :name="fieldSetTabularInline.resolvedSlotNames['create-button-inline'].name"
+                                verb="createInline"
                                 @click="fieldSetTabularInline.doCreate"
                             >
-                                Create
-                            </Button>
-                        </slot>
-                    </div>
-                </template>
-            </objects-grid>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    :class="fieldSetTabularInline.theme('inLineCreateButton')"
+                                    @click="fieldSetTabularInline.doCreate"
+                                >
+                                    Create
+                                </Button>
+                            </slot>
+                        </div>
+                    </template>
+                </objects-grid>
+            </div>
             <!-- @slot [empty-state, fieldset-empty-state, field(fieldName)empty-state] Replaces the dashed-border empty-state block shown when there are no rows. -->
             <slot
                 v-if="showEmptyState"

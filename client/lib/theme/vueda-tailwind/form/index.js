@@ -248,11 +248,23 @@ export default {
         itemActionBar: {
             class: "flex gap-1 2xs:gap-2 2xl:gap-4 items-baseline",
         },
+        body: {
+            class: ["flex flex-col"],
+        },
         objectsGrid: {
             class: "w-full",
         },
         objectsGridHidden: {
             class: "hidden",
+        },
+        destroyPill: {
+            class: [
+                "inline-flex items-center justify-center shrink-0",
+                "px-1.5 h-5 rounded-vueda-control",
+                "bg-destructive/10 text-destructive",
+                "text-[10px] font-semibold uppercase tracking-[0.06em] leading-none",
+                "[font-variant-numeric:tabular-nums]",
+            ],
         },
         field: {
             class: [

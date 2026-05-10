@@ -26,8 +26,12 @@ _Actions potentially required by implementers are marked with italics._
       _If you previously set custom `grid-cols-*` classes on the bodyRowGroup via theme override, the override continues to win. If you relied on the previous unset behavior (single implicit column), set `grid-cols-1` (or your preferred override) explicitly._
     - `ObjectsGridCardCell` label / value typography aligns with the form-field read-only row recipe: the label is 10px sans 600 uppercase with `0.06em` tracking on `--muted-foreground`; the value is 13px sans 400 on `--foreground`. Card mode now reads as a compact label/value detail pane per row.
       _If you depended on the previous neutral-900 semibold header or neutral-800 normal value styling, override `ObjectsGridCardCell.header` / `.value` via `useTheme`._
+    - Card-mode `cardContainer` is now a `grid grid-cols-[minmax(96px,max-content)_1fr] items-baseline` instead of `flex flex-col`, so labels and values from every cell within a card line up as two aligned columns. `ObjectsGridCardCell` and its skeleton sibling render as a header + value fragment, so each cell's two halves participate directly in the parent grid (no `display: contents` wrapper needed).
+      _If you override the `value` slot with a layout that assumed a single-column flex parent, switch to a layout that fills the second grid column (or override `ObjectsGrid.cardContainer` via `useTheme` to restore `flex flex-col`)._
     - Empty-state row now follows the `TableEmpty` recipe: a flex column inside a new `ObjectsGrid.emptyContent` theme key drives `data-variant` (`empty` | `loading` | `error` | `filtered`) on the wrapper, with the icon resolved through `useIcons("ObjectsGrid")` keyed by the active variant. Variant CSS spins the icon on `loading` and recolors it to `--destructive` on `error`. Added `emptyVariant` prop and a single `empty` slot (full escape hatch; receives `variant`). `:empty-text="null"` continues to suppress the empty row.
       _Out of the box you'll see a strong `emptyText` title with no icon. To get the kit's icon defaults, register entries via `setIcons({ ObjectsGrid: { empty: ..., error: ..., filtered: ... } })` (and/or `Default.loading`). To override the entire body, use `<template #empty="{ variant }">…</template>`._
+    - `bodyRow` now responds to `data-state="marked-destroy"`: a 4% destructive tint plus a `line-through` on every cell whose `data-field` / `data-card` / `data-card-header` is not `item-action-bar` (the action column owned by `FieldSetTabularInline`). Action controls remain readable so the user can clear the destroy mark.
+    - `root` reads an ancestor `[data-flush]` attribute and drops `rounded-vueda-card`, `border-x`, and `border-t` while keeping the bottom hairline, so an embedding card (e.g. `FieldSetTabularInline.body`) can merge the grid with its own border without doubling.
 
 - **Progress**:
     - Added `size` prop accepting `sm` (4px), `md` (8px, default), and `lg` (12px) to control track and indicator height. The value is also reflected as a `data-size` attribute on the root for consumer CSS hooks.
@@ -62,6 +66,11 @@ _Actions potentially required by implementers are marked with italics._
 - **SidebarTrigger**:
     - Toggle glyph now resolves through `useIcons("SidebarTrigger").("toggle")`. The previous Unicode `◫` placeholder is removed.
       _Register the canonical glyph (or any other) via `setIcons({ SidebarTrigger: { toggle: { component: ..., props: ... } } })`. The `icon` named slot continues to work as a per-instance escape hatch. With no registration and no slot, the button renders only its `sr-only` label._
+
+- **FieldSetTabularInline**:
+    - Rows marked for destruction (the Destroy? checkbox in persisted rows) now propagate `data-state="marked-destroy"` onto the embedded `ObjectsGrid` body row via the new `:row-attrs` wiring, activating the grid's destructive tint and strikethrough chrome (see ObjectsGrid changes above).
+    - The action column also renders a new `Will destroy` pill (`destroyPill` theme key, `bg-destructive/10 text-destructive` micro-eyebrow on `rounded-vueda-control`) next to the Destroy? checkbox once the row is selected.
+    - The embedded `ObjectsGrid` is now wrapped in a new `body` element (theme key, `data-flush="true"`) so its rounded edge plus its top and side borders collapse into the fieldset card; the chores panel below paints the closing edge.
 
 ### Fixes
 

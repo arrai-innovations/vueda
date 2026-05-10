@@ -10,6 +10,10 @@ export default {
                 "max-w-full overflow-x-auto",
                 "rounded-vueda-card border border-border bg-card text-foreground text-body",
                 "[font-variant-numeric:tabular-nums_slashed-zero]",
+                // Flush variant: an ancestor stamps `data-flush="true"` (e.g. FieldSetTabularInline.body)
+                // to merge the grid into a parent card without doubling borders. Drop the rounded edge
+                // and side/top borders, keep a single bottom hairline as the seam to chrome below.
+                "[[data-flush]_&]:rounded-none [[data-flush]_&]:border-x-0 [[data-flush]_&]:border-t-0",
             ],
         },
         table: {
@@ -71,6 +75,13 @@ export default {
                     "hover:bg-muted/50",
                     "data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09]",
                     "data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)]",
+                    // marked-destroy: 4% destructive tint and a strikethrough on every cell whose
+                    // `data-field` / `data-card` / `data-card-header` is not the action column. Action
+                    // controls are excluded so the user can still click "undo" on the destroy mark.
+                    "data-[state=marked-destroy]:bg-destructive/[0.04]",
+                    "data-[state=marked-destroy]:[&_[data-field]:not([data-field=item-action-bar])]:line-through",
+                    "data-[state=marked-destroy]:[&_[data-card]:not([data-card=item-action-bar])]:line-through",
+                    "data-[state=marked-destroy]:[&_[data-card-header]:not([data-card-header=item-action-bar])]:line-through",
                     // you can't tell how many cards are on a row, so we must treat them all the same.
                     // first and last don't help us here.
                     {
@@ -81,7 +92,14 @@ export default {
             },
         },
         cardContainer: {
-            class: "p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4 mb-1 mt-2 flex flex-col [&>*]:min-w-0",
+            class: [
+                "p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4 mb-1 mt-2",
+                // Aligned label / value columns within a card: each ObjectsGridCardCell renders as a
+                // header + value fragment (no wrapping root), so its two children participate directly
+                // in this grid -- equivalent to a `display: contents` cell wrapper without the wrapper.
+                "grid grid-cols-[minmax(96px,max-content)_1fr] items-baseline",
+                "[&>*]:min-w-0",
+            ],
         },
         rowActions: {
             root: {
