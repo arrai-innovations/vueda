@@ -76,6 +76,7 @@ const mockedUseFieldSetInline = vi.fn(() => ({
         "create-button": { name: "create-button" },
         "field-set-level-chores": { name: "field-set-level-chores" },
         title: { name: "title" },
+        "empty-state": { name: "empty-state" },
     },
     getEmptyFieldObject: () => emptyObject,
     toggleVisibility,

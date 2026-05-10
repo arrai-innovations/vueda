@@ -25,7 +25,7 @@ const fieldSetContext = useField(props, emit);
 const fieldSetInline = useFieldSetInline({
     props,
     emit,
-    slotNames: ["create-button", "toggle-button", "field-set-level-chores", "title"],
+    slotNames: ["create-button", "toggle-button", "field-set-level-chores", "title", "empty-state"],
     fieldSetContext,
 });
 const theme = useTheme("FieldSetStackedInline", props);
@@ -38,6 +38,8 @@ const hasChoresContent = computed(
         Object.keys(fieldSetContext.state.errors).length > 0 ||
         Object.keys(fieldSetContext.state.messages).length > 0,
 );
+
+const isEmpty = computed(() => !Array.isArray(fieldSetContext.state.value) || fieldSetContext.state.value.length === 0);
 
 watch(
     () => fieldSetContext.state.value,
@@ -126,7 +128,7 @@ watch(
                     </slot>
                 </div>
             </div>
-            <div :class="theme('inlineRows')" data-qa="field-set-stacked-inline-inline-rows">
+            <div v-if="!isEmpty" :class="theme('inlineRows')" data-qa="field-set-stacked-inline-inline-rows">
                 <div
                     v-for="(value, index) in fieldSetContext.state.value"
                     :key="index"
@@ -148,6 +150,26 @@ watch(
                     </field-set-stacked-inline-row>
                 </div>
             </div>
+            <!-- @slot [empty-state, fieldset-empty-state, field(fieldName)empty-state] Replaces the dashed-border empty-state block shown when there are no rows. -->
+            <slot
+                v-if="isEmpty"
+                :class="theme('emptyState')"
+                :name="fieldSetInline.resolvedSlotNames['empty-state'].name"
+            >
+                <div :class="theme('emptyState')" data-qa="field-set-stacked-inline-empty-state">
+                    <component
+                        :is="icon('empty').component"
+                        v-if="icon('empty')"
+                        :class="theme('emptyStateIcon')"
+                        v-bind="icon('empty').props"
+                        aria-hidden="true"
+                    />
+                    <p :class="theme('emptyStateTitle')">No {{ fieldSetContext.state.label }} yet</p>
+                    <p v-if="fieldSetInline.state.showCreateButton" :class="theme('emptyStateDesc')">
+                        Click Create to add one.
+                    </p>
+                </div>
+            </slot>
             <div
                 v-if="hasChoresContent || fieldSetInline.resolvedSlotNames['field-set-level-chores'].exists"
                 :class="theme('choresPanel')"

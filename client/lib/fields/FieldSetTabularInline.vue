@@ -44,6 +44,7 @@ const fieldSetTabularInline = useFieldSetTabularInline({
         // "action-button",
         "item-action-button",
         "field-set-level-chores",
+        "empty-state",
     ],
 });
 const icon = useIcons("FieldSetTabularInline");
@@ -53,6 +54,24 @@ const hasChoresContent = computed(
         !!fieldSetTabularInline.fieldSetContext.state.help ||
         Object.keys(fieldSetTabularInline.fieldSetContext.state.errors).length > 0 ||
         Object.keys(fieldSetTabularInline.fieldSetContext.state.messages).length > 0,
+);
+
+const isEmpty = computed(() => {
+    const value = fieldSetTabularInline.fieldSetContext.state.value;
+    return !Array.isArray(value) || value.length === 0;
+});
+
+const showEmptyState = computed(
+    () =>
+        isEmpty.value &&
+        fieldSetTabularInline.state.internalVisible &&
+        // In card mode the inline create row already provides an invitation
+        // when a Create CTA is available; avoid stacking two affordances.
+        !(
+            !fieldSetTabularInline.state.isTable &&
+            !fieldSetTabularInline.state.computedFieldProps.readOnly &&
+            fieldSetTabularInline.state.showCreateButton
+        ),
 );
 
 watch(
@@ -380,6 +399,34 @@ watch(
                     </div>
                 </template>
             </objects-grid>
+            <!-- @slot [empty-state, fieldset-empty-state, field(fieldName)empty-state] Replaces the dashed-border empty-state block shown when there are no rows. -->
+            <slot
+                v-if="showEmptyState"
+                :class="fieldSetTabularInline.theme('emptyState')"
+                :name="fieldSetTabularInline.resolvedSlotNames['empty-state'].name"
+            >
+                <div :class="fieldSetTabularInline.theme('emptyState')" data-qa="field-set-tabular-inline-empty-state">
+                    <component
+                        :is="icon('empty').component"
+                        v-if="icon('empty')"
+                        :class="fieldSetTabularInline.theme('emptyStateIcon')"
+                        v-bind="icon('empty').props"
+                        aria-hidden="true"
+                    />
+                    <p :class="fieldSetTabularInline.theme('emptyStateTitle')">
+                        No {{ fieldSetTabularInline.fieldSetContext.state.label }} yet
+                    </p>
+                    <p
+                        v-if="
+                            !fieldSetTabularInline.state.computedFieldProps.readOnly &&
+                            fieldSetTabularInline.state.showCreateButton
+                        "
+                        :class="fieldSetTabularInline.theme('emptyStateDesc')"
+                    >
+                        Click Create to add one.
+                    </p>
+                </div>
+            </slot>
             <div
                 v-if="hasChoresContent || fieldSetTabularInline.resolvedSlotNames['field-set-level-chores'].exists"
                 :class="fieldSetTabularInline.theme('choresPanel')"

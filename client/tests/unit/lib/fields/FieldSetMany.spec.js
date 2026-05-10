@@ -4,7 +4,7 @@ import { defineComponent, h, markRaw, reactive } from "vue";
 
 const ControlButtonStub = defineComponent({
     name: "ControlButtonStub",
-    props: ["variant", "size"],
+    props: ["variant", "size", "disabled"],
     emits: ["click"],
     setup(props, { emit, slots }) {
         return () =>
@@ -14,6 +14,8 @@ const ControlButtonStub = defineComponent({
                     "data-qa": "control-button",
                     "data-variant": props.variant,
                     "data-size": props.size,
+                    "data-disabled": props.disabled ? "true" : undefined,
+                    disabled: props.disabled || undefined,
                     onClick: () => emit("click"),
                 },
                 slots.default?.(),
@@ -131,10 +133,24 @@ describe("lib/fields/FieldSetMany.vue", () => {
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(2);
-        await wrapper.find('[data-size="icon-sm"]').trigger("click");
+        const removes = wrapper.findAll('[data-qa="field-set-many-remove"] [data-size="icon-sm"]');
+        expect(removes).toHaveLength(2);
+        await removes[1].trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([1]);
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
+    });
+
+    scopedIt("renders the first-entry remove disabled rather than hidden", () => {
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
+        };
+        useFieldMock.mockReturnValue(fieldContext);
+        const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
+        const removes = wrapper.findAll('[data-qa="field-set-many-remove"] [data-size="icon-sm"]');
+        expect(removes).toHaveLength(2);
+        expect(removes[0].attributes("data-disabled")).toBe("true");
+        expect(removes[1].attributes("data-disabled")).toBeUndefined();
     });
 
     scopedIt("handles undefined value for add and destroy", async () => {
@@ -185,12 +201,35 @@ describe("lib/fields/FieldSetMany.vue", () => {
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, {
             props: { name: "nums", manyComponent: ManyComponentStub },
-            slots: { destroy: ({ onClick }) => h(SlotButton, { onClick }) },
+            slots: { destroy: ({ onClick, disabled }) => h(SlotButton, { onClick, disabled }) },
         });
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(2);
-        await wrapper.getComponent(SlotButton).trigger("click");
+        const slotButtons = wrapper.findAllComponents(SlotButton);
+        expect(slotButtons).toHaveLength(2);
+        await slotButtons[1].trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([1]);
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
+    });
+
+    scopedIt("passes disabled slot prop to destroy slot for first entry", () => {
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
+        };
+        useFieldMock.mockReturnValue(fieldContext);
+        const seen = [];
+        mount(FieldSetMany, {
+            props: { name: "nums", manyComponent: ManyComponentStub },
+            slots: {
+                destroy: (props) => {
+                    seen.push({ disabled: props.disabled, index: props.index });
+                    return h(SlotButton);
+                },
+            },
+        });
+        expect(seen).toEqual([
+            { disabled: true, index: 0 },
+            { disabled: false, index: 1 },
+        ]);
     });
 });

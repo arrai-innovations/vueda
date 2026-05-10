@@ -77,16 +77,21 @@ const icon = useIcons("FieldSetMany");
                 <template v-for="(fieldProp, index) in fieldProps" :key="index">
                     <!-- @slot [field(fieldName)] Override the rendered row for a specific field entry. -->
                     <slot :name="`field(${fieldProp.name})`" v-bind="{ fieldProps, index }">
-                        <div :class="theme('row')">
+                        <div :class="theme('row')" data-qa="field-set-many-row">
                             <div :class="theme('component')">
                                 <component :is="props.manyComponent" v-bind="fieldProp" :required="index > 0">
                                     <slot :hidden="true" />
                                 </component>
                             </div>
-                            <div v-if="index">
-                                <!-- @slot [destroy] Override the delete button for a row. -->
-                                <slot name="destroy" @click="onDestroy(index)">
-                                    <Button variant="ghost" size="icon-sm" @click="onDestroy(index)">
+                            <div :class="theme('removeButton')" data-qa="field-set-many-remove">
+                                <!-- @slot [destroy] Override the delete button for a row. The slot receives `onClick`, `disabled`, and `index` as slot props; the first entry's remove is disabled rather than hidden. -->
+                                <slot name="destroy" :disabled="index === 0" :index="index" @click="onDestroy(index)">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        :disabled="index === 0"
+                                        @click="onDestroy(index)"
+                                    >
                                         <component
                                             :is="icon('close').component"
                                             v-if="icon('close')"

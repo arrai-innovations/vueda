@@ -36,7 +36,7 @@ const icon = useIcons("FieldSetSingularStackedInline");
 const fieldSetInline = useFieldSetInline({
     props,
     emit,
-    slotNames: ["create-button", "toggle-button", "field-set-level-chores", "title"],
+    slotNames: ["create-button", "toggle-button", "field-set-level-chores", "title", "empty-state"],
     fieldSetContext,
 });
 
@@ -178,6 +178,22 @@ watch(
                         </template>
                     </field-set-stacked-inline-row>
                 </div>
+                <!-- @slot [empty-state, fieldset-empty-state, field(fieldName)empty-state] Replaces the dashed-border empty-state block shown when no value is present. -->
+                <slot v-else :class="theme('emptyState')" :name="fieldSetInline.resolvedSlotNames['empty-state'].name">
+                    <div :class="theme('emptyState')" data-qa="field-set-singular-stacked-inline-empty-state">
+                        <component
+                            :is="icon('empty').component"
+                            v-if="icon('empty')"
+                            :class="theme('emptyStateIcon')"
+                            v-bind="icon('empty').props"
+                            aria-hidden="true"
+                        />
+                        <p :class="theme('emptyStateTitle')">No {{ fieldSetContext.state.label }} yet</p>
+                        <p v-if="fieldSetInline.state.showCreateButton" :class="theme('emptyStateDesc')">
+                            Click Create to add one.
+                        </p>
+                    </div>
+                </slot>
             </div>
             <div
                 v-if="hasChoresContent || fieldSetInline.resolvedSlotNames['field-set-level-chores'].exists"

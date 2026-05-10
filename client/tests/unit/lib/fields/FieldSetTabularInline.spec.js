@@ -97,6 +97,7 @@ function mountWithContext(value, options = {}) {
             "destroy-checkbox": { name: "destroy-checkbox" },
             "item-action-button": { name: "item-action-button" },
             "field-set-level-chores": { name: "field-set-level-chores", exists: false },
+            "empty-state": { name: "empty-state" },
         },
         theme: () => "",
         doCreate: vi.fn(),

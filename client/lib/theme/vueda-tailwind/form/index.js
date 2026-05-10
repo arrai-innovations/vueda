@@ -27,10 +27,17 @@ export default {
             ],
         },
         row: {
-            class: ["flex", "flex-wrap", "gap-1", "2xs:gap-2", "flex-row"],
+            class: ["group/many-row grid grid-cols-[1fr_auto] items-center gap-1 2xs:gap-2"],
         },
         component: {
-            class: ["w-5/6"],
+            class: ["min-w-0"],
+        },
+        removeButton: {
+            class: [
+                "flex items-center justify-center",
+                "opacity-0 transition-opacity",
+                "group-hover/many-row:opacity-100 group-focus-within/many-row:opacity-100",
+            ],
         },
         footer: {
             class: ["flex justify-end mt-0.5"],
@@ -149,6 +156,28 @@ export default {
                 "flex flex-col gap-1",
             ],
         },
+        emptyState: {
+            class: [
+                "flex flex-col items-center justify-center gap-2",
+                "py-8 px-6 text-center",
+                "rounded-vueda-card border-2 border-dashed border-border bg-muted/30",
+            ],
+        },
+        emptyStateIcon: {
+            class: [
+                "flex items-center justify-center",
+                "size-9 rounded-full bg-muted text-muted-foreground",
+                "text-[length:var(--vueda-text-title)] leading-none",
+            ],
+        },
+        emptyStateTitle: {
+            class: ["text-[length:var(--vueda-text-reading)] font-semibold leading-snug text-foreground"],
+        },
+        emptyStateDesc: {
+            class: [
+                "text-[length:var(--vueda-text-supporting)] font-normal leading-normal text-muted-foreground max-w-[44ch]",
+            ],
+        },
     },
     FieldSetStackedInlineRow: {
         root: {
@@ -251,6 +280,28 @@ export default {
                 "px-3 py-2 border-t border-border",
                 "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
                 "flex flex-col gap-1",
+            ],
+        },
+        emptyState: {
+            class: [
+                "flex flex-col items-center justify-center gap-2",
+                "m-3 py-8 px-6 text-center",
+                "rounded-vueda-card border-2 border-dashed border-border bg-muted/30",
+            ],
+        },
+        emptyStateIcon: {
+            class: [
+                "flex items-center justify-center",
+                "size-9 rounded-full bg-muted text-muted-foreground",
+                "text-[length:var(--vueda-text-title)] leading-none",
+            ],
+        },
+        emptyStateTitle: {
+            class: ["text-[length:var(--vueda-text-reading)] font-semibold leading-snug text-foreground"],
+        },
+        emptyStateDesc: {
+            class: [
+                "text-[length:var(--vueda-text-supporting)] font-normal leading-normal text-muted-foreground max-w-[44ch]",
             ],
         },
         themeOverride: {

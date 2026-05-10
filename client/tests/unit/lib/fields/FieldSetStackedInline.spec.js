@@ -102,6 +102,7 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
                 "toggle-button": { name: "toggle" },
                 "field-set-level-chores": { name: "chores" },
                 title: { name: "title" },
+                "empty-state": { name: "empty-state" },
             },
         };
         useField.mockReturnValue(fieldSetContext);
@@ -147,6 +148,7 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
                 "toggle-button": { name: "toggle" },
                 "field-set-level-chores": { name: "chores" },
                 title: { name: "title" },
+                "empty-state": { name: "empty-state" },
             },
         };
         useField.mockReturnValue(fieldSetContext);
@@ -177,6 +179,7 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
                 "toggle-button": { name: "toggle" },
                 "field-set-level-chores": { name: "chores" },
                 title: { name: "title" },
+                "empty-state": { name: "empty-state" },
             },
         };
         useField.mockReturnValue(fieldSetContext);
@@ -211,6 +214,7 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
                 "toggle-button": { name: "toggle" },
                 "field-set-level-chores": { name: "chores" },
                 title: { name: "title" },
+                "empty-state": { name: "empty-state" },
             },
         };
         useField.mockReturnValue(fieldSetContext);
