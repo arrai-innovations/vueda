@@ -30,6 +30,7 @@ import SidebarProvider from "@vueda/navigation/sidebar/SidebarProvider.vue";
 import SidebarRail from "@vueda/navigation/sidebar/SidebarRail.vue";
 import SidebarSeparator from "@vueda/navigation/sidebar/SidebarSeparator.vue";
 import SidebarTrigger from "@vueda/navigation/sidebar/SidebarTrigger.vue";
+import SidebarUserBlock from "@vueda/navigation/sidebar/SidebarUserBlock.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
     faBoxArchive,
@@ -74,7 +75,8 @@ Theme keys: {@api theme-key:SidebarProvider}, {@api theme-key:Sidebar},
 {@api theme-key:SidebarMenuSub}, {@api theme-key:SidebarMenuSubButton},
 {@api theme-key:SidebarMenuSkeleton}, {@api theme-key:SidebarInput},
 {@api theme-key:SidebarSeparator}, {@api theme-key:SidebarInset},
-{@api theme-key:SidebarRail}, {@api theme-key:SidebarTrigger}.
+{@api theme-key:SidebarRail}, {@api theme-key:SidebarTrigger},
+{@api theme-key:SidebarUserBlock}.
 
 ## Expanded shell
 
@@ -626,24 +628,21 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
           <span>contrast: 1 px border on sidebar surface</span>
         </template>
       </DemoCard>
-      <DemoCard title="User footer block">
-        <p class="text-xs text-muted-foreground">composed pattern · not a dedicated component</p>
+      <DemoCard title="SidebarUserBlock">
+        <p class="text-xs text-muted-foreground">32 px UserAvatar (sidebar tone) · name + role · #kebab slot</p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarFooter class="p-0">
-            <button type="button" class="flex w-full items-center gap-2 rounded-vueda-control p-2 text-left text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-              <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold">JR</span>
-              <span class="flex min-w-0 flex-col">
-                <span class="truncate text-sm font-medium leading-tight">Jess Rivera</span>
-                <span class="truncate text-xs leading-tight text-muted-foreground">Admin · Acme Co.</span>
-              </span>
-              <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto shrink-0 text-muted-foreground" />
-            </button>
+            <SidebarUserBlock name="Jess Rivera" role="Admin · Acme Co." class="rounded-vueda-control p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+              <template #kebab>
+                <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto shrink-0 text-muted-foreground" />
+              </template>
+            </SidebarUserBlock>
           </SidebarFooter>
         </div>
         <template #footer>
-          <span>avatar: size-8 rounded-full bg <code>--sidebar-accent</code></span>
-          <span>name: text-sm font-medium</span>
-          <span>role: text-xs <code>--muted-foreground</code></span>
+          <span>avatar: 32 px UserAvatar tone="sidebar" — bg <code>--sidebar-accent</code></span>
+          <span>name: 13 px / 500 / <code>--sidebar-foreground</code></span>
+          <span>role: 11 px / 400 / <code>--muted-foreground</code></span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarTrigger">

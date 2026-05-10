@@ -21,6 +21,16 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Features
 
+- **UserAvatar (new)**:
+    - New display primitive `@vueda/display/avatar/UserAvatar.vue` rendering an initials chip from a `name` (or explicit `initials`) prop. `size` (number, default 32) drives width / height / font-size via inline style; `tone` selects the color recipe (`primary` default with primary-tinted bg + primary border + primary ink, or `sidebar` with solid `--sidebar-accent` + `--sidebar-foreground` ink). Initials algorithm: first + last token initials when the name has two or more whitespace-separated tokens, otherwise the first two characters of the single token; always uppercased. Theme key: `UserAvatar.{root, initials}` (`root` is tone-aware).
+    - `src` photo support is intentionally deferred; the chip is initials-only for now.
+
+- **SidebarUserBlock (new)**:
+    - New SFC `@vueda/navigation/sidebar/SidebarUserBlock.vue` for the sidebar footer user block. Composes `UserAvatar` at 32 px with `tone="sidebar"`, plus a name line (13 px / 500 / `--sidebar-foreground`), an optional role line (11 px / 400 / `--muted-foreground`), and a `kebab` named slot for the account-menu trigger. Theme key: `SidebarUserBlock.{root, text, name, role}`.
+
+- **ViewHistoryList**:
+    - The `field(history_user)` slot now renders a 22 px `UserAvatar` chip beside the user's display name, replacing the generic ObjectsGrid cell fallback. New theme keys `ViewHistoryList.cellUser` (the inline-flex row) and `cellUserName` (the name span; 12 px / 500 / `--foreground`). The `field(history_user)` named slot remains the override hook for richer cells.
+
 - **ObjectsGrid**:
     - Card-mode `bodyRowGroup` now defaults to a 1 / 2 / 3 column responsive grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`). Projects can still override per-list via `useTheme`.
       _If you previously set custom `grid-cols-*` classes on the bodyRowGroup via theme override, the override continues to win. If you relied on the previous unset behavior (single implicit column), set `grid-cols-1` (or your preferred override) explicitly._

@@ -100,6 +100,15 @@ const WidgetReadOnlyStub = defineComponent({
 });
 vi.mock("@vueda/widgets/WidgetReadOnly.vue", () => ({ default: WidgetReadOnlyStub }));
 
+const UserAvatarStub = defineComponent({
+    name: "UserAvatarStub",
+    props: ["name", "initials", "size", "tone"],
+    setup(props) {
+        return () => h("span", { "data-qa": "user-avatar", "data-name": props.name }, props.name || "");
+    },
+});
+vi.mock("@vueda/display/avatar/UserAvatar.vue", () => ({ default: UserAvatarStub }));
+
 vi.mock("vue", async () => {
     const actual = await vi.importActual("vue");
     ({ provideStore, mockedProvide, mockedInject } = mockProvideInject(vi));

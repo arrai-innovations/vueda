@@ -26,6 +26,7 @@ import TableCell from "@vueda/grid/table/TableCell.vue";
 import TableHead from "@vueda/grid/table/TableHead.vue";
 import TableHeader from "@vueda/grid/table/TableHeader.vue";
 import TableRow from "@vueda/grid/table/TableRow.vue";
+import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
     faBoxArchive,
@@ -592,8 +593,8 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
             <div class="text-xs text-muted-foreground">2 hours ago</div>
           </TableCell>
           <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-sm">
-              <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">MT</span>
+            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
+              <UserAvatar name="Mara Tani" :size="22" />
               Mara Tani
             </span>
           </TableCell>
@@ -632,8 +633,8 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
             <div class="text-xs text-muted-foreground">2 weeks ago</div>
           </TableCell>
           <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-sm">
-              <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">JR</span>
+            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
+              <UserAvatar name="Jordan Reyes" :size="22" />
               Jordan Reyes
             </span>
           </TableCell>
@@ -654,8 +655,8 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
             <div class="text-xs text-muted-foreground">3 months ago</div>
           </TableCell>
           <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-sm">
-              <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">PS</span>
+            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
+              <UserAvatar name="Priya Subramanian" :size="22" />
               Priya Subramanian
             </span>
           </TableCell>
@@ -703,8 +704,8 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
             <div class="text-xs text-muted-foreground">3.5 months ago</div>
           </TableCell>
           <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-sm">
-              <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">LB</span>
+            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
+              <UserAvatar name="Linnea Borg" :size="22" />
               Linnea Borg
             </span>
           </TableCell>
@@ -725,7 +726,7 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
     <span>child rows: first four cells empty; only Field/Old/New columns carry data</span>
     <span>diff cells: old = <code>bg-destructive/5 text-destructive line-through</code>, new = <code>bg-success/10 text-success</code>; empty values as italic muted text</span>
     <span>type pills: hand-rolled <code>rounded-full border</code> spans with tone classes; "updated" → info, "created" → success, "restored" → warning</span>
-    <span>user avatar: <code>h-6 w-6 rounded-full bg-muted</code> initials chip</span>
+    <span>user avatar: <code>UserAvatar :size="22"</code> — primary-tinted initials chip</span>
   </footer>
 </VuedaDemo>
 
@@ -760,8 +761,8 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
         <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
           <span class="font-mono text-xs text-muted-foreground">#3</span>
           <span class="text-sm"><strong>2026-04-25 17:15</strong> · 3 days ago</span>
-          <span class="inline-flex items-center gap-2 text-sm">
-            <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">PS</span>
+          <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
+            <UserAvatar name="Priya Subramanian" :size="22" />
             Priya Subramanian
           </span>
           <span class="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/8 px-2 py-0.5 text-xs text-info">
@@ -788,8 +789,8 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
         <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
           <span class="font-mono text-xs text-muted-foreground">#2</span>
           <span class="text-sm"><strong>2026-03-08 09:42</strong> · 7 weeks ago</span>
-          <span class="inline-flex items-center gap-2 text-sm">
-            <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">JR</span>
+          <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
+            <UserAvatar name="Jordan Reyes" :size="22" />
             Jordan Reyes
           </span>
           <span class="inline-flex items-center gap-1 rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-xs text-warning">
@@ -810,8 +811,8 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
         <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
           <span class="font-mono text-xs text-muted-foreground">#1</span>
           <span class="text-sm"><strong>2025-11-04 11:02</strong> · 6 months ago</span>
-          <span class="inline-flex items-center gap-2 text-sm">
-            <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">LB</span>
+          <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
+            <UserAvatar name="Linnea Borg" :size="22" />
             Linnea Borg
           </span>
           <span class="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs text-success">

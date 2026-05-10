@@ -493,6 +493,14 @@ export default {
         cellDateRel: {
             class: ["text-[11px] leading-[1.3] text-muted-foreground"],
         },
+        // history-user cell: 22 px UserAvatar chip + name beside it (PROP-156).
+        // Name is 12 px / 500 / foreground per kit recipe.
+        cellUser: {
+            class: ["inline-flex items-center gap-2"],
+        },
+        cellUserName: {
+            class: ["text-[length:var(--vueda-text-supporting)] font-medium leading-tight text-foreground"],
+        },
     },
     ViewNotFound: {
         root: {

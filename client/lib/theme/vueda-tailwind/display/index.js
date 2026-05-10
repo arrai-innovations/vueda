@@ -116,6 +116,25 @@ export default {
             class: "bg-muted flex size-full items-center justify-center rounded-full",
         },
     },
+    UserAvatar: {
+        // Initials chip: tone selects color recipe. Size is driven by inline style on the
+        // SFC root (width/height/font-size derived from the `size` prop), not the theme key.
+        // - `primary` (default): primary-tinted bg + primary border + primary ink (PROP-156).
+        // - `sidebar`: solid sidebar-accent bg + sidebar-foreground ink (PROP-100).
+        root: ({ tone }) => ({
+            class: [
+                "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full select-none",
+                {
+                    "border border-primary bg-[color-mix(in_oklab,var(--primary)_14%,transparent)] text-primary":
+                        !tone || tone === "primary",
+                    "bg-sidebar-accent text-sidebar-foreground": tone === "sidebar",
+                },
+            ],
+        }),
+        initials: {
+            class: "font-semibold uppercase leading-none tabular-nums",
+        },
+    },
     MobileSortComponent: {
         drawer: {
             class: ["!h-auto"],

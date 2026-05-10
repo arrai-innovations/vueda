@@ -309,6 +309,23 @@ export default {
             class: "flex flex-col gap-2 p-2",
         },
     },
+    SidebarUserBlock: {
+        root: {
+            class: "flex w-full items-center gap-2",
+        },
+        text: {
+            class: "flex min-w-0 flex-1 flex-col",
+        },
+        // Name: 13 px / 500 / sidebar-foreground (PROP-100). Tight leading inside the dense
+        // footer row; truncation guards against long display names overflowing the rail.
+        name: {
+            class: "truncate text-[length:var(--vueda-text-body)] font-medium leading-tight text-sidebar-foreground",
+        },
+        // Role: 11 px / 400 / muted-foreground (PROP-100). Same micro size as SidebarGroupLabel.
+        role: {
+            class: "truncate text-[length:var(--vueda-text-micro)] font-normal leading-tight text-muted-foreground",
+        },
+    },
     SidebarGroupContent: {
         root: {
             class: "w-full text-sm",

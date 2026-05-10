@@ -4,6 +4,7 @@ import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
@@ -287,6 +288,12 @@ const slots = useSlots();
                             </span>
                             <span v-if="obj[field]" :class="theme('cellDateRel')">
                                 {{ formatRelativeHistoryDate(obj[field]) }}
+                            </span>
+                        </template>
+                        <template v-else-if="field === 'history_user'">
+                            <span v-if="obj[field]" :class="theme('cellUser')">
+                                <UserAvatar :name="obj[field]" :size="22" />
+                                <span :class="theme('cellUserName')">{{ obj[field] }}</span>
                             </span>
                         </template>
                         <template v-else>
