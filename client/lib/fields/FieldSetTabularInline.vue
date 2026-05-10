@@ -11,9 +11,10 @@ import {
     FIELD_SET_TABULAR_INLINE_PROPS,
     useFieldSetTabularInline,
 } from "@vueda/use/useFieldSetTabularInline.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import omit from "lodash-es/omit.js";
-import { watch } from "vue";
+import { computed, watch } from "vue";
 
 const logger = useDevLogger();
 
@@ -42,8 +43,17 @@ const fieldSetTabularInline = useFieldSetTabularInline({
         // todo: implement action-button for non item actions
         // "action-button",
         "item-action-button",
+        "field-set-level-chores",
     ],
 });
+const icon = useIcons("FieldSetTabularInline");
+
+const hasChoresContent = computed(
+    () =>
+        !!fieldSetTabularInline.fieldSetContext.state.help ||
+        Object.keys(fieldSetTabularInline.fieldSetContext.state.errors).length > 0 ||
+        Object.keys(fieldSetTabularInline.fieldSetContext.state.messages).length > 0,
+);
 
 watch(
     () => fieldSetTabularInline.fieldSetContext.state.value,
@@ -73,34 +83,62 @@ watch(
         v-bind="$attrs"
     >
         <div :class="fieldSetTabularInline.theme('inner')" data-qa="field-set-tabular-inline-inner">
-            <div :class="fieldSetTabularInline.theme('titleBar')">
-                <div v-if="fieldSetTabularInline.state.hidable" data-qa="field-set-tabular-inline-header-toggle">
-                    <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Button to show or hide the tabular inline fieldset. -->
+            <div
+                :class="[
+                    fieldSetTabularInline.theme('titleBar'),
+                    fieldSetTabularInline.state.hidable ? fieldSetTabularInline.theme('titleBarToggle') : '',
+                ]"
+                :role="fieldSetTabularInline.state.hidable ? 'button' : undefined"
+                :tabindex="fieldSetTabularInline.state.hidable ? 0 : undefined"
+                :aria-expanded="
+                    fieldSetTabularInline.state.hidable ? fieldSetTabularInline.state.internalVisible : undefined
+                "
+                data-qa="field-set-tabular-inline-title-bar"
+                @click="fieldSetTabularInline.state.hidable ? fieldSetTabularInline.toggleVisibility() : undefined"
+                @keydown.space.prevent="
+                    fieldSetTabularInline.state.hidable ? fieldSetTabularInline.toggleVisibility() : undefined
+                "
+                @keydown.enter.prevent="
+                    fieldSetTabularInline.state.hidable ? fieldSetTabularInline.toggleVisibility() : undefined
+                "
+            >
+                <span
+                    v-if="fieldSetTabularInline.state.hidable"
+                    :class="[
+                        fieldSetTabularInline.theme('toggleIndicator'),
+                        { '-rotate-90': !fieldSetTabularInline.state.internalVisible },
+                    ]"
+                    data-qa="field-set-tabular-inline-header-toggle"
+                    aria-hidden="true"
+                >
+                    <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Replaces the disclosure indicator inside the title bar. The bar itself drives the toggle. -->
                     <slot
                         :class="fieldSetTabularInline.theme('toggleButton')"
                         :field-props="fieldSetTabularInline.state.computedFieldProps"
                         :label="fieldSetTabularInline.state.internalVisible ? 'Hide' : 'Show'"
                         :name="fieldSetTabularInline.resolvedSlotNames['toggle-button'].name"
                         :verb="fieldSetTabularInline.state.internalVisible ? 'collapseDown' : 'collapseUp'"
-                        @click="fieldSetTabularInline.toggleVisibility"
                     >
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            :class="fieldSetTabularInline.theme('toggleButton')"
-                            @click="fieldSetTabularInline.toggleVisibility"
-                        >
-                            {{ fieldSetTabularInline.state.internalVisible ? "Hide" : "Show" }}
-                        </Button>
+                        <component
+                            :is="icon('chevronDown').component"
+                            v-if="icon('chevronDown')"
+                            v-bind="icon('chevronDown').props"
+                        />
                     </slot>
-                </div>
+                </span>
                 <div :class="fieldSetTabularInline.theme('title')" data-qa="field-set-tabular-inline-title">
                     <!-- @slot [title, fieldset-title, field(fieldName)title] Replaces the fieldset title/label. -->
                     <slot :name="fieldSetTabularInline.resolvedSlotNames['title'].name">
                         {{ fieldSetTabularInline.fieldSetContext.state.label }}
                     </slot>
                 </div>
-                <div :class="fieldSetTabularInline.theme('actionBar')" data-qa="field-set-tabular-inline-action-bar">
+                <div
+                    :class="fieldSetTabularInline.theme('actionBar')"
+                    data-qa="field-set-tabular-inline-action-bar"
+                    @click.stop
+                    @keydown.space.stop
+                    @keydown.enter.stop
+                >
                     <!-- @slot [create-button, fieldset-create-button, field(fieldName)create-button] Button to add a new tabular inline row, shown in the header. -->
                     <slot
                         v-if="
@@ -126,18 +164,6 @@ watch(
                     </slot>
                 </div>
             </div>
-            <!-- @slot [field-set-level-chores] Replaces the validation block rendered above the rows. -->
-            <slot name="field-set-level-chores">
-                <FieldDescription v-if="fieldSetTabularInline.fieldSetContext.state.help">
-                    {{ fieldSetTabularInline.fieldSetContext.state.help }}
-                </FieldDescription>
-                <FieldMessage :messages="Object.values(fieldSetTabularInline.fieldSetContext.state.errors)" />
-                <FieldMessage
-                    v-if="Object.keys(fieldSetTabularInline.fieldSetContext.state.messages).length"
-                    severity="warning"
-                    :messages="Object.values(fieldSetTabularInline.fieldSetContext.state.messages)"
-                />
-            </slot>
             <objects-grid
                 :class="
                     combineClasses(fieldSetTabularInline.theme('objectsGrid'), {
@@ -354,6 +380,24 @@ watch(
                     </div>
                 </template>
             </objects-grid>
+            <div
+                v-if="hasChoresContent || fieldSetTabularInline.resolvedSlotNames['field-set-level-chores'].exists"
+                :class="fieldSetTabularInline.theme('choresPanel')"
+                data-qa="field-set-tabular-inline-chores"
+            >
+                <!-- @slot [field-set-level-chores, fieldset-field-set-level-chores, field(fieldName)field-set-level-chores] Replaces the validation block rendered below the rows. -->
+                <slot :name="fieldSetTabularInline.resolvedSlotNames['field-set-level-chores'].name">
+                    <FieldDescription v-if="fieldSetTabularInline.fieldSetContext.state.help">
+                        {{ fieldSetTabularInline.fieldSetContext.state.help }}
+                    </FieldDescription>
+                    <FieldMessage :messages="Object.values(fieldSetTabularInline.fieldSetContext.state.errors)" />
+                    <FieldMessage
+                        v-if="Object.keys(fieldSetTabularInline.fieldSetContext.state.messages).length"
+                        severity="warning"
+                        :messages="Object.values(fieldSetTabularInline.fieldSetContext.state.messages)"
+                    />
+                </slot>
+            </div>
         </div>
     </div>
 </template>

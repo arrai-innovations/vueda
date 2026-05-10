@@ -96,6 +96,7 @@ function mountWithContext(value, options = {}) {
             "destroy-button": { name: "destroy-button" },
             "destroy-checkbox": { name: "destroy-checkbox" },
             "item-action-button": { name: "item-action-button" },
+            "field-set-level-chores": { name: "field-set-level-chores", exists: false },
         },
         theme: () => "",
         doCreate: vi.fn(),
@@ -151,19 +152,14 @@ describe("lib/fields/FieldSetTabularInline.vue", () => {
         expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    scopedIt("emits toggleVisibility when slot content clicked", async () => {
-        let slotClick;
+    scopedIt("emits toggleVisibility when title bar is clicked", async () => {
         const wrapper = mountWithContext([], {
             state: { hidable: true },
-            slots: {
-                "toggle-button": (slotProps) => {
-                    slotClick = slotProps.onClick;
-                    return h("button", { "data-qa": "slot-toggle" }, "Toggle");
-                },
-            },
         });
-        expect(typeof slotClick).toBe("function");
-        slotClick();
+        const titleBar = wrapper.find('[data-qa="field-set-tabular-inline-title-bar"]');
+        expect(titleBar.attributes("role")).toBe("button");
+        expect(titleBar.attributes("aria-expanded")).toBe("true");
+        await titleBar.trigger("click");
         expect(wrapper.vm.fieldSetTabularInline.toggleVisibility).toHaveBeenCalled();
     });
 });

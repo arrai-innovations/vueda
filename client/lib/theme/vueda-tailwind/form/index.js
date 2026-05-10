@@ -32,6 +32,9 @@ export default {
         component: {
             class: ["w-5/6"],
         },
+        footer: {
+            class: ["flex justify-end mt-0.5"],
+        },
         createButton: {
             class: [],
         },
@@ -44,10 +47,16 @@ export default {
             ],
         },
         inner: {
-            class: ["flex flex-row flex-wrap gap-1 2xs:gap-2"],
+            class: ["grid items-center gap-1 2xs:gap-2", "grid-cols-1 sm:grid-cols-[1fr_16px_1fr]"],
         },
         header: {
-            class: ["flex items-baseline gap-1 2xs:gap-2"],
+            class: ["flex items-baseline gap-1 2xs:gap-2 mb-1"],
+        },
+        separator: {
+            class: [
+                "hidden sm:flex items-center justify-center text-muted-foreground",
+                "h-8 w-4 select-none leading-none",
+            ],
         },
         title: {
             class: [
@@ -64,6 +73,13 @@ export default {
         field: {
             class: [
                 // "rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"
+            ],
+        },
+        choresPanel: {
+            class: [
+                "-mx-3 -mb-3 mt-3 px-3 py-2 border-t border-border",
+                "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
+                "flex flex-col gap-1",
             ],
         },
     },
@@ -86,6 +102,17 @@ export default {
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none text-muted-foreground",
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
             ],
+        },
+        titleBarToggle: {
+            class: [
+                "cursor-pointer select-none",
+                "hover:bg-accent hover:text-accent-foreground",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                "transition-colors",
+            ],
+        },
+        toggleIndicator: {
+            class: ["inline-flex items-center justify-center shrink-0 size-4", "transition-transform duration-150"],
         },
         title: {
             class: [],
@@ -114,6 +141,13 @@ export default {
         },
         createButton: {
             class: [],
+        },
+        choresPanel: {
+            class: [
+                "-mx-3 -mb-3 px-3 py-2 border-t border-border",
+                "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
+                "flex flex-col gap-1",
+            ],
         },
     },
     FieldSetStackedInlineRow: {
@@ -165,6 +199,17 @@ export default {
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
             ],
         },
+        titleBarToggle: {
+            class: [
+                "cursor-pointer select-none",
+                "hover:bg-accent hover:text-accent-foreground",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                "transition-colors",
+            ],
+        },
+        toggleIndicator: {
+            class: ["inline-flex items-center justify-center shrink-0 size-4", "transition-transform duration-150"],
+        },
         title: {
             class: [],
         },
@@ -200,6 +245,13 @@ export default {
         },
         createButtonCard: {
             class: "border-dashed",
+        },
+        choresPanel: {
+            class: [
+                "px-3 py-2 border-t border-border",
+                "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
+                "flex flex-col gap-1",
+            ],
         },
         themeOverride: {
             ObjectsGridBodyCell: {

@@ -6,8 +6,9 @@ import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useTheme } from "@vueda/use/useTheme.js";
-import { watch } from "vue";
+import { computed, watch } from "vue";
 
 /**
  * A stacked inline fieldset for editing a list of related objects. Renders
@@ -28,7 +29,15 @@ const fieldSetInline = useFieldSetInline({
     fieldSetContext,
 });
 const theme = useTheme("FieldSetStackedInline", props);
+const icon = useIcons("FieldSetStackedInline");
 const logger = useDevLogger({ fieldContext: fieldSetContext });
+
+const hasChoresContent = computed(
+    () =>
+        !!fieldSetContext.state.help ||
+        Object.keys(fieldSetContext.state.errors).length > 0 ||
+        Object.keys(fieldSetContext.state.messages).length > 0,
+);
 
 watch(
     () => fieldSetContext.state.value,
@@ -52,34 +61,50 @@ watch(
 <template>
     <div :class="theme('root')" data-vueda-fieldset v-bind="$attrs">
         <div :class="theme('inner')">
-            <div :class="theme('titleBar')">
-                <div v-if="fieldSetInline.state.hidable" data-qa="field-set-stacked-inline-header-toggle">
-                    <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Button to show or hide the inline fieldset. -->
+            <div
+                :class="[theme('titleBar'), fieldSetInline.state.hidable ? theme('titleBarToggle') : '']"
+                :role="fieldSetInline.state.hidable ? 'button' : undefined"
+                :tabindex="fieldSetInline.state.hidable ? 0 : undefined"
+                :aria-expanded="fieldSetInline.state.hidable ? fieldSetInline.state.internalVisible : undefined"
+                data-qa="field-set-stacked-inline-title-bar"
+                @click="fieldSetInline.state.hidable ? fieldSetInline.toggleVisibility() : undefined"
+                @keydown.space.prevent="fieldSetInline.state.hidable ? fieldSetInline.toggleVisibility() : undefined"
+                @keydown.enter.prevent="fieldSetInline.state.hidable ? fieldSetInline.toggleVisibility() : undefined"
+            >
+                <span
+                    v-if="fieldSetInline.state.hidable"
+                    :class="[theme('toggleIndicator'), { '-rotate-90': !fieldSetInline.state.internalVisible }]"
+                    data-qa="field-set-stacked-inline-header-toggle"
+                    aria-hidden="true"
+                >
+                    <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Replaces the disclosure indicator inside the title bar. The bar itself drives the toggle. -->
                     <slot
                         :class="theme('toggleButton')"
                         :field-props="fieldSetInline.state.computedFieldProps"
                         :label="fieldSetInline.state.internalVisible ? 'Hide' : 'Show'"
                         :name="fieldSetInline.resolvedSlotNames['toggle-button'].name"
                         :verb="fieldSetInline.state.internalVisible ? 'collapseDown' : 'collapseUp'"
-                        @click="fieldSetInline.toggleVisibility"
                     >
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            :class="theme('toggleButton')"
-                            @click="fieldSetInline.toggleVisibility"
-                        >
-                            {{ fieldSetInline.state.internalVisible ? "Hide" : "Show" }}
-                        </Button>
+                        <component
+                            :is="icon('chevronDown').component"
+                            v-if="icon('chevronDown')"
+                            v-bind="icon('chevronDown').props"
+                        />
                     </slot>
-                </div>
+                </span>
                 <div :class="theme('title')" data-qa="field-set-stacked-inline-title">
                     <!-- @slot [title, fieldset-title, field(fieldName)title] Replaces the fieldset title/label. -->
                     <slot :name="fieldSetInline.resolvedSlotNames['title'].name">
                         {{ fieldSetContext.state.label }}
                     </slot>
                 </div>
-                <div :class="theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
+                <div
+                    :class="theme('actionBar')"
+                    data-qa="fieldset-tabular-inline-action-bar"
+                    @click.stop
+                    @keydown.space.stop
+                    @keydown.enter.stop
+                >
                     <!-- @slot [create-button, fieldset-create-button, field(fieldName)create-button] Button to add a new inline row. -->
                     <slot
                         v-if="fieldSetInline.state.showCreateButton"
@@ -101,18 +126,6 @@ watch(
                     </slot>
                 </div>
             </div>
-            <!-- @slot [field-set-level-chores, fieldset-field-set-level-chores, field(fieldName)field-set-level-chores] Replaces the validation block for this fieldset. -->
-            <slot :name="fieldSetInline.resolvedSlotNames['field-set-level-chores'].name">
-                <FieldDescription v-if="fieldSetContext.state.help">
-                    {{ fieldSetContext.state.help }}
-                </FieldDescription>
-                <FieldMessage :messages="Object.values(fieldSetContext.state.errors)" />
-                <FieldMessage
-                    v-if="Object.keys(fieldSetContext.state.messages).length"
-                    severity="warning"
-                    :messages="Object.values(fieldSetContext.state.messages)"
-                />
-            </slot>
             <div :class="theme('inlineRows')" data-qa="field-set-stacked-inline-inline-rows">
                 <div
                     v-for="(value, index) in fieldSetContext.state.value"
@@ -134,6 +147,24 @@ watch(
                         </template>
                     </field-set-stacked-inline-row>
                 </div>
+            </div>
+            <div
+                v-if="hasChoresContent || fieldSetInline.resolvedSlotNames['field-set-level-chores'].exists"
+                :class="theme('choresPanel')"
+                data-qa="field-set-stacked-inline-chores"
+            >
+                <!-- @slot [field-set-level-chores, fieldset-field-set-level-chores, field(fieldName)field-set-level-chores] Replaces the validation block for this fieldset. -->
+                <slot :name="fieldSetInline.resolvedSlotNames['field-set-level-chores'].name">
+                    <FieldDescription v-if="fieldSetContext.state.help">
+                        {{ fieldSetContext.state.help }}
+                    </FieldDescription>
+                    <FieldMessage :messages="Object.values(fieldSetContext.state.errors)" />
+                    <FieldMessage
+                        v-if="Object.keys(fieldSetContext.state.messages).length"
+                        severity="warning"
+                        :messages="Object.values(fieldSetContext.state.messages)"
+                    />
+                </slot>
             </div>
         </div>
     </div>

@@ -72,12 +72,6 @@ const icon = useIcons("FieldSetMany");
                         {{ fieldContext.state.label }}
                     </label>
                 </slot>
-                <!-- @slot [add] Override the add button. -->
-                <slot name="add" @click="onAdd">
-                    <Button variant="outline" size="sm" @click="onAdd"
-                        ><span aria-hidden="true" class="select-none">+</span> Add</Button
-                    >
-                </slot>
             </div>
             <div v-if="fieldProps?.length">
                 <template v-for="(fieldProp, index) in fieldProps" :key="index">
@@ -106,6 +100,14 @@ const icon = useIcons("FieldSetMany");
                         </div>
                     </slot>
                 </template>
+            </div>
+            <div :class="theme('footer')" data-qa="field-set-many-footer">
+                <!-- @slot [add] Override the add button. -->
+                <slot name="add" @click="onAdd">
+                    <Button variant="outline" size="sm" @click="onAdd"
+                        ><span aria-hidden="true" class="select-none">+</span> Add</Button
+                    >
+                </slot>
             </div>
             <!-- @slot [field-set-level-chores] Override the validation block (help, errors, warnings) for this field set. -->
             <slot name="field-set-level-chores">
