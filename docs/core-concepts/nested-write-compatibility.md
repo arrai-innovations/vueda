@@ -27,7 +27,7 @@ The mixin enforces this by performing flex-field application in `to_internal_val
 
 Flex fields are applied only when the serializer is the view's top-level serializer class, and only once per serialization pass. The mixin tracks this with a `_flex_fields_rep_applied` flag. When `to_internal_value` runs, it checks whether the serializer is bound to the view (i.e., it is the root serializer, not a nested child) and whether flex fields have not already been applied. If both conditions are met, it applies flex fields; otherwise, it skips the application.
 
-This means nested serializers do not receive flex-field application through this mixin, it occurs as a result of the main serializer's flex-field application being applied. A nested child serializer will include whatever fields are specified by the request's query parameters, or whatever fields its class defines if none are specified in the request's query parameters. Double-application of flex fields is treated as an error case, and nested serializers do not independently interpret `f`/`e` parameters.
+This means nested serializers do not apply flex fields independently through this mixin. They receive the result of the root serializer’s flex-field application. A nested child serializer will include whatever fields are specified by the request's query parameters, or whatever fields its class defines if none are specified in the request's query parameters. Double-application of flex fields is treated as an error case, and nested serializers do not independently interpret `f`/`e` parameters.
 
 ## Nested Serializer Data Access
 

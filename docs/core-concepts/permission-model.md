@@ -57,7 +57,14 @@ The full mechanics of queryset and instance filtering, including pagination inte
 
 Workflow permissions operate on the same permission codename strings as baseline CRUDL permissions. A `StatePermission` entry targets a specific workflow state, group, and permission codename with a grant-or-deny flag. This means the workflow overlay does not create a parallel authorization namespace; it modifies the outcomes of the same codenames that model-level permissions use.
 
-Transition execution is a separate authorization surface from CRUDL operations. Executing a transition requires four things: the object cannot be locked by another action (a _try again_ validation error will occur if it is), workflow-level permission (at least one `WorkflowPermission` entry exists for the workflow's content type, and the user has all of these permissions), transition-level permission (at least one `TransitionPermission` entry exists for the specific transition, and the user has all of these permissions), and source-state validity (the transition is available in the object's current state). Transitions without transition-permission rows are treated as not permitted; there is no default-allow path.
+Transition execution is a separate authorization surface from CRUDL operations. Executing a transition requires all of the following:
+
+- The object is not locked by another action. If it is locked, the API returns a _try again_ validation error.
+- Workflow-level permission: at least one `WorkflowPermission` entry exists for the workflow content type, and the user has all of those permissions.
+- Transition-level permission: at least one `TransitionPermission` entry exists for the specific transition, and the user has all of those permissions.
+- Source-state validity: the transition is available from the object's current state.
+
+Transitions without transition-permission rows are not permitted (no default-allow path).
 
 Workflow endpoints impose an additional viewset-level gate: the `vueda_workflow.read_workflow` permission must be present before any workflow endpoint (object state, permitted transitions, execute transition) processes. This check runs at the viewset `check_permissions` phase, before object-specific authorization.
 
