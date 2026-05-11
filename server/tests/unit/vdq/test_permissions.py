@@ -26,7 +26,7 @@ def can_resend_permission(db):
 
 @pytest.mark.django_db
 def test_resend_requires_permission_allows_user(monkeypatch, api_client, sent_item, can_resend_permission):
-    user = get_user_model().objects.create_user(email="resender@example.com", password="password123")
+    user = get_user_model().objects.create_user(email="resender@domain.invalid", password="password123")
     user.user_permissions.add(can_resend_permission)
 
     scheduled_items = []
@@ -49,7 +49,7 @@ def test_resend_requires_permission_allows_user(monkeypatch, api_client, sent_it
 
 @pytest.mark.django_db
 def test_resend_requires_permission_denies_without_flag(monkeypatch, api_client, sent_item):
-    user = get_user_model().objects.create_user(email="no-resend@example.com", password="password123")
+    user = get_user_model().objects.create_user(email="no-resend@domain.invalid", password="password123")
 
     scheduled_items = []
 

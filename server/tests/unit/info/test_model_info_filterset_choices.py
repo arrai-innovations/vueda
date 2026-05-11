@@ -202,17 +202,17 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_admin@example.com": {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer_1@example.com": {
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
         },
-        "test_customer_2@example.com": {
+        "test_customer_2@domain.invalid": {
             "name": "Test Customer 2",
             "password": "testpass",
             "groups": ["Customer"],
@@ -279,7 +279,7 @@ class TestModelInfoFiltersetChoices:
         expected_choices,
         expected_empty_value,
     ):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -330,7 +330,7 @@ class TestModelInfoFiltersetChoices:
         expected_choices,
         expected_empty_value,
     ):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -357,7 +357,7 @@ class TestModelInfoFiltersetChoices:
         self.assert_choice_value_contract(response.data, expected_choices, msg)
 
     def test_info_choices_filter_list_invalid_field(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()

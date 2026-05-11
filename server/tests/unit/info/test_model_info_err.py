@@ -30,7 +30,7 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_customer_1@example.com": {
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
@@ -63,7 +63,7 @@ class TestModelInfoErrs:
     # TODO: Add tests that use settings with specific apps that cause system check errors.
 
     def test_no_formatted_name(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         related_obj = err_models.RelatedObjectsAreMissingData.objects.create()
@@ -97,7 +97,7 @@ class TestModelInfoErrs:
         ) in response.data["serverStack"]
 
     def test_invalid_choices_model(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.setup_router_and_registry()
@@ -110,7 +110,7 @@ class TestModelInfoErrs:
         assert 'Unable to find the content type "store.pets".' == response.data["detail"]
 
     def test_invalid_filter_choices_model(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.setup_router_and_registry()
@@ -123,7 +123,7 @@ class TestModelInfoErrs:
         assert 'Unable to find the content type "store.pets".' == response.data["detail"]
 
     def test_invalid_choices_field(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.setup_router_and_registry()
@@ -139,7 +139,7 @@ class TestModelInfoErrs:
         )
 
     def test_invalid_filter_choices_field(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.setup_router_and_registry()
@@ -184,7 +184,7 @@ class VuedaWorkflowTestData(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_customer_1@example.com": {
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
@@ -409,7 +409,7 @@ class TestModelInfoWorkflowConfigurationErrs:
         ],
     )
     def test_workflow_configuration(self, model, will_err, expected_error, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.setup_router_and_registry()

@@ -61,7 +61,7 @@ class TestProductViewSet(BaseTestModelViewSet):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_admin@example.com": {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
@@ -103,7 +103,7 @@ class TestProductViewSet(BaseTestModelViewSet):
 
     @pytest.fixture
     def authenticated_client(self, api_client):
-        user = self.users["test_admin@example.com"]
+        user = self.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         return api_client
 
@@ -309,7 +309,7 @@ class TestStoreProductViewSet:
         return VuedaTestData()
 
     def test_retrieve_with_two_depth_invalid_expand(self, api_client, test_data):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         key = next(iter(test_data.products))
@@ -340,7 +340,7 @@ class TestStoreProductViewSet:
         assert "history" not in response.data, f"response.data: {response.data}"
 
     def test_retrieve_with_two_depth_invalid_field(self, api_client, test_data):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         key = next(iter(test_data.products))
@@ -389,7 +389,7 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
         info.register_serializer(store_serializers.OrderItemSerializer)
 
     def test_expand_through(self, api_client, test_data):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         key = next(iter(test_data.customer_orders))
@@ -451,7 +451,7 @@ class TestStoreCustomerOrderViewSet:
         return VuedaTestData()
 
     def test_expand_exceeds_depth(self, api_client, test_data):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         key = next(iter(test_data.customer_orders))
@@ -501,7 +501,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_admin@example.com": {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
@@ -518,15 +518,15 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     @pytest.fixture
     def page_data(self):
         self.employee_1 = employee_1 = Employee.objects.create(
-            user=self.users["test_admin@example.com"],
+            user=self.users["test_admin@domain.invalid"],
             employee_number="1",
         )
         employee_2 = Employee.objects.create(
-            user=self.users["test_admin@example.com"],
+            user=self.users["test_admin@domain.invalid"],
             employee_number="2",
         )
         self.supervisor_1 = supervisor_1 = Employee.objects.create(
-            user=self.users["test_admin@example.com"],
+            user=self.users["test_admin@domain.invalid"],
             employee_number="3",
         )
         for data in (
@@ -560,7 +560,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
     @pytest.fixture
     def authenticated_client(self, api_client):
-        user = self.users["test_admin@example.com"]
+        user = self.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         return api_client
 
@@ -791,7 +791,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_my_user@example.com": {
+        "test_my_user@domain.invalid": {
             "name": "Test User update",
             "password": "testpass",
             "groups": ["Timesheet Updater"],
@@ -799,7 +799,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
     }
 
     def test_update_timesheet_with_existing_field(self, api_client):
-        user = self.users["test_my_user@example.com"]
+        user = self.users["test_my_user@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         e1 = Employee.objects.create(
@@ -831,7 +831,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert "employee" not in response.data
 
     def test_update_timesheet_with_non_existing_field(self, api_client):
-        user = self.users["test_my_user@example.com"]
+        user = self.users["test_my_user@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         e1 = Employee.objects.create(
@@ -864,7 +864,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert "une" in response.data
 
     def test_expand_with_existing_expands(self, api_client):
-        user = self.users["test_my_user@example.com"]
+        user = self.users["test_my_user@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         e1 = Employee.objects.create(
@@ -899,7 +899,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert "user" in response.data["employee"]
 
     def test_expand_with_non_existing_expands(self, api_client):
-        user = self.users["test_my_user@example.com"]
+        user = self.users["test_my_user@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         e1 = Employee.objects.create(
@@ -930,7 +930,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert "label10" in response.data
 
     def test_expand_with_existing_fields(self, api_client):
-        user = self.users["test_my_user@example.com"]
+        user = self.users["test_my_user@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         e1 = Employee.objects.create(
@@ -967,7 +967,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert "user" in response.data["employee"]
 
     def test_expand_with_non_existing_fields(self, api_client):
-        user = self.users["test_my_user@example.com"]
+        user = self.users["test_my_user@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         e1 = Employee.objects.create(
@@ -1041,7 +1041,7 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_order_updater@example.com": {
+        "test_order_updater@domain.invalid": {
             "name": "Test Order Updater",
             "password": "testpass",
             "groups": ["Order Updater"],
@@ -1055,7 +1055,7 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
         return store_models.OrderItemCompositePK.objects.create(order=order, product=product, quantity=5)
 
     def test_formatted_name_on_main_model_no_error(self, order_item, api_client):
-        user = self.users["test_order_updater@example.com"]
+        user = self.users["test_order_updater@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         response = api_client.patch(
@@ -1073,7 +1073,7 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
         assert data["formatted_name"] == "Test Product", data
 
     def test_invalid_field_message_includes_formatted_name_main_model(self, order_item, api_client):
-        user = self.users["test_order_updater@example.com"]
+        user = self.users["test_order_updater@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         response = api_client.patch(
@@ -1090,7 +1090,7 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
         assert "formatted_name" in response.data["xxx_invalid_field"][0]
 
     def test_formatted_name_on_expanded_model_no_error(self, order_item, api_client):
-        user = self.users["test_order_updater@example.com"]
+        user = self.users["test_order_updater@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         response = api_client.patch(
@@ -1109,7 +1109,7 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
         assert data["order_items_composite_pks"][0]["formatted_name"] == "Test Product", data
 
     def test_invalid_field_message_includes_formatted_name_expanded_model(self, order_item, api_client):
-        user = self.users["test_order_updater@example.com"]
+        user = self.users["test_order_updater@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         response = api_client.patch(

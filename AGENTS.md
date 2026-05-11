@@ -107,3 +107,9 @@ Configuration lives in `lefthook.yml`. When editing hook commands:
 - Prefer concrete phrasing (for example, "visible actions" or "route guard blocks navigation") over abstract terms.
 - If wording could be misread as authorization behavior, explicitly distinguish UI behavior from server enforcement.
 - Optimize for skimmability: short paragraphs, explicit subject/verb structure, and avoid stacked clauses.
+- Use "example.com" for email addresses that appear in documentation.
+
+## Test Conventions
+
+- Use "domain.invalid" for email addresses.
+- Use "+1800555[0100-0199] for phone numbers.

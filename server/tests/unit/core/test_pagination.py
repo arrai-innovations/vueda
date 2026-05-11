@@ -27,7 +27,7 @@ class TestPagination(BaseTestCommonModelViewSet):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_admin@example.com": {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
@@ -58,7 +58,7 @@ class TestPagination(BaseTestCommonModelViewSet):
 
     @pytest.fixture
     def authenticated_client(self, api_client):
-        user = self.users["test_admin@example.com"]
+        user = self.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         return api_client
 
@@ -123,7 +123,7 @@ class TestPagination(BaseTestCommonModelViewSet):
 @pytest.mark.django_db
 class TestColumnTotals(BaseTestCommonModelViewSet):
     users_to_create: ClassVar[dict] = {
-        "test_admin@example.com": {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Timesheet Lister"],
@@ -132,7 +132,7 @@ class TestColumnTotals(BaseTestCommonModelViewSet):
 
     @pytest.fixture
     def page_data(self):
-        employee = Employee.objects.create(user=self.users["test_admin@example.com"], employee_number="E001")
+        employee = Employee.objects.create(user=self.users["test_admin@domain.invalid"], employee_number="E001")
         timesheet = Timesheet.objects.create(
             period_start=date(2024, 1, 1),
             period_end=date(2024, 1, 7),
@@ -146,7 +146,7 @@ class TestColumnTotals(BaseTestCommonModelViewSet):
 
     @pytest.fixture
     def authenticated_client(self, api_client):
-        user = self.users["test_admin@example.com"]
+        user = self.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         return api_client
 

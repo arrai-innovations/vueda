@@ -17,7 +17,7 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_user+timesheet+reader@example.com": {
+        "test_user+timesheet+reader@domain.invalid": {
             "name": "Test User reader",
             "password": "testpass",
             "groups": ["Timesheet Reader"],
@@ -25,7 +25,7 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     def test_as_user(self, api_client):
-        user = self.users["test_user+timesheet+reader@example.com"]
+        user = self.users["test_user+timesheet+reader@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         url = reverse("who-is")
@@ -43,5 +43,5 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
             "totp_devices",
             "recently_logged_in",
         }
-        assert response.data["email"] == "test_user+timesheet+reader@example.com"
+        assert response.data["email"] == "test_user+timesheet+reader@domain.invalid"
         assert response.data["formatted_name"] == response.data["email"]

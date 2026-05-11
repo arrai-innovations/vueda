@@ -33,32 +33,32 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_user+timesheet+reader@example.com": {
+        "test_user+timesheet+reader@domain.invalid": {
             "name": "Test User reader",
             "password": "testpass",
             "groups": ["Timesheet Reader"],
         },
-        "test_user+timesheet+creator@example.com": {
+        "test_user+timesheet+creator@domain.invalid": {
             "name": "Test User creator",
             "password": "testpass",
             "groups": ["Timesheet Creator"],
         },
-        "test_user+timesheet+updater@example.com": {
+        "test_user+timesheet+updater@domain.invalid": {
             "name": "Test User updater",
             "password": "testpass",
             "groups": ["Timesheet Updater"],
         },
-        "test_user+timesheet+deleter@example.com": {
+        "test_user+timesheet+deleter@domain.invalid": {
             "name": "Test User deleter",
             "password": "testpass",
             "groups": ["Timesheet Deleter"],
         },
-        "test_user+timesheet+lister@example.com": {
+        "test_user+timesheet+lister@domain.invalid": {
             "name": "Test User lister",
             "password": "testpass",
             "groups": ["Timesheet Lister"],
         },
-        "test_user+timesheet+no_permissions@example.com": {
+        "test_user+timesheet+no_permissions@domain.invalid": {
             "name": "Test User no permissions",
             "password": "testpass",
             "groups": [],
@@ -68,12 +68,12 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
     @pytest.mark.parametrize(
         "email,http_method",
         [
-            ("test_user+timesheet+reader@example.com", "GET"),
-            ("test_user+timesheet+creator@example.com", "POST"),
-            ("test_user+timesheet+updater@example.com", "PUT"),
-            ("test_user+timesheet+updater@example.com", "PATCH"),
-            ("test_user+timesheet+deleter@example.com", "DELETE"),
-            ("test_user+timesheet+lister@example.com", "GET"),
+            ("test_user+timesheet+reader@domain.invalid", "GET"),
+            ("test_user+timesheet+creator@domain.invalid", "POST"),
+            ("test_user+timesheet+updater@domain.invalid", "PUT"),
+            ("test_user+timesheet+updater@domain.invalid", "PATCH"),
+            ("test_user+timesheet+deleter@domain.invalid", "DELETE"),
+            ("test_user+timesheet+lister@domain.invalid", "GET"),
         ],
         ids=[
             "read",
@@ -189,7 +189,7 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
         ],
     )
     def test_does_not_have_permission(self, http_method, is_list, api_client):
-        user = self.users["test_user+timesheet+no_permissions@example.com"]
+        user = self.users["test_user+timesheet+no_permissions@domain.invalid"]
         api_client.force_authenticate(user=user)
         e1 = Employee.objects.create(
             user=user,

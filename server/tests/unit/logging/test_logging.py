@@ -61,7 +61,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_admin@example.com": {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
@@ -70,7 +70,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
 
     def test_warnings_ignored_from_log_mixed_errors_and_warnings(self, api_client, log_to_db):
         process_id = os.getpid()
-        api_client.force_authenticate(user=self.users["test_admin@example.com"])
+        api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
         router = IncludeAppInRouteNameRouter()
         router.register("log_records", viewsets.LogRecordsViewSet)
@@ -120,7 +120,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
 
     def test_warnings_ignored_from_log_only_errors(self, api_client, log_to_db):
         process_id = os.getpid()
-        api_client.force_authenticate(user=self.users["test_admin@example.com"])
+        api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
         router = IncludeAppInRouteNameRouter()
         router.register("log_records", viewsets.LogRecordsViewSet)
@@ -166,7 +166,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
 
     def test_warnings_ignored_from_log_only_warnings(self, api_client, log_to_db):
         process_id = os.getpid()
-        api_client.force_authenticate(user=self.users["test_admin@example.com"])
+        api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
         router = IncludeAppInRouteNameRouter()
         router.register("log_records", viewsets.LogRecordsViewSet)

@@ -20,17 +20,17 @@ from vueda.workflow.models import WorkflowPermission
 class TestWorkflowViewSet(BaseTestUserMixin):
     groups_to_create: ClassVar[dict] = {}
     users_to_create: ClassVar[dict] = {
-        "workflow-user@example.com": {
+        "workflow-user@domain.invalid": {
             "name": "Workflow User",
             "password": "password",
             "groups": ["Order Workflow Managers"],
         },
-        "workflow-reader@example.com": {
+        "workflow-reader@domain.invalid": {
             "name": "Workflow Reader",
             "password": "password",
             "groups": ["Order Workflow Readers"],
         },
-        "workflow-read-only@example.com": {
+        "workflow-read-only@domain.invalid": {
             "name": "Workflow Read Only",
             "password": "password",
             "groups": ["Workflow Read Only"],
@@ -39,15 +39,15 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
     @pytest.fixture
     def workflow_user(self):
-        return self.users["workflow-user@example.com"]
+        return self.users["workflow-user@domain.invalid"]
 
     @pytest.fixture
     def workflow_reader(self):
-        return self.users["workflow-reader@example.com"]
+        return self.users["workflow-reader@domain.invalid"]
 
     @pytest.fixture
     def workflow_read_only_user(self):
-        return self.users["workflow-read-only@example.com"]
+        return self.users["workflow-read-only@domain.invalid"]
 
     @property
     def groups(self):
@@ -84,7 +84,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
     @pytest.fixture
     def other_customer(self):
-        user = get_user_model().objects.create(email="workflow-user2@example.com", name="Workflow User 2")
+        user = get_user_model().objects.create(email="workflow-user2@domain.invalid", name="Workflow User 2")
         user.set_password("password")
         user.save()
         return store_models.Customer.objects.create(user=user)

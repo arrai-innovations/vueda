@@ -15,7 +15,9 @@ from vueda.vdq.models import SentItem
 class TestQueueItemWorkflowTransitions:
     @pytest.fixture(autouse=True)
     def setup_user(self):
-        self.user = get_user_model().objects.create_superuser(email="queue-checker@example.com", password="password123")
+        self.user = get_user_model().objects.create_superuser(
+            email="queue-checker@domain.invalid", password="password123"
+        )
 
     @pytest.fixture
     def authenticated_client(self, api_client):
@@ -130,7 +132,7 @@ def test_send_queue_viewset_excludes_done_states(api_client, sender, receiver):
     finished.fast_transition("await")
     finished.fast_transition("succeed")
 
-    user = get_user_model().objects.create_superuser(email="queue-checker@example.com", password="password123")
+    user = get_user_model().objects.create_superuser(email="queue-checker@domain.invalid", password="password123")
     api_client.force_authenticate(user=user)
 
     list_url = reverse("vueda_vdq.queueitem-list")
@@ -157,7 +159,7 @@ def test_sent_item_viewset_resend_single(monkeypatch, api_client, sender, receiv
 
     sent_item = SentItem.objects.get(pk=queue_item.pk)
 
-    user = get_user_model().objects.create_user(email="resender@example.com", password="password123")
+    user = get_user_model().objects.create_user(email="resender@domain.invalid", password="password123")
     permission = Permission.objects.get(codename="can_resend", content_type__app_label="vueda_vdq")
     user.user_permissions.add(permission)
     api_client.force_authenticate(user=user)
@@ -192,7 +194,7 @@ def test_sent_item_viewset_resend_bulk(monkeypatch, api_client, sender, receiver
         queue_item.fast_transition("succeed")
         sent_items.append(SentItem.objects.get(pk=queue_item.pk))
 
-    user = get_user_model().objects.create_user(email="bulk-resender@example.com", password="password123")
+    user = get_user_model().objects.create_user(email="bulk-resender@domain.invalid", password="password123")
     permission = Permission.objects.get(codename="can_resend", content_type__app_label="vueda_vdq")
     user.user_permissions.add(permission)
     api_client.force_authenticate(user=user)
@@ -222,7 +224,7 @@ def test_send_queue_viewset_returns_items_by_pk(api_client, sender, receiver):
     finished.fast_transition("await")
     finished.fast_transition("succeed")
 
-    user = get_user_model().objects.create_superuser(email="queue-reader@example.com", password="password123")
+    user = get_user_model().objects.create_superuser(email="queue-reader@domain.invalid", password="password123")
     api_client.force_authenticate(user=user)
 
     queued_response = api_client.get(reverse("vueda_vdq.queueitem-detail", kwargs={"pk": queued.pk}), format="json")

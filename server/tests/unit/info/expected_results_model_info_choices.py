@@ -4,9 +4,9 @@ EXPECTED_RESULTS = [
         "customer",
         "user",
         (
-            "test_admin@example.com",
-            "test_customer_1@example.com",
-            "test_customer_2@example.com",
+            "test_admin@domain.invalid",
+            "test_customer_1@domain.invalid",
+            "test_customer_2@domain.invalid",
         ),
     ),
     (
@@ -14,8 +14,8 @@ EXPECTED_RESULTS = [
         "cart",
         "customer",
         (
-            "test_customer_1@example.com",
-            "test_customer_2@example.com",
+            "test_customer_1@domain.invalid",
+            "test_customer_2@domain.invalid",
         ),
     ),
     (
@@ -23,8 +23,8 @@ EXPECTED_RESULTS = [
         "customerorder",
         "customer",
         (
-            "test_customer_1@example.com",
-            "test_customer_2@example.com",
+            "test_customer_1@domain.invalid",
+            "test_customer_2@domain.invalid",
         ),
     ),
     (
@@ -231,7 +231,7 @@ EXPECTED_RESULTS = [
         "store",
         "cartitem",
         "cart",
-        ("test_customer_1@example.com", "test_customer_2@example.com"),
+        ("test_customer_1@domain.invalid", "test_customer_2@domain.invalid"),
     ),
     (
         "store",

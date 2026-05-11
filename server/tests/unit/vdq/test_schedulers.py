@@ -13,10 +13,10 @@ from vueda.vdq.models import Receiver
 @pytest.fixture
 def receivers(db):
     return [
-        Receiver.objects.create(email="to@example.com", name="To", cell="+15551233002"),
-        Receiver.objects.create(email="cc@example.com", name="Cc", cell="+15551233003"),
-        Receiver.objects.create(email="bcc@example.com", name="Bcc", cell="+15551233004"),
-        Receiver.objects.create(email="reply@example.com", name="Reply", cell="+15551233005"),
+        Receiver.objects.create(email="to@domain.invalid", name="To", cell="+15551233002"),
+        Receiver.objects.create(email="cc@domain.invalid", name="Cc", cell="+15551233003"),
+        Receiver.objects.create(email="bcc@domain.invalid", name="Bcc", cell="+15551233004"),
+        Receiver.objects.create(email="reply@domain.invalid", name="Reply", cell="+15551233005"),
     ]
 
 

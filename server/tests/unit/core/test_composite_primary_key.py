@@ -24,7 +24,7 @@ class VuedaCompositeKeyTestData(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_customer_1@example.com": {
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
@@ -98,7 +98,7 @@ class TestCompositeKey:
         return VuedaCompositeKeyTestData()
 
     def test_object_data_no_fields(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         product_1 = store_models.ProductCompositePK.objects.create(name="Product 1")
@@ -125,7 +125,7 @@ class TestCompositeKey:
         assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
 
     def test_object_data_with_fields(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         product_1 = store_models.ProductCompositePK.objects.create(name="Product 1")
@@ -158,7 +158,7 @@ class TestCompositeKey:
         assert [tuple(x) for x in data["order"]["order_items_composite_pks"]] == [tuple(order_item_1.pk)]
 
     def test_object_data_no_expanded_fields(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         product_1 = store_models.ProductCompositePK.objects.create(name="Product 1")
@@ -184,7 +184,7 @@ class TestCompositeKey:
         assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])
 
     def test_object_data_with_expanded_fields(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         product_1 = store_models.ProductCompositePK.objects.create(name="Product 1")

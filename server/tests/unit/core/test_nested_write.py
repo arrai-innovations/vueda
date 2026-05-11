@@ -69,7 +69,7 @@ class TestCreateIssue(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     users_to_create: ClassVar[dict] = {
-        "invoice_updater@example.com": {
+        "invoice_updater@domain.invalid": {
             "name": "Invoice Updater",
             "password": "testpass",
             "groups": ["Invoice Updater"],
@@ -94,7 +94,7 @@ class TestCreateIssue(BaseTestUserMixin, BaseTestGroupMixin):
              deletes nothing (no other lines exist yet).
           2. update_or_create_reverse_relations creates NewLine safely.
         """
-        user = self.users["invoice_updater@example.com"]
+        user = self.users["invoice_updater@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         invoice = store_models.Invoice.objects.create(name="Test Invoice")

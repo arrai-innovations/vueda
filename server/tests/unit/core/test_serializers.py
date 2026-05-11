@@ -283,7 +283,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_my_user@example.com": {
+        "test_my_user@domain.invalid": {
             "name": "Test User update",
             "password": "testpass",
             "groups": ["Timesheet Updater"],
@@ -293,7 +293,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
     @pytest.fixture
     def employee(self):
         return Employee.objects.create(
-            user=self.users["test_my_user@example.com"],
+            user=self.users["test_my_user@domain.invalid"],
             employee_number="abcd-1234",
         )
 
@@ -457,12 +457,12 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_my_user@example.com": {
+        "test_my_user@domain.invalid": {
             "name": "Test User update",
             "password": "testpass",
             "groups": ["Timesheet Updater"],
         },
-        "test_my_user2@example.com": {
+        "test_my_user2@domain.invalid": {
             "name": "Test User update",
             "password": "testpass2",
             "groups": ["Timesheet Updater"],
@@ -472,14 +472,14 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
     @pytest.fixture
     def employee(self):
         return Employee.objects.create(
-            user=self.users["test_my_user@example.com"],
+            user=self.users["test_my_user@domain.invalid"],
             employee_number="abcd-1234",
         )
 
     @pytest.fixture
     def employee2(self):
         return Employee.objects.create(
-            user=self.users["test_my_user2@example.com"],
+            user=self.users["test_my_user2@domain.invalid"],
             employee_number="abcd-234",
         )
 
@@ -585,7 +585,7 @@ class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, Base
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_nested_initial_data@example.com": {
+        "test_nested_initial_data@domain.invalid": {
             "name": "Test Nested Initial Data User",
             "password": "testpass",
             "groups": ["Timesheet Updater"],
@@ -595,7 +595,7 @@ class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, Base
     @pytest.fixture
     def employee(self):
         return Employee.objects.create(
-            user=self.users["test_nested_initial_data@example.com"],
+            user=self.users["test_nested_initial_data@domain.invalid"],
             employee_number="nested-12345",
         )
 

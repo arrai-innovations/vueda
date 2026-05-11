@@ -10,7 +10,7 @@ from vueda.vdq.models import SMSQueueItem
 @pytest.fixture
 def sender(db):
     return Sender.objects.create(
-        email="primary-sender@example.com",
+        email="primary-sender@domain.invalid",
         name="Sender",
         cell="+15551230001",
     )
@@ -19,7 +19,7 @@ def sender(db):
 @pytest.fixture
 def receiver(db):
     return Receiver.objects.create(
-        email="primary-receiver@example.com",
+        email="primary-receiver@domain.invalid",
         name="Receiver",
         cell="+15551230002",
     )
@@ -28,7 +28,7 @@ def receiver(db):
 @pytest.fixture
 def other_receiver(db):
     return Receiver.objects.create(
-        email="other-receiver@example.com",
+        email="other-receiver@domain.invalid",
         name="Other Receiver",
         cell="+15551230003",
     )
@@ -37,7 +37,7 @@ def other_receiver(db):
 @pytest.fixture
 def email_sender(db):
     return Sender.objects.create(
-        email="email-sender@example.com",
+        email="email-sender@domain.invalid",
         name="Email Sender",
         cell="+15551230004",
     )
@@ -46,7 +46,7 @@ def email_sender(db):
 @pytest.fixture
 def email_receiver(db):
     return Receiver.objects.create(
-        email="email-receiver@example.com",
+        email="email-receiver@domain.invalid",
         name="Email Receiver",
         cell="+15551230005",
     )
@@ -55,7 +55,7 @@ def email_receiver(db):
 @pytest.fixture
 def sms_sender(db):
     return Sender.objects.create(
-        email="sms-sender@example.com",
+        email="sms-sender@domain.invalid",
         name="SMS Sender",
         cell="+17805555555",
     )
@@ -64,7 +64,7 @@ def sms_sender(db):
 @pytest.fixture
 def sms_receiver(db):
     return Receiver.objects.create(
-        email="sms-receiver@example.com",
+        email="sms-receiver@domain.invalid",
         name="SMS Receiver",
         cell="+15551230007",
     )

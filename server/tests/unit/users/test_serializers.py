@@ -23,12 +23,12 @@ class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     users_to_create: ClassVar[dict] = {
-        "testuser@example.com": {
+        "testuser@domain.invalid": {
             "name": "Test User",
             "password": "testpass",
             "groups": ["Timesheet Reader"],
         },
-        "test_my_user@example.com": {
+        "test_my_user@domain.invalid": {
             "name": "Test User update",
             "password": "testpass",
             "groups": ["Timesheet Updater"],
@@ -36,10 +36,10 @@ class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     def test_as_user(self):
-        user = self.users["testuser@example.com"]
+        user = self.users["testuser@domain.invalid"]
         # Get the user again, so we can confirm that user != self.instance doesn't fail.
         user_2 = get_user_model().objects.get(
-            email="testuser@example.com",
+            email="testuser@domain.invalid",
         )
         get_data = {"user": {"id": user}}
 
@@ -62,8 +62,8 @@ class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
         )
 
     def test_as_another_user(self):
-        user = self.users["testuser@example.com"]
-        another_user = self.users["test_my_user@example.com"]
+        user = self.users["testuser@domain.invalid"]
+        another_user = self.users["test_my_user@domain.invalid"]
         get_data = {"user": {"id": another_user}}
 
         request = FakeRequest(data=get_data, method="GET", user=user)
@@ -85,7 +85,7 @@ class TestUserSerializerCreate:
         monkeypatch.setattr(get_user_model(), "send_welcome_email", record_welcome_email)
 
         data = {
-            "email": "welcome-user@example.com",
+            "email": "welcome-user@domain.invalid",
             "name": "Welcome User",
             "password": "",
             "password_confirm": "",
@@ -106,7 +106,7 @@ class TestUserSerializerCreate:
 
     def test_create_user_with_manual_temporary_password_keeps_password(self):
         data = {
-            "email": "manual-temp@example.com",
+            "email": "manual-temp@domain.invalid",
             "name": "Manual Temp",
             "password": UserSerializer.TEMPORARY_PASSWORD,
             "password_confirm": UserSerializer.TEMPORARY_PASSWORD,

@@ -37,17 +37,17 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_admin@example.com": {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer_1@example.com": {  # Needed by create_test_data
+        "test_customer_1@domain.invalid": {  # Needed by create_test_data
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
         },
-        "test_customer_2@example.com": {  # Needed by create_test_data
+        "test_customer_2@domain.invalid": {  # Needed by create_test_data
             "name": "Test Customer 2",
             "password": "testpass",
             "groups": ["Customer"],
@@ -70,7 +70,7 @@ class TestModelInfoChoices:
         info.register(store_serializers.CartSerializer, store_viewsets.CartViewSet)
 
     def test_filtering_range(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -91,7 +91,7 @@ class TestModelInfoChoices:
         assert response.data["totalRecords"] == 0, f"response.data: {response.data}"
 
     def test_filtering_choices(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -123,7 +123,7 @@ class TestModelInfoChoices:
         )
 
         assert response.data["totalRecords"] == 1, f"response.data: {response.data}"
-        cart_item_pks = frozenset([x.pk for x in test_data.carts["test_customer_1@example.com"]["cart_items"]])
+        cart_item_pks = frozenset([x.pk for x in test_data.carts["test_customer_1@domain.invalid"]["cart_items"]])
         for result in response.data["results"]:
             assert frozenset(result["cart_items"]) == cart_item_pks
 
@@ -134,7 +134,7 @@ class TestModelInfoChoices:
         )
 
         assert response.data["totalRecords"] == 1, f"response.data: {response.data}"
-        cart_item_pks = frozenset([x.pk for x in test_data.carts["test_customer_2@example.com"]["cart_items"]])
+        cart_item_pks = frozenset([x.pk for x in test_data.carts["test_customer_2@domain.invalid"]["cart_items"]])
         for result in response.data["results"]:
             assert frozenset(result["cart_items"]) == cart_item_pks
 
@@ -169,7 +169,7 @@ class TestTrigramSimilarFilter:
         """name_similar filter matches exact names via trigram_similar lookup."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_trigram_similar"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -185,7 +185,7 @@ class TestTrigramSimilarFilter:
         """name_similar filter matches names with minor differences."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_trigram_similar"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -215,7 +215,7 @@ class TestTrigramSimilarFilter:
         """name_similar filter returns no results when nothing is similar."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_trigram_similar"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -230,7 +230,7 @@ class TestTrigramSimilarFilter:
         """When name_similar is omitted the filter is skipped and all results are returned."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_trigram_similar"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -260,7 +260,7 @@ class TestTrigramWordSimilarFilter:
         """Exact name matches via trigram_word_similar lookup."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_trigram_word_similar"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -276,7 +276,7 @@ class TestTrigramWordSimilarFilter:
         """Single word matches within a longer field value via trigram_word_similar."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_trigram_word_similar"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -305,7 +305,7 @@ class TestTrigramWordSimilarFilter:
         """Search with no word similarity returns no results."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_trigram_word_similar"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -320,7 +320,7 @@ class TestTrigramWordSimilarFilter:
         """When no search term is provided the filter is skipped and all results are returned."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_trigram_word_similar"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -346,7 +346,7 @@ class TestVuedaRankedSearchFilter:
         """Results are ordered by combined rank, not alphabetically."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_ranked_search"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -364,7 +364,7 @@ class TestVuedaRankedSearchFilter:
         """Search with no similarity returns no results (all below threshold)."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_ranked_search"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -379,7 +379,7 @@ class TestVuedaRankedSearchFilter:
         """When no search term is provided the filter is skipped and all results are returned."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_ranked_search"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -405,7 +405,7 @@ class TestVuedaRankedDescriptionFilter:
         """Combining name_icontains='Treat' with a description search narrows and ranks results."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_ranked_description"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -427,7 +427,7 @@ class TestVuedaRankedDescriptionFilter:
         """Search with no similarity in descriptions returns no results."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_ranked_description"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -442,7 +442,7 @@ class TestVuedaRankedDescriptionFilter:
         """Search with no similarity in descriptions returns no results."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_ranked_description"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -457,7 +457,7 @@ class TestVuedaRankedDescriptionFilter:
         """When no search term is provided the filter is skipped and all results are returned."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_ranked_description"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -490,7 +490,7 @@ class TestVuedaSearchFilterDistinct:
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -518,7 +518,7 @@ class TestVuedaSearchFilterDistinct:
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -618,7 +618,7 @@ class TestMixedRankedAndWordSimilarSearch:
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_mixed_ranked_word_similar"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
@@ -657,7 +657,7 @@ class TestMixedRankedAndWordSimilarSearch:
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_mixed_ranked_word_similar"
 
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 

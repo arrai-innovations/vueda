@@ -175,7 +175,7 @@ class BaseTestGroupMixin:
 
 class BaseTestUserMixin:
     users_to_create: ClassVar[dict] = {
-        "testuser@example.com": {
+        "testuser@domain.invalid": {
             "name": "Test User",
             "password": "testpass",
             "groups": ["Timesheet Reader"],

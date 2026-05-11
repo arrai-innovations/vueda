@@ -332,7 +332,9 @@ scopedIt("forgotPassword treats 400 responses as FormValidationError", async () 
     });
 
     const store = storeUser();
-    await expect(store.forgotPassword({ email: "test@example.com" })).rejects.toBeInstanceOf(FormValidationErrorClass);
+    await expect(store.forgotPassword({ email: "test@domain.invalid" })).rejects.toBeInstanceOf(
+        FormValidationErrorClass,
+    );
 });
 
 scopedIt("changePassword treats 400 responses as FormValidationError", async () => {

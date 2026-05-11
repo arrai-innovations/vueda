@@ -23,12 +23,12 @@ from vueda.workflow.models import WorkflowPermission
 class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
     groups_to_create: ClassVar[dict] = {"Order Workflow Managers": []}
     users_to_create: ClassVar[dict] = {
-        "workflow-user@example.com": {
+        "workflow-user@domain.invalid": {
             "name": "Workflow User",
             "password": "password",
             "groups": ["Order Workflow Managers"],
         },
-        "no-workflow-perms@example.com": {
+        "no-workflow-perms@domain.invalid": {
             "name": "No Workflow Perms",
             "password": "password",
             "groups": [],
@@ -49,11 +49,11 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
 
     @pytest.fixture
     def workflow_user(self):
-        return self.users["workflow-user@example.com"]
+        return self.users["workflow-user@domain.invalid"]
 
     @pytest.fixture
     def unauthorized_user(self):
-        return self.users["no-workflow-perms@example.com"]
+        return self.users["no-workflow-perms@domain.invalid"]
 
     @pytest.fixture
     def customer_order(self, workflow_user):

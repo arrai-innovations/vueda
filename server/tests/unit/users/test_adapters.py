@@ -72,7 +72,7 @@ def test_send_sms_sends_message(monkeypatch):
 
 @override_settings(
     SITE_NAME="VUEDA",
-    NO_REPLY_EMAIL="no-reply@example.com",
+    NO_REPLY_EMAIL="no-reply@domain.invalid",
     EMAIL_SUBJECT_PREFIX="[VUEDA] ",
 )
 @pytest.mark.django_db
@@ -124,15 +124,15 @@ def test_send_mail_sends_message(monkeypatch):
     monkeypatch.setattr("vueda.user.adapters.render_to_string", fake_render_to_string)
     monkeypatch.setattr("vueda.user.adapters.add_email", fake_add_email)
 
-    adapter.send_mail("user@example.com", "Test User", "totp_code", {"code": "123456"})
+    adapter.send_mail("user@domain.invalid", "Test User", "totp_code", {"code": "123456"})
 
     sender = captured["sender"]
     receivers = captured["to"]
 
     assert sender.name == "SYSTEM"
-    assert sender.email == "no-reply@example.com"
+    assert sender.email == "no-reply@domain.invalid"
     assert receivers[0].name == "Test User"
-    assert receivers[0].email == "user@example.com"
+    assert receivers[0].email == "user@domain.invalid"
     assert captured["subject"] == "[VUEDA] Daily Code"
     assert captured["text"] == "Use code 123456"
     assert captured["html"] == "<p>Use code 123456</p>"
@@ -141,5 +141,5 @@ def test_send_mail_sends_message(monkeypatch):
     assert captured["bcc"] is None
     assert captured["reply_to"] is None
     assert captured["attachments"] is None
-    assert Sender.objects.filter(email="no-reply@example.com").count() == 1
-    assert Receiver.objects.filter(email="user@example.com").count() == 1
+    assert Sender.objects.filter(email="no-reply@domain.invalid").count() == 1
+    assert Receiver.objects.filter(email="user@domain.invalid").count() == 1

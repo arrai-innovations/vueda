@@ -26,8 +26,8 @@ def create_test_data(self):
 
     customers = {}
     for data in (
-        {"user": "test_customer_1@example.com"},
-        {"user": "test_customer_2@example.com"},
+        {"user": "test_customer_1@domain.invalid"},
+        {"user": "test_customer_2@domain.invalid"},
     ):
         data["user"] = self.users[data["user"]]
         customer = store_models.Customer.objects.create(**data)
@@ -39,31 +39,31 @@ def create_test_data(self):
         {
             "order_number": 1001,
             "when": datetime.datetime(2023, 12, 13, 13, 0, 0),
-            "customer": "test_customer_1@example.com",
+            "customer": "test_customer_1@domain.invalid",
             "order_state": "shipped",
         },
         {
             "order_number": 1002,
             "when": datetime.datetime(2023, 12, 13, 14, 0, 0),
-            "customer": "test_customer_2@example.com",
+            "customer": "test_customer_2@domain.invalid",
             "order_state": "shipped",
         },
         {
             "order_number": 1003,
             "when": datetime.datetime(2024, 1, 7, 13, 0, 0),
-            "customer": "test_customer_2@example.com",
+            "customer": "test_customer_2@domain.invalid",
             "order_state": "shipped",
         },
         {
             "order_number": 1004,
             "when": datetime.datetime(2024, 3, 13, 12, 0, 0),
-            "customer": "test_customer_2@example.com",
+            "customer": "test_customer_2@domain.invalid",
             "order_state": "packed",
         },
         {
             "order_number": 1005,
             "when": datetime.datetime(2024, 3, 13, 16, 0, 0),
-            "customer": "test_customer_1@example.com",
+            "customer": "test_customer_1@domain.invalid",
             "order_state": "new",
         },
     ):
@@ -892,7 +892,7 @@ def create_test_data(self):
     tzinfo.dst(None)
     for cart_data in (
         {
-            "customer_email": "test_customer_1@example.com",
+            "customer_email": "test_customer_1@domain.invalid",
             "cart_items": [
                 {
                     "product_option": products["Men's White T-Shirt"]["product_options"]["Medium"],
@@ -906,7 +906,7 @@ def create_test_data(self):
             "last_modified": datetime.datetime(2024, 8, 10, 12, 0, 0, tzinfo=tzinfo),
         },
         {
-            "customer_email": "test_customer_2@example.com",
+            "customer_email": "test_customer_2@domain.invalid",
             "cart_items": [
                 {
                     "product_option": products["Square Cookies For Squares"]["product_options"]["Gentle Cinnamon"],

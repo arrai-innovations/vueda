@@ -158,17 +158,17 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     users_to_create: ClassVar[dict] = {
-        "test_admin@example.com": {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer_1@example.com": {
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
         },
-        "test_customer_2@example.com": {
+        "test_customer_2@domain.invalid": {
             "name": "Test Customer 2",
             "password": "testpass",
             "groups": ["Customer"],
@@ -297,7 +297,7 @@ class TestModelInfoSerializer:
                         assert value == expected_model_permission[key], str(model_permission)
 
     def test_info_list(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -319,7 +319,7 @@ class TestModelInfoSerializer:
         model_name,
         kwargs,
     ):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -367,7 +367,7 @@ class TestModelInfoSerializer:
         model_name,
         kwargs,
     ):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
