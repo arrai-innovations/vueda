@@ -12,6 +12,3 @@ allowBuilds:
     protobufjs: true
     unrs-resolver: true
     vue-demi: true
-
-ignoredBuiltDependencies:
-    - lefthook
