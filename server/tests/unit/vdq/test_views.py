@@ -214,7 +214,7 @@ def test_private_attachment_view_returns_file(api_client, sender, receiver, tmp_
         )
         detail.attachments.add(attachment)
 
-        user = get_user_model().objects.create_user(email="user@example.com", password="pass", name="User")
+        user = get_user_model().objects.create_user(email="user@domain.invalid", password="pass", name="User")
         api_client.force_authenticate(user=user)
 
         response = api_client.get(reverse("private_attachment", kwargs={"pk": attachment.pk}))
@@ -234,7 +234,7 @@ def test_private_attachment_view_requires_authentication(api_client):
 
 @pytest.mark.django_db
 def test_private_attachment_view_handles_missing_file(api_client):
-    user = get_user_model().objects.create_user(email="user2@example.com", password="pass", name="User 2")
+    user = get_user_model().objects.create_user(email="user2@domain.invalid", password="pass", name="User 2")
     api_client.force_authenticate(user=user)
 
     response = api_client.get(reverse("private_attachment", kwargs={"pk": 9999}))

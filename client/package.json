@@ -66,9 +66,9 @@
     "vue-docgen-api": "^4.79.2"
   },
   "peerDependencies": {
-    "@arrai-innovations/pro-duotone-svg-icons": "^6.6.0",
+    "@fortawesome/pro-duotone-svg-icons": "^6.6.0",
     "@arrai-innovations/reactive-helpers": "^21.1.0",
-    "@arrai-innovations/vue-fontawesome": "^3.0.8",
+    "@fortawesome/vue-fontawesome": "^3.0.8",
     "@floating-ui/vue": "^1.0.2",
     "@primeuix/themes": "~1.2.1",
     "@sentry/vue": "^9.5.0",

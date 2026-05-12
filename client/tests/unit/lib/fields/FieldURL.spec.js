@@ -2,7 +2,7 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { h, reactive, ref } from "vue";
 
-const valueRef = ref("https://example.com");
+const valueRef = ref("https://domain.invalid");
 const mockedUseField = vi.fn(() => ({ state: reactive({ value: valueRef }) }));
 vi.mock("@vueda/use/useField.js", () => ({ FIELD_EMITS: [], FIELD_PROPS: {}, useField: mockedUseField }));
 
@@ -16,7 +16,7 @@ beforeEach(async () => {
     FieldURL = (await import("@vueda/fields/FieldURL.vue")).default;
     mockedUseField.mockClear();
     warnSpy.mockClear();
-    valueRef.value = "https://example.com";
+    valueRef.value = "https://domain.invalid";
 });
 
 scopedIt("forwards attrs to slot and warns for non-string values", async () => {

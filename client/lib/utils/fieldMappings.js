@@ -35,6 +35,13 @@ export const defaultFieldMappings = {
         CharField: { component: availableFields.FieldString, widget: availableWidgets.WidgetInput, default: true },
         TextField: { component: availableFields.FieldString, widget: availableWidgets.WidgetTextarea },
     },
+    CompositePrimaryKeyField: {
+        CompositePrimaryKey: {
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetReadOnly,
+            default: true,
+        },
+    },
     DateField: {
         DateField: { component: availableFields.FieldDate, widget: availableWidgets.WidgetDatePicker, default: true },
     },

@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from rest_framework.reverse import reverse
@@ -15,7 +16,7 @@ from vueda import info
 
 
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
             ("contenttypes", "ContentType", "read"),
@@ -78,18 +79,18 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
         ],
     }
 
-    users_to_create = {
-        "test_admin@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer_1@example.com": {
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
         },
-        "test_customer_2@example.com": {
+        "test_customer_2@domain.invalid": {
             "name": "Test Customer 2",
             "password": "testpass",
             "groups": ["Customer"],
@@ -135,7 +136,7 @@ class TestModelInfoChoices:
         field_name,
         expected_choices,
     ):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -188,7 +189,7 @@ class TestModelInfoChoices:
         field_name,
         expected_choices,
     ):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -221,7 +222,7 @@ class TestModelInfoChoices:
                 assert frozenset(result["label"] for result in response.data["results"]) == frozenset(expected_choices)
 
     def test_info_choices_list_non_choice_field_on_model_with_choice_fields(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -245,7 +246,7 @@ class TestModelInfoChoices:
         )
 
     def test_info_choices_list_non_choice_field_on_model_with_no_choice_fields(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -266,7 +267,7 @@ class TestModelInfoChoices:
         assert response.data["detail"] == "Invalid field 'name'. No choice fields found on store.Distributor."
 
     def test_info_choices_list_invalid_field_on_model_with_choice_fields(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -290,7 +291,7 @@ class TestModelInfoChoices:
         )
 
     def test_info_choices_list_invalid_field_on_model_with_no_choice_fields(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()

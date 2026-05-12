@@ -12,6 +12,8 @@ created objects are absent from current_ids and are therefore deleted immediatel
 being created.  The fixed order (delete first, then create) avoids the problem entirely.
 """
 
+from typing import ClassVar
+
 import pytest
 from django.urls import reverse
 from rest_framework import status
@@ -60,14 +62,14 @@ class TestCreateIssueExpectedFailure:
 
 @pytest.mark.django_db
 class TestCreateIssue(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Invoice Updater": [
             ("store", "Invoice", "update"),
         ]
     }
 
-    users_to_create = {
-        "invoice_updater@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "invoice_updater@domain.invalid": {
             "name": "Invoice Updater",
             "password": "testpass",
             "groups": ["Invoice Updater"],
@@ -92,7 +94,7 @@ class TestCreateIssue(BaseTestUserMixin, BaseTestGroupMixin):
              deletes nothing (no other lines exist yet).
           2. update_or_create_reverse_relations creates NewLine safely.
         """
-        user = self.users["invoice_updater@example.com"]
+        user = self.users["invoice_updater@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         invoice = store_models.Invoice.objects.create(name="Test Invoice")

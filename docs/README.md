@@ -140,3 +140,9 @@ Examples:
 - Correct link usage in prose: `Use {@term Expand} selection via the \`e\` query parameter.`
 - Correct literal token usage: `The literal wire parameter name is \`expand\`.`
 - Incorrect when you want a link: `` `{@term Expand}` ``
+
+## Wording Cases
+
+In documentation, the following rules should be applied:
+
+- Use 'JSON' instead of 'json'.

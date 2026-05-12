@@ -3,6 +3,7 @@ from django_filters import rest_framework
 
 import tests.store.models as my_models
 from tests import filters as test_filters
+from vueda.core.filters import VuedaCompositePrimaryKeyFilterSet
 from vueda.core.filters import VuedaFilterSet
 
 
@@ -124,3 +125,9 @@ class InventoryRecordFilterSet(VuedaFilterSet):
     class Meta:
         model = my_models.InventoryRecord
         fields = ["reason"]
+
+
+class OrderItemCompositePKFilterSet(VuedaCompositePrimaryKeyFilterSet):
+    class Meta:
+        model = my_models.OrderItemCompositePK
+        fields = ["quantity"]
