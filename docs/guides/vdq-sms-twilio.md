@@ -44,8 +44,8 @@ Use `add_sms(sender, receiver, body)` to create and immediately schedule an SMS 
 from vueda.vdq.schedulers import add_sms
 
 add_sms(
-    sender={"name": "System", "cell": "+15551234567"},
-    receiver={"name": "Customer", "cell": "+15559876543"},
+    sender={"name": "System", "cell": "+18005550100"},
+    receiver={"name": "Customer", "cell": "+18005550199"},
     body="Your verification code is 123456",
 )
 ```

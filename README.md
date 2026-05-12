@@ -35,7 +35,7 @@ and render forms, lists, and detail views dynamically.
 
 ## Repository Layout
 
-```
+```text
 /
   server/       # Django + DRF package (vueda on PyPI)
   client/       # Vue 3 component library (@arrai-innovations/vueda on npm)
@@ -54,7 +54,7 @@ npm install -g pnpm@latest-10
 
 [Install just via one of the various methods.](https://github.com/casey/just?tab=readme-ov-file#installation)
 
-```
+```console
 just bootstrap
 ```
 
@@ -62,19 +62,19 @@ just bootstrap
 
 Read‑only checks:
 
-```
+```console
 just check
 ```
 
 Auto‑fixing:
 
-```
+```console
 just fix
 ```
 
 Tests:
 
-```
+```console
 just test
 ```
 

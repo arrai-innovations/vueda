@@ -7,7 +7,9 @@ from django.contrib.postgres.fields.ranges import Range
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.exceptions import ValidationError
 
+from tests.store.serializers import OrderItemCompositePKSerializer
 from vueda.core.fields import serializers as core_fields_serializers
+from vueda.core.serializers import fields as core_serializers_fields
 
 
 @pytest.mark.django_db
@@ -110,3 +112,19 @@ class TestFileField:
         # Test when no file is provided
         result = self.field.to_representation(None)
         assert result is None
+
+
+class TestCompositePrimaryKeyField:
+    def test_to_representation(self):
+        serializer = OrderItemCompositePKSerializer()
+        field = core_serializers_fields.CompositePrimaryKeyField()
+        field.parent = serializer
+        result = field.to_representation((1, 2))
+        assert result == '["1", "2"]'
+
+    def test_to_internal_value(self):
+        serializer = OrderItemCompositePKSerializer()
+        field = core_serializers_fields.CompositePrimaryKeyField()
+        field.parent = serializer
+        result = field.to_internal_value('["1", "2"]')
+        assert result == [1, 2]

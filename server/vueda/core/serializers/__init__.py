@@ -9,6 +9,7 @@ __all__ = (
     "PrimaryKeyListSerializer",
     "VuedaExpandableFieldsSerializerMixin",
     "VuedaHistorySerializer",
+    "VuedaListSerializer",
     "VuedaLookupSerializer",
     "VuedaReadonlyListSerializer",
     "VuedaReadonlySerializer",
@@ -16,16 +17,20 @@ __all__ = (
 )
 
 import inspect
+from typing import ClassVar
 
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import CompositePrimaryKey
+from django.db.models import F
 from rest_flex_fields import split_levels
 from rest_framework import serializers
 
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers.fields import AvailableActionsField
+from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
@@ -71,6 +76,13 @@ class NoExtraFieldsSerializerMixin:
                     field_name = field_name.split(".")[0]
 
                 initial_fields.add(field_name)
+
+            if "formatted_name" not in initial_fields and hasattr(self, "Meta") and hasattr(self.Meta, "model"):
+                formatted_name = getattr(self.Meta.model, "formatted_name_lookup_expression", None)
+
+                if isinstance(formatted_name, str):
+                    initial_fields.add("formatted_name")
+
             extra_keys_fields = initial_fields - set(self.fields.keys())
             for extra_key in extra_keys_fields:
                 msg = f"Invalid field.  Valid fields are {', '.join(sorted(self.get_fields()))}."
@@ -381,6 +393,26 @@ class VuedaExpandableFieldsSerializerMixin:
         return expands_data
 
 
+class VuedaListSerializer(serializers.ListSerializer):
+    """
+    List serializer for ``VuedaSerializer`` subclasses. Annotates the queryset with
+    ``formatted_name`` when the child serializer's model has ``formatted_name_lookup_expression``,
+    mirroring the annotation that ``VuedaViewSet.get_queryset()`` applies for direct requests.
+    This ensures ``formatted_name`` is populated even when objects are fetched via a related
+    manager during expand (which bypasses the viewset queryset).
+    """
+
+    def to_representation(self, data):
+        child_model = getattr(getattr(self.child, "Meta", None), "model", None)
+        if child_model and hasattr(data, "annotate"):
+            lookup = getattr(child_model, "formatted_name_lookup_expression", None)
+            if isinstance(lookup, str):
+                existing = getattr(getattr(data, "query", None), "annotations", {})
+                if "formatted_name" not in existing:
+                    data = data.annotate(formatted_name=F(lookup))
+        return super().to_representation(data)
+
+
 class VuedaSerializer(
     NoExtraFieldsSerializerMixin,
     VuedaExpandableFieldsSerializerMixin,
@@ -395,9 +427,15 @@ class VuedaSerializer(
 
     available_actions = AvailableActionsField()
 
+    serializer_field_mapping: ClassVar[dict] = {
+        **serializers.ModelSerializer.serializer_field_mapping,
+        CompositePrimaryKey: CompositePrimaryKeyField,
+    }
+
     class Meta:
         expandable_fields = {}
         fields = ["formatted_name", "available_actions"]
+        list_serializer_class = VuedaListSerializer
 
 
 class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
@@ -445,7 +483,7 @@ class MakeReadonly(serializers.SerializerMetaclass):
         return out_cls
 
 
-class VuedaReadonlyListSerializer(serializers.ListSerializer, metaclass=MakeReadonly):
+class VuedaReadonlyListSerializer(VuedaListSerializer, metaclass=MakeReadonly):
     """List serializer that disables ``create`` and ``update``. Used as the list class for ``VuedaReadonlySerializer``."""
 
     __excluded__ = ("create", "update")

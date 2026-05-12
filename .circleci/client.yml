@@ -3,7 +3,7 @@ version: 2.1
 orbs:
     github: arrai/github@5.0.0
     lintinator: arrai/lintinator@2.1.1
-    utils: arrai/utils@1.21.1
+    utils: arrai/utils@1.22.0
 
 parameters:
     run-client-workflows:
@@ -43,7 +43,13 @@ jobs:
         resource_class: medium+
         steps:
             - checkout
-            - utils/add_npm_config
+            - utils/add_npm_config:
+                  registry: npm.arrai.dev
+                  token: $NPM_ARRAI_DEV_TOKEN
+                  scopes: |
+                      @arrai-innovations:registry=https://npm.arrai.dev/
+                      @fortawesome:registry=https://npm.arrai.dev/
+                      @awesome.me:registry=https://npm.arrai.dev/
             - run:
                   name: Install Dependencies
                   command: pnpm install
@@ -117,7 +123,13 @@ workflows:
                   hook_manager: lefthook
                   install_deps: true
                   setup:
-                      - utils/add_npm_config
+                      - utils/add_npm_config:
+                            registry: npm.arrai.dev
+                            token: $NPM_ARRAI_DEV_TOKEN
+                            scopes: |
+                                @arrai-innovations:registry=https://npm.arrai.dev/
+                                @fortawesome:registry=https://npm.arrai.dev/
+                                @awesome.me:registry=https://npm.arrai.dev/
                       - run:
                             name: Ensure pnpm command is available
                             command: |
@@ -140,7 +152,13 @@ workflows:
                   create_badges: false
                   install_deps: true
                   setup:
-                      - utils/add_npm_config
+                      - utils/add_npm_config:
+                            registry: npm.arrai.dev
+                            token: $NPM_ARRAI_DEV_TOKEN
+                            scopes: |
+                                @arrai-innovations:registry=https://npm.arrai.dev/
+                                @fortawesome:registry=https://npm.arrai.dev/
+                                @awesome.me:registry=https://npm.arrai.dev/
                       - run:
                             name: Ensure pnpm command is available
                             command: |

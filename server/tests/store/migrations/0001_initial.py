@@ -787,6 +787,160 @@ class Migration(migrations.Migration):
                 "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
+        migrations.CreateModel(
+            name="OrderCompositePK",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("order_number", models.DecimalField(decimal_places=0, max_digits=7)),
+                ("order_date", models.DateTimeField(auto_now_add=True, db_index=True)),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=django.db.models.functions.comparison.Cast(
+                            models.F("order_number"), output_field=models.CharField()
+                        ),
+                        output_field=models.CharField(),
+                    ),
+                ),
+            ],
+            options={
+                "ordering": ["order_number"],
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="ProductCompositePK",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+            ],
+            options={
+                "ordering": ["name"],
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="OrderItemCompositePK",
+            fields=[
+                (
+                    "pk",
+                    models.CompositePrimaryKey(
+                        "order_id",
+                        "product_id",
+                        blank=True,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "quantity",
+                    models.IntegerField(
+                        db_default=0,
+                        validators=[
+                            django.core.validators.MinValueValidator(0),
+                            django.core.validators.MaxValueValidator(1000),
+                        ],
+                    ),
+                ),
+                (
+                    "order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="store.ordercompositepk",
+                    ),
+                ),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="store.productcompositepk",
+                    ),
+                ),
+            ],
+            options={
+                "verbose_name": "Order Items Composite PK",
+                "verbose_name_plural": "Order Items Composite PKs",
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+                "default_related_name": "order_items_composite_pks",
+            },
+        ),
+        migrations.CreateModel(
+            name="OrderItemAltCompositePK",
+            fields=[
+                (
+                    "pk",
+                    models.CompositePrimaryKey(
+                        "order_id",
+                        "product_id",
+                        blank=True,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "quantity",
+                    models.IntegerField(
+                        db_default=0,
+                        validators=[
+                            django.core.validators.MinValueValidator(0),
+                            django.core.validators.MaxValueValidator(1000),
+                        ],
+                    ),
+                ),
+                (
+                    "order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="store.ordercompositepk",
+                    ),
+                ),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="store.productcompositepk",
+                    ),
+                ),
+            ],
+            options={
+                "verbose_name": "Order Items Alt Composite PK",
+                "verbose_name_plural": "Order Items Alt Composite PKs",
+                "ordering": ["order", "product", "quantity"],
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+                "default_related_name": "order_items_alt_composite_pks",
+            },
+        ),
         migrations.RunPython(make_sure_permissions_exist, reverse_code=migrations.RunPython.noop),
         migrations.RunSQL(
             sql="""

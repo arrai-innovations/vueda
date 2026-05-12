@@ -21,6 +21,8 @@ import warnings
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import CompositePrimaryKey
+from django.db.models import F
 from django.db.models import Q
 from django.db.models import Sum
 from rest_flex_fields import WILDCARD_VALUES
@@ -75,8 +77,6 @@ class AtomicModelViewSetMixin(
 ):
     """Combines all three atomic write mixins: create, update, and destroy."""
 
-    pass
-
 
 class AtomicModelViewSet(
     AtomicCreateModelViewSetMixin,
@@ -89,8 +89,6 @@ class AtomicModelViewSet(
     """
     A Base ViewSet that wraps atomic transactions around create, update, and destroy.
     """
-
-    pass
 
 
 class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.GenericViewSet):
@@ -215,6 +213,12 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         # end code from drf
 
 
+def add_valid_child_names(valid_set, field_name, child_names_list):
+    for child_name in child_names_list:
+        if child_name:
+            valid_set.add(f"{field_name}.{child_name}")
+
+
 def get_recursive_expands_and_fields(serializer, depth, max_depth):
     max_depth = min((max_depth, settings.REST_FLEX_FIELDS["MAXIMUM_EXPANSION_DEPTH"]))
 
@@ -231,59 +235,59 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
         if "permitted_expands" in serializer.context and hasattr(serializer, "_flex_options_rep_only"):
             permitted_expands = frozenset(serializer.context["permitted_expands"])
 
-        if hasattr(serializer, "Meta") and hasattr(serializer.Meta, "expandable_fields"):
-            if permitted_expands is not None and not permitted_expands:
-                return (
-                    valid_expands,
-                    valid_wildcard_expands,
-                    valid_fields,
-                    valid_wildcard_fields,
-                )  # No permitted expands
-
+        if hasattr(serializer, "Meta"):
             for value in WILDCARD_VALUES:
                 valid_wildcard_fields.add(value)
-                valid_wildcard_expands.add(value)
 
-            for field_name, serializer_data in serializer.Meta.expandable_fields.items():
-                if permitted_expands is not None and field_name not in permitted_expands:
-                    continue
+            if "formatted_name" not in valid_fields and hasattr(serializer.Meta, "model"):
+                formatted_name = getattr(serializer.Meta.model, "formatted_name_lookup_expression", None)
+                if isinstance(formatted_name, str):
+                    valid_fields.add("formatted_name")
 
-                valid_fields.add(field_name)
-                valid_expands.add(field_name)
+            if hasattr(serializer.Meta, "expandable_fields"):
+                if permitted_expands is not None and not permitted_expands:
+                    return (
+                        valid_expands,
+                        valid_wildcard_expands,
+                        valid_fields,
+                        valid_wildcard_fields,
+                    )  # No permitted expands
 
-                serializer_settings = {}
-                if isinstance(serializer_data, tuple):  # rest_flex_fields only tests for tuple.
-                    child_serializer, serializer_settings = serializer_data
-                else:
-                    child_serializer = serializer_data
+                for value in WILDCARD_VALUES:
+                    valid_wildcard_expands.add(value)
 
-                if isinstance(child_serializer, str):
-                    child_serializer = serializer._get_serializer_class_from_lazy_string(child_serializer)
+                for field_name, serializer_data in serializer.Meta.expandable_fields.items():
+                    if permitted_expands is not None and field_name not in permitted_expands:
+                        continue
 
-                child_serializer = child_serializer(**serializer_settings)
+                    valid_fields.add(field_name)
+                    valid_expands.add(field_name)
 
-                if isinstance(child_serializer, ListSerializer):
-                    child_serializer = child_serializer.child
+                    serializer_settings = {}
+                    if isinstance(serializer_data, tuple):  # rest_flex_fields only tests for tuple.
+                        child_serializer, serializer_settings = serializer_data
+                    else:
+                        child_serializer = serializer_data
 
-                child_valid_expands, child_valid_wildcard_expands, child_valid_fields, child_valid_wildcard_fields = (
-                    get_recursive_expands_and_fields(child_serializer, depth + 1, max_depth)
-                )
+                    if isinstance(child_serializer, str):
+                        child_serializer = serializer._get_serializer_class_from_lazy_string(child_serializer)
 
-                for child_expand in child_valid_expands:
-                    if child_expand:
-                        valid_expands.add(f"{field_name}.{child_expand}")
+                    child_serializer = child_serializer(**serializer_settings)
 
-                for child_expand in child_valid_wildcard_expands:
-                    if child_expand:
-                        valid_wildcard_expands.add(f"{field_name}.{child_expand}")
+                    if isinstance(child_serializer, ListSerializer):
+                        child_serializer = child_serializer.child
 
-                for child_field in child_valid_fields:
-                    if child_field:
-                        valid_fields.add(f"{field_name}.{child_field}")
+                    (
+                        child_valid_expands,
+                        child_valid_wildcard_expands,
+                        child_valid_fields,
+                        child_valid_wildcard_fields,
+                    ) = get_recursive_expands_and_fields(child_serializer, depth + 1, max_depth)
 
-                for child_field in child_valid_wildcard_fields:
-                    if child_field:
-                        valid_wildcard_fields.add(f"{field_name}.{child_field}")
+                    add_valid_child_names(valid_expands, field_name, child_valid_expands)
+                    add_valid_child_names(valid_wildcard_expands, field_name, child_valid_wildcard_expands)
+                    add_valid_child_names(valid_fields, field_name, child_valid_fields)
+                    add_valid_child_names(valid_wildcard_fields, field_name, child_valid_wildcard_fields)
 
     return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
 
@@ -636,11 +640,38 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
         return allowed_actions
 
+    def get_object(self):
+        """
+        Override this function to convert the pk kwarg to a list if the model has a composite primary key.
+        """
+        if hasattr(self, "kwargs") and "pk" in self.kwargs:
+            has_composite_primary_key = False
+            cpk_field = None
+            model = getattr(self.queryset, "model", None) or self.get_queryset().model
+            for field in model._meta.fields:
+                if isinstance(field, CompositePrimaryKey):
+                    has_composite_primary_key = True
+                    cpk_field = field
+
+            if has_composite_primary_key:
+                # 'CompositePrimaryKey' must be named 'pk'.
+                self.kwargs["pk"] = cpk_field.to_python(self.kwargs["pk"])
+
+        return super().get_object()
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        formatted_name = getattr(queryset.model, "formatted_name_lookup_expression", None)
+
+        if isinstance(formatted_name, str):
+            queryset = queryset.annotate(formatted_name=F(formatted_name))
+
+        return queryset
+
 
 class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
     """``VuedaViewSet`` extended with ``simple-history`` audit endpoints."""
-
-    pass
 
 
 class VuedaReadOnlyViewSet(

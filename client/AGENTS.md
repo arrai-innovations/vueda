@@ -53,13 +53,13 @@ Scripts defined in `package.json`:
 
 We use a custom commitlint configuration based on [Conventional Commits](https://www.conventionalcommits.org/). It is customized to have the following valid types:
 
-```
+```text
 build, ci, chore, content, docs, feat, fix, perf, refactor, remove, revert, style, test, wip
 ```
 
 **Example**:
 
-```
+```text
 fix(WidgetSearchableSelect): correct options grouping
 ```
 
@@ -89,7 +89,7 @@ When making changes, suggest Changelog entries if they impact consumers or publi
 
 **If there is no current unreleased section**, start a new one using the next version number and set the date to `unreleased`. For example:
 
-```
+```markdown
 ## v2.0.0-beta.1 (unreleased)
 
 ### Breaking Changes

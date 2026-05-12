@@ -11,7 +11,7 @@ def create_system_user(apps, scheme_editor):
         password="",
         is_superuser=True,
         is_active=True,
-        email="system_user@example.com",
+        email="system_user@domain.invalid",
         name="System User",
         date_joined=now(),
         is_system=True,
@@ -21,7 +21,7 @@ def create_system_user(apps, scheme_editor):
 def delete_system_user(apps, scheme_editor):
     User = apps.get_model(settings.AUTH_USER_MODEL)
     User.objects.filter(
-        email="system_user@example.com",
+        email="system_user@domain.invalid",
         name="System User",
         is_system=True,
     ).delete()

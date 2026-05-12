@@ -18,7 +18,7 @@ from vueda.user.viewsets import TOTPDeviceViewSet
 @pytest.fixture
 def user(db):
     return get_user_model().objects.create_user(
-        email="totp-user@example.com",
+        email="totp-user@domain.invalid",
         password="test-pass",
         name="TOTP User",
     )
@@ -27,7 +27,7 @@ def user(db):
 @pytest.mark.django_db
 def test_get_queryset_limits_to_authenticated_user(api_client, user):
     other_user = get_user_model().objects.create_user(
-        email="other@example.com",
+        email="other@domain.invalid",
         password="test-pass",
         name="Other",
     )
@@ -112,12 +112,12 @@ def test_setup_blocks_duplicate_method(api_client, user, monkeypatch):
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "secret")
     monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
     authenticator = Authenticator.objects.create(user=user, type=Authenticator.Type.TOTP, data={})
-    TOTPDevice.objects.create(authenticator=authenticator, method="email", user=user, email="user@example.com")
+    TOTPDevice.objects.create(authenticator=authenticator, method="email", user=user, email="user@domain.invalid")
 
     api_client.force_authenticate(user=user)
     response = api_client.post(
         reverse("vueda_user.totpdevice-setup"),
-        {"method": "email", "destination": "user@example.com"},
+        {"method": "email", "destination": "user@domain.invalid"},
         format="json",
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
@@ -191,7 +191,7 @@ def test_setup_sms_returns_validation_error_when_twilio_unavailable(api_client, 
 
     response = api_client.post(
         reverse("vueda_user.totpdevice-setup"),
-        {"method": "sms", "destination": "+15551230000"},
+        {"method": "sms", "destination": "+18005550100"},
         format="json",
     )
 
@@ -224,7 +224,7 @@ def test_destroy_keeps_authenticator_when_other_devices_exist(api_client, user, 
     monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
     authenticator = Authenticator.objects.create(user=user, type=Authenticator.Type.TOTP, data={})
     device = TOTPDevice.objects.create(authenticator=authenticator, method="totp", user=user)
-    TOTPDevice.objects.create(authenticator=authenticator, method="email", user=user, email="user@example.com")
+    TOTPDevice.objects.create(authenticator=authenticator, method="email", user=user, email="user@domain.invalid")
     called = {"hit": False}
 
     def fake_deactivate_totp(request, target_authenticator):

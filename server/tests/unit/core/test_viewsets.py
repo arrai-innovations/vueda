@@ -1,5 +1,8 @@
 import datetime
+import json
 from http import HTTPStatus
+from typing import ClassVar
+from typing import TypedDict
 
 import pytest
 from django.conf import settings
@@ -7,10 +10,13 @@ from django.urls import reverse
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from tests.conftest import BaseTestAssertResponseMixin
+from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestModelViewSet
+from tests.conftest import BaseTestUserMixin
 from tests.models import Employee
 from tests.models import Product
 from tests.models import Timesheet
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.test_model_info import VuedaTestData
@@ -44,7 +50,7 @@ class TestProductViewSet(BaseTestModelViewSet):
     model = Product
     has_delete_permission = False
 
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("tests", "Product", "read"),
             ("tests", "Product", "list"),
@@ -54,8 +60,8 @@ class TestProductViewSet(BaseTestModelViewSet):
         ],
     }
 
-    users_to_create = {
-        "test_admin@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
@@ -97,7 +103,7 @@ class TestProductViewSet(BaseTestModelViewSet):
 
     @pytest.fixture
     def authenticated_client(self, api_client):
-        user = self.users["test_admin@example.com"]
+        user = self.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         return api_client
 
@@ -303,7 +309,7 @@ class TestStoreProductViewSet:
         return VuedaTestData()
 
     def test_retrieve_with_two_depth_invalid_expand(self, api_client, test_data):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         key = next(iter(test_data.products))
@@ -334,7 +340,7 @@ class TestStoreProductViewSet:
         assert "history" not in response.data, f"response.data: {response.data}"
 
     def test_retrieve_with_two_depth_invalid_field(self, api_client, test_data):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         key = next(iter(test_data.products))
@@ -383,7 +389,7 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
         info.register_serializer(store_serializers.OrderItemSerializer)
 
     def test_expand_through(self, api_client, test_data):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         key = next(iter(test_data.customer_orders))
@@ -445,7 +451,7 @@ class TestStoreCustomerOrderViewSet:
         return VuedaTestData()
 
     def test_expand_exceeds_depth(self, api_client, test_data):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         key = next(iter(test_data.customer_orders))
@@ -483,7 +489,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     model = Timesheet
     has_delete_permission = True
 
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("tests", "Timesheet", "read"),
             ("tests", "Timesheet", "list"),
@@ -494,8 +500,8 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         ],
     }
 
-    users_to_create = {
-        "test_admin@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
@@ -512,15 +518,15 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     @pytest.fixture
     def page_data(self):
         self.employee_1 = employee_1 = Employee.objects.create(
-            user=self.users["test_admin@example.com"],
+            user=self.users["test_admin@domain.invalid"],
             employee_number="1",
         )
         employee_2 = Employee.objects.create(
-            user=self.users["test_admin@example.com"],
+            user=self.users["test_admin@domain.invalid"],
             employee_number="2",
         )
         self.supervisor_1 = supervisor_1 = Employee.objects.create(
-            user=self.users["test_admin@example.com"],
+            user=self.users["test_admin@domain.invalid"],
             employee_number="3",
         )
         for data in (
@@ -554,7 +560,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
     @pytest.fixture
     def authenticated_client(self, api_client):
-        user = self.users["test_admin@example.com"]
+        user = self.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         return api_client
 
@@ -774,3 +780,348 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert error_key in response.data
         assert str(response.data[error_key][0]) == f"Object with pk={missing_pk} does not exist."
         assert self.model.objects.filter(pk=existing_pk).exists()
+
+
+@pytest.mark.django_db
+class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Timesheet Updater": [
+            ("tests", "Timesheet", "update"),
+        ]
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_my_user@domain.invalid": {
+            "name": "Test User update",
+            "password": "testpass",
+            "groups": ["Timesheet Updater"],
+        },
+    }
+
+    def test_update_timesheet_with_existing_field(self, api_client):
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
+            ),
+            data={
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert "period_start" in response.data
+        assert "period_end" in response.data
+        assert "employee" not in response.data
+
+    def test_update_timesheet_with_non_existing_field(self, api_client):
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,une"},
+            ),
+            data={
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+                "une": "ssss",
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "period_end" in response.data
+        assert "employee" not in response.data
+        assert "une" in response.data
+
+    def test_expand_with_existing_expands(self, api_client):
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,foo"},
+            ),
+            data={
+                "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-12345"},
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert "period_start" in response.data
+        assert "period_end" in response.data
+        assert "employee" in response.data
+        assert "foo" in response.data
+        assert "user" in response.data["employee"]
+
+    def test_expand_with_non_existing_expands(self, api_client):
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "foo,label10"},
+            ),
+            data={
+                "employee": e1.pk,
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "label10" in response.data
+
+    def test_expand_with_existing_fields(self, api_client):
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end,employee",
+                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
+                },
+            ),
+            data={
+                "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-123456"},
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert "period_start" in response.data
+        assert "period_end" in response.data
+        assert "employee" in response.data
+        assert "user" in response.data["employee"]
+
+    def test_expand_with_non_existing_fields(self, api_client):
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-12348",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "tests.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end,employee,invalid_field_name",
+                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
+                },
+            ),
+            data={
+                "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-123456"},
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+                "invalid_field_name": "invalid_value",
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "invalid_field_name" in response.data
+        assert "period_start" not in response.data
+
+
+class _OrderItemCompositePKResponse(TypedDict):
+    pk: str  # JSON-encoded composite key, e.g. '["1", "1"]'
+    order: int
+    product: int
+    quantity: int
+    formatted_name: str
+    available_actions: list[str]
+
+
+class _OrderItemCompositePKInExpandResponse(TypedDict):
+    pk: str  # JSON-encoded composite key, e.g. '["1", "1"]'
+    order: int
+    product: int
+    quantity: int
+    formatted_name: str
+
+
+class _OrderCompositePKWithExpandResponse(TypedDict):
+    id: int
+    order_number: str
+    order_date: str
+    order_items_composite_pks: list[_OrderItemCompositePKInExpandResponse]
+    formatted_name: str
+    available_actions: list[str]
+
+
+@pytest.mark.django_db
+class TestNoExtraFieldsFormattedNameLookupExpression(
+    BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin
+):
+    groups_to_create: ClassVar[dict] = {
+        "Order Updater": [
+            ("store", "OrderCompositePK", "update"),
+            ("store", "OrderItemCompositePK", "update"),
+        ]
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_order_updater@domain.invalid": {
+            "name": "Test Order Updater",
+            "password": "testpass",
+            "groups": ["Order Updater"],
+        },
+    }
+
+    @pytest.fixture
+    def order_item(self):
+        product = store_models.ProductCompositePK.objects.create(name="Test Product")
+        order = store_models.OrderCompositePK.objects.create(order_number="9999")
+        return store_models.OrderItemCompositePK.objects.create(order=order, product=product, quantity=5)
+
+    def test_formatted_name_on_main_model_no_error(self, order_item, api_client):
+        user = self.users["test_order_updater@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.patch(
+            reverse(
+                "store.orderitemcompositepk-detail",
+                args=(json.dumps(order_item.pk),),
+            ),
+            data={"formatted_name": "test value"},
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+
+        data: _OrderItemCompositePKResponse = response.json()
+        assert data["formatted_name"] == "Test Product", data
+
+    def test_invalid_field_message_includes_formatted_name_main_model(self, order_item, api_client):
+        user = self.users["test_order_updater@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.patch(
+            reverse(
+                "store.orderitemcompositepk-detail",
+                args=(json.dumps(order_item.pk),),
+            ),
+            data={"xxx_invalid_field": "value"},
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "xxx_invalid_field" in response.data
+        assert "formatted_name" in response.data["xxx_invalid_field"][0]
+
+    def test_formatted_name_on_expanded_model_no_error(self, order_item, api_client):
+        user = self.users["test_order_updater@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.patch(
+            reverse(
+                "store.ordercompositepk-detail",
+                kwargs={"pk": order_item.order.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items_composite_pks"},
+            ),
+            data={"formatted_name": str(order_item.order.order_number)},
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+
+        data: _OrderCompositePKWithExpandResponse = response.json()
+        assert data["order_items_composite_pks"][0]["formatted_name"] == "Test Product", data
+
+    def test_invalid_field_message_includes_formatted_name_expanded_model(self, order_item, api_client):
+        user = self.users["test_order_updater@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.patch(
+            reverse(
+                "store.ordercompositepk-detail",
+                kwargs={"pk": order_item.order.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items_composite_pks"},
+            ),
+            data={"xxx_invalid_field": "value"},
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        assert "xxx_invalid_field" in response.data
+        assert "formatted_name" in response.data["xxx_invalid_field"][0]

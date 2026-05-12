@@ -559,7 +559,6 @@ def post(stdout: typing.TextIO, stderr: typing.TextIO, non_interactive: bool = F
     """
     Run post-update commands. This is historical at the moment.
     """
-    pass
 
 
 all_steps = OrderedDict(
