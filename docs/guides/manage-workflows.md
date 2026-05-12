@@ -54,7 +54,11 @@ Deleting a workflow requires removing associated objects in a specific order to 
 5. Check delete on the remaining state and the initial state that references it. Save.
 6. Return to the workflow overview page. A **Delete Workflow** button will now appear for this workflow. Click it to complete the deletion at `/routes/vueda.workflow/delete/<pk>/`.
 
-> **Note:** Permissions and groups associated with a workflow must not be deleted until the workflow itself has been removed from all environments, because permissions and groups do not have change history and cannot be restored by rolling back a migration.
+::: warning
+
+Django `Permission` rows (auto-generated from content types) have no change history, and `Group` rows only have history when edited through the permission overview UI. Do not delete workflow-associated permissions or groups manually until the workflow has been removed from all environments, since rolling back a workflow migration cannot restore them.
+
+:::
 
 ## Generating Workflow Migrations
 

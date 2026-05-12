@@ -24,7 +24,7 @@ The `vueda.user` app must be in `INSTALLED_APPS`. The group management URLs beco
 
 ### Navigating to the Permission Overview
 
-Open the permission overview page at `/routes/vueda.user/permissions/overview/`. On a local development server this is typically `http://localhost:8000/routes/vueda.user/permissions/overview/`. This page lists every permission in the project, organized by app and grouped into two categories, **My App**, and third-party or Django built-in apps appear under **Other App**. Historical apps are initially hidden, with a toggle button to make them visible. Permissions for an app are ordered by create, read, update, delete, list, and any additional permissions.
+Open the permission overview page at `/routes/vueda.user/permissions/overview/`. On a local development server this is typically `http://localhost:8000/routes/vueda.user/permissions/overview/`. This page lists every permission in the project, grouped by app.
 
 If you are not authenticated, you will be redirected to the login form. Log in before proceeding.
 
@@ -58,9 +58,13 @@ To remove a permission from a group:
 
 The permission is removed from the group. A record is created to store the change. If the group has no other permissions after the removal, group will be deleted.
 
-Deleting does not display a confirmation, so there is less clicking.
+The delete button removes the permission immediately without a confirmation step.
 
-> **Note:** Do not manually delete a group, let the generated migration handle the deletion, so it can be reversed if needed.
+::: warning
+
+Do not manually delete a group, let the generated migration handle the deletion, so it can be reversed if needed.
+
+:::
 
 ## Generating Group Migrations
 
