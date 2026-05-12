@@ -191,7 +191,7 @@ def test_setup_sms_returns_validation_error_when_twilio_unavailable(api_client, 
 
     response = api_client.post(
         reverse("vueda_user.totpdevice-setup"),
-        {"method": "sms", "destination": "+15551230000"},
+        {"method": "sms", "destination": "+18005550100"},
         format="json",
     )
 

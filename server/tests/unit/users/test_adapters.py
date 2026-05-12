@@ -13,11 +13,11 @@ def test_send_sms_requires_caller_id(monkeypatch):
     monkeypatch.setattr("vueda.user.adapters.render_to_string", lambda *args, **kwargs: "body")
 
     with pytest.raises(VuedaValidationError) as exc_info:
-        adapter.send_sms("+15551230000", "Test User", "totp_code", {"code": "123456"})
+        adapter.send_sms("+18005550100", "Test User", "totp_code", {"code": "123456"})
     assert [str(error) for error in exc_info.value.detail] == ["SMS sending is not configured."]
 
 
-@override_settings(TWILIO_ACCOUNT_SID="TESTSID", TWILIO_AUTH_TOKEN="TESTAUTH", TWILIO_CALLER_ID="+15551239999")
+@override_settings(TWILIO_ACCOUNT_SID="TESTSID", TWILIO_AUTH_TOKEN="TESTAUTH", TWILIO_CALLER_ID="+18005550100")
 def test_send_sms_requires_destination(monkeypatch):
     adapter = DefaultUserAdapter()
     monkeypatch.setattr("vueda.user.adapters.render_to_string", lambda *args, **kwargs: "body")
@@ -30,7 +30,7 @@ def test_send_sms_requires_destination(monkeypatch):
 @override_settings(
     TWILIO_ACCOUNT_SID="TESTSID",
     TWILIO_AUTH_TOKEN="TESTAUTH",
-    TWILIO_CALLER_ID="+15551239999",
+    TWILIO_CALLER_ID="+18005550100",
     SITE_NAME="VUEDA",
 )
 @pytest.mark.django_db
@@ -56,18 +56,18 @@ def test_send_sms_sends_message(monkeypatch):
     monkeypatch.setattr("vueda.user.adapters.render_to_string", fake_render_to_string)
     monkeypatch.setattr("vueda.user.adapters.add_sms", fake_add_sms)
 
-    adapter.send_sms("+15551230000", "Test User", "totp_code", {"code": "123456"})
+    adapter.send_sms("+18005550199", "Test User", "totp_code", {"code": "123456"})
 
     sender = captured["sender"]
     receiver = captured["receiver"]
 
     assert captured["body"] == "Use code 123456"
     assert sender.name == "SYSTEM"
-    assert sender.cell == "+15551239999"
+    assert sender.cell == "+18005550100"
     assert receiver.name == "Test User"
-    assert receiver.cell == "+15551230000"
-    assert Sender.objects.filter(cell="+15551239999").count() == 1
-    assert Receiver.objects.filter(cell="+15551230000").count() == 1
+    assert receiver.cell == "+18005550199"
+    assert Sender.objects.filter(cell="+18005550100").count() == 1
+    assert Receiver.objects.filter(cell="+18005550199").count() == 1
 
 
 @override_settings(
