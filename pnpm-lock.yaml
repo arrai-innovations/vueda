@@ -4,14 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-patchedDependencies:
-  vitepress:
-    hash: 6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267
-    path: patches/vitepress.patch
-  vitepress-plugin-diagrams:
-    hash: 719fa333abedf54696eac5b9d6c31cb2206b685402ea13600ff31542f3e52cdd
-    path: patches/vitepress-plugin-diagrams.patch
-
 importers:
 
   .:
@@ -266,10 +258,10 @@ importers:
         version: 4.2.1
       vitepress:
         specifier: ^1.6.4
-        version: 1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3)
+        version: 1.6.4(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3)
       vitepress-plugin-diagrams:
         specifier: ^1.1.2
-        version: 1.1.2(patch_hash=719fa333abedf54696eac5b9d6c31cb2206b685402ea13600ff31542f3e52cdd)(vite@6.4.1(@types/node@25.0.9)(jiti@2.6.1)(lightningcss@1.31.1)(yaml@2.8.2))(vitepress@1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3))
+        version: 1.1.2(vite@6.4.1(@types/node@25.0.9)(jiti@2.6.1)(lightningcss@1.31.1)(yaml@2.8.2))(vitepress@1.6.4(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3))
       vue:
         specifier: ^3.5.13
         version: 3.5.27(typescript@5.9.3)
@@ -408,7 +400,7 @@ packages:
     resolution: {integrity: sha512-+sgs7R5aV7TcVZrw9297OEIcTANSCGOlzFCkAmfLlgtxK1UIm6lIFBEtB3hzat6qzmy4pzVe1rgSKP7r3dquyQ==}
 
   '@arrai-innovations/reactive-helpers@21.1.0':
-    resolution: {integrity: sha512-fIuDS6dkxOyhK5njocHC+HKDESXrlaRrYwqInRSfCfQR6Nc54ZQ/ObszcwxQoqRBNXEgoaaI5xAcNxk2TzYqxA==}
+    resolution: {integrity: sha512-TJPoReGG+AiDamFkV49Xq/1CcZ43VDEpaQEtqRRhGTHPa5ZCtqhlElzpul0Zmc4eJdD+0au2PI5zToqgCn88og==}
     peerDependencies:
       '@vueuse/core': ^13.0.0
       lodash-es: ^4.17.21
@@ -2044,6 +2036,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@unrs/resolver-binding-android-arm-eabi@1.11.1':
     resolution: {integrity: sha512-ppLRUgHVaGRWUx0R0Ut06Mjo9gBaBkg3v/8AxusGLhsIotbBLuRk51rAzqLC8gq6NyyAojEXglNjzf6R948DNw==}
@@ -3434,6 +3427,7 @@ packages:
   git-raw-commits@4.0.0:
     resolution: {integrity: sha512-ICsMM1Wk8xSGMowkOmPrzo2Fgmfo4bMHLNX6ytHjajRJUqvHOw/TFapQ+QG75c3X/tTDDhOSRPGC52dDbNM8FQ==}
     engines: {node: '>=16'}
+    deprecated: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
     hasBin: true
 
   glob-parent@5.1.2:
@@ -12071,14 +12065,14 @@ snapshots:
       lightningcss: 1.31.1
       yaml: 2.8.2
 
-  vitepress-plugin-diagrams@1.1.2(patch_hash=719fa333abedf54696eac5b9d6c31cb2206b685402ea13600ff31542f3e52cdd)(vite@6.4.1(@types/node@25.0.9)(jiti@2.6.1)(lightningcss@1.31.1)(yaml@2.8.2))(vitepress@1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3)):
+  vitepress-plugin-diagrams@1.1.2(vite@6.4.1(@types/node@25.0.9)(jiti@2.6.1)(lightningcss@1.31.1)(yaml@2.8.2))(vitepress@1.6.4(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3)):
     dependencies:
       commander: 14.0.3
       markdown-it: 14.1.0
       vite: 6.4.1(@types/node@25.0.9)(jiti@2.6.1)(lightningcss@1.31.1)(yaml@2.8.2)
-      vitepress: 1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3)
+      vitepress: 1.6.4(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3)
 
-  vitepress@1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3):
+  vitepress@1.6.4(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.31.1)(postcss@8.5.6)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3):
     dependencies:
       '@docsearch/css': 3.8.2
       '@docsearch/js': 3.8.2(@algolia/client-search@5.48.2)(search-insights@2.17.3)
