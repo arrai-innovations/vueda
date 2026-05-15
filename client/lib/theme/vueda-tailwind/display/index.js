@@ -275,6 +275,26 @@ export default {
             class: ["h-[10px]"],
         },
     },
+    // Two-column dl grid: 10 px uppercase sans dt labels on the left,
+    // 11 px values on the right. Faint muted tint, 1 px border, card radius.
+    // font-mono on dd is applied conditionally by the `mono` prop. PROP-158.
+    DiagnosticStrip: {
+        root: {
+            class: [
+                "grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1",
+                "rounded-vueda-card border border-border bg-muted/35",
+                "px-3 py-2",
+            ],
+        },
+        // 10 px uppercase sans label, muted ink.
+        dt: {
+            class: ["text-[10px] font-semibold uppercase tracking-[0.06em]", "text-muted-foreground leading-none"],
+        },
+        // 11 px value; font-mono added by the component when mono=true.
+        dd: {
+            class: ["text-[11px] font-normal text-foreground leading-none m-0"],
+        },
+    },
     MobileSortComponent: {
         drawer: {
             class: ["!h-auto"],
