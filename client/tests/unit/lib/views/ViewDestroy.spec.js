@@ -10,7 +10,7 @@ vi.mock("@vueda/use/useViewDestroy.js", () => ({
 
 const ModelActionFormStub = defineComponent({
     name: "ModelActionFormStub",
-    props: ["app", "model", "action", "runAction", "fetchState"],
+    props: ["app", "model", "action", "runAction", "fetchState", "confirmText"],
     setup(props, { attrs, slots }) {
         return () =>
             h(
@@ -129,6 +129,35 @@ scopedIt("custom banner slot overrides default chrome", () => {
 
     expect(wrapper.find('[data-qa="custom-banner"]').exists()).toBe(true);
     expect(wrapper.find('[data-qa="view-destroy-banner"]').exists()).toBe(false);
+});
+
+scopedIt("forwards confirmText to ModelActionForm", () => {
+    const modelConfig = reactive({ info: { pk: "id", verboseName: "thing", verboseNamePlural: "things" } });
+    mockedUseViewDestroy.mockReturnValue({
+        modelConfig,
+        handleDelete: vi.fn(),
+        instanceList: { state: reactive({}) },
+    });
+
+    const wrapper = mount(ViewDestroy, {
+        props: { app: "a", model: "thing", pk: ["5", "6"], confirmText: "delete 2 things" },
+    });
+
+    const af = wrapper.getComponent(ModelActionFormStub);
+    expect(af.props("confirmText")).toBe("delete 2 things");
+});
+
+scopedIt("omits confirmText when the prop is not set", () => {
+    const modelConfig = reactive({ info: { pk: "id" } });
+    mockedUseViewDestroy.mockReturnValue({
+        modelConfig,
+        handleDelete: vi.fn(),
+        instanceList: { state: reactive({}) },
+    });
+
+    const wrapper = mount(ViewDestroy, { props: { app: "a", model: "thing", pk: "5" } });
+
+    expect(wrapper.getComponent(ModelActionFormStub).props("confirmText")).toBeUndefined();
 });
 
 scopedIt("renders a loading spinner while model info is empty", () => {

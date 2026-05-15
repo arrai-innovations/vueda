@@ -1,5 +1,8 @@
 <script setup>
 import ActionForm from "@vueda/components/ActionForm.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
+import Button from "@vueda/controls/button/Button.vue";
 import FormField from "@vueda/fields/FormField.vue";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -13,7 +16,7 @@ import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
 import startCase from "lodash-es/startCase.js";
-import { computed, toRef, unref, useSlots } from "vue";
+import { computed, ref, toRef, unref, useSlots } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /**
@@ -117,6 +120,16 @@ const props = defineProps({
     bare: {
         type: Boolean,
         default: false,
+    },
+    /**
+     * Literal phrase the operator must type before the confirm button enables.
+     * When set, a `TypedConfirmField` renders inside the body (after any
+     * `extra-fields` slot content) and the submit button is gated until the
+     * typed value matches. Leave undefined to skip the type-to-confirm gate.
+     */
+    confirmText: {
+        type: String,
+        default: undefined,
     },
 });
 
@@ -252,6 +265,10 @@ const slots = useSlots();
 const dryRun = computed(
     () => !!(props.app && props.model && props.action && props.enableDryRun && pks.value.length > 0),
 );
+
+const typedConfirmInput = ref("");
+const typedConfirmMatch = computed(() => typedConfirmInput.value === props.confirmText);
+const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedConfirmMatch.value);
 </script>
 
 <template>
@@ -264,8 +281,23 @@ const dryRun = computed(
         :action-error-summary="actionErrorSummaryComputed"
         :action-success-summary="actionSuccessSummaryComputed"
     >
-        <template v-for="(_, slot) in omit(slots, ['action-form-inner'])" #[slot]="slotProps">
+        <template v-for="(_, slot) in omit(slots, ['action-form-inner', 'confirm-button'])" #[slot]="slotProps">
             <slot :name="slot" v-bind="slotProps || {}" />
+        </template>
+        <template #confirm-button="slotProps">
+            <slot
+                v-if="$slots['confirm-button']"
+                name="confirm-button"
+                v-bind="{ ...slotProps, disabled: slotProps.disabled || typedConfirmGateBlocking }"
+            />
+            <Button
+                v-else
+                type="submit"
+                :disabled="slotProps.loading || slotProps.disabled || typedConfirmGateBlocking"
+            >
+                <LoadingSpinnerInline v-if="slotProps.loading" />
+                {{ slotProps.label }}
+            </Button>
         </template>
         <template #action-form-inner="{ combinedLoading }">
             <component
@@ -388,6 +420,7 @@ const dryRun = computed(
                             :objects="fetchState?.objectsMap"
                         />
                     </div>
+                    <typed-confirm-field v-if="confirmText" v-model="typedConfirmInput" :expected-value="confirmText" />
                 </div>
             </component>
         </template>

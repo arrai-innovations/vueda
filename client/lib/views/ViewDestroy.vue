@@ -50,6 +50,17 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    /**
+     * Optional anti-mistake phrase the operator must type before the destroy
+     * button enables. Forwarded to `ModelActionForm`, which renders a
+     * `TypedConfirmField` inside the body and gates submit until the typed
+     * value matches. Recommended for bulk destroys (the kit convention is
+     * `"delete N {model}"`). Leave undefined to skip the gate.
+     */
+    confirmText: {
+        type: String,
+        default: undefined,
+    },
 });
 
 const { modelConfig, handleDelete, instanceList } = useViewDestroy(props);
@@ -128,6 +139,7 @@ const computedBannerTitle = computed(() => {
                     :pk="pk"
                     :bare="true"
                     tone="danger"
+                    :confirm-text="confirmText"
                     :run-action="handleDelete"
                     :fetch-state="instanceList.state"
                     v-bind="$attrs"
