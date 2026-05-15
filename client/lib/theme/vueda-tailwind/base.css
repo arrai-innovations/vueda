@@ -454,6 +454,11 @@
      * Instruments feel responsive, not soft. Short, ease-out only. */
     --vueda-duration-interaction: 120ms;
     --vueda-ease-interaction: cubic-bezier(0.2, 0, 0, 1);
+    /* Threshold (ms) for the ViewLoading slow-path tone flip — after this long
+     * under sustained load the indicator shifts to a warning tone. Override
+     * per-route via the ViewLoading `slowAfterMs` prop for known-slow views
+     * (reports, exports) to avoid premature flip. See DESIGN.md § 4.6. */
+    --vueda-loading-slow-ms: 3000;
 
     /* ---------- DPR-aware hairline + focus-ring widths ----------
      * Painted edges step down from 2px to 1px across the DPR 1.0 to 2.0 range,
