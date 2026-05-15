@@ -8,6 +8,7 @@ import "./showcase.css";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import {
+    faArrowRotateLeft,
     faArrowUpRightFromSquare,
     faCaretDown,
     faCaretUp,
@@ -26,11 +27,15 @@ import {
     faFloppyDisk,
     faFolderOpen,
     faGripVertical,
+    faIdCard,
     faLifeRing,
     faMinus,
+    faPen,
     faPlus,
     faPrint,
     faShieldHalved,
+    faTable,
+    faTrash,
     faTriangleExclamation,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
@@ -72,13 +77,19 @@ setIcons({
         externalLink: { component: FontAwesomeIcon, props: { icon: faArrowUpRightFromSquare } },
         floppyDisk: { component: FontAwesomeIcon, props: { icon: faFloppyDisk } },
         gripVertical: { component: FontAwesomeIcon, props: { icon: faGripVertical } },
+        idCard: { component: FontAwesomeIcon, props: { icon: faIdCard } },
         info: { component: FontAwesomeIcon, props: { icon: faCircleInfo } },
         lifeRing: { component: FontAwesomeIcon, props: { icon: faLifeRing } },
         loading: { component: FontAwesomeIcon, props: { icon: faCircleNotch, spin: true } },
         plus: { component: FontAwesomeIcon, props: { icon: faPlus } },
         print: { component: FontAwesomeIcon, props: { icon: faPrint } },
         shieldHalved: { component: FontAwesomeIcon, props: { icon: faShieldHalved } },
+        table: { component: FontAwesomeIcon, props: { icon: faTable } },
         triangleExclamation: { component: FontAwesomeIcon, props: { icon: faTriangleExclamation } },
+        typeCreated: { component: FontAwesomeIcon, props: { icon: faPlus } },
+        typeDeleted: { component: FontAwesomeIcon, props: { icon: faTrash } },
+        typeRestored: { component: FontAwesomeIcon, props: { icon: faArrowRotateLeft } },
+        typeUpdated: { component: FontAwesomeIcon, props: { icon: faPen } },
     },
 });
 

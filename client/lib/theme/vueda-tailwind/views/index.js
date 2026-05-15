@@ -495,6 +495,54 @@ export default {
         cellUserName: {
             class: ["text-[length:var(--vueda-text-supporting)] font-medium leading-tight text-foreground"],
         },
+        // history_type pill: small uppercase-ish label + leading icon, color-coded by sentiment.
+        // `data-kind` selects the tonal recipe: created (success), updated (info),
+        // deleted (destructive), restored (warning). Unknown values render the raw value
+        // via the slot fallback, not this recipe.
+        typePill: {
+            class: [
+                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5",
+                "text-[10.5px] font-semibold uppercase tracking-wide leading-none",
+                "[&>svg]:size-3",
+                "data-[kind=created]:border-success/30 data-[kind=created]:bg-[color-mix(in_oklab,var(--success)_10%,transparent)] data-[kind=created]:text-success",
+                "data-[kind=updated]:border-info/25 data-[kind=updated]:bg-[color-mix(in_oklab,var(--info)_8%,transparent)] data-[kind=updated]:text-info",
+                "data-[kind=deleted]:border-destructive/25 data-[kind=deleted]:bg-[color-mix(in_oklab,var(--destructive)_8%,transparent)] data-[kind=deleted]:text-destructive",
+                "data-[kind=restored]:border-warning/30 data-[kind=restored]:bg-[color-mix(in_oklab,var(--warning)_10%,transparent)] data-[kind=restored]:text-warning",
+            ],
+        },
+        // Meta strip above the grid: filter slot on the left, layout toggle on the right.
+        // Bottom hairline separates the strip from the grid; muted-wash background.
+        meta: {
+            class: ["flex items-center gap-3 flex-wrap", "border-b border-border bg-muted/10", "px-4 py-2 text-sm"],
+        },
+        metaItem: {
+            class: ["inline-flex items-center gap-1 text-muted-foreground"],
+        },
+        metaDivider: {
+            class: ["mx-2 h-3 w-px bg-border"],
+        },
+        metaSpacer: {
+            class: ["ml-auto"],
+        },
+        // Segmented Table / Cards button-pair on the right of the meta strip. Active button
+        // selected via `data-active="true"`.
+        layoutToggle: {
+            class: ["flex overflow-clip rounded-vueda-control border border-border"],
+        },
+        layoutButton: {
+            class: [
+                "inline-flex items-center gap-1.5 px-2 py-1 text-xs",
+                "text-muted-foreground bg-transparent",
+                "first:border-r first:border-border",
+                "hover:bg-accent hover:text-accent-foreground",
+                "data-[active=true]:bg-accent data-[active=true]:text-foreground",
+                "[&>svg]:size-3",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+            ],
+        },
+        layoutButtonActive: {
+            class: [],
+        },
     },
     ViewLoading: {
         // Centering wrapper that fills the viewport and centers the SystemMessageCard.
