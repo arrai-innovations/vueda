@@ -496,6 +496,48 @@ export default {
             class: ["text-[length:var(--vueda-text-supporting)] font-medium leading-tight text-foreground"],
         },
     },
+    ViewLoading: {
+        // Centering wrapper that fills the viewport and centers the SystemMessageCard.
+        root: {
+            class: ["flex min-h-full items-center justify-center p-8"],
+        },
+        // LoadingSpinnerBlock inside the SystemMessageCard crest-icon slot (normal path).
+        crest: {
+            class: ["w-5 h-5"],
+        },
+        // Hourglass span inside the crest-icon slot (slow path).
+        slowCrest: {
+            class: ["text-[18px] leading-none"],
+        },
+        // Wrapper for the name + context body row (normal) or slow title + blurb row (slow).
+        bodyRow: {
+            class: ["flex flex-col gap-1"],
+        },
+        // Primary "what's loading" text.
+        bodyRowText: {
+            class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
+        },
+        // Secondary one-line context beneath the name.
+        bodyRowSub: {
+            class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
+        },
+        // Extra classes forwarded to LoadingSkeletonGhost.
+        skeleton: {
+            class: [],
+        },
+        // Extra classes forwarded to LoadingHeartbeatStrip.
+        heartbeat: {
+            class: [],
+        },
+        // Slow-path title element ("This is taking longer than usual").
+        slowTitle: {
+            class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
+        },
+        // Slow-path route-specific explanation blurb.
+        slowBlurb: {
+            class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
+        },
+    },
     ViewNotFound: {
         root: {
             class: [],
