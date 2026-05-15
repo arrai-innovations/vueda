@@ -687,8 +687,47 @@ export default {
         inner: {
             class: [],
         },
-        radioOption: {
-            class: ["flex items-center gap-2"],
+        current: {
+            class: ["flex items-center gap-2 mb-4 px-4 py-2.5 rounded-vueda-card bg-muted/40 text-sm"],
+        },
+        currentLabel: {
+            class: ["text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground"],
+        },
+        currentPill: {
+            class: [
+                "inline-flex items-center px-2.5 py-0.5 rounded-full",
+                "bg-muted text-foreground text-xs font-semibold",
+            ],
+        },
+        list: {
+            class: ["flex flex-col gap-3 mb-4"],
+        },
+        option: {
+            class: [
+                "relative flex flex-col gap-1 px-4 py-3 rounded-vueda-card border border-border cursor-pointer",
+                "hover:border-primary/50 hover:bg-accent/30",
+                "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                "data-[selected=true]:border-primary data-[selected=true]:bg-primary/5",
+                "data-[disabled=true]:opacity-55 data-[disabled=true]:cursor-not-allowed",
+            ],
+        },
+        optionRadio: {
+            class: ["sr-only"],
+        },
+        optionName: {
+            class: ["text-sm font-semibold text-foreground"],
+        },
+        optionDesc: {
+            class: ["text-xs text-muted-foreground"],
+        },
+        optionTarget: {
+            class: [
+                "inline-flex items-center self-start px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1",
+                "data-[tone=success]:bg-success/15 data-[tone=success]:text-success",
+                "data-[tone=warning]:bg-warning/15 data-[tone=warning]:text-warning",
+                "data-[tone=destructive]:bg-destructive/15 data-[tone=destructive]:text-destructive",
+                "data-[tone=neutral]:bg-muted data-[tone=neutral]:text-muted-foreground",
+            ],
         },
         // Terminal-state empty branch: dashed-border tinted panel with a centred 36px circle
         // icon, one-line title, short description, and a forward-pointing escape CTA.

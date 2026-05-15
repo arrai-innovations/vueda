@@ -2,8 +2,6 @@
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import RadioGroup from "@vueda/controls/radio-group/RadioGroup.vue";
-import RadioGroupItem from "@vueda/controls/radio-group/RadioGroupItem.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
@@ -148,17 +146,46 @@ const handleSubmit = async () => {
         </page-title>
         <div :class="theme('inner')">
             <div v-if="availableTransitions.length">
+                <div v-if="currentStateName" :class="theme('current')">
+                    <span :class="theme('currentLabel')">Currently</span>
+                    <span :class="theme('currentPill')">{{ currentStateName }}</span>
+                </div>
                 <form @submit.prevent="handleSubmit">
-                    <RadioGroup v-model="selectedAction" name="dynamic">
-                        <div
+                    <div :class="theme('list')">
+                        <label
                             v-for="transition in availableTransitions"
                             :key="transition.code"
-                            :class="theme('radioOption')"
+                            :for="transition.code"
+                            :class="theme('option')"
+                            :data-selected="selectedAction === transition.code || undefined"
+                            :data-disabled="transition.disabled || undefined"
                         >
-                            <RadioGroupItem :id="transition.code" :value="transition.code" />
-                            <label :for="transition.code">{{ transition.name }}</label>
-                        </div>
-                    </RadioGroup>
+                            <input
+                                :id="transition.code"
+                                v-model="selectedAction"
+                                type="radio"
+                                name="workflow-transition"
+                                :value="transition.code"
+                                :disabled="transition.disabled"
+                                :class="theme('optionRadio')"
+                            />
+                            <span :class="theme('optionName')">{{ transition.name }}</span>
+                            <span v-if="transition.description" :class="theme('optionDesc')">{{
+                                transition.description
+                            }}</span>
+                            <span
+                                v-if="transition.target_state_label"
+                                :class="theme('optionTarget')"
+                                :data-tone="transition.target_state_tone || 'neutral'"
+                                >{{ transition.target_state_label }}</span
+                            >
+                            <span
+                                v-if="transition.disabled && transition.disabled_reason"
+                                :class="theme('optionDesc')"
+                                >{{ transition.disabled_reason }}</span
+                            >
+                        </label>
+                    </div>
                     <Button :disabled="!selectedAction" type="submit">execute transition</Button>
                 </form>
             </div>

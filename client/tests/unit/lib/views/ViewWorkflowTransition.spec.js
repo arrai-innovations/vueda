@@ -39,24 +39,6 @@ const ButtonStub = defineComponent({
 });
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 
-const RadioGroupStub = defineComponent({
-    name: "RadioGroupStub",
-    props: ["modelValue", "name"],
-    emits: ["update:modelValue"],
-    setup(props, { slots }) {
-        return () => h("div", { "data-qa": "radio-group" }, slots.default?.());
-    },
-});
-const RadioGroupItemStub = defineComponent({
-    name: "RadioGroupItemStub",
-    props: ["id", "value"],
-    setup(props) {
-        return () => h("input", { type: "radio", "data-qa": "radio-group-item", value: props.value });
-    },
-});
-vi.mock("@vueda/controls/radio-group/RadioGroup.vue", () => ({ default: RadioGroupStub }));
-vi.mock("@vueda/controls/radio-group/RadioGroupItem.vue", () => ({ default: RadioGroupItemStub }));
-
 const LinkModelViewStub = defineComponent({
     name: "LinkModelViewStub",
     props: ["app", "model", "view", "label"],
@@ -123,102 +105,317 @@ vi.mock("vue", async () => {
 
 let ViewWorkflowTransition, vue;
 
-beforeEach(async () => {
-    vue = await vi.importActual("vue");
-    mockedUseModelConfig.mockReturnValue(vue.reactive({ info: { verbose_name: "Thing" } }));
-    ViewWorkflowTransition = (await import("@vueda/views/ViewWorkflowTransition.vue")).default;
-    provideStore.clear();
-    fetchWorkflowTransition.mockClear();
-    fetchObjectTransitions.mockClear();
-    fetchObjectState.mockClear();
-    executeTransition.mockClear();
-    workflowStore.objectStates = { "a.m": {} };
-    workflowStore.objectTransitions = { "a.m": {} };
-    Object.values(toastMock).forEach((fn) => fn.mockClear());
-    routerBack.mockClear();
-});
+describe("lib/views/ViewWorkflowTransition.vue", () => {
+    beforeEach(async () => {
+        vue = await vi.importActual("vue");
+        mockedUseModelConfig.mockReturnValue(vue.reactive({ info: { verbose_name: "Thing" } }));
+        ViewWorkflowTransition = (await import("@vueda/views/ViewWorkflowTransition.vue")).default;
+        provideStore.clear();
+        fetchWorkflowTransition.mockClear();
+        fetchObjectTransitions.mockClear();
+        fetchObjectState.mockClear();
+        executeTransition.mockClear();
+        workflowStore.objectStates = { "a.m": {} };
+        workflowStore.objectTransitions = { "a.m": {} };
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
+        routerBack.mockClear();
+    });
 
-afterEach(() => {
-    vi.clearAllMocks();
-});
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
 
-scopedIt("calls useLookupContext if lookup context is missing", () => {
-    mockedInject.mockReturnValueOnce(null);
-    mount(ViewWorkflowTransition, { props: { app: "a", model: "b", pk: "1" } });
-    expect(mockedUseLookupContext).toHaveBeenCalled();
-});
+    scopedIt("calls useLookupContext if lookup context is missing", () => {
+        mockedInject.mockReturnValueOnce(null);
+        mount(ViewWorkflowTransition, { props: { app: "a", model: "b", pk: "1" } });
+        expect(mockedUseLookupContext).toHaveBeenCalled();
+    });
 
-scopedIt("fetches transitions for each pk in array and computes intersection", async () => {
-    mockedInject.mockReturnValueOnce({});
-    workflowStore.objectTransitions = {
-        "a.m": {
-            1: {
-                transitions: [
-                    { code: "a", name: "A" },
-                    { code: "b", name: "B" },
-                ],
+    scopedIt("fetches transitions for each pk in array and computes intersection", async () => {
+        mockedInject.mockReturnValueOnce({});
+        workflowStore.objectTransitions = {
+            "a.m": {
+                1: {
+                    transitions: [
+                        { code: "a", name: "A" },
+                        { code: "b", name: "B" },
+                    ],
+                },
+                2: {
+                    transitions: [
+                        { code: "a", name: "A" },
+                        { code: "c", name: "C" },
+                    ],
+                },
             },
-            2: {
-                transitions: [
-                    { code: "a", name: "A" },
-                    { code: "c", name: "C" },
-                ],
+        };
+        const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: ["1", "2"] } });
+        await vue.nextTick();
+        expect(fetchObjectTransitions).toHaveBeenCalledWith("a", "m", "1");
+        expect(fetchObjectTransitions).toHaveBeenCalledWith("a", "m", "2");
+        expect(wrapper.vm.availableTransitions).toEqual([{ code: "a", name: "A" }]);
+    });
+
+    scopedIt("submits transition and shows success toast", async () => {
+        mockedInject.mockReturnValueOnce({});
+        const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+        wrapper.vm.selectedAction = "a";
+        await wrapper.vm.handleSubmit();
+        expect(executeTransition).toHaveBeenCalledWith("a", "m", "1", "a", expect.any(Object));
+        expect(toastMock.success).toHaveBeenCalledWith("transition succeeded");
+        expect(routerBack).toHaveBeenCalled();
+    });
+
+    scopedIt("renders the terminal-state empty branch with state-named title and back CTA", async () => {
+        mockedInject.mockReturnValueOnce({});
+        workflowStore.objectStates = {
+            "a.m": {
+                1: { state: { code: "paid", name: "Paid" } },
             },
-        },
-    };
-    const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: ["1", "2"] } });
-    await vue.nextTick();
-    expect(fetchObjectTransitions).toHaveBeenCalledWith("a", "m", "1");
-    expect(fetchObjectTransitions).toHaveBeenCalledWith("a", "m", "2");
-    expect(wrapper.vm.availableTransitions).toEqual([{ code: "a", name: "A" }]);
-});
+        };
+        workflowStore.objectTransitions = { "a.m": { 1: { transitions: [] } } };
+        const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+        await vue.nextTick();
+        const empty = wrapper.find('[data-qa="view-workflow-transition-empty"]');
+        expect(empty.exists()).toBe(true);
+        expect(empty.text()).toContain("No transitions available from Paid.");
+        expect(fetchObjectState).toHaveBeenCalledWith("a", "m", "1");
+        const backButton = empty.findAll('[data-qa="button"]').at(-1);
+        await backButton.trigger("click");
+        expect(routerBack).toHaveBeenCalled();
+    });
 
-scopedIt("submits transition and shows success toast", async () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
-    wrapper.vm.selectedAction = "a";
-    await wrapper.vm.handleSubmit();
-    expect(executeTransition).toHaveBeenCalledWith("a", "m", "1", "a", expect.any(Object));
-    expect(toastMock.success).toHaveBeenCalledWith("transition succeeded");
-    expect(routerBack).toHaveBeenCalled();
-});
+    scopedIt("falls back to a generic empty title when state name is unavailable", async () => {
+        mockedInject.mockReturnValueOnce({});
+        workflowStore.objectTransitions = { "a.m": { 1: { transitions: [] } } };
+        const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+        await vue.nextTick();
+        const empty = wrapper.find('[data-qa="view-workflow-transition-empty"]');
+        expect(empty.exists()).toBe(true);
+        expect(empty.text()).toContain("No transitions available.");
+        expect(empty.text()).not.toContain("from");
+    });
 
-scopedIt("renders the terminal-state empty branch with state-named title and back CTA", async () => {
-    mockedInject.mockReturnValueOnce({});
-    workflowStore.objectStates = {
-        "a.m": {
-            1: { state: { code: "paid", name: "Paid" } },
-        },
-    };
-    workflowStore.objectTransitions = { "a.m": { 1: { transitions: [] } } };
-    const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
-    await vue.nextTick();
-    const empty = wrapper.find('[data-qa="view-workflow-transition-empty"]');
-    expect(empty.exists()).toBe(true);
-    expect(empty.text()).toContain("No transitions available from Paid.");
-    expect(fetchObjectState).toHaveBeenCalledWith("a", "m", "1");
-    const backButton = empty.findAll('[data-qa="button"]').at(-1);
-    await backButton.trigger("click");
-    expect(routerBack).toHaveBeenCalled();
-});
+    scopedIt("shows error toast when submission fails", async () => {
+        mockedInject.mockReturnValueOnce({});
+        executeTransition.mockRejectedValueOnce(new Error("fail"));
+        const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+        wrapper.vm.selectedAction = "a";
+        await wrapper.vm.handleSubmit();
+        expect(toastMock.error).toHaveBeenCalledWith("transition failed");
+        expect(routerBack).not.toHaveBeenCalled();
+    });
 
-scopedIt("falls back to a generic empty title when state name is unavailable", async () => {
-    mockedInject.mockReturnValueOnce({});
-    workflowStore.objectTransitions = { "a.m": { 1: { transitions: [] } } };
-    const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
-    await vue.nextTick();
-    const empty = wrapper.find('[data-qa="view-workflow-transition-empty"]');
-    expect(empty.exists()).toBe(true);
-    expect(empty.text()).toContain("No transitions available.");
-    expect(empty.text()).not.toContain("from");
-});
+    describe("card list", () => {
+        scopedIt("renders a card for each available transition", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": {
+                    1: {
+                        transitions: [
+                            { code: "approve", name: "Approve" },
+                            { code: "reject", name: "Reject" },
+                        ],
+                    },
+                },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            const cards = wrapper.findAll("label[for]");
+            expect(cards).toHaveLength(2);
+            expect(cards[0].text()).toContain("Approve");
+            expect(cards[1].text()).toContain("Reject");
+        });
 
-scopedIt("shows error toast when submission fails", async () => {
-    mockedInject.mockReturnValueOnce({});
-    executeTransition.mockRejectedValueOnce(new Error("fail"));
-    const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
-    wrapper.vm.selectedAction = "a";
-    await wrapper.vm.handleSubmit();
-    expect(toastMock.error).toHaveBeenCalledWith("transition failed");
-    expect(routerBack).not.toHaveBeenCalled();
+        scopedIt("each card contains a hidden radio input with the transition code as value", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": { 1: { transitions: [{ code: "approve", name: "Approve" }] } },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            const radio = wrapper.find('input[type="radio"][value="approve"]');
+            expect(radio.exists()).toBe(true);
+        });
+
+        scopedIt("selecting a radio updates selectedAction", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": { 1: { transitions: [{ code: "approve", name: "Approve" }] } },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            const radio = wrapper.find('input[type="radio"][value="approve"]');
+            radio.element.checked = true;
+            await radio.trigger("change");
+            expect(wrapper.vm.selectedAction).toBe("approve");
+        });
+
+        scopedIt("adds data-selected to the matching card when a transition is selected", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": {
+                    1: {
+                        transitions: [
+                            { code: "approve", name: "Approve" },
+                            { code: "reject", name: "Reject" },
+                        ],
+                    },
+                },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            wrapper.vm.selectedAction = "approve";
+            await vue.nextTick();
+            const cards = wrapper.findAll("label[for]");
+            expect(cards[0].attributes("data-selected")).toBe("true");
+            expect(cards[1].attributes("data-selected")).toBeUndefined();
+        });
+
+        scopedIt("shows transition description when present", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": {
+                    1: { transitions: [{ code: "approve", name: "Approve", description: "Move to approved state" }] },
+                },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.text()).toContain("Move to approved state");
+        });
+    });
+
+    describe("current state strip", () => {
+        scopedIt("shows current state strip with state name for single pk", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectStates = {
+                "a.m": { 1: { state: { code: "draft", name: "Draft" } } },
+            };
+            workflowStore.objectTransitions = {
+                "a.m": { 1: { transitions: [{ code: "approve", name: "Approve" }] } },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.text()).toContain("Currently");
+            expect(wrapper.text()).toContain("Draft");
+        });
+
+        scopedIt("hides current state strip when state is not available", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": { 1: { transitions: [{ code: "approve", name: "Approve" }] } },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.text()).not.toContain("Currently");
+        });
+
+        scopedIt("hides current state strip for bulk pk", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": {
+                    1: { transitions: [{ code: "approve", name: "Approve" }] },
+                    2: { transitions: [{ code: "approve", name: "Approve" }] },
+                },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: ["1", "2"] } });
+            await vue.nextTick();
+            expect(wrapper.text()).not.toContain("Currently");
+        });
+    });
+
+    describe("disabled transitions", () => {
+        scopedIt("renders disabled card with data-disabled attribute and disabled radio", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": {
+                    1: {
+                        transitions: [
+                            { code: "approve", name: "Approve" },
+                            { code: "void", name: "Void", disabled: true, disabled_reason: "Restricted" },
+                        ],
+                    },
+                },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            const cards = wrapper.findAll("label[for]");
+            expect(cards[0].attributes("data-disabled")).toBeUndefined();
+            expect(cards[1].attributes("data-disabled")).toBe("true");
+            expect(cards[1].find("input").element.disabled).toBe(true);
+        });
+
+        scopedIt("shows disabled_reason text on a disabled card", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": {
+                    1: { transitions: [{ code: "void", name: "Void", disabled: true, disabled_reason: "Restricted" }] },
+                },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.text()).toContain("Restricted");
+        });
+
+        scopedIt("omits reason text when disabled_reason is absent", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": {
+                    1: { transitions: [{ code: "void", name: "Void", disabled: true }] },
+                },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            const card = wrapper.find("label[for]");
+            expect(card.text()).toBe("Void");
+        });
+    });
+
+    describe("target state pill", () => {
+        scopedIt("renders pill with target_state_label when present", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": {
+                    1: {
+                        transitions: [
+                            {
+                                code: "approve",
+                                name: "Approve",
+                                target_state_label: "Approved",
+                                target_state_tone: "success",
+                            },
+                        ],
+                    },
+                },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            const pill = wrapper.find("[data-tone]");
+            expect(pill.exists()).toBe(true);
+            expect(pill.text()).toBe("Approved");
+            expect(pill.attributes("data-tone")).toBe("success");
+        });
+
+        scopedIt("omits pill when target_state_label is absent", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": { 1: { transitions: [{ code: "approve", name: "Approve" }] } },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.find("[data-tone]").exists()).toBe(false);
+        });
+
+        scopedIt("defaults to neutral tone when target_state_tone is absent", async () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowStore.objectTransitions = {
+                "a.m": {
+                    1: { transitions: [{ code: "approve", name: "Approve", target_state_label: "Approved" }] },
+                },
+            };
+            const wrapper = mount(ViewWorkflowTransition, { props: { app: "a", model: "m", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.find("[data-tone]").attributes("data-tone")).toBe("neutral");
+        });
+    });
 });
