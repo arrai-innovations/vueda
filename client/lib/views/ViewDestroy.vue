@@ -1,4 +1,5 @@
 <script setup>
+import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import { useIcons } from "@vueda/use/useIcons.js";
@@ -68,6 +69,14 @@ const slots = useSlots();
 const theme = useTheme("ViewDestroy", props);
 const icon = useIcons("ViewDestroy");
 
+const cascadeItems = computed(() =>
+    props.linkedObjectCounts.map((entry) => ({
+        label: `${entry.count} ${entry.verboseNamePlural || entry.verboseName || entry.label}`,
+        description: "will also be removed",
+        tone: "danger",
+    })),
+);
+
 const pkCount = computed(() => (Array.isArray(props.pk) ? props.pk.length : 1));
 const bulk = computed(() => pkCount.value > 1);
 const modelVerboseName = computed(() =>
@@ -117,17 +126,7 @@ const computedBannerTitle = computed(() => {
                         >
                             This action cannot be undone.
                         </p>
-                        <ul v-else :class="theme('bannerCountsList')" data-qa="view-destroy-banner-counts">
-                            <li
-                                v-for="entry in linkedObjectCounts"
-                                :key="entry.verboseNamePlural || entry.verboseName || entry.label"
-                                :class="theme('bannerCountsItem')"
-                            >
-                                {{ entry.count }}
-                                {{ entry.verboseNamePlural || entry.verboseName || entry.label }}
-                                will also be removed.
-                            </li>
-                        </ul>
+                        <consequences-bullets v-else :items="cascadeItems" data-qa="view-destroy-cascade" />
                     </div>
                 </div>
             </slot>

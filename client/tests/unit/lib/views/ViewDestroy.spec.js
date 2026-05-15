@@ -4,6 +4,16 @@ import { defineComponent, h, reactive } from "vue";
 
 const mockedUseViewDestroy = vi.fn();
 
+const ConsequencesBulletsStub = defineComponent({
+    name: "ConsequencesBulletsStub",
+    inheritAttrs: false,
+    props: ["items"],
+    setup(props) {
+        return () => h("ul", { "data-qa": "view-destroy-cascade", "data-item-count": props.items?.length });
+    },
+});
+vi.mock("@vueda/components/ConsequencesBullets.vue", () => ({ default: ConsequencesBulletsStub }));
+
 vi.mock("@vueda/use/useViewDestroy.js", () => ({
     useViewDestroy: mockedUseViewDestroy,
 }));
@@ -86,7 +96,7 @@ scopedIt("wraps ModelActionForm in a danger-toned card with a banner", () => {
     expect(wrapper.findComponent(ModelActionFormStub).exists()).toBe(true);
 });
 
-scopedIt("renders linkedObjectCounts entries in the banner", () => {
+scopedIt("renders linkedObjectCounts entries via ConsequencesBullets", () => {
     const modelConfig = reactive({ info: { pk: "id", verboseName: "thing", verboseNamePlural: "things" } });
     mockedUseViewDestroy.mockReturnValue({
         modelConfig,
@@ -106,9 +116,11 @@ scopedIt("renders linkedObjectCounts entries in the banner", () => {
         },
     });
 
-    const counts = wrapper.get('[data-qa="view-destroy-banner-counts"]');
-    expect(counts.text()).toContain("12 comments will also be removed.");
-    expect(counts.text()).toContain("3 tags will also be removed.");
+    const cascade = wrapper.get('[data-qa="view-destroy-cascade"]');
+    expect(cascade.attributes("data-item-count")).toBe("2");
+    const items = wrapper.getComponent(ConsequencesBulletsStub).props("items");
+    expect(items[0]).toMatchObject({ label: "12 comments", description: "will also be removed", tone: "danger" });
+    expect(items[1]).toMatchObject({ label: "3 tags", description: "will also be removed", tone: "danger" });
     expect(wrapper.find('[data-qa="view-destroy-banner-description"]').exists()).toBe(false);
     // Bulk title pluralizes via verboseNamePlural.
     expect(wrapper.get('[data-qa="view-destroy-banner-title"]').text()).toContain("2 things");

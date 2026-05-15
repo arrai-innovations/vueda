@@ -335,12 +335,6 @@ export default {
         bannerDescription: {
             class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
         },
-        bannerCountsList: {
-            class: ["flex flex-col gap-0.5 m-0 p-0 list-none"],
-        },
-        bannerCountsItem: {
-            class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
-        },
         body: {
             class: ["p-4"],
         },
