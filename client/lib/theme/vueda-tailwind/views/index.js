@@ -539,28 +539,25 @@ export default {
         },
     },
     ViewNotFound: {
+        // Centering wrapper: the SystemMessageCard chassis is 460 px so it
+        // needs a flex parent to center on the page.
         root: {
-            class: [],
+            class: ["flex min-h-full items-center justify-center p-8"],
         },
-        title: {
-            class: [],
+        // Explanatory paragraph beneath the crest (rendered when the `blurb`
+        // slot is not overridden).
+        blurb: {
+            class: ["text-[13px] leading-[1.5] text-muted-foreground"],
         },
     },
     ViewActionNotFound: {
+        // Centering wrapper, see ViewNotFound.root.
         root: {
-            class: [],
+            class: ["flex min-h-full items-center justify-center p-8"],
         },
-        title: {
-            class: [],
-        },
-        description: {
-            class: [],
-        },
-        suggestions: {
-            class: [],
-        },
-        link: {
-            class: [],
+        // Explanatory paragraph beneath the crest.
+        blurb: {
+            class: ["text-[13px] leading-[1.5] text-muted-foreground"],
         },
     },
     ViewAction: {
