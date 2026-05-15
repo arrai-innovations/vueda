@@ -367,6 +367,35 @@ export default {
             class: ["flex items-center justify-center shrink-0 text-muted-foreground/60 text-[14px] leading-none"],
         },
     },
+    // Bordered 2-column callout for system 404 views: 88 px uppercase eyebrow label
+    // column + 1fr mono value column. Bad segments (`bad: true`) receive hardcoded
+    // `text-destructive` in the template; non-bad segments receive the `fade` key so
+    // the destructive segment pops against the muted path. PROP-160.
+    TriedUrlCallout: {
+        root: {
+            class: [
+                "grid grid-cols-[88px_1fr] items-center gap-x-2",
+                "rounded-vueda-card border border-border",
+                "px-3 py-2",
+                "overflow-hidden",
+            ],
+        },
+        // OBS-015 eyebrow recipe: 10 px uppercase sans muted-foreground.
+        label: {
+            class: [
+                "text-[10px] font-semibold uppercase tracking-[0.06em]",
+                "text-muted-foreground leading-none shrink-0",
+            ],
+        },
+        // Mono 12.5 px value column. Individual segment spans carry their own color.
+        value: {
+            class: ["font-mono text-[12.5px] font-normal leading-none min-w-0 truncate"],
+        },
+        // Non-bad segment: muted so the destructive bad segment reads as signal.
+        fade: {
+            class: ["text-muted-foreground"],
+        },
+    },
     MobileSortComponent: {
         drawer: {
             class: ["!h-auto"],

@@ -12,6 +12,7 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
 import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
 import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
+import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
@@ -400,3 +401,41 @@ Consumers read the match state via `v-model:match` (or the `match` event) and ga
 | `label`        | Label text `<span>`  | 12 px sans, foreground ink                                               |
 | `expectedChip` | Inline `<code>` chip | mono 12 px semibold · rounded 3 px · border + background fill            |
 | `input`        | Text `<input>`       | 32 px tall · mono 12.5 px · hairline + `focus-visible:focus-ring-shadow` |
+
+## TriedUrlCallout
+
+Bordered callout showing the URL path or action key the user attempted, with the bad segment tinted destructive. Used in `ViewNotFound` and `ViewActionNotFound` to ground the suggestion list visually rather than explaining the typo in prose.
+
+The root is a 2-column grid: an 88 px uppercase eyebrow label column on the left, a 1fr mono value column on the right. The `segments` prop accepts a `{ text, bad? }[]` array; segments with `bad: true` receive `text-destructive`, while non-bad segments receive the `fade` theme key (muted-foreground by default) so the destructive segment reads as the error signal.
+
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TriedUrlCallout — route path with typo segment</header>
+  <div class="rounded-vueda-card border border-border bg-card p-4 flex flex-col gap-3">
+    <TriedUrlCallout
+      label="You tried"
+      :segments="[
+        { text: '/admin/' },
+        { text: 'custommers', bad: true },
+        { text: '/list' },
+      ]"
+    />
+    <TriedUrlCallout
+      label="Action key"
+      :segments="[{ text: 'archve', bad: true }]"
+    />
+  </div>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>bad segment: receives hardcoded <code>text-destructive</code>; non-bad segments receive the <code>fade</code> theme key (<code>text-muted-foreground</code>)</span>
+    <span>label defaults to "You tried"; override via the <code>label</code> prop</span>
+    <span>consumers compute segment splits; pass the full path pre-split with the typo segment marked <code>bad: true</code></span>
+  </footer>
+</VuedaDemo>
+
+### Customization surface
+
+| Key     | Element                  | Default classes                                                         |
+| ------- | ------------------------ | ----------------------------------------------------------------------- |
+| `root`  | Outer `<div>`            | `grid grid-cols-[88px_1fr]` · `rounded-vueda-card border` · `px-3 py-2` |
+| `label` | Label `<span>`           | 10 px / 600 / uppercase / 0.06 em tracking · `text-muted-foreground`    |
+| `value` | Value wrapper `<span>`   | mono 12.5 px / 400 · `min-w-0 truncate`                                 |
+| `fade`  | Non-bad segment `<span>` | `text-muted-foreground` — fades path so bad segments pop                |
