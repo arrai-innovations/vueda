@@ -231,6 +231,50 @@ export default {
             class: ["flex items-center gap-2"],
         },
     },
+    // Flex justify-between mono strip: request id + elapsed on the left,
+    // dependency count + pulsing dot on the right. Dot tone switches via
+    // the `dot` / `dotSlow` key pair. PROP-162.
+    LoadingHeartbeatStrip: {
+        root: {
+            class: [
+                "flex items-center justify-between gap-4",
+                "font-mono text-[11px] leading-none text-muted-foreground",
+            ],
+        },
+        id: {
+            class: ["flex items-center gap-1.5 min-w-0 shrink truncate"],
+        },
+        status: {
+            class: ["flex items-center gap-1.5 shrink-0"],
+        },
+        // Default pulsing dot — primary blue halo.
+        dot: {
+            class: ["inline-block w-1.5 h-1.5 rounded-full bg-primary text-primary", "animate-vueda-heartbeat-pulse"],
+        },
+        // Slow-path pulsing dot — amber halo.
+        dotSlow: {
+            class: ["inline-block w-1.5 h-1.5 rounded-full bg-warning text-warning", "animate-vueda-heartbeat-pulse"],
+        },
+    },
+    // Bordered card-radius container stacking N Skeleton bars at varying widths.
+    // Shimmer gradient sweeps left-to-right via a before: pseudo-element on root,
+    // keeping the static Skeleton recipe unchanged (OBS-010). PROP-163.
+    LoadingSkeletonGhost: {
+        root: {
+            class: [
+                "relative overflow-hidden",
+                "rounded-vueda-card border border-border bg-background",
+                "flex flex-col gap-3 p-4",
+                "before:content-[''] before:absolute before:inset-0 before:pointer-events-none",
+                "before:bg-gradient-to-r before:from-transparent before:via-foreground/[0.04] before:to-transparent",
+                "before:translate-x-[-100%] before:animate-vueda-skeleton-shimmer",
+            ],
+        },
+        // Individual bar height; width is applied per-bar via inline style.
+        bar: {
+            class: ["h-[10px]"],
+        },
+    },
     MobileSortComponent: {
         drawer: {
             class: ["!h-auto"],

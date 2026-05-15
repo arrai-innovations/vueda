@@ -242,6 +242,8 @@
     /* Motion tokens (generates animate-* utilities) */
     --animate-caret-blink: caret-blink 1.25s ease-out infinite;
     --animate-vueda-progress-slide: vueda-progress-slide 1.4s var(--vueda-ease-interaction) infinite;
+    --animate-vueda-heartbeat-pulse: vueda-heartbeat-pulse 1.6s ease-in-out infinite;
+    --animate-vueda-skeleton-shimmer: vueda-skeleton-shimmer 1.4s ease-in-out infinite;
 
     /* Color palette (generates bg-*, text-*, border-* utilities) */
     --color-background: var(--background);
@@ -549,6 +551,30 @@
     }
     100% {
         transform: translateX(250%);
+    }
+}
+
+/* LoadingHeartbeatStrip pulsing dot — box-shadow halo expands from 0 to 8 px
+ * while fading from 70% to 0% opacity. currentColor picks up text-primary
+ * (default) or text-warning (slow path) from the dot element. */
+@keyframes vueda-heartbeat-pulse {
+    0% {
+        box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 70%, transparent);
+    }
+    100% {
+        box-shadow: 0 0 0 8px color-mix(in oklab, currentColor 0%, transparent);
+    }
+}
+
+/* LoadingSkeletonGhost shimmer — pseudo-element gradient sweeps left to right
+ * across the full container. Start at -100% (fully off left), end at 200%
+ * (fully off right); the 300% total travel ensures the gradient exits cleanly. */
+@keyframes vueda-skeleton-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(200%);
     }
 }
 
