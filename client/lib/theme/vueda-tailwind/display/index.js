@@ -295,6 +295,78 @@ export default {
             class: ["text-[11px] font-normal text-foreground leading-none m-0"],
         },
     },
+    // Typed "Did you mean?" list for system 404 views. Flex-col wrapper holds
+    // an optional head row (uppercase head + mono source) above a bordered
+    // divide-y list of 4-column grid rows (24 px icon · 1fr label+sub · auto
+    // trailing chip · auto chevron). `shape` selects score chip (route) or verb
+    // chip (action) in the trailing column. PROP-159.
+    SuggestionList: {
+        // Flex-col outer wrapper; no border (border lives on the list).
+        root: {
+            class: ["flex flex-col gap-2"],
+        },
+        // Head row: flex justify-between for head + source pair.
+        headRow: {
+            class: ["flex items-baseline justify-between gap-3"],
+        },
+        // OBS-015 eyebrow recipe: 10 px uppercase sans muted-foreground.
+        head: {
+            class: ["text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground leading-none"],
+        },
+        // Mono 10 px source label (e.g. "router.suggest()").
+        source: {
+            class: ["font-mono text-[10px] text-muted-foreground leading-none"],
+        },
+        // Bordered card-radius container; divide-y handles row separators.
+        list: {
+            class: ["rounded-vueda-card border border-border overflow-hidden divide-y divide-border list-none m-0 p-0"],
+        },
+        // Each row: 4-column grid anchored to a full-width router-link.
+        item: {
+            class: [
+                "grid grid-cols-[24px_1fr_auto_auto] items-center gap-x-3 px-2.5 py-2.5",
+                "w-full no-underline text-inherit",
+                "hover:bg-muted/50 transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            ],
+        },
+        // 24 px leading icon cell: centered, muted-foreground tint.
+        icon: {
+            class: ["flex items-center justify-center w-6 h-6 shrink-0 text-muted-foreground text-[16px] leading-none"],
+        },
+        // 1fr column stacking label above sub-label.
+        labelStack: {
+            class: ["flex flex-col gap-0.5 min-w-0"],
+        },
+        // Row label: 13 px / 500 / foreground.
+        label: {
+            class: ["text-[13px] font-medium text-foreground leading-[1.3] truncate"],
+        },
+        // Sub-label: mono 12 px / 400 / muted (path for route, description for action).
+        sub: {
+            class: ["font-mono text-[12px] font-normal text-muted-foreground leading-[1.3] truncate"],
+        },
+        // Score chip (route shape): 10 px mono uppercase muted-bordered chip.
+        score: {
+            class: [
+                "font-mono text-[10px] uppercase leading-none",
+                "border border-border rounded-sm bg-muted text-muted-foreground",
+                "px-1.5 py-0.5 shrink-0",
+            ],
+        },
+        // Verb chip (action shape): same chip recipe as score.
+        verb: {
+            class: [
+                "font-mono text-[10px] uppercase leading-none",
+                "border border-border rounded-sm bg-muted text-muted-foreground",
+                "px-1.5 py-0.5 shrink-0",
+            ],
+        },
+        // Trailing chevron cell: muted-foreground/60, sized at 14 px.
+        chevron: {
+            class: ["flex items-center justify-center shrink-0 text-muted-foreground/60 text-[14px] leading-none"],
+        },
+    },
     MobileSortComponent: {
         drawer: {
             class: ["!h-auto"],
