@@ -410,21 +410,26 @@ onMounted(() => {
                 </slot>
             </template>
         </objects-grid>
-        <pagination-component
+        <div
             v-if="pagination.paginateInfo?.totalRecords > 0"
-            v-model:current-page="list.listState.currentPage"
-            :loading="list.instanceList.state.loading"
-            :rows="pagination.paginateInfo?.perPage"
-            :total-records="pagination.paginateInfo?.totalRecords"
-            :is-table="sort.isTable"
-            :showing-all-pages="pagination.computedShowAllPages"
-            :allow-show-all-pages="modelConfig.config?.allowShowAllPages && allowShowAllPages"
-            :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
-            @update:showing-all-pages="pagination.showingAllPages = $event"
+            :class="theme('paginationWrapper')"
+            data-qa="view-list-pagination"
         >
-            <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
-            </template>
-        </pagination-component>
+            <pagination-component
+                v-model:current-page="list.listState.currentPage"
+                :loading="list.instanceList.state.loading"
+                :rows="pagination.paginateInfo?.perPage"
+                :total-records="pagination.paginateInfo?.totalRecords"
+                :is-table="sort.isTable"
+                :showing-all-pages="pagination.computedShowAllPages"
+                :allow-show-all-pages="modelConfig.config?.allowShowAllPages && allowShowAllPages"
+                :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
+                @update:showing-all-pages="pagination.showingAllPages = $event"
+            >
+                <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                    <slot :name="slot" v-bind="slotProps || {}" />
+                </template>
+            </pagination-component>
+        </div>
     </div>
 </template>

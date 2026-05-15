@@ -426,6 +426,20 @@ scopedIt("hides pagination when there are no records", async () => {
     await vue.nextTick();
 
     expect(wrapper.find('[data-qa="pagination-component"]').exists()).toBe(false);
+    expect(wrapper.find('[data-qa="view-list-pagination"]').exists()).toBe(false);
+
+    wrapper.unmount();
+});
+
+scopedIt("wraps pagination in a footer-strip when records exist", async () => {
+    mockedInject.mockReturnValueOnce({});
+    instanceList.state.paginateInfo.totalRecords = 5;
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+
+    const footer = wrapper.get('[data-qa="view-list-pagination"]');
+    expect(footer.find('[data-qa="pagination-component"]').exists()).toBe(true);
 
     wrapper.unmount();
 });

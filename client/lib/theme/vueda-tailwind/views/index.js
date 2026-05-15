@@ -425,6 +425,9 @@ export default {
         columnTotalCell: {
             class: "border-t-2",
         },
+        paginationWrapper: {
+            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px] border-t border-border bg-card"],
+        },
     },
     ViewHistoryList: {
         root: {
