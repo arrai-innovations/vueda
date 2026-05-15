@@ -6,16 +6,6 @@ import { stringSimilarity } from "string-similarity-js";
 import { onActivated, readonly, ref } from "vue";
 import { useRouter } from "vue-router";
 
-// const buildDynamicRoutePaths = (models, actions) => {
-//     const paths = [];
-//     for (const [modelKey, modelData] of Object.entries(models.data)) {
-//         for (const actionKey of modelData.actions) {
-//             paths.push(`/${modelData.app}/${modelKey}/:pk/${actionKey}`);
-//         }
-//     }
-//     return paths;
-// };
-
 /**
  * Builds a route object from a path and the current path.
  *
@@ -134,8 +124,6 @@ const getSuggestedRoute = (router) => {
 export function useSuggestRoute() {
     const suggestedRoute = ref(null);
     const router = useRouter();
-    // const models = useModels();
-    // const actions = useActions();
 
     onActivated(() => {
         suggestedRoute.value = getSuggestedRoute(router);
