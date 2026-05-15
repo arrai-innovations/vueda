@@ -585,4 +585,38 @@ export default {
             class: "bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]",
         },
     },
+
+    // sticky bar
+    StickyBar: {
+        root: ({ hidden }) => {
+            return {
+                class: {
+                    "sticky top-[-1px] z-30": true,
+                    "transition-transform duration-300 ease-in-out transform": true,
+                    "translate-y-[-100%]": hidden,
+                    "translate-y-0": !hidden,
+                },
+            };
+        },
+        inner: {
+            class: ["bg-card border-b border-border px-5 py-[10px] flex items-center flex-wrap gap-2"],
+        },
+        primary: {
+            class: ["flex flex-wrap gap-1.5 mr-auto"],
+        },
+        secondary: {
+            class: ["flex flex-wrap gap-1.5 items-center"],
+        },
+        dirty: {
+            class: [
+                "inline-flex items-center justify-center",
+                "h-[22px] px-2 rounded-full",
+                "bg-primary/[0.12] text-primary",
+                "text-[10px] font-semibold uppercase tracking-[0.06em] leading-none",
+            ],
+        },
+        gradient: {
+            class: ["w-full h-3", "bg-gradient-to-b from-card to-transparent"],
+        },
+    },
 };

@@ -299,6 +299,20 @@ export default {
             class: "font-mono text-[length:var(--vueda-text-supporting)] leading-none text-muted-foreground whitespace-nowrap",
         },
     },
+    PaginationComponent: {
+        root: {
+            class: "flex flex-col sm:flex-row justify-between sm:justify-between items-center gap-2",
+        },
+        paginator: {
+            class: ["py-2 flex-1 flex justify-center"],
+        },
+        pageReport: {
+            class: ["text-sm tabular-nums"],
+        },
+        totalRecords: {
+            class: ["p-2"],
+        },
+    },
     SidebarContent: {
         root: {
             class: "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",

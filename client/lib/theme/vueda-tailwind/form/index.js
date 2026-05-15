@@ -324,42 +324,41 @@ export default {
             },
         },
     },
+    FilterComponent: {
+        root: {},
+        clearButton: {
+            class: ({ hasFilterValue, errored }) => ({
+                "!border-dashed": !hasFilterValue,
+                "!border-red-500 !text-red-500": errored,
+            }),
+        },
+        dropdownButton: {
+            class: ({ hasFilterValue, errored }) => ({
+                "!border-dashed": !hasFilterValue,
+                "!border-red-500 !text-red-500": errored,
+            }),
+        },
+        formPopover: {
+            class: ["sm:min-w-[25%]"],
+        },
+    },
     FilterForm: {
-        dialog: {
-            class: "w-64",
+        outer: {
+            class: ["flex flex-col"],
         },
-        form: {
-            class: "flex flex-col gap-1 2xs:gap-2 2xl:gap-4",
+        heading: {
+            class: ["font-bold leading-relaxed"],
         },
-        fieldContainer: {
-            class: "mb-2",
+    },
+    FilterGroup: {
+        root: {
+            class: "flex-col ",
         },
-        fieldLabel: {
-            class: [],
+        filtersWrapper: {
+            class: "flex flex-wrap gap-1 mt-1",
         },
-        fieldInput: {
-            class: "rounded border border-neutral-300 dark:border-neutral-600 p-1 2xs:p-2",
-        },
-        submitButton: {
-            class: "whitespace-nowrap",
-        },
-        createButtonContainer: {
-            class: "flex justify-end mt-2",
-        },
-        filterListContainer: {
-            class: "flex flex-wrap gap-1 my-1",
-        },
-        filterButton: {
-            class: "grow sm:grow-0",
-        },
-        errorDisplay: {
-            class: "mb-2",
-        },
-        hr: {
-            class: "flex-1 border-neutral-300 dark:border-neutral-600 border-t",
-        },
-        message: {
-            class: "text-red-600 dark:text-red-400",
+        messageWrapper: {
+            class: "flex my-2",
         },
     },
     FormMessage: {
