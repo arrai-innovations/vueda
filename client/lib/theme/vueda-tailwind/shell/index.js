@@ -193,6 +193,14 @@ export default {
                     ],
                 };
             }
+            if (orientation === "read") {
+                return {
+                    class: [
+                        "group/field grid w-full grid-cols-[180px_1fr] items-start gap-x-5 gap-y-2 py-2 border-b border-border data-[invalid=true]:text-destructive",
+                        "[&>[data-slot=field-label]]:text-[12px] [&>[data-slot=field-label]]:font-medium [&>[data-slot=field-label]]:leading-[1.5] [&>[data-slot=field-label]]:text-muted-foreground [&>[data-slot=field-label]]:pt-px",
+                    ],
+                };
+            }
             // vertical (default)
             return {
                 class: [base, "flex-col [&>*]:w-full [&>.sr-only]:w-auto"],

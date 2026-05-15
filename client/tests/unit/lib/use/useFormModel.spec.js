@@ -432,6 +432,53 @@ describe("lib/use/useFormModel.js", () => {
             expect(state.fieldProps.name.readOnly).toBe(false);
             expect(state.widgetProps.name.readOnly).toBe(false);
         });
+        scopedIt("sets orientation=read on fieldProps when view=read", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+            const props = makeBaseProps({
+                view: "read",
+                fields: ["name"],
+                fieldDetails: {
+                    name: {
+                        name: "name",
+                        typeSerializer: "CharField",
+                        typeModel: "CharField",
+                        many: false,
+                        readOnly: false,
+                    },
+                },
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
+            await flushPromises();
+
+            expect(state.fieldProps.name.orientation).toBe("read");
+        });
+        scopedIt("does not set orientation on fieldProps for non-read views", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+            const props = makeBaseProps({
+                fields: ["name"],
+                fieldDetails: {
+                    name: {
+                        name: "name",
+                        typeSerializer: "CharField",
+                        typeModel: "CharField",
+                        many: false,
+                        readOnly: false,
+                    },
+                },
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
+            await flushPromises();
+
+            expect(state.fieldProps.name.orientation).toBeUndefined();
+        });
     });
     describe("expand field resolution", () => {
         scopedIt("throws on unknown expand name", async () => {

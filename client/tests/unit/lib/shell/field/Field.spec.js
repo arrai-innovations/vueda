@@ -39,6 +39,12 @@ describe("lib/shell/field/Field.vue", () => {
             expect(wrapper.attributes("data-orientation")).toBe("horizontal");
         });
 
+        scopedIt("applies grid layout classes when orientation=read", () => {
+            const wrapper = mount(Field, { props: { orientation: "read" } });
+            expect(wrapper.classes()).toContain("grid");
+            expect(wrapper.classes()).toContain("border-b");
+        });
+
         scopedIt("merges custom class while preserving base classes", () => {
             const wrapper = mount(Field, { props: { class: "my-field" } });
             expect(wrapper.classes()).toContain("my-field");

@@ -185,6 +185,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     contextless: (deepUnref(state.computedFields) || []).includes(fieldName),
                     ...omit(detailObject, ["type"]),
                     ...getFieldProps(detailObject),
+                    ...(props.view === "read" ? { orientation: "read" } : {}),
                     ...(deepUnref(modelConfig.config?.fieldProps?.[fieldName]) || {}),
                     ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                     themeOverride: fieldLevelThemeOverride,

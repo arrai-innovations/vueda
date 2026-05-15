@@ -133,7 +133,7 @@ export default {
             class: ["ml-2"],
         },
         value: {
-            class: [],
+            class: ["text-[13px]/[1.5] text-foreground"],
         },
         linkItem: {
             class: [],
