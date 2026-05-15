@@ -168,6 +168,69 @@ export default {
             class: ["text-destructive"],
         },
     },
+    // Centered card chassis for system-level messages (NotFound / ActionNotFound /
+    // Loading / Deactivate). Opens a `group/system-message-card` named scope so
+    // descendant theme slots route crest tints from the root data-tone attribute
+    // via `group-data-[tone=*]/system-message-card:` variants. PROP-157.
+    SystemMessageCard: {
+        // 460 px centered card. Named group scope for tone routing.
+        root: {
+            class: [
+                "group/system-message-card",
+                "max-w-[460px] w-full",
+                "flex flex-col gap-5",
+                "rounded-vueda-card border border-border bg-card",
+                "px-8 pt-8 pb-7",
+                "shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_4%,transparent)]",
+            ],
+        },
+        // Crest row: icon tile + meta column + optional trailing code.
+        // border-b creates the visual separator between crest and body;
+        // pb-4 pads the content above the separator line.
+        crest: {
+            class: ["flex items-start gap-3 pb-4 border-b border-border"],
+        },
+        // 36 px tone-tinted icon tile. Soft tint (12-14 % opacity) so the icon
+        // reads as contextual rather than alarming. Tone routes via named group scope.
+        crestIcon: {
+            class: [
+                "flex items-center justify-center shrink-0",
+                "w-9 h-9 rounded-[4px]",
+                "text-[18px] leading-none",
+                // info + loading: primary blue soft tint
+                "group-data-[tone=info]/system-message-card:bg-primary/[0.12] group-data-[tone=info]/system-message-card:text-primary",
+                "group-data-[tone=loading]/system-message-card:bg-primary/[0.12] group-data-[tone=loading]/system-message-card:text-primary",
+                // warning: amber soft tint
+                "group-data-[tone=warning]/system-message-card:bg-warning/[0.14] group-data-[tone=warning]/system-message-card:text-warning",
+                // danger: red soft tint
+                "group-data-[tone=danger]/system-message-card:bg-destructive/[0.12] group-data-[tone=danger]/system-message-card:text-destructive",
+            ],
+        },
+        crestMeta: {
+            class: ["flex flex-col justify-center gap-0.5 min-w-0 flex-1"],
+        },
+        // OBS-015 eyebrow recipe (0.06em variant).
+        crestEyebrow: {
+            class: ["text-[10px] font-semibold uppercase tracking-[0.06em]", "text-muted-foreground leading-none"],
+        },
+        // OBS-011 mono recipe for machine-readable path / action kind.
+        crestKind: {
+            class: ["font-mono text-[12px] font-medium leading-[1.3] text-foreground"],
+        },
+        // Optional trailing status code (e.g. "404"). Oversized mono numeral.
+        crestCode: {
+            class: [
+                "font-mono text-[36px] font-semibold leading-none tabular-nums",
+                "text-foreground/50 shrink-0 self-center",
+            ],
+        },
+        body: {
+            class: ["flex flex-col gap-3"],
+        },
+        actions: {
+            class: ["flex items-center gap-2"],
+        },
+    },
     MobileSortComponent: {
         drawer: {
             class: ["!h-auto"],

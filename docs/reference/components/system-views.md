@@ -10,6 +10,7 @@ import { ref } from "vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
+import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
 import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -185,6 +186,77 @@ Like `ViewNotFound`, all surfaces are bare theme keys with no defaults.
 | `description` | `p` (action/model text)      | none            |
 | `suggestions` | `p` ("Did you mean")         | none            |
 | `link`        | `router-link` per suggestion | none            |
+
+## SystemMessageCard
+
+Centered 460 px card chassis shared by all four system views (NotFound, ActionNotFound, Loading, Deactivate) and by the AuthAndMFA card. Provides a tone-tracked 36 px crest icon tile above a border separator, a meta column (eyebrow label + mono kind text), an optional trailing status code, a body slot, and an optional actions footer.
+
+The root carries `data-tone` and opens a `group/system-message-card` named scope. The `crestIcon` theme key routes soft tint colors (`~12–14 %` opacity) from that scope via `group-data-[tone=*]/system-message-card:` variants, so any icon component placed in the `crest-icon` slot inherits the tinted ink color automatically.
+
+<VuedaDemo class="flex flex-col gap-5">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SystemMessageCard — info tone (404 route not found)</header>
+  <div class="flex justify-center">
+    <SystemMessageCard tone="info">
+      <template #crest-icon>
+        <FontAwesomeIcon :icon="faCircleQuestion" />
+      </template>
+      <template #crest-eyebrow>route not found</template>
+      <template #crest-kind>/admin/customers/99999/edit</template>
+      <template #crest-code>404</template>
+      <p class="text-[13px] leading-[1.5] text-muted-foreground">The path <code class="rounded border border-border bg-muted/40 px-1 font-mono text-[11px]">/admin/customers/99999/edit</code> does not match any registered route.</p>
+      <template #actions>
+        <Button size="sm" variant="outline">
+          <FontAwesomeIcon :icon="faHouse" />
+          Return to dashboard
+        </Button>
+        <Button size="sm" variant="ghost">
+          <FontAwesomeIcon :icon="faSearch" />
+          Did you mean /admin/customers/99999?
+        </Button>
+      </template>
+    </SystemMessageCard>
+  </div>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>tone: <code>info</code> — primary/blue soft tint on crest icon tile</span>
+    <span>crest-code: optional trailing mono numeral (36 px / 600 / tabular-nums); omit the slot and it disappears</span>
+    <span>actions slot: renders only when provided; omit and the footer disappears</span>
+  </footer>
+</VuedaDemo>
+
+<VuedaDemo class="flex flex-col gap-5">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SystemMessageCard — warning tone (deactivate confirmation)</header>
+  <div class="flex justify-center">
+    <SystemMessageCard tone="warning">
+      <template #crest-icon>
+        <FontAwesomeIcon :icon="faTriangleExclamation" />
+      </template>
+      <template #crest-eyebrow>deactivate account</template>
+      <template #crest-kind>mara.tani</template>
+      <p class="text-[13px] leading-[1.5] text-muted-foreground">This account will be suspended. All active sessions will end immediately.</p>
+      <template #actions>
+        <Button size="sm" variant="outline">Cancel</Button>
+        <Button size="sm" variant="destructive">Deactivate</Button>
+      </template>
+    </SystemMessageCard>
+  </div>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>tone: <code>warning</code> — amber soft tint on crest icon tile; no crest-code slot used</span>
+  </footer>
+</VuedaDemo>
+
+### Customization surface
+
+| Key            | Element                      | Default classes                                                                                                                  |
+| -------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `root`         | Card `<div>`                 | `max-w-[460px]` · flex column `gap-5` · `rounded-vueda-card border bg-card` · `px-8 pt-8 pb-7` · 1 px foreground/4 bottom shadow |
+| `crest`        | Crest row `<div>`            | `flex items-start gap-3 pb-4 border-b border-border`                                                                             |
+| `crestIcon`    | Icon tile `<div>`            | 36 px square · 4 px radius · 18 px icon · tone-tinted bg + ink via named group scope                                             |
+| `crestMeta`    | Eyebrow + kind stack `<div>` | `flex flex-col justify-center gap-0.5 min-w-0 flex-1`                                                                            |
+| `crestEyebrow` | Eyebrow `<span>`             | 10 px / 600 / uppercase / 0.06 em tracking · `text-muted-foreground`                                                             |
+| `crestKind`    | Kind `<span>`                | mono 12 px / 500 · `text-foreground`                                                                                             |
+| `crestCode`    | Trailing code `<span>`       | mono 36 px / 600 / tabular-nums · `text-foreground/50` · hidden when slot absent                                                 |
+| `body`         | Body wrapper `<div>`         | `flex flex-col gap-3`                                                                                                            |
+| `actions`      | Actions footer `<div>`       | `flex items-center gap-2` · hidden when slot absent                                                                              |
 
 ## ConsequencesBullets
 
