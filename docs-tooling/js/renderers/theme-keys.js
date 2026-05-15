@@ -1,129 +1,256 @@
 /**
- * Render the canonical theme-keys bundle to Markdown pages.
+ * Render the canonical theme-keys bundle to Markdown pages under `theming/`.
  *
  * Output layout:
- *   theming/keys.md                    -- index page (components + meta keys)
- *   theming/keys/<EntryName>.md        -- one page per entry
+ *   theming/keys.md                              global index (one section per family)
+ *   theming/keys/family/<family-slug>.md         per-family index page
+ *   theming/keys/<Component>.md                  per-component page (underscore preserved for primitives)
+ *
+ * Each per-component page contains a summary table of its slots plus a detail
+ * block per slot (anchor, description, default classes, callback source,
+ * composes chips, source footer). The page frontmatter exposes `member_ids`
+ * for the component itself and every slot so `{@api theme-key:<Component>}` and
+ * `{@api theme-key:<Component>.<slot>}` references resolve here.
  */
-import { renderCodeInline, renderFrontmatter, renderHeading } from "./markdown.js";
+import { renderCodeInline, renderFrontmatter, renderHeading, renderTable, slugify } from "./markdown.js";
 
-function entryPath(name) {
-    return `theming/keys/${name}.md`;
+const UNGROUPED = "Ungrouped";
+
+function familySlug(name) {
+    return slugify(String(name || "").toLowerCase());
 }
 
-function entryId(name) {
-    return `theme-key:${name}`;
+function componentMemberId(componentName) {
+    return `theme-key:${componentName}`;
+}
+
+function componentPagePath(componentName) {
+    return `theming/keys/${componentName}.md`;
+}
+
+function familyPagePath(familyName) {
+    return `theming/keys/family/${familySlug(familyName)}.md`;
+}
+
+function slotAnchorId(componentName, slotName) {
+    return `theme-key-${componentName}-${slotName}`;
+}
+
+function firstSentence(text) {
+    if (!text) return "";
+    const trimmed = String(text).trim();
+    const firstLine = trimmed.split(/\r?\n/, 1)[0] || "";
+    return firstLine.trim();
 }
 
 function formatSourceLine(source) {
-    if (!source?.file) return "";
+    if (!source?.file) return null;
     if (source.line) return `${source.file}:${source.line}`;
     return source.file;
 }
 
-function renderComposesList(composes, options) {
-    const linkedTargets = options?.linkedThemeEntries || new Set();
-    return composes.map((ref) => {
-        const idx = ref.indexOf(".");
-        if (idx <= 0) {
-            return `- ${renderCodeInline(ref)}`;
-        }
-        const target = ref.slice(0, idx);
-        const slot = ref.slice(idx + 1);
-        const apiRef = linkedTargets.has(target) ? `{@api ${entryId(target)}}` : renderCodeInline(target);
-        return `- ${apiRef} _(${slot})_`;
-    });
+function renderComposesChips(composes) {
+    if (!composes || composes.length === 0) return "";
+    return composes.map((ref) => renderCodeInline(ref)).join(" ");
 }
 
-function renderEntryPage(entry, options) {
-    const allEntryNames = options?.linkedThemeEntries || new Set();
-    const linkedComponent = options?.componentNames?.has(entry.name) ? entry.name : null;
+function renderDefaultClasses(defaultClasses) {
+    if (!defaultClasses || defaultClasses.length === 0) return null;
+    if (defaultClasses.length === 1) {
+        return renderCodeInline(defaultClasses[0]);
+    }
+    const lines = defaultClasses.join("\n");
+    return ["```text", lines, "```"].join("\n");
+}
+
+function summariseDefaults(defaultClasses, valueShape) {
+    if (valueShape === "callback") return "callback";
+    if (!defaultClasses || defaultClasses.length === 0) return "";
+    if (defaultClasses.length === 1) return renderCodeInline(defaultClasses[0]);
+    return `${defaultClasses.length} classes`;
+}
+
+function renderSlotDetail(component, slot, lines) {
+    lines.push(`<a id="${slotAnchorId(component.name, slot.name)}"></a>`);
+    lines.push("");
+    lines.push(renderHeading(2, slot.name));
+    lines.push("");
+
+    if (slot.description) {
+        lines.push(`> ${slot.description}`);
+        lines.push("");
+    }
+
+    if (slot.defaultClasses && slot.defaultClasses.length) {
+        lines.push("Default classes:");
+        lines.push("");
+        const rendered = renderDefaultClasses(slot.defaultClasses);
+        if (rendered) {
+            lines.push(rendered);
+            lines.push("");
+        }
+    }
+
+    if (slot.callbackSource) {
+        lines.push("Callback:");
+        lines.push("");
+        lines.push("```javascript");
+        lines.push(slot.callbackSource);
+        lines.push("```");
+        lines.push("");
+    }
+
+    if (slot.composes && slot.composes.length) {
+        lines.push("Composes: " + renderComposesChips(slot.composes));
+        lines.push("");
+    }
+
+    const srcLine = formatSourceLine(slot.source);
+    if (srcLine) {
+        lines.push(`Source: ${renderCodeInline(srcLine)}`);
+        lines.push("");
+    }
+}
+
+function collectComponentMemberIds(component) {
+    const ids = [componentMemberId(component.name)];
+    for (const slot of component.slots) {
+        ids.push(slot.id);
+    }
+    return ids;
+}
+
+function renderComponentPage(component, family, options) {
+    const componentNames = options?.componentNames;
+    const hasVueDocgenComponent = component.kind === "key" && componentNames && componentNames.has(component.name);
 
     const frontmatter = {
-        title: entry.name,
-        id: entryId(entry.name),
+        title: component.name,
+        id: `theming:keys:${component.name}`,
+        member_ids: collectComponentMemberIds(component),
+        family: family.name,
+        kind: component.kind,
+        group: component.group || null,
     };
 
     const lines = [];
     lines.push(renderFrontmatter(frontmatter));
-    lines.push(renderHeading(1, entry.name));
+    lines.push(renderHeading(1, component.name));
     lines.push("");
 
-    if (entry.isMetaKey) {
-        lines.push("_Meta key — composition primitive._");
+    if (component.kind === "primitive") {
+        lines.push("_Composition primitive, consumed by leaf keys via `composes`._");
         lines.push("");
     }
 
-    if (linkedComponent) {
-        lines.push(`Vue component: {@api vue:component:${linkedComponent}}`);
+    const componentSourceLine = family.sourceFile || formatSourceLine(component.slots[0]?.source);
+    if (componentSourceLine) {
+        lines.push(`Source: ${renderCodeInline(componentSourceLine)}`);
         lines.push("");
     }
 
-    if (entry.description) {
-        lines.push(entry.description, "");
-    }
-
-    if (entry.slots.length) {
-        lines.push(renderHeading(2, "Slots"));
-        lines.push("");
-        for (const slot of entry.slots) {
-            lines.push(renderHeading(3, renderCodeInline(slot.name)));
-            lines.push("");
-            if (slot.shape === "function") {
-                lines.push("Variant-driven; see source.");
-                lines.push("");
-                continue;
-            }
-            if (slot.shape === "unknown") {
-                lines.push("_Unrecognized slot shape; see source._");
-                lines.push("");
-                continue;
-            }
-            if (slot.rawClasses.length) {
-                lines.push("Classes:");
-                lines.push("");
-                for (const cls of slot.rawClasses) {
-                    lines.push(`- ${renderCodeInline(cls)}`);
-                }
-                lines.push("");
-            }
-            if (slot.composes.length) {
-                lines.push("Composes:");
-                lines.push("");
-                for (const line of renderComposesList(slot.composes, { linkedThemeEntries: allEntryNames })) {
-                    lines.push(line);
-                }
-                lines.push("");
-            }
-        }
-    }
-
-    if (entry.composedBy && entry.composedBy.length) {
-        lines.push(renderHeading(2, "Composed by"));
-        lines.push("");
-        for (const ref of entry.composedBy) {
-            const consumerLink = allEntryNames.has(ref.consumer)
-                ? `{@api ${entryId(ref.consumer)}}`
-                : renderCodeInline(ref.consumer);
-            lines.push(`- ${consumerLink}.${ref.slot}`);
-        }
+    if (component.description) {
+        lines.push(`> ${component.description}`);
         lines.push("");
     }
 
-    if (entry.source?.file) {
-        lines.push(renderHeading(2, "Source"));
+    if (hasVueDocgenComponent) {
+        lines.push(`Vue component: {@api vue:component:${component.name}}`);
         lines.push("");
-        lines.push(renderCodeInline(formatSourceLine(entry.source)));
+    }
+
+    const headers = ["Slot", "Default classes", "Description"];
+    const rows = component.slots.map((slot) => [
+        `[${slot.name}](#${slotAnchorId(component.name, slot.name)})`,
+        summariseDefaults(slot.defaultClasses, slot.valueShape),
+        slot.description || "",
+    ]);
+    const table = renderTable(headers, rows);
+    if (table) {
+        lines.push(table);
         lines.push("");
+    }
+
+    for (const slot of component.slots) {
+        renderSlotDetail(component, slot, lines);
     }
 
     return lines.join("\n");
 }
 
-function renderIndexPage(entries) {
-    const components = entries.filter((e) => !e.isMetaKey);
-    const metaKeys = entries.filter((e) => e.isMetaKey);
+function componentSummaryRow(component) {
+    const slotCount = component.slots.length;
+    const description = firstSentence(component.description);
+    return [`[${component.name}](../${component.name}.md)`, component.kind, String(slotCount), description];
+}
 
+function componentSummaryRowFromIndex(component) {
+    // Linked from the global index at theming/keys.md → theming/keys/<Component>.md
+    const slotCount = component.slots.length;
+    const description = firstSentence(component.description);
+    return [`[${component.name}](./keys/${component.name}.md)`, component.kind, String(slotCount), description];
+}
+
+function groupComponents(components) {
+    const order = [];
+    const byGroup = new Map();
+    for (const component of components) {
+        const groupName = component.group || UNGROUPED;
+        if (!byGroup.has(groupName)) {
+            byGroup.set(groupName, []);
+            order.push(groupName);
+        }
+        byGroup.get(groupName).push(component);
+    }
+    return order.map((name) => ({ name, components: byGroup.get(name) }));
+}
+
+function renderFamilyIndexPage(family) {
+    const slug = familySlug(family.name);
+    const title = `${family.name} keys`;
+    const frontmatter = {
+        title,
+        id: `theming:keys:family:${slug}`,
+    };
+
+    const lines = [];
+    lines.push(renderFrontmatter(frontmatter));
+    lines.push(renderHeading(1, title));
+    lines.push("");
+
+    if (family.sourceFile) {
+        lines.push(`Source file: ${renderCodeInline(family.sourceFile)}`);
+        lines.push("");
+    }
+
+    const headers = ["Component", "Kind", "Slots", "Description"];
+    const grouped = groupComponents(family.components);
+    const hasNamedGroups = grouped.some((g) => g.name !== UNGROUPED);
+
+    if (hasNamedGroups) {
+        for (const group of grouped) {
+            lines.push(renderHeading(2, group.name));
+            lines.push("");
+            const rows = group.components.map(componentSummaryRow);
+            const table = renderTable(headers, rows);
+            if (table) {
+                lines.push(table);
+                lines.push("");
+            }
+        }
+    } else {
+        const rows = family.components.map(componentSummaryRow);
+        const table = renderTable(headers, rows);
+        if (table) {
+            lines.push(table);
+            lines.push("");
+        }
+    }
+
+    return lines.join("\n");
+}
+
+function renderGlobalIndexPage(families) {
     const frontmatter = {
         title: "Theme keys",
         id: "theming:keys",
@@ -134,26 +261,22 @@ function renderIndexPage(entries) {
     lines.push(renderHeading(1, "Theme keys"));
     lines.push("");
     lines.push(
-        "Theme entries shipped by `@vueda/theme/vueda-tailwind`. Each entry exposes one or more slots; meta keys are composition primitives consumed by leaf entries via `composes`.",
+        "Theme keys are the per-slot Tailwind class definitions shipped by `@vueda/theme/vueda-tailwind`. Underscore-prefixed entries are composition primitives consumed by leaf keys via `composes`.",
     );
     lines.push("");
 
-    if (components.length) {
-        lines.push(renderHeading(2, "Components"));
-        lines.push("");
-        for (const entry of components) {
-            lines.push(`- [${entry.name}](./keys/${entry.name}.md)`);
-        }
-        lines.push("");
-    }
+    const headers = ["Component", "Kind", "Slots", "Description"];
 
-    if (metaKeys.length) {
-        lines.push(renderHeading(2, "Meta keys"));
+    for (const family of families) {
+        const slug = familySlug(family.name);
+        lines.push(renderHeading(2, `[${family.name}](./keys/family/${slug}.md)`));
         lines.push("");
-        for (const entry of metaKeys) {
-            lines.push(`- [${entry.name}](./keys/${entry.name}.md)`);
+        const rows = family.components.map(componentSummaryRowFromIndex);
+        const table = renderTable(headers, rows);
+        if (table) {
+            lines.push(table);
+            lines.push("");
         }
-        lines.push("");
     }
 
     return lines.join("\n");
@@ -161,19 +284,19 @@ function renderIndexPage(entries) {
 
 export function renderThemeKeysBundle(bundle, options = {}) {
     const outputs = new Map();
-    if (!bundle || bundle.kind !== "theme-keys") {
+    if (!bundle || bundle.source !== "theme-keys") {
         return outputs;
     }
 
-    const entries = bundle.entries || [];
-    const linkedThemeEntries = new Set(entries.map((e) => e.name));
-    const componentNames = options.componentNames || new Set();
+    const families = bundle.families || [];
 
-    for (const entry of entries) {
-        outputs.set(entryPath(entry.name), renderEntryPage(entry, { linkedThemeEntries, componentNames }));
+    for (const family of families) {
+        outputs.set(familyPagePath(family.name), renderFamilyIndexPage(family));
+        for (const component of family.components) {
+            outputs.set(componentPagePath(component.name), renderComponentPage(component, family, options));
+        }
     }
 
-    outputs.set("theming/keys.md", renderIndexPage(entries));
-
+    outputs.set("theming/keys.md", renderGlobalIndexPage(families));
     return outputs;
 }

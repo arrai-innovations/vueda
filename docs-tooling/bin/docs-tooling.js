@@ -351,7 +351,15 @@ async function runRender(argv) {
         try {
             const tkRaw = await fs.promises.readFile(tkPath, "utf-8");
             const tkBundle = JSON.parse(tkRaw);
-            themeKeysIndex = new Set((tkBundle.entries || []).map((e) => e.name));
+            const names = new Set();
+            for (const family of tkBundle.families || []) {
+                for (const component of family.components || []) {
+                    if (component.kind === "key" && component.name) {
+                        names.add(component.name);
+                    }
+                }
+            }
+            themeKeysIndex = names;
         } catch {
             themeKeysIndex = undefined;
         }
@@ -359,8 +367,13 @@ async function runRender(argv) {
         try {
             const vdRaw = await fs.promises.readFile(vdPath, "utf-8");
             const vdBundle = JSON.parse(vdRaw);
-            const components = (vdBundle.nodes || []).filter((n) => n.kind === "component");
-            componentNames = new Set(components.map((c) => c.name).filter(Boolean));
+            const names = new Set();
+            for (const node of vdBundle.nodes || []) {
+                if (node.kind === "component" && node.name) {
+                    names.add(node.name);
+                }
+            }
+            componentNames = names;
         } catch {
             componentNames = undefined;
         }
@@ -507,7 +520,7 @@ async function runValidateSources(argv) {
     }
 
     console.error(
-        `Source validation: ${errors.length} error(s), ${warnings.length} warning(s) across ${themeKeysPayload.entries.length} theme entries.`,
+        `Source validation: ${errors.length} error(s), ${warnings.length} warning(s) across ${themeKeysPayload.entries.length} theme slots.`,
     );
 
     if (errors.length > 0) {

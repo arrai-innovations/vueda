@@ -19,65 +19,60 @@ function parseComposeRef(ref) {
 /**
  * Validate a theme-keys extractor payload (raw, not normalized).
  *
+ * The raw payload is a flat list of entries, each describing one slot of one
+ * component (or composition primitive). Each entry carries the family,
+ * component, slot, valueShape, composes references, and a source location.
+ *
  * Rules:
- *   - error themeKeys/unknown-slot-shape: slot value isn't an object or function;
- *     classes/composes were dropped.
- *   - error themeKeys/unresolved-composes-ref: composes reference doesn't point
- *     at a known entry+slot in the bundle.
+ *   - error themeKeys/malformed-composes-ref: composes string lacks a dot or
+ *     starts with a dot (cannot resolve to "Target.slot").
+ *   - error themeKeys/unresolved-composes-ref: composes "Target.slot" does
+ *     not point at a known component+slot in the bundle.
  */
 export function validateThemeKeysPayload(payload) {
     const diagnostics = [];
     const entries = payload?.entries || [];
 
+    // Index every (component, slot) pair that exists.
     const slotIndex = new Map();
     for (const entry of entries) {
-        const slots = new Set((entry.slots || []).map((s) => s.name));
-        slotIndex.set(entry.name, slots);
+        if (!entry.component) continue;
+        if (!slotIndex.has(entry.component)) slotIndex.set(entry.component, new Set());
+        slotIndex.get(entry.component).add(entry.slot);
     }
 
     for (const entry of entries) {
-        for (const slot of entry.slots || []) {
-            if (slot.shape === "unknown") {
+        for (const ref of entry.composes || []) {
+            const parsed = parseComposeRef(ref);
+            if (!parsed) {
                 diagnostics.push({
                     severity: "error",
-                    file: slot.source?.file || entry.source?.file || "",
-                    line: slot.source?.line || 0,
-                    code: "themeKeys/unknown-slot-shape",
-                    message: `Slot ${entry.name}.${slot.name} is neither an object nor a function; classes and composes are dropped.`,
+                    file: entry.source?.file || "",
+                    line: entry.source?.line || 0,
+                    code: "themeKeys/malformed-composes-ref",
+                    message: `Slot ${entry.component}.${entry.slot} composes "${ref}" is not in "Target.slot" form.`,
                 });
+                continue;
             }
-            for (const ref of slot.composes || []) {
-                const parsed = parseComposeRef(ref);
-                if (!parsed) {
-                    diagnostics.push({
-                        severity: "error",
-                        file: slot.source?.file || "",
-                        line: slot.source?.line || 0,
-                        code: "themeKeys/malformed-composes-ref",
-                        message: `Slot ${entry.name}.${slot.name} composes "${ref}" is not in "Target.slot" form.`,
-                    });
-                    continue;
-                }
-                const targetSlots = slotIndex.get(parsed.target);
-                if (!targetSlots) {
-                    diagnostics.push({
-                        severity: "error",
-                        file: slot.source?.file || "",
-                        line: slot.source?.line || 0,
-                        code: "themeKeys/unresolved-composes-ref",
-                        message: `Slot ${entry.name}.${slot.name} composes "${ref}" but no entry "${parsed.target}" exists.`,
-                    });
-                    continue;
-                }
-                if (!targetSlots.has(parsed.slot)) {
-                    diagnostics.push({
-                        severity: "error",
-                        file: slot.source?.file || "",
-                        line: slot.source?.line || 0,
-                        code: "themeKeys/unresolved-composes-ref",
-                        message: `Slot ${entry.name}.${slot.name} composes "${ref}" but entry "${parsed.target}" has no slot "${parsed.slot}".`,
-                    });
-                }
+            const targetSlots = slotIndex.get(parsed.target);
+            if (!targetSlots) {
+                diagnostics.push({
+                    severity: "error",
+                    file: entry.source?.file || "",
+                    line: entry.source?.line || 0,
+                    code: "themeKeys/unresolved-composes-ref",
+                    message: `Slot ${entry.component}.${entry.slot} composes "${ref}" but no component "${parsed.target}" exists.`,
+                });
+                continue;
+            }
+            if (!targetSlots.has(parsed.slot)) {
+                diagnostics.push({
+                    severity: "error",
+                    file: entry.source?.file || "",
+                    line: entry.source?.line || 0,
+                    code: "themeKeys/unresolved-composes-ref",
+                    message: `Slot ${entry.component}.${entry.slot} composes "${ref}" but component "${parsed.target}" has no slot "${parsed.slot}".`,
+                });
             }
         }
     }
