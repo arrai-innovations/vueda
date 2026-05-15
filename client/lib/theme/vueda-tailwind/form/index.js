@@ -445,4 +445,36 @@ export default {
             class: [],
         },
     },
+    // "Type it to mean it" — anti-mistake confirmation field used by destroy /
+    // deactivate / recovery-code regen surfaces. Chrome is muted-tinted box +
+    // sans label with inline mono chip + mono input. The input's
+    // `focus-visible` ring is the canonical hairline + focus-ring-shadow combo.
+    TypedConfirmField: {
+        root: {
+            class: [
+                "flex flex-col gap-1.5 px-3.5 py-3 rounded-vueda-card border border-border",
+                "bg-[color-mix(in_oklab,var(--muted)_40%,var(--background))]",
+            ],
+        },
+        label: {
+            class: ["text-[12px] font-medium leading-tight text-foreground"],
+        },
+        expectedChip: {
+            class: [
+                "inline-flex items-center px-1.5 py-0.5 mx-0.5",
+                "rounded-[3px] border border-border bg-background",
+                "font-mono text-[12px] font-semibold leading-none text-foreground",
+            ],
+        },
+        input: {
+            class: [
+                "h-8 px-2.5 w-full min-w-0",
+                "rounded-vueda-control hairline bg-background",
+                "font-mono text-[12.5px] font-medium leading-none text-foreground",
+                "placeholder:text-muted-foreground placeholder:font-normal",
+                "shadow-vueda-control transition-shadow",
+                "focus-visible:hairline-ring focus-visible:focus-ring-shadow focus-visible:outline-none",
+            ],
+        },
+    },
 };

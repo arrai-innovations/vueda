@@ -6,8 +6,10 @@ type: reference
 ---
 
 <script setup>
+import { ref } from "vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
+import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
@@ -17,6 +19,9 @@ import {
     faTriangleExclamation,
     faArrowLeft,
 } from "@fortawesome/free-solid-svg-icons";
+
+const deactivateConfirm = ref("");
+const destroyConfirm = ref("");
 </script>
 
 # System Views
@@ -185,3 +190,55 @@ Like `ViewNotFound`, all surfaces are bare theme keys with no defaults.
 Wraps `ModelActionForm` with `action="deactivate"` pre-set. It does not add any of its own layout or theme keys; the rendered output is the standard action form for the deactivate action. Tone, banner text, and field layout follow the same patterns documented in [Action & Workflow Views](/reference/components/action-workflow).
 
 To style the deactivation confirmation form, apply theme keys to the underlying `ModelActionForm` family rather than to `ViewDeactivate` directly.
+
+## TypedConfirmField
+
+Anti-mistake confirmation primitive shared by destroy, deactivate, and recovery-code regenerate flows. The operator must type the exact `expectedValue` before the consumer's destructive button enables. The chrome is the canonical "type it to mean it" recipe: a bordered, muted-tinted box with a 12 px sans label, an inline mono chip showing the expected literal, and a 32 px mono input.
+
+Consumers read the match state via `v-model:match` (or the `match` event) and gate their submit control on it. The raw typed value is exposed via `v-model` for callers that need to echo or inspect it.
+
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TypedConfirmField — username self-destroy confirm</header>
+  <div class="rounded-vueda-card border border-border bg-card p-4">
+    <TypedConfirmField
+      v-model="deactivateConfirm"
+      expected-value="mara.tani"
+      label-lead="Type your username"
+      label-tail="to confirm"
+    />
+    <p class="mt-3 text-xs text-muted-foreground">
+      typed: <code class="rounded border border-border bg-muted/40 px-1 font-mono text-[11px]">{{ deactivateConfirm || "—" }}</code>
+      · match: <code class="rounded border border-border bg-muted/40 px-1 font-mono text-[11px]">{{ deactivateConfirm === "mara.tani" ? "true" : "false" }}</code>
+    </p>
+  </div>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>label: <code>labelLead</code> + inline <code>&lt;code&gt;</code> chip (<code>expectedValue</code>) + <code>labelTail</code></span>
+    <span>match: typed value equals <code>expectedValue</code> exactly (case- and whitespace-sensitive); root carries <code>data-match="true|false"</code></span>
+    <span>input: <code>autocomplete="off"</code>, <code>spellcheck="false"</code>, mono 12.5 px, hairline + focus-ring on <code>:focus-visible</code></span>
+  </footer>
+</VuedaDemo>
+
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TypedConfirmField — multi-record destroy phrase</header>
+  <div class="rounded-vueda-card border border-border bg-card p-4">
+    <TypedConfirmField
+      v-model="destroyConfirm"
+      expected-value="delete 3 customers"
+      label-lead="Type"
+      label-tail="to permanently delete the selected records"
+    />
+  </div>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>placeholder defaults to <code>expectedValue</code>; override via the <code>placeholder</code> prop when the phrase is too long to echo</span>
+    <span>for fully-custom label markup, use the <code>label</code> slot (receives <code>expectedValue</code> and <code>chipClass</code> slot props)</span>
+  </footer>
+</VuedaDemo>
+
+### Customization surface
+
+| Key            | Element              | Default classes                                                          |
+| -------------- | -------------------- | ------------------------------------------------------------------------ |
+| `root`         | Outer `<label>`      | muted-tinted box · rounded-vueda-card · 12 px gap-1.5 column             |
+| `label`        | Label text `<span>`  | 12 px sans, foreground ink                                               |
+| `expectedChip` | Inline `<code>` chip | mono 12 px semibold · rounded 3 px · border + background fill            |
+| `input`        | Text `<input>`       | 32 px tall · mono 12.5 px · hairline + `focus-visible:focus-ring-shadow` |
