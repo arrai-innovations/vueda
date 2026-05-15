@@ -400,12 +400,31 @@ export default {
     },
     FormSection: {
         root: {
-            class: ["flex flex-col gap-3.5 pt-1", "[&+&]:mt-2 [&+&]:border-t [&+&]:border-border [&+&]:pt-4"],
+            class: "flex flex-col gap-3 [&+&]:mt-2",
+        },
+        head: {
+            class: "flex items-baseline justify-between gap-2 pb-1.5 border-b border-border",
+        },
+        aside: {
+            class: "font-mono text-[length:var(--vueda-text-micro)] leading-none text-muted-foreground",
         },
     },
     FormSectionTitle: {
         root: {
-            class: "flex items-baseline gap-3 font-semibold text-sm",
+            class: "m-0 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none text-muted-foreground",
+        },
+    },
+    FormGrid: {
+        root: {
+            class: [
+                "grid grid-cols-12 gap-x-5 gap-y-4 min-w-0",
+                "[&>*]:col-span-12 [&>*]:min-w-0",
+                "[@media(min-width:720px)]:[&>[data-col='3']]:col-span-3",
+                "[@media(min-width:720px)]:[&>[data-col='4']]:col-span-4",
+                "[@media(min-width:720px)]:[&>[data-col='6']]:col-span-6",
+                "[@media(min-width:720px)]:[&>[data-col='8']]:col-span-8",
+                "[@media(min-width:720px)]:[&>[data-col='9']]:col-span-9",
+            ],
         },
     },
     FormActions: {
