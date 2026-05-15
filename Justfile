@@ -72,7 +72,7 @@ fix-eslint:
   cd {{justfile_directory()}} && pnpm run fix:eslint
 
 fix-prettier:
-  cd {{justfile_directory()}} && pnpm run fix:prettier
+  cd {{justfile_directory()}} && pnpm run fix:prettier | sed '/unchanged/d'
 
 manage *args:
   cd {{justfile_directory()}}/server && uv run --no-sync python manage.py {{args}}
