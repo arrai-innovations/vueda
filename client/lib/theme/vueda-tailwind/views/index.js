@@ -537,6 +537,20 @@ export default {
             class: [],
         },
     },
+    ViewDeactivate: {
+        // Centering wrapper: card is 460 px so it needs a flex parent to center on the page.
+        root: {
+            class: ["flex min-h-full items-center justify-center p-8"],
+        },
+        // Default suspension-explanation blurb. Slot override takes precedence.
+        message: {
+            class: ["text-[13px] leading-[1.5] text-muted-foreground"],
+        },
+        // Submit-error paragraph shown when the PATCH fails.
+        error: {
+            class: ["text-[12px] text-destructive leading-[1.5]"],
+        },
+    },
     ViewTwoFactorAuth: {
         root: {
             class: [],

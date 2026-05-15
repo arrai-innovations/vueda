@@ -298,9 +298,56 @@ Icons resolve through `useIcons("ConsequencesBullets")`. Register a component un
 
 ## ViewDeactivate
 
-Wraps `ModelActionForm` with `action="deactivate"` pre-set. It does not add any of its own layout or theme keys; the rendered output is the standard action form for the deactivate action. Tone, banner text, and field layout follow the same patterns documented in [Action & Workflow Views](/reference/components/action-workflow).
+Self-service account deactivation view. Wraps the deactivate action in a `SystemMessageCard(tone="warning")` chassis: an icon crest identifies the action, an optional `ConsequencesBullets` list communicates the impact, and a `TypedConfirmField` gates the destructive button on the operator typing their own email address. Sends a PATCH to the model's `deactivate` endpoint on confirmation.
 
-To style the deactivation confirmation form, apply theme keys to the underlying `ModelActionForm` family rather than to `ViewDeactivate` directly.
+Props: `app` + `model` + `pk` (or array of PKs) identify the target. `consequences[]` forwards to `ConsequencesBullets`; when empty the bullet list is omitted. The `message` slot overrides the default suspension explanation paragraph.
+
+The submit button stays disabled until `TypedConfirmField` emits a match and remains disabled while the request is in-flight. On success the component emits `success`. On a non-200 response an inline error paragraph appears.
+
+<VuedaDemo class="flex flex-col gap-5">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewDeactivate — full composition (consequences + typed confirm)</header>
+  <div class="flex justify-center">
+    <SystemMessageCard tone="warning">
+      <template #crest-icon>
+        <FontAwesomeIcon :icon="faTriangleExclamation" />
+      </template>
+      <template #crest-eyebrow>account · deactivate</template>
+      <template #crest-kind>myapp/account/deactivate</template>
+      <p class="text-[13px] leading-[1.5] text-muted-foreground">Your account will be suspended. Active sessions will end immediately, API tokens will be disabled, and shared resources will be reassigned. After 30 days this action is permanent.</p>
+      <ConsequencesBullets
+        :items="[
+          { label: 'Sessions revoked', description: 'All active sessions across devices end immediately.' },
+          { label: 'API tokens disabled', description: 'Personal access tokens stop authenticating.' },
+          { label: 'Shared resources transfer', description: 'Owned records move to the team default owner.', tone: 'warn' },
+          { label: 'After 30 days, irrecoverable', description: 'Account and history are permanently purged.', tone: 'danger' },
+        ]"
+      />
+      <TypedConfirmField
+        v-model="deactivateConfirm"
+        expected-value="mara.tani@example.com"
+        label-lead="Type your email address"
+        label-tail="to confirm"
+      />
+      <template #actions>
+        <Button size="sm" variant="outline">Cancel</Button>
+        <Button size="sm" variant="destructive" :disabled="deactivateConfirm !== 'mara.tani@example.com'" class="ml-auto">Deactivate account</Button>
+      </template>
+    </SystemMessageCard>
+  </div>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>consequences: forwarded to <code>ConsequencesBullets</code>; omit the prop (or pass an empty array) and the bullet section disappears</span>
+    <span>typed confirm: expected value is <code>userStore.loggedInUser.email</code>; the field is omitted when the email is unavailable</span>
+    <span>submit stays disabled until typed value matches and re-disables while the PATCH is in-flight</span>
+  </footer>
+</VuedaDemo>
+
+### Customization surface
+
+| Key       | Element               | Default classes                                   |
+| --------- | --------------------- | ------------------------------------------------- |
+| `root`    | Outer `<div>`         | `flex min-h-full items-center justify-center p-8` |
+| `message` | Default message `<p>` | `text-[13px] leading-[1.5] text-muted-foreground` |
+| `error`   | Error `<p>`           | `text-[12px] text-destructive leading-[1.5]`      |
 
 ## TypedConfirmField
 
