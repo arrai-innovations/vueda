@@ -344,11 +344,11 @@ export default {
             class: ["flex min-h-full flex-col"],
         },
         outer: {
-            class: ["flex flex-col max-w-full"],
+            class: ["flex flex-col gap-3 max-w-3xl"],
         },
         inner: {
             class: [
-                "p-8 rounded border bg-zinc-0 dark:bg-zinc-950 flex flex-col items-stretch gap-3 overflow-y-auto max-w-full sm:w-[35rem]",
+                "p-8 rounded border bg-background flex flex-col items-stretch gap-3 overflow-y-auto max-w-full sm:w-[35rem]",
             ],
         },
         contentContainer: {
@@ -367,7 +367,7 @@ export default {
         },
         inner: {
             class: [
-                "p-8 rounded border bg-zinc-0 dark:bg-zinc-950 flex flex-col items-stretch gap-3 overflow-y-auto max-w-full sm:w-[35rem]",
+                "p-8 rounded border bg-background flex flex-col items-stretch gap-3 overflow-y-auto max-w-full sm:w-[35rem]",
             ],
         },
         contentContainer: {

@@ -63,30 +63,38 @@ onMounted(() => {
 
 <template>
     <div :class="theme('root')" data-qa="auth-form-root">
-        <PageTitle :title="header">
-            <template #subtitle>
-                {{ subTitle }}
-            </template>
-        </PageTitle>
-        <!-- @slot [form-content] Override the entire form content area; receives run-action, on-submission-error-handler, and redirect-to bindings. -->
-        <slot
-            name="form-content"
-            v-bind="$attrs"
-            :run-action="runAction"
-            :on-submission-error-handler="OnSubmissionErrorHandler"
-            :redirect-to="redirectTo"
-        >
-            <action-form
-                :run-action="runAction"
-                v-bind="$attrs"
-                :on-submission-error-handler="OnSubmissionErrorHandler"
-                :redirect-to="redirectTo"
-                :action-state="userStore"
-            >
-                <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                    <slot :name="slot" v-bind="slotProps || {}" />
-                </template>
-            </action-form>
-        </slot>
+        <div :class="theme('outer')" data-qa="auth-form-outer">
+            <div :class="theme('inner')" data-qa="auth-form-inner">
+                <div :class="theme('contentContainer')" data-qa="auth-form-content-container">
+                    <div :class="theme('title')" data-qa="auth-form-title">
+                        <PageTitle :title="header">
+                            <template #subtitle>
+                                {{ subTitle }}
+                            </template>
+                        </PageTitle>
+                    </div>
+                    <!-- @slot [form-content] Override the entire form content area; receives run-action, on-submission-error-handler, and redirect-to bindings. -->
+                    <slot
+                        name="form-content"
+                        v-bind="$attrs"
+                        :run-action="runAction"
+                        :on-submission-error-handler="OnSubmissionErrorHandler"
+                        :redirect-to="redirectTo"
+                    >
+                        <action-form
+                            :run-action="runAction"
+                            v-bind="$attrs"
+                            :on-submission-error-handler="OnSubmissionErrorHandler"
+                            :redirect-to="redirectTo"
+                            :action-state="userStore"
+                        >
+                            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                                <slot :name="slot" v-bind="slotProps || {}" />
+                            </template>
+                        </action-form>
+                    </slot>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
