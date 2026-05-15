@@ -9,6 +9,7 @@ type: reference
 import { ref } from "vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
+import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
 import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -184,6 +185,44 @@ Like `ViewNotFound`, all surfaces are bare theme keys with no defaults.
 | `description` | `p` (action/model text)      | none            |
 | `suggestions` | `p` ("Did you mean")         | none            |
 | `link`        | `router-link` per suggestion | none            |
+
+## ConsequencesBullets
+
+Bulleted consequence list for destructive surfaces. Each row renders an optional leading icon, a bold label, and an optional muted description inside a 2-column grid (icon · label/sub stack). Per-row `tone` (`default` | `warn` | `danger`) tints only the leading icon via the `toneWarn` / `toneDanger` keys, so the list signals relative severity without overwhelming the surrounding card.
+
+Icons resolve through `useIcons("ConsequencesBullets")`. Register a component under each icon name your messaging uses (or fall back to a `Default` registry entry). When the lookup misses, the icon cell still renders so labels stay aligned across rows.
+
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ConsequencesBullets — self-destroy cascade</header>
+  <div class="rounded-vueda-card border border-border bg-card p-4">
+    <ConsequencesBullets
+      :items="[
+        { icon: 'shieldHalved', label: 'Sessions revoked', description: 'All sessions across devices end immediately.' },
+        { icon: 'lifeRing', label: 'API tokens disabled', description: 'Personal access tokens stop authenticating.' },
+        { icon: 'circle', label: 'Shared resources transfer', description: 'Owned records move to the team default owner.', tone: 'warn' },
+        { icon: 'clock', label: 'After 30 days, irrecoverable', description: 'Account and history are purged.', tone: 'danger' },
+      ]"
+    />
+  </div>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>row shape: <code>{ icon, label, description, tone }</code> — only <code>label</code> is required</span>
+    <span>tone routing: <code>data-tone</code> on the row, <code>toneWarn</code> / <code>toneDanger</code> tint the icon wrapper</span>
+    <span>icon lookup: <code>useIcons("ConsequencesBullets")(item.icon)</code> with fallback to the <code>Default</code> registry</span>
+  </footer>
+</VuedaDemo>
+
+### Customization surface
+
+| Key           | Element                 | Default classes                                           |
+| ------------- | ----------------------- | --------------------------------------------------------- |
+| `root`        | `<ul>`                  | flex column, `gap-2`, list-reset                          |
+| `item`        | `<li>` row              | `grid grid-cols-[18px_1fr] items-start gap-x-2.5`         |
+| `icon`        | leading icon `<span>`   | 18 px square cell, 14 px glyph, `text-muted-foreground`   |
+| `text`        | label/description stack | `flex flex-col gap-0.5 min-w-0`                           |
+| `label`       | label `<span>`          | 13 px / 600 / `--foreground`                              |
+| `description` | description `<span>`    | 11.5 px / 400 / `--muted-foreground`                      |
+| `toneWarn`    | applied to icon wrapper | `text-warning` (active when `item.tone === "warn"`)       |
+| `toneDanger`  | applied to icon wrapper | `text-destructive` (active when `item.tone === "danger"`) |
 
 ## ViewDeactivate
 

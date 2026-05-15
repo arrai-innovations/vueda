@@ -135,6 +135,39 @@ export default {
             class: "font-semibold uppercase leading-none tabular-nums",
         },
     },
+    // Destructive-action consequence list. 2-column grid (18 px icon · label/sub stack)
+    // per row; per-row `data-tone` (default | warn | danger) tints only the leading icon
+    // via the `toneWarn` / `toneDanger` keys so customization stays granular. Label is
+    // 13 px / 600 / foreground; description is 11.5 px / 400 / muted-foreground. PROP-167.
+    ConsequencesBullets: {
+        root: {
+            class: ["flex flex-col gap-2 m-0 p-0 list-none"],
+        },
+        item: {
+            class: ["grid grid-cols-[18px_1fr] items-start gap-x-2.5"],
+        },
+        icon: {
+            class: [
+                "flex h-[18px] w-[18px] items-center justify-center mt-px",
+                "text-[14px] leading-none text-muted-foreground",
+            ],
+        },
+        text: {
+            class: ["flex flex-col gap-0.5 min-w-0"],
+        },
+        label: {
+            class: ["text-[13px] font-semibold leading-[1.35] text-foreground"],
+        },
+        description: {
+            class: ["text-[11.5px] font-normal leading-[1.4] text-muted-foreground"],
+        },
+        toneWarn: {
+            class: ["text-warning"],
+        },
+        toneDanger: {
+            class: ["text-destructive"],
+        },
+    },
     MobileSortComponent: {
         drawer: {
             class: ["!h-auto"],
