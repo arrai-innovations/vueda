@@ -218,7 +218,7 @@ VUEDA provides its own extensions of Django's `Model` class:
 - **{@api py:class:vueda.core.models.VuedaModel}**: adds an expected {@api py:function:vueda.core.models.VuedaModel.formatted_name} `GeneratedField` (by default based on a model's `name` field) and a custom {@api py:class:vueda.core.models.BaseModelMeta} class that sets up default permissions in VUEDA's expected way.
 - **{@api py:class:vueda.core.models.Lookup}**: extends {@api py:class:vueda.core.models.VuedaModel} with a unique `code` field, intended for lightweight, potentially user-defined, reference data tables.
 
-::: important
+::: info IMPORTANT
 VUEDA uses create, read, update, delete, and list permissions, which aligns better with `djangorestframework`'s viewset actions than Django's default add, change, delete, and view permissions. All VUEDA models must therefore inherit from {@api py:class:vueda.core.models.VuedaModel} to ensure proper permission handling, and must have a `class Meta(VuedaModel.Meta)` (or equivalently, `class Meta({@api py:class:vueda.core.models.BaseModelMeta})`) by default.
 :::
 
@@ -263,7 +263,7 @@ class ProductOption(VuedaModel):
 
 VUEDA provides {@api py:class:vueda.core.serializers.VuedaSerializer} and {@api py:class:vueda.core.serializers.VuedaLookupSerializer} base classes for DRF serializers. {@api py:class:vueda.core.serializers.VuedaLookupSerializer} handles the boilerplate around the `code` field for {@api py:class:vueda.core.models.Lookup} models.
 
-::: important
+::: info IMPORTANT
 As with models, all VUEDA serializers should have a `class Meta({@api py:class:vueda.core.serializers.VuedaSerializer}.Meta)` or `class Meta({@api py:class:vueda.core.serializers.VuedaLookupSerializer}.Meta)` to ensure proper default behavior.
 :::
 
@@ -466,7 +466,7 @@ class InventoryConfig(AppConfig):
 
 The imports are inside `ready()` deliberately. Registration resolves {@term Content Type}s internally, which requires the Django app registry to be fully initialized first.
 
-::: important
+::: info IMPORTANT
 Without {@api py:function:vueda.info.registration.register}, the model's API endpoints will work (you can still curl them), but the client will not be able to discover the model's fields, actions, or permissions. This is the most common cause of "model doesn't show up in the client."
 :::
 
