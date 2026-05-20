@@ -34,6 +34,7 @@ Guides are task-focused recipes for implementors working on real VUEDA projects.
 - [Design Transition UX and Redirects](transition-ux-and-redirects.md): Integrate transitions with action routing and post-submit redirects.
 - [Manage Workflows and Generate Workflow Migrations](manage-workflows.md): Create, edit, and delete workflows through the UI, then capture those changes as a replayable migration.
 - [Manage Groups and Generate Group Migrations](manage-groups.md): Add, rename, and remove groups through the permission overview UI, then capture those changes as a replayable migration.
+- [Use the Permissions and Workflow Overview](permissions-workflow-overview.md): Audit group and permission assignments across all registered models, and inspect what a specific user can access.
 
 ## Async Work and Integrations
 
