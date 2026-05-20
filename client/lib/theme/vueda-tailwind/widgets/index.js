@@ -11,15 +11,19 @@ export default {
      * label treatment so the toggle control and label align as one row.
      */
     WidgetCheckbox: {
+        /** The outer row aligns the checkbox control with its label chrome. */
         root: {
             class: ["ml-2 flex flex-row grow items-baseline"],
         },
+        /** The inner row lets the control and label share the available width. */
         inner: {
             class: ["flex flex-row grow items-baseline"],
         },
+        /** The checkbox input keeps its intrinsic width instead of stretching. */
         input: {
             class: ["min-w-min grow-0 shrink-0"],
         },
+        /** Local label overrides make {@api theme-key:WidgetLabel} read as a toggle row. */
         themeOverride: {
             WidgetLabel: {
                 root: {
@@ -45,6 +49,7 @@ export default {
      * treatments to the trigger button.
      */
     WidgetCombobox: {
+        /** The trigger uses the input-shell recipe for searchable pickers; see DESIGN.md § 9.1 Selection / Command. */
         trigger: {
             class: [
                 "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground",
@@ -64,12 +69,15 @@ export default {
      * field columns with consistent spacing.
      */
     WidgetDuration: {
+        /** The root intentionally carries no chrome so form layout owns spacing. */
         root: {
             class: [],
         },
+        /** The inner row wraps duration segments when narrow columns run out of space. */
         inner: {
             class: ["flex flex-row gap-2 flex-wrap"],
         },
+        /** Each duration segment stacks its label and control while sharing leftover width. */
         innerItem: {
             class: ["flex flex-col flex-grow"],
         },
@@ -82,18 +90,23 @@ export default {
      * the vertical wrapper, file row, truncated link, and action button group.
      */
     WidgetFile: {
+        /** The root stays transparent so the field shell provides the surface. */
         root: {
             class: [],
         },
+        /** The inner column stacks the current file row with any file controls. */
         inner: {
             class: ["flex flex-col"],
         },
+        /** The file row wraps metadata and actions without forcing horizontal overflow. */
         file: {
             class: ["flex flex-wrap justify-between"],
         },
+        /** The file link is emphasized and truncated to keep long filenames inside the row. */
         link: {
             class: ["font-semibold text-ellipsis max-w-60 whitespace-nowrap overflow-hidden"],
         },
+        /** The action group spaces file commands as separate controls. */
         buttonGroup: {
             class: ["flex gap-4"],
         },
@@ -107,15 +120,19 @@ export default {
      * input area to grow.
      */
     WidgetGenericAutoComplete: {
+        /** The root remains unstyled so the widget can sit inside any form shell. */
         root: {
             class: [],
         },
+        /** The inner row wraps the dropdown and text lookup controls together. */
         inner: {
             class: ["flex flex-row gap-2 flex-wrap"],
         },
+        /** The dropdown column keeps only the width its trigger needs. */
         dropdownOuter: {
             class: ["flex flex-col flex-shrink"],
         },
+        /** The autocomplete column grows to absorb remaining row width. */
         autoCompleteOuter: {
             class: ["flex flex-col flex-grow"],
         },
@@ -128,24 +145,30 @@ export default {
      * toolbar buttons, active state, and separators around the editing area.
      */
     WidgetHtml: {
+        /** The root adds no spacing so form composition controls the editor block. */
         root: {
             class: [],
         },
+        /** The inner frame supplies the bordered control surface and clips editor content. */
         inner: {
             class: ["flex flex-col border border-input rounded-vueda-control overflow-hidden"],
         },
+        /** The toolbar is a muted, wrapping command strip above the editing area. */
         toolbar: {
             class: ["flex flex-row flex-wrap items-center gap-0.5 border-b border-input bg-muted/50 px-1.5 py-1"],
         },
+        /** Toolbar buttons use compact slab control styling; see DESIGN.md § 4.2. */
         toolbarButton: {
             class: [
                 "inline-flex items-center justify-center rounded px-1.5 py-0.5 text-sm font-medium text-muted-foreground",
                 "hover:bg-accent hover:text-accent-foreground",
             ],
         },
+        /** The active toolbar button uses the same accent surface as selected menu actions; see DESIGN.md § 2.2. */
         toolbarButtonActive: {
             class: ["bg-accent text-accent-foreground"],
         },
+        /** Separators divide toolbar command groups with a muted vertical rule. */
         toolbarSeparator: {
             class: ["mx-0.5 h-5 w-px bg-border"],
         },
@@ -156,12 +179,15 @@ export default {
      * the vertical wrapper and flexible image action row.
      */
     WidgetImage: {
+        /** The root is transparent so image widgets inherit the surrounding field rhythm. */
         root: {
             class: [],
         },
+        /** The inner column stacks image preview and image actions. */
         inner: {
             class: ["flex flex-col"],
         },
+        /** The image row wraps preview details and actions without overflow. */
         image: {
             class: ["flex flex-wrap justify-between"],
         },
@@ -175,33 +201,43 @@ export default {
      * linked and plain text items.
      */
     WidgetReadOnly: {
+        /** The root has no chrome because read-mode rows are owned by the field shell. */
         root: { class: [] },
+        /** The inner wrapper collapses when hidden and stacks visible read-only content. */
         inner: {
             class: ({ hidden }) => ({
                 "flex flex-col": !hidden,
             }),
         },
+        /** The input slot indents read-only control fragments to align with editable widgets. */
         input: {
             class: ["ml-2"],
         },
+        /** The value text uses the read-mode record recipe; see DESIGN.md § 9.1 Forms. */
         value: {
             class: ["text-[13px]/[1.5] text-foreground"],
         },
+        /** A linked value item carries link content without adding extra chrome. */
         linkItem: {
             class: [],
         },
+        /** A plain value item mirrors {@api theme-key:WidgetReadOnly.linkItem} without link behavior. */
         textItem: {
             class: [],
         },
+        /** Prefix content before linked values stays visually neutral. */
         linkItemPrefix: {
             class: [],
         },
+        /** Prefix content before plain values follows {@api theme-key:WidgetReadOnly.linkItemPrefix}. */
         textItemPrefix: {
             class: [],
         },
+        /** Suffix content after linked values stays visually neutral. */
         linkItemSuffix: {
             class: [],
         },
+        /** Suffix content after plain values follows {@api theme-key:WidgetReadOnly.linkItemSuffix}. */
         textItemSuffix: {
             class: [],
         },
@@ -212,6 +248,7 @@ export default {
      * warning, invalid, feedback, and control regions around the active widget.
      */
     WidgetLabel: {
+        /** The root grid pairs label text with feedback actions above the control. */
         root: ({ isCardLayout, hidden, required, help, warning, invalid }) => {
             const isRequiredHasHelpOrHasValidation = required || help || warning || invalid;
             return {
@@ -225,6 +262,7 @@ export default {
                 },
             };
         },
+        /** The label moves between visible grid text and screen-reader-only text when hidden. */
         label: {
             class: ({ warning, invalid, hidden, required, help }) => {
                 const showingButton = warning || invalid || help || required;
@@ -240,12 +278,14 @@ export default {
                 };
             },
         },
+        /** The feedback slot sits at the row end for help, required, warning, and invalid affordances. */
         feedback: ({ hidden }) => ({
             class: {
                 "row-start-1 row-end-2 col-start-2 col-end-3": !hidden,
                 "justify-self-end min-w-max": !hidden,
             },
         }),
+        /** The control slot spans the full second row unless the label is hidden. */
         control: ({ hidden }) => {
             return {
                 class: {
@@ -254,6 +294,7 @@ export default {
                 },
             };
         },
+        /** The required marker uses destructive status color; see DESIGN.md § 9.1 Forms. */
         required: {
             class: ["text-red-500 dark:text-red-400", "ml-1", "cursor-help"],
         },
@@ -266,24 +307,31 @@ export default {
      * title, and label regions for message or document templates.
      */
     WidgetPreviewableTemplate: {
+        /** The root adds no chrome so the surrounding form section owns spacing. */
         root: {
             class: [],
         },
+        /** The title uses foreground text for the previewable template heading. */
         title: {
             class: ["text-neutral-900 dark:text-white"],
         },
+        /** The inner grid places editor and preview side by side on wide screens. */
         inner: {
             class: ["grid lg:grid-cols-2 gap-2"],
         },
+        /** The editor wrapper stacks editing controls with a small gap. */
         editorWrapper: {
             class: ["flex flex-col gap-2"],
         },
+        /** The preview pane uses prose defaults while spanning below the label row. */
         preview: {
             class: ["prose max-w-full flex flex-col row-start-2 row-end-3 col-start-1 col-end-3"],
         },
+        /** The preview label matches widget label color and line height for alignment. */
         label: {
             class: ["row-start-1 row-end-2 col-start-1 leading-[2.3958125rem] text-neutral-900/60 dark:text-white/60"],
         },
+        /** The preview wrapper mirrors {@api theme-key:WidgetLabel.root} for label and preview alignment. */
         previewWrapper: {
             class: ["ml-2 mb-1 gap-1 grid grid-cols-[auto_1fr] justify-between"],
         },
@@ -294,12 +342,15 @@ export default {
      * in a compact vertical list that can widen at larger breakpoints.
      */
     WidgetTemplateLegend: {
+        /** The root stays unstyled so the legend can be embedded beside any template widget. */
         root: {
             class: [],
         },
+        /** The inner column spaces placeholder entries evenly. */
         inner: {
             class: ["flex flex-col gap-2"],
         },
+        /** Each legend item stacks on small screens and becomes a baseline row on wider screens. */
         listItem: {
             class: ["flex flex-col sm:flex-row items-baseline px-2 sm:px-4"],
         },

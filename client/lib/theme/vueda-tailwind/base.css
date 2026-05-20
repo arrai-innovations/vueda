@@ -423,10 +423,10 @@
      * SidebarProvider sets --sidebar-width / --sidebar-width-icon as
      * inline CSS custom properties using these tokens so child components
      * can reference var(--sidebar-width) without duplicating the values. */
-    --vueda-sidebar-width: 14rem; /* 224px expanded */
-    --vueda-sidebar-width-icon: 3rem; /* 48px icon-only rail */
-    --vueda-sidebar-width-mobile: 18rem; /* 288px mobile sheet */
-    --vueda-sidebar-active-rail: 2px; /* left-edge accent on active item */
+    --vueda-sidebar-width: 14rem; /* expanded desktop sidebar width; see DESIGN.md § 4.4 */
+    --vueda-sidebar-width-icon: 3rem; /* collapsed desktop icon rail width; see DESIGN.md § 4.4 */
+    --vueda-sidebar-width-mobile: 18rem; /* mobile sheet width used by SidebarProvider */
+    --vueda-sidebar-active-rail: 2px; /* active-item rail width for {@api theme-key:SidebarMenuButtonChild.root} and {@api theme-key:SidebarMenuSubButton.root} */
 
     /* ---------- Typography ----------
      * 7-step scale, Carbon-like density. Dominant body = 13px.
