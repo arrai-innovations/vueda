@@ -90,7 +90,11 @@ VDQ defines a set of terminal workflow states, `QUEUE_ITEM_DONE_STATES`, that dr
 
 **Resend.** Resend clones a done `SentItem` into a new `QueueItem` in the workflow initial state and schedules it. Clones include method-specific detail rows and relationships. The resend action is permission-gated (`vueda_vdq.can_resend`).
 
-**Attachment URLs.** Attachment download URLs are derived from `settings.VDQ_URL` and served by `PrivateAttachmentView`, which requires authentication. Note that the view enforces authentication but does not perform object-level permission checks against the associated queue item; any authenticated user can fetch an attachment by ID if they can obtain or guess the URL.
+**Attachment URLs.** Attachment download URLs are derived from `settings.VDQ_URL` and served by `PrivateAttachmentView`, which requires authentication.
+
+:: warning
+The view enforces authentication but does not perform object-level permission checks against the associated queue item; any authenticated user can fetch an attachment by ID if they can obtain or guess the URL.
+:::
 
 **Enqueue failure is observable.** Broker failures during `schedule_queue_item` are not silent. The queue item transitions to `errored` and stores the exception text in `result`. No Celery task is created.
 
