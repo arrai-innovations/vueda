@@ -27,7 +27,7 @@ The authority split is intentional. Queryset filtering must express its logic as
 
 The return value semantics are fixed:
 
-- **`Q` object**: the queryset is filtered by `queryset.filter(Q)`. This is the common case, where the hook returns a condition that limits rows to those the user should see.
+- **`Q` object**: the queryset is then filtered by the Q object via `queryset.filter(Q)`. This is the common case, where the hook returns a condition that limits rows to those the user should see.
 - **`False`**: the queryset is replaced with `queryset.none()`. The user sees no rows.
 - **`True` or `None`**: no filtering is applied. All rows pass through.
 
