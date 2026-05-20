@@ -117,3 +117,48 @@ Card: {
 - Object-expression `class:` values can mix string entries with object entries; object keys are harvested as class names (useful for conditional class objects whose keys are known at authoring time).
 
 Slot values that do not match these shapes are skipped silently, so a slot that fails to render usually means the value is neither a string/array/template/callback nor an object with a recognised `class:`/`composes:`.
+
+## CSS token annotations (`lib/theme/vueda-tailwind/base.css`)
+
+The css-tokens extractor (`docs-tooling/js/extractors/css-tokens.js`) parses `base.css` with PostCSS and emits one entry per custom property declared inside `:root` and `.dark`. Authors control the rendered token pages through three conventions inside that file.
+
+**Group banner.** A comment of the form `/* ---------- Title ---------- */` inside `:root` (or `.dark`) sets the group label used to bucket the global token index and creates a rendered page at `docs/reference/theming/tokens/<group-slug>.md`. The most recent banner sticks until a new one appears. Tokens above the first banner fall into a `Base` group.
+
+```css
+:root {
+    /* ---------- Color palette: light ---------- */
+    --background: oklch(0.99 0.003 250);
+    --foreground: oklch(0.18 0.015 250);
+}
+```
+
+The banner regex matches three or more dashes on each side of the title (`-{3,}\s*Title\s*-{3,}`), so the surrounding fences must be present. Prose above the banner (a leading `/** ... */`-style preamble at the top of `:root`) is not rendered; per-group introductions belong in `DESIGN.md` with a `see DESIGN.md § X` pointer from individual token descriptions.
+
+**Trailing description.** A `/* ... */` comment on the same source line as a declaration becomes the token description on its rendered page.
+
+```css
+--background: oklch(0.99 0.003 250); /* page: barely-tinted paper */
+```
+
+The comment must start on the declaration line; multi-line continuations after the opening `/*` are kept. Comments on a separate line (above or below the declaration) are not associated with the token and are ignored.
+
+**`@theme inline` aliasing.** Declarations inside `@theme inline { ... }` whose value is a single `var(--token-name)` reference register that token as part of a Tailwind utility family, surfacing it in the Tailwind utility column on the rendered token page. The family and property come from the alias declaration's `--<family>-<property>` shape. Recognized families: `color`, `radius`, `shadow`, `font`, `spacing`, `animate`.
+
+```css
+@theme inline {
+    /* Surfaces `--vueda-shadow-card` as a `shadow-vueda-card` utility. */
+    --shadow-vueda-card: var(--vueda-shadow-card);
+}
+```
+
+Only pure aliases of the form `var(--token-name)` register a mapping. Computed values (e.g. `calc(var(--radius) - 2px)`) inside `@theme inline` do not surface the underlying token in the utility column; that block is generating a Tailwind utility from a calculation, not aliasing an existing `:root` token. Tokens declared only in `:root` without an `@theme inline` alias render without a Tailwind utility column.
+
+## Cross-references between sources
+
+The render step pre-loads a theme-keys component index and passes it to the vue-docgen renderer. Component pages emit `Theme entry: {@api theme-key:<Component>}` automatically when a matching theme key exists, which is why the theme-key component name must match the consumer-facing Vue component name. Authored prose elsewhere in the docs can reference any of three ID surfaces via the `{@api ...}` extension:
+
+- `theme-key:<Component>` — the per-component theme page.
+- `theme-key:<Component>.<slot>` — a specific slot on that page.
+- `css-token:<name>` — a specific CSS token (without the `--` prefix).
+
+See `docs/README.md` for the full `@api` reference scheme.

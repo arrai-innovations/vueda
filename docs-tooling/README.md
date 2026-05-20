@@ -130,13 +130,13 @@ Authoring conventions for theme-key source files live in the [client annotation 
 - Raw extract: `.generated/css-tokens.json`; canonical bundle: `.generated/css-tokens.canonical.json`.
 - Rendered output:
     - `docs/reference/theming/tokens.md` (global index)
-    - `docs/reference/theming/tokens/<group-slug>.md` (one per group, where groups come from banner comments inside `:root` and fall back to `Base`)
+    - `docs/reference/theming/tokens/<group-slug>.md` (one per group)
 
-The extractor reads `:root` and `.dark` declarations, treats a trailing `/* ... */` on the declaration line as the description, and parses the `@theme inline` block to attach Tailwind utility family + property (`color`, `radius`, `shadow`, `font`, `spacing`, `animate`) to each token.
+Authoring conventions for `base.css` (group banners, trailing-comment descriptions, `@theme inline` aliasing) live in the [client annotation contract](./briefings/client-annotations.md).
 
 ### Cross-references between sources
 
-When `render` is given both `vue-docgen` and `theme-keys` (the default with `--source all`), the CLI pre-loads a theme-keys component index and passes it to the vue-docgen renderer. Component pages then emit `Theme entry: {@api theme-key:<Component>}` when a matching key exists, so authored docs and generated component pages share the same `@api` reference scheme. See `docs/README.md` for the full ID surface (`theme-key:<Component>`, `theme-key:<Component>.<slot>`, `css-token:<name>`).
+When `render` is given both `vue-docgen` and `theme-keys` (the default with `--source all`), the CLI pre-loads a theme-keys component index and passes it to the vue-docgen renderer. Component pages then emit `Theme entry: {@api theme-key:<Component>}` when a matching key exists, so authored docs and generated component pages share the same `@api` reference scheme. See the [client annotation contract](./briefings/client-annotations.md) § Cross-references between sources for the full ID surface.
 
 ## Tests
 
