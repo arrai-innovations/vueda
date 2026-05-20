@@ -561,6 +561,7 @@ export default {
      * focusable and increment with arrow keys.
      */
     DateField: {
+        /** The input-shaped shell hosting the editable date segments. Same hairline + focus + `aria-invalid` recipe as {@api theme-key:Input.root}, with the row of {@api theme-key:DateFieldInput.root} segments laid out as flex items inside; sizes pick the standard `h-vueda-control*` tier from `base.css § Control sizing`. The read-only treatment swaps to `bg-muted/50` so a frozen date field reads as the same surface family as a read-only text input. See DESIGN.md § Date / time and § Inputs. */
         root: ({ size }) => ({
             class: [
                 "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
@@ -580,6 +581,7 @@ export default {
      * highlights with `--accent`.
      */
     DateFieldInput: {
+        /** A single editable date segment (year / month / day). Renders in `--vueda-font-mono` at `font-medium` with `font-feature-settings: 'tnum','zero'` so digit widths stay stable as values change and `0` remains visually distinct from `O`. The focused segment paints `--accent` / `--accent-foreground` (same recipe as a menu-item-highlighted row, since a focused segment is a selection); `caret-transparent` hides the text caret because segments edit via arrow keys rather than free-form typing, and `data-[placeholder]` mutes the segment to `--muted-foreground` while empty. See DESIGN.md § Date / time. */
         root: {
             class: [
                 "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
@@ -592,6 +594,7 @@ export default {
      * single shell.
      */
     DateRangeField: {
+        /** The input-shell variant that joins a start / end {@api theme-key:DateRangeFieldInput.root} pair into one chip. See also: {@api theme-key:DateField.root} for the shared shell recipe; delta is that the row hosts two segment runs separated by a literal separator glyph rendered by the component rather than a single run. */
         root: ({ size }) => ({
             class: [
                 "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
@@ -610,6 +613,7 @@ export default {
      * DateFieldInput.
      */
     DateRangeFieldInput: {
+        /** An editable segment inside a {@api theme-key:DateRangeField.root}. See also: {@api theme-key:DateFieldInput.root}; same mono + tabular + slashed-zero, accent-on-focus, `caret-transparent` recipe applies. */
         root: {
             class: [
                 "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
@@ -622,6 +626,7 @@ export default {
      * optional second / period). Shares the input shell with DateField.
      */
     TimeField: {
+        /** The input-shell variant for editable time segments (hour / minute, plus optional second / period). See also: {@api theme-key:DateField.root}; identical shell and size-tier recipe, only the segment set inside differs. */
         root: ({ size }) => ({
             class: [
                 "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
@@ -639,6 +644,7 @@ export default {
      * Individual time segment inside TimeField. Same recipe as DateFieldInput.
      */
     TimeFieldInput: {
+        /** An editable segment inside a {@api theme-key:TimeField.root}. See also: {@api theme-key:DateFieldInput.root}; identical recipe. */
         root: {
             class: [
                 "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
@@ -653,6 +659,7 @@ export default {
      * embedded inline when a full grid is the primary surface.
      */
     Calendar: {
+        /** The outer surface that hosts the month grid. Pure 12px padding (`p-3`) and no border or shadow of its own; chrome belongs to the host (a {@api theme-key:PopoverContent.root} when used in a date-picker popover, or the surrounding view when embedded inline). No footer either: {@api theme-key:CalendarFooter.root} is a separate chin attached below by composition, so a footer-free embed renders as a bare grid. */
         root: {
             class: ["p-3"],
         },
@@ -663,6 +670,7 @@ export default {
      * nav buttons.
      */
     CalendarHeader: {
+        /** The title row above the day grid. Flex-centred so the {@api theme-key:CalendarHeading.root} sits in the middle of the row, with `px-8` reserving 32px of side padding for the prev / next {@api theme-key:CalendarNavButton.root} pair that the component anchors to the row edges. */
         root: {
             class: ["flex justify-center pt-1 relative items-center w-full px-8"],
         },
@@ -672,6 +680,7 @@ export default {
      * The month-year title text inside a CalendarHeader.
      */
     CalendarHeading: {
+        /** The month-year title text inside a {@api theme-key:CalendarHeader.root}. Single-line `text-sm font-medium`; sits centred between the prev / next nav buttons. */
         root: {
             class: ["text-sm font-medium"],
         },
@@ -685,6 +694,7 @@ export default {
      * BACKLOG-011 for the reconciliation question.
      */
     CalendarNavButton: {
+        /** The prev / next month button anchored to a {@api theme-key:CalendarHeader.root}. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonOutline.root} for the neutral chip recipe, then overrides to a square 28×28 transparent chip with `opacity-50` at rest and full opacity on hover so the chrome stays out of the way until the user reaches for it. One theme key serves both directional SFCs (CalendarPrevButton, CalendarNextButton); the {@api theme-key:RangeCalendarPrevButton.root} / {@api theme-key:RangeCalendarNextButton.root} pair on the range side stays split; see BACKLOG-011 for the reconciliation question. */
         root: {
             composes: ["_ButtonBase.root", "_ButtonOutline.root"],
             class: ["size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],
@@ -695,6 +705,7 @@ export default {
      * The 7-column day grid inside Calendar.
      */
     CalendarGrid: {
+        /** The 7-column day grid. `border-collapse` lets adjacent cell borders share one hairline rather than doubling at the seam; `w-full` lets the grid stretch to the {@api theme-key:Calendar.root} content width so cell sizing falls out of `flex-1` on {@api theme-key:CalendarCell.root}. */
         root: {
             class: ["w-full border-collapse space-x-1"],
         },
@@ -704,6 +715,7 @@ export default {
      * A single week row inside a CalendarGrid.
      */
     CalendarGridRow: {
+        /** A single week row inside a {@api theme-key:CalendarGrid.root}. Flex row; cell width comes from `flex-1` on the children, not from a column template. */
         root: {
             class: ["flex"],
         },
@@ -713,6 +725,7 @@ export default {
      * A weekday-label cell (Mo / Tu / We ...) above the day grid.
      */
     CalendarHeadCell: {
+        /** A weekday-label cell (Mo / Tu / We ...) above the day grid. Width pins to `--vueda-cal-cell` (32px) so labels align under the day-button slots below; renders at 0.8rem on `--muted-foreground` so the header row reads as chrome rather than as a row of day buttons. */
         root: {
             class: ["text-muted-foreground rounded-md w-[var(--vueda-cal-cell)] font-normal text-[0.8rem]"],
         },
@@ -722,6 +735,7 @@ export default {
      * A grid slot inside a CalendarGridRow; the day button sits inside it.
      */
     CalendarCell: {
+        /** A grid slot inside a {@api theme-key:CalendarGridRow.root}; the {@api theme-key:CalendarCellTrigger.root} day button sits inside it. `p-0` so the button owns the inner spacing, `flex-1` distributes width evenly across the row, and `relative` plus `focus-within:z-20` lets a focused day button promote above its neighbours when the focus ring would otherwise be clipped by adjacent cells. */
         root: {
             class: ["relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex-1"],
         },
@@ -733,6 +747,7 @@ export default {
      * ghost-button recipe for hover.
      */
     CalendarCellTrigger: {
+        /** The pressable day button inside a {@api theme-key:CalendarCell.root}. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonGhost.root} so day buttons share the popover-friendly hover recipe with the rest of the picker chrome. Size pins to `--vueda-cal-day` (30×30) so the button sits inside the 32px {@api theme-key:CalendarCell.root} with a 1px breathing margin; see DESIGN.md § Date / time. Carries the picker's full state matrix: `data-selected` paints `--primary` / `--primary-foreground`, `data-today` (when not selected) paints `--accent`, `data-disabled` and `data-outside-view` mute to `--muted-foreground`, and `data-unavailable` paints `--destructive` plus `line-through` (the single use of strikethrough in VUEDA; see DESIGN.md § Date / time). */
         root: {
             composes: ["_ButtonBase.root", "_ButtonGhost.root"],
             class: [
@@ -753,9 +768,11 @@ export default {
      * footer-free so it can be embedded without chrome it cannot use.
      */
     CalendarFooter: {
+        /** The optional chin slot below a {@api theme-key:Calendar.root} or {@api theme-key:RangeCalendar.root}. Flex row with a `border-t` separator and an 8px gap; used by date-picker popovers that need a date-summary line plus an action row (Apply / Clear). Calendar and RangeCalendar themselves stay footer-free so the bare grid can be embedded without chrome it cannot use; see DESIGN.md § Date / time. */
         root: {
             class: ["flex items-center justify-between gap-2 mt-2 pt-2 border-t"],
         },
+        /** The date-readout span inside a {@api theme-key:CalendarFooter.root}. Mono plus tabular plus slashed-zero (`font-feature-settings: 'tnum','zero'`) so the date string stays digit-aligned with the segment text in the trigger that opened the popover; renders at `--vueda-text-supporting` size with `leading-none` on `--muted-foreground` so the chin reads as status, not primary copy. */
         summary: {
             class: [
                 "font-mono font-medium text-[length:var(--vueda-text-supporting)] leading-none text-muted-foreground [font-feature-settings:'tnum','zero']",
@@ -770,6 +787,7 @@ export default {
      * Composed inside date-range-picker popovers.
      */
     RangeCalendar: {
+        /** See also: {@api theme-key:Calendar.root}; identical 12px-padded surface, only the grid inside differs (the {@api theme-key:RangeCalendarCell.root} carries the range-fill state). */
         root: {
             class: ["p-3"],
         },
@@ -780,6 +798,7 @@ export default {
      * prev / next nav buttons.
      */
     RangeCalendarHeader: {
+        /** The title row above a {@api theme-key:RangeCalendar.root}'s day grid. See also: {@api theme-key:CalendarHeader.root}; delta is that the prev / next buttons inside ({@api theme-key:RangeCalendarPrevButton.root} / {@api theme-key:RangeCalendarNextButton.root}) anchor to the row edges via `position: absolute`, so this header does not reserve `px-8` the way the single-calendar header does. */
         root: {
             class: ["flex justify-center pt-1 relative items-center w-full"],
         },
@@ -789,6 +808,7 @@ export default {
      * The month-year title text inside a RangeCalendarHeader.
      */
     RangeCalendarHeading: {
+        /** See also: {@api theme-key:CalendarHeading.root}; identical recipe. */
         root: {
             class: ["text-sm font-medium"],
         },
@@ -799,6 +819,7 @@ export default {
      * to the left edge of the header.
      */
     RangeCalendarPrevButton: {
+        /** The previous-month button anchored to the left edge of a {@api theme-key:RangeCalendarHeader.root}. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonOutline.root}, then absolute-positions itself at `left-1` so the button does not consume row flex while the heading floats centred between the two edges. Same square 28×28 transparent plus 50%-opacity-at-rest treatment as {@api theme-key:CalendarNavButton.root}. */
         root: {
             composes: ["_ButtonBase.root", "_ButtonOutline.root"],
             class: ["absolute left-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],
@@ -810,6 +831,7 @@ export default {
      * the right edge of the header.
      */
     RangeCalendarNextButton: {
+        /** See also: {@api theme-key:RangeCalendarPrevButton.root}; mirror anchored to the right edge of the header at `right-1`. */
         root: {
             composes: ["_ButtonBase.root", "_ButtonOutline.root"],
             class: ["absolute right-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],
@@ -820,6 +842,7 @@ export default {
      * The 7-column day grid inside RangeCalendar.
      */
     RangeCalendarGrid: {
+        /** See also: {@api theme-key:CalendarGrid.root}; identical recipe. */
         root: {
             class: ["w-full border-collapse space-x-1"],
         },
@@ -829,6 +852,7 @@ export default {
      * A single week row inside a RangeCalendarGrid.
      */
     RangeCalendarGridRow: {
+        /** See also: {@api theme-key:CalendarGridRow.root}; identical recipe. */
         root: {
             class: ["flex"],
         },
@@ -838,6 +862,7 @@ export default {
      * A weekday-label cell above the RangeCalendar day grid.
      */
     RangeCalendarHeadCell: {
+        /** See also: {@api theme-key:CalendarHeadCell.root}; identical recipe (the class-order difference vs the single-calendar slot is incidental, not a deliberate departure). */
         root: {
             class: ["w-[var(--vueda-cal-cell)] rounded-md text-[0.8rem] font-normal text-muted-foreground"],
         },
@@ -849,6 +874,7 @@ export default {
      * day button radius.
      */
     RangeCalendarCell: {
+        /** A grid slot inside a {@api theme-key:RangeCalendarGridRow.root}. Same `p-0` plus `relative` plus `focus-within:z-20` layout shape as {@api theme-key:CalendarCell.root}, plus the range-fill recipe: `[&:has([data-selected])]:bg-accent` paints `--accent` on the cell (not on the day button) whenever the inner trigger is part of the selected range, so middle cells render as a continuous strip while the `data-selection-start` and `data-selection-end` cells round only their outer corners via the `[&:has([data-selected][data-selection-start])]` / `[&:has([data-selected][data-selection-end])]` variants. Range fill goes on the cell rather than the day button so the run can round cleanly at its endpoints; see DESIGN.md § Date / time. */
         root: {
             class: [
                 "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([data-selected])]:bg-accent first:[&:has([data-selected])]:rounded-l-vueda-cal-day last:[&:has([data-selected])]:rounded-r-vueda-cal-day [&:has([data-selected][data-selection-end])]:rounded-r-vueda-cal-day [&:has([data-selected][data-selection-start])]:rounded-l-vueda-cal-day",
@@ -863,6 +889,7 @@ export default {
      * hover.
      */
     RangeCalendarCellTrigger: {
+        /** The pressable day button inside a {@api theme-key:RangeCalendarCell.root}. See also: {@api theme-key:CalendarCellTrigger.root}; delta is that the single `data-selected` state is replaced by paired `data-selection-start` / `data-selection-end` states that paint `--primary` only at the two endpoints, leaving the middle of the range to read through the `--accent` fill that {@api theme-key:RangeCalendarCell.root} paints on its cell. */
         root: {
             composes: ["_ButtonBase.root", "_ButtonGhost.root"],
             class: [
