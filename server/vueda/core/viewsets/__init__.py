@@ -460,8 +460,7 @@ class DeactivateActionViewSetMixin:
     """
 
     @action(detail=True, bulk=True, methods=["patch"])
-    def deactivate(self, request, **kwargs):
-        pk = kwargs.get("pk")
+    def deactivate(self, request, pk=None):
         if pk:
             instance = self.get_object()
             if not isinstance(instance, ActivatableBaseModel):
@@ -507,8 +506,7 @@ class DeactivateActionViewSetMixin:
         return Response({"detail": f"Successfully deactivated {len(pks)} objects."}, status=status.HTTP_200_OK)
 
     @action(detail=True, bulk=True, methods=["patch"])
-    def activate(self, request, **kwargs):
-        pk = kwargs.get("pk")
+    def activate(self, request, pk=None):
         if pk:
             instance = self.get_object()
             if not isinstance(instance, ActivatableBaseModel):

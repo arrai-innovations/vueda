@@ -69,7 +69,6 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.distributor",
                     "detail": True,
                     "method_names": ["get"],
-                    "parameters": ["args", "kwargs"],
                 },
             ],
             "expected_actions_customer": [
@@ -1732,7 +1731,6 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.customerorder",
                     "detail": True,
                     "method_names": ["get"],
-                    "parameters": ["args", "kwargs"],
                 },
             ],
             "expected_actions_customer": [
@@ -1772,7 +1770,6 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.customerorder",
                     "detail": True,
                     "method_names": ["get"],
-                    "parameters": ["args", "kwargs"],
                 },
             ],
             "expected_expands": [
@@ -2891,7 +2888,6 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.product",
                     "detail": True,
                     "method_names": ["get"],
-                    "parameters": ["args", "kwargs"],
                 },
             ],
             "expected_actions_customer": [
@@ -2924,7 +2920,6 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.product",
                     "detail": True,
                     "method_names": ["get"],
-                    "parameters": ["args", "kwargs"],
                 },
             ],
             "expected_expands": [
@@ -4170,7 +4165,6 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.productoption",
                     "detail": True,
                     "method_names": ["get"],
-                    "parameters": ["args", "kwargs"],
                 },
             ],
             "expected_actions_customer": [
@@ -4203,7 +4197,6 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.productoption",
                     "detail": True,
                     "method_names": ["get"],
-                    "parameters": ["args", "kwargs"],
                 },
             ],
             "expected_expands": [

@@ -56,7 +56,7 @@ class SimpleHistoryViewSetMixin:
         return different_fields
 
     @action(detail=True, methods=["get"])
-    def history_list(self, *args, **kwargs):
+    def history_list(self):
         # if it is slow then we should try making postgres do it.
         user_model = get_user_model()
         user_cache = {}
