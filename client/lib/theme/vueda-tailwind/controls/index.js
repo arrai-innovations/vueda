@@ -17,6 +17,7 @@ export default {
      * shape without committing to a colour variant.
      */
     _ButtonBase: {
+        /** The shared button shell: inline-flex layout, 2px control radius, sm font-medium type, default 16px icon sizing, focus-visible ring, and the system-wide disabled treatment. Height and horizontal padding are omitted; the leaf picks a tier from `base.css § Control sizing`. See DESIGN.md § Buttons / toggles / kbd. */
         root: {
             class: [
                 "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-vueda-control text-sm font-medium transition-all",
@@ -33,6 +34,7 @@ export default {
      * Composed into Button.root when `variant` is `default`.
      */
     _ButtonDefault: {
+        /** The `--primary` CTA fill: solid primary background, primary-foreground text, 10% darker on hover. Pair sparingly with neutral pressed-state recipes like {@api theme-key:Toggle.root} so a CTA and an active toggle do not compete; see DESIGN.md § 2.2. */
         root: { class: "bg-primary text-primary-foreground hover:bg-primary/90" },
     },
 
@@ -41,6 +43,7 @@ export default {
      * Composed into Button.root when `variant` is `destructive`.
      */
     _ButtonDestructive: {
+        /** The `--destructive` fill: solid destructive background in light mode, 60%-mix in dark so the chip stays legible against `--background`, destructive-foreground text, and a destructive-tinted focus outline. Reserve for actions that delete user data or are otherwise irreversible; menu / list destructive items use a colour-only recipe (see DESIGN.md § Overlays / menus). */
         root: {
             class: "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-destructive dark:bg-destructive/60",
         },
@@ -53,6 +56,7 @@ export default {
      * FileUpload.trigger, RangeCalendarPrevButton).
      */
     _ButtonOutline: {
+        /** The neutral-chip recipe: 1px border, `--background` fill, `shadow-vueda-control` micro-shadow, and `--accent` hover swap. Dark mode follows the input-tint convention (`bg-input/30`, `border-input`, hover `bg-input/50`) so outlined chips read like inputs at rest; see DESIGN.md § Inputs. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons. */
         root: {
             class: "border bg-background shadow-vueda-control hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
         },
@@ -63,6 +67,7 @@ export default {
      * Composed into Button.root when `variant` is `secondary`.
      */
     _ButtonSecondary: {
+        /** The `--secondary` surface fill: solid secondary background, secondary-foreground text, 20%-lighter on hover. Use for actions that sit beside a CTA without stealing it; a row of secondary buttons reads as a control cluster rather than a set of competing CTAs. */
         root: { class: "bg-secondary text-secondary-foreground hover:bg-secondary/80" },
     },
 
@@ -73,6 +78,7 @@ export default {
      * RangeCalendarCellTrigger so day buttons share the same hover recipe.
      */
     _ButtonGhost: {
+        /** The transparent-at-rest recipe: no fill or border until hover, when `--accent` paints the background. Shared by {@api theme-key:CalendarCellTrigger.root} and {@api theme-key:RangeCalendarCellTrigger.root} so day buttons in a calendar grid keep one consistent hover affordance; dark-mode hover is half-strength accent so the day button does not over-saturate the popover surface. */
         root: { class: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50" },
     },
 
@@ -83,6 +89,7 @@ export default {
      * text rather than as a standalone control.
      */
     _ButtonLink: {
+        /** The inline-text recipe: `--primary` text with a 4px underline offset that appears on hover only. The `link` variant of {@api theme-key:Button} also drops the control height and horizontal padding so the affordance does not break surrounding line metrics; see DESIGN.md § Buttons / toggles / kbd. */
         root: { class: "text-primary underline-offset-4 hover:underline" },
     },
 
@@ -96,6 +103,7 @@ export default {
      * inline-flow and skips the control-height + padding recipe.
      */
     Button: {
+        /** The pressable root. Composes {@api theme-key:_ButtonBase.root} plus the variant primitive named by `variant`, then layers the per-size height / padding pair from `base.css § Control sizing` (or `size-vueda-control*` for icon-only sizes). The `link` variant skips the control-height block and goes inline. The `data-state=cooldown` state (set by the component while a one-shot action is recovering) mutes the label to `--muted-foreground` and suppresses hover so a recently-clicked button reads as "wait" without changing layout. */
         root: ({ variant, size }) => {
             const v = variant || "default";
             const variantKey = `_Button${v.charAt(0).toUpperCase()}${v.slice(1)}.root`;
@@ -138,6 +146,7 @@ export default {
      * horizontal (default) and vertical orientation.
      */
     ButtonGroup: {
+        /** The segmented-cluster shell. Strips inner radii and shared borders between adjacent children so a row (or column when `orientation` is `vertical`) of buttons, inputs, and Select triggers reads as one slab; focus z-index promotion keeps the focus ring from being clipped by neighbours. Nested {@api theme-key:ButtonGroup} children retain an 8px gap. The icon-only-stays-seamless / text-or-mixed-keeps-seams rule is applied by the component, not this slot; see DESIGN.md § Buttons / toggles / kbd. */
         root: ({ orientation }) => ({
             class: [
                 "flex w-fit items-stretch [&>*]:focus-visible:z-10 [&>*]:focus-visible:relative [&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit [&>input]:flex-1 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md has-[>[data-slot=button-group]]:gap-2",
@@ -156,6 +165,7 @@ export default {
      * ButtonGroup.
      */
     ButtonGroupSeparator: {
+        /** The explicit divider used inside a {@api theme-key:ButtonGroup} when the segmented cluster needs a visible split between text segments. Uses the `--input` token so the divider matches the surrounding hairline color in both modes, and stretches to the group's cross-axis. */
         root: {
             class: ["bg-input relative !m-0 self-stretch data-[orientation=vertical]:h-auto"],
         },
@@ -166,6 +176,7 @@ export default {
      * joined to its neighbouring controls.
      */
     ButtonGroupText: {
+        /** The static-label chip used to join readable copy ("of", "to", a unit suffix) into a {@api theme-key:ButtonGroup}. Wears the button shape (2px control radius, 1px border, `shadow-vueda-control`) but sits on `--muted` so it does not read as pressable; padding picks 16px to match the default button's `px-vueda-control-px` baseline. */
         root: {
             class: [
                 "bg-muted flex items-center gap-2 rounded-vueda-control border px-4 text-sm font-medium shadow-vueda-control [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
@@ -181,6 +192,7 @@ export default {
      * CTA (`--primary`).
      */
     Toggle: {
+        /** The on/off button shell. Reads as a Button shape (control radius, `text-sm font-medium`, 16px icon) but the pressed state (`data-state=on`) paints `--accent` instead of `--primary` so a pressed toggle does not compete with a CTA on the same surface; see DESIGN.md § Buttons / toggles / kbd and § 2.2. Two variants (default, `outline`) and three size tiers ride the shared `h-vueda-control*` scale; `min-w-vueda-control*` keeps a single-icon toggle square. */
         root: ({ variant, size }) => ({
             class: [
                 "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:hairline-ring focus-visible:focus-ring-shadow transition-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive whitespace-nowrap",
@@ -202,6 +214,7 @@ export default {
      * Layout shell for a row of ToggleGroupItems.
      */
     ToggleGroup: {
+        /** The row layout for a set of {@api theme-key:ToggleGroupItem.root} children. The `--gap` custom property is driven by the consumer's `spacing` prop, which lets the same group render as a gapped row or (at `spacing=0`) as a segmented control where child items drop their outer radii and shared borders. The `group/toggle-group` Tailwind group label lets items react to group-level state. */
         root: {
             class: ["group/toggle-group flex w-fit items-center gap-[--spacing(var(--gap))] rounded-vueda-control"],
         },
@@ -213,6 +226,7 @@ export default {
      * segmented unit (rounded only on the outer corners, shared borders).
      */
     ToggleGroupItem: {
+        /** The individual item inside a {@api theme-key:ToggleGroup}. Mirrors the {@api theme-key:Toggle.root} recipe (same variants, sizes, and accent-pressed treatment) and adds segmented behaviour: when the host group sets `data-spacing=0`, items drop their per-item radius and shadow and re-add them on the first and last child so the cluster reads as one slab. `min-w-0 shrink-0 px-3` overrides the Toggle minimum width so a label-bearing item grows to its content rather than staying square. */
         root: ({ variant, size }) => ({
             class: [
                 "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:hairline-ring focus-visible:focus-ring-shadow transition-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive whitespace-nowrap",
@@ -240,6 +254,7 @@ export default {
      * while a file is being dragged over it.
      */
     FileUpload: {
+        /** The outer container. In inline-trigger mode this is a tight flex column wrapping the picker button plus optional helper text; in `dropzone` mode it grows into a dashed-border target (2px input-coloured dashes, 6 spacing pad, large radius) that highlights with a primary-tinted fill when `dragging`. The `disabled` state dims the whole region and switches the cursor; the inner trigger still picks up its own disabled treatment from {@api theme-key:_ButtonBase.root}. */
         root: ({ dropzone, dragging, disabled }) => ({
             class: [
                 "inline-flex flex-col items-center gap-1",
@@ -250,10 +265,12 @@ export default {
                 },
             ],
         }),
+        /** The "choose file" affordance. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonOutline.root} so the trigger reads as the same neutral chip as an outline-variant {@api theme-key:Button.root}, at the default control height with the icon-aware narrower padding kicking in when the trigger carries an icon. */
         trigger: {
             composes: ["_ButtonBase.root", "_ButtonOutline.root"],
             class: ["h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm"],
         },
+        /** The "or drop here" helper line below the trigger. Muted secondary text at the sm tier so it sits as ancillary copy and never competes with the trigger label or a selected-file readout. */
         dropMessage: {
             class: ["text-sm text-muted-foreground"],
         },
