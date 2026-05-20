@@ -29,10 +29,6 @@ The briefings below are the source of truth for what each extractor expects to f
 - [Client annotation contract](./briefings/client-annotations.md)
 - [Server annotation contract](./briefings/server-annotations.md)
 
-@./briefings/client-annotations.md
-
-@./briefings/server-annotations.md
-
 ## Test Execution
 
 For fast feedback during development, run only the spec file you are currently working on:

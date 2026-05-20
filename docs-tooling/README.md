@@ -102,57 +102,12 @@ $ just bootstrap
 
 ## Source Annotations
 
-The vue-docgen normalizer recognizes two custom annotation conventions in `client/lib/` source files.
+The extractors read custom annotation conventions from `client/lib/` and `server/vueda/` source files. The authoritative contracts live next to the extractors that enforce them:
 
-### `@vueda-spread` (JS composables)
+- [Client annotation contract](./briefings/client-annotations.md)
+- [Server annotation contract](./briefings/server-annotations.md)
 
-When a composable exports a constant that other components spread into their `props` or `emits` options, annotate its JSDoc block with `@vueda-spread props` or `@vueda-spread emits`. The normalizer reads the annotation and injects those prop or emit entries into every component that spreads the constant.
-
-```js
-/**
- * Standard props shared by all field components.
- *
- * @vueda-spread props
- */
-export const FIELD_PROPS = {
-    /** The field name. */
-    name: { type: String, required: true },
-    // ...
-};
-```
-
-```js
-/**
- * Standard emits shared by all field components.
- *
- * @vueda-spread emits
- */
-export const FIELD_EMITS = {
-    // ...
-};
-```
-
-Each prop or emit entry should carry a JSDoc line comment (`/** ... */`) directly above it. The normalizer uses those comments as the member descriptions in the generated API docs.
-
-### `<!-- @slot ... -->` (Vue SFC templates)
-
-vue-docgen-api cannot statically resolve dynamic slot names (expressions like `:name="resolvedSlotNames.clearButton.name"`). Place an HTML comment immediately before the `<slot>` element. Two syntaxes are supported:
-
-**Bare form** (single name, no fallbacks):
-
-```html
-<!-- @slot filter-clear-button Replaces the clear button inside the filter form. -->
-<slot :name="resolvedSlotNames.clearButton.name" />
-```
-
-**Bracket form** (first name is canonical, remaining names are fallback slot names accepted by the same outlet):
-
-```html
-<!-- @slot [filter-clear-button, filter-clear-button(filterName)] Replaces the clear button inside the filter form. -->
-<slot :name="resolvedSlotNames.clearButton.name" />
-```
-
-The bracket form also works on static slots when you want to document fallbacks. An empty bracket list `[]` is a parse error. Use the consumer-facing API name (kebab-case), not the internal resolver expression.
+When changing an extractor, update the corresponding briefing in the same commit.
 
 ## Theme keys and CSS tokens
 
@@ -167,7 +122,7 @@ Theme keys and CSS tokens flow through the same extract/normalize/render pipelin
     - `docs/reference/theming/keys/family/<family-slug>.md` (one per family)
     - `docs/reference/theming/keys/<Component>.md` (one per component or primitive, with a per-slot detail block on each page)
 
-Authoring conventions for theme-key source files live in `client/AGENTS.md` (component name, slot JSDoc, banner comments, `composes`, primitive `_` prefix).
+Authoring conventions for theme-key source files live in the [client annotation contract](./briefings/client-annotations.md) (component name, slot JSDoc, banner comments, `composes`, primitive `_` prefix).
 
 ### CSS tokens
 
