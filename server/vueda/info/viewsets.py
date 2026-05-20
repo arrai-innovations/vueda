@@ -258,7 +258,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
         if hasattr(field, "child_relation"):
             queryset = field.child_relation.queryset
-            if hasattr(queryset.model, "get_formatted_name"):
+            if callable(getattr(queryset.model, "get_formatted_name", None)):
                 choices = []
                 for instance in queryset.filter(pk__in=field.choices.keys()):
                     choices.append(
@@ -282,7 +282,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
             queryset = field.get_queryset()
             if hasattr(field, "slug_field"):
                 key_field = field.slug_field
-                if hasattr(queryset.model, "get_formatted_name"):
+                if callable(getattr(queryset.model, "get_formatted_name", None)):
                     choices = []
                     for instance in queryset:
                         choices.append(
@@ -304,7 +304,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                     )
 
             else:
-                if hasattr(queryset.model, "get_formatted_name"):
+                if callable(getattr(queryset.model, "get_formatted_name", None)):
                     choices = []
                     for instance in queryset.filter(pk__in=field.choices.keys()):
                         choices.append(
