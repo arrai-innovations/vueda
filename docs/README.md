@@ -63,9 +63,15 @@ A way to understand the Diátaxis Types is as an authoring contract:
 
 ## Generated API docs
 
-API references for REST, Python, JavaScript, and Vue.js components are generated from source code and stored under `docs/reference/api/`.
+API references for REST, Python, JavaScript, and Vue.js components, plus theme keys and CSS tokens, are generated from source code and stored under `docs/reference/api/` and `docs/reference/theming/`.
 
 These pages are not intended for manual editing; instead, they are generated (see `docs-api` in root `justfile`). Errors or omissions in these pages should be fixed in the source code or generation templates, not by editing the generated markdown.
+
+The pipeline lives in [`docs-tooling/`](../docs-tooling/README.md). The annotation conventions each extractor reads from the source trees it walks are documented in package-scoped briefings:
+
+- [Client annotation contract](../docs-tooling/briefings/client-annotations.md) (Vue SFCs, `@vueda-spread`, dynamic slots, theme keys in `client/lib/`)
+
+When the extractors change, the briefings should change in the same commit. Treat them as the source of truth for what you need to write in source files to make something appear in the rendered docs.
 
 When linking generated API docs in authored Markdown, use `{@api ...}` IDs instead of hardcoded paths.
 
