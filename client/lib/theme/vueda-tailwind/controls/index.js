@@ -911,6 +911,7 @@ export default {
      * so the popover aligns to the input.
      */
     ComboboxAnchor: {
+        /** The positioning anchor for the {@api theme-key:ComboboxList.root} popover. Pins to a 200px width by default so a Combobox that anchors to whitespace (rather than the trigger element) still has a sensible reference rectangle; consumers that wrap the trigger in the anchor inherit the trigger's width instead and can ignore this default. Layout-only slot; no chrome of its own. */
         root: {
             class: ["w-[200px]"],
         },
@@ -922,6 +923,7 @@ export default {
      * about to type.
      */
     ComboboxTrigger: {
+        /** The pressable surface that opens the {@api theme-key:ComboboxList.root}. Ships empty today: in-tree consumers (`WidgetCombobox`) supply their own input-shell chrome via `asChild`, so the bare primitive has no usable default. The Combobox-vs-Select differentiator (Combobox reads as a field because the user is about to type; see DESIGN.md § Selection / Command) is enforced by consumers, not by this slot; see BACKLOG-008 for the API session that bakes the input-shell default into this primitive and resolves the multi-select div-trigger pattern. */
         root: {
             class: [""],
         },
@@ -931,6 +933,7 @@ export default {
      * The floating popover surface that holds the Combobox results.
      */
     ComboboxList: {
+        /** The floating popover surface that holds the {@api theme-key:ComboboxItem.root} rows. Reads as a popover: 2px control radius, `--popover` fill, 1px border, and `shadow-vueda-popover` elevation, with the standard side-aware enter / exit transforms anchored on `--reka-combobox-content-transform-origin` so the surface scales out of the corner closest to the trigger. Fixed 200px width matches {@api theme-key:ComboboxAnchor.root}; the inner {@api theme-key:ComboboxViewport.root} owns scrolling. */
         root: {
             class: [
                 "z-50 w-[200px] rounded-vueda-control border bg-popover text-popover-foreground origin-(--reka-combobox-content-transform-origin) overflow-hidden shadow-vueda-popover outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
@@ -942,6 +945,7 @@ export default {
      * Scrollable region inside ComboboxList that wraps the results.
      */
     ComboboxViewport: {
+        /** The scrollable region inside {@api theme-key:ComboboxList.root} that wraps the result groups. Caps at 300px tall before the viewport begins to scroll; `scroll-py-1` keeps a hairline of breathing room above the first and below the last visible row so a focused item never crashes into the viewport edge. */
         root: {
             class: ["max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto"],
         },
@@ -953,6 +957,7 @@ export default {
      * surface inside the popover.
      */
     ComboboxInput: {
+        /** The search field at the top of a {@api theme-key:ComboboxList.root}. Sized to the large control-height tier (`h-vueda-control-lg`) so the input reads as the primary surface inside the popover; renders chrome-free (`bg-transparent`, no border or focus ring) because the surrounding popover already owns the elevation and ring contracts. The Combobox trigger that opens the popover wears the input shell instead; see DESIGN.md § Selection / Command. */
         root: {
             class: [
                 "placeholder:text-muted-foreground flex h-vueda-control-lg w-full rounded-vueda-control bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
@@ -965,9 +970,11 @@ export default {
      * heading. The heading slot renders the caps-mono-micro eyebrow recipe.
      */
     ComboboxGroup: {
+        /** A section of related {@api theme-key:ComboboxItem.root} rows inside {@api theme-key:ComboboxList.root}. 4px padding (`p-1`) carries the breathing room around the section so consecutive groups read as separate runs even without a {@api theme-key:ComboboxSeparator.root} between them; `overflow-hidden` clips a long inner row to the group's box rather than letting it bleed into a neighbour. */
         root: {
             class: ["overflow-hidden p-1 text-foreground"],
         },
+        /** The optional heading row above a group's items. Renders the caps-mono-micro eyebrow recipe (mono, weight 600, micro size, uppercase, 0.04em tracking) on `--muted-foreground` so the label reads as a section eyebrow rather than as a result row; see DESIGN.md § 3.3. Same recipe as {@api theme-key:SelectLabel.root} and {@api theme-key:CommandGroup.heading} so all three pickers share one eyebrow voice. */
         heading: {
             class: "text-muted-foreground px-2 py-1.5 font-mono text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase",
         },
@@ -978,6 +985,7 @@ export default {
      * focused; muted icon flips to `--accent-foreground` on highlight.
      */
     ComboboxItem: {
+        /** A single result row inside a {@api theme-key:ComboboxGroup.root}. The `data-highlighted` state (set by the picker on keyboard or pointer focus) paints `--accent` / `--accent-foreground`, and the muted leading icon flips to inherit on the same rule so a highlighted row reads as one tinted strip. `data-disabled` halves opacity and drops pointer events; `rounded-sm` keeps the row a chit inside the group's slab. The committed-value `data-state=checked` tint that {@api theme-key:SelectItem.root} carries is not applied here because Combobox commits by closing the popover; the trailing {@api theme-key:ComboboxItemIndicator.root} marks the selection instead. */
         root: {
             class: [
                 "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -989,6 +997,7 @@ export default {
      * Indicator (check mark, etc.) on a selected ComboboxItem.
      */
     ComboboxItemIndicator: {
+        /** The trailing selected-state glyph on a {@api theme-key:ComboboxItem.root} (typically a check mark). `ml-auto` pushes the indicator to the row's trailing edge; size and colour are inherited from the surrounding row so the indicator picks up the highlight swap without painting its own state. */
         root: {
             class: ["ml-auto"],
         },
@@ -998,6 +1007,7 @@ export default {
      * 1px divider between sections inside a Combobox.
      */
     ComboboxSeparator: {
+        /** A 1px horizontal divider between groups inside {@api theme-key:ComboboxList.root}. Renders as a flat `--border` hairline rather than the DPR-aware `hairline` utility because the separator sits inside a popover that already paints its own border at the same width, so the visual seam never reads as a doubled line. `-mx-1` extends the divider to the popover edge past the group's 4px inner padding. */
         root: {
             class: ["bg-border -mx-1 h-px"],
         },
@@ -1007,6 +1017,7 @@ export default {
      * Placeholder shown inside ComboboxList when the search has zero results.
      */
     ComboboxEmpty: {
+        /** The zero-result placeholder shown inside {@api theme-key:ComboboxList.root} when the search has no matches. Centred sm text inside 24px vertical padding so the empty state reads as a deliberate pause rather than a collapsed popover; consumers supply their own copy. */
         root: {
             class: ["py-6 text-center text-sm"],
         },
@@ -1021,6 +1032,7 @@ export default {
      * not a slab control.
      */
     Command: {
+        /** The outer Command surface (a search + categorised result list). 4px card radius rather than the 2px control radius the rest of the picker family wears, because Command is a shell surface, not a slab control; see DESIGN.md § Selection / Command. The flex-column layout stacks {@api theme-key:CommandInput.root}, {@api theme-key:CommandList.root}, and optional {@api theme-key:CommandFooter.root} into one chip, and `overflow-hidden` lets the inner list scroll without escaping the rounded corners. Used inline or hosted inside a {@api theme-key:CommandDialog.content}. */
         root: {
             class: [
                 "bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-vueda-card",
@@ -1033,11 +1045,13 @@ export default {
      * icon and divider below the input.
      */
     CommandInput: {
+        /** The free-text search field at the top of a {@api theme-key:Command.root}. Renders chrome-free at `--vueda-cmd-input-height` so the surrounding {@api theme-key:CommandInput.wrapper} owns the row's geometry and the lower hairline; the input itself just contributes placeholder, focus-clear, and the disabled treatment. */
         root: {
             class: [
                 "placeholder:text-muted-foreground flex h-[var(--vueda-cmd-input-height)] w-full rounded-vueda-control bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
+        /** The row that wraps {@api theme-key:CommandInput.root} together with the leading search icon, sized to `--vueda-cmd-input-height` and capped by a bottom hairline (`border-b`) so the input separates cleanly from the {@api theme-key:CommandList.root} below. The wrapper, not the input, owns the divider so the seam stays continuous even when the input is empty or focused. */
         wrapper: { class: "flex h-[var(--vueda-cmd-input-height)] items-center gap-2 border-b px-3" },
     },
 
@@ -1045,6 +1059,7 @@ export default {
      * Scrollable region of Command holding the result groups.
      */
     CommandList: {
+        /** The scrollable region of {@api theme-key:Command.root} that holds the result groups. See also: {@api theme-key:ComboboxViewport.root}; identical 300px cap and `scroll-py-1` recipe so both pickers feel the same when keyboard navigation crosses the viewport edge. */
         root: {
             class: ["max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto"],
         },
@@ -1054,6 +1069,7 @@ export default {
      * Placeholder shown when the Command search has zero results.
      */
     CommandEmpty: {
+        /** The zero-result placeholder shown inside {@api theme-key:CommandList.root} when the search has no matches. See also: {@api theme-key:ComboboxEmpty.root}; identical recipe. */
         root: {
             class: ["py-6 text-center text-sm"],
         },
@@ -1063,9 +1079,11 @@ export default {
      * Section of related items inside CommandList, with a heading row.
      */
     CommandGroup: {
+        /** A section of related {@api theme-key:CommandItem.root} rows inside {@api theme-key:CommandList.root}. See also: {@api theme-key:ComboboxGroup.root}; identical recipe. */
         root: {
             class: ["text-foreground overflow-hidden p-1"],
         },
+        /** The optional heading row above a group's items. See also: {@api theme-key:ComboboxGroup.heading}; identical caps-mono-micro eyebrow on `--muted-foreground`. The class-order difference (no leading `font-mono`) is incidental: the rendered recipe matches because `font-mono` is restated later in the list. */
         heading: {
             class: "px-2 py-1.5 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em] text-muted-foreground",
         },
@@ -1076,6 +1094,7 @@ export default {
      * ComboboxItem.
      */
     CommandItem: {
+        /** A single result row inside a {@api theme-key:CommandGroup.root}. See also: {@api theme-key:ComboboxItem.root}; identical highlight + disabled + icon-tint recipe so result rows feel the same across both pickers. Command differs only at the row's trailing edge, where {@api theme-key:CommandShortcut.root} (rather than {@api theme-key:ComboboxItemIndicator.root}) marks the kbd hint for invoking the action. */
         root: {
             class: [
                 "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -1087,6 +1106,7 @@ export default {
      * 1px divider between sections inside Command.
      */
     CommandSeparator: {
+        /** A 1px horizontal divider between groups inside {@api theme-key:CommandList.root}. See also: {@api theme-key:ComboboxSeparator.root}; identical recipe. */
         root: {
             class: ["bg-border -mx-1 h-px"],
         },
@@ -1096,6 +1116,7 @@ export default {
      * Inline keyboard-shortcut hint on the trailing edge of a CommandItem.
      */
     CommandShortcut: {
+        /** The inline keyboard-shortcut hint on the trailing edge of a {@api theme-key:CommandItem.root}. `ml-auto` pushes the hint flush right; renders as xs muted text with `tracking-widest` so a multi-character chord stays scannable inside a single row. Not a kbd shell: the visible glyph box is owned by an inner `<kbd>`. */
         root: {
             class: ["text-muted-foreground ml-auto text-xs tracking-widest"],
         },
@@ -1108,13 +1129,16 @@ export default {
      * legibility for density.
      */
     CommandFooter: {
+        /** The optional chin below {@api theme-key:CommandList.root}. Sits at `--vueda-cmd-footer-height` (32px) on `--muted` with a top hairline, holding keyboard-navigation hints on the leading edge and custom action labels on the trailing edge; supporting-size copy on `--muted-foreground` reads as status rather than primary chrome. Inline `<kbd>` elements inside the footer are restyled to 18x18 / mono 10px / 2px radius (a deliberate departure from the body {@api theme-key:Kbd} primitive) so a `↑↓` chord fits in the chin without breaking the row baseline; see DESIGN.md § Selection / Command. */
         root: {
             class: [
                 "flex h-[var(--vueda-cmd-footer-height)] items-center justify-between gap-3 border-t bg-muted px-[var(--vueda-control-px-md)] text-[length:var(--vueda-text-supporting)] text-muted-foreground",
                 "[&_kbd]:inline-flex [&_kbd]:h-[18px] [&_kbd]:min-w-[18px] [&_kbd]:items-center [&_kbd]:justify-center [&_kbd]:rounded-[2px] [&_kbd]:border [&_kbd]:bg-background [&_kbd]:px-1 [&_kbd]:font-mono [&_kbd]:text-[10px] [&_kbd]:font-medium [&_kbd]:text-foreground",
             ],
         },
+        /** The hints cluster inside a {@api theme-key:CommandFooter.root}. Inline-flex row with a 12px gap so consecutive kbd-plus-label pairs (`↑↓ navigate`, `↵ select`, `Esc close`) sit as one readable strip rather than collapsing into a run-on glyph soup. */
         hints: { class: "inline-flex items-center gap-3" },
+        /** A single kbd-plus-label pair inside {@api theme-key:CommandFooter.hints}. Tighter 6px inner gap pairs the `<kbd>` with its trailing label so the pair reads as one unit against the wider gap between sibling hints. */
         hint: { class: "inline-flex items-center gap-1.5" },
     },
 
@@ -1124,7 +1148,9 @@ export default {
      * owns the geometry.
      */
     CommandDialog: {
+        /** The {@api theme-key:DialogContent.root} pane that hosts a {@api theme-key:Command.root} at modal scale. Drops all padding so Command's own card radius, fill, and inner geometry own the dialog box, and `overflow-hidden` keeps the inner list's scroll edges clipped to the rounded corners. */
         content: { class: "overflow-hidden p-0" },
+        /** The dialog header. Hidden with `sr-only` because the Command's own {@api theme-key:CommandInput.root} acts as the visible label; the header still ships so accessible-name requirements are met for screen readers. */
         header: { class: "sr-only" },
     },
 
@@ -1136,6 +1162,7 @@ export default {
      * Combobox-the-searchable-picker.
      */
     SelectTrigger: {
+        /** The pressable surface that opens a {@api theme-key:SelectContent.root}. Reads as a neutral chip (transparent at rest, `hairline` border, `shadow-vueda-control` micro-shadow, control-radius corners) rather than the input shell {@api theme-key:ComboboxTrigger.root} wears, because Select is an enum picker and the user is not about to type; see DESIGN.md § Selection / Command. Hover paints `hairline-border-strong` (one step darker than the resting hairline) without firing the focus ring. Three size tiers ride `h-vueda-control*` plus matching `px-vueda-control-px*`; dark mode follows the input-tint convention (`bg-input/30`, hover `bg-input/50`), and `aria-invalid` swaps both the hairline and the focus-ring shadow to destructive (see DESIGN.md § 7.2). Placeholder text mutes to `--muted-foreground` so an unselected trigger reads as empty rather than as a chosen value. */
         root: {
             class: [
                 "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 hover:hairline-border-strong hairline flex w-fit items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-vueda-control data-[size=sm]:h-vueda-control-sm data-[size=lg]:h-vueda-control-lg data-[size=lg]:px-vueda-control-px-lg *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 focus-visible:hairline-ring focus-visible:focus-ring-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
@@ -1149,6 +1176,7 @@ export default {
      * with the selected item).
      */
     SelectContent: {
+        /** The floating popover surface that holds the {@api theme-key:SelectItem.root} options. Reads as a popover (2px radius, 1px border, `shadow-vueda-popover` elevation) capped at the viewport-available height that Reka exposes via `--reka-select-content-available-height`; the `popper`-position-only translate nudges (`translate-y-1`, etc.) sit the popover one 4px step off the trigger so the surface does not crash into the chip that opened it. The `item-aligned` legacy mode (the popover aligns itself to the selected item rather than anchoring to the trigger) skips those nudges and shares all other chrome. */
         root: ({ position }) => ({
             class: [
                 "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--reka-select-content-available-height) min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-vueda-control border shadow-vueda-popover",
@@ -1158,6 +1186,7 @@ export default {
                 },
             ],
         }),
+        /** The padded inner region inside {@api theme-key:SelectContent.root} that wraps the option list. In `popper` mode the viewport pins to the trigger's height and width (`--reka-select-trigger-height` / `--reka-select-trigger-width`) so the popover footprint matches the chip that opened it; `scroll-my-1` keeps the highlighted item from crashing into the viewport edge as keyboard navigation crosses long lists. The legacy `item-aligned` mode skips the pin and lets the viewport size to its content. */
         viewport: ({ position }) => ({
             class: [
                 "p-1",
@@ -1175,6 +1204,7 @@ export default {
      * `--accent`.
      */
     SelectItem: {
+        /** A single option inside a {@api theme-key:SelectContent.viewport}. Carries the two-track selection state that distinguishes Select from Combobox: the highlighted-but-not-committed option paints `--accent` / `--accent-foreground` on `:focus`, while the committed value (`data-state=checked`) tints with `bg-primary/10` so the chosen option reads as a soft primary band even when another row is highlighted; the indicator icon alone is not a strong enough signal at rest. See DESIGN.md § Selection / Command. `pr-8` reserves trailing space for the check indicator; `rounded-sm` keeps the option a chit inside the popover slab. */
         root: {
             class: [
                 "focus:bg-accent focus:text-accent-foreground data-[state=checked]:bg-primary/10 [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
@@ -1187,6 +1217,7 @@ export default {
      * recipe as ComboboxGroup.heading.
      */
     SelectLabel: {
+        /** The section heading inside a {@api theme-key:SelectContent.root}. See also: {@api theme-key:ComboboxGroup.heading}; same caps-micro eyebrow on `--muted-foreground` (the rendered class list drops the leading `font-mono`, but Tailwind's default sans / mono cascade leaves the eyebrow visually identical at the micro size). */
         root: {
             class: [
                 "text-muted-foreground px-2 py-1.5 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em]",
@@ -1198,6 +1229,7 @@ export default {
      * 1px divider between sections inside SelectContent.
      */
     SelectSeparator: {
+        /** A 1px horizontal divider between sections inside {@api theme-key:SelectContent.viewport}. See also: {@api theme-key:ComboboxSeparator.root}; delta is a vertical 4px margin (`my-1`) so the divider breathes against the surrounding 4px viewport padding, plus `pointer-events-none` so the hairline never intercepts a click meant for a neighbouring row. */
         root: {
             class: ["bg-border pointer-events-none -mx-1 my-1 h-px"],
         },
@@ -1207,6 +1239,7 @@ export default {
      * Scroll-up affordance on long SelectContent lists.
      */
     SelectScrollUpButton: {
+        /** The scroll-up affordance that surfaces at the top of a long {@api theme-key:SelectContent.viewport}. 4px tall flex centre so the slot reads as a thin handle rather than a button; the consumer paints the chevron glyph inside. Reka shows / hides the slot automatically based on scroll position. */
         root: {
             class: ["flex cursor-default items-center justify-center py-1"],
         },
@@ -1216,6 +1249,7 @@ export default {
      * Scroll-down affordance on long SelectContent lists.
      */
     SelectScrollDownButton: {
+        /** See also: {@api theme-key:SelectScrollUpButton.root}; mirror at the bottom of the viewport. */
         root: {
             class: ["flex cursor-default items-center justify-center py-1"],
         },
@@ -1229,6 +1263,7 @@ export default {
      * committed chips.
      */
     TagsInput: {
+        /** The outer shell of a multi-value input that captures discrete entries as pill chips. Reads as the input family: `hairline` border, control radius, `shadow-vueda-control` micro-shadow, dark-mode `bg-input/30` tint; see DESIGN.md § Inputs. Flex-wrap with an 8px gap so committed {@api theme-key:TagsInputItem.root} chips and the trailing {@api theme-key:TagsInputInput.root} flow onto new rows as the chip count grows. Focus and `aria-invalid` rings fire on the shell (not the inner input) via `:has(input:focus-visible)` and `:has([data-state=active])` selectors: typing in the field paints the standard focus ring on the shell; focusing a committed chip (`data-state=active`) suppresses the shell ring so the chip's own active outline is the only one visible at a time. */
         root: {
             class: [
                 "flex flex-wrap gap-2 items-center rounded-vueda-control hairline bg-background dark:bg-input/30 px-2 py-1 text-sm shadow-vueda-control transition-shadow",
@@ -1243,6 +1278,7 @@ export default {
      * so committed and pending text share a baseline.
      */
     TagsInputInput: {
+        /** The free-text entry field inside a {@api theme-key:TagsInput.root}. Sized to `--vueda-chip-height` so pending text shares a baseline with the committed chips beside it; renders chrome-free (transparent fill, no border, no focus ring) because the surrounding shell owns the chip-row contract and fires the focus ring on its own when the input is focused. `flex-1` lets the field absorb the remaining row width inside the wrap so the typing affordance always reaches the trailing edge. */
         root: {
             class: ["text-sm min-h-[var(--vueda-chip-height)] focus:outline-none flex-1 bg-transparent px-1"],
         },
@@ -1254,6 +1290,7 @@ export default {
      * badges).
      */
     TagsInputItem: {
+        /** An individual committed chip inside a {@api theme-key:TagsInput.root}. Pill radius (not the control / card radius the rest of the form family wears) marks the chip as a user-manipulated tag object rather than a slab-radius system badge or a chrome chit; see DESIGN.md § 6.1. Sized to `--vueda-chip-height` so multiple chips on a row share one baseline. `data-state=active` (set when the chip receives keyboard focus to edit or delete it) paints the standard focus ring on the chip, and the surrounding {@api theme-key:TagsInput.root} suppresses its own ring on the same condition so only one ring paints at a time. */
         root: {
             class: [
                 "flex h-[var(--vueda-chip-height)] items-center rounded-vueda-pill bg-secondary data-[state=active]:focus-ring",
@@ -1265,6 +1302,7 @@ export default {
      * The text label inside a TagsInputItem.
      */
     TagsInputItemText: {
+        /** The text label inside a {@api theme-key:TagsInputItem.root}. 4px / 8px padding on a transparent fill so the label reads as content sitting inside the secondary-tinted chip rather than carrying its own surface; sm size matches the surrounding {@api theme-key:TagsInputInput.root} so committed and pending text share a tier. */
         root: {
             class: ["py-0.5 px-2 text-sm rounded bg-transparent"],
         },
@@ -1274,6 +1312,7 @@ export default {
      * The remove (x) button at the trailing edge of a TagsInputItem.
      */
     TagsInputItemDelete: {
+        /** The remove (x) button at the trailing edge of a {@api theme-key:TagsInputItem.root}. Transparent fill so the button rides on the chip's secondary surface rather than punching its own swatch; the trailing 4px margin separates the glyph from the chip's pill end so the hit target does not run into the rounded edge. */
         root: {
             class: ["flex rounded bg-transparent mr-1"],
         },
