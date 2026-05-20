@@ -72,7 +72,6 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
             {"label": "None"},
             {"label": "Dangerous", "value": None},
             {"label": "Fragile", "value": None},
-            {"label": "Oversized", "value": None},
             {"label": "Perishable", "value": None},
             {"label": "Temperature Controlled", "value": None},
         ),
@@ -84,7 +83,6 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
         "tangible_type",
         (
             {"label": "None"},
-            {"label": "Digital", "value": None},
             {"label": "Physical", "value": None},
         ),
         "",
