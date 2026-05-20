@@ -284,6 +284,7 @@ export default {
      * read-only and disabled states.
      */
     Input: {
+        /** The single-line input shell and the reference recipe for the input-shaped family. Hairline border with the system focus-ring contract, control-height tier from `base.css § Control sizing`, and the cross-cutting `aria-invalid` swap that paints `--destructive` on the border and ring; see DESIGN.md § Inputs and § 7.2. Read-only and dark-mode states follow the shared input conventions (DESIGN.md § Inputs); the file-picker variant (`<input type=file>`) inherits `file:` classes so a bare file input reads as the same chip family as a button. */
         root: {
             class: [
                 "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 hairline h-vueda-control w-full min-w-0 rounded-vueda-control bg-transparent px-vueda-control-px text-base shadow-vueda-control transition-shadow file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
@@ -299,6 +300,7 @@ export default {
      * expands vertically via `field-sizing: content`.
      */
     Textarea: {
+        /** The multi-line counterpart to {@api theme-key:Input.root}. Same hairline + focus + `aria-invalid` recipe; grows vertically via `field-sizing: content` so the field expands with the typed text rather than holding a fixed `min-height`. Horizontal padding moves to `px-3 py-2` (both axes) because a textarea's content box is two-dimensional. See DESIGN.md § Inputs. */
         root: {
             class: [
                 "placeholder:text-muted-foreground dark:bg-input/30 hairline flex field-sizing-content min-h-16 w-full rounded-vueda-control bg-transparent px-3 py-2 text-base shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:hairline-ring focus-visible:focus-ring-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
@@ -315,6 +317,7 @@ export default {
      * own.
      */
     InputGroup: {
+        /** The shell that joins an input (or textarea) with one or more addons (icon, button, kbd, helper line) into a single bordered chip. The group, not its children, owns the hairline and focus ring: child controls strip their own chrome (see {@api theme-key:InputGroupInput} / {@api theme-key:InputGroupTextarea}) and the group reacts to `focus-visible` on any `[data-slot=input-group-control]` and to `aria-invalid` on any tagged child via `:has(...)` selectors. Inline addons (`align=inline-start` / `inline-end`) stay on a single row at `h-vueda-control`; block addons (`align=block-start` / `block-end`) stack and flip the row to `flex-col` with auto height, so the same shell supports left/right glyphs and top/bottom helper rows. See DESIGN.md § Inputs. */
         root: {
             class: [
                 "group/input-group dark:bg-input/30 hairline relative flex w-full items-center rounded-vueda-control shadow-vueda-control transition-shadow",
@@ -336,6 +339,7 @@ export default {
      * addons stack above or below it.
      */
     InputGroupAddon: {
+        /** The addon slot inside an {@api theme-key:InputGroup.root}. `align` picks one of four placements: `inline-start` / `inline-end` for icon, kbd, or button content flush against the input edge, and `block-start` / `block-end` for helper-text rows stacked above or below the input. Negative-margin hooks (`has-[>button]:ml-[-0.45rem]`, `has-[>kbd]:ml-[-0.35rem]`) tighten interior padding when the addon hosts a button or kbd so the addon does not visually balloon. Inherits `--muted-foreground` text so the addon reads as chrome, not as content; dimmed in lockstep with the group when the host carries `data-disabled=true`. */
         root: ({ align }) => ({
             class: [
                 "text-muted-foreground flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium select-none [&>svg:not([class*='size-'])]:size-4 [&>kbd]:rounded-[calc(var(--radius)-5px)] group-data-[disabled=true]/input-group:opacity-50",
@@ -357,6 +361,7 @@ export default {
      * shadow so the InputGroup shell owns the chrome.
      */
     InputGroupInput: {
+        /** The text-input child inside an {@api theme-key:InputGroup.root}. Strips its own border, shadow, and focus ring so the surrounding group owns the chrome; flexes to fill the remaining row, and overrides the standalone {@api theme-key:Input} dark-mode tint with `dark:bg-transparent` so the group's tint is the only one painted. */
         root: {
             class: ["flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent"],
         },
@@ -367,6 +372,7 @@ export default {
      * so the InputGroup shell owns the chrome.
      */
     InputGroupTextarea: {
+        /** The textarea child inside an {@api theme-key:InputGroup.root}. Same chrome-strip recipe as {@api theme-key:InputGroupInput.root} plus `resize-none` so the textarea grows with content rather than offering a corner drag handle that would fight the group's shared shell. */
         root: {
             class: [
                 "flex-1 resize-none rounded-none border-0 bg-transparent py-3 shadow-none focus-visible:ring-0 dark:bg-transparent",
@@ -379,6 +385,7 @@ export default {
      * InputGroup.
      */
     InputGroupText: {
+        /** The inline-text addon inside an {@api theme-key:InputGroup.root}: helper labels, prefix / suffix copy, unit markers. Renders at sm size on `--muted-foreground` with 16px icons so the addon reads as chrome rather than as input content. */
         root: {
             class: [
                 "text-muted-foreground flex items-center gap-2 text-sm [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
@@ -392,6 +399,7 @@ export default {
      * shell.
      */
     InputGroupButton: {
+        /** Pressable addon inside an {@api theme-key:InputGroup.root}. Sized smaller than a standalone {@api theme-key:Button.root} (`xs`, `sm`, plus `icon-xs` / `icon-sm`) so the button fits inside the input shell without breaking the row's `h-vueda-control` baseline. Shadow is suppressed because the group already carries `shadow-vueda-control`; an inset button drawing its own shadow would double-paint at the addon edge. The `xs` and `icon-xs` tiers use a tighter `rounded-[calc(var(--radius)-5px)]` so a 24px button reads as a chip inside a 32px shell rather than a miniature slab. */
         root: ({ size }) => ({
             class: [
                 "text-sm shadow-none flex gap-2 items-center",
@@ -414,6 +422,7 @@ export default {
      * focus independently; the active slot is highlighted by the ring.
      */
     InputOTP: {
+        /** The container for a row of fixed-width character slots. Owns the focus-ring contract for the active slot: a single `focus-ring` paints around whichever slot carries `data-active=true` (and swaps to destructive on `aria-invalid`), rather than each slot drawing its own ring. This keeps one ring sweeping across the row as the cursor advances. See DESIGN.md § 7.2. */
         root: {
             class: [
                 "flex items-center gap-2 has-disabled:opacity-50",
@@ -428,6 +437,7 @@ export default {
      * code).
      */
     InputOTPGroup: {
+        /** A contiguous run of {@api theme-key:InputOTPSlot.root} cells (e.g. the three digits before and after a `-` in a 3-3 split code). Pure flex row; the visual joining comes from the slots themselves overlapping their hairlines, so a group is just a layout marker that separates one run from the next when a code is split. */
         root: {
             class: ["flex items-center"],
         },
@@ -438,6 +448,7 @@ export default {
      * single hairline across the run; the active slot is outlined by the ring.
      */
     InputOTPSlot: {
+        /** A single character cell. Borders use `--input` at the `border-hairline` width, and every non-first slot pulls left by exactly `--vueda-hairline-width` so adjacent slots overlap one device pixel and read as one painted line rather than doubling at the seam. The active slot promotes `z-10` and swaps to `border-ring` so the run's active position outlines cleanly above its neighbours; `aria-invalid` swaps the border to `--destructive` on the same rule. First / last children round only their outer corners so the run reads as one chip. */
         root: {
             class: [
                 "dark:bg-input/30 border-hairline border-input relative flex h-vueda-control w-vueda-control items-center justify-center text-sm shadow-vueda-control transition-all first:rounded-l-md last:rounded-r-md [&:not(:first-child)]:[margin-left:calc(-1*var(--vueda-hairline-width))] data-[active=true]:z-10 data-[active=true]:border-ring aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive",
@@ -453,6 +464,7 @@ export default {
      * touch devices, fallback contexts).
      */
     NativeSelect: {
+        /** The native `<select>` styled to match the VUEDA control shell. Used where a JS-driven {@api theme-key:SelectTrigger} or {@api theme-key:ComboboxTrigger} would be overkill: short fixed enums on touch devices, environments where native menu UX is preferred. Same control-height + hairline + focus + `aria-invalid` recipe as {@api theme-key:Input.root}; `appearance-none` strips the native chevron and `pr-9` reserves space for the icon the consumer paints. The option surface inside the dropdown is owned by the OS; deep styling lives in the JS-driven pickers. */
         root: {
             class: [
                 "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 dark:hover:bg-input/50 hairline h-vueda-control w-full min-w-0 appearance-none rounded-vueda-control bg-transparent px-vueda-control-px pr-9 text-sm shadow-vueda-control transition-shadow disabled:pointer-events-none disabled:cursor-not-allowed",
@@ -466,6 +478,7 @@ export default {
      * Native `<optgroup>` styled to inherit the popover surface.
      */
     NativeSelectOptGroup: {
+        /** The native `<optgroup>` tinted to inherit the popover surface so the system's native dropdown reads as the same surface family as VUEDA's JS-driven pickers. The OS owns layout and the divider between groups; this slot only paints the background. */
         root: {
             class: ["bg-popover text-popover-foreground"],
         },
@@ -475,6 +488,7 @@ export default {
      * Native `<option>` styled to inherit the popover surface.
      */
     NativeSelectOption: {
+        /** The native `<option>` tinted to inherit the popover surface. Per-row layout, highlight, and check indicator are all owned by the OS; for richer option chrome (icons, sub-labels, highlighted-vs-checked distinction) use {@api theme-key:SelectItem} or {@api theme-key:ComboboxItem}. */
         root: {
             class: ["bg-popover text-popover-foreground"],
         },
@@ -487,6 +501,7 @@ export default {
      * slots can be hidden, allowing a plain numeric Input.
      */
     NumberField: {
+        /** The outer grid wrapper for a numeric input with optional increment / decrement steppers. Pure layout (`grid gap-1.5`) so a label, the input, and any messaging stack at the standard form rhythm. The visible input chrome lives on {@api theme-key:NumberFieldInput.root}; the absolute-positioned steppers are anchored by {@api theme-key:NumberFieldContent.root}. */
         root: {
             class: ["grid gap-1.5"],
         },
@@ -497,6 +512,7 @@ export default {
      * the increment / decrement slots when they are present.
      */
     NumberFieldContent: {
+        /** The inner wrapper that hosts {@api theme-key:NumberFieldInput.root} plus the optional stepper buttons. Reserves horizontal pad on the input (`pl-5` / `pr-5`) only when {@api theme-key:NumberFieldDecrement} / {@api theme-key:NumberFieldIncrement} are actually rendered, so a stepperless number field keeps the standard control padding and a stepper-bearing one never crashes a digit string into the glyphs. `relative` is the anchor for the absolute-positioned steppers. */
         root: {
             class: [
                 "relative [&>[data-slot=input]]:has-[[data-slot=increment]]:pr-5 [&>[data-slot=input]]:has-[[data-slot=decrement]]:pl-5",
@@ -509,6 +525,7 @@ export default {
      * centre-aligned, so digit widths stay stable during step changes.
      */
     NumberFieldInput: {
+        /** The numeric `<input>` itself. Same hairline + focus shell as {@api theme-key:Input.root}, but renders in mono + tabular numerals and centres the value so digit widths stay stable while a stepper cycles through different-length numbers. Mono is the segment-as-token treatment shared with the date / time fields; see DESIGN.md § Date / time. */
         root: {
             class: [
                 "flex h-vueda-control w-full rounded-vueda-control hairline bg-transparent font-mono tabular-nums text-sm text-center shadow-vueda-control transition-shadow placeholder:text-muted-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow disabled:cursor-not-allowed disabled:opacity-50",
@@ -520,6 +537,7 @@ export default {
      * Decrement stepper button anchored to the left of NumberFieldInput.
      */
     NumberFieldDecrement: {
+        /** The decrement stepper anchored to the left edge of {@api theme-key:NumberFieldInput.root}. Absolutely positioned so the stepper overlays the input rather than competing for row width; `disabled:opacity-20` reads as "at the lower bound" — a stronger fade than the standard 50% control-disabled treatment so a temporarily unusable stepper does not look like a fully disabled field. */
         root: {
             class: ["absolute top-1/2 -translate-y-1/2 left-0 p-3 disabled:cursor-not-allowed disabled:opacity-20"],
         },
@@ -529,6 +547,7 @@ export default {
      * Increment stepper button anchored to the right of NumberFieldInput.
      */
     NumberFieldIncrement: {
+        /** The increment stepper anchored to the right edge of {@api theme-key:NumberFieldInput.root}. Mirror of {@api theme-key:NumberFieldDecrement.root}; same overlay positioning and same upper-bound fade. */
         root: {
             class: ["absolute top-1/2 -translate-y-1/2 right-0 disabled:cursor-not-allowed disabled:opacity-20 p-3"],
         },
