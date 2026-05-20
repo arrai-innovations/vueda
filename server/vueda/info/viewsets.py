@@ -22,6 +22,8 @@ from django.db.models import F
 from django.db.models.functions.comparison import Cast
 from django.http import Http404
 from django.utils.functional import cached_property
+from django_filters.filters import AllValuesFilter
+from django_filters.filters import AllValuesMultipleFilter
 from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.filters import OrderingFilter
@@ -400,12 +402,14 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         model_class = serializer.Meta.model
         meta = model_class._meta
         viewset = self.canonical["viewset"]
-        filterset = viewset.filterset_class
-        filterset_instance = filterset(queryset=model_class.objects.all())
-        filters = filterset_instance.filters
-        filter_mapping = dict(filters.items())
+        filterset_class = viewset.filterset_class
+        filterset_instance = filterset_class(
+            queryset=model_class.objects.all(), data=self.request.query_params.copy(), request=self.request
+        )
+        filterset_instance.errors  # noqa B018 - trigger validation / clean data
+        filter_mapping = dict(filterset_instance.filters.items())
 
-        self.validate_queryset(filterset, filter_mapping)
+        self.validate_queryset(filterset_instance, filter_mapping)
 
         filtr = filter_mapping[self.choices_field]
 
@@ -420,38 +424,69 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         if "list" in PERMISSION_NAMES_MAPPING:
             permission_list_name = PERMISSION_NAMES_MAPPING["list"]
 
-        self.queryset = None
+        # Build a queryset narrowed by all OTHER active filters (exclude this field's param).
+        other_params = self.request.query_params.copy()
+        other_params.pop(self.choices_field, None)
+        narrowing_filterset = filterset_class(
+            queryset=model_class.objects.all(),
+            data=other_params,
+            request=self.request,
+        )
+        narrowed_qs = narrowing_filterset.qs
+
         if hasattr(filtr, "queryset"):
-            self.queryset = filtr.queryset
-            related_model = filtr.queryset.model
+            # ModelChoiceFilter / ModelMultipleChoiceFilter (queryset-based).
+            related_qs = filtr.get_queryset(self.request)
+            related_model = related_qs.model
             related_meta = related_model._meta
+
+            used_pks = narrowed_qs.values_list(filtr.field_name, flat=True).distinct()
+            related_qs = related_qs.filter(pk__in=used_pks)
+
             self.choices_permissions = (
                 f"{meta.app_label}.{permission_read_name}_{meta.model_name}",
                 f"{related_meta.app_label}.{permission_list_name}_{related_meta.model_name}",
             )
             self.choices_queryset_model = related_model
 
-        else:
-            self.choices = filtr.field.widget._choices
+            if callable(getattr(related_model, "get_formatted_name", None)):
+                choices = [
+                    {"label": instance.get_formatted_name(), "value": str(instance.pk)} for instance in related_qs
+                ]
+                return ChoicesQueryset(sorted(choices, key=lambda c: c["label"]), self.choices_queryset_model)
+
+            formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(related_qs)
+            return (
+                related_qs.annotate(
+                    label=F(formatted_name_lookup_expression), value=Cast(F("pk"), output_field=CharField())
+                )
+                .order_by("label")
+                .values("label", "value")
+            )
+
+        elif isinstance(filtr, (AllValuesFilter, AllValuesMultipleFilter)):
+            # Dynamic choices: distinct field values present in the (narrowed) main queryset.
             self.choices_permissions = (f"{meta.app_label}.{permission_read_name}_{meta.model_name}",)
             self.choices_queryset_model = model_class
 
-        if hasattr(self, "choices"):
-            return FilterChoicesQueryset(self.choices, self.choices_queryset_model)
+            distinct_values = narrowed_qs.values_list(filtr.field_name, flat=True).distinct().order_by(filtr.field_name)
+            choices = [(str(v), str(v)) for v in distinct_values if v is not None]
+            return FilterChoicesQueryset(choices, model_class)
 
-        if hasattr(self.queryset.model, "get_formatted_name"):
-            choices = []
-            for instance in self.queryset.all():
-                choices.append(
-                    {
-                        "label": instance.get_formatted_name(),
-                        "value": str(instance.pk),
-                    }
-                )
-            return sorted(choices, key=lambda choice: choice["label"])
+        else:
+            # Static choices: ChoiceFilter, TypedChoiceFilter, BooleanFilter, etc.
+            self.choices_permissions = (f"{meta.app_label}.{permission_read_name}_{meta.model_name}",)
+            self.choices_queryset_model = model_class
 
-        formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(self.queryset)
+            choices = [(str(value), str(label)) for value, label in filtr.field.widget.choices]
 
-        return self.queryset.annotate(label=F(formatted_name_lookup_expression), value=F("id")).values_list(
-            "label", "value", named=True
-        )
+            filter_value = self.request.query_params.get(self.choices_field)
+            if filter_value:
+                if filtr.lookup_expr in ("icontains", "contains"):
+                    choices = [(value, label) for value, label in choices if filter_value.lower() in value.lower()]
+                elif filtr.lookup_expr in ("istartswith", "startswith"):
+                    choices = [
+                        (value, label) for value, label in choices if value.lower().startswith(filter_value.lower())
+                    ]
+
+            return FilterChoicesQueryset(choices, model_class)

@@ -28,8 +28,19 @@ class ProductFilterSet(VuedaFilterSet):
         field_name="special_care", label="Special Care", queryset=my_models.SpecialCare.objects.exclude(code="alcohol")
     )
     disabled = rest_framework.BooleanFilter(field_name="disabled", label="Disabled")
+    condition = test_filters.ContainsChoiceFilter(
+        field_name="condition",
+        label="Condition",
+        choices=(
+            ("new", "New"),
+            ("like_new", "Like New"),
+            ("refurbished", "Refurbished"),
+            ("used", "Used"),
+        ),
+        lookup_expr="icontains",
+    )
     last_ordered = rest_framework.DateFilter()
-    quantity = test_filters.CustomNumberInFilter()
+    quantity = test_filters.CustomNumberInFilter(field_name="product_options__quantity_available")
 
     class Meta:
         model = my_models.Product

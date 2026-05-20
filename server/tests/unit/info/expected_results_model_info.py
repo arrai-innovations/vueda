@@ -3890,6 +3890,44 @@ EXPECTED_RESULTS = [
                     "type_model": "AutoField",
                     "type_filter": "DecimalInField",
                 },
+                "condition": {
+                    "choices": [
+                        {
+                            "label": "---------",
+                            "value": "",
+                        },
+                        {
+                            "label": "New",
+                            "value": "new",
+                        },
+                        {
+                            "label": "Like New",
+                            "value": "like_new",
+                        },
+                        {
+                            "label": "Refurbished",
+                            "value": "refurbished",
+                        },
+                        {
+                            "label": "Used",
+                            "value": "used",
+                        },
+                    ],
+                    "empty_label": "---------",
+                    "error_messages": {
+                        "invalid_choice": "Select a valid choice. %(value)s is not one of the available choices.",
+                    },
+                    "hidden": False,
+                    "input_type": "select",
+                    "label": "Condition",
+                    "lookup_exprs": ["icontains"],
+                    "null_label": None,
+                    "null_value": "null",
+                    "required": False,
+                    "type_db": "CharField",
+                    "type_filter": "UnvalidatedChoiceField",
+                    "type_model": "CharField",
+                },
                 "disabled": {
                     "choices": [
                         {"label": "Unknown", "value": ""},
@@ -3999,7 +4037,7 @@ EXPECTED_RESULTS = [
                     "help_text": "Multiple values may be separated by commas.",
                     "hidden": False,
                     "input_type": "number",
-                    "label": "Quantity Is In",
+                    "label": "Product Options Quantity Available Is In",
                     "lookup_exprs": ["in"],
                     "max_value": 2147483647,
                     "min_value": -2147483648,

@@ -768,7 +768,7 @@ def create_test_data(self):
                                 "sku": "100124",
                                 "gtin": "00368135511625",
                                 "price": Decimal("54.99"),
-                                "quantity_available": 6,
+                                "quantity_available": 10,
                             },
                             "order_items": (
                                 {

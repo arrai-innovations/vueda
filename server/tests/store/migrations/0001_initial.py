@@ -409,6 +409,19 @@ class Migration(migrations.Migration):
                     models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.tangibletype"),
                 ),
                 (
+                    "condition",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("new", "New"),
+                            ("like_new", "Like New"),
+                            ("refurbished", "Refurbished"),
+                            ("used", "Used"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                (
                     "formatted_name",
                     models.GeneratedField(
                         db_persist=True, expression=models.F("name"), output_field=models.CharField()
@@ -501,6 +514,19 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.DO_NOTHING,
                         related_name="+",
                         to="store.tangibletype",
+                    ),
+                ),
+                (
+                    "condition",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("new", "New"),
+                            ("like_new", "Like New"),
+                            ("refurbished", "Refurbished"),
+                            ("used", "Used"),
+                        ],
+                        max_length=20,
                     ),
                 ),
                 (
