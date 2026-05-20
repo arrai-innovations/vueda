@@ -4,9 +4,18 @@
  */
 
 export default {
+    // ---------- Media ----------
+    /**
+     * AspectRatio wraps content in a fixed-ratio layout box. It carries no default classes because sizing is supplied by the primitive and caller.
+     */
     AspectRatio: {
         root: { class: "" },
     },
+
+    // ---------- Date and time ----------
+    /**
+     * DateRangeDisplay formats a start and end date with a stable separator. Its slots keep each date segment individually addressable.
+     */
     DateRangeDisplay: {
         root: {
             class: "whitespace-nowrap",
@@ -21,6 +30,9 @@ export default {
             class: "",
         },
     },
+    /**
+     * DateTimeDisplay presents absolute and relative time text together. It supports inline, stacked, tooltip, and fallback dash layouts.
+     */
     DateTimeDisplay: {
         root: {
             class: "flex items-center space-x-2",
@@ -45,6 +57,11 @@ export default {
             class: "",
         },
     },
+
+    // ---------- Text utilities ----------
+    /**
+     * ErrorDisplay renders error text and optional diagnostic code in a scroll-safe block. It keeps links and code content readable in narrow layouts.
+     */
     ErrorDisplay: {
         root: {
             class: "w-full",
@@ -62,11 +79,19 @@ export default {
             class: "underline",
         },
     },
+    /**
+     * ClickToCopyText lays out copyable text with its affordance on the same baseline. It is used for compact read-only values that can be copied.
+     */
     ClickToCopyText: {
         root: {
             class: "flex flex-row items-baseline gap-1 p-1 2xs:p-2 2xl:p-4 ",
         },
     },
+
+    // ---------- Badges and keyboard hints ----------
+    /**
+     * Badge renders compact status, category, or count labels. Variants provide semantic fills while the numeric mode switches to tabular mono sizing.
+     */
     Badge: {
         root: ({ variant, numeric }) => ({
             class: [
@@ -85,6 +110,9 @@ export default {
             ],
         }),
     },
+    /**
+     * Kbd renders a single keyboard key hint. It keeps key labels compact and adjusts contrast when shown inside tooltip content.
+     */
     Kbd: {
         root: {
             class: [
@@ -94,28 +122,43 @@ export default {
             ],
         },
     },
+    /**
+     * KbdGroup aligns multiple keyboard key hints as one shortcut sequence. It spaces adjacent key chips without adding its own visual chrome.
+     */
     KbdGroup: {
         root: {
             class: "inline-flex items-center gap-1",
         },
     },
 
-    // avatar
+    // ---------- Avatars ----------
+    /**
+     * Avatar provides the circular media frame used by image and fallback avatar parts. It clips child content to the avatar shape.
+     */
     Avatar: {
         root: {
             class: "relative flex size-8 shrink-0 overflow-hidden rounded-full",
         },
     },
+    /**
+     * AvatarImage fills the avatar frame with an image. It preserves a square media box inside the rounded container.
+     */
     AvatarImage: {
         root: {
             class: "aspect-square size-full",
         },
     },
+    /**
+     * AvatarFallback centers fallback content when an avatar image is unavailable. It uses the muted surface treatment for neutral identity placeholders.
+     */
     AvatarFallback: {
         root: {
             class: "bg-muted flex size-full items-center justify-center rounded-full",
         },
     },
+    /**
+     * UserAvatar renders initials with selectable tone recipes for user identity displays. The component controls physical size while the theme key owns color and typography.
+     */
     UserAvatar: {
         // Initials chip: tone selects color recipe. Size is driven by inline style on the
         // SFC root (width/height/font-size derived from the `size` prop), not the theme key.
@@ -135,10 +178,11 @@ export default {
             class: "font-semibold uppercase leading-none tabular-nums",
         },
     },
-    // Destructive-action consequence list. 2-column grid (18 px icon · label/sub stack)
-    // per row; per-row `data-tone` (default | warn | danger) tints only the leading icon
-    // via the `toneWarn` / `toneDanger` keys so customization stays granular. Label is
-    // 13 px / 600 / foreground; description is 11.5 px / 400 / muted-foreground.
+
+    // ---------- System messages ----------
+    /**
+     * ConsequencesBullets renders a compact list of consequences for destructive or risky actions. Per-row tone attributes tint the leading icon while keeping labels and descriptions consistent.
+     */
     ConsequencesBullets: {
         root: {
             class: ["flex flex-col gap-2 m-0 p-0 list-none"],
@@ -168,10 +212,9 @@ export default {
             class: ["text-destructive"],
         },
     },
-    // Centered card chassis for system-level messages (NotFound / ActionNotFound /
-    // Loading / Deactivate). Opens a `group/system-message-card` named scope so
-    // descendant theme slots route crest tints from the root data-tone attribute
-    // via `group-data-[tone=*]/system-message-card:` variants.
+    /**
+     * SystemMessageCard provides the centered card chassis for system-level states such as not found, loading, and deactivate screens. Its named group scope routes tone-specific crest styling from the root.
+     */
     SystemMessageCard: {
         // 460 px centered card. Named group scope for tone routing.
         root: {
@@ -231,9 +274,9 @@ export default {
             class: ["flex items-center gap-2"],
         },
     },
-    // Flex justify-between mono strip: request id + elapsed on the left,
-    // dependency count + pulsing dot on the right. Dot tone switches via
-    // the `dot` / `dotSlow` key pair.
+    /**
+     * LoadingHeartbeatStrip displays request identity, elapsed time, dependency count, and heartbeat status in one mono row. It separates the default and slow-path dots so loading state tone remains customizable.
+     */
     LoadingHeartbeatStrip: {
         root: {
             class: [
@@ -247,18 +290,18 @@ export default {
         status: {
             class: ["flex items-center gap-1.5 shrink-0"],
         },
-        // Default pulsing dot — primary blue halo.
+        // Default pulsing dot: primary blue halo.
         dot: {
             class: ["inline-block w-1.5 h-1.5 rounded-full bg-primary text-primary", "animate-vueda-heartbeat-pulse"],
         },
-        // Slow-path pulsing dot — amber halo.
+        // Slow-path pulsing dot: amber halo.
         dotSlow: {
             class: ["inline-block w-1.5 h-1.5 rounded-full bg-warning text-warning", "animate-vueda-heartbeat-pulse"],
         },
     },
-    // Bordered card-radius container stacking N Skeleton bars at varying widths.
-    // Shimmer gradient sweeps left-to-right via a before: pseudo-element on root,
-    // keeping the static Skeleton recipe unchanged.
+    /**
+     * LoadingSkeletonGhost renders a bordered placeholder card with variable-width skeleton bars. It owns the shimmer treatment for system loading previews without changing the shared Skeleton recipe.
+     */
     LoadingSkeletonGhost: {
         root: {
             class: [
@@ -275,9 +318,9 @@ export default {
             class: ["h-[10px]"],
         },
     },
-    // Two-column dl grid: 10 px uppercase sans dt labels on the left,
-    // 11 px values on the right. Faint muted tint, 1 px border, card radius.
-    // font-mono on dd is applied conditionally by the `mono` prop.
+    /**
+     * DiagnosticStrip renders compact key-value diagnostics in a bordered two-column grid. The component may add mono treatment to values while the theme key owns the shared strip structure.
+     */
     DiagnosticStrip: {
         root: {
             class: [
@@ -295,11 +338,9 @@ export default {
             class: ["text-[11px] font-normal text-foreground leading-none m-0"],
         },
     },
-    // Typed "Did you mean?" list for system 404 views. Flex-col wrapper holds
-    // an optional head row (uppercase head + mono source) above a bordered
-    // divide-y list of 4-column grid rows (24 px icon · 1fr label+sub · auto
-    // trailing chip · auto chevron). `shape` selects score chip (route) or verb
-    // chip (action) in the trailing column.
+    /**
+     * SuggestionList renders typed "Did you mean?" choices for system 404 views. It combines an optional heading row with bordered suggestion rows and shape-specific trailing chips.
+     */
     SuggestionList: {
         // Flex-col outer wrapper; no border (border lives on the list).
         root: {
@@ -367,10 +408,9 @@ export default {
             class: ["flex items-center justify-center shrink-0 text-muted-foreground/60 text-[14px] leading-none"],
         },
     },
-    // Bordered 2-column callout for system 404 views: 88 px uppercase eyebrow label
-    // column + 1fr mono value column. Bad segments (`bad: true`) receive hardcoded
-    // `text-destructive` in the template; non-bad segments receive the `fade` key so
-    // the destructive segment pops against the muted path.
+    /**
+     * TriedUrlCallout renders the attempted URL as a compact system callout. It separates the label, value, and faded non-error path segments so the bad segment can stand out.
+     */
     TriedUrlCallout: {
         root: {
             class: [
@@ -396,6 +436,11 @@ export default {
             class: ["text-muted-foreground"],
         },
     },
+
+    // ---------- Sorting ----------
+    /**
+     * MobileSortComponent lays out mobile sorting controls inside a drawer workflow. It covers drag handles, order text, select controls, and action bars for reorderable sort fields.
+     */
     MobileSortComponent: {
         drawer: {
             class: ["!h-auto"],

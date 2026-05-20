@@ -4,6 +4,13 @@
  */
 
 export default {
+    // ---------- Objects grid ----------
+
+    /**
+     * Dual-mode object list that switches between table layout and card-grid
+     * layout at the configured breakpoint. Owns the shared card surface, empty
+     * state, row states, card layout, and row-action affordances.
+     */
     ObjectsGrid: {
         root: {
             class: [
@@ -118,6 +125,12 @@ export default {
             },
         },
     },
+
+    /**
+     * Column header content for the table layout inside `ObjectsGrid`. Shows
+     * the field label, sortable hover affordance, sort icon slot, and
+     * multi-sort priority chip.
+     */
     ObjectsGridTableHeader: {
         root: {
             class: ({ props: { sortable } }) => [
@@ -148,6 +161,12 @@ export default {
             ],
         },
     },
+
+    /**
+     * Label and value fragment for a single field in the card layout inside
+     * `ObjectsGrid`. The component has no wrapper, so its header and value
+     * participate directly in the parent card grid.
+     */
     ObjectsGridCardCell: {
         header: {
             class: [
@@ -161,6 +180,12 @@ export default {
             class: ["self-baseline", "text-[13px] font-normal text-foreground"],
         },
     },
+
+    /**
+     * Data cell for the table layout inside `ObjectsGrid`. Provides table cell
+     * alignment, density-driven height, numeric alignment, and field-value
+     * slot styling.
+     */
     ObjectsGridBodyCell: {
         root: {
             class: [

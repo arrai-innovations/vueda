@@ -4,6 +4,12 @@
  */
 
 export default {
+    // ---------- Selection widgets ----------
+
+    /**
+     * Checkbox-backed widget wrapper for boolean fields. Adjusts the shared
+     * label treatment so the toggle control and label align as one row.
+     */
     WidgetCheckbox: {
         root: {
             class: ["ml-2 flex flex-row grow items-baseline"],
@@ -32,6 +38,12 @@ export default {
             },
         },
     },
+
+    /**
+     * Combobox widget trigger for searchable choice fields. Applies the
+     * canonical control sizing, border, placeholder, disabled, and icon
+     * treatments to the trigger button.
+     */
     WidgetCombobox: {
         trigger: {
             class: [
@@ -46,6 +58,11 @@ export default {
             ],
         },
     },
+
+    /**
+     * Multi-part duration widget. Lays out the duration segments as wrapping
+     * field columns with consistent spacing.
+     */
     WidgetDuration: {
         root: {
             class: [],
@@ -57,6 +74,13 @@ export default {
             class: ["flex flex-col flex-grow"],
         },
     },
+
+    // ---------- File and media widgets ----------
+
+    /**
+     * File widget for existing file links and file-related actions. Provides
+     * the vertical wrapper, file row, truncated link, and action button group.
+     */
     WidgetFile: {
         root: {
             class: [],
@@ -74,6 +98,14 @@ export default {
             class: ["flex gap-4"],
         },
     },
+
+    // ---------- Autocomplete widgets ----------
+
+    /**
+     * Generic autocomplete widget with separate dropdown and autocomplete
+     * controls. Keeps both control columns aligned while allowing the text
+     * input area to grow.
+     */
     WidgetGenericAutoComplete: {
         root: {
             class: [],
@@ -88,6 +120,13 @@ export default {
             class: ["flex flex-col flex-grow"],
         },
     },
+
+    // ---------- Rich content widgets ----------
+
+    /**
+     * HTML editing widget chrome. Styles the bordered editor frame, toolbar,
+     * toolbar buttons, active state, and separators around the editing area.
+     */
     WidgetHtml: {
         root: {
             class: [],
@@ -111,6 +150,11 @@ export default {
             class: ["mx-0.5 h-5 w-px bg-border"],
         },
     },
+
+    /**
+     * Image widget for displaying and managing image-backed fields. Provides
+     * the vertical wrapper and flexible image action row.
+     */
     WidgetImage: {
         root: {
             class: [],
@@ -122,6 +166,14 @@ export default {
             class: ["flex flex-wrap justify-between"],
         },
     },
+
+    // ---------- Read-only and labels ----------
+
+    /**
+     * Read-only widget used to render values without editing controls. Handles
+     * hidden state, value text, and optional prefix or suffix fragments for
+     * linked and plain text items.
+     */
     WidgetReadOnly: {
         root: { class: [] },
         inner: {
@@ -154,6 +206,11 @@ export default {
             class: [],
         },
     },
+
+    /**
+     * Shared widget label wrapper. Coordinates visible, hidden, required, help,
+     * warning, invalid, feedback, and control regions around the active widget.
+     */
     WidgetLabel: {
         root: ({ isCardLayout, hidden, required, help, warning, invalid }) => {
             const isRequiredHasHelpOrHasValidation = required || help || warning || invalid;
@@ -201,6 +258,13 @@ export default {
             class: ["text-red-500 dark:text-red-400", "ml-1", "cursor-help"],
         },
     },
+
+    // ---------- Template widgets ----------
+
+    /**
+     * Template editor with a live preview pane. Arranges the editor, preview,
+     * title, and label regions for message or document templates.
+     */
     WidgetPreviewableTemplate: {
         root: {
             class: [],
@@ -224,6 +288,11 @@ export default {
             class: ["ml-2 mb-1 gap-1 grid grid-cols-[auto_1fr] justify-between"],
         },
     },
+
+    /**
+     * Legend for template placeholders or merge tags. Displays helper entries
+     * in a compact vertical list that can widen at larger breakpoints.
+     */
     WidgetTemplateLegend: {
         root: {
             class: [],

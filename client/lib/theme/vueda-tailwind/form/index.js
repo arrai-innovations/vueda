@@ -4,6 +4,13 @@
  */
 
 export default {
+    // ---------- Inline field sets ----------
+
+    /**
+     * Multi-value field wrapper that renders repeated child field instances.
+     * Provides the card chrome, add/remove controls, and nested-fieldset
+     * treatment for list-style form inputs.
+     */
     FieldSetMany: {
         root: {
             class: [
@@ -46,6 +53,12 @@ export default {
             class: [],
         },
     },
+
+    /**
+     * Paired-boundary field set for lower and upper range values. Groups the
+     * two rendered fields, separator, and chores panel used by range filters
+     * and form fields.
+     */
     FieldSetRange: {
         root: {
             class: [
@@ -90,6 +103,12 @@ export default {
             ],
         },
     },
+
+    /**
+     * Stacked inline editor for related objects. Owns the section header,
+     * row stack, empty state, create/toggle actions, and field-set-level
+     * validation panel.
+     */
     FieldSetStackedInline: {
         root: {
             class: [
@@ -179,6 +198,12 @@ export default {
             ],
         },
     },
+
+    /**
+     * Single row inside a stacked inline field set. Lays out the row fields,
+     * before/after hooks, and row-level action bar for create, destroy, and
+     * selection controls.
+     */
     FieldSetStackedInlineRow: {
         root: {
             class: [
@@ -208,6 +233,12 @@ export default {
             class: ["flex gap-1 2xs:gap-2 items-start shrink-0"],
         },
     },
+
+    /**
+     * Tabular inline editor for related objects. Connects field-set chrome to
+     * an `ObjectsGrid` body with create, toggle, destroy, and empty-state
+     * controls.
+     */
     FieldSetTabularInline: {
         root: {
             class: [
@@ -324,6 +355,13 @@ export default {
             },
         },
     },
+
+    // ---------- Filters ----------
+
+    /**
+     * Button-triggered filter popover for a single list filter. Styles the
+     * clear/dropdown buttons and the popover body that hosts the filter form.
+     */
     FilterComponent: {
         root: {},
         clearButton: {
@@ -342,6 +380,11 @@ export default {
             class: ["sm:min-w-[25%]"],
         },
     },
+
+    /**
+     * Form body rendered inside a filter popover. Provides the heading and
+     * vertical layout for the filter field and submit action.
+     */
     FilterForm: {
         outer: {
             class: ["flex flex-col"],
@@ -350,6 +393,11 @@ export default {
             class: ["font-bold leading-relaxed"],
         },
     },
+
+    /**
+     * Filter toolbar for model list views. Arranges active filter controls,
+     * message content, and the wrapper that hosts each `FilterComponent`.
+     */
     FilterGroup: {
         root: {
             class: "flex-col ",
@@ -361,6 +409,13 @@ export default {
             class: "flex my-2",
         },
     },
+
+    // ---------- Form feedback ----------
+
+    /**
+     * Form-level message block for non-field errors or warnings. Wraps the
+     * alert body and optional list used when several messages are present.
+     */
     FormMessage: {
         root: {
             class: ["my-2"],
@@ -369,6 +424,12 @@ export default {
             class: ["list-disc list-inside"],
         },
     },
+
+    /**
+     * Model-driven form container that renders configured fields. Provides the
+     * field stack, optional label, and before/after hooks used by generated
+     * create and update forms.
+     */
     FormModel: {
         root: {
             class: [],
@@ -397,6 +458,13 @@ export default {
             class: [],
         },
     },
+
+    // ---------- Form layout ----------
+
+    /**
+     * Lightweight grouping section for long forms. Styles the section root,
+     * title row, and trailing aside metadata above a slotted body.
+     */
     FormSection: {
         root: {
             class: "flex flex-col gap-3 [&+&]:mt-2",
@@ -408,11 +476,22 @@ export default {
             class: "font-mono text-[length:var(--vueda-text-micro)] leading-none text-muted-foreground",
         },
     },
+
+    /**
+     * Eyebrow heading used inside a `FormSection` title slot. Applies the
+     * compact uppercase treatment shared by form section labels.
+     */
     FormSectionTitle: {
         root: {
             class: "m-0 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none text-muted-foreground",
         },
     },
+
+    /**
+     * Responsive 12-column grid for form fields. Direct children default to
+     * full width and can opt into configured column spans at the form
+     * breakpoint.
+     */
     FormGrid: {
         root: {
             class: [
@@ -426,6 +505,11 @@ export default {
             ],
         },
     },
+
+    /**
+     * Action row for form submit, cancel, or secondary controls. Keeps actions
+     * wrapping cleanly and exposes a spacer slot for right-aligned groups.
+     */
     FormActions: {
         root: {
             class: "flex flex-wrap gap-2 pt-2 mt-1",
@@ -434,6 +518,11 @@ export default {
             class: "flex-1",
         },
     },
+
+    /**
+     * Compact feedback indicator for hidden or space-constrained fields.
+     * Groups required, error, warning, and help affordances behind a popover.
+     */
     FormHiddenFeedback: {
         root: {
             class: "min-w-min",
@@ -463,10 +552,13 @@ export default {
             class: [],
         },
     },
-    // "Type it to mean it" — anti-mistake confirmation field used by destroy /
-    // deactivate / recovery-code regen surfaces. Chrome is muted-tinted box +
-    // sans label with inline mono chip + mono input. The input's
-    // `focus-visible` ring is the canonical hairline + focus-ring-shadow combo.
+
+    // ---------- Confirmation ----------
+
+    /**
+     * Anti-mistake confirmation field used before destructive actions. Styles
+     * the muted confirmation box, inline expected-value chip, and mono input.
+     */
     TypedConfirmField: {
         root: {
             class: [

@@ -3,6 +3,10 @@
  * @description Tailwind CSS theme configuration for VUEDA Client feedback components.
  */
 export default {
+    // ---------- Alerts ----------
+    /**
+     * Alert renders a contextual message container with optional icon content and semantic tone variants. It provides the grid structure that positions title, description, and actions together.
+     */
     Alert: {
         root: ({ variant }) => ({
             class: [
@@ -21,26 +25,43 @@ export default {
             ],
         }),
     },
+    /**
+     * AlertClose positions a dismiss control inside an alert. It provides the compact focus and hover affordance used by closable alerts.
+     */
     AlertClose: {
         root: {
             class: "absolute top-3 right-3 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         },
     },
+    /**
+     * AlertTitle renders the primary alert heading. It aligns with alert content columns and clamps long titles to one line.
+     */
     AlertTitle: {
         root: {
             class: "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",
         },
     },
+    /**
+     * AlertDescription renders supporting alert copy. It aligns with the alert title and keeps nested paragraph text readable.
+     */
     AlertDescription: {
         root: {
             class: "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
         },
     },
+    /**
+     * AlertActions lays out follow-up controls inside an alert. It keeps alert actions aligned with the message body.
+     */
     AlertActions: {
         root: {
             class: "col-start-2 mt-2 inline-flex gap-2",
         },
     },
+
+    // ---------- Progress and loading ----------
+    /**
+     * Progress renders a determinate or indeterminate progress track. Size and tone options adjust the track height and semantic fill treatment.
+     */
     Progress: {
         root: ({ size, tone }) => ({
             class: [
@@ -68,11 +89,19 @@ export default {
             ],
         }),
     },
+    /**
+     * Skeleton renders a neutral loading placeholder. It uses a pulsing muted primary tint for inline and block loading states.
+     */
     Skeleton: {
         root: {
             class: "animate-pulse rounded-md bg-primary/10",
         },
     },
+
+    // ---------- Toasts ----------
+    /**
+     * Sonner provides the theme hook for the toast viewport integration. The root class establishes the toaster group consumed by the Sonner library.
+     */
     Sonner: {
         root: {
             class: "toaster group",

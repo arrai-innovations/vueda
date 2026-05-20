@@ -4,6 +4,11 @@
  */
 
 export default {
+    // ---------- Page chrome ----------
+    /**
+     * PageTitle provides the compact header region for view titles, subtitles,
+     * contextual actions, and optional sticky chrome.
+     */
     PageTitle: {
         root: ({ headerClass, sticky }) => ({
             class: [
@@ -62,6 +67,11 @@ export default {
             class: ["w-full h-3"],
         },
     },
+    // ---------- Action forms ----------
+    /**
+     * ActionForm lays out a model action form, validation summary, selected
+     * objects, and submit controls inside a view or card surface.
+     */
     ActionForm: {
         root: {
             class: ["max-w-7xl"],
@@ -141,6 +151,10 @@ export default {
             class: ["text-[12px] font-normal text-muted-foreground"],
         },
     },
+    /**
+     * ModelActionForm renders the confirmation card used by model actions.
+     * It carries tone-aware banner, selected-object, message, and button slots.
+     */
     ModelActionForm: {
         root: {
             class: [],
@@ -304,6 +318,10 @@ export default {
             class: "",
         },
     },
+    /**
+     * ViewDestroy wraps destructive model actions in danger-toned confirmation
+     * chrome before delegating the actual form controls.
+     */
     ViewDestroy: {
         root: {
             class: [],
@@ -339,6 +357,11 @@ export default {
             class: ["p-4"],
         },
     },
+    // ---------- Authentication forms ----------
+    /**
+     * AuthForm provides the framed authentication form layout used by sign-in
+     * and related account access screens.
+     */
     AuthForm: {
         root: {
             class: ["flex min-h-full flex-col"],
@@ -358,6 +381,10 @@ export default {
             class: ["prose dark:prose-invert mt-5"],
         },
     },
+    /**
+     * AuthorizingForm centers the authorization form layout for flows that need
+     * an explicit access or consent step.
+     */
     AuthorizingForm: {
         root: {
             class: ["flex min-h-full justify-center items-center"],
@@ -377,6 +404,11 @@ export default {
             class: ["prose dark:prose-invert mt-5"],
         },
     },
+    // ---------- List views ----------
+    /**
+     * ViewList arranges the model list page controls around search, filters,
+     * bulk actions, grid content, totals, and pagination.
+     */
     ViewList: {
         selectedCheckbox: {
             // match to ViewList's tableBreakpoint
@@ -429,6 +461,10 @@ export default {
             class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px] border-t border-border bg-card"],
         },
     },
+    /**
+     * ViewHistoryList styles the revision history view, including grouped rows,
+     * diff cells, history metadata, and empty states.
+     */
     ViewHistoryList: {
         root: {
             class: [],
@@ -547,6 +583,11 @@ export default {
             class: [],
         },
     },
+    // ---------- System views ----------
+    /**
+     * ViewLoading presents the route loading state with centered message card
+     * content, skeleton, heartbeat, and slow-load messaging slots.
+     */
     ViewLoading: {
         // Centering wrapper that fills the viewport and centers the SystemMessageCard.
         root: {
@@ -589,6 +630,10 @@ export default {
             class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
         },
     },
+    /**
+     * ViewNotFound displays the generic missing-route state in a centered
+     * system message layout.
+     */
     ViewNotFound: {
         // Centering wrapper: the SystemMessageCard chassis is 460 px so it
         // needs a flex parent to center on the page.
@@ -601,6 +646,10 @@ export default {
             class: ["text-[13px] leading-[1.5] text-muted-foreground"],
         },
     },
+    /**
+     * ViewActionNotFound displays the missing-action state for a model view
+     * when the requested action cannot be resolved.
+     */
     ViewActionNotFound: {
         // Centering wrapper, see ViewNotFound.root.
         root: {
@@ -611,16 +660,29 @@ export default {
             class: ["text-[13px] leading-[1.5] text-muted-foreground"],
         },
     },
+    // ---------- Workflow views ----------
+    /**
+     * ViewAction is the outer theme entry for generic action views that supply
+     * their own internal content.
+     */
     ViewAction: {
         root: {
             class: [],
         },
     },
+    /**
+     * ViewActivate is the outer theme entry for activation flows that share the
+     * generic view-action structure.
+     */
     ViewActivate: {
         root: {
             class: [],
         },
     },
+    /**
+     * ViewDeactivate presents the account or object deactivation flow in a
+     * centered message-card layout with submit error feedback.
+     */
     ViewDeactivate: {
         // Centering wrapper: card is 460 px so it needs a flex parent to center on the page.
         root: {
@@ -635,6 +697,11 @@ export default {
             class: ["text-[12px] text-destructive leading-[1.5]"],
         },
     },
+    // ---------- Authentication workflows ----------
+    /**
+     * ViewTwoFactorAuth styles the two-factor authentication challenge,
+     * recovery-code toggle, verification input, and cooldown indicator.
+     */
     ViewTwoFactorAuth: {
         root: {
             class: [],
@@ -656,6 +723,10 @@ export default {
             ],
         },
     },
+    /**
+     * ViewSetupDevice styles the multi-step device setup flow, including step
+     * indicators, manual key display, and completion state.
+     */
     ViewSetupDevice: {
         steps: {
             class: ["flex items-center gap-2 mb-4"],
@@ -722,6 +793,11 @@ export default {
             class: ["flex gap-2 mt-2"],
         },
     },
+    // ---------- Workflow transitions ----------
+    /**
+     * ViewWorkflowTransition presents selectable workflow transition options,
+     * current state context, and terminal-state empty messaging.
+     */
     ViewWorkflowTransition: {
         root: {
             class: [],
@@ -803,6 +879,11 @@ export default {
             class: ["mt-2 flex justify-center"],
         },
     },
+    // ---------- Recovery codes ----------
+    /**
+     * ViewRecoveryCodes lays out recovery-code display, print-hidden messages,
+     * save actions, and empty-state controls.
+     */
     ViewRecoveryCodes: {
         root: {
             class: [],
