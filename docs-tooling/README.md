@@ -10,11 +10,11 @@ Internal tooling for extracting, normalizing, and rendering API documentation in
 
 Default outputs live in `docs-tooling/.generated/`:
 
-- Raw extracts: `typedoc.json`, `vue-docgen.json`, `openapi.json`, `pdoc.json`
+- Raw extracts: `typedoc.json`, `vue-docgen.json`, `openapi.json`, `pdoc.json`, `theme-keys.json`, `css-tokens.json`
 - Canonical bundles: `*.canonical.json`
-- Rendered Markdown: `docs/reference/api/` (default render destination)
+- Rendered Markdown: `docs/reference/api/` for code references, and `docs/reference/theming/` for theme keys and CSS tokens
 
-The root `just docs-render` command writes rendered output to `docs/reference/api/` for VitePress.
+The root `just docs-render` command writes API references under `docs/reference/api/` and theming references under `docs/reference/theming/` for VitePress.
 
 ## Sources
 
@@ -22,6 +22,8 @@ The root `just docs-render` command writes rendered output to `docs/reference/ap
 - vue-docgen-api (Vue SFC) for `.vue` files in `client/lib/`.
 - DRF Spectacular (OpenAPI) from the server via `manage.py spectacular`.
 - pdoc (Python) against the server package, using `server/doc_settings.py`.
+- Theme keys, parsed from `client/lib/theme/vueda-tailwind/<family>/index.js` with @babel/parser. See "Theme keys and CSS tokens" below.
+- CSS tokens, parsed from `client/lib/theme/vueda-tailwind/base.css` with PostCSS. See "Theme keys and CSS tokens" below.
 
 ## Structure
 
@@ -47,7 +49,7 @@ $ ./bin/docs-tooling.js extract --target all
 
 Options:
 
-- `--target` (`all`, `python`, `rest`, `javascript`, `components`)
+- `--target` (`all`, `python`, `rest`, `javascript`, `components`, `theme-keys`, `css-tokens`)
 - `--out-dir` (custom output dir)
 
 ### Normalize
@@ -58,7 +60,7 @@ $ ./bin/docs-tooling.js normalize --source all
 
 Options:
 
-- `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`)
+- `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`, `theme-keys`, `css-tokens`)
 - `--input` (single-source override)
 - `--output` (single-source override)
 
@@ -70,7 +72,7 @@ $ ./bin/docs-tooling.js render --source all --output ../docs/reference/api
 
 Options:
 
-- `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`)
+- `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`, `theme-keys`, `css-tokens`)
 - `--input` (single-source override)
 - `--output` (rendered Markdown dir)
 
@@ -151,6 +153,35 @@ vue-docgen-api cannot statically resolve dynamic slot names (expressions like `:
 ```
 
 The bracket form also works on static slots when you want to document fallbacks. An empty bracket list `[]` is a parse error. Use the consumer-facing API name (kebab-case), not the internal resolver expression.
+
+## Theme keys and CSS tokens
+
+Theme keys and CSS tokens flow through the same extract/normalize/render pipeline as the other sources, but they read directly from the theme files instead of a third-party tool's output.
+
+### Theme keys
+
+- Source files: `client/lib/theme/vueda-tailwind/<family>/index.js`. The family list (`controls`, `grid`, `objects-grid`, `form`, `widgets`, `shell`, `views`, `navigation`, `display`, `feedback`) is hardcoded in the extractor.
+- Raw extract: `.generated/theme-keys.json`; canonical bundle: `.generated/theme-keys.canonical.json`.
+- Rendered output:
+    - `docs/reference/theming/keys.md` (global index)
+    - `docs/reference/theming/keys/family/<family-slug>.md` (one per family)
+    - `docs/reference/theming/keys/<Component>.md` (one per component or primitive, with a per-slot detail block on each page)
+
+Authoring conventions for theme-key source files live in `client/AGENTS.md` (component name, slot JSDoc, banner comments, `composes`, primitive `_` prefix).
+
+### CSS tokens
+
+- Source file: `client/lib/theme/vueda-tailwind/base.css`.
+- Raw extract: `.generated/css-tokens.json`; canonical bundle: `.generated/css-tokens.canonical.json`.
+- Rendered output:
+    - `docs/reference/theming/tokens.md` (global index)
+    - `docs/reference/theming/tokens/<group-slug>.md` (one per group, where groups come from banner comments inside `:root` and fall back to `Base`)
+
+The extractor reads `:root` and `.dark` declarations, treats a trailing `/* ... */` on the declaration line as the description, and parses the `@theme inline` block to attach Tailwind utility family + property (`color`, `radius`, `shadow`, `font`, `spacing`, `animate`) to each token.
+
+### Cross-references between sources
+
+When `render` is given both `vue-docgen` and `theme-keys` (the default with `--source all`), the CLI pre-loads a theme-keys component index and passes it to the vue-docgen renderer. Component pages then emit `Theme entry: {@api theme-key:<Component>}` when a matching key exists, so authored docs and generated component pages share the same `@api` reference scheme. See `docs/README.md` for the full ID surface (`theme-key:<Component>`, `theme-key:<Component>.<slot>`, `css-token:<name>`).
 
 ## Tests
 

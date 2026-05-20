@@ -90,6 +90,8 @@ Common IDs:
 - `py:index`
 - `rest:index`
 - `vue:index`
+- `theming:keys`
+- `theming:tokens`
 
 Examples:
 
@@ -97,6 +99,19 @@ Examples:
 - `{@api py:module:vueda}`
 - `{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}` <!-- note: literal `{` and `}` characters are part of some IDs, referring to captured url parameters, not documentation placeholders -->
 - `{@api vue:component:FormField}`
+- `{@api theme-key:Card}` (links to the per-component theme-keys page)
+- `{@api theme-key:Card.root}` (links to a slot anchor on that page)
+- `{@api css-token:vueda-card-radius}` (links to the token anchor under its group page)
+
+### Theming IDs
+
+The theme-keys and css-tokens renderers publish member IDs through the `member_ids` frontmatter on each page. To discover an unfamiliar slot or token ID, search there:
+
+```bash
+grep -nR "^member_ids" docs/reference/theming/
+```
+
+Theme-key IDs are `theme-key:<Component>` for the component as a whole and `theme-key:<Component>.<slot>` for individual slots. CSS-token IDs are `css-token:<name>`, where `<name>` is the custom property without the leading `--`. Page-level IDs (used as link targets for `[…](…)` rather than `{@api …}`) follow `theming:keys`, `theming:keys:family:<family-slug>`, `theming:keys:<Component>`, `theming:tokens`, and `theming:tokens:<group-slug>`.
 
 ## Glossary links
 
