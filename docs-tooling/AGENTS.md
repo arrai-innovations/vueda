@@ -27,8 +27,11 @@ This package contains internal tooling that extracts, normalizes, and renders AP
 The briefings below are the source of truth for what each extractor expects to find in the source trees it walks. When changing an extractor, update the corresponding briefing in the same commit.
 
 - [Client annotation contract](./briefings/client-annotations.md)
+- [Server annotation contract](./briefings/server-annotations.md)
 
 @./briefings/client-annotations.md
+
+@./briefings/server-annotations.md
 
 ## Test Execution
 

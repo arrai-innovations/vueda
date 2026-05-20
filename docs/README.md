@@ -70,6 +70,7 @@ These pages are not intended for manual editing; instead, they are generated (se
 The pipeline lives in [`docs-tooling/`](../docs-tooling/README.md). The annotation conventions each extractor reads from the source trees it walks are documented in package-scoped briefings:
 
 - [Client annotation contract](../docs-tooling/briefings/client-annotations.md) (Vue SFCs, `@vueda-spread`, dynamic slots, theme keys in `client/lib/`)
+- [Server annotation contract](../docs-tooling/briefings/server-annotations.md) (Python docstrings for pdoc, DRF Spectacular schema decorators in `server/vueda/`)
 
 When the extractors change, the briefings should change in the same commit. Treat them as the source of truth for what you need to write in source files to make something appear in the rendered docs.
 
