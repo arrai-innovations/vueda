@@ -21,7 +21,7 @@ import { useRoute, useRouter } from "vue-router";
  * model-defined actions sorted by string similarity to the tried action,
  * a `DiagnosticStrip` debug footer, and a `Back` + `Browse all actions`
  * actions row. HTTP verb chips in the action shape remain empty until the
- * server exposes per-action verb metadata (PROP-161).
+ * server exposes per-action verb metadata.
  */
 defineOptions({ inheritAttrs: false });
 

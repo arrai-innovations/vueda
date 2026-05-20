@@ -217,8 +217,8 @@ export default {
         bannerDesc: {
             class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
         },
-        // Optional mono meta strip below the description. OBS-011 mono recipe
-        // for machine-readable values; OBS-015 eyebrow letter-spacing.
+        // Optional mono meta strip below the description: mono recipe for
+        // machine-readable values; eyebrow letter-spacing.
         bannerMeta: {
             class: ["font-mono text-[11px] font-normal leading-[1.5] tracking-[0.04em]", "text-muted-foreground"],
         },
@@ -241,7 +241,7 @@ export default {
                 "group-data-[tone=danger]/model-action-form:bg-destructive/[0.06] group-data-[tone=danger]/model-action-form:border-destructive/40",
             ],
         },
-        // Eyebrow head: label + count, separated. OBS-015 eyebrow recipe.
+        // Eyebrow head: label + count, separated; eyebrow recipe.
         selectedHead: {
             class: ["flex flex-row items-baseline justify-between flex-wrap gap-2"],
         },
@@ -490,7 +490,7 @@ export default {
         cellDateRel: {
             class: ["text-[11px] leading-[1.3] text-muted-foreground"],
         },
-        // history-user cell: 22 px UserAvatar chip + name beside it (PROP-156).
+        // history-user cell: 22 px UserAvatar chip + name beside it.
         // Name is 12 px / 500 / foreground per kit recipe.
         cellUser: {
             class: ["inline-flex items-center gap-2"],

@@ -119,8 +119,8 @@ export default {
     UserAvatar: {
         // Initials chip: tone selects color recipe. Size is driven by inline style on the
         // SFC root (width/height/font-size derived from the `size` prop), not the theme key.
-        // - `primary` (default): primary-tinted bg + primary border + primary ink (PROP-156).
-        // - `sidebar`: solid sidebar-accent bg + sidebar-foreground ink (PROP-100).
+        // - `primary` (default): primary-tinted bg + primary border + primary ink.
+        // - `sidebar`: solid sidebar-accent bg + sidebar-foreground ink.
         root: ({ tone }) => ({
             class: [
                 "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full select-none",
@@ -138,7 +138,7 @@ export default {
     // Destructive-action consequence list. 2-column grid (18 px icon · label/sub stack)
     // per row; per-row `data-tone` (default | warn | danger) tints only the leading icon
     // via the `toneWarn` / `toneDanger` keys so customization stays granular. Label is
-    // 13 px / 600 / foreground; description is 11.5 px / 400 / muted-foreground. PROP-167.
+    // 13 px / 600 / foreground; description is 11.5 px / 400 / muted-foreground.
     ConsequencesBullets: {
         root: {
             class: ["flex flex-col gap-2 m-0 p-0 list-none"],
@@ -171,7 +171,7 @@ export default {
     // Centered card chassis for system-level messages (NotFound / ActionNotFound /
     // Loading / Deactivate). Opens a `group/system-message-card` named scope so
     // descendant theme slots route crest tints from the root data-tone attribute
-    // via `group-data-[tone=*]/system-message-card:` variants. PROP-157.
+    // via `group-data-[tone=*]/system-message-card:` variants.
     SystemMessageCard: {
         // 460 px centered card. Named group scope for tone routing.
         root: {
@@ -209,11 +209,11 @@ export default {
         crestMeta: {
             class: ["flex flex-col justify-center gap-0.5 min-w-0 flex-1"],
         },
-        // OBS-015 eyebrow recipe (0.06em variant).
+        // Eyebrow recipe (0.06em variant).
         crestEyebrow: {
             class: ["text-[10px] font-semibold uppercase tracking-[0.06em]", "text-muted-foreground leading-none"],
         },
-        // OBS-011 mono recipe for machine-readable path / action kind.
+        // Mono recipe for machine-readable path / action kind.
         crestKind: {
             class: ["font-mono text-[12px] font-medium leading-[1.3] text-foreground"],
         },
@@ -233,7 +233,7 @@ export default {
     },
     // Flex justify-between mono strip: request id + elapsed on the left,
     // dependency count + pulsing dot on the right. Dot tone switches via
-    // the `dot` / `dotSlow` key pair. PROP-162.
+    // the `dot` / `dotSlow` key pair.
     LoadingHeartbeatStrip: {
         root: {
             class: [
@@ -258,7 +258,7 @@ export default {
     },
     // Bordered card-radius container stacking N Skeleton bars at varying widths.
     // Shimmer gradient sweeps left-to-right via a before: pseudo-element on root,
-    // keeping the static Skeleton recipe unchanged (OBS-010). PROP-163.
+    // keeping the static Skeleton recipe unchanged.
     LoadingSkeletonGhost: {
         root: {
             class: [
@@ -277,7 +277,7 @@ export default {
     },
     // Two-column dl grid: 10 px uppercase sans dt labels on the left,
     // 11 px values on the right. Faint muted tint, 1 px border, card radius.
-    // font-mono on dd is applied conditionally by the `mono` prop. PROP-158.
+    // font-mono on dd is applied conditionally by the `mono` prop.
     DiagnosticStrip: {
         root: {
             class: [
@@ -299,7 +299,7 @@ export default {
     // an optional head row (uppercase head + mono source) above a bordered
     // divide-y list of 4-column grid rows (24 px icon · 1fr label+sub · auto
     // trailing chip · auto chevron). `shape` selects score chip (route) or verb
-    // chip (action) in the trailing column. PROP-159.
+    // chip (action) in the trailing column.
     SuggestionList: {
         // Flex-col outer wrapper; no border (border lives on the list).
         root: {
@@ -309,7 +309,7 @@ export default {
         headRow: {
             class: ["flex items-baseline justify-between gap-3"],
         },
-        // OBS-015 eyebrow recipe: 10 px uppercase sans muted-foreground.
+        // Eyebrow recipe: 10 px uppercase sans muted-foreground.
         head: {
             class: ["text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground leading-none"],
         },
@@ -370,7 +370,7 @@ export default {
     // Bordered 2-column callout for system 404 views: 88 px uppercase eyebrow label
     // column + 1fr mono value column. Bad segments (`bad: true`) receive hardcoded
     // `text-destructive` in the template; non-bad segments receive the `fade` key so
-    // the destructive segment pops against the muted path. PROP-160.
+    // the destructive segment pops against the muted path.
     TriedUrlCallout: {
         root: {
             class: [
@@ -380,7 +380,7 @@ export default {
                 "overflow-hidden",
             ],
         },
-        // OBS-015 eyebrow recipe: 10 px uppercase sans muted-foreground.
+        // Eyebrow recipe: 10 px uppercase sans muted-foreground.
         label: {
             class: [
                 "text-[10px] font-semibold uppercase tracking-[0.06em]",
