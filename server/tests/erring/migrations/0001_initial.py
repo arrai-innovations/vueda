@@ -688,4 +688,48 @@ class Migration(migrations.Migration):
                 "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
+        migrations.CreateModel(
+            name="BothFormattedNameConfigured",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Both formatted name configured",
+                "verbose_name_plural": "Both formatted name configured",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="PropertyFormattedName",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Property formatted name",
+                "verbose_name_plural": "Property formatted name",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
     ]

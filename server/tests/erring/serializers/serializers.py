@@ -20,6 +20,30 @@ class NoExpandableFieldsDataSerializer(VuedaSerializer):
         return ["Test"]
 
 
+class PropertyFormattedNameSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.PropertyFormattedName
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class BothFormattedNameConfiguredSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.BothFormattedNameConfigured
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class NoNameFieldSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.NoNameField
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class RelatedObjectsAreMissingDataSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.RelatedObjectsAreMissingData

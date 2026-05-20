@@ -239,10 +239,13 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
             for value in WILDCARD_VALUES:
                 valid_wildcard_fields.add(value)
 
-            if "formatted_name" not in valid_fields and hasattr(serializer.Meta, "model"):
-                formatted_name = getattr(serializer.Meta.model, "formatted_name_lookup_expression", None)
-                if isinstance(formatted_name, str):
-                    valid_fields.add("formatted_name")
+            if (
+                "formatted_name" not in valid_fields
+                and hasattr(serializer.Meta, "model")
+                and isinstance(getattr(serializer.Meta.model, "formatted_name_lookup_expression", None), str)
+                or callable(getattr(serializer.Meta.model, "get_formatted_name", None))
+            ):
+                valid_fields.add("formatted_name")
 
             if hasattr(serializer.Meta, "expandable_fields"):
                 if permitted_expands is not None and not permitted_expands:

@@ -38,7 +38,7 @@ VUEDA's conventions begin at the model layer. Extend `VuedaModel` to inherit the
 
 **Null field with a Python method.** Set `formatted_name = None` on the model and implement a `get_formatted_name()` method for runtime computation. This is the most flexible option but requires explicit wiring in the serializer (covered in the next section). Choice endpoints resolve labels using a priority order: `get_formatted_name()` method, then `formatted_name_lookup_expression` annotation, then the direct `formatted_name` field, then static field choices.
 
-Setting `formatted_name = None` without providing either `formatted_name_lookup_expression` or `get_formatted_name()` will cause choice endpoints to fail with a 500 error when they attempt to annotate a non-existent field.
+Setting `formatted_name = None` without providing either `formatted_name_lookup_expression` or `get_formatted_name()` is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served. Providing both alternatives triggers `vueda_info.E002`; decorating `get_formatted_name` with `@property` instead of leaving it as a plain method triggers `vueda_info.E003`.
 
 ## Serializer Contract
 
@@ -90,7 +90,9 @@ class WidgetViewSet(VuedaViewSet):
 
 The viewset provides all five standard CRUDL actions by default: `list`, `create`, `retrieve`, `update` (including `partial_update`), and `destroy`. The `destroy` action supports both single-object deletion (via `DELETE` to the `detail` endpoint with a PK in the URL) and bulk deletion (via `DELETE` to the `list` endpoint with a `{"pks": [...]}` payload). Bulk destroy validates that all requested PKs exist before deleting any of them, and supports an optional dry-run mode via the `X-Dry-Run` header.
 
-Note that `VuedaViewSet` does not wrap its own CRUDL handlers in `transaction.atomic` by default. If you need atomic write behavior, use `AtomicModelViewSetMixin` or manage transaction boundaries explicitly in your viewset. The web process's `ATOMIC_REQUESTS` setting provides request-level atomicity as a safety net, but explicit transaction control is appropriate when the viewset needs finer-grained boundaries.
+::: warning
+`VuedaViewSet` does not wrap its own CRUDL handlers in `transaction.atomic` by default. If you need atomic write behavior, use `AtomicModelViewSetMixin` or manage transaction boundaries explicitly in your viewset. The web process's `ATOMIC_REQUESTS` setting provides request-level atomicity as a safety net, but explicit transaction control is appropriate when the viewset needs finer-grained boundaries.
+:::
 
 Extra actions beyond the standard CRUDL set are defined using the `@action` decorator from `vueda.core.decorators`. Only add extra actions when you need distinct route or permission behavior that the standard actions do not cover. Extra actions appear in model-info's action list and are gated by `get_allowed_extra_actions` on the viewset.
 
@@ -200,7 +202,7 @@ With all pieces in place, verify the surface end-to-end:
 
 **Model appears in model-info but client routes are blocked.** The `requireModelInfo` guard blocks navigation when it cannot find the requested action in the allowlist. Check that the model-info response includes the expected actions in `model_actions`. If actions are missing, the requesting user may lack the necessary permissions; `model_actions` is permission-filtered per user.
 
-**Choice dropdowns show no labels or endpoint returns 500.** This is typically a `formatted_name` configuration error. If the model sets `formatted_name = None`, it must provide either `formatted_name_lookup_expression` or a `get_formatted_name()` method. If using `get_formatted_name()`, the serializer must also declare `formatted_name = serializers.SerializerMethodField()`.
+**Choice dropdowns show no labels or endpoint returns 500.** This is typically a `formatted_name` configuration error. A system check (`vueda_info.E001`) catches the most common cause — `formatted_name = None` without an alternative — at startup, so the root cause should be visible in server output before any requests are served. If the server starts cleanly but choice labels are missing, verify that `get_formatted_name()` is a plain method (not a `@property`, which triggers `vueda_info.E003`) and that only one of `formatted_name_lookup_expression` or `get_formatted_name()` is provided (both at once triggers `vueda_info.E002`). If using `get_formatted_name()`, the serializer must also declare `formatted_name = serializers.SerializerMethodField()`.
 
 **Client shows "Action Not Found" for a valid action.** The client normalizes route action names through a static action map; for example, `read` maps to `retrieve`. If `routeActions` in client model-config is configured using client-side names (like `read`) instead of canonical server names (like `retrieve`), the guard filtering may exclude actions that should be present.
 

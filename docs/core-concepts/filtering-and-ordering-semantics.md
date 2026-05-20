@@ -59,7 +59,7 @@ Permission checking for filter choices is bifurcated by source. Static choices (
 
 When the related model permission check fails, the endpoint returns HTTP 403, even though the user has `read` permission on the current model and can view the model's list and `detail` views. This can be confusing because the user can see the model's data, but cannot populate a filter dropdown that references a related model.
 
-Queryset-based choice resolution assumes a `formatted_name` lookup path on the related model for display labels. If the related model does not define this path, the endpoint raises an HTTP 500 with `"Cannot resolve keyword 'formatted_name'..."`. This is a server-side error in the filter configuration, not a client issue, but it surfaces as a broken filter dropdown.
+Queryset-based choice resolution assumes a `formatted_name` lookup path on the related model for display labels. If the related model does not define this path, the endpoint raises an HTTP 500 with `"Cannot resolve keyword 'formatted_name'..."`. A system check (`vueda_info.E001`) catches this misconfiguration for registered models at startup, so the error should be visible in server output before any requests reach the endpoint. This is a server-side configuration error, not a client issue, but it surfaces as a broken filter dropdown.
 
 ## Client Normalization and Cache Semantics
 
@@ -87,7 +87,7 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 
 **Related model permission blocks filter choices.** Missing `list` permission on a related model causes the filter-choice endpoint to return 403, even when the user can read the current model. The symptom is a filter dropdown that fails to populate while the rest of the model's UI works normally.
 
-**Related model missing `formatted_name`.** If the related model referenced by a queryset-backed filter choice does not implement the `formatted_name` lookup path, the filter-choice endpoint returns 500. This is a configuration error that needs to be fixed on the related model.
+**Related model missing `formatted_name`.** If the related model referenced by a queryset-backed filter choice does not implement the `formatted_name` lookup path, the filter-choice endpoint returns 500. A system check (`vueda_info.E001`) catches this for registered models at startup. This is a configuration error on the related model.
 
 **Sticky model-info fetch errors.** A failed model-info fetch caches the error and blocks all subsequent access to that model's filtering and ordering metadata. Retrying the navigation does not trigger a re-fetch.
 

@@ -29,6 +29,40 @@ class NoNameField(VuedaModel):
         return self.the_name_field
 
 
+class PropertyFormattedName(VuedaModel):
+    the_name_field = models.CharField(max_length=255)
+    formatted_name = None
+
+    @property
+    def get_formatted_name(self):
+        return self.the_name_field
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Property formatted name"
+        verbose_name_plural = "Property formatted name"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class BothFormattedNameConfigured(VuedaModel):
+    the_name_field = models.CharField(max_length=255)
+    formatted_name = None
+    formatted_name_lookup_expression = "the_name_field"
+
+    def get_formatted_name(self):
+        return self.the_name_field
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Both formatted name configured"
+        verbose_name_plural = "Both formatted name configured"
+
+    def __str__(self):
+        return self.the_name_field
+
+
 class RelatedObjectsAreMissingData(VuedaModel):
     no_name = models.ManyToManyField(NoNameField, blank=True)
 
