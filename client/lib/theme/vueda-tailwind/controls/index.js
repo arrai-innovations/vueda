@@ -1327,6 +1327,7 @@ export default {
      * fill and ring to destructive.
      */
     Checkbox: {
+        /** The boolean-chit shell. 24px square at a 4px corner (one step softer than the 2px control radius) so it reads as a chit rather than a miniature slab control; see DESIGN.md § 6.1. Default state paints a `hairline` edge on the input-tinted surface and carries the standard focus + `aria-invalid` ring contract (DESIGN.md § 7.2). Checked and indeterminate states fill with `--primary` and drop the hairline (the `--vueda-hairline-color:transparent` override on the same selectors) so the surface reads as a single solid swatch; `aria-invalid` swaps both the fill and the painted edge to `--destructive`. */
         root: {
             class: [
                 "peer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground hairline size-6 shrink-0 rounded-vueda-checkbox shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
@@ -1335,6 +1336,7 @@ export default {
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive aria-invalid:data-[state=checked]:bg-destructive aria-invalid:data-[state=checked]:text-destructive-foreground aria-invalid:data-[state=indeterminate]:bg-destructive aria-invalid:data-[state=indeterminate]:text-destructive-foreground",
             ],
         },
+        /** The centring grid for the indicator glyph (the check or indeterminate-dash icon rendered inside {@api theme-key:Checkbox.root}). `grid place-content-center` parks the icon dead-centre regardless of font-size or zoom; `text-current` lets the glyph inherit the root's `--primary-foreground` (or destructive-foreground on `aria-invalid`) so a custom icon picks up the correct fill without a second class hook. `transition-none` because the surrounding root owns the state-change tones; an animated indicator would lag the surface flip. */
         indicator: {
             class: ["grid place-content-center text-current transition-none"],
         },
@@ -1346,6 +1348,7 @@ export default {
      * Layout shell for a vertical run of RadioGroupItems.
      */
     RadioGroup: {
+        /** Layout shell for a vertical run of {@api theme-key:RadioGroupItem.root}. 12px gap (`gap-3`) so the items breathe at the form-level density; the items, not the group, carry the focus and `aria-invalid` rings, so the group itself is a transparent layout container. Override to `flex` or `grid-flow-col` for a horizontal stack without touching the per-item contract. */
         root: {
             class: ["grid gap-3"],
         },
@@ -1356,6 +1359,7 @@ export default {
      * slots paint the SVG circle dot inside the ring.
      */
     RadioGroupItem: {
+        /** The individual radio chit inside a {@api theme-key:RadioGroup.root}. 24px circle, paired with the 24px {@api theme-key:Checkbox.root} square so the two single-select families share a row height. `hairline` edge on an input-tinted surface (`dark:bg-input/30`) with the standard focus + `aria-invalid` ring contract (DESIGN.md § 7.2). Selected state is carried by the inner {@api theme-key:RadioGroupItem.dot} via `text-primary` on the root (the dot inherits the colour through `bg-current`); `aria-invalid` recolours the dot to `--destructive` the same way. */
         root: {
             class: [
                 "text-primary dark:bg-input/30 hairline aspect-square size-6 shrink-0 rounded-full shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50",
@@ -1363,9 +1367,11 @@ export default {
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive aria-invalid:text-destructive",
             ],
         },
+        /** The centring wrapper for the selected dot. `relative flex items-center justify-center` parks the painted {@api theme-key:RadioGroupItem.dot} dead-centre regardless of font-size or zoom; the parallel of {@api theme-key:Checkbox.indicator} for the radio family's single-select shape. */
         indicator: {
             class: ["relative flex items-center justify-center"],
         },
+        /** The selected-state dot painted inside {@api theme-key:RadioGroupItem.indicator}. 12px circle on `bg-current` so it inherits the parent {@api theme-key:RadioGroupItem.root}'s `text-primary` (or `text-destructive` when `aria-invalid`); using `current` keeps the dot in lockstep with the surrounding ring colour without a second class hook. */
         dot: {
             class: ["size-3 rounded-full bg-current"],
         },
@@ -1378,11 +1384,13 @@ export default {
      * track / 16px thumb. Checked state fills with `--primary`.
      */
     Switch: {
+        /** The track of the sliding boolean control. Tighter than the iOS-canonical size: 18.4px tall (`h-[1.15rem]`), 32px wide (`w-8`), so the switch sits at the form density tier rather than ballooning above the 32px control row. Pill radius; checked fills `--primary`, unchecked fills `--input` (with a darker `--input/80` tint in dark mode for visibility against the deeper canvas). Focus paints `--ring` directly on the otherwise-transparent 1px border and adds a 2px outline at 2px offset, rather than the canon `focus-ring` utility (DESIGN.md § 7.2), because the track + thumb composition needs the ring to wrap the entire pill without the inset shadow variant interfering with the thumb's transform. */
         root: {
             class: [
                 "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-vueda-control transition-all disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
+        /** The sliding indicator inside {@api theme-key:Switch.root}. 16px circle (`size-4`) sized to fit inside the 18.4px track with a 1.2px gap on each axis; `translate-x-[calc(100%-2px)]` shifts the thumb the track width on checked state and parks it 2px in from the trailing edge so a hairline of track stays visible. Fill flips by palette: `bg-background` on light, `bg-foreground` (unchecked) or `bg-primary-foreground` (checked) on dark, so the thumb reads opposite the track tone in both palettes. `transition-transform` because only the position animates; the fill flip is instant to stay aligned with the track's state change. */
         thumb: {
             class: [
                 "bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0",
@@ -1397,19 +1405,23 @@ export default {
      * thumbs. Supports horizontal (default) and vertical orientation.
      */
     Slider: {
+        /** The continuous-value control surface. Flex row by default; `data-[orientation=vertical]` flips to flex column and applies a 176px (`min-h-44`) minimum height so a vertical slider has enough travel to be precise. `touch-none` and `select-none` so dragging the {@api theme-key:Slider.thumb} does not scroll the page or initiate a text selection. `data-[disabled]:opacity-50` is the disabled signal; pointer events are blocked at the Reka primitive level above this slot, so no `cursor-not-allowed` is needed on the root. */
         root: {
             class: [
                 "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
             ],
         },
+        /** The neutral channel that the {@api theme-key:Slider.range} fills against. `bg-muted` so it reads as inert chrome behind the active fill; 6px thick (`h-1.5` horizontal, `w-1.5` vertical) at pill radius so the ends round into the {@api theme-key:Slider.thumb}. `overflow-hidden` clips the range fill to the rounded ends so the active portion meets the track corners cleanly. */
         track: {
             class: [
                 "bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5",
             ],
         },
+        /** The active fill between the track origin and the current {@api theme-key:Slider.thumb} position. `bg-primary` so the slider's selected portion reads as the same selection tone as the rest of the form family (DESIGN.md § 2.2). Absolutely positioned inside {@api theme-key:Slider.track} and sized 100% on the cross-axis so it always paints the full track thickness regardless of orientation. */
         range: {
             class: ["bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"],
         },
+        /** The drag handle painted on top of {@api theme-key:Slider.track}. 16px circle on a white fill with a 1px `--primary` border so the knob reads as tactile and grabbable against any palette. `hover:ring-4` and `focus-visible:ring-4` paint a 4px `--ring/50` halo at the slider's scale, with `outline-hidden` suppressing the default browser focus outline so the halo is the only focus paint; the canon `focus-ring` utility (DESIGN.md § 7.2) is skipped here because the offset-outline variant would extend outside the track and clip against the surrounding layout. Multiple thumbs render when the model value is an array, giving a two-handle range. */
         thumb: {
             class: [
                 "bg-white border-primary ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50",

@@ -392,31 +392,31 @@
      *                  Uber Base table row is 32).
      *   28px compact — table row edit mode, action strips.
      *   40px lg      — primary page CTAs and auth screens. */
-    --vueda-control-height: 32px;
-    --vueda-control-height-sm: 28px;
-    --vueda-control-height-lg: 40px;
-    --vueda-control-px-sm: 0.5rem; /*  8px */
-    --vueda-control-px-md: 0.75rem; /* 12px */
-    --vueda-control-px-lg: 1.25rem; /* 20px */
+    --vueda-control-height: 32px; /* default control row; the dense-SaaS sweet spot shared by buttons, inputs, selects, number fields, OTP slots, and tag-input shells. See DESIGN.md § 4.2. */
+    --vueda-control-height-sm: 28px; /* compact control row; table-row edit mode and action strips. See DESIGN.md § 4.2. */
+    --vueda-control-height-lg: 40px; /* large control row; primary page CTAs and auth screens. See DESIGN.md § 4.2. */
+    --vueda-control-px-sm: 0.5rem; /*  8px horizontal padding paired with --vueda-control-height-sm. */
+    --vueda-control-px-md: 0.75rem; /* 12px horizontal padding paired with --vueda-control-height. */
+    --vueda-control-px-lg: 1.25rem; /* 20px horizontal padding paired with --vueda-control-height-lg. */
 
     /* ---------- Specialized control sizes ----------
      * Chip / tag tier — fourth step below --vueda-control-height-lg.
      * 4-step ladder: 40 (lg) · 32 (default) · 28 (sm) · 20 (chip). */
-    --vueda-chip-height: 20px; /* TagsInput chip, inline Badge in tables */
+    --vueda-chip-height: 20px; /* chip / tag tier; fourth step below --vueda-control-height-lg on the 40 / 32 / 28 / 20 ladder. Used by TagsInput chips and inline Badges in tables. See DESIGN.md § 4.2. */
 
     /* Command surface — input wrapper and footer chin heights.
      * Only used by Command today; promote here so future searchfield-plus-chin
      * patterns inherit the geometry. */
-    --vueda-cmd-input-height: 40px; /* Command search wrapper */
-    --vueda-cmd-footer-height: 32px; /* Command footer chin */
+    --vueda-cmd-input-height: 40px; /* Command search-input wrapper height; lg tier so the search field reads as the dominant surface of the dialog. */
+    --vueda-cmd-footer-height: 32px; /* Command footer chin height; default tier so the action-hint row sits one step below the input. */
 
     /* Calendar segment grid — day cells are 30×30 inside 32×32 grid slots
      * (1px padding) so adjacent selected cells don't visually merge.
      * --vueda-cal-day-radius is kept separate from --vueda-control-radius
      * so range-fill compositions can override the corner independently. */
-    --vueda-cal-cell: 32px; /* grid slot */
-    --vueda-cal-day: 30px; /* inner day button */
-    --vueda-cal-day-radius: 2px;
+    --vueda-cal-cell: 32px; /* Calendar grid slot; the outer 32px square that the 30px day button sits inside. */
+    --vueda-cal-day: 30px; /* Calendar inner day button; 30px so the 32px slot reserves 1px of breathing room around the button on each axis. */
+    --vueda-cal-day-radius: 2px; /* Calendar day corner. Kept distinct from --vueda-control-radius so range-fill compositions can override the corner independently without disturbing the family-wide control corner. */
 
     /* ---------- Sidebar ----------
      * 224px default (tighter than shadcn's 256px); 48px icon rail.
@@ -490,15 +490,12 @@
      * Focus-ring-width is always 2x hairline-width, ensuring the 2px CSS
      * minimum required by WCAG 2.2 SC 2.4.13 (AAA) at all DPR values.
      */
-    --vueda-hairline-width: 2px; /* inset box-shadow width painted by `hairline` */
-    --vueda-focus-ring-width: 4px; /* outline width painted by `focus-ring`; always 2x hairline-width */
-    --vueda-focus-ring-offset: 4px; /* outline-offset for `focus-ring`; equals hairline-width to keep gap-to-stroke proportions constant */
-    /* Gap color for `focus-ring-shadow`. The gap MUST be an opaque surface color;
-     * a transparent gap does not work because a transparent box-shadow layer does
-     * not mask the ring shadow behind it, collapsing the gap visually. Defaults to
-     * --background; scope-override when a control sits on a different surface:
-     * [--vueda-focus-ring-gap-color:var(--card)], var(--popover), etc. */
-    --vueda-focus-ring-gap-color: var(--background);
+    --vueda-hairline-width: 2px; /* inset box-shadow width painted by the `hairline` utility; the structural-edge token that replaces `border` across the family. DPR-keyed: steps down to 1px at DPR 2.0 via the `@media (min-resolution: ...)` overrides below. See DESIGN.md § 7.1. */
+    --vueda-focus-ring-width: 4px; /* outline width painted by the `focus-ring` utility; always 2x --vueda-hairline-width so the painted ring stays at or above the WCAG 2.2 SC 2.4.13 (AAA) 2px minimum at every DPR step. See DESIGN.md § 7.2. */
+    --vueda-focus-ring-offset: 4px; /* outline-offset for `focus-ring`; tracks --vueda-hairline-width so the gap-to-stroke proportions stay constant when the painted scale steps with DPR. */
+    --vueda-focus-ring-gap-color: var(
+        --background
+    ); /* gap colour between control edge and ring stroke when painting `focus-ring-shadow` (the inset-shadow variant of `focus-ring`). Must be opaque (a transparent gap would not mask the ring shadow behind it, collapsing the gap visually). Defaults to --background; scope-override per surface via `[--vueda-focus-ring-gap-color:var(--card)]`, `var(--popover)`, etc. */
 }
 
 /* DPR-keyed overrides for the hairline + focus-ring scale. Must follow the
