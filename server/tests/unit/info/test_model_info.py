@@ -38,6 +38,11 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Distributor", "list"),
             ("store", "Distributor", "read"),
             ("store", "Distributor", "update"),
+            ("store", "DistributorProxy", "create"),
+            ("store", "DistributorProxy", "delete"),
+            ("store", "DistributorProxy", "list"),
+            ("store", "DistributorProxy", "read"),
+            ("store", "DistributorProxy", "update"),
             ("store", "InventoryRecord", "create"),
             ("store", "InventoryRecord", "delete"),
             ("store", "InventoryRecord", "list"),
@@ -127,6 +132,8 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "CustomerOrder", "read"),
             ("store", "Distributor", "list"),
             ("store", "Distributor", "read"),
+            ("store", "DistributorProxy", "list"),
+            ("store", "DistributorProxy", "read"),
             ("store", "OptionType", "list"),
             ("store", "OptionType", "read"),
             ("store", "OrderItem", "create"),
@@ -205,6 +212,7 @@ class TestModelInfoSerializer:
         info.register(
             store_serializers.OrderItemAltCompositePKSerializer, store_viewsets.OrderItemAltCompositePKViewSet
         )
+        info.register(store_serializers.DistributorProxySerializer, store_viewsets.DistributorProxyViewSet)
 
     def check_model_actions_data(self, response_data, expected_data, app_label, model_name):
         data = response_data.data["model_actions"]
@@ -305,7 +313,7 @@ class TestModelInfoSerializer:
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
         assert response.status_code == HTTPStatus.OK, str(response.data)
-        assert response.data["totalRecords"] == 15  # noqa: PLR2004
+        assert response.data["totalRecords"] == 16  # noqa: PLR2004
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",

@@ -625,3 +625,13 @@ class OrderItemAltCompositePKSerializer(VuedaSerializer):
             "product",
             "quantity",
         ] + VuedaSerializer.Meta.fields
+
+
+class DistributorProxySerializer(VuedaHistorySerializer):
+    class Meta(VuedaHistorySerializer.Meta):
+        model = models.DistributorProxy
+        fields = [
+            "id",
+            "name",
+            "description",
+        ] + VuedaHistorySerializer.Meta.fields

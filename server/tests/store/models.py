@@ -341,3 +341,10 @@ class OrderItemAltCompositePK(VuedaModel):
         ordering = ["order", "product", "quantity"]
         verbose_name = "Order Items Alt Composite PK"
         verbose_name_plural = "Order Items Alt Composite PKs"
+
+
+class DistributorProxy(Distributor):
+    class Meta(Distributor.Meta):
+        proxy = True
+        verbose_name = "distributor proxy"
+        verbose_name_plural = "distributor proxies"

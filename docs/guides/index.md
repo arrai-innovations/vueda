@@ -12,6 +12,7 @@ Guides are task-focused recipes for implementors working on real VUEDA projects.
 
 - [Create a CRUDL Surface for a New Model](create-crudl-surface.md): Minimal server/client pieces for `list`/`read`/`create`/`update`/`delete`/`list`.
 - [Set Up CRUDL for a Composite Primary Key Model](composite-primary-keys.md): Set up serializer, viewset, and filterset for models that use a composite primary key.
+- [Expose a Proxy Model as a Separate CRUDL Surface](proxy-models.md): Give a proxy model its own serializer, viewset, permissions, and model-info registration without a separate database table.
 - [Split Read/Write Serializers Safely](split-read-write-serializers.md): Use viewset serializer switching without breaking model-info metadata.
 - [Configure `list`/`read`/`create`/`update` Views](configure-crud-views.md): Tune model config per view, including default fields/expands/actions.
 - [Expose Aggregates in `list` Responses](list-column-totals.md): Use server column totals and render them in `list` views.

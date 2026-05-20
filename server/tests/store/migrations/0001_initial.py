@@ -941,6 +941,20 @@ class Migration(migrations.Migration):
                 "default_related_name": "order_items_alt_composite_pks",
             },
         ),
+        migrations.CreateModel(
+            name="DistributorProxy",
+            fields=[],
+            options={
+                "verbose_name": "distributor proxy",
+                "verbose_name_plural": "distributor proxies",
+                "abstract": False,
+                "proxy": True,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+                "indexes": [],
+                "constraints": [],
+            },
+            bases=("store.distributor",),
+        ),
         migrations.RunPython(make_sure_permissions_exist, reverse_code=migrations.RunPython.noop),
         migrations.RunSQL(
             sql="""

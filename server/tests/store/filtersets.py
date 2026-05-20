@@ -53,6 +53,15 @@ class DistributorFilterSet(VuedaFilterSet):
         fields = ["name"]
 
 
+class DistributorProxyFilterSet(VuedaFilterSet):
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
+    name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")
+
+    class Meta:
+        model = my_models.DistributorProxy
+        fields = ["name"]
+
+
 class ProductOptionFilterSet(VuedaFilterSet):
     name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
     name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")

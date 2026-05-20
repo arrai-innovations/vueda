@@ -210,3 +210,16 @@ class OrderItemCompositePKViewSet(VuedaViewSet):
 class OrderItemAltCompositePKViewSet(VuedaViewSet):
     queryset = my_models.OrderItemAltCompositePK.objects.all()
     serializer_class = my_serializers.OrderItemAltCompositePKSerializer
+
+
+class DistributorProxyViewSet(VuedaHistoryViewSet):
+    queryset = my_models.DistributorProxy.objects.all()
+    serializer_class = my_serializers.DistributorProxySerializer
+    filterset_class = my_filtersets.DistributorProxyFilterSet
+    ordering_fields = ["name"]
+    ordering = ["name"]
+
+    def get_allowed_extra_actions(self, request, *, instance=None):
+        if "Customer" in request.user.groups.values_list("name", flat=True):
+            return frozenset()
+        return super().get_allowed_extra_actions(request, instance=instance)

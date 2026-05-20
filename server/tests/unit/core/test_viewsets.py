@@ -1125,3 +1125,99 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
         self.assert_response(response, 400)
         assert "xxx_invalid_field" in response.data
         assert "formatted_name" in response.data["xxx_invalid_field"][0]
+
+
+@pytest.mark.django_db
+class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
+    model = store_models.DistributorProxy
+    has_delete_permission = True
+
+    groups_to_create: ClassVar[dict] = {
+        "Distributor Proxy Admin": [
+            ("store", "DistributorProxy", "read"),
+            ("store", "DistributorProxy", "list"),
+            ("store", "DistributorProxy", "create"),
+            ("store", "DistributorProxy", "update"),
+            ("store", "DistributorProxy", "delete"),
+            ("store", "DistributorProxy", "manage"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_distributor_proxy_admin@domain.invalid": {
+            "name": "Test Distributor Proxy Admin",
+            "password": "testpass",
+            "groups": ["Distributor Proxy Admin"],
+        },
+    }
+
+    list_keys_arguments = {"name", "description"}
+
+    page_data_arguments = (
+        {"name": "Distributor A", "description": "Description A"},
+        {"name": "Distributor B", "description": "Description B"},
+        {"name": "Distributor C", "description": "Description C"},
+    )
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        user = self.users["test_distributor_proxy_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    @pytest.fixture
+    def list_querystring(self, page_data):
+        ids = tuple(page_data.values_list("pk", flat=True))
+        return {"id": ids}
+
+    @pytest.fixture
+    def create_arguments(self):
+        return {
+            "name": "Distributor New",
+            "description": "New Description",
+        }
+
+    @pytest.fixture
+    def update_arguments(self, page_data):
+        instance = page_data.first()
+        return {
+            "current_history_id": instance.current_history_id,
+            "description": "Updated Description",
+            "id": instance.id,
+            "name": instance.name,
+        }
+
+    @pytest.fixture
+    def expected_retrieve_response(self, page_data):
+        instance = page_data.first()
+        return {
+            "current_history_id": instance.current_history_id,
+            "description": instance.description,
+            "id": instance.id,
+            "name": instance.name,
+        }
+
+    def update_expected_create_response(self, expected_create_response, new_instance):
+        super().update_expected_create_response(expected_create_response, new_instance)
+        expected_create_response["formatted_name"] = expected_create_response["name"]
+
+    def update_expected_retrieve_response(self, expected_retrieve_response, instance):
+        super().update_expected_retrieve_response(expected_retrieve_response, instance)
+        expected_retrieve_response["formatted_name"] = expected_retrieve_response["name"]
+
+    def update_expected_update_response(self, expected_update_response, updated_instance):
+        super().update_expected_update_response(expected_update_response, updated_instance)
+        expected_update_response["formatted_name"] = expected_update_response["name"]
+
+    def test_retrieve_with_history_expand(self, page_data, authenticated_client, expected_retrieve_response):
+        instance = page_data.first()
+
+        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry"}
+        response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
+
+        self.update_expected_retrieve_response(expected_retrieve_response, instance)
+
+        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert "first_history_entry" in response.data, f"Missing first_history_entry in response.data: {response.data}"
+        assert "history" in response.data, f"Missing history in response.data: {response.data}"
+        assert response.data["history"][0] == response.data["first_history_entry"]
