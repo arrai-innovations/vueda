@@ -92,7 +92,7 @@ VDQ defines a set of terminal workflow states, `QUEUE_ITEM_DONE_STATES`, that dr
 
 **Attachment URLs.** Attachment download URLs are derived from `settings.VDQ_URL` and served by `PrivateAttachmentView`, which requires authentication.
 
-:: warning
+::: warning
 The view enforces authentication but does not perform object-level permission checks against the associated queue item; any authenticated user can fetch an attachment by ID if they can obtain or guess the URL.
 :::
 
