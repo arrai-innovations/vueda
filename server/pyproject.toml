@@ -89,7 +89,6 @@ docs = [
 
 [tool.uv]
 default-groups = ["dev", "docs"]
-exclude-newer = "1 day"
 
 [tool.setuptools]
 include-package-data = false
