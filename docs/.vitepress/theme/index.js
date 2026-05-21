@@ -4,7 +4,7 @@ import ForceState from "./components/ForceState.vue";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
 import StateLabel from "./components/StateLabel.vue";
 import VuedaDemo from "./components/VuedaDemo.vue";
-import "./showcase.css";
+import "./showcase-portals.css";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import {

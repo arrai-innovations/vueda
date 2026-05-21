@@ -1,17 +1,12 @@
 /* Tailwind utilities + vueda token layer for component showcases.
  *
- * We import the full `tailwindcss` bundle (preflight + theme + utilities) the
- * same way consumer projects do, so the visual result matches a real vueda app.
- * VitePress's own styles set most of what preflight resets; any conflicts that
- * surface should be addressed by scoping rather than dropping preflight.
+ * VuedaDemo imports this file as inline CSS and injects it into each demo
+ * shadow root. That keeps VitePress default theme selectors out of component
+ * showcases while still loading the same Tailwind bundle and vueda token layer
+ * a consuming app would use.
  */
-/* Mark Tailwind utilities `!important` so they beat VitePress's unlayered
- * default theme styles (e.g. `button { ... }` in vitepress/dist/client/
- * theme-default/styles/base.css). Unlayered CSS rules always win over any
- * @layer rule regardless of specificity, so without `important` the showcase
- * components would inherit VitePress's chrome styling. */
-@import "tailwindcss" important;
-@import "@vueda/theme/vueda-tailwind/base.css" important;
+@import "tailwindcss";
+@import "@vueda/theme/vueda-tailwind/base.css";
 
 /* Explicitly scan the vueda client library for class names. The @source in
  * base.css is relative to its on-disk location and may not resolve when
