@@ -33,6 +33,7 @@ function renderGroupPage(group, tokens) {
 
     const titleSuffix = /tokens?$/i.test(group.name) ? "" : " tokens";
     const title = `${group.name}${titleSuffix}`;
+    const groupDescription = group.description || group.group_description || null;
     const frontmatter = {
         title,
         id: `theming:tokens:${slug}`,
@@ -43,8 +44,8 @@ function renderGroupPage(group, tokens) {
     lines.push(renderFrontmatter(frontmatter));
     lines.push(renderHeading(1, title));
     lines.push("");
-    if (group.description) {
-        lines.push(group.description, "");
+    if (groupDescription) {
+        lines.push(groupDescription, "");
     }
 
     const headers = ["Name", "Light", "Dark", "Description", "Tailwind utility"];

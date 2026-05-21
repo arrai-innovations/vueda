@@ -45,6 +45,14 @@ const RAW_PAYLOAD = {
         primary: { utility: "color", property: "primary" },
         "vueda-control-radius": { utility: "radius", property: "vueda-control" },
     },
+    groups: [
+        {
+            name: "Semantic radius tokens",
+            group_description: "Radius choices frame the shared control geometry.",
+            scope: "root",
+            source: { file: "base.css", line: 13, column: 5 },
+        },
+    ],
 };
 
 describe("CssTokensNormalizer", () => {
@@ -78,6 +86,13 @@ describe("CssTokensNormalizer", () => {
         const bundle = normalizer.normalize(RAW_PAYLOAD);
         const names = bundle.groups.map((g) => g.name);
         expect(names).toEqual(["Color palette: light", "Semantic radius tokens", "Dark extras"]);
+    });
+
+    it("carries raw group_description into canonical group descriptions", () => {
+        const normalizer = new CssTokensNormalizer();
+        const bundle = normalizer.normalize(RAW_PAYLOAD);
+        const radiusGroup = bundle.groups.find((g) => g.name === "Semantic radius tokens");
+        expect(radiusGroup.description).toBe("Radius choices frame the shared control geometry.");
     });
 
     it("leaves variants.dark unset when a token is only declared in :root", () => {

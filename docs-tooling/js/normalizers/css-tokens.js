@@ -23,6 +23,7 @@ export class CssTokensNormalizer extends Normalizer {
     normalize(payload) {
         const rootDecls = (payload?.scopes?.root || []).slice();
         const darkDecls = (payload?.scopes?.dark || []).slice();
+        const rawGroups = (payload?.groups || []).slice();
         const themeMapping = payload?.themeMapping || {};
 
         const rootByName = new Map();
@@ -38,6 +39,15 @@ export class CssTokensNormalizer extends Normalizer {
         const tokens = [];
         const groupOrder = [];
         const groupSeen = new Set();
+        const groupDescriptions = new Map();
+
+        for (const group of rawGroups) {
+            const groupName = group.name || group.group || null;
+            const description = group.group_description || group.description || null;
+            if (groupName && description && !groupDescriptions.has(groupName)) {
+                groupDescriptions.set(groupName, description);
+            }
+        }
 
         // Preserve declaration order from :root, then .dark for any extras.
         const orderedNames = [];
@@ -90,7 +100,7 @@ export class CssTokensNormalizer extends Normalizer {
             });
         }
 
-        const groups = groupOrder.map((name) => ({ name, description: null }));
+        const groups = groupOrder.map((name) => ({ name, description: groupDescriptions.get(name) || null }));
 
         return {
             kind: "css-tokens",

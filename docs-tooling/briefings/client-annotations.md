@@ -126,13 +126,14 @@ The css-tokens extractor (`docs-tooling/js/extractors/css-tokens.js`) parses `ba
 
 ```css
 :root {
-    /* ---------- Color palette: light ---------- */
+    /* ---------- Color palette: light ----------
+     * Use color tokens for reusable UI roles, not one-off component tweaks. */
     --background: oklch(0.99 0.003 250);
     --foreground: oklch(0.18 0.015 250);
 }
 ```
 
-The banner regex matches three or more dashes on each side of the title (`-{3,}\s*Title\s*-{3,}`), so the surrounding fences must be present. Prose above the banner (a leading `/** ... */`-style preamble at the top of `:root`) is not rendered; per-group introductions belong in `DESIGN.md` with a `see DESIGN.md § X` pointer from individual token descriptions.
+The banner regex matches three or more dashes on each side of the title (`-{3,}\s*Title\s*-{3,}`), so the surrounding fences must be present. Prose above a banner (for example, a leading `/** ... */`-style preamble at the top of `:root`) is not rendered. Prose following a banner becomes the group description and is rendered between the page H1 and the tokens table. The extractor captures prose in the same `/* ... */` block after the banner line, plus contiguous non-banner `/* ... */` blocks before the first declaration, next banner, or blank line. Markdown inside that prose is preserved.
 
 **Trailing description.** A `/* ... */` comment on the same source line as a declaration becomes the token description on its rendered page.
 

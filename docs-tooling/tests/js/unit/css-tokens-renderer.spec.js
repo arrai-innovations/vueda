@@ -49,6 +49,26 @@ describe("renderCssTokensBundle", () => {
         expect(page).toContain("oklch(0.68 0.17 254)");
     });
 
+    it("renders group descriptions between the title and token table", () => {
+        const outputs = renderCssTokensBundle({
+            ...BUNDLE,
+            groups: [
+                {
+                    name: "Color palette",
+                    group_description: "Use color tokens for reusable UI roles.\n\n- Preserve contrast.",
+                },
+                { name: "Radius", description: null },
+            ],
+        });
+        const page = outputs.get("theming/tokens/color-palette.md");
+        const titleIndex = page.indexOf("# Color palette tokens");
+        const descriptionIndex = page.indexOf("Use color tokens for reusable UI roles.");
+        const tableIndex = page.indexOf("| Name | Light | Dark | Description | Tailwind utility |");
+        expect(descriptionIndex).toBeGreaterThan(titleIndex);
+        expect(descriptionIndex).toBeLessThan(tableIndex);
+        expect(page).toContain("- Preserve contrast.");
+    });
+
     it("emits an index page with theming:tokens id and links to each group", () => {
         const outputs = renderCssTokensBundle(BUNDLE);
         const index = outputs.get("theming/tokens.md");
