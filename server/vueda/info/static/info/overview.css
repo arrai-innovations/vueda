@@ -314,6 +314,37 @@ select {
     color: #77bb77;
 }
 
+.group-tag-workflow {
+    background: #1a1a2e;
+    color: #8899ee;
+}
+
+.group-tag-grant {
+    background: #162416;
+    color: #66bb66;
+}
+
+.group-tag-deny {
+    background: #2a1414;
+    color: #cc6666;
+}
+
+.workflow-access-row {
+    background: #1a1f2e;
+}
+
+.state-perms-row {
+    background: #1e1a1a;
+}
+
+.workflow-access-label {
+    color: #8899ee;
+}
+
+.state-perms-label {
+    color: #cc9966;
+}
+
 .no-groups {
     color: #444;
     font-size: 0.8rem;
@@ -432,6 +463,23 @@ select {
     .group-tag-transition {
         background: #e8f0e8;
         border-color: #acaa;
+    }
+
+    .group-tag-workflow {
+        background: #e8e8f8;
+    }
+
+    .group-tag-grant {
+        background: #e8f8e8;
+    }
+
+    .group-tag-deny {
+        background: #f8e8e8;
+    }
+
+    .workflow-access-row,
+    .state-perms-row {
+        background: transparent !important;
     }
 
     .transition-row,

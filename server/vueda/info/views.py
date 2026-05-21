@@ -34,6 +34,148 @@ from vueda.info.registration import get_all_registrations
 from vueda.user.mixins import LogoutMixin
 
 
+def _build_workflow_map(registered_ct_ids, user_group_ids, is_superuser):
+    """Return a dict keyed by content_type_id with workflow display data."""
+    from vueda.workflow.models import Workflow as WorkflowModel
+
+    workflow_map = {}
+    for workflow in WorkflowModel.objects.filter(content_type_id__in=registered_ct_ids).prefetch_related(
+        "workflow_permissions__permission__group_set",
+        "states__state_permissions__permission",
+        "states__state_permissions__group",
+        "transitions__transition_permissions__permission__group_set",
+        "transitions__transition_sources__source",
+        "transitions__target",
+    ):
+        workflow_map[workflow.content_type_id] = _workflow_data(workflow, user_group_ids, is_superuser)
+    return workflow_map
+
+
+def _workflow_data(workflow, user_group_ids, is_superuser):
+    """Build the display dict for a single workflow."""
+    workflow_perm_group_data = {}
+    for wp in workflow.workflow_permissions.all():
+        for group in wp.permission.group_set.all():
+            workflow_perm_group_data[group.pk] = group.name
+
+    state_perms_data, has_state_permissions = _collect_state_permissions(workflow)
+
+    all_wps = list(workflow.workflow_permissions.all())
+    user_can_access_workflow = _user_can_access_workflow(all_wps, has_state_permissions, user_group_ids, is_superuser)
+
+    return {
+        "name": workflow.name,
+        "workflow_groups": sorted(workflow_perm_group_data.values()),
+        "user_can_access_workflow": user_can_access_workflow,
+        "has_state_permissions": has_state_permissions,
+        "state_permissions": state_perms_data,
+        "transitions": [_transition_data(t, user_group_ids, is_superuser) for t in workflow.transitions.all()],
+    }
+
+
+def _collect_state_permissions(workflow):
+    """Return (state_perms_data list, has_state_permissions bool) for a workflow."""
+    state_perms_data = []
+    for state in workflow.states.all():
+        for sp in state.state_permissions.all():
+            state_perms_data.append(
+                {
+                    "state_name": state.name,
+                    "permission_codename": sp.permission.codename,
+                    "group_name": sp.group.name,
+                    "grant_or_deny": sp.grant_or_deny,
+                }
+            )
+    state_perms_data.sort(key=lambda x: (x["state_name"], x["group_name"]))
+    return state_perms_data, bool(state_perms_data)
+
+
+def _user_can_access_workflow(all_wps, has_state_permissions, user_group_ids, is_superuser):
+    """Return True/False/None for whether the selected user can access this workflow."""
+    if user_group_ids is None:
+        return None
+    if has_state_permissions:
+        return True
+    if not all_wps:
+        return False
+    if is_superuser:
+        return True
+    return all({g.pk for g in wp.permission.group_set.all()} & user_group_ids for wp in all_wps)
+
+
+def _transition_data(transition, user_group_ids, is_superuser):
+    """Build the display dict for a single transition."""
+    groups = {}
+    for tp in transition.transition_permissions.all():
+        for group in tp.permission.group_set.all():
+            groups[group.pk] = group.name
+
+    tps = list(transition.transition_permissions.all())
+    if user_group_ids is None:
+        user_can_do = None
+    elif not tps:
+        user_can_do = False
+    elif is_superuser:
+        user_can_do = True
+    else:
+        user_can_do = all({g.pk for g in tp.permission.group_set.all()} & user_group_ids for tp in tps)
+
+    sources = sorted(ts.source.name for ts in transition.transition_sources.all() if not ts.ignored)
+    return {
+        "name": transition.name,
+        "sources": sources,
+        "target": transition.target.name,
+        "groups": sorted(groups.items(), key=lambda x: x[1]),
+        "user_can_do": user_can_do,
+    }
+
+
+def _build_apps(permissions_qs, workflow_map, selected_user):
+    """Assemble the apps → models structure from the permissions queryset."""
+    apps = {}
+    model_data = {}
+    for (
+        pk,
+        codename,
+        name,
+        app_label,
+        model_name,
+        ct_id,
+        groups_list,
+    ) in permissions_qs.values_list(
+        "pk",
+        "codename",
+        "name",
+        "content_type__app_label",
+        "content_type__model",
+        "content_type_id",
+        "groups_list",
+    ):
+        key = (app_label, model_name)
+        if key not in model_data:
+            model_dict = {
+                "model_name": model_name,
+                "permissions": [],
+                "workflow": workflow_map.get(ct_id),
+            }
+            model_data[key] = model_dict
+            if app_label not in apps:
+                apps[app_label] = []
+            apps[app_label].append(model_dict)
+
+        model_item = {
+            "pk": pk,
+            "codename": codename,
+            "name": name,
+            "groups": groups_list,
+        }
+        if selected_user:
+            model_item["user_has_permission"] = selected_user.has_perm(f"{app_label}.{codename}")
+
+        model_data[key]["permissions"].append(model_item)
+    return apps
+
+
 @conditional_extend_schema_decorator(
     summary="Server version",
     responses={
@@ -120,80 +262,12 @@ class InfoOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView):
         )
 
         # Workflow transition data (guarded so the app doesn't need vueda.workflow)
+        is_superuser = selected_user.is_superuser if selected_user else False
         workflow_map = {}
         if "vueda.workflow" in settings.INSTALLED_APPS:
-            from vueda.workflow.models import Workflow as WorkflowModel
+            workflow_map = _build_workflow_map(registered_ct_ids, user_group_ids, is_superuser)
 
-            for workflow in WorkflowModel.objects.filter(content_type_id__in=registered_ct_ids).prefetch_related(
-                "transitions__transition_permissions__permission__group_set",
-                "transitions__transition_sources__source",
-                "transitions__target",
-            ):
-                transitions = []
-                for transition in workflow.transitions.all():
-                    groups = {}
-                    for tp in transition.transition_permissions.all():
-                        for group in tp.permission.group_set.all():
-                            groups[group.pk] = group.name
-                    sorted_groups = sorted(groups.items(), key=lambda x: x[1])
-                    if user_group_ids is not None:
-                        sorted_groups = [(pk, name) for pk, name in sorted_groups if pk in user_group_ids]
-                    sources = sorted(ts.source.name for ts in transition.transition_sources.all() if not ts.ignored)
-                    transitions.append(
-                        {
-                            "name": transition.name,
-                            "sources": sources,
-                            "target": transition.target.name,
-                            "groups": sorted_groups,
-                        }
-                    )
-                workflow_map[workflow.content_type_id] = {
-                    "name": workflow.name,
-                    "transitions": transitions,
-                }
-
-        # Assemble apps → models structure
-        apps = {}
-        model_data = {}
-        for (
-            pk,
-            codename,
-            name,
-            app_label,
-            model_name,
-            ct_id,
-            groups_list,
-        ) in permissions_qs.values_list(
-            "pk",
-            "codename",
-            "name",
-            "content_type__app_label",
-            "content_type__model",
-            "content_type_id",
-            "groups_list",
-        ):
-            key = (app_label, model_name)
-            if key not in model_data:
-                model_dict = {
-                    "model_name": model_name,
-                    "permissions": [],
-                    "workflow": workflow_map.get(ct_id),
-                }
-                model_data[key] = model_dict
-                if app_label not in apps:
-                    apps[app_label] = []
-                apps[app_label].append(model_dict)
-
-            model_item = {
-                "pk": pk,
-                "codename": codename,
-                "name": name,
-                "groups": groups_list,
-            }
-            if selected_user:
-                model_item["user_has_permission"] = selected_user.has_perm(f"{app_label}.{codename}")
-
-            model_data[key]["permissions"].append(model_item)
+        apps = _build_apps(permissions_qs, workflow_map, selected_user)
 
         users = tuple(
             User.objects.exclude(is_system=True)

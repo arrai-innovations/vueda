@@ -104,7 +104,44 @@
                         </div>
                         {% if model.workflow %}
                             <div class="model-section transitions-section">
-                                <div class="section-label">Transitions</em></div>
+                                <div class="section-label">Transitions</div>
+
+                                <div class="row workflow-access-row">
+                                    <div class="row-info">
+                                        <span class="transition-name workflow-access-label">Workflow Access</span>
+                                        <span class="row-sub">{{ model.workflow.name }}</span>
+                                    </div>
+                                    {% if model.workflow.user_can_access_workflow is not none %}
+                                        {% if model.workflow.user_can_access_workflow %}
+                                            <div class="perm-yes">&#x2713;</div>
+                                        {% else %}
+                                            <div class="perm-no">&#x2715;</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span></span>
+                                    {% endif %}
+                                    <div class="row-groups">
+                                        {% for group_name in model.workflow.workflow_groups %}
+                                            <span class="group-tag group-tag-workflow">{{ group_name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% if model.workflow.has_state_permissions %}
+                                    <div class="row state-perms-row">
+                                        <div class="row-info">
+                                            <span class="transition-name state-perms-label">State Permissions</span>
+                                            <span class="row-sub">Row-level grant/deny rules apply</span>
+                                        </div>
+                                        <span></span>
+                                        <div class="row-groups">
+                                            {% for sp in model.workflow.state_permissions %}
+                                                <span class="group-tag {% if sp.grant_or_deny %}group-tag-grant{% else %}group-tag-deny{% endif %}">
+                                                    {{ sp.state_name }}: {{ sp.group_name }} ({{ sp.permission_codename }}) &mdash; {% if sp.grant_or_deny %}grant{% else %}deny{% endif %}
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
                                 {% for transition in model.workflow.transitions %}
                                     <div class="row transition-row">
                                         <div class="row-info">
@@ -115,11 +152,18 @@
                                                 {%- endif %} {{ transition.target }}
                                             </span>
                                         </div>
+                                        {% if transition.user_can_do is not none %}
+                                            {% if transition.user_can_do %}
+                                                <div class="perm-yes">&#x2713;</div>
+                                            {% else %}
+                                                <div class="perm-no">&#x2715;</div>
+                                            {% endif %}
+                                        {% else %}
+                                            <span></span>
+                                        {% endif %}
                                         <div class="row-groups">
                                             {% for group_id, group_name in transition.groups %}
                                                 <span class="group-tag group-tag-transition">{{ group_name }}</span>
-                                            {% else %}
-                                                <span class="no-groups">—</span>
                                             {% endfor %}
                                         </div>
                                     </div>
