@@ -178,10 +178,10 @@ describe("buildOpenApiPathMap", () => {
 // ---------------------------------------------------------------------------
 
 describe("buildVueDocgenPathMap", () => {
-    it("maps a component id to vue/components/<name>.md", () => {
+    it("maps a component id to vue/<name>.md", () => {
         const bundle = new VueDocgenNormalizer().normalize(vueDocgenPayload);
         const pathMap = buildVueDocgenPathMap(bundle);
-        expect(pathMap.get("vue:component:Foo")).toBe("vue/components/Foo.md");
+        expect(pathMap.get("vue:component:Foo")).toBe("vue/Foo.md");
     });
 
     it("generates exactly one path-map entry per component (sub-page paths are added by the renderer)", () => {

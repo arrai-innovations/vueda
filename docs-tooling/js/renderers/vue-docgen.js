@@ -196,7 +196,7 @@ function renderEventsPage(node, index) {
     return lines.join("\n").trimEnd() + "\n";
 }
 
-const INDEX_PATH = "vue/components/index.md";
+const INDEX_PATH = "vue/index.md";
 const GROUP_ORDER = ["views", "components", "fields", "widgets"];
 
 function componentGroup(node) {
@@ -226,7 +226,7 @@ function renderComponentIndex(componentNodes, pathMap) {
     ];
 
     const lines = [
-        renderFrontmatter({ id: "vue:components:index", kind: "index", source: "vue-docgen" }),
+        renderFrontmatter({ id: "vue:index", kind: "index", source: "vue-docgen" }),
         renderHeading(1, "Vue Components"),
         "",
     ];

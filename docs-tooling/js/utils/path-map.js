@@ -150,15 +150,15 @@ export function buildOpenApiPathMap(bundle, index) {
 }
 
 export function vueDocgenComponentPath(node) {
-    return `vue/components/${slugify(node.name)}.md`;
+    return `vue/${slugify(node.name)}.md`;
 }
 
 export function vueDocgenSlotsPath(node) {
-    return `vue/components/${slugify(node.name)}/slots.md`;
+    return `vue/${slugify(node.name)}/slots.md`;
 }
 
 export function vueDocgenEventsPath(node) {
-    return `vue/components/${slugify(node.name)}/events.md`;
+    return `vue/${slugify(node.name)}/events.md`;
 }
 
 export function buildVueDocgenPathMap(bundle) {
