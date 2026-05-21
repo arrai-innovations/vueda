@@ -722,6 +722,7 @@ export default {
      * their own internal content.
      */
     ViewAction: {
+        /** Outer wrapper around the embedded {@api theme-key:PageTitle} and {@api theme-key:ModelActionForm}. Empty by default; the two inner shells own all visible chrome, so this key exists only as the consumer-facing override surface and the data-qa anchor. */
         root: {
             class: [],
         },
@@ -731,6 +732,7 @@ export default {
      * generic view-action structure.
      */
     ViewActivate: {
+        /** Outer wrapper around the embedded {@api theme-key:PageTitle} and the activate-flow {@api theme-key:ModelActionForm}. Empty by default; the chrome lives on the inner shells. The view also renders a centred {@api theme-key:LoadingSpinnerBlock} while {@api theme-key:ModelActionForm}'s model config loads; that fallback inherits its own block recipe and is not themed here. */
         root: {
             class: [],
         },
@@ -740,15 +742,15 @@ export default {
      * centered message-card layout with submit error feedback.
      */
     ViewDeactivate: {
-        // Centering wrapper: card is 460 px so it needs a flex parent to center on the page.
+        /** Centering wrapper around the embedded warning-toned {@api theme-key:SystemMessageCard}. The card chassis is fixed-width, so a flex parent is required for it to sit in the middle of the viewport; mirrors {@api theme-key:ViewLoading.root} and the other system-view roots so deactivation reads as a sibling of the missing-route and slow-load surfaces. */
         root: {
             class: ["flex min-h-full items-center justify-center p-8"],
         },
-        // Default suspension-explanation blurb. Slot override takes precedence.
+        /** Default suspension-explanation paragraph rendered inside the card body when the `message` slot is not overridden. 13 px / muted-foreground so the copy reads as supporting prose beside the destructive button. Consumer overrides take precedence; the {@api theme-key:ConsequencesBullets} list below covers structured per-impact rows. */
         message: {
             class: ["text-[13px] leading-[1.5] text-muted-foreground"],
         },
-        // Submit-error paragraph shown when the PATCH fails.
+        /** Submit-error paragraph shown when the deactivate PATCH fails. 12 px / destructive so the error reads as a tone-flipped sibling of the muted message above, without escalating to a full validation alert recipe (the view holds its own retry rather than blocking via {@api theme-key:ActionForm.validation}). */
         error: {
             class: ["text-[12px] text-destructive leading-[1.5]"],
         },
@@ -759,18 +761,23 @@ export default {
      * recovery-code toggle, verification input, and cooldown indicator.
      */
     ViewTwoFactorAuth: {
+        /** Outer wrapper. Empty; the embedded {@api theme-key:AuthorizingForm} owns the framed card and viewport-centred chrome, so this key is left open as the consumer-facing override surface. */
         root: {
             class: [],
         },
+        /** Vertical button stack inside the {@api theme-key:AuthorizingForm}'s `action-bar` slot. Stacks the resend / verify / recovery-toggle trio in a single column with 8 px gaps and a 16 px top inset so the cluster reads as a footer beneath the method picker and OTP grid. */
         buttons: {
             class: ["flex flex-col gap-2 pt-4"],
         },
+        /** Ghost CTA that flips the form body between verified-method mode and recovery-code mode. `self-start` anchors the button to the start of the column so it reads as an escape hatch beside the primary verify CTA, not a peer of it. */
         recoveryToggle: {
             class: ["self-start"],
         },
+        /** Class forwarded to the {@api theme-key:WidgetTextInput} rendered for the recovery-code path. Mono per `DESIGN.md § 3.2` with a small letter-spacing bump so the dashed code reads as machine-input alongside the OTP grid it replaces. */
         recoveryInput: {
             class: ["font-mono tracking-[0.04em]"],
         },
+        /** Inline cooldown pill beside the resend button while the 60-second send-code cooldown is active. Mono / 11 px / `tabular-nums` per `DESIGN.md § 3.2` so the counting digits stay column-aligned as the seconds tick down; muted fill + muted-foreground keep the pill from competing with the disabled resend button it sits beside. The chip is announced via `aria-live="polite"` on the consumer side; this recipe handles visual chrome only. */
         cooldownChip: {
             class: [
                 "inline-flex items-center justify-center px-2 py-0.5 rounded-full",
@@ -784,12 +791,15 @@ export default {
      * indicators, manual key display, and completion state.
      */
     ViewSetupDevice: {
+        /** Horizontal stepper rail above the form body. `mb-4` opens a 16 px gap between the rail and the first field so the progress indicator reads as supporting chrome, not the form's leading row. Used as the `<ol>` element so screen readers see the steps as a list; the consumer supplies `aria-label="Setup progress"`. */
         steps: {
             class: ["flex items-center gap-2 mb-4"],
         },
+        /** One entry in the stepper (number badge + label pair). `data-[state=upcoming]:opacity-60` dims future steps so the rail naturally focuses on the active step; the badge and label below carry per-state colour routing for the `current` and `done` tones. */
         step: {
             class: ["flex items-center gap-2", "data-[state=upcoming]:opacity-60"],
         },
+        /** 18 px circular badge that holds the step number (or a check glyph at `state=done`). `data-state` routes the fill: neutral hairline + muted-foreground at `upcoming`, solid primary at `current`, and tinted primary/15 with a primary/40 border at `done`. The `aria-hidden="true"` on the consumer side keeps the badge out of the assistive-tech reading order (the {@api theme-key:ViewSetupDevice.stepLabel} carries the actual step name). */
         stepNum: {
             class: [
                 "flex items-center justify-center shrink-0",
@@ -800,6 +810,7 @@ export default {
                 "data-[state=done]:bg-primary/15 data-[state=done]:text-primary data-[state=done]:border-primary/40",
             ],
         },
+        /** Step-name label beside the number badge. Uses the 11 px / 600 / `0.06em` uppercase eyebrow recipe per `DESIGN.md § 3.3` so the rail reads as a row of section eyebrows; `data-state` promotes the colour to foreground at `current` and `done` so the active step does not lose contrast against the dimmed `upcoming` peers. */
         stepLabel: {
             class: [
                 "text-[11px] font-semibold uppercase tracking-[0.06em] leading-none",
@@ -808,30 +819,36 @@ export default {
                 "data-[state=done]:text-foreground",
             ],
         },
+        /** 1 px hairline rendered between consecutive step badges. `flex-1` lets the divider claim the remaining row width so all dividers stretch to the same length regardless of label length. */
         stepDivider: {
             class: ["flex-1 h-px bg-border"],
         },
+        /** Manual-key strip rendered beneath the TOTP QR code so the operator can transcribe the secret when scanning is not an option. Card-toned with a hairline border and 10 px vertical padding; sits one row below the QR with a 8 px top inset so the two read as a pair. */
         manualKey: {
             class: [
                 "flex items-center gap-2 px-3 py-[10px] mt-2",
                 "rounded-vueda-control border border-border bg-background",
             ],
         },
+        /** "Manual key" eyebrow inside the strip. 10 px / 600 / `0.06em` uppercase per `DESIGN.md § 3.3`, one tier smaller than the page-level eyebrows so it reads as a strip-local label; `shrink-0` keeps the eyebrow from collapsing when the secret pushes wider than the row. */
         manualKeyLabel: {
             class: [
                 "text-[10px] font-semibold uppercase tracking-[0.06em] leading-none",
                 "text-muted-foreground shrink-0",
             ],
         },
+        /** Mono secret fragment inside the strip. 12.5 px / 500 / mono per `DESIGN.md § 3.2`; `select-all` makes a triple-click copy the whole secret, and `truncate min-w-0 flex-1` ellipsizes the tail when the row is narrower than the secret rather than wrapping a base32 string mid-token. */
         manualKeyValue: {
             class: [
                 "font-mono text-[12.5px] font-medium leading-none",
                 "text-foreground select-all truncate min-w-0 flex-1",
             ],
         },
+        /** Completion-state body that replaces the form fields once the device is verified. Centered column with 12 px gaps and 24 px vertical padding so the celebratory icon / title / description trio reads as a deliberate end-of-flow surface, not another form row. */
         done: {
             class: ["flex flex-col items-center text-center gap-3 py-6"],
         },
+        /** 48 px circular icon tile leading the completion body (typically a check glyph). Primary/15 fill on primary keeps the tile from reading as destructive while still signalling "success" in the brand accent; sized larger than the {@api theme-key:ModelActionForm.bannerIcon} 36 px tile so completion reads as a celebratory surface rather than another banner row. */
         doneIcon: {
             class: [
                 "flex items-center justify-center",
@@ -839,12 +856,15 @@ export default {
                 "text-[24px] leading-none",
             ],
         },
+        /** Completion title ("Device added" or similar). 16 px / 600 / foreground, one tier above the banner-title recipe on {@api theme-key:ModelActionForm.bannerTitle} so the end-of-flow headline reads with more weight than the per-banner titles encountered along the way. */
         doneTitle: {
             class: ["text-[16px] font-semibold leading-[1.3] text-foreground"],
         },
+        /** Completion description beneath the title ("Your two-factor device is now active…"). 13 px / muted-foreground capped at 44ch so the explanation reads as a paragraph; one tier larger than the 12 px banner-desc recipe to match the bumped 16 px title above. */
         doneDescription: {
             class: ["text-[13px] font-normal leading-[1.5] text-muted-foreground max-w-[44ch]"],
         },
+        /** Action cluster beneath the completion description. `mt-2` opens a 8 px inset so the actions sit one rhythm-step below the description rather than crowding it. */
         doneActions: {
             class: ["flex gap-2 mt-2"],
         },
@@ -855,33 +875,42 @@ export default {
      * current state context, and terminal-state empty messaging.
      */
     ViewWorkflowTransition: {
+        /** Outer wrapper. Empty; the embedded {@api theme-key:PageTitle} owns the header bar and the {@api theme-key:ViewWorkflowTransition.inner} body owns the form / empty-state surfaces, so this key exists only as the consumer-facing class hook (the SFC routes the `class` prop here). */
         root: {
             class: [],
         },
+        /** Button cluster forwarded into the {@api theme-key:PageTitle.buttons} slot. Holds the single Return-to-List link; right-aligned and `w-full` so the cluster takes the full button-slot width and pushes the link to the end of the title row. */
         buttons: {
             class: ["flex gap-1 w-full justify-end"],
         },
+        /** Class forwarded to the {@api theme-key:LinkModelView} inside the page-title buttons cluster. `whitespace-nowrap` keeps the link from breaking mid-label; `grow shrink-0` lets the link claim row width when narrow without ever collapsing below its natural width. */
         returnLink: {
             class: ["whitespace-nowrap grow shrink-0"],
         },
+        /** Body wrapper around the transition form (or the terminal-state empty branch). Empty by default; the {@api theme-key:ViewWorkflowTransition.current} strip, {@api theme-key:ViewWorkflowTransition.list} list, and {@api theme-key:ViewWorkflowTransition.empty} card own all visible chrome inside. */
         inner: {
             class: [],
         },
+        /** "Currently" strip above the transition list. Tinted-muted 40 % background with the card radius, sized to read as a context tag rather than a heading; 16 px bottom inset so the list below sits one rhythm-step beneath the current-state pill. */
         current: {
             class: ["flex items-center gap-2 mb-4 px-4 py-2.5 rounded-vueda-card bg-muted/40 text-sm"],
         },
+        /** "Currently" eyebrow inside the current-state strip. 12 px / 500 / `0.06em` uppercase against `--muted-foreground` per `DESIGN.md § 3.3` so the label reads as a section eyebrow beside the state pill on its right. */
         currentLabel: {
             class: ["text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground"],
         },
+        /** State-name pill beside the eyebrow. Muted fill on foreground at 12 px / 600 so the state reads as the primary token in the strip; sized at `py-0.5` so the pill stays vertically centered against the eyebrow's x-height. */
         currentPill: {
             class: [
                 "inline-flex items-center px-2.5 py-0.5 rounded-full",
                 "bg-muted text-foreground text-xs font-semibold",
             ],
         },
+        /** Vertical list of transition options. 12 px gaps between options and a 16 px bottom inset so the list reads as a separable column above the submit button. */
         list: {
             class: ["flex flex-col gap-3 mb-4"],
         },
+        /** Clickable `<label>` wrapping one transition option. Borders the option with the card radius and routes `data-selected="true"` to a primary border + primary/5 background, and `data-disabled="true"` to opacity 55 + `not-allowed` cursor. `has-[:focus-visible]` hoists the inner {@api theme-key:ViewWorkflowTransition.optionRadio}'s focus ring onto the option chassis so keyboard users see a ring on the visible target rather than the visually-hidden input. The textarea / reason path parked in BACKLOG-003 lands below the list, not on the option itself. */
         option: {
             class: [
                 "relative flex flex-col gap-1 px-4 py-3 rounded-vueda-card border border-border cursor-pointer",
@@ -891,15 +920,19 @@ export default {
                 "data-[disabled=true]:opacity-55 data-[disabled=true]:cursor-not-allowed",
             ],
         },
+        /** Visually-hidden `<input type="radio">` inside the option. `sr-only` keeps the input in the tab order and the form payload while {@api theme-key:ViewWorkflowTransition.option} carries the visible selection state via `data-selected`; the parent's `has-[:focus-visible]` recipe routes the focus ring onto the visible chassis. */
         optionRadio: {
             class: ["sr-only"],
         },
+        /** Transition title inside the option. 14 px / 600 / foreground; reads as the primary token in the option, with the description and target-state badge sitting beneath it as supporting copy. */
         optionName: {
             class: ["text-sm font-semibold text-foreground"],
         },
+        /** Transition description (or disabled-reason fallback) beneath the title. 12 px / muted-foreground per the headline / supporting-copy hierarchy. The slot is also used for the `disabled_reason` paragraph when the transition is server-disabled. */
         optionDesc: {
             class: ["text-xs text-muted-foreground"],
         },
+        /** Target-state badge inside the option. `data-tone` selects the tonal recipe (success / warning / destructive / neutral) so the badge previews what state the model will land in if this transition runs. Sized at the supporting type tier so the badge reads as a tag beside the option's title and description, not a co-title. */
         optionTarget: {
             class: [
                 "inline-flex items-center self-start px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1",
@@ -909,8 +942,7 @@ export default {
                 "data-[tone=neutral]:bg-muted data-[tone=neutral]:text-muted-foreground",
             ],
         },
-        // Terminal-state empty branch: dashed-border tinted panel with a centred 36px circle
-        // icon, one-line title, short description, and a forward-pointing escape CTA.
+        /** Terminal-state empty card shown when the object has no transitions remaining. Dashed-border tinted panel with 48 px vertical padding so the surface reads as a deliberate end-of-workflow signal, not an error; the dashed border (vs the solid card border on {@api theme-key:ViewHistoryList.empty}) distinguishes "no further actions" from "no records yet". */
         empty: {
             class: [
                 "flex flex-col items-center justify-center gap-2",
@@ -918,6 +950,7 @@ export default {
                 "rounded-vueda-card border-2 border-dashed border-border bg-muted/30",
             ],
         },
+        /** 36 px circular icon tile leading the empty card (typically a flag glyph). Muted fill on muted-foreground keeps the tile from competing with the title beneath it; sized one tier smaller than the {@api theme-key:ViewSetupDevice.doneIcon} 48 px completion tile so the surface reads as terminal-state, not celebratory. */
         emptyIcon: {
             class: [
                 "flex items-center justify-center",
@@ -925,12 +958,15 @@ export default {
                 "text-[18px] leading-none",
             ],
         },
+        /** Empty-card title ("No transitions available from <state>"). 14 px / 600 / foreground; same recipe as banner titles on {@api theme-key:ModelActionForm.bannerTitle} so empty states read consistently across surfaces. */
         emptyTitle: {
             class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
         },
+        /** Empty-card description beneath the title. 12 px / muted-foreground capped at 44ch so the explanation reads as a paragraph, not a heading. */
         emptyDesc: {
             class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground max-w-[44ch]"],
         },
+        /** Action cluster beneath the empty-card description. `mt-2` opens a 8 px inset so the back-to-detail CTA sits one rhythm-step below the description; centered so the escape action is the focal point of the otherwise quiet panel. */
         emptyAction: {
             class: ["mt-2 flex justify-center"],
         },
@@ -941,21 +977,27 @@ export default {
      * save actions, and empty-state controls.
      */
     ViewRecoveryCodes: {
+        /** Outer wrapper. Empty; the embedded {@api theme-key:AuthForm} owns the framed card chassis, and the slots inside it own all visible chrome. */
         root: {
             class: [],
         },
+        /** Bordered code-panel card inside the AuthForm body, rendered when the user has a TOTP device configured. Card-radius border with 16 px / 8 px padding so the unused-codes grid reads as a deliberate display surface rather than another form row; the print-hidden affordances above and below this card keep the printed output clean. BACKLOG-001 will extend {@api theme-key:ViewRecoveryCodes.listItem} with a struck-through used-code state once the server exposes used codes. */
         inner: {
             class: ["my-4 border border-border rounded-vueda-card py-4 px-2"],
         },
+        /** Wrapper around the "each code works once" {@api theme-key:Alert}. `print:hidden` drops the alert from printed output so the page prints as a clean list of codes; `mx-4 my-6` centres the alert inside the bordered card with breathing room above the grid. */
         messageContainer: {
             class: ["mx-4 my-6 print:hidden"],
         },
+        /** Container around the two-column code grid. `select-all` on the wrapper lets a triple-click copy the whole grid; `grow` lets the container claim remaining vertical space inside the card so short / long code lists both centre vertically. */
         listContainer: {
             class: ["m-4 gap-4 justify-center grow select-all flex"],
         },
+        /** Two-column grid of unused recovery codes. `grid-cols-2` with asymmetric `gap-x-6 gap-y-1` so the columns read as two readable runs rather than a dense block; `select-all` reinforces the wrapper's copy behaviour so a click directly on the list also copies the full set. The default `<ol>` margin and bullet glyph are reset since the per-item numbering on {@api theme-key:ViewRecoveryCodes.listItemNum} carries the index. */
         list: {
             class: ["grid grid-cols-2 gap-x-6 gap-y-1 px-2 py-1", "select-all m-0 list-none"],
         },
+        /** One code row. `grid-cols-[22px_1fr]` reserves a 22 px column for the index so all codes align on the same baseline regardless of digit count; mono / 14 px / 500 with a small letter-spacing bump per `DESIGN.md § 3.2` so the dashed code reads as machine-input. BACKLOG-001: extending this with `data-used="true"` will swap the row to `line-through text-muted-foreground` once the server exposes used codes. */
         listItem: {
             class: [
                 "grid grid-cols-[22px_1fr] items-baseline gap-2",
@@ -963,21 +1005,27 @@ export default {
                 "text-foreground",
             ],
         },
+        /** Numbered prefix at the start of each code row. Mono / 11 px / muted-foreground with `tabular-nums` per `DESIGN.md § 3.2` so the indices stay column-aligned as the count crosses the single-to-double-digit boundary; right-aligned inside the 22 px gutter so the period sits next to the code rather than the row edge. */
         listItemNum: {
             class: ["text-right font-mono text-[11px] font-normal leading-[1.6]", "text-muted-foreground tabular-nums"],
         },
+        /** "Generate new recovery codes" title / blurb stack rendered in the action-bar slot above the regenerate button. Vertical stack so the bold title and the supporting paragraph beneath it read as a labelled pair, with 16 px vertical insets so the stack reads as a separable section above the submit cluster. */
         actionBarTitleTextContainer: {
             class: ["flex flex-col my-4"],
         },
+        /** Centered row of Download / Print / Copy buttons beneath the code grid. `print:hidden` drops the buttons from printed output so the affordances do not appear next to the codes on paper; horizontal layout at all viewport widths since the three buttons fit on a phone-width screen. */
         savingOptionButtons: {
             class: ["flex items-center gap-2 justify-center mx-4 mb-4 print:hidden"],
         },
+        /** Per-button class applied to each saving-option button. `min-w-[120px]` floors the buttons so Download / Print / Copy all read as a balanced trio regardless of label width; the variant chrome (outline) comes from the {@api theme-key:Button} props on the consumer side. */
         savingOptionButton: {
             class: ["min-w-[120px]"],
         },
+        /** Action cluster shown in place of the regenerate column when the user has no TOTP device configured. Stacks "Set up a device" + "Go Back" on narrow viewports and inlines them at `sm+` so the empty branch matches the regenerate-form column rhythm above. */
         emptyActions: {
             class: ["flex flex-col sm:flex-row gap-2 justify-center"],
         },
+        /** Action-bar column holding the regenerate title / blurb and the regenerate + go-back buttons. `print:hidden` drops the whole bar from printed output; `min-w-min` keeps the column from collapsing below its longest unbreakable word so the regenerate CTA stays legible at narrow widths. */
         actionBar: {
             class: ["flex flex-col gap-2 justify-center min-w-min print:hidden"],
         },
