@@ -22,7 +22,6 @@ form {
 
 code {
     font-family: "JetBrains Mono", monospace;
-    font-size: 1.25rem;
 }
 
 /* ── Print header (hidden on screen) ────────────────────────────────── */
@@ -113,7 +112,7 @@ select {
 .app-header h2 {
     margin: 0;
     padding: 0.25rem 1.25rem;
-    font-size: 1rem;
+    font-size: 1.5rem;
     font-weight: normal;
     color: #aaddff;
 }
@@ -133,7 +132,7 @@ select {
 .model-header h3 {
     margin: 0;
     padding: 0.25rem 0.75rem;
-    font-size: 0.9rem;
+    font-size: 1.25rem;
     font-weight: normal;
     color: #bbbbff;
 }
@@ -149,7 +148,6 @@ select {
 .model-section {
     flex: 1 1 min(50%, 100%);
     min-width: 0;
-    border-right: 1px solid #222;
 }
 
 .model-section:last-child {
@@ -167,18 +165,49 @@ select {
     border-bottom: 1px solid #222;
 }
 
+.permissions-section {
+    border-right: 1px solid #222;
+}
+
+.permissions-section .section-label {
+    border-right: 1px solid #222;
+}
+
+.transitions-section {
+    border-left: 1px solid #222;
+    margin-left: -1px;
+    position: relative;
+}
+
 .transitions-section .section-label {
+    border-left: 1px solid #222;
     color: #5a7a5a;
 }
 
 /* Groups Section */
+
+.groups {
+    margin-bottom: 0.75rem;
+    margin-left: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.groups-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1rem;
+}
 
 .groups-section {
     display: flex;
     flex-wrap: wrap;
     gap: 10rem;
     align-items: center;
-    padding: 0.25rem 1rem;
+    padding: 0.25rem 0.75rem;
+    justify-content: space-between;
+    min-width: 24rem;
+    border: 1px solid #333;
 }
 
 .group-tag.group-yes,
@@ -304,14 +333,13 @@ select {
 @media print {
     body {
         background: white;
-        color: black;
-        font-size: 9pt;
         margin: 0;
         overflow: visible;
+        font-size: 13pt !important;
     }
 
-    code {
-        font-size: 0.85em;
+    body * {
+        color: black !important;
     }
 
     .no-print {
@@ -320,69 +348,73 @@ select {
 
     .print-header {
         display: block;
-        border-bottom: 1.5pt solid #333;
+        border-bottom: 0.125rem solid #333;
         margin-bottom: 0.6rem;
-        padding-bottom: 0.4rem;
+        padding-bottom: 0.5rem;
         padding-left: 0.5rem;
     }
 
     .print-header h1 {
         margin: 0;
-        font-size: 13pt;
+        font-size: 1.75rem;
         font-weight: bold;
-        color: black;
     }
 
     .print-subtitle {
         margin: 0.1rem 0 0;
-        font-size: 9pt;
-        color: #555;
     }
 
     .sticky {
         position: static;
+        height: auto;
     }
 
     .app {
         break-inside: avoid;
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.5rem;
     }
 
-    .app-header,
-    .app-header h2 {
-        background: #eee;
-        color: #333;
-        border-bottom: 0.5pt solid #bbb;
+    .app-header {
+        background: #fff;
+        border-bottom: 0.125rem solid #ccc;
+        padding-left: 0.25rem;
     }
 
     .app-header h2 {
-        font-size: 10pt;
-        padding: 0.2rem 0.5rem;
+        padding: 0.25rem;
+        padding-bottom: 0;
+    }
+
+    .groups-section {
+        gap: 2rem;
+        flex: 0 0 auto;
+        padding: 0.25rem 0.5rem;
+        border-left: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        min-width: 12rem;
     }
 
     .model {
-        border-left: 1.5pt solid #bbb;
-        margin-left: 0.5rem;
+        border-left: 0.125rem solid #ccc;
+        border-right: 0.125rem solid #ccc;
+        border-bottom: 0.125rem solid #ccc;
+        margin-left: 0rem;
         break-inside: avoid;
     }
 
-    .model-header,
-    .model-header h3 {
+    .model-header {
         background: #f5f5f5;
-        color: #333;
+        border-bottom: 0.125rem solid #ccc;
     }
 
     .model-header h3 {
-        font-size: 9pt;
-        padding: 0.15rem 0.5rem;
+        padding: 0.25rem 0.5rem;
     }
 
     .section-label {
         background: #f0f0f0;
-        color: #666;
-        font-size: 7pt;
         padding: 0.1rem 0.5rem;
-        border-bottom: 0.5pt solid #ddd;
+        border-bottom: 0.125rem solid #ccc;
     }
 
     .row {
@@ -392,52 +424,25 @@ select {
         gap: 0.3rem;
     }
 
-    .row-info {
-        min-width: 120px;
-        max-width: 200px;
-    }
-
-    .codename {
-        color: #336;
-        font-size: 8pt;
-    }
-
-    .row-sub {
-        color: #777;
-        font-size: 7pt;
-    }
-
-    .transition-name {
-        color: #363;
-        font-size: 8.5pt;
-    }
-
-    .transition-states {
-        color: #575;
-        font-size: 7pt;
-    }
-
     .group-tag {
-        background: #e8eef8;
-        color: #336;
-        border: 0.4pt solid #aac;
-        font-size: 7.5pt;
+        background: transparent;
         padding: 0 0.3rem;
-        border-radius: 2px;
     }
 
     .group-tag-transition {
         background: #e8f0e8;
-        color: #363;
         border-color: #acaa;
     }
 
-    .no-groups {
-        color: #bbb;
-        font-size: 8pt;
+    .transition-row,
+    .perm-row {
+        background: transparent !important;
     }
 
-    .empty-state {
-        color: #999;
+    .transitions-section,
+    .transitions-section .section-label,
+    .permissions-section,
+    .permissions-section .section-label {
+        border-color: #ccc;
     }
 }

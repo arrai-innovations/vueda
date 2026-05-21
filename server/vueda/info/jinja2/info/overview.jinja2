@@ -35,11 +35,11 @@
         <div class="app-header sticky sticky-2">
             <h2><code>Groups</code></h2>
         </div>
-        <div class="model">
-            <div class="model-body">
+        <div class="groups">
+            <div class="groups-body">
                 {% for group in groups %}
                 <div class="groups-section perm-row">
-                    <code class="codename">{{ group.name }}</code>
+                    <span class="codename">{{ group.name }}</span>
                     {% if "user_has_group" in group %}
                         {% if group.user_has_group %}
                             <span class="group-tag group-yes">
