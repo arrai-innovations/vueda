@@ -554,20 +554,20 @@ export default defineConfig({
     outDir: "../site",
     srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md", "**/README.md", "temp/**"],
     head: [
-        ["link", { rel: "icon", href: `${base}assets/logo-cube.svg` }],
+        ["link", { rel: "icon", href: `${base}assets/logo-cube-solid.svg` }],
         [
             "link",
             {
                 rel: "icon",
                 type: "image/png",
                 sizes: "32x32",
-                href: `${base}assets/logo-cube.png`,
+                href: `${base}assets/logo-cube-solid.png`,
             },
         ],
-        ["link", { rel: "apple-touch-icon", href: `${base}assets/logo-cube.png` }],
+        ["link", { rel: "apple-touch-icon", href: `${base}assets/logo-cube-solid.png` }],
     ],
     themeConfig: {
-        logo: "/assets/logo-cube.svg",
+        logo: "/assets/logo-cube-solid.svg",
         nav: [
             { text: "About", link: "/" },
             { text: "Tutorials", link: "/tutorials/" },
