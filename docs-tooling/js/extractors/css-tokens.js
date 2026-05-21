@@ -28,9 +28,13 @@ function lastTrailingComment(decl) {
     const next = decl.next();
     if (next && next.type === "comment") {
         // Heuristic: only treat as inline trailing comment when it's on the
-        // same line as the declaration in the source.
+        // same line as the declaration in the source. The declaration may
+        // span multiple lines (prettier breaks long `oklch(...)` calls), in
+        // which case the trailing comment lands on the declaration's end
+        // line rather than its start line.
         if (next.source && decl.source && next.source.start && decl.source.start) {
-            if (next.source.start.line === decl.source.start.line) {
+            const declEndLine = (decl.source.end && decl.source.end.line) || decl.source.start.line;
+            if (next.source.start.line === decl.source.start.line || next.source.start.line === declEndLine) {
                 return next.text.trim();
             }
         }

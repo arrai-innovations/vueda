@@ -140,7 +140,7 @@ The banner regex matches three or more dashes on each side of the title (`-{3,}\
 --background: oklch(0.99 0.003 250); /* page: barely-tinted paper */
 ```
 
-The comment must start on the declaration line; multi-line continuations after the opening `/*` are kept. Comments on a separate line (above or below the declaration) are not associated with the token and are ignored.
+The comment must start on the same source line as the declaration's start or end. Long declarations that prettier breaks across multiple lines (e.g. `oklch(...)` calls that exceed the 120-character print width) keep their trailing comment on the closing `);` line, and that still counts as trailing. Multi-line continuations after the opening `/*` are kept. Comments on a line that is neither the declaration's start nor its end (above the declaration, or on a blank line between declarations) are not associated with the token and are ignored.
 
 **`@theme inline` aliasing.** Declarations inside `@theme inline { ... }` whose value is a single `var(--token-name)` reference register that token as part of a Tailwind utility family, surfacing it in the Tailwind utility column on the rendered token page. The family and property come from the alias declaration's `--<family>-<property>` shape. Recognized families: `color`, `radius`, `shadow`, `font`, `spacing`, `animate`.
 

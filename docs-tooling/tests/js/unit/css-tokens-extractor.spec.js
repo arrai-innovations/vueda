@@ -190,6 +190,24 @@ describe("CssTokensExtractor", () => {
         expect(foo.description).toBeNull();
     });
 
+    it("picks up a trailing comment on the closing line of a multi-line declaration", async () => {
+        // Prettier breaks long single-line declarations (e.g. wide `oklch(...)`
+        // values) across multiple lines, parking the trailing comment on the
+        // closing-paren line. That line still counts as trailing.
+        const css = `:root {
+    --card: oklch(
+        1 0 0
+    ); /* card surface — sits on --background with a 1px border. */
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const card = payload.scopes.root.find((d) => d.name === "--card");
+        expect(card.description).toBe("card surface — sits on --background with a 1px border.");
+    });
+
     it("preserves multi-line values across continuations", async () => {
         const css = `:root {
     --shadow-stack: 0 1px 2px rgba(0, 0, 0, 0.1),
