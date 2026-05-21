@@ -129,6 +129,38 @@ describe("buildPdocPathMap", () => {
         const pathMap = buildPdocPathMap(bundle, index);
         expect(pathMap.get("py:class:vueda.example.Helper")).toBe("py/vueda.example/Helper.md");
     });
+
+    it("maps a module-level function id to an anchor on the module page", () => {
+        const payload = {
+            module_names: ["vueda.mod"],
+            docs: [
+                {
+                    kind: "module",
+                    name: "mod",
+                    fullname: "vueda.mod",
+                    modulename: "vueda.mod",
+                    qualname: "",
+                    docstring: "Module docs.",
+                    members: ["vueda.mod.helper"],
+                    submodules: [],
+                },
+                {
+                    kind: "function",
+                    name: "helper",
+                    fullname: "vueda.mod.helper",
+                    modulename: "vueda.mod",
+                    qualname: "helper",
+                    docstring: "Helper.",
+                    is_public: true,
+                    signature_details: { parameters: [], return_annotation: "None" },
+                },
+            ],
+        };
+        const bundle = new PdocNormalizer().normalize(payload);
+        const index = buildCanonicalIndex(bundle);
+        const pathMap = buildPdocPathMap(bundle, index);
+        expect(pathMap.get("py:function:vueda.mod.helper")).toBe("py/vueda.mod.md#helper");
+    });
 });
 
 // ---------------------------------------------------------------------------

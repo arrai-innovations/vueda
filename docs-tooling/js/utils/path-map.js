@@ -81,11 +81,13 @@ export function pdocPathForNode(node, index) {
         const dir = pdocClassDir(parent, moduleFile);
         return `${dir}.md#${slugify(node.name)}`;
     }
-    const moduleAncestor = parent?.kind === "module" ? parent : parent ? index.parentOf.get(parent.id) : null;
-    if (moduleAncestor && moduleAncestor.kind === "module") {
-        const moduleFile = pdocModulePath(moduleAncestor);
-        const dir = moduleFile.replace(/\.md$/, "");
-        return `${dir}/${slugify(node.name)}.md`;
+    if (parent?.kind === "module") {
+        const moduleFile = pdocModulePath(parent);
+        if (node.kind === "class") {
+            const dir = moduleFile.replace(/\.md$/, "");
+            return `${dir}/${slugify(node.name)}.md`;
+        }
+        return `${moduleFile}#${slugify(node.name)}`;
     }
     return `py/${slugify(node.name)}.md`;
 }
