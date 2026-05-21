@@ -1,5 +1,5 @@
 ---
-audience: integrators
+audience: integrator
 status: draft
 type: index
 ---

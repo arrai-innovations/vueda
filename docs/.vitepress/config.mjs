@@ -548,7 +548,7 @@ const docsSidebar = {
 
 export default defineConfig({
     title: "VUEDA",
-    description: "Implementor guide, changelog, and reference for VUEDA.",
+    description: "integrator guide, changelog, and reference for VUEDA.",
     lastUpdated: true,
     base,
     outDir: "../site",

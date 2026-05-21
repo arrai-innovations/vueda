@@ -236,7 +236,7 @@ chooses the icon component and any motion props. In this docs app, the default
 registry maps `Default.loading` to a Font Awesome circle-notch icon with
 Font Awesome's `spin` prop.
 
-This keeps animation semantics with the implementor's icon system. Font
+This keeps animation semantics with the integrator's icon system. Font
 Awesome spins its own SVG; a Lucide-based app can provide a Lucide icon with
 the classes it expects.
 

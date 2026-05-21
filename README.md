@@ -39,7 +39,7 @@ and render forms, lists, and detail views dynamically.
 /
   server/       # Django + DRF package (vueda on PyPI)
   client/       # Vue 3 component library (@arrai-innovations/vueda on npm)
-  templates/    # Copier starter templates for implementor repos
+  templates/    # Copier starter templates for integrator repos
   docs/         # VitePress documentation site
   docs-tooling/ # Internal tooling for API doc extraction and rendering
 ```
@@ -82,8 +82,8 @@ just test
 
 When a major version number change occurs, you will need to update the dependency information in:
 
-- templates/implementor-monorepo-dx/server/pyproject.toml.jinja
-- templates/implementor-monorepo/server/pyproject.toml.jinja
+- templates/integrator-monorepo-dx/server/pyproject.toml.jinja
+- templates/integrator-monorepo/server/pyproject.toml.jinja
 
 ## Release Tags
 

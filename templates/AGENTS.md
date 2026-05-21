@@ -4,8 +4,8 @@ Use this guide when working on files under `templates/`.
 
 ## Template Variants
 
-- `implementor-monorepo`: Minimal template with direct `uv`/`pnpm` workflows.
-- `implementor-monorepo-dx`: DX-focused template adding `just`, `lefthook`, and `ruff`.
+- `integrator-monorepo`: Minimal template with direct `uv`/`pnpm` workflows.
+- `integrator-monorepo-dx`: DX-focused template adding `just`, `lefthook`, and `ruff`.
 
 ## Keeping Templates in Sync
 
@@ -44,7 +44,7 @@ Everything else, in particular:
 ### How to Verify
 
 ```bash
-diff -rq templates/implementor-monorepo/server templates/implementor-monorepo-dx/server
+diff -rq templates/integrator-monorepo/server templates/integrator-monorepo-dx/server
 ```
 
 Review each difference and confirm it falls into the "Expected Differences"

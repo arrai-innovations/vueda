@@ -5,9 +5,9 @@ audience: integrator
 status: draft
 ---
 
-# VUEDA
+# About
 
-VUEDA is a framework for building admin-style {@term CRUDL} applications on top of Django and Vue.js. The server defines models, serializers, and viewsets using VUEDA's base classes; the client discovers those definitions at runtime through a metadata API and generates routes, forms, and views from them. Standard CRUDL surfaces require no hand-wired per-model client code.
+VUEDA (Vue.js User Experience for Django Administration) is a framework for building admin-style {@term CRUDL} applications on top of Django and Vue.js. The server defines models, serializers, and viewsets using VUEDA's base classes; the client discovers those definitions at runtime through a metadata API and generates routes, forms, and views from them. Standard CRUDL surfaces require no hand-wired per-model client code.
 
 It is an opinionated alternative to `django-admin` for teams that need a modern, maintainable frontend and a predictable server contract.
 
@@ -19,8 +19,6 @@ This documentation is written for **integrators**: teams integrating VUEDA into 
 - [Django REST framework](https://www.django-rest-framework.org/)
 - [Vue.js](https://vuejs.org/guide/introduction) and [Node.js](https://nodejs.org/docs/latest/api/)
 - General web development and REST API concepts ([MDN Web Docs](https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started))
-
-If you are contributing to VUEDA itself rather than building on top of it, contributor documentation lives in the repository's root `AGENTS.md` and `CONTRIBUTING.md`.
 
 ## Documentation Sections
 

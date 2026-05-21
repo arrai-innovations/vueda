@@ -1,5 +1,5 @@
 ---
-audience: integrators
+audience: integrator
 status: draft
 type: tutorial
 ---
@@ -67,19 +67,19 @@ You could also use a tool like [direnv](https://direnv.net/) to manage environme
 
 ## Scaffold a New Project
 
-VUEDA provides two [Copier](https://copier.readthedocs.io/) templates for scaffolding a new {@term Implementor} project:
+VUEDA provides two [Copier](https://copier.readthedocs.io/) templates for scaffolding a new {@term integrator} project:
 
-- **`implementor-monorepo`**: minimal setup with direct `uv`/`pnpm` workflows.
-- **`implementor-monorepo-dx`**: DX-focused setup with repository automation via `just` (includes linting, formatting, git hooks, and `just serve` for running both servers concurrently).
+- **`integrator-monorepo`**: minimal setup with direct `uv`/`pnpm` workflows.
+- **`integrator-monorepo-dx`**: DX-focused setup with repository automation via `just` (includes linting, formatting, git hooks, and `just serve` for running both servers concurrently).
 
 Pick one and run:
 
 ```console
 # DX template (recommended)
-uvx copier copy --vcs-ref=HEAD gh:arrai-innovations/vueda/templates/implementor-monorepo-dx ./your-project
+uvx copier copy --vcs-ref=HEAD gh:arrai-innovations/vueda/templates/integrator-monorepo-dx ./your-project
 
 # or: minimal template
-uvx copier copy --vcs-ref=HEAD gh:arrai-innovations/vueda/templates/implementor-monorepo ./your-project
+uvx copier copy --vcs-ref=HEAD gh:arrai-innovations/vueda/templates/integrator-monorepo ./your-project
 ```
 
 Copier will prompt you for a project name, slug, ports, and other options. The defaults are sensible for most setups.
