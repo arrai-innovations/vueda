@@ -454,53 +454,65 @@ export default {
      * bulk actions, grid content, totals, and pagination.
      */
     ViewList: {
+        /** Class forwarded to the `selected_` checkbox column on the embedded {@api theme-key:ObjectsGrid}. Collapses the column to `w-0` at the `lg+` table breakpoint so card layouts keep room for the selection toggle while the table layout absorbs it into the row chrome. The breakpoint is hard-coded rather than derived from the `tableBreakpoint` prop because Tailwind purges classes it cannot see at build time; keep this aligned with the prop default. */
         selectedCheckbox: {
-            // match to ViewList's tableBreakpoint
-            // can't have dynamic tailwind classes, 'unused' classes are purged
             class: ["lg:w-0"],
         },
+        /** Class forwarded to the {@api theme-key:InputGroupInput} inside the search slot. Caps the input at 30ch on `lg+` so the search field does not consume the entire control bar on wide viewports. */
         searchInput: {
             class: ["lg:max-w-[30ch]"],
         },
+        /** Per-button class applied to bulk-action {@api theme-key:LinkModelView} entries inside the bulk-actions strip. `grow` on narrow viewports lets each button claim its share of the row width; `sm:grow-0` reverts to natural width once the row can hold the buttons inline. */
         bulkActionButton: {
             class: ["grow sm:grow-0"],
         },
+        /** Per-button class applied to targetless-action entries rendered in the {@api theme-key:PageTitle.buttons} cluster. Empty by default; the buttons inherit the {@api theme-key:PageTitle} cluster layout and only need an override when a consumer wants action-specific chrome. */
         targetlessActionButton: {
             class: [],
         },
+        /** Filter strip beneath the under-actions row. Tinted-muted background with a bottom hairline so it reads as a tier between the under-actions strip and the grid; uses the same `px-5 py-[10px]` rhythm shared with {@api theme-key:PageTitle.titleContainer} so the page chrome lines up vertically. */
         filterGroupBar: {
             class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px] border-b border-border bg-muted/25"],
         },
+        /** "Filters" eyebrow label at the left of the filter strip. Uses the 11 px / 600 / `0.06em` uppercase recipe described in `DESIGN.md § 3.3` against `--muted-foreground` so it reads as a section eyebrow, not a heading. */
         filterGroupBarEyebrow: {
             class: [
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
                 "text-muted-foreground leading-none",
             ],
         },
+        /** Right-aligned wrapper around the mobile sort component. Pushes the sort trigger to the end of the filter strip so it sits opposite the eyebrow on narrow viewports where the desktop column-header sort affordances are unavailable. */
         sortComponentDiv: {
             class: ["flex flex-row justify-end ml-auto"],
         },
+        /** Class forwarded to the embedded {@api theme-key:ObjectsGrid.root}. Suppresses the grid's own card border and radius so the ViewList strips above and below own the visible chrome; the grid renders as a flush slab between the filter strip and the pagination strip. */
         objectsGrid: {
             class: ["w-full border-0 rounded-none"],
         },
+        /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with {@api theme-key:ViewList.filterGroupBar} and the title row, so the three strips read as a continuous header. */
         underActionsBar: {
             class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3 border-b border-border bg-card"],
         },
+        /** Bulk-actions strip that surfaces once one or more rows are selected. 6 %-mix primary fill and 12 px / 500 type so it reads as an active selection band, not a passive section; sits between the under-actions strip and the filter strip. */
         bulkActionsBar: {
             class: [
                 "w-full flex items-center flex-wrap gap-[10px] px-5 py-[10px]",
                 "border-b border-border bg-primary/[0.06] text-[12px] font-medium",
             ],
         },
+        /** Button cluster inside the bulk-actions strip. Wraps so a large action menu folds across rows rather than overflowing the strip; `sm:w-fit sm:max-w-max` snaps the cluster to its content width once the viewport can hold all buttons inline. */
         actionButtonGroupBar: {
             class: ["flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"],
         },
+        /** Right-aligned control cluster inside {@api theme-key:ViewList.underActionsBar} (search input + columns select). `ml-auto` pushes the cluster to the end of the strip so the title row above and this row align on the right. */
         listControlBar: {
             class: ["flex flex-row gap-1 2xl:gap-2 ml-auto"],
         },
+        /** Cell class for the column-totals row appended below the body rows when any column declares a total. The 2 px top border separates the totals row from the data rows above it; the cell otherwise inherits {@api theme-key:ObjectsGridBodyCell} chrome. */
         columnTotalCell: {
             class: "border-t-2",
         },
+        /** Pagination strip beneath the grid. Card-toned with a top hairline; mirrors the {@api theme-key:ViewList.underActionsBar} rhythm so the chrome above and below the grid read as a matched pair. */
         paginationWrapper: {
             class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px] border-t border-border bg-card"],
         },
@@ -510,12 +522,11 @@ export default {
      * diff cells, history metadata, and empty states.
      */
     ViewHistoryList: {
+        /** Outer wrapper. Empty by default; the meta strip, embedded grid, and empty-state card own all visible chrome so the wrapper stays a layout-only anchor. */
         root: {
             class: [],
         },
-        // Revision-grouped row binding: 2px primary left-stripe on the first cell of every
-        // row that belongs to a revision (start + child rows). Suppresses ObjectsGrid's own
-        // border so the parent card carries chrome.
+        /** Row passthrough forwarded to the embedded {@api theme-key:ObjectsGrid.row}. Paints a 2 px primary left-stripe on the first cell of every row that belongs to a revision (both `data-rev-start` and `data-rev-child`), so a multi-row revision reads as a single grouped band. The card surrounding the grid carries the outer border, so this binding does not redeclare the row's own border. */
         row: {
             class: [
                 "data-[rev-start=true]:[&>*:first-child]:border-l-2",
@@ -524,8 +535,7 @@ export default {
                 "data-[rev-child=true]:[&>*:first-child]:border-primary",
             ],
         },
-        // Old/new diff cells: leading glyph, faint tonal background, mono font for whitespace
-        // and unicode preservation.
+        /** Diff chip rendered in each old / new field-value cell. `data-side` selects the tonal recipe (`old` = destructive 7 %-mix with a leading minus glyph; `new` = success 8 %-mix with a leading plus glyph), and `data-empty` overrides both into a transparent italic muted-foreground row with a middle-dot glyph for "nothing on this side". Mono per `DESIGN.md § 3.2` so whitespace and unicode artifacts in the diffed value stay readable. */
         diff: {
             class: [
                 "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-vueda-control",
@@ -542,7 +552,7 @@ export default {
                 "data-[empty=true]:before:content-['·'] data-[empty=true]:before:text-muted-foreground",
             ],
         },
-        // Dedicated empty state: clock-in-circle on a tinted muted bg, title + description.
+        /** Empty-state card shown when the model has no recorded history. Card-toned with a soft border and 48 px vertical padding so the panel reads as a deliberate state, not an error; the icon / title / description trio inside provides the recovery messaging. */
         empty: {
             class: [
                 "flex flex-col items-center justify-center gap-2",
@@ -550,6 +560,7 @@ export default {
                 "rounded-vueda-card border border-border bg-card",
             ],
         },
+        /** 40 px circular icon tile leading the empty state (typically a clock or history glyph). Muted-50 fill on muted-foreground keeps the tile from competing with the title beneath it. */
         emptyIcon: {
             class: [
                 "flex items-center justify-center",
@@ -557,31 +568,31 @@ export default {
                 "text-[16px] leading-none",
             ],
         },
+        /** Empty-state title ("No history yet" or similar). 14 px / 600 / foreground; same recipe as banner titles on {@api theme-key:ModelActionForm.bannerTitle} so empty states read consistently across surfaces. */
         emptyTitle: {
             class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
         },
+        /** Empty-state description beneath the title. 12 px / muted-foreground capped at 44ch so the explanation reads as a paragraph, not a heading. */
         emptyDesc: {
             class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground max-w-[44ch]"],
         },
-        // Two-line history-date cell: absolute timestamp on top, relative phrase below.
+        /** Absolute timestamp on the upper line of the two-line history-date cell. 12 px / foreground so the absolute value reads as the primary token; the relative phrase on {@api theme-key:ViewHistoryList.cellDateRel} sits beneath it. */
         cellDate: {
             class: ["text-[12px] leading-[1.3] text-foreground"],
         },
+        /** Relative phrase ("3 days ago") beneath the absolute timestamp. 11 px / muted-foreground per the headline / supporting-copy hierarchy. */
         cellDateRel: {
             class: ["text-[11px] leading-[1.3] text-muted-foreground"],
         },
-        // history-user cell: 22 px UserAvatar chip + name beside it.
-        // Name is 12 px / 500 / foreground per kit recipe.
+        /** Inline wrapper around the 22 px {@api theme-key:UserAvatar} chip and the actor name beside it. `inline-flex` keeps the chip / name pair on a single baseline so the row aligns vertically with the other history columns. */
         cellUser: {
             class: ["inline-flex items-center gap-2"],
         },
+        /** Actor-name fragment next to the avatar chip. Uses the supporting type token at 500 / foreground so the name reads as the primary value in the cell. */
         cellUserName: {
             class: ["text-[length:var(--vueda-text-supporting)] font-medium leading-tight text-foreground"],
         },
-        // history_type pill: small uppercase-ish label + leading icon, color-coded by sentiment.
-        // `data-kind` selects the tonal recipe: created (success), updated (info),
-        // deleted (destructive), restored (warning). Unknown values render the raw value
-        // via the slot fallback, not this recipe.
+        /** History-type pill ("Created", "Updated", "Deleted", "Restored") rendered in the history-type column. `data-kind` selects the tonal recipe (created = success, updated = info, deleted = destructive, restored = warning); unknown values fall back to the raw display value via the slot fallback in the consumer, not this recipe. Small uppercase label with a 12 px leading icon so the pill reads as a category tag, not a button. */
         typePill: {
             class: [
                 "inline-flex items-center gap-1 rounded-full border px-2 py-0.5",
@@ -593,25 +604,27 @@ export default {
                 "data-[kind=restored]:border-warning/30 data-[kind=restored]:bg-[color-mix(in_oklab,var(--warning)_10%,transparent)] data-[kind=restored]:text-warning",
             ],
         },
-        // Meta strip above the grid: filter slot on the left, layout toggle on the right.
-        // Bottom hairline separates the strip from the grid; muted-wash background.
+        /** Meta strip above the grid: filter slot on the left, layout toggle on the right. Muted-10 wash and a bottom hairline so the strip reads as supporting chrome rather than its own band; lighter than the {@api theme-key:ViewList.filterGroupBar} muted-25 because the history view does not surface as many filter affordances. */
         meta: {
             class: ["flex items-center gap-3 flex-wrap", "border-b border-border bg-muted/10", "px-4 py-2 text-sm"],
         },
+        /** Inline item inside the meta strip (e.g. an active filter chip). Muted-foreground colour and a 4 px gap between icon and label so the item reads as supporting metadata. */
         metaItem: {
             class: ["inline-flex items-center gap-1 text-muted-foreground"],
         },
+        /** Vertical hairline separator between meta items. 12 px tall, `var(--border)` fill; sized to match the meta-row x-height so the divider aligns with the text baseline. */
         metaDivider: {
             class: ["mx-2 h-3 w-px bg-border"],
         },
+        /** Flexible filler that pushes the layout toggle to the right end of the meta strip. */
         metaSpacer: {
             class: ["ml-auto"],
         },
-        // Segmented Table / Cards button-pair on the right of the meta strip. Active button
-        // selected via `data-active="true"`.
+        /** Outer chassis of the segmented Table / Cards button pair. `overflow-clip` lets the inner buttons render their own internal hairline (`first:border-r`) without poking past the chassis radius. */
         layoutToggle: {
             class: ["flex overflow-clip rounded-vueda-control border border-border"],
         },
+        /** One button inside the layout toggle. Transparent / muted-foreground in the default state and tinted accent at `data-active="true"`; the leading icon is sized at 12 px so it sits with the label baseline. Focus ring uses `outline-ring` so it follows the system focus-recipe alongside the rest of the kit. */
         layoutButton: {
             class: [
                 "inline-flex items-center gap-1.5 px-2 py-1 text-xs",
@@ -623,6 +636,7 @@ export default {
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
             ],
         },
+        /** Optional extra class applied to the active layout button. Empty by default because {@api theme-key:ViewHistoryList.layoutButton} already routes its active state via `data-[active=true]`; consumers can opt into an additional emphasis here without duplicating the base recipe. */
         layoutButtonActive: {
             class: [],
         },
@@ -633,43 +647,43 @@ export default {
      * content, skeleton, heartbeat, and slow-load messaging slots.
      */
     ViewLoading: {
-        // Centering wrapper that fills the viewport and centers the SystemMessageCard.
+        /** Centering wrapper that fills the viewport vertically and centers the embedded {@api theme-key:SystemMessageCard} on both axes. The card chassis is fixed-width, so a flex parent is required for it to sit in the middle of an otherwise-empty page. */
         root: {
             class: ["flex min-h-full items-center justify-center p-8"],
         },
-        // LoadingSpinnerBlock inside the SystemMessageCard crest-icon slot (normal path).
+        /** 20 px {@api theme-key:LoadingSpinnerBlock} forwarded into the card's `crest-icon` slot on the normal (non-slow) path. Sized to read as a glyph beside the crest label, not as the dominant figure in the card. */
         crest: {
             class: ["w-5 h-5"],
         },
-        // Hourglass span inside the crest-icon slot (slow path).
+        /** Hourglass span forwarded into the card's `crest-icon` slot once the slow-path tone activates. 18 px so the swap reads as a deliberate state change against the 20 px spinner it replaces. */
         slowCrest: {
             class: ["text-[18px] leading-none"],
         },
-        // Wrapper for the name + context body row (normal) or slow title + blurb row (slow).
+        /** Stacked row inside the card body that holds either the name / context pair (normal path) or the slow title / blurb pair (slow path). 4 px gap so the two lines read as a labelled pair, not as separate paragraphs. */
         bodyRow: {
             class: ["flex flex-col gap-1"],
         },
-        // Primary "what's loading" text.
+        /** Primary "what is loading" line on the normal path. 14 px / 600 / foreground; same recipe as banner titles on {@api theme-key:ModelActionForm.bannerTitle} so loading and confirmation surfaces read consistently. */
         bodyRowText: {
             class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
         },
-        // Secondary one-line context beneath the name.
+        /** One-line context beneath the name. 12 px / muted-foreground per the headline / supporting-copy hierarchy. */
         bodyRowSub: {
             class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
         },
-        // Extra classes forwarded to LoadingSkeletonGhost.
+        /** Extra classes forwarded to {@api theme-key:LoadingSkeletonGhost}. Empty by default; the skeleton ships its own internal sizing and consumers only override when a specific route wants a different placeholder shape. */
         skeleton: {
             class: [],
         },
-        // Extra classes forwarded to LoadingHeartbeatStrip.
+        /** Extra classes forwarded to {@api theme-key:LoadingHeartbeatStrip}. Empty by default; the strip carries its own chrome and consumers only override when a specific route wants a different elapsed-time band. */
         heartbeat: {
             class: [],
         },
-        // Slow-path title element ("This is taking longer than usual").
+        /** Slow-path title ("This is taking longer than usual") that replaces {@api theme-key:ViewLoading.bodyRowText} once `elapsedMs >= slowAfterMs`. Same 14 px / 600 / foreground recipe so the swap stays type-stable. */
         slowTitle: {
             class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
         },
-        // Slow-path route-specific explanation blurb.
+        /** Route-specific explanation rendered beneath the slow-path title when a `slowBlurb` prop is provided. 12 px / muted-foreground; same recipe as the normal-path context line so the body stays the same shape across the tone flip. */
         slowBlurb: {
             class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
         },
@@ -679,13 +693,11 @@ export default {
      * system message layout.
      */
     ViewNotFound: {
-        // Centering wrapper: the SystemMessageCard chassis is 460 px so it
-        // needs a flex parent to center on the page.
+        /** Centering wrapper around the embedded {@api theme-key:SystemMessageCard}. The card chassis is fixed-width, so a flex parent is required for it to sit in the middle of the viewport. Mirrors {@api theme-key:ViewLoading.root}. */
         root: {
             class: ["flex min-h-full items-center justify-center p-8"],
         },
-        // Explanatory paragraph beneath the crest (rendered when the `blurb`
-        // slot is not overridden).
+        /** Explanatory paragraph rendered beneath the crest when the `blurb` slot is not overridden. 13 px / muted-foreground so it reads as supporting copy beside the card title. */
         blurb: {
             class: ["text-[13px] leading-[1.5] text-muted-foreground"],
         },
@@ -695,11 +707,11 @@ export default {
      * when the requested action cannot be resolved.
      */
     ViewActionNotFound: {
-        // Centering wrapper, see ViewNotFound.root.
+        /** Centering wrapper around the embedded {@api theme-key:SystemMessageCard}. See {@api theme-key:ViewNotFound.root}; the two views share the recipe so missing-route and missing-action surfaces read as siblings. */
         root: {
             class: ["flex min-h-full items-center justify-center p-8"],
         },
-        // Explanatory paragraph beneath the crest.
+        /** Explanatory paragraph rendered beneath the crest when the `blurb` slot is not overridden. 13 px / muted-foreground; matches {@api theme-key:ViewNotFound.blurb}. */
         blurb: {
             class: ["text-[13px] leading-[1.5] text-muted-foreground"],
         },
