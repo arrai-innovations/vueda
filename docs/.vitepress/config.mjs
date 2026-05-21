@@ -546,6 +546,42 @@ const docsSidebar = {
     "/reference/api/": buildApiSidebar(),
 };
 
+const breadcrumbContentDirs = ["tutorials", "guides", "core-concepts", "reference"];
+const isExcludedFromBreadcrumbs = (rel) => {
+    const base = path.posix.basename(rel);
+    if (base === "AGENTS.md" || base === "CONTENT_PLAN.md" || base === "README.md") {
+        return true;
+    }
+    return rel.startsWith("temp/") || rel.includes("/node_modules/") || rel.startsWith("node_modules/");
+};
+
+const buildRouteTitleIndex = () => {
+    const titles = {};
+    const candidates = [];
+    const rootIndex = path.join(docsRoot, "index.md");
+    if (fs.existsSync(rootIndex)) {
+        candidates.push(rootIndex);
+    }
+    for (const dir of breadcrumbContentDirs) {
+        candidates.push(...walkFiles(path.join(docsRoot, dir)).filter((file) => file.endsWith(".md")));
+    }
+    for (const filePath of candidates) {
+        const rel = posixPath(path.relative(docsRoot, filePath));
+        if (isExcludedFromBreadcrumbs(rel)) {
+            continue;
+        }
+        const { title } = readDocMeta(filePath);
+        let route = toDocRoute(filePath);
+        if (route !== "/" && route.endsWith("/")) {
+            route = route.slice(0, -1);
+        }
+        titles[route] = title;
+    }
+    return titles;
+};
+
+const routeTitles = buildRouteTitleIndex();
+
 export default defineConfig({
     title: "VUEDA",
     description: "integrator guide, changelog, and reference for VUEDA.",
@@ -568,6 +604,8 @@ export default defineConfig({
     ],
     themeConfig: {
         logo: "/assets/logo-cube-solid.svg",
+        outline: "deep",
+        routeTitles,
         nav: [
             { text: "About", link: "/" },
             { text: "Tutorials", link: "/tutorials/" },

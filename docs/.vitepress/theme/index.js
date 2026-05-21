@@ -1,3 +1,4 @@
+import Layout from "./Layout.vue";
 import "./brand.css";
 import DemoCard from "./components/DemoCard.vue";
 import ForceState from "./components/ForceState.vue";
@@ -114,7 +115,7 @@ const DarkModeTransitionGuard = defineComponent({
 const theme = {
     ...DefaultTheme,
     Layout() {
-        return h(DefaultTheme.Layout, null, {
+        return h(Layout, null, {
             "layout-top": () => h(DarkModeTransitionGuard),
         });
     },
