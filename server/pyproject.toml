@@ -88,7 +88,8 @@ docs = [
 ]
 
 [tool.uv]
-default-groups = ["all"]
+default-groups = ["dev", "docs"]
+exclude-newer = "1d"
 
 [tool.setuptools]
 include-package-data = false
