@@ -289,14 +289,12 @@
     /* ---------- Color palette: light ----------
      * Near-monochrome cool neutrals (hue 250°, chroma 0.01).
      * Blue accent is the ONE chromatic token: oklch(0.58 0.19 254) = #0077f7.
-     * See README.md § 2.1 for the two-axis (neutral + one accent) rule. */
+     * Two-axis rule: cool neutral scale plus one blue accent. */
 
     /* Surfaces */
     --background: oklch(0.99 0.003 250); /* page surface — the dominant body fill. Barely-tinted paper in light mode. */
     --foreground: oklch(0.18 0.015 250); /* default text colour on --background. */
-    --card: oklch(
-        1 0 0
-    ); /* card surface — sits on --background with a 1px border, never a shadow. See README.md § 5. */
+    --card: oklch(1 0 0); /* card surface — sits on --background with a 1px border, never a shadow. */
     --card-foreground: oklch(0.18 0.015 250); /* text on a --card surface. */
     --popover: oklch(
         0.99 0.003 250
@@ -306,7 +304,7 @@
     /* Accent — the one chromatic token. */
     --primary: oklch(
         0.58 0.19 254
-    ); /* VUEDA blue. Bound to the primary CTA, focus rings (--ring aliases this), selected-row markers, and the brand mark. See README.md § 2.1. */
+    ); /* VUEDA blue. Bound to the primary CTA, focus rings (--ring aliases this), selected-row markers, and the brand mark. */
     --primary-foreground: oklch(
         0.99 0.003 250
     ); /* text painted on a --primary fill (primary Button label, selected sidebar item text). */
@@ -322,10 +320,10 @@
     --muted-foreground: oklch(0.5 0.015 250); /* muted text — captions, supporting labels, table th. */
     --accent: oklch(
         0.95 0.008 250
-    ); /* hover / selected surface, one step darker than --muted. Half-strength (`bg-accent/50`) is the canonical "current section" treatment. See README.md § 2.2. */
+    ); /* hover / selected surface, one step darker than --muted. Half-strength (`bg-accent/50`) is the canonical "current section" treatment. */
     --accent-foreground: oklch(0.18 0.015 250); /* text on a --accent surface. */
 
-    /* Status — desaturated tokens consumed via the `bg-<stat>/10` + `border-<stat>/50` + `text-<stat>` recipe. See README.md § 2.4. */
+    /* Status — desaturated tokens consumed via the `bg-<stat>/10` + `border-<stat>/50` + `text-<stat>` recipe. */
     --destructive: oklch(
         0.52 0.18 27
     ); /* red status — destructive actions, error state, the Calendar strikethrough rule. */
@@ -344,7 +342,7 @@
     ); /* input edge — default colour painted by the `hairline-input` variant. Matches --border at rest; controls swap to --border-strong on hover and --ring on focus. */
     --ring: var(
         --primary
-    ); /* focus-ring colour. Aliases --primary so focus tracks the accent; destructive controls swap to --destructive via `focus-ring-destructive`. See README.md § 7.2. */
+    ); /* focus-ring colour. Aliases --primary so focus tracks the accent; destructive controls swap to --destructive via `focus-ring-destructive`. */
 
     --overlay: oklch(
         0.12 0.015 250 / 0.6
@@ -353,7 +351,7 @@
         0.95 0.008 250
     ); /* inset surface, one step below --background. Recessed areas: command-palette stage, code blocks, empty table trays. */
 
-    /* Sidebar — one shade darker than background to read as chrome, not content. See README.md § 4.4. */
+    /* Sidebar — one shade darker than background to read as chrome, not content. */
     --sidebar: oklch(0.97 0.005 250); /* sidebar chrome surface. */
     --sidebar-foreground: oklch(0.22 0.015 250); /* text on the sidebar surface. */
     --sidebar-primary: oklch(
@@ -370,33 +368,33 @@
     ); /* focus-ring inside the sidebar; aliases --ring so focus state stays consistent across chrome and content. */
 
     /* ---------- Semantic radius tokens ----------
-     * Five-step semantic ladder; near-flat by design. See README.md § 6. */
-    --vueda-control-radius: 2px; /* slab radius shared by buttons, inputs, selects, and most chrome controls. See README.md § 6.1. */
-    --vueda-checkbox-radius: 4px; /* softer than --vueda-control-radius by design; the 4px corner reads as "chit / chiclet" at 16×16, differentiating the checkbox body from the slab inputs and buttons beside it. See README.md § 6.1. */
+     * Five-step semantic ladder; near-flat by design. */
+    --vueda-control-radius: 2px; /* slab radius shared by buttons, inputs, selects, and most chrome controls. */
+    --vueda-checkbox-radius: 4px; /* softer than --vueda-control-radius by design; the 4px corner reads as "chit / chiclet" at 16×16, differentiating the checkbox body from the slab inputs and buttons beside it. */
     --vueda-card-radius: 4px; /* card and panel corner radius. */
     --vueda-modal-radius: 2px; /* dialog and sheet corner radius; matches --vueda-control-radius so modal chrome reads as a slab. */
-    --vueda-pill-radius: 9999px; /* fully round — avatars and user-manipulated tag / chip objects (TagsInput chips, attachment chips), plus inline running-text state markers. See README.md § 6.1. */
+    --vueda-pill-radius: 9999px; /* fully round — avatars and user-manipulated tag / chip objects (TagsInput chips, attachment chips), plus inline running-text state markers. */
 
     /* ---------- Semantic shadow tokens ----------
      * Controls and cards carry zero shadow; borders do the work. Elevation
-     * is reserved for surfaces that overlay other surfaces. See README.md § 5. */
-    --vueda-shadow-control: 0 0 #0000; /* zero elevation — controls carry definition through painted edges, not shadow. See README.md § 5. */
-    --vueda-shadow-card: 0 0 #0000; /* zero elevation — cards carry definition through a 1px border, not shadow. See README.md § 5. */
+     * is reserved for surfaces that overlay other surfaces. */
+    --vueda-shadow-control: 0 0 #0000; /* zero elevation — controls carry definition through painted edges, not shadow. */
+    --vueda-shadow-card: 0 0 #0000; /* zero elevation — cards carry definition through a 1px border, not shadow. */
     --vueda-shadow-popover:
-        0 0 0 1px oklch(0.2 0.01 250 / 0.08), 0 4px 12px -2px oklch(0.15 0.02 250 / 0.12); /* 1px ring plus a 12px ambient drop — applied to popover, dropdown, context menu, and combobox list surfaces. See README.md § 5. */
+        0 0 0 1px oklch(0.2 0.01 250 / 0.08), 0 4px 12px -2px oklch(0.15 0.02 250 / 0.12); /* 1px ring plus a 12px ambient drop — applied to popover, dropdown, context menu, and combobox list surfaces. */
     --vueda-shadow-overlay:
         0 0 0 1px oklch(0.2 0.01 250 / 0.12), 0 16px 40px -8px oklch(0.1 0.02 250 / 0.28),
-        0 2px 8px -2px oklch(0.1 0.02 250 / 0.16); /* heavier drop for surfaces that overlay the full viewport — dialog, sheet, drawer. See README.md § 5. */
+        0 2px 8px -2px oklch(0.1 0.02 250 / 0.16); /* heavier drop for surfaces that overlay the full viewport — dialog, sheet, drawer. */
 
     /* ---------- Semantic spacing tokens ----------
      * Condensed 4px grid. Tighter than shadcn defaults.
      * Not mapped through @theme. Components reference these as arbitrary values:
      * gap-[var(--vueda-gap-sm)], p-[var(--vueda-section-padding)], etc.
-     * See README.md § 4.1. */
-    --vueda-gap-sm: 0.25rem; /*  4px — inside-control gap (icon to label, segment to segment). See README.md § 4.1. */
-    --vueda-gap-md: 0.5rem; /*  8px — between controls in a row. See README.md § 4.1. */
-    --vueda-gap-lg: 0.75rem; /* 12px — between groups within a section. See README.md § 4.1. */
-    --vueda-section-padding: 0.75rem; /* 12px — card / panel interior padding. See README.md § 4.1. */
+     * Semantic spacing tokens provide the published 4px, 8px, and 12px steps. */
+    --vueda-gap-sm: 0.25rem; /*  4px — inside-control gap (icon to label, segment to segment). */
+    --vueda-gap-md: 0.5rem; /*  8px — between controls in a row. */
+    --vueda-gap-lg: 0.75rem; /* 12px — between groups within a section. */
+    --vueda-section-padding: 0.75rem; /* 12px — card / panel interior padding. */
     /* Legacy aliases — prefer --vueda-control-px-md and the height-paired tokens below. */
     --vueda-control-px: var(
         --vueda-control-px-md
@@ -411,9 +409,9 @@
      *                  Uber Base table row is 32).
      *   28px compact — table row edit mode, action strips.
      *   40px lg      — primary page CTAs and auth screens. */
-    --vueda-control-height: 32px; /* default control row; the dense-SaaS sweet spot shared by buttons, inputs, selects, number fields, OTP slots, and tag-input shells. See README.md § 4.2. */
-    --vueda-control-height-sm: 28px; /* compact control row; table-row edit mode and action strips. See README.md § 4.2. */
-    --vueda-control-height-lg: 40px; /* large control row; primary page CTAs and auth screens. See README.md § 4.2. */
+    --vueda-control-height: 32px; /* default control row; the dense-SaaS sweet spot shared by buttons, inputs, selects, number fields, OTP slots, and tag-input shells. */
+    --vueda-control-height-sm: 28px; /* compact control row; table-row edit mode and action strips. */
+    --vueda-control-height-lg: 40px; /* large control row; primary page CTAs and auth screens. */
     --vueda-control-px-sm: 0.5rem; /*  8px horizontal padding paired with --vueda-control-height-sm. */
     --vueda-control-px-md: 0.75rem; /* 12px horizontal padding paired with --vueda-control-height. */
     --vueda-control-px-lg: 1.25rem; /* 20px horizontal padding paired with --vueda-control-height-lg. */
@@ -421,7 +419,7 @@
     /* ---------- Specialized control sizes ----------
      * Chip / tag tier — fourth step below --vueda-control-height-lg.
      * 4-step ladder: 40 (lg) · 32 (default) · 28 (sm) · 20 (chip). */
-    --vueda-chip-height: 20px; /* chip / tag tier; fourth step below --vueda-control-height-lg on the 40 / 32 / 28 / 20 ladder. Used by TagsInput chips and inline Badges in tables. See README.md § 4.2. */
+    --vueda-chip-height: 20px; /* chip / tag tier; fourth step below --vueda-control-height-lg on the 40 / 32 / 28 / 20 ladder. Used by TagsInput chips and inline Badges in tables. */
 
     /* Command surface — input wrapper and footer chin heights.
      * Only used by Command today; promote here so future searchfield-plus-chin
@@ -442,8 +440,8 @@
      * SidebarProvider sets --sidebar-width / --sidebar-width-icon as
      * inline CSS custom properties using these tokens so child components
      * can reference var(--sidebar-width) without duplicating the values. */
-    --vueda-sidebar-width: 14rem; /* expanded desktop sidebar width; see README.md § 4.4 */
-    --vueda-sidebar-width-icon: 3rem; /* collapsed desktop icon rail width; see README.md § 4.4 */
+    --vueda-sidebar-width: 14rem; /* expanded desktop sidebar width. */
+    --vueda-sidebar-width-icon: 3rem; /* collapsed desktop icon rail width. */
     --vueda-sidebar-width-mobile: 18rem; /* mobile sheet width used by SidebarProvider */
     --vueda-sidebar-active-rail: 2px; /* active-item rail width for {@api theme-key:SidebarMenuButtonChild.root} and {@api theme-key:SidebarMenuSubButton.root} */
 
@@ -466,23 +464,23 @@
     /* Font stacks. Galano Grotesque licence forbids web embedding; brand
      * stack is a Plex 600 fallback only — live brand type ships as SVG paths. */
     --vueda-font-sans:
-        "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; /* UI font stack — IBM Plex Sans with system fallbacks. Mapped through @theme as `font-sans`. Weights 400 / 500 / 600 only; never 700, never italic. See README.md § 3. */
+        "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; /* UI font stack — IBM Plex Sans with system fallbacks. Mapped through @theme as `font-sans`. Weights 400 / 500 / 600 only; never 700, never italic. */
     --vueda-font-mono:
-        "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; /* data font stack — JetBrains Mono with system mono fallbacks. Mapped through @theme as `font-mono`. Reserved for machine-generated, positional, or digit-stable content. See README.md § 3.2. */
+        "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; /* data font stack — JetBrains Mono with system mono fallbacks. Mapped through @theme as `font-mono`. Reserved for machine-generated, positional, or digit-stable content. */
     --vueda-font-brand:
-        "Galano Grotesque", "IBM Plex Sans", sans-serif; /* brand display stack — Galano Grotesque with a Plex 600 fallback. Licence forbids web embedding, so live brand type ships as pre-rendered SVG paths in the repo-root `brand/` folder; this stack is the runtime fallback only. See README.md § 3. */
+        "Galano Grotesque", "IBM Plex Sans", sans-serif; /* brand display stack — Galano Grotesque with a Plex 600 fallback. Licence forbids web embedding, so live brand type ships as pre-rendered SVG paths in the repo-root `brand/` folder; this stack is the runtime fallback only. */
 
     /* ---------- Motion ----------
      * Instruments feel responsive, not soft. Short, ease-out only.
-     * See README.md § 4.6. */
-    --vueda-duration-interaction: 120ms; /* canonical interaction duration. Every UI transition resolves through this single value. See README.md § 4.6. */
+     * One duration and one easing define the interaction motion contract. */
+    --vueda-duration-interaction: 120ms; /* canonical interaction duration. Every UI transition resolves through this single value. */
     --vueda-ease-interaction: cubic-bezier(
         0.2,
         0,
         0,
         1
-    ); /* canonical interaction easing — ease-out only. No ease-in-out, no bounce, no springs. See README.md § 4.6. */
-    --vueda-loading-slow-ms: 3000; /* slow-path threshold for ViewLoading: after this long under sustained load the indicator shifts to a warning tone. Override per-route via the ViewLoading `slowAfterMs` prop for known-slow views (reports, exports). See README.md § 4.6. */
+    ); /* canonical interaction easing — ease-out only. No ease-in-out, no bounce, no springs. */
+    --vueda-loading-slow-ms: 3000; /* slow-path threshold for ViewLoading: after this long under sustained load the indicator shifts to a warning tone. Override per-route via the ViewLoading `slowAfterMs` prop for known-slow views (reports, exports). */
 
     /* ---------- DPR-aware hairline + focus-ring widths ----------
      * Painted edges step down from 2px to 1px across the DPR 1.0 to 2.0 range,
@@ -514,8 +512,8 @@
      * Focus-ring-width is always 2x hairline-width, ensuring the 2px CSS
      * minimum required by WCAG 2.2 SC 2.4.13 (AAA) at all DPR values.
      */
-    --vueda-hairline-width: 2px; /* inset box-shadow width painted by the `hairline` utility; the structural-edge token that replaces `border` across the family. DPR-keyed: steps down to 1px at DPR 2.0 via the `@media (min-resolution: ...)` overrides below. See README.md § 7.1. */
-    --vueda-focus-ring-width: 4px; /* outline width painted by the `focus-ring` utility; always 2x --vueda-hairline-width so the painted ring stays at or above the WCAG 2.2 SC 2.4.13 (AAA) 2px minimum at every DPR step. See README.md § 7.2. */
+    --vueda-hairline-width: 2px; /* inset box-shadow width painted by the `hairline` utility; the structural-edge token that replaces `border` across the family. DPR-keyed: steps down to 1px at DPR 2.0 via the `@media (min-resolution: ...)` overrides below. */
+    --vueda-focus-ring-width: 4px; /* outline width painted by the `focus-ring` utility; always 2x --vueda-hairline-width so the painted ring stays at or above the WCAG 2.2 SC 2.4.13 (AAA) 2px minimum at every DPR step. */
     --vueda-focus-ring-offset: 4px; /* outline-offset for `focus-ring`; tracks --vueda-hairline-width so the gap-to-stroke proportions stay constant when the painted scale steps with DPR. */
     --vueda-focus-ring-gap-color: var(
         --background
@@ -609,7 +607,7 @@
  * Description is reset to `--muted-foreground` so the type tint reads as
  * a glance cue (icon + title) rather than coloring the whole body.
  * Specificity bumped past vue-sonner's stock rules with the `[data-type]`
- * attribute. See README.md § Feedback. */
+ * attribute. */
 [data-sonner-toast][data-styled="true"][data-type="success"] {
     color: var(--success);
 }
