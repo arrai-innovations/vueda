@@ -62,8 +62,7 @@ export function buildTypedocPathMap(bundle, index) {
 
 function pdocModulePath(node) {
     const moduleName = node.extensions?.pdoc?.modulename || node.name;
-    const pathPart = moduleName.replace(/\./g, "/");
-    return `py/${pathPart}.md`;
+    return `py/${moduleName}.md`;
 }
 
 function pdocClassDir(node, moduleFile) {

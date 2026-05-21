@@ -120,14 +120,14 @@ describe("buildPdocPathMap", () => {
         const bundle = new PdocNormalizer().normalize(pdocPayload());
         const index = buildCanonicalIndex(bundle);
         const pathMap = buildPdocPathMap(bundle, index);
-        expect(pathMap.get("py:module:vueda.example")).toBe("py/vueda/example.md");
+        expect(pathMap.get("py:module:vueda.example")).toBe("py/vueda.example.md");
     });
 
     it("maps a class id to a path under the module directory", () => {
         const bundle = new PdocNormalizer().normalize(pdocPayload());
         const index = buildCanonicalIndex(bundle);
         const pathMap = buildPdocPathMap(bundle, index);
-        expect(pathMap.get("py:class:vueda.example.Helper")).toBe("py/vueda/example/Helper.md");
+        expect(pathMap.get("py:class:vueda.example.Helper")).toBe("py/vueda.example/Helper.md");
     });
 });
 
