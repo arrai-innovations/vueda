@@ -288,101 +288,120 @@
 
     /* ---------- Color palette: light ----------
      * Near-monochrome cool neutrals (hue 250°, chroma 0.01).
-     * Blue accent is the ONE chromatic token: oklch(0.58 0.19 254) = #0077f7. */
+     * Blue accent is the ONE chromatic token: oklch(0.58 0.19 254) = #0077f7.
+     * See DESIGN.md § 2.1 for the two-axis (neutral + one accent) rule. */
 
     /* Surfaces */
-    --background: oklch(0.99 0.003 250); /* page: barely-tinted paper */
-    --foreground: oklch(0.18 0.015 250); /* body text */
-    --card: oklch(1 0 0); /* cards sit on background w/ border */
-    --card-foreground: oklch(0.18 0.015 250);
-    --popover: oklch(0.99 0.003 250);
-    --popover-foreground: oklch(0.18 0.015 250);
+    --background: oklch(0.99 0.003 250); /* page surface — the dominant body fill. Barely-tinted paper in light mode. */
+    --foreground: oklch(0.18 0.015 250); /* default text colour on --background. */
+    --card: oklch(
+        1 0 0
+    ); /* card surface — sits on --background with a 1px border, never a shadow. See DESIGN.md § 5. */
+    --card-foreground: oklch(0.18 0.015 250); /* text on a --card surface. */
+    --popover: oklch(
+        0.99 0.003 250
+    ); /* floating surface for popover, dropdown, hover card, and command list — overlaid via --vueda-shadow-popover. */
+    --popover-foreground: oklch(0.18 0.015 250); /* text on a --popover surface. */
 
-    /* Primary = VUEDA blue. The ONE accent. */
-    --primary: oklch(0.58 0.19 254);
-    --primary-foreground: oklch(0.99 0.003 250);
+    /* Accent — the one chromatic token. */
+    --primary: oklch(
+        0.58 0.19 254
+    ); /* VUEDA blue. Bound to the primary CTA, focus rings (--ring aliases this), selected-row markers, and the brand mark. See DESIGN.md § 2.1. */
+    --primary-foreground: oklch(
+        0.99 0.003 250
+    ); /* text painted on a --primary fill (primary Button label, selected sidebar item text). */
 
     /* Secondary / muted / accent are all neutral variants. Kept distinct for shadcn compat. */
-    --secondary: oklch(0.965 0.005 250);
-    --secondary-foreground: oklch(0.22 0.015 250);
-    --muted: oklch(0.965 0.005 250);
-    --muted-foreground: oklch(0.5 0.015 250);
-    --accent: oklch(0.95 0.008 250); /* hover/selected surface: one step darker than muted */
-    --accent-foreground: oklch(0.18 0.015 250);
+    --secondary: oklch(
+        0.965 0.005 250
+    ); /* secondary neutral surface — kept distinct from --muted for shadcn compat; resolves to the same tint. */
+    --secondary-foreground: oklch(0.22 0.015 250); /* text on a --secondary surface. */
+    --muted: oklch(
+        0.965 0.005 250
+    ); /* muted neutral surface — disabled control fills, subdued chips, low-emphasis backgrounds. */
+    --muted-foreground: oklch(0.5 0.015 250); /* muted text — captions, supporting labels, table th. */
+    --accent: oklch(
+        0.95 0.008 250
+    ); /* hover / selected surface, one step darker than --muted. Half-strength (`bg-accent/50`) is the canonical "current section" treatment. See DESIGN.md § 2.2. */
+    --accent-foreground: oklch(0.18 0.015 250); /* text on a --accent surface. */
 
-    /* Semantic status — desaturated. Operators don't need confetti.
-     * Text-weight values in light mode (use /50 for border, /10 for bg). */
-    --destructive: oklch(0.52 0.18 27);
-    --destructive-foreground: oklch(0.99 0.003 250); /* same in light and dark */
-    --success: oklch(0.5 0.12 155);
-    --warning: oklch(0.58 0.14 70);
-    --info: oklch(0.58 0.19 254); /* same as primary: info IS the accent */
+    /* Status — desaturated tokens consumed via the `bg-<stat>/10` + `border-<stat>/50` + `text-<stat>` recipe. See DESIGN.md § 2.4. */
+    --destructive: oklch(
+        0.52 0.18 27
+    ); /* red status — destructive actions, error state, the Calendar strikethrough rule. */
+    --destructive-foreground: oklch(0.99 0.003 250); /* text on a --destructive fill; identical in light and dark. */
+    --success: oklch(0.5 0.12 155); /* green status — success confirmation; pair with /10 surface and /50 border. */
+    --warning: oklch(0.58 0.14 70); /* amber status — warning state; pair with /10 surface and /50 border. */
+    --info: oklch(0.58 0.19 254); /* informational status — aliased to --primary because info IS the accent. */
 
     /* Structure */
-    --border: oklch(0.9 0.008 250);
-    /* One step darker than --border. Hover-border tint on input-shell controls
-     * (SelectTrigger, etc): a subtle darkening that signals affordance without
-     * triggering the focus ring. */
-    --border-strong: oklch(0.82 0.012 250);
-    --input: oklch(0.9 0.008 250);
-    /* Focus ring canon: solid outline, primary color. Ring width is always
-     * 2x hairline-width, keeping it at 2px+ CSS at every DPR — satisfies
-     * WCAG 2.2 SC 2.4.11 (AA) and SC 2.4.13 (AAA) at all DPR values.
-     * Consumed via the `focus-ring` utility on :focus-visible. Destructive
-     * controls swap to var(--destructive) so the ring matches the control's
-     * semantic intent. Width and offset come from the DPR-keyed tokens below
-     * (`--vueda-focus-ring-width`, `--vueda-focus-ring-offset`). */
-    --ring: var(--primary);
+    --border: oklch(0.9 0.008 250); /* default hairline colour for separators, card edges, and `border` defaults. */
+    --border-strong: oklch(
+        0.82 0.012 250
+    ); /* one step darker than --border. Hover-border tint on input-shell controls (SelectTrigger, etc): signals affordance without triggering the focus ring. */
+    --input: oklch(
+        0.9 0.008 250
+    ); /* input edge — default colour painted by the `hairline-input` variant. Matches --border at rest; controls swap to --border-strong on hover and --ring on focus. */
+    --ring: var(
+        --primary
+    ); /* focus-ring colour. Aliases --primary so focus tracks the accent; destructive controls swap to --destructive via `focus-ring-destructive`. See DESIGN.md § 7.2. */
 
-    /* Scrim for dialog/sheet/drawer overlays; same in light and dark */
-    --overlay: oklch(0.12 0.015 250 / 0.6);
-    /* Inset surface — one step below --background. Used for recessed areas:
-     * command-palette stage, code blocks, empty table trays. */
-    --sunken: oklch(0.95 0.008 250);
+    --overlay: oklch(
+        0.12 0.015 250 / 0.6
+    ); /* scrim fill for dialog / sheet / drawer overlays; identical in light and dark. */
+    --sunken: oklch(
+        0.95 0.008 250
+    ); /* inset surface, one step below --background. Recessed areas: command-palette stage, code blocks, empty table trays. */
 
-    /* Sidebar — one shade darker than background to read as chrome, not content */
-    --sidebar: oklch(0.97 0.005 250);
-    --sidebar-foreground: oklch(0.22 0.015 250);
-    --sidebar-primary: oklch(0.58 0.19 254);
-    --sidebar-primary-foreground: oklch(0.99 0.003 250);
-    --sidebar-accent: oklch(0.93 0.008 250);
-    --sidebar-accent-foreground: oklch(0.18 0.015 250);
-    --sidebar-border: oklch(0.88 0.008 250);
-    --sidebar-ring: var(--ring);
+    /* Sidebar — one shade darker than background to read as chrome, not content. See DESIGN.md § 4.4. */
+    --sidebar: oklch(0.97 0.005 250); /* sidebar chrome surface. */
+    --sidebar-foreground: oklch(0.22 0.015 250); /* text on the sidebar surface. */
+    --sidebar-primary: oklch(
+        0.58 0.19 254
+    ); /* accent colour inside the sidebar (active rail, primary signals). Mirrors --primary so the sidebar tracks the brand accent. */
+    --sidebar-primary-foreground: oklch(0.99 0.003 250); /* text on a --sidebar-primary fill. */
+    --sidebar-accent: oklch(
+        0.93 0.008 250
+    ); /* hover / selected fill inside the sidebar — a neutral tint between --sidebar and --sidebar-border. */
+    --sidebar-accent-foreground: oklch(0.18 0.015 250); /* text on a --sidebar-accent surface. */
+    --sidebar-border: oklch(0.88 0.008 250); /* hairline colour for sidebar separators and item edges. */
+    --sidebar-ring: var(
+        --ring
+    ); /* focus-ring inside the sidebar; aliases --ring so focus state stays consistent across chrome and content. */
 
-    /* ---------- Semantic radius tokens ---------- */
-    --vueda-control-radius: 2px; /* buttons, inputs, selects — slab */
-    /* Checkbox body — intentionally softer than the 2px slab control radius.
-     * At 16×16 the corner is a 1-pixel-ish arc that reads as "chit/chiclet"
-     * rather than "miniature slab input", differentiating it from the inputs
-     * and buttons it sits next to in a form. Diverges from --vueda-control-radius
-     * by design. */
-    --vueda-checkbox-radius: 4px;
-    --vueda-card-radius: 4px; /* cards, panels */
-    --vueda-modal-radius: 2px; /* dialogs, sheets */
-    --vueda-pill-radius: 9999px; /* badges, tags, avatars — fully round */
+    /* ---------- Semantic radius tokens ----------
+     * Five-step semantic ladder; near-flat by design. See DESIGN.md § 6. */
+    --vueda-control-radius: 2px; /* slab radius shared by buttons, inputs, selects, and most chrome controls. See DESIGN.md § 6.1. */
+    --vueda-checkbox-radius: 4px; /* softer than --vueda-control-radius by design; the 4px corner reads as "chit / chiclet" at 16×16, differentiating the checkbox body from the slab inputs and buttons beside it. See DESIGN.md § 6.1. */
+    --vueda-card-radius: 4px; /* card and panel corner radius. */
+    --vueda-modal-radius: 2px; /* dialog and sheet corner radius; matches --vueda-control-radius so modal chrome reads as a slab. */
+    --vueda-pill-radius: 9999px; /* fully round — avatars and user-manipulated tag / chip objects (TagsInput chips, attachment chips), plus inline running-text state markers. See DESIGN.md § 6.1. */
 
     /* ---------- Semantic shadow tokens ----------
-     * Controls and cards: none. Borders carry definition.
-     * Popovers and overlays: restrained elevation only when surface overlays surface. */
-    --vueda-shadow-control: 0 0 #0000;
-    --vueda-shadow-card: 0 0 #0000;
-    --vueda-shadow-popover: 0 0 0 1px oklch(0.2 0.01 250 / 0.08), 0 4px 12px -2px oklch(0.15 0.02 250 / 0.12);
+     * Controls and cards carry zero shadow; borders do the work. Elevation
+     * is reserved for surfaces that overlay other surfaces. See DESIGN.md § 5. */
+    --vueda-shadow-control: 0 0 #0000; /* zero elevation — controls carry definition through painted edges, not shadow. See DESIGN.md § 5. */
+    --vueda-shadow-card: 0 0 #0000; /* zero elevation — cards carry definition through a 1px border, not shadow. See DESIGN.md § 5. */
+    --vueda-shadow-popover:
+        0 0 0 1px oklch(0.2 0.01 250 / 0.08), 0 4px 12px -2px oklch(0.15 0.02 250 / 0.12); /* 1px ring plus a 12px ambient drop — applied to popover, dropdown, context menu, and combobox list surfaces. See DESIGN.md § 5. */
     --vueda-shadow-overlay:
         0 0 0 1px oklch(0.2 0.01 250 / 0.12), 0 16px 40px -8px oklch(0.1 0.02 250 / 0.28),
-        0 2px 8px -2px oklch(0.1 0.02 250 / 0.16);
+        0 2px 8px -2px oklch(0.1 0.02 250 / 0.16); /* heavier drop for surfaces that overlay the full viewport — dialog, sheet, drawer. See DESIGN.md § 5. */
 
     /* ---------- Semantic spacing tokens ----------
      * Condensed 4px grid. Tighter than shadcn defaults.
      * Not mapped through @theme. Components reference these as arbitrary values:
-     * gap-[var(--vueda-gap-sm)], p-[var(--vueda-section-padding)], etc. */
-    --vueda-gap-sm: 0.25rem; /*  4px — inside controls */
-    --vueda-gap-md: 0.5rem; /*  8px — between controls in a row */
-    --vueda-gap-lg: 0.75rem; /* 12px — between groups */
-    --vueda-section-padding: 0.75rem; /* 12px — card/panel interior */
-    /* Legacy aliases — prefer --vueda-control-px-md / the height-paired vertical padding below */
-    --vueda-control-px: var(--vueda-control-px-md);
-    --vueda-control-py: 0.25rem; /*  4px */
+     * gap-[var(--vueda-gap-sm)], p-[var(--vueda-section-padding)], etc.
+     * See DESIGN.md § 4.1. */
+    --vueda-gap-sm: 0.25rem; /*  4px — inside-control gap (icon to label, segment to segment). See DESIGN.md § 4.1. */
+    --vueda-gap-md: 0.5rem; /*  8px — between controls in a row. See DESIGN.md § 4.1. */
+    --vueda-gap-lg: 0.75rem; /* 12px — between groups within a section. See DESIGN.md § 4.1. */
+    --vueda-section-padding: 0.75rem; /* 12px — card / panel interior padding. See DESIGN.md § 4.1. */
+    /* Legacy aliases — prefer --vueda-control-px-md and the height-paired tokens below. */
+    --vueda-control-px: var(
+        --vueda-control-px-md
+    ); /* legacy alias for --vueda-control-px-md (12px); retained for consumers that predate the sm / md / lg ladder. Prefer the size-specific token. */
+    --vueda-control-py: 0.25rem; /*  4px — legacy vertical padding constant; prefer the height-paired tokens above. */
 
     /* ---------- Control sizing (VUEDA canon) ----------
      * Single system-wide height scale shared by buttons, inputs, selects,
@@ -446,19 +465,24 @@
 
     /* Font stacks. Galano Grotesque licence forbids web embedding; brand
      * stack is a Plex 600 fallback only — live brand type ships as SVG paths. */
-    --vueda-font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-    --vueda-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-    --vueda-font-brand: "Galano Grotesque", "IBM Plex Sans", sans-serif;
+    --vueda-font-sans:
+        "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; /* UI font stack — IBM Plex Sans with system fallbacks. Mapped through @theme as `font-sans`. Weights 400 / 500 / 600 only; never 700, never italic. See DESIGN.md § 3. */
+    --vueda-font-mono:
+        "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; /* data font stack — JetBrains Mono with system mono fallbacks. Mapped through @theme as `font-mono`. Reserved for machine-generated, positional, or digit-stable content. See DESIGN.md § 3.2. */
+    --vueda-font-brand:
+        "Galano Grotesque", "IBM Plex Sans", sans-serif; /* brand display stack — Galano Grotesque with a Plex 600 fallback. Licence forbids web embedding, so live brand type ships as pre-rendered SVG paths in `design-system/assets/`; this stack is the runtime fallback only. See DESIGN.md § 3. */
 
     /* ---------- Motion ----------
-     * Instruments feel responsive, not soft. Short, ease-out only. */
-    --vueda-duration-interaction: 120ms;
-    --vueda-ease-interaction: cubic-bezier(0.2, 0, 0, 1);
-    /* Threshold (ms) for the ViewLoading slow-path tone flip — after this long
-     * under sustained load the indicator shifts to a warning tone. Override
-     * per-route via the ViewLoading `slowAfterMs` prop for known-slow views
-     * (reports, exports) to avoid premature flip. See DESIGN.md § 4.6. */
-    --vueda-loading-slow-ms: 3000;
+     * Instruments feel responsive, not soft. Short, ease-out only.
+     * See DESIGN.md § 4.6. */
+    --vueda-duration-interaction: 120ms; /* canonical interaction duration. Every UI transition resolves through this single value. See DESIGN.md § 4.6. */
+    --vueda-ease-interaction: cubic-bezier(
+        0.2,
+        0,
+        0,
+        1
+    ); /* canonical interaction easing — ease-out only. No ease-in-out, no bounce, no springs. See DESIGN.md § 4.6. */
+    --vueda-loading-slow-ms: 3000; /* slow-path threshold for ViewLoading: after this long under sustained load the indicator shifts to a warning tone. Override per-route via the ViewLoading `slowAfterMs` prop for known-slow views (reports, exports). See DESIGN.md § 4.6. */
 
     /* ---------- DPR-aware hairline + focus-ring widths ----------
      * Painted edges step down from 2px to 1px across the DPR 1.0 to 2.0 range,
