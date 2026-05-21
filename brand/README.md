@@ -40,10 +40,7 @@ Identity-level font choices, stable across themes:
 - **Sans (UI):** IBM Plex Sans.
 - **Mono (data):** JetBrains Mono.
 - **Brand (marketing only):** Galano Grotesque SemiBold (pre-rendered SVG;
-  no web embedding).
-
-`fonts.css` in this folder is the Google Fonts `@import` snippet for
-IBM Plex Sans + JetBrains Mono, kept here as a brand-level convenience.
+  no web embedding). Montserrat would be the free alternative, if really required.
 
 Usage rules for these families (weight discipline, mono policy, italic
 policy, the seven-step scale) belong to the theme. See

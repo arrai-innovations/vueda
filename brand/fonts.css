@@ -1,9 +1,0 @@
-/* VUEDA webfonts.
-   UI + data:  IBM Plex Sans + JetBrains Mono (Google Fonts CDN)
-
-   Brand display (Galano Grotesque): NOT embedded — licence does not permit
-   web embedding. Use the pre-rendered SVG wordmarks in assets/ instead, or
-   hand-vectorise any needed marketing headline to paths. Do not @font-face
-   this family. The --font-brand token falls back to Plex 600 for any UI
-   that inadvertently references it. */
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
