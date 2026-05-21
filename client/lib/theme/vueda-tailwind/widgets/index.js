@@ -49,7 +49,7 @@ export default {
      * treatments to the trigger button.
      */
     WidgetCombobox: {
-        /** The trigger uses the input-shell recipe for searchable pickers; see DESIGN.md § 9.1 Selection / Command. */
+        /** The trigger uses the input-shell recipe for searchable pickers. */
         trigger: {
             class: [
                 "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground",
@@ -157,14 +157,14 @@ export default {
         toolbar: {
             class: ["flex flex-row flex-wrap items-center gap-0.5 border-b border-input bg-muted/50 px-1.5 py-1"],
         },
-        /** Toolbar buttons use compact slab control styling; see DESIGN.md § 4.2. */
+        /** Toolbar buttons use compact slab control styling. */
         toolbarButton: {
             class: [
                 "inline-flex items-center justify-center rounded px-1.5 py-0.5 text-sm font-medium text-muted-foreground",
                 "hover:bg-accent hover:text-accent-foreground",
             ],
         },
-        /** The active toolbar button uses the same accent surface as selected menu actions; see DESIGN.md § 2.2. */
+        /** The active toolbar button uses the same accent surface as selected menu actions. */
         toolbarButtonActive: {
             class: ["bg-accent text-accent-foreground"],
         },
@@ -213,7 +213,7 @@ export default {
         input: {
             class: ["ml-2"],
         },
-        /** The value text uses the read-mode record recipe; see DESIGN.md § 9.1 Forms. */
+        /** The value text uses the read-mode record recipe. */
         value: {
             class: ["text-[13px]/[1.5] text-foreground"],
         },
@@ -294,7 +294,7 @@ export default {
                 },
             };
         },
-        /** The required marker uses destructive status color; see DESIGN.md § 9.1 Forms. */
+        /** The required marker uses destructive status color. */
         required: {
             class: ["text-red-500 dark:text-red-400", "ml-1", "cursor-help"],
         },

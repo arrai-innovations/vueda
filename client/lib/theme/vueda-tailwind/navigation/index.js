@@ -16,7 +16,7 @@ export default {
      * BreadcrumbList arranges breadcrumb items and separators in a wrapping inline row.
      */
     BreadcrumbList: {
-        /** Inline wrapping row for breadcrumb items. See DESIGN.md § Navigation for separator and current-page rules. */
+        /** Inline wrapping row for breadcrumb items. */
         root: {
             class: "text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5",
         },
@@ -61,7 +61,7 @@ export default {
      * BreadcrumbEllipsis represents collapsed breadcrumb steps and can become interactive when needed.
      */
     BreadcrumbEllipsis: {
-        /** Collapsed-step marker. The `interactive` state turns it into the dropdown trigger shape described in DESIGN.md § Navigation. */
+        /** Collapsed-step marker. The `interactive` state turns it into the dropdown trigger shape. */
         root: ({ interactive }) => ({
             class: [
                 "flex size-7 items-center justify-center",
@@ -99,7 +99,7 @@ export default {
      * DropdownMenuContent styles the floating dropdown menu surface.
      */
     DropdownMenuContent: {
-        /** Popover-like menu surface with bounded height, menu padding, and side-aware entrance motion. See DESIGN.md § Navigation. */
+        /** Popover-like menu surface with bounded height, menu padding, and side-aware entrance motion. */
         root: {
             class: "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--reka-dropdown-menu-content-available-height) min-w-[8rem] origin-(--reka-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-vueda-control border p-1 shadow-vueda-popover",
         },
@@ -139,7 +139,7 @@ export default {
      * DropdownMenuLabel styles a non-interactive label for a group of dropdown menu items.
      */
     DropdownMenuLabel: {
-        /** Non-interactive group label using the mono micro uppercase recipe from DESIGN.md § 3.3. */
+        /** Non-interactive group label using the mono micro uppercase recipe. */
         root: {
             class: "text-muted-foreground px-2 py-1.5 font-mono text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase data-[inset]:pl-8",
         },
@@ -446,7 +446,7 @@ export default {
      * NavigationMenuTrigger styles an item that opens navigation menu content.
      */
     NavigationMenuTrigger: {
-        /** Header-scale trigger. It intentionally uses a 36px height and half-strength active fill. See DESIGN.md § Navigation. */
+        /** Header-scale trigger. It intentionally uses a 36px height and half-strength active fill. */
         root: {
             class: "group inline-flex h-9 w-max items-center justify-center rounded-vueda-control bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=open]:hover:bg-accent data-[state=open]:text-accent-foreground data-[state=open]:focus:bg-accent data-[state=open]:bg-accent/50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         },
@@ -467,7 +467,7 @@ export default {
      * NavigationMenuLink styles links rendered inside navigation menu content.
      */
     NavigationMenuLink: {
-        /** Link row inside a navigation panel. Active uses `bg-accent/50` so hover remains the stronger cue. See DESIGN.md § Navigation. */
+        /** Link row inside a navigation panel. Active uses `bg-accent/50` so hover remains the stronger cue. */
         root: {
             class: "data-active:focus:bg-accent data-active:hover:bg-accent data-active:bg-accent/50 data-active:text-accent-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground flex flex-col gap-1 rounded-sm p-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_svg:not([class*='size-'])]:size-4",
         },
@@ -480,7 +480,7 @@ export default {
         root: {
             class: "data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:fade-in top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden",
         },
-        /** Rotated popover-colored arrow. It is one of the remaining sub-surface deviations noted in DESIGN.md § 6. */
+        /** Rotated popover-colored arrow for navigation-menu content. */
         arrow: {
             class: "bg-popover border-l border-t border-border relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm",
         },
@@ -514,7 +514,7 @@ export default {
      * NavigationPaginationNavButton styles pagination controls that move to previous, next, first, or last pages.
      */
     NavigationPaginationNavButton: {
-        /** Previous, next, first, or last control. It stays ghost but adds room for a label. See DESIGN.md § Navigation. */
+        /** Previous, next, first, or last control. It stays ghost but adds room for a label. */
         root: {
             composes: ["_ButtonBase.root", "_ButtonGhost.root"],
             class: ["gap-1 px-2.5 sm:pr-2.5"],
@@ -610,7 +610,7 @@ export default {
      * SidebarUserBlock lays out user identity details inside the sidebar footer.
      */
     SidebarUserBlock: {
-        /** Horizontal account row for the footer recipe described in DESIGN.md § Sidebar. */
+        /** Horizontal account row for the sidebar footer. */
         root: {
             class: "flex w-full items-center gap-2",
         },
@@ -719,7 +719,7 @@ export default {
      * SidebarGroupLabel styles the heading text for a sidebar group.
      */
     SidebarGroupLabel: {
-        /** Sidebar group heading using the page-level eyebrow recipe from DESIGN.md § Sidebar and DESIGN.md § 3.3. */
+        /** Sidebar group heading using the page-level eyebrow recipe. */
         root: {
             class: [
                 "text-muted-foreground flex h-6 shrink-0 items-center px-2 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.08em] transition-[margin,opacity] duration-200 ease-linear focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring [&>svg]:size-4 [&>svg]:shrink-0",
@@ -743,7 +743,7 @@ export default {
      * SidebarMenuBadge styles small count or status badges aligned to sidebar menu buttons.
      */
     SidebarMenuBadge: {
-        /** Count or status badge anchored to a menu button. Tone handling follows DESIGN.md § Sidebar and hides in icon-collapsed mode. */
+        /** Count or status badge anchored to a menu button. Tone handling stays local to sidebar tokens and hides in icon-collapsed mode. */
         root: ({ tone }) => ({
             class: [
                 "pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-vueda-control px-1 font-mono text-[length:var(--vueda-text-micro)] font-semibold tabular-nums select-none",
@@ -791,7 +791,7 @@ export default {
      * SidebarTrigger styles the compact control that toggles the sidebar.
      */
     SidebarTrigger: {
-        /** Compact sidebar toggle button. The glyph is supplied through the icon registry described in DESIGN.md § Sidebar. */
+        /** Compact sidebar toggle button. The glyph is supplied through the icon registry. */
         root: {
             class: "h-7 w-7",
         },
@@ -893,7 +893,7 @@ export default {
      * SidebarMenuButtonChild styles the interactive button content used by sidebar menu items.
      */
     SidebarMenuButtonChild: {
-        /** Primary sidebar menu button content. Active state uses a rail and icon tint, not a type-weight bump. See DESIGN.md § 4.4. */
+        /** Primary sidebar menu button content. Active state uses a rail and icon tint, not a type-weight bump, so hover does not shift label width. */
         root: ({ variant, size }) => ({
             class: [
                 "peer/menu-button relative flex w-full items-center gap-2 rounded-vueda-control p-2 text-left text-sm transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",

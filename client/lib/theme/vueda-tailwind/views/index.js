@@ -38,7 +38,7 @@ export default {
         titleWrapper: {
             class: ["flex flex-col gap-1", "min-w-min"],
         },
-        /** Page-level eyebrow above the title. Uses the 11 px / 600 / `0.06em` uppercase recipe described in `DESIGN.md § 3.3` against `--muted-foreground`. */
+        /** Page-level eyebrow above the title. Uses the 11 px / 600 / `0.06em` uppercase recipe against `--muted-foreground`. */
         eyebrow: {
             class: [
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
@@ -49,11 +49,11 @@ export default {
         titleRow: {
             class: ["flex items-baseline flex-wrap gap-2"],
         },
-        /** The page `<h1>`. Display-role type per `DESIGN.md § 3.1`: 22 px / 600 / 1.2 with a small negative tracking so the title reads as the highest-rank text on the page. */
+        /** The page `<h1>`. Display-role type: 22 px / 600 / 1.2 with a small negative tracking so the title reads as the highest-rank text on the page. */
         title: {
             class: ["text-[22px] font-semibold leading-[1.2] tracking-[-0.005em]"],
         },
-        /** Mono trailing fragment beside the title (typically an ID, key, or status code). Mono / muted-foreground recipe per `DESIGN.md § 3.2`, sized one tier below the title so it reads as a tag, not a co-title. */
+        /** Mono trailing fragment beside the title (typically an ID, key, or status code). Mono / muted-foreground recipe, sized one tier below the title so it reads as a tag, not a co-title. */
         titleSuffix: {
             class: ["text-muted-foreground text-[13px]/[1.4] font-normal font-mono"],
         },
@@ -101,7 +101,7 @@ export default {
         message: {
             class: [],
         },
-        /** Pinned actions strip closing the card body: horizontal row with a top hairline and a tinted-muted background that picks up the bottom radius via `rounded-b-vueda-card` when nested in {@api theme-key:ModelActionForm.card}. Wraps on narrow viewports rather than stacking column. See `DESIGN.md § 9 Action / workflow surfaces`. */
+        /** Pinned actions strip closing the card body: horizontal row with a top hairline and a tinted-muted background that picks up the bottom radius via `rounded-b-vueda-card` when nested in {@api theme-key:ModelActionForm.card}. Wraps on narrow viewports rather than stacking column. */
         buttons: {
             class: [
                 "flex flex-row flex-wrap items-center gap-2",
@@ -166,7 +166,7 @@ export default {
         validationListItem: {
             class: ["flex items-baseline gap-2 text-[12px] leading-[1.5]"],
         },
-        /** Field-name fragment in a validation row. Mono / 11.5 px / 500 / foreground per `DESIGN.md § 3.2`; `shrink-0` keeps the name from wrapping when the message is long. */
+        /** Field-name fragment in a validation row. Mono / 11.5 px / 500 / foreground; `shrink-0` keeps the name from wrapping when the message is long. */
         validationField: {
             class: ["font-mono text-[11.5px] font-medium text-foreground shrink-0"],
         },
@@ -188,7 +188,7 @@ export default {
         bare: {
             class: ["contents"],
         },
-        /** Canonical confirmation card. Opens a `group/model-action-form` named scope so descendants opt into tone via `group-data-[tone=…]/model-action-form:` variants, and routes a `data-[tone=…]:` border + 8% ring (`box-shadow: 0 0 0 3px <tone>/8%`) per tone. See `DESIGN.md § 8.1 data-tone`. */
+        /** Canonical confirmation card. Opens a `group/model-action-form` named scope so descendants opt into tone via `group-data-[tone=…]/model-action-form:` variants, and routes a `data-[tone=…]:` border + 8% ring (`box-shadow: 0 0 0 3px <tone>/8%`) per tone. */
         card: {
             class: [
                 "group/model-action-form",
@@ -207,7 +207,7 @@ export default {
                 "data-[tone=danger]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--destructive)_8%,transparent)]",
             ],
         },
-        /** Tone-tracked banner row at the top of the card. Background and border tint route from the card's `data-tone` via `group-data-[tone=…]/model-action-form:` variants; bottom hairline separates the banner from the body. See `DESIGN.md § 8.1 data-tone`. */
+        /** Tone-tracked banner row at the top of the card. Background and border tint route from the card's `data-tone` via `group-data-[tone=…]/model-action-form:` variants; bottom hairline separates the banner from the body. */
         banner: {
             class: [
                 "flex items-start gap-3 p-4",
@@ -254,7 +254,7 @@ export default {
         bannerDesc: {
             class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
         },
-        /** Optional mono meta strip below the banner description (e.g. "action archive · scope 4 selected"). Mono per `DESIGN.md § 3.2` with a small letter-spacing bump so machine-readable values stay legible at 11 px. */
+        /** Optional mono meta strip below the banner description (e.g. "action archive · scope 4 selected"). Mono with a small letter-spacing bump so machine-readable values stay legible at 11 px. */
         bannerMeta: {
             class: ["font-mono text-[11px] font-normal leading-[1.5] tracking-[0.04em]", "text-muted-foreground"],
         },
@@ -266,7 +266,7 @@ export default {
         inner: {
             class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4 mt-1"],
         },
-        /** Selected-objects panel: tinted-muted background, hairline, card radius. Tone routing tints the panel destructive when nested in either the {@api theme-key:ViewDestroy.card} `group/view-destroy` scope or this form's own `group/model-action-form` scope at `tone="danger"`; neutral otherwise. See `DESIGN.md § 9 Action / workflow surfaces`. */
+        /** Selected-objects panel: tinted-muted background, hairline, card radius. Tone routing tints the panel destructive when nested in either the {@api theme-key:ViewDestroy.card} `group/view-destroy` scope or this form's own `group/model-action-form` scope at `tone="danger"`; neutral otherwise. */
         selectedObjects: {
             class: [
                 "rounded-vueda-card bg-muted/25 border border-border p-3",
@@ -281,11 +281,11 @@ export default {
         selectedHead: {
             class: ["flex flex-row items-baseline justify-between flex-wrap gap-2"],
         },
-        /** Mono count beside the eyebrow label (e.g. `12 selected`). Mono / 11 px / `tabular-nums` per `DESIGN.md § 3.2` so digits stay column-aligned as the count changes. */
+        /** Mono count beside the eyebrow label (e.g. `12 selected`). Mono / 11 px / `tabular-nums` so digits stay column-aligned as the count changes. */
         selectedHeadCount: {
             class: ["font-mono text-[11px] font-normal leading-none tabular-nums", "text-muted-foreground"],
         },
-        /** Page-level eyebrow label above the chip strip. Uses the 11 px / 600 / `0.06em` uppercase recipe per `DESIGN.md § 3.3`. */
+        /** Page-level eyebrow label above the chip strip. Uses the 11 px / 600 / `0.06em` uppercase recipe. */
         selectedObjectsLabel: {
             class: [
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
@@ -331,7 +331,7 @@ export default {
         listItemLabel: {
             class: ["text-[12px] font-medium text-foreground leading-none"],
         },
-        /** Mono PK fragment of a chip. 11 px / mono / muted-foreground per `DESIGN.md § 3.2`; tints destructive at 80 % strength under danger so the PK still reads as supporting copy beside the label. */
+        /** Mono PK fragment of a chip. 11 px / mono / muted-foreground; tints destructive at 80 % strength under danger so the PK still reads as supporting copy beside the label. */
         listItemPk: {
             class: [
                 "text-[11px] font-normal font-mono text-muted-foreground leading-none",
@@ -353,7 +353,7 @@ export default {
         root: {
             class: [],
         },
-        /** Outer danger card. Opens a `group/view-destroy` named scope, carries a destructive-bordered card with an 8 % destructive ring, and wraps the embedded {@api theme-key:ModelActionForm} in `:bare="true" tone="danger"` so the inner card is suppressed and this surface stays authoritative. See `DESIGN.md § 8.1 data-tone`. */
+        /** Outer danger card. Opens a `group/view-destroy` named scope, carries a destructive-bordered card with an 8 % destructive ring, and wraps the embedded {@api theme-key:ModelActionForm} in `:bare="true" tone="danger"` so the inner card is suppressed and this surface stays authoritative. */
         card: {
             class: [
                 "group/view-destroy",
@@ -474,7 +474,7 @@ export default {
         filterGroupBar: {
             class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px] border-b border-border bg-muted/25"],
         },
-        /** "Filters" eyebrow label at the left of the filter strip. Uses the 11 px / 600 / `0.06em` uppercase recipe described in `DESIGN.md § 3.3` against `--muted-foreground` so it reads as a section eyebrow, not a heading. */
+        /** "Filters" eyebrow label at the left of the filter strip. Uses the 11 px / 600 / `0.06em` uppercase recipe against `--muted-foreground` so it reads as a section eyebrow, not a heading. */
         filterGroupBarEyebrow: {
             class: [
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
@@ -535,7 +535,7 @@ export default {
                 "data-[rev-child=true]:[&>*:first-child]:border-primary",
             ],
         },
-        /** Diff chip rendered in each old / new field-value cell. `data-side` selects the tonal recipe (`old` = destructive 7 %-mix with a leading minus glyph; `new` = success 8 %-mix with a leading plus glyph), and `data-empty` overrides both into a transparent italic muted-foreground row with a middle-dot glyph for "nothing on this side". Mono per `DESIGN.md § 3.2` so whitespace and unicode artifacts in the diffed value stay readable. */
+        /** Diff chip rendered in each old / new field-value cell. `data-side` selects the tonal recipe (`old` = destructive 7 %-mix with a leading minus glyph; `new` = success 8 %-mix with a leading plus glyph), and `data-empty` overrides both into a transparent italic muted-foreground row with a middle-dot glyph for "nothing on this side". Mono keeps whitespace and unicode artifacts in the diffed value readable. */
         diff: {
             class: [
                 "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-vueda-control",
@@ -773,11 +773,11 @@ export default {
         recoveryToggle: {
             class: ["self-start"],
         },
-        /** Class forwarded to the {@api theme-key:WidgetTextInput} rendered for the recovery-code path. Mono per `DESIGN.md § 3.2` with a small letter-spacing bump so the dashed code reads as machine-input alongside the OTP grid it replaces. */
+        /** Class forwarded to the {@api theme-key:WidgetTextInput} rendered for the recovery-code path. Mono with a small letter-spacing bump so the dashed code reads as machine-input alongside the OTP grid it replaces. */
         recoveryInput: {
             class: ["font-mono tracking-[0.04em]"],
         },
-        /** Inline cooldown pill beside the resend button while the 60-second send-code cooldown is active. Mono / 11 px / `tabular-nums` per `DESIGN.md § 3.2` so the counting digits stay column-aligned as the seconds tick down; muted fill + muted-foreground keep the pill from competing with the disabled resend button it sits beside. The chip is announced via `aria-live="polite"` on the consumer side; this recipe handles visual chrome only. */
+        /** Inline cooldown pill beside the resend button while the 60-second send-code cooldown is active. Mono / 11 px / `tabular-nums` keeps the counting digits column-aligned as the seconds tick down; muted fill + muted-foreground keep the pill from competing with the disabled resend button it sits beside. The chip is announced via `aria-live="polite"` on the consumer side; this recipe handles visual chrome only. */
         cooldownChip: {
             class: [
                 "inline-flex items-center justify-center px-2 py-0.5 rounded-full",
@@ -810,7 +810,7 @@ export default {
                 "data-[state=done]:bg-primary/15 data-[state=done]:text-primary data-[state=done]:border-primary/40",
             ],
         },
-        /** Step-name label beside the number badge. Uses the 11 px / 600 / `0.06em` uppercase eyebrow recipe per `DESIGN.md § 3.3` so the rail reads as a row of section eyebrows; `data-state` promotes the colour to foreground at `current` and `done` so the active step does not lose contrast against the dimmed `upcoming` peers. */
+        /** Step-name label beside the number badge. Uses the 11 px / 600 / `0.06em` uppercase eyebrow recipe so the rail reads as a row of section eyebrows; `data-state` promotes the colour to foreground at `current` and `done` so the active step does not lose contrast against the dimmed `upcoming` peers. */
         stepLabel: {
             class: [
                 "text-[11px] font-semibold uppercase tracking-[0.06em] leading-none",
@@ -830,14 +830,14 @@ export default {
                 "rounded-vueda-control border border-border bg-background",
             ],
         },
-        /** "Manual key" eyebrow inside the strip. 10 px / 600 / `0.06em` uppercase per `DESIGN.md § 3.3`, one tier smaller than the page-level eyebrows so it reads as a strip-local label; `shrink-0` keeps the eyebrow from collapsing when the secret pushes wider than the row. */
+        /** "Manual key" eyebrow inside the strip. 10 px / 600 / `0.06em` uppercase, one tier smaller than the page-level eyebrows so it reads as a strip-local label; `shrink-0` keeps the eyebrow from collapsing when the secret pushes wider than the row. */
         manualKeyLabel: {
             class: [
                 "text-[10px] font-semibold uppercase tracking-[0.06em] leading-none",
                 "text-muted-foreground shrink-0",
             ],
         },
-        /** Mono secret fragment inside the strip. 12.5 px / 500 / mono per `DESIGN.md § 3.2`; `select-all` makes a triple-click copy the whole secret, and `truncate min-w-0 flex-1` ellipsizes the tail when the row is narrower than the secret rather than wrapping a base32 string mid-token. */
+        /** Mono secret fragment inside the strip. 12.5 px / 500 / mono; `select-all` makes a triple-click copy the whole secret, and `truncate min-w-0 flex-1` ellipsizes the tail when the row is narrower than the secret rather than wrapping a base32 string mid-token. */
         manualKeyValue: {
             class: [
                 "font-mono text-[12.5px] font-medium leading-none",
@@ -895,7 +895,7 @@ export default {
         current: {
             class: ["flex items-center gap-2 mb-4 px-4 py-2.5 rounded-vueda-card bg-muted/40 text-sm"],
         },
-        /** "Currently" eyebrow inside the current-state strip. 12 px / 500 / `0.06em` uppercase against `--muted-foreground` per `DESIGN.md § 3.3` so the label reads as a section eyebrow beside the state pill on its right. */
+        /** "Currently" eyebrow inside the current-state strip. 12 px / 500 / `0.06em` uppercase against `--muted-foreground` so the label reads as a section eyebrow beside the state pill on its right. */
         currentLabel: {
             class: ["text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground"],
         },
@@ -997,7 +997,7 @@ export default {
         list: {
             class: ["grid grid-cols-2 gap-x-6 gap-y-1 px-2 py-1", "select-all m-0 list-none"],
         },
-        /** One code row. `grid-cols-[22px_1fr]` reserves a 22 px column for the index so all codes align on the same baseline regardless of digit count; mono / 14 px / 500 with a small letter-spacing bump per `DESIGN.md § 3.2` so the dashed code reads as machine-input. BACKLOG-001: extending this with `data-used="true"` will swap the row to `line-through text-muted-foreground` once the server exposes used codes. */
+        /** One code row. `grid-cols-[22px_1fr]` reserves a 22 px column for the index so all codes align on the same baseline regardless of digit count; mono / 14 px / 500 with a small letter-spacing bump so the dashed code reads as machine-input. BACKLOG-001: extending this with `data-used="true"` will swap the row to `line-through text-muted-foreground` once the server exposes used codes. */
         listItem: {
             class: [
                 "grid grid-cols-[22px_1fr] items-baseline gap-2",
@@ -1005,7 +1005,7 @@ export default {
                 "text-foreground",
             ],
         },
-        /** Numbered prefix at the start of each code row. Mono / 11 px / muted-foreground with `tabular-nums` per `DESIGN.md § 3.2` so the indices stay column-aligned as the count crosses the single-to-double-digit boundary; right-aligned inside the 22 px gutter so the period sits next to the code rather than the row edge. */
+        /** Numbered prefix at the start of each code row. Mono / 11 px / muted-foreground with `tabular-nums` keeps the indices column-aligned as the count crosses the single-to-double-digit boundary; right-aligned inside the 22 px gutter so the period sits next to the code rather than the row edge. */
         listItemNum: {
             class: ["text-right font-mono text-[11px] font-normal leading-[1.6]", "text-muted-foreground tabular-nums"],
         },

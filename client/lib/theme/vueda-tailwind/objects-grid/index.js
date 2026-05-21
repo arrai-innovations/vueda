@@ -12,7 +12,7 @@ export default {
      * state, row states, card layout, and row-action affordances.
      */
     ObjectsGrid: {
-        /** The outer scroll surface and card chrome for the grid. It owns the density attribute, tabular number rendering, and `data-flush` edge merging used when the grid is embedded in a parent surface; see DESIGN.md § 8.1 and § Tables and grids. */
+        /** The outer scroll surface and card chrome for the grid. It owns the density attribute, tabular number rendering, and `data-flush` edge merging used when the grid is embedded in a parent surface. `data-flush` strips the embedded grid's border and radius so only the parent container's edge remains visible. */
         root: {
             class: [
                 "max-w-full overflow-x-auto",
@@ -24,7 +24,7 @@ export default {
                 "[[data-flush]_&]:rounded-none [[data-flush]_&]:border-x-0 [[data-flush]_&]:border-t-0",
             ],
         },
-        /** The inner table-shaped container. It switches on the table display contract only when the active breakpoint resolves to table layout; see DESIGN.md § Tables and grids. */
+        /** The inner table-shaped container. It switches on the table display contract only when the active breakpoint resolves to table layout. */
         table: {
             class: ({ isTable }) => [
                 {
@@ -46,7 +46,7 @@ export default {
         headerRow: {
             class: ({ isTable }) => [{ "!table-row": isTable }],
         },
-        /** The table-layout column header cell. It aligns numeric columns with `data-numeric` so sortable columns keep their right edge stable; see DESIGN.md § 8.1. */
+        /** The table-layout column header cell. It aligns numeric columns with `data-numeric` so sortable columns keep their right edge stable. */
         headerCell: {
             class: ({ isTable }) => [
                 "align-bottom",
@@ -62,7 +62,7 @@ export default {
         emptyText: {
             class: ["text-center"],
         },
-        /** The empty-state content stack. It styles the icon, title, and variant-driven loading or error treatment used by the default empty slot; see DESIGN.md § Tables and grids. */
+        /** The empty-state content stack. It styles the icon, title, and variant-driven loading or error treatment used by the default empty slot. */
         emptyContent: {
             class: [
                 "flex flex-col items-center justify-center gap-2.5 py-10 text-center text-muted-foreground",
@@ -71,7 +71,7 @@ export default {
                 "data-[variant=error]:[&>[data-slot=icon]]:text-destructive/80",
             ],
         },
-        /** The body row group for loading, empty, and data rows. It is a responsive card grid in card layout and a table row group in table layout; see DESIGN.md § Tables and grids. */
+        /** The body row group for loading, empty, and data rows. It is a responsive card grid in card layout and a table row group in table layout. */
         bodyRowGroup: {
             class: ({ isTable }) => [
                 "print:block",
@@ -83,7 +83,7 @@ export default {
                 },
             ],
         },
-        /** The shared row wrapper for table rows and card rows. It carries hover, selected, and marked-destroy states while preserving action controls; see DESIGN.md § 2.3 and § Tables and grids. */
+        /** The shared row wrapper for table rows and card rows. It carries hover, selected, and marked-destroy states while preserving action controls. Selected rows use a low-primary tint plus a leading primary rail so selection stays distinct from hover. */
         bodyRow: {
             class: ({ isTable }) => {
                 return [
@@ -107,7 +107,7 @@ export default {
                 ];
             },
         },
-        /** The card-layout field grid inside each row card. It aligns all {@api theme-key:ObjectsGridCardCell.header} and {@api theme-key:ObjectsGridCardCell.value} fragments into label and value columns; see DESIGN.md § Tables and grids. */
+        /** The card-layout field grid inside each row card. It aligns all {@api theme-key:ObjectsGridCardCell.header} and {@api theme-key:ObjectsGridCardCell.value} fragments into label and value columns. */
         cardContainer: {
             class: [
                 "p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4 mb-1 mt-2",
@@ -118,7 +118,7 @@ export default {
                 "[&>*]:min-w-0",
             ],
         },
-        /** Row-action classes exposed for consumers that compose inline row controls next to object rows. Use `rowActions.root` for the hidden wrapper and `rowActions.action` for compact icon buttons; see DESIGN.md § Tables and grids. */
+        /** Row-action classes exposed for consumers that compose inline row controls next to object rows. Use `rowActions.root` for the hidden wrapper and `rowActions.action` for compact icon buttons. */
         rowActions: {
             /** The row-action container. It stays invisible at rest so dense grids do not read as a column of icons. */
             root: {
@@ -145,7 +145,7 @@ export default {
      * multi-sort priority chip.
      */
     ObjectsGridTableHeader: {
-        /** The interactive header content wrapper. It lays out the label, sort icon, and numeric-column reversal used when the parent header cell carries `data-numeric`; see DESIGN.md § 8.1. */
+        /** The interactive header content wrapper. It lays out the label, sort icon, and numeric-column reversal used when the parent header cell carries `data-numeric`. */
         root: {
             class: ({ props: { sortable } }) => [
                 "flex",
@@ -168,7 +168,7 @@ export default {
         sortIcon: {
             class: ["pl-1", "text-center"],
         },
-        /** The multi-sort priority chip. It uses compact mono numerals to show sort precedence without competing with the field label; see DESIGN.md § Tables and grids. */
+        /** The multi-sort priority chip. It uses compact mono numerals to show sort precedence without competing with the field label. */
         multiSortNumber: {
             class: [
                 "inline-flex items-center justify-center",
@@ -185,7 +185,7 @@ export default {
      * participate directly in the parent card grid.
      */
     ObjectsGridCardCell: {
-        /** The card-layout field label fragment. It renders as a compact muted micro-label that participates directly in {@api theme-key:ObjectsGrid.cardContainer}; see DESIGN.md § Tables and grids. */
+        /** The card-layout field label fragment. It renders as a compact muted micro-label that participates directly in {@api theme-key:ObjectsGrid.cardContainer}. */
         header: {
             class: [
                 "self-baseline whitespace-nowrap",
@@ -206,7 +206,7 @@ export default {
      * slot styling.
      */
     ObjectsGridBodyCell: {
-        /** The table-layout field cell. It provides density-aware row height, numeric and mono alignment hooks, and the foreground text treatment for value slots; see DESIGN.md § 4.3 and § 8.1. */
+        /** The table-layout field cell. It provides density-aware row height, numeric and mono alignment hooks, and the foreground text treatment for value slots. Density tiers map default, compact, and condensed rows to progressively tighter row heights. */
         root: {
             class: [
                 "align-middle",

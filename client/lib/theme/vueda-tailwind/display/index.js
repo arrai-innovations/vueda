@@ -87,7 +87,7 @@ export default {
         message: {
             class: [],
         },
-        /** Code block surface for stack traces or machine diagnostics; see DESIGN.md § 3.2. */
+        /** Code block surface for stack traces or machine diagnostics. */
         codeBlock: {
             class: "bg-neutral-100 dark:bg-neutral-800 p-1 2xs:p-2 2xl:p-4 rounded", // Styling for the code block
         },
@@ -111,7 +111,7 @@ export default {
      * Badge renders compact status, category, or count labels. Variants provide semantic fills while the numeric mode switches to tabular mono sizing.
      */
     Badge: {
-        /** Compact slab badge with variant and numeric recipes; see DESIGN.md § 6.1 and § 10. */
+        /** Compact slab badge with variant and numeric recipes. */
         root: ({ variant, numeric }) => ({
             class: [
                 "inline-flex items-center justify-center rounded-vueda-control border py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive aria-invalid:focus-ring-shadow-destructive transition-colors overflow-hidden",
@@ -197,7 +197,7 @@ export default {
                 },
             ],
         }),
-        /** Uppercase initials text with stable numeric glyphs; see DESIGN.md § 3.2. */
+        /** Uppercase initials text with stable numeric glyphs. */
         initials: {
             class: "font-semibold uppercase leading-none tabular-nums",
         },
@@ -248,7 +248,7 @@ export default {
      * SystemMessageCard provides the centered card chassis for system-level states such as not found, loading, and deactivate screens. Its named group scope routes tone-specific crest styling from the root.
      */
     SystemMessageCard: {
-        /** Centered card chassis with the named tone group used by crest descendants; see DESIGN.md § 8.1 and § 10. */
+        /** Centered card chassis with the named tone group used by crest descendants. */
         root: {
             class: [
                 "group/system-message-card",
@@ -263,7 +263,7 @@ export default {
         crest: {
             class: ["flex items-start gap-3 pb-4 border-b border-border"],
         },
-        /** Tone-tinted icon tile routed through the system-message group scope; see DESIGN.md § 2.3. */
+        /** Tone-tinted icon tile routed through the system-message group scope. */
         crestIcon: {
             class: [
                 "flex items-center justify-center shrink-0",
@@ -282,11 +282,11 @@ export default {
         crestMeta: {
             class: ["flex flex-col justify-center gap-0.5 min-w-0 flex-1"],
         },
-        /** Uppercase eyebrow for the system-message category; see DESIGN.md § 3.3. */
+        /** Uppercase eyebrow for the system-message category. */
         crestEyebrow: {
             class: ["text-[10px] font-semibold uppercase tracking-[0.06em]", "text-muted-foreground leading-none"],
         },
-        /** Mono line for a machine-readable path, action kind, or route label; see DESIGN.md § 3.2. */
+        /** Mono line for a machine-readable path, action kind, or route label. */
         crestKind: {
             class: ["font-mono text-[12px] font-medium leading-[1.3] text-foreground"],
         },
@@ -366,7 +366,7 @@ export default {
                 "px-3 py-2",
             ],
         },
-        /** Uppercase diagnostic label cell; see DESIGN.md § 3.3. */
+        /** Uppercase diagnostic label cell. */
         dt: {
             class: ["text-[10px] font-semibold uppercase tracking-[0.06em]", "text-muted-foreground leading-none"],
         },
@@ -387,7 +387,7 @@ export default {
         headRow: {
             class: ["flex items-baseline justify-between gap-3"],
         },
-        /** Uppercase suggestion heading; see DESIGN.md § 3.3. */
+        /** Uppercase suggestion heading. */
         head: {
             class: ["text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground leading-none"],
         },
@@ -424,7 +424,7 @@ export default {
         sub: {
             class: ["font-mono text-[12px] font-normal text-muted-foreground leading-[1.3] truncate"],
         },
-        /** Route-match score chip; see DESIGN.md § 3.2 for mono numeric text. */
+        /** Route-match score chip with mono numeric text. */
         score: {
             class: [
                 "font-mono text-[10px] uppercase leading-none",
@@ -458,7 +458,7 @@ export default {
                 "overflow-hidden",
             ],
         },
-        /** Uppercase label column for the attempted URL; see DESIGN.md § 3.3. */
+        /** Uppercase label column for the attempted URL. */
         label: {
             class: [
                 "text-[10px] font-semibold uppercase tracking-[0.06em]",

@@ -13,13 +13,13 @@ export default {
      */
     Table: {
         /**
-         * The scroll container around the native table. It owns the card surface, horizontal overflow, and sticky-table height cap used when `Table` receives `sticky`; see DESIGN.md § Tables and grids.
+         * The scroll container around the native table. It owns the card surface, horizontal overflow, and sticky-table height cap used when `Table` receives `sticky`.
          */
         container: {
             class: "relative w-full overflow-auto rounded-vueda-card border border-border bg-card data-[sticky]:overflow-y-auto data-[sticky]:max-h-[var(--vueda-tbl-max-h,30rem)]",
         },
         /**
-         * The native `<table>` element. It carries the numeric font features, border model, and `data-density` hook that {@api theme-key:TableHead.root} and {@api theme-key:TableCell.root} read; see DESIGN.md § 4.3.
+         * The native `<table>` element. It carries the numeric font features, border model, and `data-density` hook that {@api theme-key:TableHead.root} and {@api theme-key:TableCell.root} read. Density tiers map default, compact, and condensed rows to progressively tighter row heights.
          */
         table: {
             class: "w-full caption-bottom text-body border-separate border-spacing-0 [font-variant-numeric:tabular-nums_slashed-zero]",
@@ -59,7 +59,7 @@ export default {
      */
     TableCell: {
         /**
-         * The body cell slot for `<td>` elements. It applies the density tiers from {@api theme-key:Table.table}, keeps checkbox columns compact, and honors `data-numeric` or `data-mono` directly on the cell; see DESIGN.md § 4.3 and § Tables and grids.
+         * The body cell slot for `<td>` elements. It applies the density tiers from {@api theme-key:Table.table}, keeps checkbox columns compact, and honors `data-numeric` or `data-mono` directly on the cell.
          */
         root: {
             class: [
@@ -85,7 +85,7 @@ export default {
             class: "p-4 whitespace-nowrap align-middle text-body text-foreground",
         },
         /**
-         * The centered content stack inside the empty cell. Consumer icon nodes marked `data-slot="icon"` pick up muted, loading, or error treatment from `data-variant`; see DESIGN.md § Tables and grids.
+         * The centered content stack inside the empty cell. Consumer icon nodes marked `data-slot="icon"` pick up muted, loading, or error treatment from `data-variant`.
          */
         content: {
             class: [
@@ -116,7 +116,7 @@ export default {
      */
     TableHead: {
         /**
-         * The header cell slot for `<th>` elements. It owns compact header typography, density heights, sticky positioning, checkbox offsets, and numeric sort-icon ordering; see {@api theme-key:Table.table} and DESIGN.md § Tables and grids.
+         * The header cell slot for `<th>` elements. It owns compact header typography, density heights, sticky positioning, checkbox offsets, and numeric sort-icon ordering; see {@api theme-key:Table.table}.
          */
         root: {
             class: [
@@ -148,7 +148,7 @@ export default {
      */
     TableRow: {
         /**
-         * The row slot shared by header, body, and footer sections. It provides hover feedback, selected-row tinting, the leading selected rail, and the standard divider; see DESIGN.md § Tables and grids.
+         * The row slot shared by header, body, and footer sections. It provides hover feedback, selected-row tinting, the leading selected rail, and the standard divider.
          */
         root: {
             class: "hover:bg-muted/50 data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09] data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)] border-b transition-colors",

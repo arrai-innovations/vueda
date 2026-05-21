@@ -12,7 +12,7 @@ export default {
      * treatment for list-style form inputs.
      */
     FieldSetMany: {
-        /** Card shell for a repeated-value fieldset. See DESIGN.md § 9.1 Forms and {@api theme-key:FieldSetStackedInline.root}. */
+        /** Card shell for a repeated-value fieldset. See also: {@api theme-key:FieldSetStackedInline.root}. */
         root: {
             class: [
                 "bg-card border rounded-vueda-card overflow-clip",
@@ -23,7 +23,7 @@ export default {
         inner: {
             class: ["flex flex-col p-3 gap-2"],
         },
-        /** Compact uppercase fieldset label. See DESIGN.md § 9.1 Forms and § 3.3. */
+        /** Compact uppercase fieldset label. */
         label: {
             class: [
                 "leading-none",
@@ -53,7 +53,7 @@ export default {
                 "group-hover/many-row:opacity-100 group-focus-within/many-row:opacity-100",
             ],
         },
-        /** Right-aligned footer for adding another repeated value. See DESIGN.md § 9.1 Forms. */
+        /** Right-aligned footer for adding another repeated value. */
         footer: {
             class: ["flex justify-end mt-0.5"],
         },
@@ -84,14 +84,14 @@ export default {
         header: {
             class: ["flex items-baseline gap-1 2xs:gap-2 mb-1"],
         },
-        /** Visual separator between lower and upper bounds. See DESIGN.md § 9.1 Forms. */
+        /** Visual separator between lower and upper bounds. */
         separator: {
             class: [
                 "hidden sm:flex items-center justify-center text-muted-foreground",
                 "h-8 w-4 select-none leading-none",
             ],
         },
-        /** Compact uppercase range title. See DESIGN.md § 3.3. */
+        /** Compact uppercase range title. */
         title: {
             class: [
                 "leading-none",
@@ -111,7 +111,7 @@ export default {
                 // "rounded", "px-1 lg:px-2 py-1 lg:py-2", "mb-2 lg:mb-4"
             ],
         },
-        /** Fieldset-level description and messages panel below the paired controls. See DESIGN.md § 9.1 Forms. */
+        /** Fieldset-level description and messages panel below the paired controls. */
         choresPanel: {
             class: [
                 "-mx-3 -mb-3 mt-3 px-3 py-2 border-t border-border",
@@ -127,7 +127,7 @@ export default {
      * validation panel.
      */
     FieldSetStackedInline: {
-        /** Card shell for stacked inline rows, including nested-fieldset inset chrome. See DESIGN.md § 9.1 Forms. */
+        /** Card shell for stacked inline rows, including nested-fieldset inset chrome. */
         root: {
             class: [
                 "bg-card border rounded-vueda-card overflow-clip",
@@ -150,7 +150,7 @@ export default {
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
             ],
         },
-        /** Interactive state layer for hidable title bars. See DESIGN.md § 9.1 Forms. */
+        /** Interactive state layer for hidable title bars. */
         titleBarToggle: {
             class: [
                 "cursor-pointer select-none",
@@ -200,7 +200,7 @@ export default {
         createButton: {
             class: [],
         },
-        /** Fieldset-level help and validation panel below the row stack. See DESIGN.md § 9.1 Forms. */
+        /** Fieldset-level help and validation panel below the row stack. */
         choresPanel: {
             class: [
                 "-mx-3 -mb-3 px-3 py-2 border-t border-border",
@@ -208,7 +208,7 @@ export default {
                 "flex flex-col gap-1",
             ],
         },
-        /** Dashed invitation block used when no inline rows exist. See DESIGN.md § 9.1 Forms. */
+        /** Dashed invitation block used when no inline rows exist. */
         emptyState: {
             class: [
                 "flex flex-col items-center justify-center gap-2",
@@ -242,7 +242,7 @@ export default {
      * selection controls.
      */
     FieldSetStackedInlineRow: {
-        /** Bordered row card with dirty and selected-for-destroy state chrome. See DESIGN.md § 9.1 Forms. */
+        /** Bordered row card with dirty and selected-for-destroy state chrome. */
         root: {
             class: [
                 "flex items-start gap-3 border rounded-vueda-card p-2.5",
@@ -344,7 +344,7 @@ export default {
         objectsGridHidden: {
             class: "hidden",
         },
-        /** Compact destructive status pill shown on rows marked for destroy. See DESIGN.md § 9.1 Forms. */
+        /** Compact destructive status pill shown on rows marked for destroy. */
         destroyPill: {
             class: [
                 "inline-flex items-center justify-center shrink-0",
@@ -381,7 +381,7 @@ export default {
         createButtonCard: {
             class: "border-dashed",
         },
-        /** Fieldset-level help and validation panel below the embedded grid. See DESIGN.md § 9.1 Forms. */
+        /** Fieldset-level help and validation panel below the embedded grid. */
         choresPanel: {
             class: [
                 "px-3 py-2 border-t border-border",
@@ -448,7 +448,7 @@ export default {
                 "!border-red-500 !text-red-500": errored,
             }),
         },
-        /** Popover body width floor for the filter form. See DESIGN.md § 9.1 Forms. */
+        /** Popover body width floor for the filter form. */
         formPopover: {
             class: ["sm:min-w-[25%]"],
         },
@@ -495,7 +495,7 @@ export default {
      * alert body and optional list used when several messages are present.
      */
     FormMessage: {
-        /** Outer spacing for form-scope feedback. See DESIGN.md § 9.1 Forms. */
+        /** Outer spacing for form-scope feedback. */
         root: {
             class: ["my-2"],
         },
@@ -554,7 +554,7 @@ export default {
      * title row, and trailing aside metadata above a slotted body.
      */
     FormSection: {
-        /** Section stack for a long-form group. See DESIGN.md § 9.2 `FormSection` / `FormSectionTitle` / `FormGrid`. */
+        /** Section stack for a long-form group. */
         root: {
             class: "flex flex-col gap-3 [&+&]:mt-2",
         },
@@ -573,7 +573,7 @@ export default {
      * compact uppercase treatment shared by form section labels.
      */
     FormSectionTitle: {
-        /** Eyebrow heading text for a form section. See DESIGN.md § 3.3. */
+        /** Eyebrow heading text for a form section. */
         root: {
             class: "m-0 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none text-muted-foreground",
         },
@@ -619,7 +619,7 @@ export default {
      * Groups required, error, warning, and help affordances behind a popover.
      */
     FormHiddenFeedback: {
-        /** Compact wrapper for hidden-field feedback controls. See DESIGN.md § 9.1 Forms. */
+        /** Compact wrapper for hidden-field feedback controls. */
         root: {
             class: "min-w-min",
         },

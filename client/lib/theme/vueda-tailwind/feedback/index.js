@@ -9,7 +9,7 @@ export default {
      */
     Alert: {
         /**
-         * The outer alert surface and layout grid. It owns the optional icon column, card radius, and semantic status recipe documented in DESIGN.md § Feedback / loading, with variant colors flowing into {@api theme-key:AlertDescription.root}.
+         * The outer alert surface and layout grid. It owns the optional icon column, card radius, and semantic status recipe, with variant colors flowing into {@api theme-key:AlertDescription.root}.
          */
         root: ({ variant }) => ({
             class: [
@@ -79,7 +79,7 @@ export default {
      */
     Progress: {
         /**
-         * The progress track surface and clipping frame. It sets the canonical 8px default height, optional compact or large heights, and status track tints described in DESIGN.md § Feedback / loading.
+         * The progress track surface and clipping frame. It sets the canonical 8px default height, optional compact or large heights, and status track tints.
          */
         root: ({ size, tone }) => ({
             class: [
@@ -115,7 +115,7 @@ export default {
      */
     Skeleton: {
         /**
-         * The loading placeholder block. The primary tint follows the skeleton recipe in DESIGN.md § Feedback / loading, staying neutral enough for rows, cards, and inline placeholders.
+         * The loading placeholder block. The primary tint stays neutral enough for rows, cards, and inline placeholders.
          */
         root: {
             class: "animate-pulse rounded-md bg-primary/10",
@@ -128,7 +128,7 @@ export default {
      */
     Sonner: {
         /**
-         * The toast viewport theme hook passed to vue-sonner. It establishes the toaster group while toast surface, type tint, and icon resolution stay controlled by the wrapper component and the Sonner rules in DESIGN.md § Feedback / loading.
+         * The toast viewport theme hook passed to vue-sonner. It establishes the toaster group while toast surface, type tint, and icon resolution stay controlled by the wrapper component and Sonner rules.
          */
         root: {
             class: "toaster group",

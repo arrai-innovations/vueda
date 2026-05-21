@@ -10,7 +10,7 @@ export default {
      */
     Accordion: {
         /**
-         * The root hook for the accordion wrapper. It intentionally ships without chrome so callers can compose accordion groups inside Card, Item, or plain page sections; see DESIGN.md § Containers.
+         * The root hook for the accordion wrapper. It intentionally ships without chrome so callers can compose accordion groups inside Card, Item, or plain page sections.
          */
         root: { class: "" },
     },
@@ -19,7 +19,7 @@ export default {
      */
     AccordionItem: {
         /**
-         * The wrapper for one disclosure row. It paints the simple bottom divider and removes it from the final item, keeping accordion chrome owned by items rather than the root; see DESIGN.md § Containers.
+         * The wrapper for one disclosure row. It paints the simple bottom divider and removes it from the final item, keeping accordion chrome owned by items rather than the root.
          */
         root: {
             class: "border-b last:border-b-0",
@@ -47,7 +47,7 @@ export default {
      */
     AccordionTrigger: {
         /**
-         * The clickable accordion header. It uses the container typography rhythm from DESIGN.md § Containers, exposes a focus outline, and rotates direct SVG icons when the item is open.
+         * The clickable accordion header. It uses the container typography rhythm, exposes a focus outline, and rotates direct SVG icons when the item is open.
          */
         root: {
             class: "flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-body font-medium transition-all hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
@@ -59,7 +59,7 @@ export default {
             class: "flex",
         },
         /**
-         * The disclosure icon beside the trigger text. It is optically nudged down to align with the first text line and uses muted color until inherited state changes it; see DESIGN.md § Containers.
+         * The disclosure icon beside the trigger text. It is optically nudged down to align with the first text line and uses muted color until inherited state changes it.
          */
         icon: {
             class: "text-muted-foreground pointer-events-none size-4 shrink-0 translate-y-0.5 transition-transform duration-200",
@@ -96,7 +96,7 @@ export default {
      */
     AlertDialogContent: {
         /**
-         * The centered alert dialog surface. It uses the modal radius, overlay shadow, fixed viewport centering, and entrance or exit motion expected for blocking confirmations; see DESIGN.md § 5.
+         * The centered alert dialog surface. It uses the modal radius, overlay shadow, fixed viewport centering, and entrance or exit motion expected for blocking confirmations.
          */
         root: {
             class: "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-vueda-modal border p-6 shadow-vueda-overlay duration-200 sm:max-w-lg",
@@ -159,7 +159,7 @@ export default {
      */
     Collapsible: {
         /**
-         * The root hook for generic collapsible state. It intentionally has no visual recipe because Collapsible is a logic primitive; see DESIGN.md § Containers.
+         * The root hook for generic collapsible state. It intentionally has no visual recipe because Collapsible is a logic primitive.
          */
         root: { class: "" },
     },
@@ -188,7 +188,7 @@ export default {
      */
     Card: {
         /**
-         * The framed card surface. It owns the card background, border, radius, vertical rhythm, and non-raised shadow contract; padding on the horizontal axis belongs to child slots per DESIGN.md § Containers.
+         * The framed card surface. It owns the card background, border, radius, vertical rhythm, and non-raised shadow contract; padding on the horizontal axis belongs to child slots.
          */
         root: {
             class: "bg-card text-card-foreground flex flex-col gap-6 rounded-vueda-card border py-6 shadow-vueda-card",
@@ -199,7 +199,7 @@ export default {
      */
     CardHeader: {
         /**
-         * The leading card header grid. It creates title and description rows and switches to a two-column layout when {@api theme-key:CardAction.root} is present; see DESIGN.md § Containers.
+         * The leading card header grid. It creates title and description rows and switches to a two-column layout when {@api theme-key:CardAction.root} is present.
          */
         root: {
             class: "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
@@ -232,7 +232,7 @@ export default {
      */
     CardAction: {
         /**
-         * The trailing card header action region. It parks in the top-right column and spans the title and description rows without adding wrapper layout logic; see DESIGN.md § Containers.
+         * The trailing card header action region. It parks in the top-right column and spans the title and description rows without adding wrapper layout logic.
          */
         root: {
             class: "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
@@ -267,7 +267,7 @@ export default {
      */
     DialogContent: {
         /**
-         * The centered dialog surface. It uses the modal surface recipe, fixed viewport centering, overlay shadow, and enter or exit animation for standard modal dialogs; see DESIGN.md § 5.
+         * The centered dialog surface. It uses the modal surface recipe, fixed viewport centering, overlay shadow, and enter or exit animation for standard modal dialogs.
          */
         root: {
             class: "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-vueda-modal border p-6 shadow-vueda-overlay duration-200 sm:max-w-lg",
@@ -364,7 +364,7 @@ export default {
      */
     Field: {
         /**
-         * The outer field layout wrapper. It switches between vertical, horizontal, responsive, and read-only grid layouts while carrying invalid state color; see DESIGN.md § Forms.
+         * The outer field layout wrapper. It switches between vertical, horizontal, responsive, and read-only grid layouts while carrying invalid state color.
          */
         root: ({ orientation }) => {
             const base = "group/field flex w-full gap-3 data-[invalid=true]:text-destructive";
@@ -444,7 +444,7 @@ export default {
      */
     FieldLabel: {
         /**
-         * The label text or label-card wrapper for a field. It handles disabled opacity, nested control-card framing, and checked-state tint for label-wrapped choices; see DESIGN.md § Forms.
+         * The label text or label-card wrapper for a field. It handles disabled opacity, nested control-card framing, and checked-state tint for label-wrapped choices.
          */
         root: {
             class: [
@@ -470,7 +470,7 @@ export default {
      */
     FieldMessage: {
         /**
-         * The validation or warning message attached to a field. It maps error severity to destructive text and all other severities to warning text, matching the form feedback contract in DESIGN.md § Forms.
+         * The validation or warning message attached to a field. It maps error severity to destructive text and all other severities to warning text.
          */
         root: ({ severity }) => ({
             class: [
@@ -549,7 +549,7 @@ export default {
      */
     HoverCardContent: {
         /**
-         * The floating hover-card panel. It uses the popover surface recipe at a tighter width for glance-weight summaries; see DESIGN.md § Overlays / menus and § Feedback / loading.
+         * The floating hover-card panel. It uses the popover surface recipe at a tighter width for glance-weight summaries.
          */
         root: {
             class: "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-64 rounded-vueda-control border p-4 shadow-vueda-popover outline-hidden",
@@ -562,7 +562,7 @@ export default {
      */
     Item: {
         /**
-         * The row-like item wrapper. It carries the default, outline, and muted variants, size spacing, anchor hover behavior, and focus treatment described in DESIGN.md § Containers.
+         * The row-like item wrapper. It carries the default, outline, and muted variants, size spacing, anchor hover behavior, and focus treatment.
          */
         root: ({ variant, size }) => {
             const variantClass =
@@ -618,7 +618,7 @@ export default {
      */
     ItemFooter: {
         /**
-         * The low-emphasis metadata row below item content. It uses compact mono supporting text so timestamps, counters, and machine-generated values read as metadata; see DESIGN.md § 3.2.
+         * The low-emphasis metadata row below item content. It uses compact mono supporting text so timestamps, counters, and machine-generated values read as metadata.
          */
         root: {
             class: "flex basis-full items-center justify-between gap-2 font-mono text-[length:var(--vueda-text-supporting)] text-muted-foreground",
@@ -651,7 +651,7 @@ export default {
      */
     ItemMedia: {
         /**
-         * The leading media region for an item. The `icon` variant creates a 32px bordered tile, the `image` variant creates a 40px cropped image frame, and the default stays transparent; see DESIGN.md § Containers.
+         * The leading media region for an item. The `icon` variant creates a 32px bordered tile, the `image` variant creates a 40px cropped image frame, and the default stays transparent.
          */
         root: ({ variant }) => {
             const variantClass =
@@ -710,7 +710,7 @@ export default {
      */
     PopoverContent: {
         /**
-         * The positioned popover panel. It uses the shared floating surface recipe and size-driven width and padding tiers from DESIGN.md § Overlays / menus.
+         * The positioned popover panel. It uses the shared floating surface recipe and size-driven width and padding tiers.
          */
         root: ({ size }) => {
             const sizeClass = size === "sm" ? "w-60 p-3" : size === "lg" ? "w-90 p-5" : "w-72 p-4";
@@ -776,7 +776,7 @@ export default {
      */
     ScrollBar: {
         /**
-         * The custom scrollbar track. It uses a 10px touch target and switches its border side and dimensions by orientation; see DESIGN.md § Containers.
+         * The custom scrollbar track. It uses a 10px touch target and switches its border side and dimensions by orientation.
          */
         root: ({ orientation }) => ({
             class: [
@@ -800,7 +800,7 @@ export default {
      */
     Separator: {
         /**
-         * The plain horizontal or vertical dividing rule. It is a single border-token line with no label or inset variant, matching DESIGN.md § Containers.
+         * The plain horizontal or vertical dividing rule. It is a single border-token line with no label or inset variant.
          */
         root: {
             class: "bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
@@ -1005,7 +1005,7 @@ export default {
      */
     StepperIndicator: {
         /**
-         * The circular step marker. It maps active, completed, disabled, and upcoming states to the stepper color contract described in DESIGN.md § Containers.
+         * The circular step marker. It maps active, completed, disabled, and upcoming states to the stepper color contract.
          */
         root: {
             class: [
@@ -1107,7 +1107,7 @@ export default {
      */
     TooltipContent: {
         /**
-         * The compact floating tooltip panel. It inverts foreground and background tokens, uses control radius, and follows the tooltip surface rule in DESIGN.md § Overlays / menus.
+         * The compact floating tooltip panel. It inverts foreground and background tokens, uses control radius, and follows the tooltip surface rule.
          */
         root: {
             class: "bg-foreground text-background animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit rounded-vueda-control px-3 py-1.5 text-xs font-medium text-balance",
