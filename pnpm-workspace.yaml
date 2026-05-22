@@ -1,18 +1,18 @@
 packages:
-    - client
-    - docs
-    - docs-tooling
-    - server
+  - client
+  - docs
+  - docs-tooling
+  - server
 
 patchedDependencies:
     vitepress-plugin-diagrams@1.1.2: patches/vitepress-plugin-diagrams.patch
     vitepress@1.6.4: patches/vitepress.patch
 
 allowBuilds:
-    core-js: true
-    esbuild: true
-    lefthook: true
-    msw: true
-    protobufjs: true
-    unrs-resolver: true
-    vue-demi: true
+  lefthook: false
+  esbuild: true
+  msw: true
+  unrs-resolver: true
+  vue-demi: true
+  core-js: false
+  protobufjs: false
