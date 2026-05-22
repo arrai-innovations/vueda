@@ -1,23 +1,16 @@
 <script setup>
-import { assignReactiveObject, loadingCombine, useObject } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
-import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
-import { useIsActive } from "@vueda/use/useIsActive.js";
-import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { useObject404 } from "@vueda/use/useObject404.js";
-import { useObjectsWorkflowTransitions } from "@vueda/use/useObjectsWorkflowTransitions.js";
-import { getActionName } from "@vueda/utils/actionMap.js";
+import Button from "@vueda/controls/button/Button.vue";
+import { useDetailView } from "@vueda/use/useDetailView.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
-import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
-import cloneDeep from "lodash-es/cloneDeep.js";
-import omit from "lodash-es/omit.js";
-import Button from "primevue/button";
-import { computed, inject, onMounted, reactive, readonly, ref, toRef, useSlots, watch } from "vue";
+import { computed, inject, onMounted, readonly, toRef, useSlots } from "vue";
 
 /**
  * Renders a full detail page for a single model instance, including a page title, a sticky
@@ -173,165 +166,46 @@ const props = defineProps({
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 
-const isActive = useIsActive();
 const formInitialValue = defineModel({
     type: Object,
     required: true,
 });
-const validAndActive = computed(
-    () =>
-        !!(
-            isActive.value &&
-            props.app &&
-            props.model &&
-            props.pk &&
-            modelConfig.loading === false &&
-            modelConfig.config?.fetchFields
-        ),
-);
-
-const intendToRetrieve = computed(
-    () => validAndActive.value && !props.objectForm?.state?.loading && !props.objectForm?.state?.submitErrored,
-);
 
 const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object", "form-context"]);
 
 /** @type {import("@vueda/use/useForm.js").FormContext|null} */
 const formContext = inject(FormContextSymbol, null);
 const slots = useSlots();
-const capitalizedViewName = computed(() => memoizedStartCase(props.viewName));
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "viewName"));
-const filteredActions = useFilteredActions({
-    modelConfigInstance: modelConfig,
-});
-const titleStr = computed(() => {
-    return (
-        `${capitalizedViewName.value} ${memoizedStartCase(modelConfig.config?.verboseName)}` ||
-        `${capitalizedViewName.value} Item`
-    );
-});
-const fetchFields = computed(() => props.fetchFields ?? modelConfig.config?.fetchFields);
-const objectTransitions = useObjectsWorkflowTransitions(
-    toRef(props, "app"),
-    toRef(props, "model"),
-    toRef(props, "pk"),
-    isActive,
-);
-const instanceObjectProps = reactive({
-    target: {
-        app: toRef(props, "app"),
-        model: toRef(props, "model"),
-    },
-    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    pk: toRef(props, "pk"),
-    params: {
-        [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk ?? "id", fetchFields.value, "available_actions"]),
-        [EXPAND_PARAM]: computed(() => modelConfig.config?.expand),
-    },
-    intendToRetrieve,
-    relatedObjectRules: toRef(props, "relatedObjectRules"),
-    calculatedObjectRules: toRef(props, "calculatedObjectRules"),
-});
 
-const instanceObjectForRetrieve = useObject({
-    props: instanceObjectProps,
-});
+const { instanceObject, instance, actions } = useDetailView(props, formInitialValue);
+
+const stickyBarTheme = useTheme("StickyBar", {});
+const dirtyClass = computed(() => stickyBarTheme("dirty"));
+const showDirtyIndicator = computed(() => props.viewName === "update" && Boolean(formContext?.state?.anyModified));
 
 onMounted(() => {
     emit(
         "object",
-        toRef(() => instanceObjectForRetrieve.state.object),
+        toRef(() => instanceObject.state.object),
     );
     emit(
         "loading",
-        toRef(() => instanceObjectForRetrieve.state.loading),
+        toRef(() => instanceObject.state.loading),
     );
-    emit("related-object", readonly(instanceObjectForRetrieve.state.relatedObjects || {}));
-    emit("calculated-object", readonly(instanceObjectForRetrieve.state.calculatedObjects || {}));
+    emit("related-object", readonly(instanceObject.state.relatedObjects || {}));
+    emit("calculated-object", readonly(instanceObject.state.calculatedObjects || {}));
     emit(
         "form-object",
         toRef(() => formContext.state.values),
     );
     emit("form-context", formContext);
 });
-
-const computedWidgetProps = computed(() => {
-    // TODO: a key for instanceObjectForRetrieve?.state?.calculatedObject
-    return {
-        ...props.widgetProps,
-        ...instanceObjectForRetrieve?.state?.calculatedObject,
-    };
-});
-watch(
-    [validAndActive, toRef(instanceObjectForRetrieve.state, "loading")],
-    ([vAA, loading]) => {
-        // populate the form when the page loads and when we have the object back.
-        // undefined on loading means not run yet.
-        if (vAA && loading === false) {
-            assignReactiveObject(
-                formInitialValue,
-                omit(cloneDeep(instanceObjectForRetrieve.state.object), "available_actions"),
-            );
-        }
-    },
-    {
-        immediate: true,
-    },
-);
-/** @type {import('vue').Ref<Error|null>} */
-const myError = ref(null);
-useObject404(props, instanceObjectForRetrieve, modelConfig, myError);
-const combinedError = computed(() => {
-    return (
-        myError.value || modelConfig.error || instanceObjectForRetrieve.state.error || props.objectForm?.state?.error
-    );
-});
-const combinedErrored = computed(() => !!combinedError.value);
-const combinedWhileText = computed(() =>
-    myError.value
-        ? "validating props"
-        : modelConfig.error
-          ? "getting model information"
-          : instanceObjectForRetrieve.state.error
-            ? "fetching object data"
-            : props.objectForm?.state?.error
-              ? "submitting form"
-              : "",
-);
-const combinedFormProps = computed(() => {
-    return {
-        ...(modelConfig.config.formProps || {}),
-        ...(props.formProps || {}),
-    };
-});
-const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObjectForRetrieve.state.loading));
-const formId = computed(() => `${props.app}-${props.model}-${props.pk}-${props.viewName}`);
-const availableActions = computed(() => {
-    const objectAvailableActions = instanceObjectForRetrieve.state.object?.available_actions;
-    return (filteredActions.actions || []).filter((n) => objectAvailableActions?.includes(n));
-});
-
-const availableTransitions = computed(() => {
-    return objectTransitions.transitions?.map((t) => t.code);
-});
-const detailActions = computed(() =>
-    availableActions.value.filter((n) => {
-        const a = modelConfig.config?.actionDetails?.[n];
-        return a && getActionName(props.viewName) !== n && a.detail;
-    }),
-);
-const nonDetailActions = computed(() =>
-    availableActions.value.filter((n) => {
-        const a = modelConfig.config?.actionDetails?.[n];
-        return a && getActionName(props.viewName) !== n && !a.detail;
-    }),
-);
 </script>
 <template>
     <div :class="props.class" :data-qa="`${viewName}-form-root`">
-        <page-title :loading="pageLoading" :title="titleStr">
+        <page-title :loading="instance.pageLoading" :title="instance.titleStr">
             <template #button>
-                <template v-for="actionName in nonDetailActions" :key="actionName">
+                <template v-for="actionName in actions.nonDetailActions" :key="actionName">
                     <slot
                         :app="app"
                         :label="memoizedStartCase(actionName)"
@@ -356,74 +230,85 @@ const nonDetailActions = computed(() =>
             </template>
         </page-title>
         <sticky-bar class="w-full">
-            <div
-                class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
-                :data-qa="`${viewName}-action-button`"
-            >
-                <!-- @slot [submit-button] Override the submit button shown in the sticky action bar for update views. -->
-                <slot
-                    v-if="viewName === 'update'"
-                    :form="formId"
-                    label="Submit"
-                    :loading="objectForm?.state?.loading"
-                    :modifed="formContext.state.anyModified"
-                    name="submit-button"
-                    type="submit"
+            <template #primary>
+                <div
+                    class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
+                    :data-qa="`${viewName}-action-button`"
                 >
-                    <Button :form="formId" label="Submit" :loading="objectForm?.state?.loading" type="submit" />
-                </slot>
-                <template v-for="actionName in detailActions" :key="actionName">
-                    <!-- @slot [action-button] Override an individual action link button in the sticky bar. -->
+                    <!-- @slot [submit-button] Override the submit button shown in the sticky action bar for update views. -->
                     <slot
-                        :app="app"
-                        :label="memoizedStartCase(actionName)"
-                        :model="model"
-                        name="action-button"
-                        :pk="pk"
-                        :view="actionName"
+                        v-if="viewName === 'update'"
+                        :form="instance.formId"
+                        label="Submit"
+                        :loading="objectForm?.state?.loading"
+                        :modified="formContext?.state?.anyModified"
+                        name="submit-button"
+                        type="submit"
                     >
-                        <link-model-view
+                        <Button :form="instance.formId" :disabled="objectForm?.state?.loading" type="submit">
+                            <LoadingSpinnerInline v-if="objectForm?.state?.loading" />
+                            Submit
+                        </Button>
+                    </slot>
+                    <template v-for="actionName in actions.detailActions" :key="actionName">
+                        <!-- @slot [action-button] Override an individual action link button in the sticky bar. -->
+                        <slot
                             :app="app"
-                            button
                             :label="memoizedStartCase(actionName)"
                             :model="model"
+                            name="action-button"
                             :pk="pk"
-                            severity="secondary"
                             :view="actionName"
-                        />
-                    </slot>
-                </template>
-                <template v-for="transition in availableTransitions" :key="transition">
-                    <!-- @slot [transition-button] Override an individual workflow transition button in the sticky bar. -->
-                    <slot
-                        :app="app"
-                        :label="memoizedStartCase(transition)"
-                        :model="model"
-                        name="transition-button"
-                        :pk="pk"
-                        :view="transition"
-                    >
-                        <link-model-view
+                        >
+                            <link-model-view
+                                :app="app"
+                                button
+                                :label="memoizedStartCase(actionName)"
+                                :model="model"
+                                :pk="pk"
+                                severity="secondary"
+                                :view="actionName"
+                            />
+                        </slot>
+                    </template>
+                    <template v-for="transition in actions.availableTransitions" :key="transition">
+                        <!-- @slot [transition-button] Override an individual workflow transition button in the sticky bar. -->
+                        <slot
                             :app="app"
-                            button
                             :label="memoizedStartCase(transition)"
                             :model="model"
+                            name="transition-button"
                             :pk="pk"
-                            severity="secondary"
                             :view="transition"
-                        />
-                    </slot>
-                </template>
-            </div>
+                        >
+                            <link-model-view
+                                :app="app"
+                                button
+                                :label="memoizedStartCase(transition)"
+                                :model="model"
+                                :pk="pk"
+                                severity="secondary"
+                                :view="transition"
+                            />
+                        </slot>
+                    </template>
+                </div>
+            </template>
+            <template v-if="showDirtyIndicator" #secondary>
+                <span :class="dirtyClass" :data-qa="`${viewName}-dirty-indicator`" role="status" aria-live="polite">
+                    <span aria-hidden="true">●</span>
+                    Unsaved changes
+                </span>
+            </template>
         </sticky-bar>
         <div :class="props.outerClass" :data-qa="`${viewName}-form`">
             <error-display
-                :error="combinedError"
-                :errored="combinedErrored"
+                :error="instance.combinedError"
+                :errored="instance.combinedErrored"
                 :ignore-form-validation-errors="true"
-                :while-text="combinedWhileText"
+                :while-text="instance.combinedWhileText"
             />
-            <form v-bind="$attrs" :id="formId" @submit.prevent="objectForm.submit">
+            <form v-bind="$attrs" :id="instance.formId" @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
                     :field-components="fieldComponents"
@@ -436,8 +321,8 @@ const nonDetailActions = computed(() =>
                     :variant="formModelVariant"
                     :view="viewName"
                     :widget-components="widgetComponents"
-                    :widget-props="computedWidgetProps"
-                    v-bind="combinedFormProps"
+                    :widget-props="instance.computedWidgetProps"
+                    v-bind="instance.combinedFormProps"
                 >
                     <template v-for="(_, slot) in slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />

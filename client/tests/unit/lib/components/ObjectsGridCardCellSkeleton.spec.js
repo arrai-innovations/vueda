@@ -2,36 +2,34 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
 
-const skeletonProps = { shape: "circle" };
-const getSkeletonPropsForField = vi.fn(() => skeletonProps);
+const skeletonClass = "h-6 w-24";
+const getSkeletonClassForField = vi.fn(() => skeletonClass);
 
 const themeFn = vi.fn((key) => `theme-${key}`);
 const mockedUseTheme = vi.fn(() => themeFn);
 
 const SkeletonStub = defineComponent({
-    name: "SkeletonStub",
-    props: ["height", "width", "shape"],
-    setup(props, { attrs }) {
+    name: "FeedbackSkeletonStub",
+    props: ["class"],
+    setup(props) {
         return () =>
             h("div", {
                 "data-qa": "skeleton",
-                "data-height": props.height,
-                "data-width": props.width,
-                "data-shape": props.shape,
-                ...attrs,
+                "data-slot": "skeleton",
+                class: props.class,
             });
     },
 });
 
-vi.mock("primevue/skeleton", () => ({ default: SkeletonStub }));
-vi.mock("@vueda/utils/objectGridSkeletonProps.js", () => ({ getSkeletonPropsForField }));
+vi.mock("@vueda/feedback/skeleton/Skeleton.vue", () => ({ default: SkeletonStub }));
+vi.mock("@vueda/utils/objectGridSkeletonClass.js", () => ({ getSkeletonClassForField }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
 
 let ObjectsGridCardCellSkeleton;
 
 beforeEach(async () => {
     ObjectsGridCardCellSkeleton = (await import("@vueda/components/ObjectsGridCardCellSkeleton.vue")).default;
-    getSkeletonPropsForField.mockClear();
+    getSkeletonClassForField.mockClear();
     mockedUseTheme.mockClear();
     themeFn.mockClear();
 });
@@ -46,7 +44,8 @@ scopedIt("renders header and skeleton with theme classes", () => {
     expect(header.classes()).toContain("theme-header");
     expect(header.text()).toBe("Bar");
     expect(value.classes()).toContain("theme-value");
-    expect(getSkeletonPropsForField).toHaveBeenCalledWith(field);
+    expect(getSkeletonClassForField).toHaveBeenCalledWith(field);
     const skeleton = value.getComponent(SkeletonStub);
-    expect(skeleton.attributes("data-shape")).toBe("circle");
+    expect(skeleton.classes()).toContain("h-6");
+    expect(skeleton.classes()).toContain("w-24");
 });

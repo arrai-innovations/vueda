@@ -93,7 +93,7 @@ const uniqueKeyForSlot = computed(() =>
                 name="sort-icon"
                 v-bind="fieldProps"
             >
-                <!-- iconless text, screams to implementors to provide an icon -->
+                <!-- iconless text, screams to integrators to provide an icon -->
                 <template v-if="ascending">⬆️</template>
                 <template v-else-if="descending">⬇️</template>
                 <template v-else>↕️</template>

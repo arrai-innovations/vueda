@@ -1,9 +1,17 @@
 <script setup>
+import Button from "@vueda/controls/button/Button.vue";
+import Select from "@vueda/controls/select/Select.vue";
+import SelectContent from "@vueda/controls/select/SelectContent.vue";
+import SelectItem from "@vueda/controls/select/SelectItem.vue";
+import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
+import SelectValue from "@vueda/controls/select/SelectValue.vue";
+import Drawer from "@vueda/shell/drawer/Drawer.vue";
+import DrawerContent from "@vueda/shell/drawer/DrawerContent.vue";
+import DrawerHeader from "@vueda/shell/drawer/DrawerHeader.vue";
+import DrawerTitle from "@vueda/shell/drawer/DrawerTitle.vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
-import Button from "primevue/button";
-import Drawer from "primevue/drawer";
-import Select from "primevue/select";
 import { computed } from "vue";
 import { VueDraggableNext as draggable } from "vue-draggable-next";
 
@@ -14,7 +22,7 @@ defineOptions({});
 
 const props = defineProps({
     /** Whether the sort drawer is open. */
-    visible: {
+    open: {
         type: Boolean,
         default: false,
     },
@@ -36,14 +44,14 @@ const props = defineProps({
 });
 const emit = defineEmits([
     /** Emitted when the drawer open/close state changes. */
-    "update:visible",
+    "update:open",
     /** Emitted when the active sort array changes. */
     "update:sorted",
 ]);
-const internalVisible = computed({
-    get: () => props.visible,
+const internalOpen = computed({
+    get: () => props.open,
     set: (value) => {
-        emit("update:visible", value);
+        emit("update:open", value);
     },
 });
 const fieldLabel = (field) => props.fieldDetails?.[field]?.label || memoizedStartCase(field);
@@ -94,6 +102,7 @@ const toggleDirection = (index) => {
 const sortedCount = computed(() => props.sorted.length);
 const sortedCountBadge = computed(() => (sortedCount.value ? String(sortedCount.value) : undefined));
 const theme = useTheme("MobileSortComponent", props);
+const icon = useIcons("MobileSortComponent");
 </script>
 <template>
     <!-- Button that opens the sort drawer; receives `label`, `size`, `severity`, and `badge` as slot props. -->
@@ -103,160 +112,171 @@ const theme = useTheme("MobileSortComponent", props);
         size="small"
         severity="primary"
         :badge="sortedCountBadge"
-        @click="internalVisible = true"
+        @click="internalOpen = true"
     >
-        <Button
-            label="Sort"
-            size="small"
-            severity="primary"
-            :badge="sortedCountBadge"
-            @click="internalVisible = true"
-        />
+        <Button size="sm" @click="internalOpen = true">
+            Sort
+            <span
+                v-if="sortedCountBadge"
+                class="ml-1 inline-flex items-center justify-center rounded-full bg-primary-foreground text-primary text-xs size-5"
+            >
+                {{ sortedCountBadge }}
+            </span>
+        </Button>
     </slot>
     <Drawer
-        v-model:visible="internalVisible"
+        v-model:open="internalOpen"
         :modal="true"
-        append-to="body"
-        block-scroll
+        direction="bottom"
         data-qa="sort-component-drawer"
-        position="bottom"
-        :show-close-icon="true"
-        :class="theme('drawer')"
         v-bind="$attrs"
     >
-        <div :class="theme('drawerInner')">
-            <span>Drag to reorder. First sort has highest priority</span>
-            <div v-if="computedSorted.length">
-                <draggable
-                    :model-value="props.sorted"
-                    :class="theme('draggable')"
-                    handle=".drag-handle"
-                    @update:model-value="emit('update:sorted', $event)"
-                >
-                    <div v-for="item in computedSorted" :key="item.field" :class="theme('draggableItem')">
-                        <div :class="theme('draggableItemInner')">
-                            <!-- Drag handle shown for each sort row; receives `class` and `text` as slot props. -->
-                            <slot name="drag-handle" :class="theme('dragHandle')" text="⋮⋮">
-                                <span :class="theme('dragHandle')">⋮⋮</span>
-                            </slot>
-                            <span :class="theme('sortOrderText')">{{ item.index + 1 }}</span>
-                            <Select
-                                :model-value="item.field"
-                                :options="[...availableSortableOptions, { label: item.label, value: item.field }]"
-                                :class="theme('select')"
-                                data-qa="sort-component-select"
-                                option-label="label"
-                                option-value="value"
-                                @update:model-value="
-                                    (value) => {
-                                        const newSorted = [...props.sorted];
-                                        newSorted[item.index] = value;
-                                        emit('update:sorted', newSorted);
-                                    }
-                                "
-                            >
-                                <template #value="slotProps">
-                                    <span v-if="slotProps.value" class="text-sm">{{ item.label }}</span>
-                                    <span v-else>Select a field</span>
-                                </template>
-                                <template #option="slotProps">
-                                    <span>{{ slotProps.option.label }}</span>
-                                </template>
-                            </Select>
-                        </div>
-                        <div :class="theme('sortInlineActionBar')">
-                            <!-- Button that toggles sort direction for a row; receives `label`, `text`, `size`, and a click handler as slot props. -->
-                            <slot
-                                name="toggle-order-button"
-                                :label="item.descending ? '⬇️' : '⬆️'"
-                                text
-                                size="small"
-                                @click="toggleDirection(item.index)"
-                            >
-                                <Button
-                                    data-qa="sort-component-toggle"
+        <DrawerContent :class="theme('drawer')">
+            <DrawerHeader class="sr-only">
+                <DrawerTitle>Sort</DrawerTitle>
+            </DrawerHeader>
+            <div :class="theme('drawerInner')">
+                <span>Drag to reorder. First sort has highest priority</span>
+                <div v-if="computedSorted.length">
+                    <draggable
+                        :model-value="props.sorted"
+                        :class="theme('draggable')"
+                        handle=".drag-handle"
+                        @update:model-value="emit('update:sorted', $event)"
+                    >
+                        <div v-for="item in computedSorted" :key="item.field" :class="theme('draggableItem')">
+                            <div :class="theme('draggableItemInner')">
+                                <!-- Drag handle shown for each sort row; receives `class` and `text` as slot props. -->
+                                <slot name="drag-handle" :class="theme('dragHandle')">
+                                    <span :class="theme('dragHandle')">
+                                        <component
+                                            :is="icon('gripVertical').component"
+                                            v-if="icon('gripVertical')"
+                                            v-bind="icon('gripVertical').props"
+                                            aria-hidden="true"
+                                        />
+                                    </span>
+                                </slot>
+                                <span :class="theme('sortOrderText')">{{ item.index + 1 }}</span>
+                                <Select
+                                    :model-value="item.field"
+                                    data-qa="sort-component-select"
+                                    @update:model-value="
+                                        (value) => {
+                                            const newSorted = [...props.sorted];
+                                            newSorted[item.index] = value;
+                                            emit('update:sorted', newSorted);
+                                        }
+                                    "
+                                >
+                                    <SelectTrigger :class="theme('select')">
+                                        <SelectValue placeholder="Select a field">
+                                            <span class="text-sm">{{ item.label }}</span>
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="opt in [
+                                                ...availableSortableOptions,
+                                                { label: item.label, value: item.field },
+                                            ]"
+                                            :key="opt.value"
+                                            :value="opt.value"
+                                        >
+                                            {{ opt.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div :class="theme('sortInlineActionBar')">
+                                <!-- Button that toggles sort direction for a row; receives `label`, `text`, `size`, and a click handler as slot props. -->
+                                <slot
+                                    name="toggle-order-button"
                                     :label="item.descending ? '⬇️' : '⬆️'"
                                     text
                                     size="small"
                                     @click="toggleDirection(item.index)"
                                 >
-                                    <!-- Icon rendered inside the toggle-order button; receives `field`, `sorted`, `index`, `descending`, and `ascending` as slot props. -->
-                                    <slot
-                                        name="sort-icon"
-                                        :field="item.field"
-                                        :sorted="props.sorted"
-                                        :index="item.index"
-                                        :descending="item.descending"
-                                        :ascending="!item.descending"
+                                    <Button
+                                        data-qa="sort-component-toggle"
+                                        variant="ghost"
+                                        size="sm"
+                                        @click="toggleDirection(item.index)"
                                     >
-                                        <template v-if="item.descending">⬇️</template>
-                                        <template v-else>⬆️</template>
-                                    </slot>
-                                </Button>
-                            </slot>
-                            <!-- Button that removes a sort row; receives `label`, `severity`, `text`, `index`, and a click handler as slot props. -->
-                            <slot
-                                name="remove-sort-button"
-                                label="x"
-                                data-qa="sort-component-remove"
-                                severity="danger"
-                                text
-                                :index="item.index"
-                                @click="removeSortable(item.index)"
-                            >
-                                <Button
+                                        <!-- Icon rendered inside the toggle-order button; receives `field`, `sorted`, `index`, `descending`, and `ascending` as slot props. -->
+                                        <slot
+                                            name="sort-icon"
+                                            :field="item.field"
+                                            :sorted="props.sorted"
+                                            :index="item.index"
+                                            :descending="item.descending"
+                                            :ascending="!item.descending"
+                                        >
+                                            <template v-if="item.descending">⬇️</template>
+                                            <template v-else>⬆️</template>
+                                        </slot>
+                                    </Button>
+                                </slot>
+                                <!-- Button that removes a sort row; receives `label`, `severity`, `text`, `index`, and a click handler as slot props. -->
+                                <slot
+                                    name="remove-sort-button"
                                     label="x"
                                     data-qa="sort-component-remove"
                                     severity="danger"
                                     text
-                                    size="small"
+                                    :index="item.index"
                                     @click="removeSortable(item.index)"
-                                />
-                            </slot>
+                                >
+                                    <Button
+                                        data-qa="sort-component-remove"
+                                        variant="ghost"
+                                        size="sm"
+                                        @click="removeSortable(item.index)"
+                                    >
+                                        x
+                                    </Button>
+                                </slot>
+                            </div>
                         </div>
-                    </div>
-                </draggable>
-            </div>
-            <div v-else class="text-sm text-surface-500">No Sorting applied. Click 'Add Sort' to begin</div>
-            <div :class="theme('actionBar')">
-                <!-- Button that appends the first available field as a new sort criterion; receives `label`, `severity`, `disabled`, `size`, and a click handler as slot props. -->
-                <slot
-                    name="add-sort-button"
-                    data-qa="sort-component-add-button"
-                    label="Add Sort"
-                    severity="secondary"
-                    :disabled="!availableSortables.length"
-                    size="small"
-                    @click="addSortable"
-                >
-                    <Button
+                    </draggable>
+                </div>
+                <div v-else class="text-sm text-neutral-500">No Sorting applied. Click 'Add Sort' to begin</div>
+                <div :class="theme('actionBar')">
+                    <!-- Button that appends the first available field as a new sort criterion; receives `label`, `severity`, `disabled`, `size`, and a click handler as slot props. -->
+                    <slot
+                        name="add-sort-button"
+                        data-qa="sort-component-add-button"
                         label="Add Sort"
                         severity="secondary"
                         :disabled="!availableSortables.length"
                         size="small"
                         @click="addSortable"
-                    />
-                </slot>
-                <!-- Button that clears all active sort criteria; receives `severity`, `text`, `label`, `disabled`, `size`, and a click handler as slot props. -->
-                <slot
-                    name="clear-sort-button"
-                    severity="secondary"
-                    text
-                    label="Clear all"
-                    :disabled="!props.sorted.length"
-                    size="small"
-                    @click="clearAll"
-                >
-                    <Button
+                    >
+                        <Button
+                            variant="secondary"
+                            :disabled="!availableSortables.length"
+                            size="sm"
+                            @click="addSortable"
+                        >
+                            Add Sort
+                        </Button>
+                    </slot>
+                    <!-- Button that clears all active sort criteria; receives `severity`, `text`, `label`, `disabled`, `size`, and a click handler as slot props. -->
+                    <slot
+                        name="clear-sort-button"
                         severity="secondary"
                         text
                         label="Clear all"
                         :disabled="!props.sorted.length"
                         size="small"
                         @click="clearAll"
-                    />
-                </slot>
+                    >
+                        <Button variant="ghost" :disabled="!props.sorted.length" size="sm" @click="clearAll">
+                            Clear all
+                        </Button>
+                    </slot>
+                </div>
             </div>
-        </div>
+        </DrawerContent>
     </Drawer>
 </template>

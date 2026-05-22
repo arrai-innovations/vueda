@@ -77,4 +77,49 @@ describe("lib/components/StickyBar.vue", () => {
         wrapper.unmount();
         expect(clearTimeoutSpy).toHaveBeenCalled();
     });
+
+    scopedIt("renders default slot when neither primary nor secondary slot is bound", async () => {
+        const { default: StickyBar } = await importComponent();
+        const wrapper = mount(StickyBar, {
+            slots: { default: "<span data-qa='legacy'>legacy</span>" },
+        });
+        expect(wrapper.find('[data-qa="legacy"]').exists()).toBe(true);
+        expect(wrapper.find('[data-qa="sticky-bar-primary"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="sticky-bar-secondary"]').exists()).toBe(false);
+    });
+
+    scopedIt("renders primary slot inside themed primary container", async () => {
+        const { default: StickyBar } = await importComponent();
+        const wrapper = mount(StickyBar, {
+            slots: { primary: "<span data-qa='p'>primary</span>" },
+        });
+        expect(wrapper.find('[data-qa="sticky-bar-primary"]').exists()).toBe(true);
+        expect(wrapper.find('[data-qa="sticky-bar-secondary"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="p"]').exists()).toBe(true);
+    });
+
+    scopedIt("renders secondary slot inside themed secondary container", async () => {
+        const { default: StickyBar } = await importComponent();
+        const wrapper = mount(StickyBar, {
+            slots: {
+                primary: "<span data-qa='p'>primary</span>",
+                secondary: "<span data-qa='s'>secondary</span>",
+            },
+        });
+        expect(wrapper.find('[data-qa="sticky-bar-primary"]').exists()).toBe(true);
+        expect(wrapper.find('[data-qa="sticky-bar-secondary"]').exists()).toBe(true);
+        expect(wrapper.find('[data-qa="s"]').exists()).toBe(true);
+    });
+
+    scopedIt("ignores default slot when primary/secondary are bound", async () => {
+        const { default: StickyBar } = await importComponent();
+        const wrapper = mount(StickyBar, {
+            slots: {
+                default: "<span data-qa='legacy'>legacy</span>",
+                primary: "<span data-qa='p'>primary</span>",
+            },
+        });
+        expect(wrapper.find('[data-qa="legacy"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="p"]').exists()).toBe(true);
+    });
 });

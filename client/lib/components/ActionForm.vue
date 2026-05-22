@@ -1,19 +1,21 @@
 <script setup>
-import { loadingCombine } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
-import FormChores from "@vueda/components/FormChores.vue";
-import { defaultOnSubmissionError, defaultOnSubmitNotAnyModified } from "@vueda/use/useObjectForm.js";
+import FormMessage from "@vueda/components/FormMessage.vue";
+import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import { useActionForm } from "@vueda/use/useActionForm.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { FormValidationError } from "@vueda/utils/errors.js";
+import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
-import isEmpty from "lodash-es/isEmpty.js";
-import omit from "lodash-es/omit.js";
-import Button from "primevue/button";
-import { useToast } from "primevue/usetoast";
-import { computed, inject, nextTick, onDeactivated, onUnmounted, reactive, watch } from "vue";
+import { computed, inject } from "vue";
 
 /**
  * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides confirm and cancel button slots.
+ *
+ * Renders a pinned actions strip (confirm + cancel + optional hint) and, when
+ * the form has unresolved per-field errors, a structured validation alert
+ * sourced from `formContext.state.errors`.
  */
 defineOptions({
     inheritAttrs: false,
@@ -80,144 +82,57 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    /** When `false`, skips the "no changes detected" guard. Defaults to `true`. Set to `false` for forms that start empty where modification is not a meaningful concept. */
+    requireModified: {
+        type: Boolean,
+        default: true,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
-const toast = useToast();
-
-const localActionState = reactive({
-    loading: false,
-    errored: false,
-    error: null,
-});
-const combinedError = computed(() => {
-    return props.fetchState.error || localActionState.error;
-});
-const combinedErrored = computed(() => !!combinedError.value);
-const combinedLoading = computed(() => loadingCombine(props.fetchState.loading, localActionState.loading));
-
 const formContext = inject(FormContextSymbol);
-let actionPromise = null;
-const handleConfirm = async (dryRun = false) => {
-    formContext.setAllTouched();
-    localActionState.loading = true;
-    if (props.hasInput && !dryRun) {
-        await nextTick();
-        if (!formContext.state.anyModified) {
-            await defaultOnSubmitNotAnyModified({ toast });
-            localActionState.loading = false;
-            return;
-        }
-        if (formContext.state.anyError) {
-            const nonServerErrors = Object.entries(formContext.state.errors)
-                .map(([key, value]) => [key, omit(value, "server")])
-                .filter(([, value]) => !isEmpty(value));
-            if (nonServerErrors.length) {
-                const plural = nonServerErrors.length > 1;
-                toast.add({
-                    severity: "warn",
-                    summary: "Submission Blocked",
-                    detail: `Please correct the highlighted error${plural ? "s" : ""}.`,
-                    life: 10000,
-                });
-                localActionState.loading = false;
-                return;
-            }
-        }
-    }
-
-    localActionState.errored = false;
-    localActionState.error = null;
-    try {
-        actionPromise = props.runAction({
-            formValues: formContext.state.submittingValues,
-            dryRun,
-        });
-        const response = await actionPromise;
-        if (props.actionState.errored) {
-            await handleError(props.actionState.error, dryRun);
-            return;
-        }
-        if (dryRun) {
-            return;
-        }
-
-        if (props.onSubmissionSuccessHandler) {
-            props.onSubmissionSuccessHandler(response);
-        } else {
-            toast.add({
-                severity: "success",
-                summary: props.actionSuccessSummary || "Action Succeeded",
-                life: 15000,
-            });
-            if (props.redirectTo) {
-                await props.redirectTo("success");
-            }
-        }
-    } catch (error) {
-        await handleError(error, dryRun);
-    } finally {
-        actionPromise = null;
-        localActionState.loading = false;
-    }
-};
-
-const handleError = async (error, dryRun) => {
-    if (dryRun) {
-        if (error instanceof FormValidationError) {
-            formContext.handleServerFormValidationError(error);
-        }
-        return;
-    }
-    const errorHandler = props.onSubmissionErrorHandler || defaultOnSubmissionError;
-    const handled = await errorHandler({ error, formContext, toast });
-    if (!handled) {
-        localActionState.errored = true;
-        localActionState.error = error;
-        toast.add({
-            severity: "error",
-            summary: props.actionErrorSummary || "Action Failed",
-            detail: localActionState.error,
-            life: 15000,
-        });
-    }
-};
-const theme = useTheme("ActionForm", props);
-
-onDeactivated(() => {
-    if (actionPromise) {
-        actionPromise.cancel?.();
-    }
-});
-onUnmounted(() => {
-    if (actionPromise) {
-        actionPromise.cancel?.();
-    }
-});
-const handleCancelClick = async (e) => {
-    if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    if (props.redirectTo) {
-        await props.redirectTo("cancel");
-    }
-};
-
-watch(
-    () => props.readyToDryRun,
-    async (newVal) => {
-        if (newVal) {
-            await handleConfirm(true);
-        }
-    },
+const { combinedError, combinedErrored, combinedLoading, handleConfirm, handleCancelClick } = useActionForm(
+    formContext,
+    props,
 );
+const theme = useTheme("ActionForm", props);
+const icon = useIcons("ActionForm");
+
+/**
+ * Per-field validation entries derived from `formContext.state.errors`.
+ * Each entry is `{ field, messages: string[] }`. Non-field errors are
+ * surfaced separately via `<form-message type="error" />` and are excluded
+ * from the per-field list.
+ */
+const validationEntries = computed(() => {
+    const errors = formContext?.state?.errors || {};
+    const entries = [];
+    for (const [field, codes] of Object.entries(errors)) {
+        if (field === NON_FIELD_ERRORS_KEY) continue;
+        if (!codes || typeof codes !== "object") continue;
+        const messages = Object.values(codes).filter(Boolean);
+        if (messages.length === 0) continue;
+        entries.push({ field, messages });
+    }
+    return entries;
+});
+
+const showValidation = computed(() => !!formContext?.state?.anyError && validationEntries.value.length > 0);
+const validationCount = computed(() => validationEntries.value.length);
+const validationTitle = computed(() => {
+    const n = validationCount.value;
+    if (n === 0) return "Cannot run action";
+    return `Cannot run action — ${n} ${n === 1 ? "field needs" : "fields need"} attention`;
+});
 </script>
 
 <template>
     <div :class="theme('root')" data-qa="action-form-root">
         <error-display :error="combinedError" :errored="combinedErrored" :ignore-form-validation-errors="true" />
         <div :class="theme('inner')" data-qa="action-form-inner">
-            <form-chores :class="theme('nonFieldErrorBlock')" :variant="null" />
+            <div :class="theme('nonFieldErrorBlock')">
+                <form-message type="error" />
+                <form-message type="message" />
+            </div>
             <form @submit.prevent="handleConfirm()">
                 <!-- Main form content area; receives `loading`, `error`, `errored`, `handleConfirm`, and `handleCancelClick` as slot props. -->
                 <slot
@@ -230,6 +145,54 @@ watch(
                         handleCancelClick,
                     }"
                 />
+                <!-- @slot [validation-summary] Override the structured per-field validation alert shown when `formContext.state.anyError` is set; receives `entries`, `count`, and `title`. -->
+                <slot
+                    v-if="showValidation"
+                    name="validation-summary"
+                    :entries="validationEntries"
+                    :count="validationCount"
+                    :title="validationTitle"
+                >
+                    <div :class="theme('validation')" role="alert" data-tone="danger" data-qa="action-form-validation">
+                        <div
+                            v-if="$slots['validation-icon'] || icon('triangleExclamation')"
+                            :class="theme('validationIcon')"
+                            aria-hidden="true"
+                        >
+                            <!-- @slot [validation-icon] Replaces the icon shown in the validation alert. -->
+                            <slot name="validation-icon">
+                                <component
+                                    :is="icon('triangleExclamation').component"
+                                    v-bind="icon('triangleExclamation').props"
+                                    aria-hidden="true"
+                                />
+                            </slot>
+                        </div>
+                        <div :class="theme('validationBody')">
+                            <div :class="theme('validationTitle')" data-qa="action-form-validation-title">
+                                {{ validationTitle }}
+                            </div>
+                            <p :class="theme('validationDesc')" data-qa="action-form-validation-desc">
+                                Resolve the highlighted fields, then try again.
+                            </p>
+                            <ul :class="theme('validationList')" data-qa="action-form-validation-list">
+                                <li
+                                    v-for="entry in validationEntries"
+                                    :key="entry.field"
+                                    :class="theme('validationListItem')"
+                                    data-qa="action-form-validation-item"
+                                >
+                                    <span :class="theme('validationField')" data-qa="action-form-validation-field">
+                                        {{ entry.field }}
+                                    </span>
+                                    <span :class="theme('validationMsg')">
+                                        {{ entry.messages.join("; ") }}
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </slot>
                 <!-- Action bar containing the confirm and cancel buttons; receives `loading`, `handleConfirm`, and `handleCancelClick` as slot props. -->
                 <slot
                     :loading="combinedLoading"
@@ -247,9 +210,10 @@ watch(
                             type="submit"
                             :disabled="formContext.state.anyError"
                         >
-                            <Button :loading="combinedLoading" type="submit" :disabled="formContext.state.anyError"
-                                >Yes, continue</Button
-                            >
+                            <Button type="submit" :disabled="combinedLoading || formContext.state.anyError">
+                                <LoadingSpinnerInline v-if="combinedLoading" />
+                                Yes, continue
+                            </Button>
                         </slot>
                         <!-- Cancel button that invokes the redirect; receives `label`, `loading`, and `verb` as slot props. -->
                         <slot
@@ -259,8 +223,24 @@ watch(
                             verb="cancel"
                             @click="handleCancelClick"
                         >
-                            <Button label="Cancel, go back" :loading="combinedLoading" @click="handleCancelClick" />
+                            <Button variant="ghost" :disabled="combinedLoading" @click="handleCancelClick">
+                                <LoadingSpinnerInline v-if="combinedLoading" />
+                                Cancel, go back
+                            </Button>
                         </slot>
+                        <!-- @slot [actions-hint] Optional right-aligned hint shown in the actions strip (e.g. keyboard shortcut, reversibility note, audit hint). -->
+                        <div
+                            v-if="$slots['actions-hint']"
+                            :class="theme('buttonsSpacer')"
+                            data-qa="action-form-buttons-spacer"
+                        ></div>
+                        <div
+                            v-if="$slots['actions-hint']"
+                            :class="theme('buttonsHint')"
+                            data-qa="action-form-buttons-hint"
+                        >
+                            <slot name="actions-hint" />
+                        </div>
                     </div>
                 </slot>
             </form>
