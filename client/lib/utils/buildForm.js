@@ -12,24 +12,7 @@ import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
 import isSet from "lodash-es/isSet.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, toRef, watch } from "vue";
-
-/**
- * Returns the slot names for a field's help, error, and message slots.
- *
- * @param {string} formModelName - The name of the field's configuration in FormModel configuration.
- * @returns {string[]} The slot names for the field's help, error, and message slots.
- */
-export const getFormChoresSlotNames = (formModelName) => {
-    return [
-        "field-help",
-        "field-error",
-        "field-message",
-        `field(${formModelName})help`,
-        `field(${formModelName})error`,
-        `field(${formModelName})message`,
-    ];
-};
+import { computed, effectScope, toRaw, toRef, watch } from "vue";
 
 /**
  * @typedef {object} StateRaw
@@ -163,7 +146,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         es.run(() => {
             component = computed(() => {
                 if ((deepUnref(state.computedFields) || []).includes(fieldName)) {
-                    return availableFields.FieldString;
+                    return availableFields.FormField;
                 }
                 const customField =
                     props.fieldComponents?.[fieldName] ||
@@ -186,7 +169,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                         `No field component found for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
                     );
                 }
-                return customField;
+                return toRaw(customField);
             });
         });
         return component;
@@ -202,6 +185,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     contextless: (deepUnref(state.computedFields) || []).includes(fieldName),
                     ...omit(detailObject, ["type"]),
                     ...getFieldProps(detailObject),
+                    ...(props.view === "read" ? { orientation: "read" } : {}),
                     ...(deepUnref(modelConfig.config?.fieldProps?.[fieldName]) || {}),
                     ...(deepUnref(props.fieldProps?.[fieldName]) || {}),
                     themeOverride: fieldLevelThemeOverride,
@@ -256,7 +240,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                         `No widget component found for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
                     );
                 }
-                return customWidget;
+                return toRaw(customWidget);
             });
         });
 

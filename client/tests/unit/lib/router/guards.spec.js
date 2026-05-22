@@ -33,6 +33,16 @@ vi.mock("@vueda/utils/actionMap.js", () => ({
     getActionName: (name) => name,
 }));
 
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
+
 describe("lib/router/guards.js", () => {
     let guards;
     let warnSpy;
@@ -43,6 +53,7 @@ describe("lib/router/guards.js", () => {
         fetchModelInfo.mockReset();
         getConfig.mockReset();
         fetchWorkflowTransition.mockReset();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
         userStore = {
@@ -113,25 +124,22 @@ describe("lib/router/guards.js", () => {
     scopedIt("requireGroups allows matching group", async () => {
         userStore.loggedInUser = { groups: ["admin"] };
         const router = { resolve: vi.fn((r) => r) };
-        const toast = { add: vi.fn() };
-        const instance = { config: { globalProperties: { $toast: toast } } };
+        const instance = {};
         const to = { fullPath: "/path" };
         const result = await guards.requireGroups(instance, {}, ["admin"], { name: "denied" }, to, router, {});
         expect(result).toBe(true);
-        expect(toast.add).not.toHaveBeenCalled();
+        expect(toastMock.error).not.toHaveBeenCalled();
     });
 
     scopedIt("requireGroups denies unauthorized user", async () => {
         userStore.loggedInUser = { groups: ["user"] };
         const router = { resolve: vi.fn((r) => r) };
-        const toast = { add: vi.fn() };
-        const instance = { config: { globalProperties: { $toast: toast } } };
+        const instance = {};
         const to = { fullPath: "/path" };
         const toastArgs = { summary: "Denied", detail: "Forbidden", severity: "error" };
         const result = await guards.requireGroups(instance, toastArgs, ["admin"], { name: "denied" }, to, router, {});
-        expect(toast.add).toHaveBeenCalledWith({
-            ...toastArgs,
-            detail: `${toastArgs.detail} ${to.fullPath}`,
+        expect(toastMock.error).toHaveBeenCalledWith("Denied", {
+            description: `Forbidden /path`,
         });
         expect(result).toEqual({ name: "denied" });
     });
@@ -141,12 +149,11 @@ describe("lib/router/guards.js", () => {
         fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
         getConfig.mockResolvedValue({ routeActions: ["list"] });
         const router = { resolve: vi.fn((r) => r) };
-        const toast = { add: vi.fn() };
-        const instance = { config: { globalProperties: { $toast: toast } } };
+        const instance = {};
         const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
         expect(result).toBe(true);
-        expect(toast.add).not.toHaveBeenCalled();
+        expect(toastMock.error).not.toHaveBeenCalled();
     });
 
     scopedIt("requireModelInfo throws when a workflow transition has no code", async () => {
@@ -154,25 +161,23 @@ describe("lib/router/guards.js", () => {
         fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
         getConfig.mockResolvedValue({});
         const router = { resolve: vi.fn((r) => r) };
-        const toast = { add: vi.fn() };
-        const instance = { config: { globalProperties: { $toast: toast } } };
+        const instance = {};
         const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
 
         await expect(guards.requireModelInfo(instance, { name: "nf" }, to, router, {})).rejects.toThrow(
             "requireModelInfo: workflow transition is missing a string code",
         );
-        expect(toast.add).not.toHaveBeenCalled();
+        expect(toastMock.error).not.toHaveBeenCalled();
     });
 
     scopedIt("requireModelInfo redirects on missing model", async () => {
         fetchWorkflowTransition.mockResolvedValue([]);
         fetchModelInfo.mockRejectedValue(new ModelInfoError("no"));
         const router = { resolve: vi.fn((r) => r) };
-        const toast = { add: vi.fn() };
-        const instance = { config: { globalProperties: { $toast: toast } } };
+        const instance = {};
         const to = { params: { app: "a", model: "b", action: "c" }, fullPath: "/a/b/c" };
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
-        expect(toast.add).toHaveBeenCalled();
+        expect(toastMock.error).toHaveBeenCalledWith("Model Not Found");
         expect(result).toEqual({ name: "nf" });
     });
 
@@ -181,11 +186,10 @@ describe("lib/router/guards.js", () => {
         fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
         getConfig.mockResolvedValue({ routeActions: ["list"] });
         const router = { resolve: vi.fn((r) => r) };
-        const toast = { add: vi.fn() };
-        const instance = { config: { globalProperties: { $toast: toast } } };
+        const instance = {};
         const to = { params: { app: "a", model: "b", action: "edit" }, fullPath: "/a/b/edit" };
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
-        expect(toast.add).toHaveBeenCalledWith({ summary: "Action Not Found", severity: "error" });
+        expect(toastMock.error).toHaveBeenCalledWith("Action Not Found");
         expect(result).toEqual({ name: "nf" });
     });
 
