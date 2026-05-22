@@ -85,12 +85,12 @@ function buildOutputs(payload) {
 describe("renderVueDocgenBundle — conditional sub-pages", () => {
     it("omits slots sub-page when slot count is below threshold and no slot has a description", () => {
         const outputs = buildOutputs(sparsePayload);
-        expect(outputs.has("vue/components/Foo/slots.md")).toBe(false);
+        expect(outputs.has("vue/Foo/slots.md")).toBe(false);
     });
 
     it("emits events sub-page when any event has a description", () => {
         const outputs = buildOutputs(sparsePayload);
-        expect(outputs.has("vue/components/Foo/events.md")).toBe(true);
+        expect(outputs.has("vue/Foo/events.md")).toBe(true);
     });
 
     it("sparse component produces exactly three output files (component + events + index)", () => {
@@ -100,25 +100,25 @@ describe("renderVueDocgenBundle — conditional sub-pages", () => {
 
     it("emits slots sub-page when any slot has a description", () => {
         const outputs = buildOutputs(richPayload);
-        expect(outputs.has("vue/components/Bar/slots.md")).toBe(true);
+        expect(outputs.has("vue/Bar/slots.md")).toBe(true);
     });
 
     it("emits events sub-page for rich fixture when event has a description", () => {
         const outputs = buildOutputs(richPayload);
-        expect(outputs.has("vue/components/Bar/events.md")).toBe(true);
+        expect(outputs.has("vue/Bar/events.md")).toBe(true);
     });
 
     it("omits both sub-pages when all slots and events are undescribed and below threshold", () => {
         const outputs = buildOutputs(plainPayload);
-        expect(outputs.has("vue/components/Baz/slots.md")).toBe(false);
-        expect(outputs.has("vue/components/Baz/events.md")).toBe(false);
+        expect(outputs.has("vue/Baz/slots.md")).toBe(false);
+        expect(outputs.has("vue/Baz/events.md")).toBe(false);
         // Two files: the component page and the index.
         expect(outputs.size).toBe(2);
     });
 
     it("component page shows a compact slot table and CTA link when sub-page exists", () => {
         const outputs = buildOutputs(richPayload);
-        const page = outputs.get("vue/components/Bar.md");
+        const page = outputs.get("vue/Bar.md");
         // Compact table row present
         expect(page).toContain("`header`");
         // CTA link to sub-page
@@ -129,14 +129,14 @@ describe("renderVueDocgenBundle — conditional sub-pages", () => {
 
     it("component page shows full inline slot detail (H3 per slot) when no sub-page", () => {
         const outputs = buildOutputs(plainPayload);
-        const page = outputs.get("vue/components/Baz.md");
+        const page = outputs.get("vue/Baz.md");
         expect(page).toContain("### `default`");
         expect(page).not.toContain("slots.md");
     });
 
     it("component page shows a compact event table and CTA link when sub-page exists", () => {
         const outputs = buildOutputs(sparsePayload);
-        const page = outputs.get("vue/components/Foo.md");
+        const page = outputs.get("vue/Foo.md");
         // Compact table row present
         expect(page).toContain("`submit`");
         // CTA link to sub-page
@@ -147,7 +147,7 @@ describe("renderVueDocgenBundle — conditional sub-pages", () => {
 
     it("component page shows full inline event detail (H3 per event) when no sub-page", () => {
         const outputs = buildOutputs(plainPayload);
-        const page = outputs.get("vue/components/Baz.md");
+        const page = outputs.get("vue/Baz.md");
         expect(page).toContain("### `close`");
         expect(page).not.toContain("events.md");
     });
@@ -156,7 +156,7 @@ describe("renderVueDocgenBundle — conditional sub-pages", () => {
 describe("renderVueDocgenBundle — component page content", () => {
     it("component page includes a props table", () => {
         const outputs = buildOutputs(sparsePayload);
-        const page = outputs.get("vue/components/Foo.md");
+        const page = outputs.get("vue/Foo.md");
         expect(page).toBeDefined();
         expect(page).toContain("## Props");
         expect(page).toContain("bar");
@@ -164,19 +164,19 @@ describe("renderVueDocgenBundle — component page content", () => {
 
     it("component page includes the component description", () => {
         const outputs = buildOutputs(sparsePayload);
-        const page = outputs.get("vue/components/Foo.md");
+        const page = outputs.get("vue/Foo.md");
         expect(page).toContain("Test component");
     });
 
     it("component page always shows slots inline regardless of sub-page", () => {
         const outputs = buildOutputs(sparsePayload);
-        const page = outputs.get("vue/components/Foo.md");
+        const page = outputs.get("vue/Foo.md");
         expect(page).toContain("default");
     });
 
     it("events sub-page lists the event and its description", () => {
         const outputs = buildOutputs(sparsePayload);
-        const page = outputs.get("vue/components/Foo/events.md");
+        const page = outputs.get("vue/Foo/events.md");
         expect(page).toBeDefined();
         expect(page).toContain("submit");
         expect(page).toContain("When submitted");
@@ -184,7 +184,7 @@ describe("renderVueDocgenBundle — component page content", () => {
 
     it("slots sub-page lists the slot", () => {
         const outputs = buildOutputs(richPayload);
-        const page = outputs.get("vue/components/Bar/slots.md");
+        const page = outputs.get("vue/Bar/slots.md");
         expect(page).toBeDefined();
         expect(page).toContain("header");
     });
@@ -219,7 +219,7 @@ describe("renderVueDocgenBundle — component page content", () => {
             ],
         };
         const outputs = buildOutputs(payload);
-        const page = outputs.get("vue/components/Qux/slots.md");
+        const page = outputs.get("vue/Qux/slots.md");
         expect(page).toBeDefined();
         expect(page).toContain("Also accepted:");
         expect(page).toContain("`fieldset-toggle-button`");
@@ -228,7 +228,7 @@ describe("renderVueDocgenBundle — component page content", () => {
 
     it("component page frontmatter includes id, kind, and source fields", () => {
         const outputs = buildOutputs(sparsePayload);
-        const page = outputs.get("vue/components/Foo.md");
+        const page = outputs.get("vue/Foo.md");
         expect(page).toContain("id:");
         expect(page).toContain("kind:");
         expect(page).toContain('source: "vue-docgen"');
@@ -270,33 +270,71 @@ const multiGroupPayload = {
     ],
 };
 
-describe("renderVueDocgenBundle — component index page", () => {
-    it("emits vue/components/index.md", () => {
+describe("renderVueDocgenBundle — theme entry bidirectional link", () => {
+    it("appends a 'Theme entry' line when the component name is in themeKeysIndex", () => {
+        const bundle = new VueDocgenNormalizer().normalize(sparsePayload);
+        const outputs = renderVueDocgenBundle(bundle, { themeKeysIndex: new Set(["Foo"]) });
+        const page = outputs.get("vue/Foo.md");
+        expect(page).toContain("Theme entry: {@api theme-key:Foo}");
+    });
+
+    it("omits the 'Theme entry' line when themeKeysIndex is absent", () => {
         const outputs = buildOutputs(sparsePayload);
-        expect(outputs.has("vue/components/index.md")).toBe(true);
+        const page = outputs.get("vue/Foo.md");
+        expect(page).not.toContain("Theme entry:");
+    });
+
+    it("omits the 'Theme entry' line when the component name is not in the index", () => {
+        const bundle = new VueDocgenNormalizer().normalize(sparsePayload);
+        const outputs = renderVueDocgenBundle(bundle, { themeKeysIndex: new Set(["NotFoo"]) });
+        const page = outputs.get("vue/Foo.md");
+        expect(page).not.toContain("Theme entry:");
+    });
+
+    it("emits 'Theme entry' for each matching component when multiple are present", () => {
+        const bundle = new VueDocgenNormalizer().normalize(multiGroupPayload);
+        const outputs = renderVueDocgenBundle(bundle, {
+            themeKeysIndex: new Set(["DashboardView", "CounterWidget"]),
+        });
+        expect(outputs.get("vue/DashboardView.md")).toContain("Theme entry: {@api theme-key:DashboardView}");
+        expect(outputs.get("vue/CounterWidget.md")).toContain("Theme entry: {@api theme-key:CounterWidget}");
+    });
+
+    it("only emits 'Theme entry' on the matching component in a multi-component bundle", () => {
+        const bundle = new VueDocgenNormalizer().normalize(multiGroupPayload);
+        const outputs = renderVueDocgenBundle(bundle, { themeKeysIndex: new Set(["DashboardView"]) });
+        expect(outputs.get("vue/DashboardView.md")).toContain("Theme entry:");
+        expect(outputs.get("vue/CounterWidget.md")).not.toContain("Theme entry:");
+    });
+});
+
+describe("renderVueDocgenBundle — component index page", () => {
+    it("emits vue/index.md", () => {
+        const outputs = buildOutputs(sparsePayload);
+        expect(outputs.has("vue/index.md")).toBe(true);
     });
 
     it("index page links to each component page", () => {
         const outputs = buildOutputs(sparsePayload);
-        const index = outputs.get("vue/components/index.md");
+        const index = outputs.get("vue/index.md");
         expect(index).toContain("### [`Foo`](Foo.md)");
     });
 
     it("index page includes component description", () => {
         const outputs = buildOutputs(sparsePayload);
-        const index = outputs.get("vue/components/index.md");
+        const index = outputs.get("vue/index.md");
         expect(index).toContain("Test component");
     });
 
     it("index page uses heading and paragraph layout instead of a table", () => {
         const outputs = buildOutputs(sparsePayload);
-        const index = outputs.get("vue/components/index.md");
+        const index = outputs.get("vue/index.md");
         expect(index).not.toContain("| Component | Description |");
     });
 
     it("index page renders a section heading for each source group", () => {
         const outputs = buildOutputs(multiGroupPayload);
-        const index = outputs.get("vue/components/index.md");
+        const index = outputs.get("vue/index.md");
         expect(index).toContain("## Views");
         expect(index).toContain("## Widgets");
         expect(index).not.toContain("## Components");
@@ -304,13 +342,13 @@ describe("renderVueDocgenBundle — component index page", () => {
 
     it("views group appears before widgets group in the index", () => {
         const outputs = buildOutputs(multiGroupPayload);
-        const index = outputs.get("vue/components/index.md");
+        const index = outputs.get("vue/index.md");
         expect(index.indexOf("## Views")).toBeLessThan(index.indexOf("## Widgets"));
     });
 
     it("index page frontmatter includes source vue-docgen", () => {
         const outputs = buildOutputs(sparsePayload);
-        const index = outputs.get("vue/components/index.md");
+        const index = outputs.get("vue/index.md");
         expect(index).toContain('source: "vue-docgen"');
     });
 });

@@ -15,9 +15,33 @@ import {
 } from "./markdown.js";
 
 const DUNDER_RE = /^__.*__$/;
+const INLINE_MODULE_KINDS = new Set(["function", "method", "property"]);
 
 function isVisibleMember(node) {
-    return node.extensions?.pdoc?.is_public !== false && !(DUNDER_RE.test(node.name) && !node.description);
+    if (node.extensions?.pdoc?.is_public === false) {
+        return false;
+    }
+    if (DUNDER_RE.test(node.name) && !node.description) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Page-worthy means: pdoc-visible AND either structural (module/class) or
+ * documented.  This is the rule used for module-level inline rendering and
+ * standalone file emission.  Class member inclusion uses the looser
+ * `isVisibleMember` so the class member table still surfaces undocumented
+ * public methods (the class itself is the documentation unit).
+ */
+function isPageWorthy(node) {
+    if (!isVisibleMember(node)) {
+        return false;
+    }
+    if (node.kind === "module" || node.kind === "class") {
+        return true;
+    }
+    return Boolean(node.description);
 }
 
 function moduleTitle(node) {
@@ -109,13 +133,13 @@ function renderInlineMember(member) {
     return lines.join("\n");
 }
 
-function renderInlineMembersSection(node, index) {
+function renderInlineMembersSection(node, index, predicate) {
     const children = index.childrenOf.get(node.id) || [];
-    const publicChildren = children.filter(isVisibleMember);
-    if (!publicChildren.length) {
+    const visible = children.filter(isVisibleMember).filter(predicate || (() => true));
+    if (!visible.length) {
         return "";
     }
-    return publicChildren.map(renderInlineMember).join("\n");
+    return visible.map(renderInlineMember).join("\n");
 }
 
 function renderChildrenSections(node, index, pathMap, filePath) {
@@ -125,9 +149,10 @@ function renderChildrenSections(node, index, pathMap, filePath) {
     }
 
     const submodules = children.filter((child) => child.kind === "module");
-    const methods = children.filter((child) => child.kind === "method" || child.kind === "function");
-    const properties = children.filter((child) => child.kind === "property");
-    const others = children.filter((child) => !["module", "method", "function", "property"].includes(child.kind));
+    const classes = children.filter((child) => child.kind === "class").filter(isVisibleMember);
+    const others = children
+        .filter((child) => !["module", "class", "method", "function", "property"].includes(child.kind))
+        .filter(isVisibleMember);
 
     const lines = [];
 
@@ -137,15 +162,9 @@ function renderChildrenSections(node, index, pathMap, filePath) {
         lines.push(renderList(items), "");
     }
 
-    if (properties.length) {
-        lines.push(renderHeading(2, "Properties"), "");
-        const items = properties.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
-        lines.push(renderList(items), "");
-    }
-
-    if (methods.length) {
-        lines.push(renderHeading(2, "Methods"), "");
-        const items = methods.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
+    if (classes.length) {
+        lines.push(renderHeading(2, "Classes"), "");
+        const items = classes.map((child) => linkToPath(child.name, pathMap.get(child.id), filePath));
         lines.push(renderList(items), "");
     }
 
@@ -170,13 +189,17 @@ export function renderPdocNode(node, index, filePath) {
     const fm = { id: node.id, kind: node.kind, source: "pdoc" };
 
     let memberAnchors;
+    let inlineChildren;
     if (node.kind === "class") {
         const children = index.childrenOf.get(node.id) || [];
-        const publicChildren = children.filter(isVisibleMember);
-        if (publicChildren.length) {
-            fm.member_ids = publicChildren.map((c) => c.id);
-            memberAnchors = new Set(publicChildren.map((c) => slugify(c.name)));
-        }
+        inlineChildren = children.filter(isVisibleMember);
+    } else if (node.kind === "module") {
+        const children = index.childrenOf.get(node.id) || [];
+        inlineChildren = children.filter(isPageWorthy).filter((c) => INLINE_MODULE_KINDS.has(c.kind));
+    }
+    if (inlineChildren && inlineChildren.length) {
+        fm.member_ids = inlineChildren.map((c) => c.id);
+        memberAnchors = new Set(inlineChildren.map((c) => slugify(c.name)));
     }
 
     const frontmatter = renderFrontmatter(fm);
@@ -206,6 +229,16 @@ export function renderPdocNode(node, index, filePath) {
         if (childrenBlock) {
             lines.push(childrenBlock);
         }
+        if (node.kind === "module") {
+            const membersBlock = renderInlineMembersSection(
+                node,
+                index,
+                (c) => INLINE_MODULE_KINDS.has(c.kind) && isPageWorthy(c),
+            );
+            if (membersBlock) {
+                lines.push(membersBlock);
+            }
+        }
     }
 
     const sourceBlock = renderSource(node, memberAnchors);
@@ -224,7 +257,10 @@ export function renderPdocBundle(bundle) {
     for (const node of bundle.nodes) {
         const filePath = pathMap.get(node.id);
         if (filePath.includes("#")) {
-            continue; // rendered inline on parent class page
+            continue; // rendered inline on parent module or class page
+        }
+        if (!isPageWorthy(node)) {
+            continue;
         }
         const { content } = renderPdocNode(node, index, filePath);
         outputs.set(filePath, content);
