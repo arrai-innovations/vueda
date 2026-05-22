@@ -180,7 +180,7 @@ Body text here.
 
 Available containers: `info`, `tip`, `warning`, `danger`, `details`. See https://vitepress.dev/guide/markdown#custom-containers.
 
-Do not use GitHub-flavored Markdown alert syntax (`> [!WARNING]`) in authored docs; VitePress will not render it as a callout. The exception is this `README.md`, which is excluded from the VitePress build and rendered by GitHub.
+Do not use GitHub-flavored Markdown alert syntax (`> [!WARNING]`) in authored docs. The exception is this `README.md`, which is rendered by GitHub.
 
 ## Backticks vs Links
 
