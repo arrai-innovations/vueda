@@ -40,6 +40,14 @@
 -   **Workflow**: State changes trigger frontend UI updates via API responses
 -   **Meta-API**: `/info/` endpoints provide model metadata for dynamic frontend forms
 
+## API Documentation Annotations
+
+The docs-tooling pipeline reads several annotation conventions from `server/vueda/` source files (Python docstrings for pdoc, and DRF Spectacular schema decorators for the OpenAPI surface). The authoritative contract lives in the docs-tooling package next to the extractors that enforce it:
+
+[Server annotation contract](../docs-tooling/briefings/server-annotations.md)
+
+@../docs-tooling/briefings/server-annotations.md
+
 ## Commit Message Style
 
 We use a custom commitlint configuration based on [Conventional Commits](https://www.conventionalcommits.org/). It is customized to have the following valid types:
