@@ -31,13 +31,24 @@ For functions and methods, signatures (parameters, defaults, type annotations, r
 
 ### Visibility and `__all__`
 
-The rendered page set is filtered by pdoc's visibility rules:
+The rendered page set is filtered by two layers:
 
-- Members whose names start with a single underscore are hidden.
-- Dunder methods (`__foo__`) are only rendered when they have a docstring.
-- A module-level `__all__` narrows the public surface to exactly the names it lists. Use it on every module whose top-level namespace would otherwise expose helpers, re-imports, or framework boilerplate.
+1. pdoc's own visibility rules:
+    - Members whose names start with a single underscore are hidden.
+    - Dunder methods (`__foo__`) are only rendered when they have a docstring.
+    - A module-level `__all__` narrows the public surface to exactly the names it lists. Use it on every module whose top-level namespace would otherwise expose helpers, re-imports, or framework boilerplate.
+2. A "documented or structural" rule applied on top:
+    - Modules and classes are always rendered (their member tables are useful even when the module or class itself has no docstring).
+    - Every other kind (function, method, property, variable) is only rendered when it has a docstring. Listing an undocumented helper or constant in `__all__` exposes it for import but does not create a docs page; add a one-line docstring when you want it to appear.
 
-Submodule discovery, however, walks the filesystem and ignores `__all__`, so you cannot hide an entire submodule by omitting it from a package `__init__.py`. To exclude a module from docs, prefix its filename with an underscore or move it under a private subpackage.
+This split is intentional: `__all__` is the import contract, and the docs filter answers a different question -- "did the author write something to read?" The constants and helpers that legitimately belong in `__all__` for re-export ergonomics do not need to clutter the rendered output unless they are documented.
+
+Submodule discovery walks the filesystem and ignores `__all__`, so you cannot hide an entire submodule by omitting it from a package `__init__.py`. To exclude a module from docs, prefix its filename with an underscore or move it under a private subpackage.
+
+### Page layout
+
+- Each module renders to a single `py/<dotted-module>.md` page. Submodules and classes appear as link lists; functions, methods, and properties on the module are inlined as `## <name>` sections on the module page itself, with anchor IDs that match `{@api py:<kind>:<fullname>}`.
+- Each class renders to its own `py/<dotted-module>/<Class>.md` page, with members inlined the same way.
 
 ### Private helpers
 

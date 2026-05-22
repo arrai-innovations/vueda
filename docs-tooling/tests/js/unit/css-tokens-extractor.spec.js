@@ -107,6 +107,75 @@ describe("CssTokensExtractor", () => {
         expect(byName["--c-one"]).toBe("Group C");
     });
 
+    it("captures prose from the same banner block as group_description", async () => {
+        const css = `:root {
+    /* ---------- Radius ----------
+     * Controls use the compact radius ladder.
+     * Preserve \`--radius\` aliases for consumers. */
+    --radius: 2px;
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const group = payload.groups.find((g) => g.name === "Radius");
+        expect(group.group_description).toBe(
+            "Controls use the compact radius ladder.\nPreserve `--radius` aliases for consumers.",
+        );
+    });
+
+    it("captures contiguous prose blocks after a banner with paragraph breaks", async () => {
+        const css = `:root {
+    /* ---------- Spacing ---------- */
+    /* First paragraph with \`code\`. */
+    /* - Keep 4px increments.
+     * - Prefer semantic names. */
+    --gap: 4px;
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const group = payload.groups.find((g) => g.name === "Spacing");
+        expect(group.group_description).toBe(
+            "First paragraph with `code`.\n\n- Keep 4px increments.\n- Prefer semantic names.",
+        );
+    });
+
+    it("keeps group_description null when a banner has no following prose", async () => {
+        const css = `:root {
+    /* ---------- Plain ---------- */
+    --plain: 1px;
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const group = payload.groups.find((g) => g.name === "Plain");
+        expect(group.group_description).toBeNull();
+    });
+
+    it("does not treat an immediately following banner as prose", async () => {
+        const css = `:root {
+    /* ---------- First ---------- */
+    /* ---------- Second ---------- */
+    --second: 1px;
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const byGroup = Object.fromEntries(payload.groups.map((g) => [g.name, g.group_description]));
+        const second = payload.scopes.root.find((d) => d.name === "--second");
+        expect(byGroup.First).toBeNull();
+        expect(byGroup.Second).toBeNull();
+        expect(second.group).toBe("Second");
+    });
+
     it("falls back to the 'Base' group for declarations before any banner", async () => {
         const css = `:root {
     --no-banner: 1px;
@@ -188,6 +257,24 @@ describe("CssTokensExtractor", () => {
         const payload = JSON.parse(await readFile(outputPath, "utf-8"));
         const foo = payload.scopes.root.find((d) => d.name === "--foo");
         expect(foo.description).toBeNull();
+    });
+
+    it("picks up a trailing comment on the closing line of a multi-line declaration", async () => {
+        // Prettier breaks long single-line declarations (e.g. wide `oklch(...)`
+        // values) across multiple lines, parking the trailing comment on the
+        // closing-paren line. That line still counts as trailing.
+        const css = `:root {
+    --card: oklch(
+        1 0 0
+    ); /* card surface — sits on --background with a 1px border. */
+}
+`;
+        await writeFile(cssPath, css);
+        const extractor = new CssTokensExtractor();
+        await extractor.extract({ outputPath, baseCss: cssPath });
+        const payload = JSON.parse(await readFile(outputPath, "utf-8"));
+        const card = payload.scopes.root.find((d) => d.name === "--card");
+        expect(card.description).toBe("card surface — sits on --background with a 1px border.");
     });
 
     it("preserves multi-line values across continuations", async () => {
