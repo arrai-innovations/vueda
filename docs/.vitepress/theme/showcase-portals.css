@@ -1,0 +1,20 @@
+/* Portal support for live component showcases.
+ *
+ * Most showcase markup renders inside VuedaDemo's shadow root, where
+ * showcase.css owns the full Tailwind + VUEDA app baseline. Reka portal
+ * content (Popover, DropdownMenu, Dialog, Tooltip, and similar overlays)
+ * renders into document.body, so it needs the same token and utility surface
+ * available in light DOM.
+ *
+ * This file intentionally skips Tailwind preflight and avoids `important` so
+ * the default VitePress shell stays in charge of docs chrome.
+ */
+@import "tailwindcss/theme";
+@import "@vueda/theme/vueda-tailwind/base.css";
+@import "tailwindcss/utilities";
+
+@source "../../../client/lib/";
+
+@custom-variant hover (&:hover, .force-state-hover &);
+@custom-variant focus-visible (&:focus-visible, .force-state-focus &);
+@custom-variant disabled (&:disabled, .force-state-disabled &);
