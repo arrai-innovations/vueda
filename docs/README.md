@@ -20,7 +20,8 @@ to use a different (read: shorter) title in the sidebar or browser tabs than the
 
 ### `audience`
 
-- `implementor`: focused on technical details relevant to building with VUEDA (e.g. end-users of the framework)
+- `integrator`: focused on technical details relevant to building applications with VUEDA (e.g. end-users of the framework)
+- `designer`: focused on the visual contract and customization surface (tokens, theme keys, family meta keys); concerned with reskinning or rebranding VUEDA, not building features with it
 - `contributor`: focused on details relevant to contributing to VUEDA itself (e.g. maintainers and package authors)
 
 ### `type`
@@ -62,9 +63,16 @@ A way to understand the Diátaxis Types is as an authoring contract:
 
 ## Generated API docs
 
-API references for REST, Python, JavaScript, and Vue.js components are generated from source code and stored under `docs/reference/api/`.
+API references for REST, Python, JavaScript, and Vue.js components, plus theme keys and CSS tokens, are generated from source code and stored under `docs/reference/api/` and `docs/reference/theming/`.
 
 These pages are not intended for manual editing; instead, they are generated (see `docs-api` in root `justfile`). Errors or omissions in these pages should be fixed in the source code or generation templates, not by editing the generated markdown.
+
+The pipeline lives in [`docs-tooling/`](../docs-tooling/README.md). The annotation conventions each extractor reads from the source trees it walks are documented in package-scoped briefings:
+
+- [Client annotation contract](../docs-tooling/briefings/client-annotations.md) (Vue SFCs, `@vueda-spread`, dynamic slots, theme keys in `client/lib/`)
+- [Server annotation contract](../docs-tooling/briefings/server-annotations.md) (Python docstrings for pdoc, DRF Spectacular schema decorators in `server/vueda/`)
+
+When the extractors change, the briefings should change in the same commit. Treat them as the source of truth for what you need to write in source files to make something appear in the rendered docs.
 
 When linking generated API docs in authored Markdown, use `{@api ...}` IDs instead of hardcoded paths.
 
@@ -89,13 +97,28 @@ Common IDs:
 - `py:index`
 - `rest:index`
 - `vue:index`
+- `theming:keys`
+- `theming:tokens`
 
 Examples:
 
 - `{@api js:module:@arrai-innovations/vueda/router/guards}`
 - `{@api py:module:vueda}`
 - `{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}` <!-- note: literal `{` and `}` characters are part of some IDs, referring to captured url parameters, not documentation placeholders -->
-- `{@api vue:component:FieldBoolean}`
+- `{@api vue:component:FormField}`
+- `{@api theme-key:Card}` (links to the per-component theme-keys page)
+- `{@api theme-key:Card.root}` (links to a slot anchor on that page)
+- `{@api css-token:vueda-card-radius}` (links to the token anchor under its group page)
+
+### Theming IDs
+
+The theme-keys and css-tokens renderers publish member IDs through the `member_ids` frontmatter on each page. To discover an unfamiliar slot or token ID, search there:
+
+```bash
+grep -nR "^member_ids" docs/reference/theming/
+```
+
+Theme-key IDs are `theme-key:<Component>` for the component as a whole and `theme-key:<Component>.<slot>` for individual slots. CSS-token IDs are `css-token:<name>`, where `<name>` is the custom property without the leading `--`. Page-level IDs (used as link targets for `[…](…)` rather than `{@api …}`) follow `theming:keys`, `theming:keys:family:<family-slug>`, `theming:keys:<Component>`, `theming:tokens`, and `theming:tokens:<group-slug>`.
 
 ## Glossary links
 
@@ -112,6 +135,39 @@ Examples:
 - `{@term CRUDL}`
 - `{@term Model Info}`
 
+## Verifying VuedaDemo blocks
+
+`VuedaDemo` blocks exist so that humans can review rendered component output visually in the VitePress site. Do not attempt to start the VitePress dev server or fetch its rendered HTML to verify a demo. There is no automated way to inspect visual output.
+
+When you write or edit a `VuedaDemo` block, confirm correctness by:
+
+1. Checking that the markup is syntactically valid (no unclosed tags, no blank lines inside the block -- see below).
+2. Ensuring any referenced components are imported or globally registered in the docs site.
+3. Running `just check-eslint` and `just check-prettier` to pass linting and formatting.
+
+If the demo cannot be verified without a running browser, say so explicitly rather than attempting to curl or scrape the dev server.
+
+## HTML blocks inside VuedaDemo
+
+Markdown ends an HTML block at the first blank line. Any blank line inside a `<VuedaDemo>` (or any other HTML block) splits it into separate fragments, so closing tags end up in a different block from their openers. Vue's template compiler then sees unclosed elements and throws `Element X is not closed`.
+
+**Rule: no blank lines inside `<VuedaDemo>` or any other HTML block used in docs.**
+
+Use comments to visually separate sections if needed:
+
+```html
+<VuedaDemo>
+    <SidebarProvider>
+        <Sidebar>
+            <!-- Operations group -->
+            <SidebarMenuItem>...</SidebarMenuItem>
+            <!-- Workspace group -->
+            <SidebarMenuItem>...</SidebarMenuItem>
+        </Sidebar>
+    </SidebarProvider>
+</VuedaDemo>
+```
+
 ## Callouts
 
 Use VitePress custom containers for callouts in authored docs:
@@ -124,7 +180,7 @@ Body text here.
 
 Available containers: `info`, `tip`, `warning`, `danger`, `details`. See https://vitepress.dev/guide/markdown#custom-containers.
 
-Do not use GitHub-flavored Markdown alert syntax (`> [!WARNING]`) in authored docs; VitePress will not render it as a callout. The exception is this `README.md`, which is excluded from the VitePress build and rendered by GitHub.
+Do not use GitHub-flavored Markdown alert syntax (`> [!WARNING]`) in authored docs. The exception is this `README.md`, which is rendered by GitHub.
 
 ## Backticks vs Links
 
