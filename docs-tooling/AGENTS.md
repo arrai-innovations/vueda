@@ -20,6 +20,14 @@ This package contains internal tooling that extracts, normalizes, and renders AP
 - `schema/`: canonical JSON schema.
 - `tests/`: Vitest and pytest coverage for tooling.
 - `.generated/`: intermediate artifacts from extract/normalize steps.
+- `briefings/`: authoritative annotation contracts the extractors enforce. These are linked from each consuming package's AGENTS and README so contributors can find the rules next to the code; update them here whenever an extractor's expectations change.
+
+## Annotation Contracts
+
+The briefings below are the source of truth for what each extractor expects to find in the source trees it walks. When changing an extractor, update the corresponding briefing in the same commit.
+
+- [Client annotation contract](./briefings/client-annotations.md)
+- [Server annotation contract](./briefings/server-annotations.md)
 
 ## Test Execution
 
