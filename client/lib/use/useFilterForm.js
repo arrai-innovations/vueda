@@ -30,6 +30,10 @@ const FilterFieldMappings = {
     DecimalField: {
         initialValue: null,
     },
+    DecimalInField: {
+        initialValue: [],
+        array: true,
+    },
     DurationSecondsField: {
         initialValue: null,
     },
@@ -54,6 +58,34 @@ const FilterFieldMappings = {
         initialValue: null,
     },
     BooleanField: {
+        initialValue: null,
+    },
+    DateTimeRangeField: {
+        range: true,
+        initialValue: {
+            start: null,
+            end: null,
+        },
+    },
+    RangeField: {
+        range: true,
+        initialValue: {
+            start: null,
+            end: null,
+        },
+    },
+    ModelMultipleChoiceField: {
+        initialValue: [],
+        array: true,
+    },
+    MultipleChoiceField: {
+        initialValue: [],
+        array: true,
+    },
+    TimeField: {
+        initialValue: null,
+    },
+    TypedChoiceField: {
         initialValue: null,
     },
     NullBooleanField: {

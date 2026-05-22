@@ -36,21 +36,15 @@ const getTypeMapping = (mapping, field) => {
 /**
  * Get the field component for a given Django field type.
  *
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - Object that contains detail of a field
+ * All regular fields resolve to FormField. FieldSet* structural components
+ * (expanded serializers, tabular inlines) are resolved separately by
+ * buildForm's baseExpanded branch or custom fieldComponents overrides.
+ *
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} _field - Object that contains detail of a field (unused after per-type dispatch removal).
  * @returns {import('@vueda/utils/filterLookups.js').FieldComponent} The field component.
  */
-const getFieldComponent = (field) => {
-    const defaultMapping = getTypeMapping(defaultFieldMappings, field);
-    let component;
-    if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
-        component = defaultMapping?.[field.typeDb]?.component;
-    }
-    if (field.choices) {
-        component = getTypeMapping(choiceFieldMappings, field)?.component;
-    } else if (field.many) {
-        component = getTypeMapping(manyFieldMappings, field)?.component || availableFields.FieldSetMany;
-    }
-    return component || defaultMapping?.component;
+const getFieldComponent = (_field) => {
+    return availableFields.FormField;
 };
 /**
  * Get the default widget for a given field object.

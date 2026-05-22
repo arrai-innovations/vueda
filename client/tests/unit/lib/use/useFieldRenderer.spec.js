@@ -45,7 +45,7 @@ describe("lib/use/useFieldRenderer.js", () => {
         expect(result.widgetComponent.value).toEqual(availableWidgets.WidgetUnmapped);
         expect(result.fieldProps.value.name).toBe("foo");
         expect(result.fieldProps.value.modelValue).toBe("val");
-        expect(result.widgetProps.value.hidden).toBe(false);
+        expect(result.fieldProps.value.hidden).toBe(false);
         expect(result.remainingSlots.value).toEqual(["custom"]);
         expect(result.fieldProps.value.themeOverride).toEqual({ a: 1, b: 2 });
         expect(result.widgetProps.value.themeOverride).toEqual({ a: 1, c: 3, b: 2 });

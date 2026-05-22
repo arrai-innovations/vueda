@@ -19,12 +19,12 @@ vi.mock("vue-router", async () => {
 });
 
 describe("lib/use/useSuggestRoute.js", () => {
-    let useSuggestRoute, scope, vue;
+    let useSuggestRoute, useSuggestRoutes, scope, vue;
 
     beforeEach(async () => {
         vue = await import("vue"); // mocked
         scope = vue.effectScope();
-        useSuggestRoute = (await import("@vueda/use/useSuggestRoute.js")).useSuggestRoute;
+        ({ useSuggestRoute, useSuggestRoutes } = await import("@vueda/use/useSuggestRoute.js"));
         vi.clearAllMocks();
         mockedLifecycle.clearActivated();
     });
@@ -81,6 +81,116 @@ describe("lib/use/useSuggestRoute.js", () => {
         expect(result.value).toEqual({
             name: "/users/:pk/view",
             params: { pk: "123" },
+        });
+    });
+
+    describe("useSuggestRoutes", () => {
+        const routes = [
+            { path: "/blog/article/:pk/edit" },
+            { path: "/blog/article/:pk/view" },
+            { path: "/users", children: [{ path: "/users/:pk/view" }] },
+            { path: "/admin/dashboard" },
+        ];
+
+        scopedIt("returns empty array before activated", () => {
+            mockedUseRouter.mockReturnValue({
+                currentRoute: { value: { path: "/blog/article/42/edit" } },
+                options: { routes },
+            });
+            let result;
+            scope.run(() => {
+                result = useSuggestRoutes();
+            });
+            expect(result.value).toEqual([]);
+        });
+
+        scopedIt("returns sorted matches with scores after activated", () => {
+            mockedUseRouter.mockReturnValue({
+                currentRoute: { value: { path: "/blog/article/42/edit" } },
+                options: { routes },
+            });
+            let result;
+            scope.run(() => {
+                result = useSuggestRoutes();
+            });
+            mockedLifecycle.runActivatedHooks();
+
+            expect(result.value.length).toBeGreaterThan(0);
+            // First result should be the closest match
+            expect(result.value[0].matchedPath).toBe("/blog/article/:pk/edit");
+            expect(result.value[0].score).toBeGreaterThan(0);
+            // Results must be sorted descending by score
+            for (let i = 1; i < result.value.length; i++) {
+                expect(result.value[i - 1].score).toBeGreaterThanOrEqual(result.value[i].score);
+            }
+        });
+
+        scopedIt("each result has route, score, and matchedPath", () => {
+            mockedUseRouter.mockReturnValue({
+                currentRoute: { value: { path: "/blog/article/42/edit" } },
+                options: { routes },
+            });
+            let result;
+            scope.run(() => {
+                result = useSuggestRoutes();
+            });
+            mockedLifecycle.runActivatedHooks();
+
+            result.value.forEach((entry) => {
+                expect(entry).toHaveProperty("route");
+                expect(entry).toHaveProperty("score");
+                expect(entry).toHaveProperty("matchedPath");
+                expect(typeof entry.score).toBe("number");
+            });
+        });
+
+        scopedIt("respects the limit option", () => {
+            mockedUseRouter.mockReturnValue({
+                currentRoute: { value: { path: "/blog/article/42/edit" } },
+                options: { routes },
+            });
+            let result;
+            scope.run(() => {
+                result = useSuggestRoutes({ limit: 1 });
+            });
+            mockedLifecycle.runActivatedHooks();
+
+            expect(result.value.length).toBeLessThanOrEqual(1);
+        });
+
+        scopedIt("filters out zero-score results", () => {
+            mockedUseRouter.mockReturnValue({
+                currentRoute: { value: { path: "/zzz/qqq/xxx" } },
+                options: {
+                    routes: [{ path: "/admin/dashboard" }],
+                },
+            });
+            let result;
+            scope.run(() => {
+                result = useSuggestRoutes();
+            });
+            mockedLifecycle.runActivatedHooks();
+
+            result.value.forEach((entry) => {
+                expect(entry.score).toBeGreaterThan(0);
+            });
+        });
+
+        scopedIt("route contains params extracted from current path", () => {
+            mockedUseRouter.mockReturnValue({
+                currentRoute: { value: { path: "/blog/article/99/edit" } },
+                options: { routes },
+            });
+            let result;
+            scope.run(() => {
+                result = useSuggestRoutes({ limit: 1 });
+            });
+            mockedLifecycle.runActivatedHooks();
+
+            expect(result.value[0].route).toEqual({
+                name: "/blog/article/:pk/edit",
+                params: { pk: "99" },
+            });
         });
     });
 });

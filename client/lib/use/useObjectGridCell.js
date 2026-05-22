@@ -14,11 +14,12 @@ import { computed } from "vue";
 /**
  * Computes the formatted and raw values for a single grid cell.
  *
- * @param {object} props - The component props.
- * @param {object} props.obj - The primary object.
- * @param {object} [props.relatedObject] - A related object for lookups.
- * @param {object} [props.calculatedObject] - A calculated object for lookups.
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} props.field - The field descriptor.
+ * @param {{
+ *   obj: { [key: string]: unknown },
+ *   relatedObject?: { [key: string]: unknown },
+ *   calculatedObject?: { [key: string]: unknown },
+ *   field: import('@vueda/stores/storeModelInfo.js').FieldInfo
+ * }} props - The component props.
  * @returns {ObjectGridCellInstance}
  */
 export function useObjectGridCell(props) {

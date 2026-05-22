@@ -9,7 +9,6 @@ import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
-import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { useBreakpoints } from "@vueuse/core";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -409,7 +408,6 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
                     "default",
                     `field(${fieldSetContext.state.formModelName})item-action-bar`,
                     ...slotNames.flatMap((name) => unref(resolvedSlotNames?.[name]?.possibleNames)),
-                    ...getFormChoresSlotNames(fieldSetContext.state.formModelName),
                 ];
                 return slotNames.filter((slotName) => !knownSlotNames.includes(slotName));
             }),

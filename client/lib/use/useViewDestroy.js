@@ -25,10 +25,7 @@ import { computed, inject, reactive, toRef } from "vue";
  * Internally loads the instance(s) matching the provided `pk`, then exposes a
  * `handleDelete` function that can perform bulk deletion and report errors.
  *
- * @param {object} props - The reactive props object.
- * @param {string} props.app - The app label for the model.
- * @param {string} props.model - The model name to use.
- * @param {string|string[]} props.pk - The primary key(s) identifying the instance(s) to retrieve and delete.
+ * @param {{ app: string, model: string, pk: string|string[] }} props - The reactive props object.
  * @returns {ViewDestroyState} An object containing reactive state and the `handleDelete` function.
  */
 export function useViewDestroy(props) {
