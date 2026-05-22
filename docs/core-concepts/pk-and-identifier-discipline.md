@@ -1,7 +1,7 @@
 ---
 title: Primary Key and Identifier Discipline
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

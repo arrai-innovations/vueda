@@ -1,7 +1,7 @@
 ---
 title: Action Contract and Availability
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

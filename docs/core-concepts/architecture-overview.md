@@ -1,7 +1,7 @@
 ---
 title: Architecture Overview
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

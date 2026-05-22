@@ -1,7 +1,7 @@
 ---
 title: Configuration Surface and Defaults
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

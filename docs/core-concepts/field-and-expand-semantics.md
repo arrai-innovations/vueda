@@ -1,7 +1,7 @@
 ---
 title: Field and Expand Semantics
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 
