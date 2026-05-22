@@ -1,0 +1,1431 @@
+/**
+ * @module theme/vueda-tailwind/controls
+ * @description Tailwind CSS theme configuration for VUEDA Client control primitives.
+ */
+
+export default {
+    // ---------- Button family meta keys ----------
+    // Underscore-prefixed entries are composition primitives consumed by leaf
+    // entries via `composes`. They are full theme entries and can be overridden
+    // through setTheme / useThemeOverride; overriding `_ButtonBase` propagates
+    // to every leaf that composes from it.
+
+    /**
+     * Composition primitive: the layout, typography, and transition shell
+     * shared by every Button variant. Composed by Button and by any leaf
+     * (FileUpload trigger, CalendarCellTrigger, etc.) that needs the button
+     * shape without committing to a colour variant.
+     */
+    _ButtonBase: {
+        /** The shared button shell: inline-flex layout, 2px control radius, sm font-medium type, default 16px icon sizing, focus-visible ring, and the system-wide disabled treatment. Height and horizontal padding are omitted; the leaf picks a tier from `base.css § Control sizing`. */
+        root: {
+            class: [
+                "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-vueda-control text-sm font-medium transition-all",
+                "disabled:pointer-events-none disabled:opacity-50",
+                "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0",
+                "focus-visible:focus-ring",
+                "aria-invalid:border-destructive",
+            ],
+        },
+    },
+
+    /**
+     * Composition primitive: the primary-color fill variant for Button.
+     * Composed into Button.root when `variant` is `default`.
+     */
+    _ButtonDefault: {
+        /** The `--primary` CTA fill: solid primary background, primary-foreground text, 10% darker on hover. Pair sparingly with neutral pressed-state recipes like {@api theme-key:Toggle.root} so a CTA and an active toggle do not compete. */
+        root: { class: "bg-primary text-primary-foreground hover:bg-primary/90" },
+    },
+
+    /**
+     * Composition primitive: the destructive-color fill variant for Button.
+     * Composed into Button.root when `variant` is `destructive`.
+     */
+    _ButtonDestructive: {
+        /** The `--destructive` fill: solid destructive background in light mode, 60%-mix in dark so the chip stays legible against `--background`, destructive-foreground text, and a destructive-tinted focus outline. Reserve for actions that delete user data or are otherwise irreversible; menu / list destructive items use a colour-only recipe. */
+        root: {
+            class: "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-destructive dark:bg-destructive/60",
+        },
+    },
+
+    /**
+     * Composition primitive: the outline-on-background variant for Button.
+     * Composed into Button.root when `variant` is `outline`, and reused by
+     * non-Button leaves that want the same neutral chip treatment (e.g.
+     * FileUpload.trigger, RangeCalendarPrevButton).
+     */
+    _ButtonOutline: {
+        /** The neutral-chip recipe: 1px border, `--background` fill, `shadow-vueda-control` micro-shadow, and `--accent` hover swap. Dark mode follows the input-tint convention (`bg-input/30`, `border-input`, hover `bg-input/50`) so outlined chips read like inputs at rest. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons. */
+        root: {
+            class: "border bg-background shadow-vueda-control hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+        },
+    },
+
+    /**
+     * Composition primitive: the secondary-surface variant for Button.
+     * Composed into Button.root when `variant` is `secondary`.
+     */
+    _ButtonSecondary: {
+        /** The `--secondary` surface fill: solid secondary background, secondary-foreground text, 20%-lighter on hover. Use for actions that sit beside a CTA without stealing it; a row of secondary buttons reads as a control cluster rather than a set of competing CTAs. */
+        root: { class: "bg-secondary text-secondary-foreground hover:bg-secondary/80" },
+    },
+
+    /**
+     * Composition primitive: the transparent-at-rest variant for Button
+     * (background appears on hover only). Composed into Button.root when
+     * `variant` is `ghost`, and reused by CalendarCellTrigger /
+     * RangeCalendarCellTrigger so day buttons share the same hover recipe.
+     */
+    _ButtonGhost: {
+        /** The transparent-at-rest recipe: no fill or border until hover, when `--accent` paints the background. Shared by {@api theme-key:CalendarCellTrigger.root} and {@api theme-key:RangeCalendarCellTrigger.root} so day buttons in a calendar grid keep one consistent hover affordance; dark-mode hover is half-strength accent so the day button does not over-saturate the popover surface. */
+        root: { class: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50" },
+    },
+
+    /**
+     * Composition primitive: the inline-text variant for Button (no control
+     * height, no horizontal padding, underline on hover). Composed into
+     * Button.root when `variant` is `link`; intended for use inside running
+     * text rather than as a standalone control.
+     */
+    _ButtonLink: {
+        /** The inline-text recipe: `--primary` text with a 4px underline offset that appears on hover only. The `link` variant of {@api theme-key:Button} also drops the control height and horizontal padding so the affordance does not break surrounding line metrics. */
+        root: { class: "text-primary underline-offset-4 hover:underline" },
+    },
+
+    // ---------- Button ----------
+
+    /**
+     * The standard pressable control. Variants pick which `_Button*` primitive
+     * composes into the root (`default`, `destructive`, `outline`, `secondary`,
+     * `ghost`, `link`); `size` picks the control-height tier (`default`, `sm`,
+     * `lg`, plus `icon` / `icon-sm` / `icon-lg`). The `link` variant is
+     * inline-flow and skips the control-height + padding recipe.
+     */
+    Button: {
+        /** The pressable root. Composes {@api theme-key:_ButtonBase.root} plus the variant primitive named by `variant`, then layers the per-size height / padding pair from `base.css § Control sizing` (or `size-vueda-control*` for icon-only sizes). The `link` variant skips the control-height block and goes inline. The `data-state=cooldown` state (set by the component while a one-shot action is recovering) mutes the label to `--muted-foreground` and suppresses hover so a recently-clicked button reads as "wait" without changing layout. */
+        root: ({ variant, size }) => {
+            const v = variant || "default";
+            const variantKey = `_Button${v.charAt(0).toUpperCase()}${v.slice(1)}.root`;
+            const cooldownClass = [
+                "data-[state=cooldown]:text-muted-foreground",
+                "data-[state=cooldown]:cursor-default",
+                "data-[state=cooldown]:hover:bg-transparent",
+                "data-[state=cooldown]:hover:text-muted-foreground",
+            ];
+            if (v === "link") {
+                return {
+                    composes: ["_ButtonBase.root", variantKey],
+                    class: ["h-auto px-0", ...cooldownClass],
+                };
+            }
+            return {
+                composes: ["_ButtonBase.root", variantKey],
+                class: [
+                    {
+                        "h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm":
+                            !size || size === "default",
+                        "h-vueda-control-sm gap-1.5 px-vueda-control-px-sm has-[>svg]:px-vueda-control-px-sm":
+                            size === "sm",
+                        "h-vueda-control-lg px-vueda-control-px-lg has-[>svg]:px-vueda-control-px": size === "lg",
+                        "size-vueda-control": size === "icon",
+                        "size-vueda-control-sm": size === "icon-sm",
+                        "size-vueda-control-lg": size === "icon-lg",
+                    },
+                    ...cooldownClass,
+                ],
+            };
+        },
+    },
+
+    // ---------- Button group ----------
+
+    /**
+     * Layout shell that joins adjacent controls into a single segmented unit.
+     * Strips inner radii and borders so the children read as one slab; supports
+     * horizontal (default) and vertical orientation.
+     */
+    ButtonGroup: {
+        /** The segmented-cluster shell. Strips inner radii and shared borders between adjacent children so a row (or column when `orientation` is `vertical`) of buttons, inputs, and Select triggers reads as one slab; focus z-index promotion keeps the focus ring from being clipped by neighbours. Nested {@api theme-key:ButtonGroup} children retain an 8px gap. The icon-only-stays-seamless / text-or-mixed-keeps-seams rule is applied by the component, not this slot. */
+        root: ({ orientation }) => ({
+            class: [
+                "flex w-fit items-stretch [&>*]:focus-visible:z-10 [&>*]:focus-visible:relative [&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit [&>input]:flex-1 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md has-[>[data-slot=button-group]]:gap-2",
+                {
+                    "[&>*:not(:first-child)]:rounded-l-none [&>*:not(:first-child)]:border-l-0 [&>*:not(:last-child)]:rounded-r-none":
+                        !orientation || orientation === "horizontal",
+                    "flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:border-t-0 [&>*:not(:last-child)]:rounded-b-none":
+                        orientation === "vertical",
+                },
+            ],
+        }),
+    },
+
+    /**
+     * 1px vertical (or horizontal) divider between joined items inside a
+     * ButtonGroup.
+     */
+    ButtonGroupSeparator: {
+        /** The explicit divider used inside a {@api theme-key:ButtonGroup} when the segmented cluster needs a visible split between text segments. Uses the `--input` token so the divider matches the surrounding hairline color in both modes, and stretches to the group's cross-axis. */
+        root: {
+            class: ["bg-input relative !m-0 self-stretch data-[orientation=vertical]:h-auto"],
+        },
+    },
+
+    /**
+     * Static text segment inside a ButtonGroup; reads as a label-style chip
+     * joined to its neighbouring controls.
+     */
+    ButtonGroupText: {
+        /** The static-label chip used to join readable copy ("of", "to", a unit suffix) into a {@api theme-key:ButtonGroup}. Wears the button shape (2px control radius, 1px border, `shadow-vueda-control`) but sits on `--muted` so it does not read as pressable; padding picks 16px to match the default button's `px-vueda-control-px` baseline. */
+        root: {
+            class: [
+                "bg-muted flex items-center gap-2 rounded-vueda-control border px-4 text-sm font-medium shadow-vueda-control [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+            ],
+        },
+    },
+
+    // ---------- Toggle ----------
+
+    /**
+     * A button-shaped on/off control. Differs from Button in that the pressed
+     * state is a neutral "this view is active" affordance (`--accent`), not a
+     * CTA (`--primary`).
+     */
+    Toggle: {
+        /** The on/off button shell. Reads as a Button shape (control radius, `text-sm font-medium`, 16px icon) but the pressed state (`data-state=on`) paints `--accent` instead of `--primary` so a pressed toggle does not compete with a CTA on the same surface. Two variants (default, `outline`) and three size tiers ride the shared `h-vueda-control*` scale; `min-w-vueda-control*` keeps a single-icon toggle square. */
+        root: ({ variant, size }) => ({
+            class: [
+                "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:hairline-ring focus-visible:focus-ring-shadow transition-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive whitespace-nowrap",
+                {
+                    "bg-transparent": !variant || variant === "default",
+                    "border border-input bg-transparent shadow-vueda-control hover:bg-accent hover:text-accent-foreground":
+                        variant === "outline",
+                },
+                {
+                    "h-vueda-control px-2 min-w-vueda-control": !size || size === "default",
+                    "h-vueda-control-sm px-1.5 min-w-vueda-control-sm": size === "sm",
+                    "h-vueda-control-lg px-2.5 min-w-vueda-control-lg": size === "lg",
+                },
+            ],
+        }),
+    },
+
+    /**
+     * Layout shell for a row of ToggleGroupItems.
+     */
+    ToggleGroup: {
+        /** The row layout for a set of {@api theme-key:ToggleGroupItem.root} children. The `--gap` custom property is driven by the consumer's `spacing` prop, which lets the same group render as a gapped row or (at `spacing=0`) as a segmented control where child items drop their outer radii and shared borders. The `group/toggle-group` Tailwind group label lets items react to group-level state. */
+        root: {
+            class: ["group/toggle-group flex w-fit items-center gap-[--spacing(var(--gap))] rounded-vueda-control"],
+        },
+    },
+
+    /**
+     * Individual toggle inside a ToggleGroup. Supports the same `variant` /
+     * `size` set as Toggle; when `data-spacing` is `0`, items join into a
+     * segmented unit (rounded only on the outer corners, shared borders).
+     */
+    ToggleGroupItem: {
+        /** The individual item inside a {@api theme-key:ToggleGroup}. Mirrors the {@api theme-key:Toggle.root} recipe (same variants, sizes, and accent-pressed treatment) and adds segmented behaviour: when the host group sets `data-spacing=0`, items drop their per-item radius and shadow and re-add them on the first and last child so the cluster reads as one slab. `min-w-0 shrink-0 px-3` overrides the Toggle minimum width so a label-bearing item grows to its content rather than staying square. */
+        root: ({ variant, size }) => ({
+            class: [
+                "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:hairline-ring focus-visible:focus-ring-shadow transition-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive whitespace-nowrap",
+                {
+                    "bg-transparent": !variant || variant === "default",
+                    "border border-input bg-transparent shadow-vueda-control hover:bg-accent hover:text-accent-foreground":
+                        variant === "outline",
+                },
+                {
+                    "h-vueda-control px-2 min-w-vueda-control": !size || size === "default",
+                    "h-vueda-control-sm px-1.5 min-w-vueda-control-sm": size === "sm",
+                    "h-vueda-control-lg px-2.5 min-w-vueda-control-lg": size === "lg",
+                },
+                "w-auto min-w-0 shrink-0 px-3 focus:z-10 focus-visible:z-10",
+                "data-[spacing=0]:rounded-none data-[spacing=0]:shadow-none data-[spacing=0]:first:rounded-l-md data-[spacing=0]:last:rounded-r-md data-[spacing=0]:data-[variant=outline]:border-l-0 data-[spacing=0]:data-[variant=outline]:first:border-l",
+            ],
+        }),
+    },
+
+    // ---------- File upload ----------
+
+    /**
+     * File-picker control. Supports an inline-trigger mode and a dropzone
+     * mode; the dropzone variant adds a dashed-border target that highlights
+     * while a file is being dragged over it.
+     */
+    FileUpload: {
+        /** The outer container. In inline-trigger mode this is a tight flex column wrapping the picker button plus optional helper text; in `dropzone` mode it grows into a dashed-border target (2px input-coloured dashes, 6 spacing pad, large radius) that highlights with a primary-tinted fill when `dragging`. The `disabled` state dims the whole region and switches the cursor; the inner trigger still picks up its own disabled treatment from {@api theme-key:_ButtonBase.root}. */
+        root: ({ dropzone, dragging, disabled }) => ({
+            class: [
+                "inline-flex flex-col items-center gap-1",
+                {
+                    "rounded-lg border-2 border-dashed border-input p-6 transition-colors": dropzone,
+                    "border-primary bg-primary/5": dropzone && dragging,
+                    "opacity-50 cursor-not-allowed": disabled,
+                },
+            ],
+        }),
+        /** The "choose file" affordance. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonOutline.root} so the trigger reads as the same neutral chip as an outline-variant {@api theme-key:Button.root}, at the default control height with the icon-aware narrower padding kicking in when the trigger carries an icon. */
+        trigger: {
+            composes: ["_ButtonBase.root", "_ButtonOutline.root"],
+            class: ["h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm"],
+        },
+        /** The "or drop here" helper line below the trigger. Muted secondary text at the sm tier so it sits as ancillary copy and never competes with the trigger label or a selected-file readout. */
+        dropMessage: {
+            class: ["text-sm text-muted-foreground"],
+        },
+    },
+
+    // ---------- Text input ----------
+
+    /**
+     * Single-line text input. The reference input-shell control: input-tinted
+     * hairline, control-height scale, focus ring, `aria-invalid` swap,
+     * read-only and disabled states.
+     */
+    Input: {
+        /** The single-line input shell and the reference recipe for the input-shaped family. Hairline border with the system focus-ring contract, control-height tier from `base.css § Control sizing`, and the cross-cutting `aria-invalid` swap that paints `--destructive` on the border and ring. Read-only and dark-mode states follow the shared input conventions; the file-picker variant (`<input type=file>`) inherits `file:` classes so a bare file input reads as the same chip family as a button. */
+        root: {
+            class: [
+                "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 hairline h-vueda-control w-full min-w-0 rounded-vueda-control bg-transparent px-vueda-control-px text-base shadow-vueda-control transition-shadow file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
+                "read-only:bg-muted/50 read-only:cursor-default",
+            ],
+        },
+    },
+
+    /**
+     * Multi-line text input. Shares the input-shell treatment with Input but
+     * expands vertically via `field-sizing: content`.
+     */
+    Textarea: {
+        /** The multi-line counterpart to {@api theme-key:Input.root}. Same hairline + focus + `aria-invalid` recipe; grows vertically via `field-sizing: content` so the field expands with the typed text rather than holding a fixed `min-height`. Horizontal padding moves to `px-3 py-2` (both axes) because a textarea's content box is two-dimensional. */
+        root: {
+            class: [
+                "placeholder:text-muted-foreground dark:bg-input/30 hairline flex field-sizing-content min-h-16 w-full rounded-vueda-control bg-transparent px-3 py-2 text-base shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:hairline-ring focus-visible:focus-ring-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
+            ],
+        },
+    },
+
+    // ---------- Input group ----------
+
+    /**
+     * Wrapper that joins an Input (or Textarea) with one or more addons (icon,
+     * button, kbd, helper text) into a single bordered shell. The group owns
+     * the hairline and focus-ring; children render without borders of their
+     * own.
+     */
+    InputGroup: {
+        /** The shell that joins an input (or textarea) with one or more addons (icon, button, kbd, helper line) into a single bordered chip. The group, not its children, owns the hairline and focus ring: child controls strip their own chrome (see {@api theme-key:InputGroupInput} / {@api theme-key:InputGroupTextarea}) and the group reacts to `focus-visible` on any `[data-slot=input-group-control]` and to `aria-invalid` on any tagged child via `:has(...)` selectors. Inline addons (`align=inline-start` / `inline-end`) stay on a single row at `h-vueda-control`; block addons (`align=block-start` / `block-end`) stack and flip the row to `flex-col` with auto height, so the same shell supports left/right glyphs and top/bottom helper rows. */
+        root: {
+            class: [
+                "group/input-group dark:bg-input/30 hairline relative flex w-full items-center rounded-vueda-control shadow-vueda-control transition-shadow",
+                "h-vueda-control min-w-0 has-[>textarea]:h-auto",
+                "has-[>[data-align=inline-start]]:[&>input]:pl-2",
+                "has-[>[data-align=inline-end]]:[&>input]:pr-2",
+                "has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>[data-align=block-start]]:[&>input]:pb-3",
+                "has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-end]]:[&>input]:pt-3",
+                "has-[[data-slot=input-group-control]:focus-visible]:hairline-ring has-[[data-slot=input-group-control]:focus-visible]:focus-ring-shadow",
+                "has-[[data-slot][aria-invalid=true]]:hairline-destructive has-[[data-slot][aria-invalid=true]:focus-visible]:focus-ring-shadow-destructive",
+            ],
+        },
+    },
+
+    /**
+     * Decorative or interactive content positioned inside an InputGroup.
+     * `align` controls placement (`inline-start`, `inline-end`, `block-start`,
+     * `block-end`); inline addons sit flush against the input edge, block
+     * addons stack above or below it.
+     */
+    InputGroupAddon: {
+        /** The addon slot inside an {@api theme-key:InputGroup.root}. `align` picks one of four placements: `inline-start` / `inline-end` for icon, kbd, or button content flush against the input edge, and `block-start` / `block-end` for helper-text rows stacked above or below the input. Negative-margin hooks (`has-[>button]:ml-[-0.45rem]`, `has-[>kbd]:ml-[-0.35rem]`) tighten interior padding when the addon hosts a button or kbd so the addon does not visually balloon. Inherits `--muted-foreground` text so the addon reads as chrome, not as content; dimmed in lockstep with the group when the host carries `data-disabled=true`. */
+        root: ({ align }) => ({
+            class: [
+                "text-muted-foreground flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium select-none [&>svg:not([class*='size-'])]:size-4 [&>kbd]:rounded-[calc(var(--radius)-5px)] group-data-[disabled=true]/input-group:opacity-50",
+                {
+                    "order-first pl-3 has-[>button]:ml-[-0.45rem] has-[>kbd]:ml-[-0.35rem]":
+                        !align || align === "inline-start",
+                    "order-last pr-3 has-[>button]:mr-[-0.45rem] has-[>kbd]:mr-[-0.35rem]": align === "inline-end",
+                    "order-first w-full justify-start px-3 pt-3 [.border-b]:pb-3 group-has-[>input]/input-group:pt-2.5":
+                        align === "block-start",
+                    "order-last w-full justify-start px-3 pb-3 [.border-t]:pt-3 group-has-[>input]/input-group:pb-2.5":
+                        align === "block-end",
+                },
+            ],
+        }),
+    },
+
+    /**
+     * The text input child inside an InputGroup. Strips its own border /
+     * shadow so the InputGroup shell owns the chrome.
+     */
+    InputGroupInput: {
+        /** The text-input child inside an {@api theme-key:InputGroup.root}. Strips its own border, shadow, and focus ring so the surrounding group owns the chrome; flexes to fill the remaining row, and overrides the standalone {@api theme-key:Input} dark-mode tint with `dark:bg-transparent` so the group's tint is the only one painted. */
+        root: {
+            class: ["flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent"],
+        },
+    },
+
+    /**
+     * The textarea child inside an InputGroup. Strips its own border / shadow
+     * so the InputGroup shell owns the chrome.
+     */
+    InputGroupTextarea: {
+        /** The textarea child inside an {@api theme-key:InputGroup.root}. Same chrome-strip recipe as {@api theme-key:InputGroupInput.root} plus `resize-none` so the textarea grows with content rather than offering a corner drag handle that would fight the group's shared shell. */
+        root: {
+            class: [
+                "flex-1 resize-none rounded-none border-0 bg-transparent py-3 shadow-none focus-visible:ring-0 dark:bg-transparent",
+            ],
+        },
+    },
+
+    /**
+     * Inline text addon (helper text, prefix / suffix label) inside an
+     * InputGroup.
+     */
+    InputGroupText: {
+        /** The inline-text addon inside an {@api theme-key:InputGroup.root}: helper labels, prefix / suffix copy, unit markers. Renders at sm size on `--muted-foreground` with 16px icons so the addon reads as chrome rather than as input content. */
+        root: {
+            class: [
+                "text-muted-foreground flex items-center gap-2 text-sm [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+            ],
+        },
+    },
+
+    /**
+     * Pressable addon inside an InputGroup. Sized smaller than a standalone
+     * Button (xs, sm, icon-xs, icon-sm tiers) so it fits inside the input
+     * shell.
+     */
+    InputGroupButton: {
+        /** Pressable addon inside an {@api theme-key:InputGroup.root}. Sized smaller than a standalone {@api theme-key:Button.root} (`xs`, `sm`, plus `icon-xs` / `icon-sm`) so the button fits inside the input shell without breaking the row's `h-vueda-control` baseline. Shadow is suppressed because the group already carries `shadow-vueda-control`; an inset button drawing its own shadow would double-paint at the addon edge. The `xs` and `icon-xs` tiers use a tighter `rounded-[calc(var(--radius)-5px)]` so a 24px button reads as a chip inside a 32px shell rather than a miniature slab. */
+        root: ({ size }) => ({
+            class: [
+                "text-sm shadow-none flex gap-2 items-center",
+                {
+                    "h-6 gap-1 px-2 rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-3.5 has-[>svg]:px-2":
+                        !size || size === "xs",
+                    "h-vueda-control-sm px-vueda-control-px-sm gap-1.5 rounded-vueda-control has-[>svg]:px-vueda-control-px-sm":
+                        size === "sm",
+                    "size-6 rounded-[calc(var(--radius)-5px)] p-0 has-[>svg]:p-0": size === "icon-xs",
+                    "size-vueda-control-sm p-0 has-[>svg]:p-0": size === "icon-sm",
+                },
+            ],
+        }),
+    },
+
+    // ---------- Input OTP ----------
+
+    /**
+     * One-time-password input rendered as a row of fixed-width slots. Slots
+     * focus independently; the active slot is highlighted by the ring.
+     */
+    InputOTP: {
+        /** The container for a row of fixed-width character slots. Owns the focus-ring contract for the active slot: a single `focus-ring` paints around whichever slot carries `data-active=true` (and swaps to destructive on `aria-invalid`), rather than each slot drawing its own ring. This keeps one ring sweeping across the row as the cursor advances. */
+        root: {
+            class: [
+                "flex items-center gap-2 has-disabled:opacity-50",
+                "has-[[data-active=true]]:focus-ring",
+                "aria-invalid:has-[[data-active=true]]:focus-ring-destructive",
+            ],
+        },
+    },
+
+    /**
+     * A run of contiguous InputOTPSlots (e.g. the three digits of a 3-3 split
+     * code).
+     */
+    InputOTPGroup: {
+        /** A contiguous run of {@api theme-key:InputOTPSlot.root} cells (e.g. the three digits before and after a `-` in a 3-3 split code). Pure flex row; the visual joining comes from the slots themselves overlapping their hairlines, so a group is just a layout marker that separates one run from the next when a code is split. */
+        root: {
+            class: ["flex items-center"],
+        },
+    },
+
+    /**
+     * Individual character cell inside an InputOTPGroup. Borders join into a
+     * single hairline across the run; the active slot is outlined by the ring.
+     */
+    InputOTPSlot: {
+        /** A single character cell. Borders use `--input` at the `border-hairline` width, and every non-first slot pulls left by exactly `--vueda-hairline-width` so adjacent slots overlap one device pixel and read as one painted line rather than doubling at the seam. The active slot promotes `z-10` and swaps to `border-ring` so the run's active position outlines cleanly above its neighbours; `aria-invalid` swaps the border to `--destructive` on the same rule. First / last children round only their outer corners so the run reads as one chip. */
+        root: {
+            class: [
+                "dark:bg-input/30 border-hairline border-input relative flex h-vueda-control w-vueda-control items-center justify-center text-sm shadow-vueda-control transition-all first:rounded-l-md last:rounded-r-md [&:not(:first-child)]:[margin-left:calc(-1*var(--vueda-hairline-width))] data-[active=true]:z-10 data-[active=true]:border-ring aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive",
+            ],
+        },
+    },
+
+    // ---------- Native select ----------
+
+    /**
+     * Native `<select>` styled to match the VUEDA control shell. Used where a
+     * JS-driven combobox or select would be overkill (short fixed enums on
+     * touch devices, fallback contexts).
+     */
+    NativeSelect: {
+        /** The native `<select>` styled to match the VUEDA control shell. Used where a JS-driven {@api theme-key:SelectTrigger} or {@api theme-key:ComboboxTrigger} would be overkill: short fixed enums on touch devices, environments where native menu UX is preferred. Same control-height + hairline + focus + `aria-invalid` recipe as {@api theme-key:Input.root}; `appearance-none` strips the native chevron and `pr-9` reserves space for the icon the consumer paints. The option surface inside the dropdown is owned by the OS; deep styling lives in the JS-driven pickers. */
+        root: {
+            class: [
+                "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 dark:hover:bg-input/50 hairline h-vueda-control w-full min-w-0 appearance-none rounded-vueda-control bg-transparent px-vueda-control-px pr-9 text-sm shadow-vueda-control transition-shadow disabled:pointer-events-none disabled:cursor-not-allowed",
+                "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
+            ],
+        },
+    },
+
+    /**
+     * Native `<optgroup>` styled to inherit the popover surface.
+     */
+    NativeSelectOptGroup: {
+        /** The native `<optgroup>` tinted to inherit the popover surface so the system's native dropdown reads as the same surface family as VUEDA's JS-driven pickers. The OS owns layout and the divider between groups; this slot only paints the background. */
+        root: {
+            class: ["bg-popover text-popover-foreground"],
+        },
+    },
+
+    /**
+     * Native `<option>` styled to inherit the popover surface.
+     */
+    NativeSelectOption: {
+        /** The native `<option>` tinted to inherit the popover surface. Per-row layout, highlight, and check indicator are all owned by the OS; for richer option chrome (icons, sub-labels, highlighted-vs-checked distinction) use {@api theme-key:SelectItem} or {@api theme-key:ComboboxItem}. */
+        root: {
+            class: ["bg-popover text-popover-foreground"],
+        },
+    },
+
+    // ---------- Number field ----------
+
+    /**
+     * Numeric input with optional increment / decrement steppers. The stepper
+     * slots can be hidden, allowing a plain numeric Input.
+     */
+    NumberField: {
+        /** The outer grid wrapper for a numeric input with optional increment / decrement steppers. Pure layout (`grid gap-1.5`) so a label, the input, and any messaging stack at the standard form rhythm. The visible input chrome lives on {@api theme-key:NumberFieldInput.root}; the absolute-positioned steppers are anchored by {@api theme-key:NumberFieldContent.root}. */
+        root: {
+            class: ["grid gap-1.5"],
+        },
+    },
+
+    /**
+     * Inner wrapper around NumberFieldInput; reserves horizontal space for
+     * the increment / decrement slots when they are present.
+     */
+    NumberFieldContent: {
+        /** The inner wrapper that hosts {@api theme-key:NumberFieldInput.root} plus the optional stepper buttons. Reserves horizontal pad on the input (`pl-5` / `pr-5`) only when {@api theme-key:NumberFieldDecrement} / {@api theme-key:NumberFieldIncrement} are actually rendered, so a stepperless number field keeps the standard control padding and a stepper-bearing one never crashes a digit string into the glyphs. `relative` is the anchor for the absolute-positioned steppers. */
+        root: {
+            class: [
+                "relative [&>[data-slot=input]]:has-[[data-slot=increment]]:pr-5 [&>[data-slot=input]]:has-[[data-slot=decrement]]:pl-5",
+            ],
+        },
+    },
+
+    /**
+     * Numeric `<input>` inside NumberField. Mono + tabular numerals,
+     * centre-aligned, so digit widths stay stable during step changes.
+     */
+    NumberFieldInput: {
+        /** The numeric `<input>` itself. Same hairline + focus shell as {@api theme-key:Input.root}, but renders in mono + tabular numerals and centres the value so digit widths stay stable while a stepper cycles through different-length numbers. Mono is the segment-as-token treatment shared with the date / time fields. */
+        root: {
+            class: [
+                "flex h-vueda-control w-full rounded-vueda-control hairline bg-transparent font-mono tabular-nums text-sm text-center shadow-vueda-control transition-shadow placeholder:text-muted-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow disabled:cursor-not-allowed disabled:opacity-50",
+            ],
+        },
+    },
+
+    /**
+     * Decrement stepper button anchored to the left of NumberFieldInput.
+     */
+    NumberFieldDecrement: {
+        /** The decrement stepper anchored to the left edge of {@api theme-key:NumberFieldInput.root}. Absolutely positioned so the stepper overlays the input rather than competing for row width; `disabled:opacity-20` reads as "at the lower bound" — a stronger fade than the standard 50% control-disabled treatment so a temporarily unusable stepper does not look like a fully disabled field. */
+        root: {
+            class: ["absolute top-1/2 -translate-y-1/2 left-0 p-3 disabled:cursor-not-allowed disabled:opacity-20"],
+        },
+    },
+
+    /**
+     * Increment stepper button anchored to the right of NumberFieldInput.
+     */
+    NumberFieldIncrement: {
+        /** The increment stepper anchored to the right edge of {@api theme-key:NumberFieldInput.root}. Mirror of {@api theme-key:NumberFieldDecrement.root}; same overlay positioning and same upper-bound fade. */
+        root: {
+            class: ["absolute top-1/2 -translate-y-1/2 right-0 disabled:cursor-not-allowed disabled:opacity-20 p-3"],
+        },
+    },
+
+    // ---------- Date / time fields ----------
+
+    /**
+     * Date picker rendered as a row of editable date segments (year / month /
+     * day). Shares the input shell with Input; segments are individually
+     * focusable and increment with arrow keys.
+     */
+    DateField: {
+        /** The input-shaped shell hosting the editable date segments. Same hairline + focus + `aria-invalid` recipe as {@api theme-key:Input.root}, with the row of {@api theme-key:DateFieldInput.root} segments laid out as flex items inside; sizes pick the standard `h-vueda-control*` tier from `base.css § Control sizing`. The read-only treatment swaps to `bg-muted/50` so a frozen date field reads as the same surface family as a read-only text input. */
+        root: ({ size }) => ({
+            class: [
+                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
+                {
+                    "h-vueda-control px-vueda-control-px": !size || size === "default",
+                    "h-vueda-control-sm px-vueda-control-px-sm": size === "sm",
+                    "h-vueda-control-lg px-vueda-control-px-lg": size === "lg",
+                },
+            ],
+        }),
+    },
+
+    /**
+     * Individual date segment inside DateField. Mono + tabular + slashed-zero
+     * so digit widths and 0/O distinction stay stable; focused segment
+     * highlights with `--accent`.
+     */
+    DateFieldInput: {
+        /** A single editable date segment (year / month / day). Renders in `--vueda-font-mono` at `font-medium` with `font-feature-settings: 'tnum','zero'` so digit widths stay stable as values change and `0` remains visually distinct from `O`. The focused segment paints `--accent` / `--accent-foreground` (same recipe as a menu-item-highlighted row, since a focused segment is a selection); `caret-transparent` hides the text caret because segments edit via arrow keys rather than free-form typing, and `data-[placeholder]` mutes the segment to `--muted-foreground` while empty. */
+        root: {
+            class: [
+                "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
+            ],
+        },
+    },
+
+    /**
+     * Two-DateField row representing a start / end date pair, joined into a
+     * single shell.
+     */
+    DateRangeField: {
+        /** The input-shell variant that joins a start / end {@api theme-key:DateRangeFieldInput.root} pair into one chip. See also: {@api theme-key:DateField.root} for the shared shell recipe; delta is that the row hosts two segment runs separated by a literal separator glyph rendered by the component rather than a single run. */
+        root: ({ size }) => ({
+            class: [
+                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
+                {
+                    "h-vueda-control px-vueda-control-px": !size || size === "default",
+                    "h-vueda-control-sm px-vueda-control-px-sm": size === "sm",
+                    "h-vueda-control-lg px-vueda-control-px-lg": size === "lg",
+                },
+            ],
+        }),
+    },
+
+    /**
+     * Individual date segment inside DateRangeField. Same recipe as
+     * DateFieldInput.
+     */
+    DateRangeFieldInput: {
+        /** An editable segment inside a {@api theme-key:DateRangeField.root}. See also: {@api theme-key:DateFieldInput.root}; same mono + tabular + slashed-zero, accent-on-focus, `caret-transparent` recipe applies. */
+        root: {
+            class: [
+                "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
+            ],
+        },
+    },
+
+    /**
+     * Time picker rendered as a row of editable time segments (hour / minute,
+     * optional second / period). Shares the input shell with DateField.
+     */
+    TimeField: {
+        /** The input-shell variant for editable time segments (hour / minute, plus optional second / period). See also: {@api theme-key:DateField.root}; identical shell and size-tier recipe, only the segment set inside differs. */
+        root: ({ size }) => ({
+            class: [
+                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
+                {
+                    "h-vueda-control px-vueda-control-px": !size || size === "default",
+                    "h-vueda-control-sm px-vueda-control-px-sm": size === "sm",
+                    "h-vueda-control-lg px-vueda-control-px-lg": size === "lg",
+                },
+            ],
+        }),
+    },
+
+    /**
+     * Individual time segment inside TimeField. Same recipe as DateFieldInput.
+     */
+    TimeFieldInput: {
+        /** An editable segment inside a {@api theme-key:TimeField.root}. See also: {@api theme-key:DateFieldInput.root}; identical recipe. */
+        root: {
+            class: [
+                "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
+            ],
+        },
+    },
+
+    // ---------- Calendar ----------
+
+    /**
+     * Single-date calendar grid. Composed inside date-picker popovers, or
+     * embedded inline when a full grid is the primary surface.
+     */
+    Calendar: {
+        /** The outer surface that hosts the month grid. Pure 12px padding (`p-3`) and no border or shadow of its own; chrome belongs to the host (a {@api theme-key:PopoverContent.root} when used in a date-picker popover, or the surrounding view when embedded inline). No footer either: {@api theme-key:CalendarFooter.root} is a separate chin attached below by composition, so a footer-free embed renders as a bare grid. */
+        root: {
+            class: ["p-3"],
+        },
+    },
+
+    /**
+     * Title row above the Calendar grid. Holds the heading and the prev / next
+     * nav buttons.
+     */
+    CalendarHeader: {
+        /** The title row above the day grid. Flex-centred so the {@api theme-key:CalendarHeading.root} sits in the middle of the row, with `px-8` reserving 32px of side padding for the prev / next {@api theme-key:CalendarNavButton.root} pair that the component anchors to the row edges. */
+        root: {
+            class: ["flex justify-center pt-1 relative items-center w-full px-8"],
+        },
+    },
+
+    /**
+     * The month-year title text inside a CalendarHeader.
+     */
+    CalendarHeading: {
+        /** The month-year title text inside a {@api theme-key:CalendarHeader.root}. Single-line `text-sm font-medium`; sits centred between the prev / next nav buttons. */
+        root: {
+            class: ["text-sm font-medium"],
+        },
+    },
+
+    /**
+     * Prev / next month button inside a CalendarHeader. One theme key serves
+     * both directional buttons (CalendarPrevButton.vue and
+     * CalendarNextButton.vue), which diverges from the
+     * RangeCalendarPrevButton / RangeCalendarNextButton split; see
+     * BACKLOG-011 for the reconciliation question.
+     */
+    CalendarNavButton: {
+        /** The prev / next month button anchored to a {@api theme-key:CalendarHeader.root}. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonOutline.root} for the neutral chip recipe, then overrides to a square 28×28 transparent chip with `opacity-50` at rest and full opacity on hover so the chrome stays out of the way until the user reaches for it. One theme key serves both directional SFCs (CalendarPrevButton, CalendarNextButton); the {@api theme-key:RangeCalendarPrevButton.root} / {@api theme-key:RangeCalendarNextButton.root} pair on the range side stays split; see BACKLOG-011 for the reconciliation question. */
+        root: {
+            composes: ["_ButtonBase.root", "_ButtonOutline.root"],
+            class: ["size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],
+        },
+    },
+
+    /**
+     * The 7-column day grid inside Calendar.
+     */
+    CalendarGrid: {
+        /** The 7-column day grid. `border-collapse` lets adjacent cell borders share one hairline rather than doubling at the seam; `w-full` lets the grid stretch to the {@api theme-key:Calendar.root} content width so cell sizing falls out of `flex-1` on {@api theme-key:CalendarCell.root}. */
+        root: {
+            class: ["w-full border-collapse space-x-1"],
+        },
+    },
+
+    /**
+     * A single week row inside a CalendarGrid.
+     */
+    CalendarGridRow: {
+        /** A single week row inside a {@api theme-key:CalendarGrid.root}. Flex row; cell width comes from `flex-1` on the children, not from a column template. */
+        root: {
+            class: ["flex"],
+        },
+    },
+
+    /**
+     * A weekday-label cell (Mo / Tu / We ...) above the day grid.
+     */
+    CalendarHeadCell: {
+        /** A weekday-label cell (Mo / Tu / We ...) above the day grid. Width pins to `--vueda-cal-cell` (32px) so labels align under the day-button slots below; renders at 0.8rem on `--muted-foreground` so the header row reads as chrome rather than as a row of day buttons. */
+        root: {
+            class: ["text-muted-foreground rounded-md w-[var(--vueda-cal-cell)] font-normal text-[0.8rem]"],
+        },
+    },
+
+    /**
+     * A grid slot inside a CalendarGridRow; the day button sits inside it.
+     */
+    CalendarCell: {
+        /** A grid slot inside a {@api theme-key:CalendarGridRow.root}; the {@api theme-key:CalendarCellTrigger.root} day button sits inside it. `p-0` so the button owns the inner spacing, `flex-1` distributes width evenly across the row, and `relative` plus `focus-within:z-20` lets a focused day button promote above its neighbours when the focus ring would otherwise be clipped by adjacent cells. */
+        root: {
+            class: ["relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex-1"],
+        },
+    },
+
+    /**
+     * The pressable day button inside a CalendarCell. Carries the today,
+     * selected, disabled, unavailable, and outside-view states; composes the
+     * ghost-button recipe for hover.
+     */
+    CalendarCellTrigger: {
+        /** The pressable day button inside a {@api theme-key:CalendarCell.root}. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonGhost.root} so day buttons share the popover-friendly hover recipe with the rest of the picker chrome. Size pins to `--vueda-cal-day` (30×30) so the button sits inside the 32px {@api theme-key:CalendarCell.root} with a 1px breathing margin. Carries the picker's full state matrix: `data-selected` paints `--primary` / `--primary-foreground`, `data-today` (when not selected) paints `--accent`, `data-disabled` and `data-outside-view` mute to `--muted-foreground`, and `data-unavailable` paints `--destructive` plus `line-through`. */
+        root: {
+            composes: ["_ButtonBase.root", "_ButtonGhost.root"],
+            class: [
+                "size-[var(--vueda-cal-day)] p-0 font-normal aria-selected:opacity-100 cursor-default",
+                "[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground",
+                "data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[selected]:opacity-100 data-[selected]:hover:bg-primary data-[selected]:hover:text-primary-foreground data-[selected]:focus:bg-primary data-[selected]:focus:text-primary-foreground",
+                "data-[disabled]:text-muted-foreground data-[disabled]:opacity-50",
+                "data-[unavailable]:text-destructive data-[unavailable]:line-through",
+                "data-[outside-view]:text-muted-foreground",
+            ],
+        },
+    },
+
+    /**
+     * Optional chin below a Calendar (or RangeCalendar) carrying a date
+     * summary and an action row (Apply / Clear). Used by date-picker popovers
+     * that need a status line plus actions; the bare Calendar stays
+     * footer-free so it can be embedded without chrome it cannot use.
+     */
+    CalendarFooter: {
+        /** The optional chin slot below a {@api theme-key:Calendar.root} or {@api theme-key:RangeCalendar.root}. Flex row with a `border-t` separator and an 8px gap; used by date-picker popovers that need a date-summary line plus an action row (Apply / Clear). Calendar and RangeCalendar themselves stay footer-free so the bare grid can be embedded without chrome it cannot use. */
+        root: {
+            class: ["flex items-center justify-between gap-2 mt-2 pt-2 border-t"],
+        },
+        /** The date-readout span inside a {@api theme-key:CalendarFooter.root}. Mono plus tabular plus slashed-zero (`font-feature-settings: 'tnum','zero'`) so the date string stays digit-aligned with the segment text in the trigger that opened the popover; renders at `--vueda-text-supporting` size with `leading-none` on `--muted-foreground` so the chin reads as status, not primary copy. */
+        summary: {
+            class: [
+                "font-mono font-medium text-[length:var(--vueda-text-supporting)] leading-none text-muted-foreground [font-feature-settings:'tnum','zero']",
+            ],
+        },
+    },
+
+    // ---------- Range calendar ----------
+
+    /**
+     * Two-bookend calendar grid for selecting a start / end date pair.
+     * Composed inside date-range-picker popovers.
+     */
+    RangeCalendar: {
+        /** See also: {@api theme-key:Calendar.root}; identical 12px-padded surface, only the grid inside differs (the {@api theme-key:RangeCalendarCell.root} carries the range-fill state). */
+        root: {
+            class: ["p-3"],
+        },
+    },
+
+    /**
+     * Title row above the RangeCalendar grid. Holds the heading and the
+     * prev / next nav buttons.
+     */
+    RangeCalendarHeader: {
+        /** The title row above a {@api theme-key:RangeCalendar.root}'s day grid. See also: {@api theme-key:CalendarHeader.root}; delta is that the prev / next buttons inside ({@api theme-key:RangeCalendarPrevButton.root} / {@api theme-key:RangeCalendarNextButton.root}) anchor to the row edges via `position: absolute`, so this header does not reserve `px-8` the way the single-calendar header does. */
+        root: {
+            class: ["flex justify-center pt-1 relative items-center w-full"],
+        },
+    },
+
+    /**
+     * The month-year title text inside a RangeCalendarHeader.
+     */
+    RangeCalendarHeading: {
+        /** See also: {@api theme-key:CalendarHeading.root}; identical recipe. */
+        root: {
+            class: ["text-sm font-medium"],
+        },
+    },
+
+    /**
+     * Previous-month button inside a RangeCalendarHeader. Positioned absolute
+     * to the left edge of the header.
+     */
+    RangeCalendarPrevButton: {
+        /** The previous-month button anchored to the left edge of a {@api theme-key:RangeCalendarHeader.root}. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonOutline.root}, then absolute-positions itself at `left-1` so the button does not consume row flex while the heading floats centred between the two edges. Same square 28×28 transparent plus 50%-opacity-at-rest treatment as {@api theme-key:CalendarNavButton.root}. */
+        root: {
+            composes: ["_ButtonBase.root", "_ButtonOutline.root"],
+            class: ["absolute left-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],
+        },
+    },
+
+    /**
+     * Next-month button inside a RangeCalendarHeader. Positioned absolute to
+     * the right edge of the header.
+     */
+    RangeCalendarNextButton: {
+        /** See also: {@api theme-key:RangeCalendarPrevButton.root}; mirror anchored to the right edge of the header at `right-1`. */
+        root: {
+            composes: ["_ButtonBase.root", "_ButtonOutline.root"],
+            class: ["absolute right-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],
+        },
+    },
+
+    /**
+     * The 7-column day grid inside RangeCalendar.
+     */
+    RangeCalendarGrid: {
+        /** See also: {@api theme-key:CalendarGrid.root}; identical recipe. */
+        root: {
+            class: ["w-full border-collapse space-x-1"],
+        },
+    },
+
+    /**
+     * A single week row inside a RangeCalendarGrid.
+     */
+    RangeCalendarGridRow: {
+        /** See also: {@api theme-key:CalendarGridRow.root}; identical recipe. */
+        root: {
+            class: ["flex"],
+        },
+    },
+
+    /**
+     * A weekday-label cell above the RangeCalendar day grid.
+     */
+    RangeCalendarHeadCell: {
+        /** See also: {@api theme-key:CalendarHeadCell.root}; identical recipe (the class-order difference vs the single-calendar slot is incidental, not a deliberate departure). */
+        root: {
+            class: ["w-[var(--vueda-cal-cell)] rounded-md text-[0.8rem] font-normal text-muted-foreground"],
+        },
+    },
+
+    /**
+     * A grid slot inside a RangeCalendarGridRow. Carries the range-fill
+     * background so selection-start / end corners round independently of the
+     * day button radius.
+     */
+    RangeCalendarCell: {
+        /** A grid slot inside a {@api theme-key:RangeCalendarGridRow.root}. Same `p-0` plus `relative` plus `focus-within:z-20` layout shape as {@api theme-key:CalendarCell.root}, plus the range-fill recipe: `[&:has([data-selected])]:bg-accent` paints `--accent` on the cell (not on the day button) whenever the inner trigger is part of the selected range, so middle cells render as a continuous strip while the `data-selection-start` and `data-selection-end` cells round only their outer corners via the `[&:has([data-selected][data-selection-start])]` / `[&:has([data-selected][data-selection-end])]` variants. Range fill goes on the cell rather than the day button so the run can round cleanly at its endpoints. */
+        root: {
+            class: [
+                "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([data-selected])]:bg-accent first:[&:has([data-selected])]:rounded-l-vueda-cal-day last:[&:has([data-selected])]:rounded-r-vueda-cal-day [&:has([data-selected][data-selection-end])]:rounded-r-vueda-cal-day [&:has([data-selected][data-selection-start])]:rounded-l-vueda-cal-day",
+            ],
+        },
+    },
+
+    /**
+     * The pressable day button inside a RangeCalendarCell. Carries the
+     * selection-start / selection-end states alongside today, disabled,
+     * unavailable, and outside-view; composes the ghost-button recipe for
+     * hover.
+     */
+    RangeCalendarCellTrigger: {
+        /** The pressable day button inside a {@api theme-key:RangeCalendarCell.root}. See also: {@api theme-key:CalendarCellTrigger.root}; delta is that the single `data-selected` state is replaced by paired `data-selection-start` / `data-selection-end` states that paint `--primary` only at the two endpoints, leaving the middle of the range to read through the `--accent` fill that {@api theme-key:RangeCalendarCell.root} paints on its cell. */
+        root: {
+            composes: ["_ButtonBase.root", "_ButtonGhost.root"],
+            class: [
+                "h-[var(--vueda-cal-day)] w-[var(--vueda-cal-day)] p-0 font-normal data-[selected]:opacity-100",
+                "[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground",
+                "data-[selection-start]:bg-primary data-[selection-start]:text-primary-foreground data-[selection-start]:hover:bg-primary data-[selection-start]:hover:text-primary-foreground data-[selection-start]:focus:bg-primary data-[selection-start]:focus:text-primary-foreground",
+                "data-[selection-end]:bg-primary data-[selection-end]:text-primary-foreground data-[selection-end]:hover:bg-primary data-[selection-end]:hover:text-primary-foreground data-[selection-end]:focus:bg-primary data-[selection-end]:focus:text-primary-foreground",
+                "data-[outside-view]:text-muted-foreground",
+                "data-[disabled]:text-muted-foreground data-[disabled]:opacity-50",
+                "data-[unavailable]:text-destructive data-[unavailable]:line-through",
+            ],
+        },
+    },
+
+    // ---------- Combobox ----------
+
+    /**
+     * Positioning anchor for the Combobox popover. Usually wraps the trigger
+     * so the popover aligns to the input.
+     */
+    ComboboxAnchor: {
+        /** The positioning anchor for the {@api theme-key:ComboboxList.root} popover. Pins to a 200px width by default so a Combobox that anchors to whitespace (rather than the trigger element) still has a sensible reference rectangle; consumers that wrap the trigger in the anchor inherit the trigger's width instead and can ignore this default. Layout-only slot; no chrome of its own. */
+        root: {
+            class: ["w-[200px]"],
+        },
+    },
+
+    /**
+     * The pressable surface that opens the Combobox popover. Combobox uses
+     * the input shell (not the neutral chip Select uses) because the user is
+     * about to type.
+     */
+    ComboboxTrigger: {
+        /** The pressable surface that opens the {@api theme-key:ComboboxList.root}. Ships empty today: in-tree consumers (`WidgetCombobox`) supply their own input-shell chrome via `asChild`, so the bare primitive has no usable default. The Combobox-vs-Select differentiator (Combobox reads as a field because the user is about to type) is enforced by consumers, not by this slot; see BACKLOG-008 for the API session that bakes the input-shell default into this primitive and resolves the multi-select div-trigger pattern. */
+        root: {
+            class: [""],
+        },
+    },
+
+    /**
+     * The floating popover surface that holds the Combobox results.
+     */
+    ComboboxList: {
+        /** The floating popover surface that holds the {@api theme-key:ComboboxItem.root} rows. Reads as a popover: 2px control radius, `--popover` fill, 1px border, and `shadow-vueda-popover` elevation, with the standard side-aware enter / exit transforms anchored on `--reka-combobox-content-transform-origin` so the surface scales out of the corner closest to the trigger. Fixed 200px width matches {@api theme-key:ComboboxAnchor.root}; the inner {@api theme-key:ComboboxViewport.root} owns scrolling. */
+        root: {
+            class: [
+                "z-50 w-[200px] rounded-vueda-control border bg-popover text-popover-foreground origin-(--reka-combobox-content-transform-origin) overflow-hidden shadow-vueda-popover outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+            ],
+        },
+    },
+
+    /**
+     * Scrollable region inside ComboboxList that wraps the results.
+     */
+    ComboboxViewport: {
+        /** The scrollable region inside {@api theme-key:ComboboxList.root} that wraps the result groups. Caps at 300px tall before the viewport begins to scroll; `scroll-py-1` keeps a hairline of breathing room above the first and below the last visible row so a focused item never crashes into the viewport edge. */
+        root: {
+            class: ["max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto"],
+        },
+    },
+
+    /**
+     * Search field at the top of a Combobox popover. Sized to the large
+     * control-height tier (`h-vueda-control-lg`) so it reads as the primary
+     * surface inside the popover.
+     */
+    ComboboxInput: {
+        /** The search field at the top of a {@api theme-key:ComboboxList.root}. Sized to the large control-height tier (`h-vueda-control-lg`) so the input reads as the primary surface inside the popover; renders chrome-free (`bg-transparent`, no border or focus ring) because the surrounding popover already owns the elevation and ring contracts. The Combobox trigger that opens the popover wears the input shell instead. */
+        root: {
+            class: [
+                "placeholder:text-muted-foreground flex h-vueda-control-lg w-full rounded-vueda-control bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+            ],
+        },
+    },
+
+    /**
+     * Section of related items inside ComboboxList, optionally with a
+     * heading. The heading slot renders the caps-mono-micro eyebrow recipe.
+     */
+    ComboboxGroup: {
+        /** A section of related {@api theme-key:ComboboxItem.root} rows inside {@api theme-key:ComboboxList.root}. 4px padding (`p-1`) carries the breathing room around the section so consecutive groups read as separate runs even without a {@api theme-key:ComboboxSeparator.root} between them; `overflow-hidden` clips a long inner row to the group's box rather than letting it bleed into a neighbour. */
+        root: {
+            class: ["overflow-hidden p-1 text-foreground"],
+        },
+        /** The optional heading row above a group's items. Renders the caps-mono-micro eyebrow recipe (mono, weight 600, micro size, uppercase, 0.04em tracking) on `--muted-foreground` so the label reads as a section eyebrow rather than as a result row. Same recipe as {@api theme-key:SelectLabel.root} and {@api theme-key:CommandGroup.heading} so all three pickers share one eyebrow voice. */
+        heading: {
+            class: "text-muted-foreground px-2 py-1.5 font-mono text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase",
+        },
+    },
+
+    /**
+     * Individual result row inside a Combobox. Highlighted by `--accent` when
+     * focused; muted icon flips to `--accent-foreground` on highlight.
+     */
+    ComboboxItem: {
+        /** A single result row inside a {@api theme-key:ComboboxGroup.root}. The `data-highlighted` state (set by the picker on keyboard or pointer focus) paints `--accent` / `--accent-foreground`, and the muted leading icon flips to inherit on the same rule so a highlighted row reads as one tinted strip. `data-disabled` halves opacity and drops pointer events; `rounded-sm` keeps the row a chit inside the group's slab. The committed-value `data-state=checked` tint that {@api theme-key:SelectItem.root} carries is not applied here because Combobox commits by closing the popover; the trailing {@api theme-key:ComboboxItemIndicator.root} marks the selection instead. */
+        root: {
+            class: [
+                "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+            ],
+        },
+    },
+
+    /**
+     * Indicator (check mark, etc.) on a selected ComboboxItem.
+     */
+    ComboboxItemIndicator: {
+        /** The trailing selected-state glyph on a {@api theme-key:ComboboxItem.root} (typically a check mark). `ml-auto` pushes the indicator to the row's trailing edge; size and colour are inherited from the surrounding row so the indicator picks up the highlight swap without painting its own state. */
+        root: {
+            class: ["ml-auto"],
+        },
+    },
+
+    /**
+     * 1px divider between sections inside a Combobox.
+     */
+    ComboboxSeparator: {
+        /** A 1px horizontal divider between groups inside {@api theme-key:ComboboxList.root}. Renders as a flat `--border` hairline rather than the DPR-aware `hairline` utility because the separator sits inside a popover that already paints its own border at the same width, so the visual seam never reads as a doubled line. `-mx-1` extends the divider to the popover edge past the group's 4px inner padding. */
+        root: {
+            class: ["bg-border -mx-1 h-px"],
+        },
+    },
+
+    /**
+     * Placeholder shown inside ComboboxList when the search has zero results.
+     */
+    ComboboxEmpty: {
+        /** The zero-result placeholder shown inside {@api theme-key:ComboboxList.root} when the search has no matches. Centred sm text inside 24px vertical padding so the empty state reads as a deliberate pause rather than a collapsed popover; consumers supply their own copy. */
+        root: {
+            class: ["py-6 text-center text-sm"],
+        },
+    },
+
+    // ---------- Command ----------
+
+    /**
+     * Command palette surface (a search + categorised result list). Often
+     * hosted inside a CommandDialog; can also render inline. Uses card radius
+     * (4px), not control radius (2px), because Command is a shell surface,
+     * not a slab control.
+     */
+    Command: {
+        /** The outer Command surface (a search + categorised result list). 4px card radius rather than the 2px control radius the rest of the picker family wears, because Command is a shell surface, not a slab control. The flex-column layout stacks {@api theme-key:CommandInput.root}, {@api theme-key:CommandList.root}, and optional {@api theme-key:CommandFooter.root} into one chip, and `overflow-hidden` lets the inner list scroll without escaping the rounded corners. Used inline or hosted inside a {@api theme-key:CommandDialog.content}. */
+        root: {
+            class: [
+                "bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-vueda-card",
+            ],
+        },
+    },
+
+    /**
+     * Search field at the top of a Command. The wrapper slot adds the inset
+     * icon and divider below the input.
+     */
+    CommandInput: {
+        /** The free-text search field at the top of a {@api theme-key:Command.root}. Renders chrome-free at `--vueda-cmd-input-height` so the surrounding {@api theme-key:CommandInput.wrapper} owns the row's geometry and the lower hairline; the input itself just contributes placeholder, focus-clear, and the disabled treatment. */
+        root: {
+            class: [
+                "placeholder:text-muted-foreground flex h-[var(--vueda-cmd-input-height)] w-full rounded-vueda-control bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+            ],
+        },
+        /** The row that wraps {@api theme-key:CommandInput.root} together with the leading search icon, sized to `--vueda-cmd-input-height` and capped by a bottom hairline (`border-b`) so the input separates cleanly from the {@api theme-key:CommandList.root} below. The wrapper, not the input, owns the divider so the seam stays continuous even when the input is empty or focused. */
+        wrapper: { class: "flex h-[var(--vueda-cmd-input-height)] items-center gap-2 border-b px-3" },
+    },
+
+    /**
+     * Scrollable region of Command holding the result groups.
+     */
+    CommandList: {
+        /** The scrollable region of {@api theme-key:Command.root} that holds the result groups. See also: {@api theme-key:ComboboxViewport.root}; identical 300px cap and `scroll-py-1` recipe so both pickers feel the same when keyboard navigation crosses the viewport edge. */
+        root: {
+            class: ["max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto"],
+        },
+    },
+
+    /**
+     * Placeholder shown when the Command search has zero results.
+     */
+    CommandEmpty: {
+        /** The zero-result placeholder shown inside {@api theme-key:CommandList.root} when the search has no matches. See also: {@api theme-key:ComboboxEmpty.root}; identical recipe. */
+        root: {
+            class: ["py-6 text-center text-sm"],
+        },
+    },
+
+    /**
+     * Section of related items inside CommandList, with a heading row.
+     */
+    CommandGroup: {
+        /** A section of related {@api theme-key:CommandItem.root} rows inside {@api theme-key:CommandList.root}. See also: {@api theme-key:ComboboxGroup.root}; identical recipe. */
+        root: {
+            class: ["text-foreground overflow-hidden p-1"],
+        },
+        /** The optional heading row above a group's items. See also: {@api theme-key:ComboboxGroup.heading}; identical caps-mono-micro eyebrow on `--muted-foreground`. The class-order difference (no leading `font-mono`) is incidental: the rendered recipe matches because `font-mono` is restated later in the list. */
+        heading: {
+            class: "px-2 py-1.5 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em] text-muted-foreground",
+        },
+    },
+
+    /**
+     * Individual result row inside a Command. Same highlight recipe as
+     * ComboboxItem.
+     */
+    CommandItem: {
+        /** A single result row inside a {@api theme-key:CommandGroup.root}. See also: {@api theme-key:ComboboxItem.root}; identical highlight + disabled + icon-tint recipe so result rows feel the same across both pickers. Command differs only at the row's trailing edge, where {@api theme-key:CommandShortcut.root} (rather than {@api theme-key:ComboboxItemIndicator.root}) marks the kbd hint for invoking the action. */
+        root: {
+            class: [
+                "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+            ],
+        },
+    },
+
+    /**
+     * 1px divider between sections inside Command.
+     */
+    CommandSeparator: {
+        /** A 1px horizontal divider between groups inside {@api theme-key:CommandList.root}. See also: {@api theme-key:ComboboxSeparator.root}; identical recipe. */
+        root: {
+            class: ["bg-border -mx-1 h-px"],
+        },
+    },
+
+    /**
+     * Inline keyboard-shortcut hint on the trailing edge of a CommandItem.
+     */
+    CommandShortcut: {
+        /** The inline keyboard-shortcut hint on the trailing edge of a {@api theme-key:CommandItem.root}. `ml-auto` pushes the hint flush right; renders as xs muted text with `tracking-widest` so a multi-character chord stays scannable inside a single row. Not a kbd shell: the visible glyph box is owned by an inner `<kbd>`. */
+        root: {
+            class: ["text-muted-foreground ml-auto text-xs tracking-widest"],
+        },
+    },
+
+    /**
+     * Optional chin below CommandList carrying keyboard-navigation hints (↑↓
+     * navigate, ↵ select, Esc close) and custom action labels. Inline `<kbd>`
+     * inside the footer drops to 18x18 / mono 10px so the chin trades
+     * legibility for density.
+     */
+    CommandFooter: {
+        /** The optional chin below {@api theme-key:CommandList.root}. Sits at `--vueda-cmd-footer-height` (32px) on `--muted` with a top hairline, holding keyboard-navigation hints on the leading edge and custom action labels on the trailing edge; supporting-size copy on `--muted-foreground` reads as status rather than primary chrome. Inline `<kbd>` elements inside the footer are restyled to 18x18 / mono 10px / 2px radius (a deliberate departure from the body {@api theme-key:Kbd} primitive) so a `↑↓` chord fits in the chin without breaking the row baseline. */
+        root: {
+            class: [
+                "flex h-[var(--vueda-cmd-footer-height)] items-center justify-between gap-3 border-t bg-muted px-[var(--vueda-control-px-md)] text-[length:var(--vueda-text-supporting)] text-muted-foreground",
+                "[&_kbd]:inline-flex [&_kbd]:h-[18px] [&_kbd]:min-w-[18px] [&_kbd]:items-center [&_kbd]:justify-center [&_kbd]:rounded-[2px] [&_kbd]:border [&_kbd]:bg-background [&_kbd]:px-1 [&_kbd]:font-mono [&_kbd]:text-[10px] [&_kbd]:font-medium [&_kbd]:text-foreground",
+            ],
+        },
+        /** The hints cluster inside a {@api theme-key:CommandFooter.root}. Inline-flex row with a 12px gap so consecutive kbd-plus-label pairs (`↑↓ navigate`, `↵ select`, `Esc close`) sit as one readable strip rather than collapsing into a run-on glyph soup. */
+        hints: { class: "inline-flex items-center gap-3" },
+        /** A single kbd-plus-label pair inside {@api theme-key:CommandFooter.hints}. Tighter 6px inner gap pairs the `<kbd>` with its trailing label so the pair reads as one unit against the wider gap between sibling hints. */
+        hint: { class: "inline-flex items-center gap-1.5" },
+    },
+
+    /**
+     * Dialog wrapper that hosts a Command at modal scale. The header is
+     * `sr-only`; the content slot drops all padding so Command's own chrome
+     * owns the geometry.
+     */
+    CommandDialog: {
+        /** The {@api theme-key:DialogContent.root} pane that hosts a {@api theme-key:Command.root} at modal scale. Drops all padding so Command's own card radius, fill, and inner geometry own the dialog box, and `overflow-hidden` keeps the inner list's scroll edges clipped to the rounded corners. */
+        content: { class: "overflow-hidden p-0" },
+        /** The dialog header. Hidden with `sr-only` because the Command's own {@api theme-key:CommandInput.root} acts as the visible label; the header still ships so accessible-name requirements are met for screen readers. */
+        header: { class: "sr-only" },
+    },
+
+    // ---------- Select ----------
+
+    /**
+     * The pressable surface that opens a Select. Reads as a neutral chip (not
+     * an input shell) to differentiate Select-the-enum-picker from
+     * Combobox-the-searchable-picker.
+     */
+    SelectTrigger: {
+        /** The pressable surface that opens a {@api theme-key:SelectContent.root}. Reads as a neutral chip (transparent at rest, `hairline` border, `shadow-vueda-control` micro-shadow, control-radius corners) rather than the input shell {@api theme-key:ComboboxTrigger.root} wears, because Select is an enum picker and the user is not about to type. Hover paints `hairline-border-strong` (one step darker than the resting hairline) without firing the focus ring. Three size tiers ride `h-vueda-control*` plus matching `px-vueda-control-px*`; dark mode follows the input-tint convention (`bg-input/30`, hover `bg-input/50`), and `aria-invalid` swaps both the hairline and the focus-ring shadow to destructive. Placeholder text mutes to `--muted-foreground` so an unselected trigger reads as empty rather than as a chosen value. */
+        root: {
+            class: [
+                "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 hover:hairline-border-strong hairline flex w-fit items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-vueda-control data-[size=sm]:h-vueda-control-sm data-[size=lg]:h-vueda-control-lg data-[size=lg]:px-vueda-control-px-lg *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 focus-visible:hairline-ring focus-visible:focus-ring-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
+            ],
+        },
+    },
+
+    /**
+     * The floating popover surface that holds the Select options. `position`
+     * picks between `popper` (anchored) and `item-aligned` (legacy aligned
+     * with the selected item).
+     */
+    SelectContent: {
+        /** The floating popover surface that holds the {@api theme-key:SelectItem.root} options. Reads as a popover (2px radius, 1px border, `shadow-vueda-popover` elevation) capped at the viewport-available height that Reka exposes via `--reka-select-content-available-height`; the `popper`-position-only translate nudges (`translate-y-1`, etc.) sit the popover one 4px step off the trigger so the surface does not crash into the chip that opened it. The `item-aligned` legacy mode (the popover aligns itself to the selected item rather than anchoring to the trigger) skips those nudges and shares all other chrome. */
+        root: ({ position }) => ({
+            class: [
+                "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--reka-select-content-available-height) min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-vueda-control border shadow-vueda-popover",
+                {
+                    "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1":
+                        position === "popper",
+                },
+            ],
+        }),
+        /** The padded inner region inside {@api theme-key:SelectContent.root} that wraps the option list. In `popper` mode the viewport pins to the trigger's height and width (`--reka-select-trigger-height` / `--reka-select-trigger-width`) so the popover footprint matches the chip that opened it; `scroll-my-1` keeps the highlighted item from crashing into the viewport edge as keyboard navigation crosses long lists. The legacy `item-aligned` mode skips the pin and lets the viewport size to its content. */
+        viewport: ({ position }) => ({
+            class: [
+                "p-1",
+                {
+                    "h-[var(--reka-select-trigger-height)] w-full min-w-[var(--reka-select-trigger-width)] scroll-my-1":
+                        position === "popper",
+                },
+            ],
+        }),
+    },
+
+    /**
+     * Individual option inside a SelectContent. The committed value tints
+     * with `bg-primary/10`; the highlighted-but-not-committed option uses
+     * `--accent`.
+     */
+    SelectItem: {
+        /** A single option inside a {@api theme-key:SelectContent.viewport}. Carries the two-track selection state that distinguishes Select from Combobox: the highlighted-but-not-committed option paints `--accent` / `--accent-foreground` on `:focus`, while the committed value (`data-state=checked`) tints with `bg-primary/10` so the chosen option reads as a soft primary band even when another row is highlighted; the indicator icon alone is not a strong enough signal at rest. `pr-8` reserves trailing space for the check indicator; `rounded-sm` keeps the option a chit inside the popover slab. */
+        root: {
+            class: [
+                "focus:bg-accent focus:text-accent-foreground data-[state=checked]:bg-primary/10 [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+            ],
+        },
+    },
+
+    /**
+     * Section heading inside SelectContent (caps, mono micro). Same eyebrow
+     * recipe as ComboboxGroup.heading.
+     */
+    SelectLabel: {
+        /** The section heading inside a {@api theme-key:SelectContent.root}. See also: {@api theme-key:ComboboxGroup.heading}; same caps-micro eyebrow on `--muted-foreground` (the rendered class list drops the leading `font-mono`, but Tailwind's default sans / mono cascade leaves the eyebrow visually identical at the micro size). */
+        root: {
+            class: [
+                "text-muted-foreground px-2 py-1.5 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em]",
+            ],
+        },
+    },
+
+    /**
+     * 1px divider between sections inside SelectContent.
+     */
+    SelectSeparator: {
+        /** A 1px horizontal divider between sections inside {@api theme-key:SelectContent.viewport}. See also: {@api theme-key:ComboboxSeparator.root}; delta is a vertical 4px margin (`my-1`) so the divider breathes against the surrounding 4px viewport padding, plus `pointer-events-none` so the hairline never intercepts a click meant for a neighbouring row. */
+        root: {
+            class: ["bg-border pointer-events-none -mx-1 my-1 h-px"],
+        },
+    },
+
+    /**
+     * Scroll-up affordance on long SelectContent lists.
+     */
+    SelectScrollUpButton: {
+        /** The scroll-up affordance that surfaces at the top of a long {@api theme-key:SelectContent.viewport}. 4px tall flex centre so the slot reads as a thin handle rather than a button; the consumer paints the chevron glyph inside. Reka shows / hides the slot automatically based on scroll position. */
+        root: {
+            class: ["flex cursor-default items-center justify-center py-1"],
+        },
+    },
+
+    /**
+     * Scroll-down affordance on long SelectContent lists.
+     */
+    SelectScrollDownButton: {
+        /** See also: {@api theme-key:SelectScrollUpButton.root}; mirror at the bottom of the viewport. */
+        root: {
+            class: ["flex cursor-default items-center justify-center py-1"],
+        },
+    },
+
+    // ---------- Tags input ----------
+
+    /**
+     * Multi-value input that captures discrete entries (tags, emails,
+     * keywords) as pill chips. The text input grows in the same shell as the
+     * committed chips.
+     */
+    TagsInput: {
+        /** The outer shell of a multi-value input that captures discrete entries as pill chips. Reads as the input family: `hairline` border, control radius, `shadow-vueda-control` micro-shadow, dark-mode `bg-input/30` tint. Flex-wrap with an 8px gap so committed {@api theme-key:TagsInputItem.root} chips and the trailing {@api theme-key:TagsInputInput.root} flow onto new rows as the chip count grows. Focus and `aria-invalid` rings fire on the shell (not the inner input) via `:has(input:focus-visible)` and `:has([data-state=active])` selectors: typing in the field paints the standard focus ring on the shell; focusing a committed chip (`data-state=active`) suppresses the shell ring so the chip's own active outline is the only one visible at a time. */
+        root: {
+            class: [
+                "flex flex-wrap gap-2 items-center rounded-vueda-control hairline bg-background dark:bg-input/30 px-2 py-1 text-sm shadow-vueda-control transition-shadow",
+                "has-[input:focus-visible]:hairline-ring [&:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow",
+                "aria-invalid:hairline-destructive [&[aria-invalid]:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow-destructive",
+            ],
+        },
+    },
+
+    /**
+     * The free-text entry field inside a TagsInput. Sized to the chip height
+     * so committed and pending text share a baseline.
+     */
+    TagsInputInput: {
+        /** The free-text entry field inside a {@api theme-key:TagsInput.root}. Sized to `--vueda-chip-height` so pending text shares a baseline with the committed chips beside it; renders chrome-free (transparent fill, no border, no focus ring) because the surrounding shell owns the chip-row contract and fires the focus ring on its own when the input is focused. `flex-1` lets the field absorb the remaining row width inside the wrap so the typing affordance always reaches the trailing edge. */
+        root: {
+            class: ["text-sm min-h-[var(--vueda-chip-height)] focus:outline-none flex-1 bg-transparent px-1"],
+        },
+    },
+
+    /**
+     * An individual committed chip inside a TagsInput. Pill radius marks it
+     * as a user-manipulated tag/chip object (versus slab-radius system
+     * badges).
+     */
+    TagsInputItem: {
+        /** An individual committed chip inside a {@api theme-key:TagsInput.root}. Pill radius (not the control / card radius the rest of the form family wears) marks the chip as a user-manipulated tag object rather than a slab-radius system badge or a chrome chit. Sized to `--vueda-chip-height` so multiple chips on a row share one baseline. `data-state=active` (set when the chip receives keyboard focus to edit or delete it) paints the standard focus ring on the chip, and the surrounding {@api theme-key:TagsInput.root} suppresses its own ring on the same condition so only one ring paints at a time. */
+        root: {
+            class: [
+                "flex h-[var(--vueda-chip-height)] items-center rounded-vueda-pill bg-secondary data-[state=active]:focus-ring",
+            ],
+        },
+    },
+
+    /**
+     * The text label inside a TagsInputItem.
+     */
+    TagsInputItemText: {
+        /** The text label inside a {@api theme-key:TagsInputItem.root}. 4px / 8px padding on a transparent fill so the label reads as content sitting inside the secondary-tinted chip rather than carrying its own surface; sm size matches the surrounding {@api theme-key:TagsInputInput.root} so committed and pending text share a tier. */
+        root: {
+            class: ["py-0.5 px-2 text-sm rounded bg-transparent"],
+        },
+    },
+
+    /**
+     * The remove (x) button at the trailing edge of a TagsInputItem.
+     */
+    TagsInputItemDelete: {
+        /** The remove (x) button at the trailing edge of a {@api theme-key:TagsInputItem.root}. Transparent fill so the button rides on the chip's secondary surface rather than punching its own swatch; the trailing 4px margin separates the glyph from the chip's pill end so the hit target does not run into the rounded edge. */
+        root: {
+            class: ["flex rounded bg-transparent mr-1"],
+        },
+    },
+
+    // ---------- Checkbox ----------
+
+    /**
+     * Standard boolean checkbox. 4px corner (one step softer than the 2px
+     * control radius) so it reads as a chit rather than a miniature slab
+     * control. Checked state fills with `--primary`; aria-invalid swaps the
+     * fill and ring to destructive.
+     */
+    Checkbox: {
+        /** The boolean-chit shell. 24px square at a 4px corner (one step softer than the 2px control radius) so it reads as a chit rather than a miniature slab control. Default state paints a `hairline` edge on the input-tinted surface and carries the standard focus + `aria-invalid` ring contract. Checked and indeterminate states fill with `--primary` and drop the hairline (the `--vueda-hairline-color:transparent` override on the same selectors) so the surface reads as a single solid swatch; `aria-invalid` swaps both the fill and the painted edge to `--destructive`. */
+        root: {
+            class: [
+                "peer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground hairline size-6 shrink-0 rounded-vueda-checkbox shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+                "data-[state=checked]:[--vueda-hairline-color:transparent] data-[state=indeterminate]:[--vueda-hairline-color:transparent]",
+                "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive aria-invalid:data-[state=checked]:bg-destructive aria-invalid:data-[state=checked]:text-destructive-foreground aria-invalid:data-[state=indeterminate]:bg-destructive aria-invalid:data-[state=indeterminate]:text-destructive-foreground",
+            ],
+        },
+        /** The centring grid for the indicator glyph (the check or indeterminate-dash icon rendered inside {@api theme-key:Checkbox.root}). `grid place-content-center` parks the icon dead-centre regardless of font-size or zoom; `text-current` lets the glyph inherit the root's `--primary-foreground` (or destructive-foreground on `aria-invalid`) so a custom icon picks up the correct fill without a second class hook. `transition-none` because the surrounding root owns the state-change tones; an animated indicator would lag the surface flip. */
+        indicator: {
+            class: ["grid place-content-center text-current transition-none"],
+        },
+    },
+
+    // ---------- Radio group ----------
+
+    /**
+     * Layout shell for a vertical run of RadioGroupItems.
+     */
+    RadioGroup: {
+        /** Layout shell for a vertical run of {@api theme-key:RadioGroupItem.root}. 12px gap (`gap-3`) so the items breathe at the form-level density; the items, not the group, carry the focus and `aria-invalid` rings, so the group itself is a transparent layout container. Override to `flex` or `grid-flow-col` for a horizontal stack without touching the per-item contract. */
+        root: {
+            class: ["grid gap-3"],
+        },
+    },
+
+    /**
+     * Individual radio button inside a RadioGroup. The `indicator` and `dot`
+     * slots paint the SVG circle dot inside the ring.
+     */
+    RadioGroupItem: {
+        /** The individual radio chit inside a {@api theme-key:RadioGroup.root}. 24px circle, paired with the 24px {@api theme-key:Checkbox.root} square so the two single-select families share a row height. `hairline` edge on an input-tinted surface (`dark:bg-input/30`) with the standard focus + `aria-invalid` ring contract. Selected state is carried by the inner {@api theme-key:RadioGroupItem.dot} via `text-primary` on the root (the dot inherits the colour through `bg-current`); `aria-invalid` recolours the dot to `--destructive` the same way. */
+        root: {
+            class: [
+                "text-primary dark:bg-input/30 hairline aspect-square size-6 shrink-0 rounded-full shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50",
+                "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive aria-invalid:text-destructive",
+            ],
+        },
+        /** The centring wrapper for the selected dot. `relative flex items-center justify-center` parks the painted {@api theme-key:RadioGroupItem.dot} dead-centre regardless of font-size or zoom; the parallel of {@api theme-key:Checkbox.indicator} for the radio family's single-select shape. */
+        indicator: {
+            class: ["relative flex items-center justify-center"],
+        },
+        /** The selected-state dot painted inside {@api theme-key:RadioGroupItem.indicator}. 12px circle on `bg-current` so it inherits the parent {@api theme-key:RadioGroupItem.root}'s `text-primary` (or `text-destructive` when `aria-invalid`); using `current` keeps the dot in lockstep with the surrounding ring colour without a second class hook. */
+        dot: {
+            class: ["size-3 rounded-full bg-current"],
+        },
+    },
+
+    // ---------- Switch ----------
+
+    /**
+     * Sliding boolean control. Tighter than the iOS-canonical size: 18px
+     * track / 16px thumb. Checked state fills with `--primary`.
+     */
+    Switch: {
+        /** The track of the sliding boolean control. Tighter than the iOS-canonical size: 18.4px tall (`h-[1.15rem]`), 32px wide (`w-8`), so the switch sits at the form density tier rather than ballooning above the 32px control row. Pill radius; checked fills `--primary`, unchecked fills `--input` (with a darker `--input/80` tint in dark mode for visibility against the deeper canvas). Focus paints `--ring` directly on the otherwise-transparent 1px border and adds a 2px outline at 2px offset, rather than the canon `focus-ring` utility, because the track + thumb composition needs the ring to wrap the entire pill without the inset shadow variant interfering with the thumb's transform. */
+        root: {
+            class: [
+                "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-vueda-control transition-all disabled:cursor-not-allowed disabled:opacity-50",
+            ],
+        },
+        /** The sliding indicator inside {@api theme-key:Switch.root}. 16px circle (`size-4`) sized to fit inside the 18.4px track with a 1.2px gap on each axis; `translate-x-[calc(100%-2px)]` shifts the thumb the track width on checked state and parks it 2px in from the trailing edge so a hairline of track stays visible. Fill flips by palette: `bg-background` on light, `bg-foreground` (unchecked) or `bg-primary-foreground` (checked) on dark, so the thumb reads opposite the track tone in both palettes. `transition-transform` because only the position animates; the fill flip is instant to stay aligned with the track's state change. */
+        thumb: {
+            class: [
+                "bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0",
+            ],
+        },
+    },
+
+    // ---------- Slider ----------
+
+    /**
+     * Continuous-value control with a track, range fill, and one or more
+     * thumbs. Supports horizontal (default) and vertical orientation.
+     */
+    Slider: {
+        /** The continuous-value control surface. Flex row by default; `data-[orientation=vertical]` flips to flex column and applies a 176px (`min-h-44`) minimum height so a vertical slider has enough travel to be precise. `touch-none` and `select-none` so dragging the {@api theme-key:Slider.thumb} does not scroll the page or initiate a text selection. `data-[disabled]:opacity-50` is the disabled signal; pointer events are blocked at the Reka primitive level above this slot, so no `cursor-not-allowed` is needed on the root. */
+        root: {
+            class: [
+                "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
+            ],
+        },
+        /** The neutral channel that the {@api theme-key:Slider.range} fills against. `bg-muted` so it reads as inert chrome behind the active fill; 6px thick (`h-1.5` horizontal, `w-1.5` vertical) at pill radius so the ends round into the {@api theme-key:Slider.thumb}. `overflow-hidden` clips the range fill to the rounded ends so the active portion meets the track corners cleanly. */
+        track: {
+            class: [
+                "bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5",
+            ],
+        },
+        /** The active fill between the track origin and the current {@api theme-key:Slider.thumb} position. `bg-primary` makes the slider's selected portion read as the same selection tone as the rest of the form family. Absolutely positioned inside {@api theme-key:Slider.track} and sized 100% on the cross-axis so it always paints the full track thickness regardless of orientation. */
+        range: {
+            class: ["bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"],
+        },
+        /** The drag handle painted on top of {@api theme-key:Slider.track}. 16px circle on a white fill with a 1px `--primary` border so the knob reads as tactile and grabbable against any palette. `hover:ring-4` and `focus-visible:ring-4` paint a 4px `--ring/50` halo at the slider's scale, with `outline-hidden` suppressing the default browser focus outline so the halo is the only focus paint; the canon `focus-ring` utility is skipped here because the offset-outline variant would extend outside the track and clip against the surrounding layout. Multiple thumbs render when the model value is an array, giving a two-handle range. */
+        thumb: {
+            class: [
+                "bg-white border-primary ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50",
+            ],
+        },
+    },
+};
