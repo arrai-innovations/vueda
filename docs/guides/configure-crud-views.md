@@ -1,7 +1,7 @@
 ---
 title: Configure `list`/`read`/`create`/`update` Views
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

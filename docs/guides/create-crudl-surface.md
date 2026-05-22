@@ -1,7 +1,7 @@
 ---
 title: Create a CRUDL Surface for a New Model
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
