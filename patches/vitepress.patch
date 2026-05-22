@@ -1,0 +1,15 @@
+diff --git a/dist/node/chunk-D3CUZ4fa.js b/dist/node/chunk-D3CUZ4fa.js
+index fcc35e8af6f0178bd475a90d3e51efdb0d80d2c5..766339c01f49968458d14e63d4f47c0440bd6ab4 100644
+--- a/dist/node/chunk-D3CUZ4fa.js
++++ b/dist/node/chunk-D3CUZ4fa.js
+@@ -49511,8 +49511,8 @@ function resolvePageImports(config, page, result, appChunk) {
+   return [
+     ...appChunk.imports,
+     ...appChunk.dynamicImports,
+-    ...pageChunk.imports,
+-    ...pageChunk.dynamicImports
++    ...(pageChunk ? pageChunk.imports : []),
++    ...(pageChunk ? pageChunk.dynamicImports : [])
+   ];
+ }
+ async function renderHead(head) {

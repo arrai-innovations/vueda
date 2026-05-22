@@ -1,0 +1,13 @@
+# Local gunicorn overrides.
+#
+# Copy this file to gunicorn.conf.py and edit as needed. gunicorn.conf.py is
+# gitignored because it contains machine-specific paths.
+#
+# gunicorn picks this file up automatically when running from the server/
+# directory; no extra flags are required.
+#
+# Uncomment and fill in the paths below to enable local HTTPS. See the
+# "Local HTTPS Development" guide in the VUEDA docs for full setup instructions.
+
+# certfile = "/path/to/localhost.pem"
+# keyfile  = "/path/to/localhost-key.pem"

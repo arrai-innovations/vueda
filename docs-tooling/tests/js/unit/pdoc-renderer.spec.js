@@ -170,6 +170,29 @@ describe("renderPdocBundle with class members", () => {
         expect(classPage).not.toContain("py:property:vueda.example.Helper.__doc__");
     });
 
+    it("class page includes undocumented public methods (class is the doc unit)", () => {
+        const normalizer = new PdocNormalizer();
+        const payload = makePayload();
+        payload.docs[1].members.push("vueda.example.Helper.bare_method");
+        payload.docs.push({
+            kind: "function",
+            name: "bare_method",
+            fullname: "vueda.example.Helper.bare_method",
+            modulename: "vueda.example",
+            qualname: "Helper.bare_method",
+            docstring: "",
+            is_public: true,
+            signature_details: {
+                parameters: [{ name: "self", annotation: null, default: null }],
+                return_annotation: null,
+            },
+        });
+        const bundle = normalizer.normalize(payload);
+        const outputs = renderPdocBundle(bundle);
+        const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
+        expect(classPage).toMatch(/## bare_method \{#bare_method\}/);
+    });
+
     it("class page includes documented dunders", () => {
         const outputs = buildOutputs();
         const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
@@ -192,6 +215,139 @@ describe("renderPdocBundle with class members", () => {
         const outputs = buildOutputs();
         const modulePage = [...outputs.entries()].find(([k]) => k.endsWith("example.md"))?.[1];
         expect(modulePage).toContain("# vueda.example");
+    });
+});
+
+describe("renderPdocBundle module-level inlining", () => {
+    const modulePayload = () => ({
+        module_names: ["vueda.mod"],
+        docs: [
+            {
+                kind: "module",
+                name: "mod",
+                fullname: "vueda.mod",
+                modulename: "vueda.mod",
+                qualname: "",
+                docstring: "Module docs.",
+                members: [
+                    "vueda.mod.documented_helper",
+                    "vueda.mod.undocumented_helper",
+                    "vueda.mod.ADDED",
+                    "vueda.mod.DOC_CONST",
+                    "vueda.mod.Thing",
+                ],
+                submodules: [],
+                source_file: "/srv/vueda/mod.py",
+                source_lines: { start: 1, end: 30 },
+            },
+            {
+                kind: "function",
+                name: "documented_helper",
+                fullname: "vueda.mod.documented_helper",
+                modulename: "vueda.mod",
+                qualname: "documented_helper",
+                docstring: "Does a documented thing.",
+                is_public: true,
+                signature_details: { parameters: [], return_annotation: "None" },
+                source_file: "/srv/vueda/mod.py",
+                source_lines: { start: 3, end: 5 },
+            },
+            {
+                kind: "function",
+                name: "undocumented_helper",
+                fullname: "vueda.mod.undocumented_helper",
+                modulename: "vueda.mod",
+                qualname: "undocumented_helper",
+                docstring: "",
+                is_public: true,
+                signature_details: { parameters: [], return_annotation: "None" },
+                source_file: "/srv/vueda/mod.py",
+                source_lines: { start: 7, end: 8 },
+            },
+            {
+                kind: "variable",
+                name: "ADDED",
+                fullname: "vueda.mod.ADDED",
+                modulename: "vueda.mod",
+                qualname: "ADDED",
+                docstring: "",
+                is_public: true,
+                source_file: "/srv/vueda/mod.py",
+                source_lines: { start: 10, end: 10 },
+            },
+            {
+                kind: "variable",
+                name: "DOC_CONST",
+                fullname: "vueda.mod.DOC_CONST",
+                modulename: "vueda.mod",
+                qualname: "DOC_CONST",
+                docstring: "A documented constant.",
+                is_public: true,
+                source_file: "/srv/vueda/mod.py",
+                source_lines: { start: 12, end: 12 },
+            },
+            {
+                kind: "class",
+                name: "Thing",
+                fullname: "vueda.mod.Thing",
+                modulename: "vueda.mod",
+                qualname: "Thing",
+                docstring: "A thing.",
+                members: [],
+                source_file: "/srv/vueda/mod.py",
+                source_lines: { start: 15, end: 25 },
+            },
+        ],
+    });
+
+    function buildModuleOutputs() {
+        const bundle = new PdocNormalizer().normalize(modulePayload());
+        return renderPdocBundle(bundle);
+    }
+
+    it("does not emit standalone files for module-level functions or properties", () => {
+        const outputs = buildModuleOutputs();
+        const keys = [...outputs.keys()];
+        expect(keys).not.toContain("py/vueda.mod/documented_helper.md");
+        expect(keys).not.toContain("py/vueda.mod/DOC_CONST.md");
+        expect(keys).not.toContain("py/vueda.mod/ADDED.md");
+        expect(keys).not.toContain("py/vueda.mod/undocumented_helper.md");
+    });
+
+    it("still emits standalone files for module-level classes", () => {
+        const outputs = buildModuleOutputs();
+        expect([...outputs.keys()]).toContain("py/vueda.mod/Thing.md");
+    });
+
+    it("inlines documented module-level members on the module page", () => {
+        const outputs = buildModuleOutputs();
+        const modulePage = outputs.get("py/vueda.mod.md");
+        expect(modulePage).toMatch(/## documented_helper \{#documented_helper\}/);
+        expect(modulePage).toMatch(/## DOC_CONST \{#DOC_CONST\}/);
+    });
+
+    it("filters undocumented non-class, non-module members from the module page", () => {
+        const outputs = buildModuleOutputs();
+        const modulePage = outputs.get("py/vueda.mod.md");
+        expect(modulePage).not.toContain("undocumented_helper");
+        expect(modulePage).not.toMatch(/## ADDED/);
+    });
+
+    it("lists classes under a Classes heading on the module page", () => {
+        const outputs = buildModuleOutputs();
+        const modulePage = outputs.get("py/vueda.mod.md");
+        expect(modulePage).toContain("## Classes");
+        expect(modulePage).toContain("Thing");
+    });
+
+    it("module page frontmatter member_ids covers inlined members only", () => {
+        const outputs = buildModuleOutputs();
+        const modulePage = outputs.get("py/vueda.mod.md");
+        expect(modulePage).toContain("py:function:vueda.mod.documented_helper");
+        expect(modulePage).toContain("py:property:vueda.mod.DOC_CONST");
+        expect(modulePage).not.toContain("py:property:vueda.mod.ADDED");
+        expect(modulePage).not.toContain("py:function:vueda.mod.undocumented_helper");
+        expect(modulePage).not.toContain("py:class:vueda.mod.Thing");
     });
 });
 

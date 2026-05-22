@@ -62,8 +62,7 @@ export function buildTypedocPathMap(bundle, index) {
 
 function pdocModulePath(node) {
     const moduleName = node.extensions?.pdoc?.modulename || node.name;
-    const pathPart = moduleName.replace(/\./g, "/");
-    return `py/${pathPart}.md`;
+    return `py/${moduleName}.md`;
 }
 
 function pdocClassDir(node, moduleFile) {
@@ -82,11 +81,13 @@ export function pdocPathForNode(node, index) {
         const dir = pdocClassDir(parent, moduleFile);
         return `${dir}.md#${slugify(node.name)}`;
     }
-    const moduleAncestor = parent?.kind === "module" ? parent : parent ? index.parentOf.get(parent.id) : null;
-    if (moduleAncestor && moduleAncestor.kind === "module") {
-        const moduleFile = pdocModulePath(moduleAncestor);
-        const dir = moduleFile.replace(/\.md$/, "");
-        return `${dir}/${slugify(node.name)}.md`;
+    if (parent?.kind === "module") {
+        const moduleFile = pdocModulePath(parent);
+        if (node.kind === "class") {
+            const dir = moduleFile.replace(/\.md$/, "");
+            return `${dir}/${slugify(node.name)}.md`;
+        }
+        return `${moduleFile}#${slugify(node.name)}`;
     }
     return `py/${slugify(node.name)}.md`;
 }
@@ -150,15 +151,15 @@ export function buildOpenApiPathMap(bundle, index) {
 }
 
 export function vueDocgenComponentPath(node) {
-    return `vue/components/${slugify(node.name)}.md`;
+    return `vue/${slugify(node.name)}.md`;
 }
 
 export function vueDocgenSlotsPath(node) {
-    return `vue/components/${slugify(node.name)}/slots.md`;
+    return `vue/${slugify(node.name)}/slots.md`;
 }
 
 export function vueDocgenEventsPath(node) {
-    return `vue/components/${slugify(node.name)}/events.md`;
+    return `vue/${slugify(node.name)}/events.md`;
 }
 
 export function buildVueDocgenPathMap(bundle) {

@@ -120,14 +120,46 @@ describe("buildPdocPathMap", () => {
         const bundle = new PdocNormalizer().normalize(pdocPayload());
         const index = buildCanonicalIndex(bundle);
         const pathMap = buildPdocPathMap(bundle, index);
-        expect(pathMap.get("py:module:vueda.example")).toBe("py/vueda/example.md");
+        expect(pathMap.get("py:module:vueda.example")).toBe("py/vueda.example.md");
     });
 
     it("maps a class id to a path under the module directory", () => {
         const bundle = new PdocNormalizer().normalize(pdocPayload());
         const index = buildCanonicalIndex(bundle);
         const pathMap = buildPdocPathMap(bundle, index);
-        expect(pathMap.get("py:class:vueda.example.Helper")).toBe("py/vueda/example/Helper.md");
+        expect(pathMap.get("py:class:vueda.example.Helper")).toBe("py/vueda.example/Helper.md");
+    });
+
+    it("maps a module-level function id to an anchor on the module page", () => {
+        const payload = {
+            module_names: ["vueda.mod"],
+            docs: [
+                {
+                    kind: "module",
+                    name: "mod",
+                    fullname: "vueda.mod",
+                    modulename: "vueda.mod",
+                    qualname: "",
+                    docstring: "Module docs.",
+                    members: ["vueda.mod.helper"],
+                    submodules: [],
+                },
+                {
+                    kind: "function",
+                    name: "helper",
+                    fullname: "vueda.mod.helper",
+                    modulename: "vueda.mod",
+                    qualname: "helper",
+                    docstring: "Helper.",
+                    is_public: true,
+                    signature_details: { parameters: [], return_annotation: "None" },
+                },
+            ],
+        };
+        const bundle = new PdocNormalizer().normalize(payload);
+        const index = buildCanonicalIndex(bundle);
+        const pathMap = buildPdocPathMap(bundle, index);
+        expect(pathMap.get("py:function:vueda.mod.helper")).toBe("py/vueda.mod.md#helper");
     });
 });
 
@@ -178,10 +210,10 @@ describe("buildOpenApiPathMap", () => {
 // ---------------------------------------------------------------------------
 
 describe("buildVueDocgenPathMap", () => {
-    it("maps a component id to vue/components/<name>.md", () => {
+    it("maps a component id to vue/<name>.md", () => {
         const bundle = new VueDocgenNormalizer().normalize(vueDocgenPayload);
         const pathMap = buildVueDocgenPathMap(bundle);
-        expect(pathMap.get("vue:component:Foo")).toBe("vue/components/Foo.md");
+        expect(pathMap.get("vue:component:Foo")).toBe("vue/Foo.md");
     });
 
     it("generates exactly one path-map entry per component (sub-page paths are added by the renderer)", () => {
