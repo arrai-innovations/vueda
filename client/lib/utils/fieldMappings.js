@@ -44,7 +44,6 @@ export const defaultFieldMappings = {
     },
     CompositePrimaryKeyField: {
         CompositePrimaryKey: {
-            component: availableFields.FieldString,
             widget: availableWidgets.WidgetReadOnly,
             default: true,
         },
