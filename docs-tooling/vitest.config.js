@@ -2,6 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
     test: {
+        watch: false,
         include: ["tests/js/**/*.test.js", "tests/js/**/*.spec.js"],
         coverage: {
             reportOnFailure: true,

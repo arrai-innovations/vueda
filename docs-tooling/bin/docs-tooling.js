@@ -1,14 +1,21 @@
 #!/usr/bin/env node
 import { ComponentsExtractor } from "../js/extractors/components.js";
+import { CssTokensExtractor } from "../js/extractors/css-tokens.js";
 import { JavaScriptExtractor } from "../js/extractors/javascript.js";
+import { ThemeKeysExtractor } from "../js/extractors/theme-keys.js";
+import { CssTokensNormalizer } from "../js/normalizers/css-tokens.js";
 import { OpenApiNormalizer } from "../js/normalizers/openapi.js";
 import { PdocNormalizer } from "../js/normalizers/pdoc.js";
+import { ThemeKeysNormalizer } from "../js/normalizers/theme-keys.js";
 import { TypeDocNormalizer } from "../js/normalizers/typedoc.js";
 import { VueDocgenNormalizer } from "../js/normalizers/vue-docgen-api.js";
+import { renderCssTokensBundle } from "../js/renderers/css-tokens.js";
 import { renderOpenApiBundle } from "../js/renderers/openapi.js";
 import { renderPdocBundle } from "../js/renderers/pdoc.js";
+import { renderThemeKeysBundle } from "../js/renderers/theme-keys.js";
 import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
 import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
+import { bucketRendererOutputs } from "../js/utils/bucket-renderer-outputs.js";
 import { validateReferences } from "../js/validators/references.js";
 import { execFile } from "node:child_process";
 import fs from "node:fs";
@@ -62,6 +69,16 @@ async function extractComponents(outDir) {
     await extractor.extract({ outputPath: path.join(outDir, "vue-docgen.json") });
 }
 
+async function extractCssTokens(outDir) {
+    const extractor = new CssTokensExtractor();
+    await extractor.extract({ outputPath: path.join(outDir, "css-tokens.json") });
+}
+
+async function extractThemeKeys(outDir) {
+    const extractor = new ThemeKeysExtractor();
+    await extractor.extract({ outputPath: path.join(outDir, "theme-keys.json") });
+}
+
 function resolveOutDir(outDir) {
     return outDir ? path.resolve(process.cwd(), outDir) : path.join(repoRoot, "docs-tooling", ".generated");
 }
@@ -73,6 +90,8 @@ function expandTargets(targets) {
         set.add("rest");
         set.add("javascript");
         set.add("components");
+        set.add("css-tokens");
+        set.add("theme-keys");
         set.delete("all");
     }
     return Array.from(set);
@@ -85,6 +104,8 @@ function expandNormalizeTargets(targets) {
         set.add("vue-docgen");
         set.add("openapi");
         set.add("pdoc");
+        set.add("css-tokens");
+        set.add("theme-keys");
         set.delete("all");
     }
     return Array.from(set);
@@ -107,6 +128,12 @@ async function runExtract(argv) {
                 break;
             case "components":
                 await extractComponents(outDir);
+                break;
+            case "css-tokens":
+                await extractCssTokens(outDir);
+                break;
+            case "theme-keys":
+                await extractThemeKeys(outDir);
                 break;
             default:
                 throw new Error(`Unknown target: ${target}`);
@@ -132,6 +159,14 @@ async function runNormalize(argv) {
             input: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.json"),
             output: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.canonical.json"),
         },
+        "css-tokens": {
+            input: path.join(repoRoot, "docs-tooling", ".generated", "css-tokens.json"),
+            output: path.join(repoRoot, "docs-tooling", ".generated", "css-tokens.canonical.json"),
+        },
+        "theme-keys": {
+            input: path.join(repoRoot, "docs-tooling", ".generated", "theme-keys.json"),
+            output: path.join(repoRoot, "docs-tooling", ".generated", "theme-keys.canonical.json"),
+        },
     };
 
     const requestedSources = expandNormalizeTargets(argv.source || []);
@@ -154,6 +189,12 @@ async function runNormalize(argv) {
                 break;
             case "pdoc":
                 normalizer = new PdocNormalizer();
+                break;
+            case "css-tokens":
+                normalizer = new CssTokensNormalizer();
+                break;
+            case "theme-keys":
+                normalizer = new ThemeKeysNormalizer();
                 break;
             default:
                 throw new Error(`Unknown source: ${source}`);
@@ -280,7 +321,19 @@ async function runRender(argv) {
             input: path.join(repoRoot, "docs-tooling", ".generated", "pdoc.canonical.json"),
             output: path.join(repoRoot, "docs", "reference", "api"),
         },
+        "css-tokens": {
+            input: path.join(repoRoot, "docs-tooling", ".generated", "css-tokens.canonical.json"),
+            output: path.join(repoRoot, "docs", "reference"),
+        },
+        "theme-keys": {
+            input: path.join(repoRoot, "docs-tooling", ".generated", "theme-keys.canonical.json"),
+            output: path.join(repoRoot, "docs", "reference"),
+        },
     };
+
+    // Sources whose output should NOT have auto-generated index.md pages
+    // appended (the renderer emits its own group/index pages).
+    const skipIndexFor = new Set(["css-tokens", "theme-keys"]);
 
     const requestedSources = expandNormalizeTargets(argv.source || []);
 
@@ -288,20 +341,41 @@ async function runRender(argv) {
         throw new Error("input can only be used with a single source");
     }
 
-    const combinedOutputs = new Map();
-    const outputDir = path.resolve(
-        process.cwd(),
-        argv.output || defaults[requestedSources[0]]?.output || defaults.typedoc.output,
-    );
+    // If both vue-docgen and theme-keys are requested, pre-load each side's
+    // canonical so the renderers can emit bidirectional cross-links.
+    let themeKeysIndex;
+    let componentNames;
+    if (requestedSources.includes("vue-docgen") && requestedSources.includes("theme-keys") && !argv.input) {
+        const tkPath = defaults["theme-keys"].input;
+        try {
+            const tkRaw = await fs.promises.readFile(tkPath, "utf-8");
+            const tkBundle = JSON.parse(tkRaw);
+            themeKeysIndex = new Set((tkBundle.entries || []).map((e) => e.name));
+        } catch {
+            themeKeysIndex = undefined;
+        }
+        const vdPath = defaults["vue-docgen"].input;
+        try {
+            const vdRaw = await fs.promises.readFile(vdPath, "utf-8");
+            const vdBundle = JSON.parse(vdRaw);
+            const components = (vdBundle.nodes || []).filter((n) => n.kind === "component");
+            componentNames = new Set(components.map((c) => c.name).filter(Boolean));
+        } catch {
+            componentNames = undefined;
+        }
+    }
 
+    const renderItems = [];
     for (const source of requestedSources) {
         let renderer;
+        let rendererOptions;
         switch (source) {
             case "typedoc":
                 renderer = renderTypeDocBundle;
                 break;
             case "vue-docgen":
                 renderer = renderVueDocgenBundle;
+                rendererOptions = themeKeysIndex ? { themeKeysIndex } : undefined;
                 break;
             case "openapi":
                 renderer = renderOpenApiBundle;
@@ -309,25 +383,41 @@ async function runRender(argv) {
             case "pdoc":
                 renderer = renderPdocBundle;
                 break;
+            case "css-tokens":
+                renderer = renderCssTokensBundle;
+                break;
+            case "theme-keys":
+                renderer = renderThemeKeysBundle;
+                rendererOptions = componentNames ? { componentNames } : undefined;
+                break;
             default:
                 throw new Error(`Unknown source: ${source}`);
         }
 
         const inputPath = path.resolve(process.cwd(), argv.input || defaults[source].input);
+        const sourceOutputDir = path.resolve(process.cwd(), argv.output || defaults[source].output);
         const raw = await fs.promises.readFile(inputPath, "utf-8");
         const bundle = JSON.parse(raw);
-        const outputs = renderer(bundle);
-        for (const [filePath, contents] of outputs.entries()) {
-            combinedOutputs.set(filePath, contents);
-        }
+        const outputs = rendererOptions ? renderer(bundle, rendererOptions) : renderer(bundle);
+        renderItems.push({ source, outputDir: sourceOutputDir, outputs });
     }
 
-    addIndexPages(combinedOutputs);
-    await writeRenderedFiles(outputDir, combinedOutputs);
+    const { combinedByDir, skipIndexDirs } = bucketRendererOutputs(renderItems, { skipIndexFor });
+
+    for (const [dir, outputs] of combinedByDir.entries()) {
+        if (!skipIndexDirs.has(dir)) {
+            addIndexPages(outputs);
+        }
+        await writeRenderedFiles(dir, outputs);
+    }
 }
 
 const defaultExcludes = [
     "reference/api",
+    "reference/theming/tokens",
+    "reference/theming/tokens.md",
+    "reference/theming/keys",
+    "reference/theming/keys.md",
     ".vitepress",
     ".generated",
     "temp",
@@ -401,7 +491,7 @@ yargs(hideBin(process.argv))
                 .option("target", {
                     alias: "t",
                     array: true,
-                    choices: ["all", "python", "rest", "javascript", "components"],
+                    choices: ["all", "python", "rest", "javascript", "components", "css-tokens", "theme-keys"],
                     default: ["all"],
                     describe: "Which extractors to run",
                 })
@@ -420,7 +510,7 @@ yargs(hideBin(process.argv))
                 .option("source", {
                     alias: "s",
                     array: true,
-                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc"],
+                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc", "css-tokens", "theme-keys"],
                     default: ["all"],
                     describe: "Which source format to normalize",
                 })
@@ -444,7 +534,7 @@ yargs(hideBin(process.argv))
                 .option("source", {
                     alias: "s",
                     array: true,
-                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc"],
+                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc", "css-tokens", "theme-keys"],
                     default: ["all"],
                     describe: "Which source format to render",
                 })
