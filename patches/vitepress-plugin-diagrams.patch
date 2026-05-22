@@ -1,0 +1,28 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+index c84e6d5548122196732e7019815e1e747d8c3b90..f09b779f3b3be6218857b76b3fa7b9fe45600717 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -10,7 +10,7 @@
+   <text x="50%" y="65%" font-family="system-ui" font-size="14" fill="#666" text-anchor="middle" dominant-baseline="middle">
+     Refresh the page.
+   </text>
+-</svg>`;C.writeFileSync(c,p);const g=i.krokiServerUrl??"https://kroki.io";fetch(`${g}/${u}`,{method:"POST",headers:{Accept:"image/svg+xml","Content-Type":"text/plain"},body:r}).then(d=>d.text()).then(d=>(C.writeFileSync(c,d),d))}const f=i.publicPath??"/diagrams";return`<figure
++</svg>`;C.writeFileSync(c,p);const g=i.krokiServerUrl??"https://kroki.io";fetch(`${g}/${u}`,{method:"POST",headers:{Accept:"image/svg+xml","Content-Type":"text/plain"},body:r}).then(d=>d.text()).then(d=>(C.writeFileSync(c,d),d)).catch(err=>{console.warn(`vitepress-plugin-diagrams: failed to fetch ${u} diagram from kroki: ${err.message}`)})}const f=i.publicPath??"/diagrams";return`<figure
+       class="vpd-diagram vpd-diagram--${u}"
+       onclick="
+         const figure = this;
+diff --git a/dist/index.js b/dist/index.js
+index f2648d4fa3d2406bbb9f098ddfec09457d4294be..d50644ede1af490f1ab6def128c83e4813b76657 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -411,7 +411,9 @@ function O(t, u, e, s, i = {}, F) {
+           "Content-Type": "text/plain"
+         },
+         body: D
+-      }).then((d) => d.text()).then((d) => (C.writeFileSync(c, d), d));
++      }).then((d) => d.text()).then((d) => (C.writeFileSync(c, d), d)).catch((err) => {
++        console.warn(`vitepress-plugin-diagrams: failed to fetch ${u} diagram from kroki: ${err.message}`);
++      });
+     }
+     const f = i.publicPath ?? "/diagrams";
+     return `<figure

@@ -4,6 +4,10 @@ packages:
     - docs-tooling
     - server
 
+patchedDependencies:
+    vitepress-plugin-diagrams@1.1.2: patches/vitepress-plugin-diagrams.patch
+    vitepress@1.6.4: patches/vitepress.patch
+
 allowBuilds:
     core-js: true
     esbuild: true
