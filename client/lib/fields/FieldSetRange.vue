@@ -1,13 +1,14 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
-import FormChores from "@vueda/components/FormChores.vue";
+import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
+import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { getFormChoresSlotNames } from "@vueda/utils/buildForm.js";
 import { FilterModelSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
 import IsObject from "lodash-es/isObject.js";
-import { computed, inject, watch } from "vue";
+import { computed, inject, useSlots, watch } from "vue";
 
 /**
  * Composite field that renders a pair of sub-fields for the lower and upper
@@ -35,15 +36,25 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 const theme = useTheme("FieldSetRange", props);
+const icon = useIcons("FieldSetRange");
 const emit = defineEmits([...FIELD_EMITS]);
 
 const fieldContext = useField(props, emit);
 const logger = useDevLogger({ fieldContext });
+const slots = useSlots();
 const formModel = inject(FormModelSymbol, null);
 const filterModel = inject(FilterModelSymbol, null);
 const boundaryNames = computed(() => {
     return props.suffixes.map((suffix) => `${fieldContext.state.name}__${suffix}`) ?? [];
 });
+
+const hasChoresContent = computed(
+    () =>
+        !!fieldContext.state.help ||
+        Object.keys(fieldContext.state.errors).length > 0 ||
+        Object.keys(fieldContext.state.messages).length > 0,
+);
+const hasChoresSlot = computed(() => !!slots["field-set-level-chores"]);
 
 const lower = computed(() => {
     return fieldContext.state.value?.[props.suffixes[0]] ?? null;
@@ -88,25 +99,14 @@ watch(
 );
 </script>
 <template>
-    <div :class="theme('root')" data-qa="field-set-many">
+    <div :class="theme('root')" data-qa="field-set-range" data-vueda-fieldset>
         <div :class="theme('header')">
             <label :class="theme('label')" :for="fieldContext.state.name">
                 {{ fieldContext.state.label }}
             </label>
         </div>
-        <!-- @slot [field-set-level-chores] Override the form-level validation chores block rendered above the range sub-fields. -->
-        <slot name="field-set-level-chores">
-            <form-chores :variant="null">
-                <template
-                    v-for="slot in getFormChoresSlotNames(fieldContext.state.formModelName)"
-                    #[slot]="formChoresSlotProps"
-                >
-                    <slot :name="slot" v-bind="formChoresSlotProps" />
-                </template>
-            </form-chores>
-        </slot>
-        <div :class="theme('inner')">
-            <template v-for="name in boundaryNames" :key="name">
+        <div :class="theme('inner')" data-qa="field-set-range-inner">
+            <template v-for="(name, boundaryIndex) in boundaryNames" :key="name">
                 <field-renderer
                     :form-model="formModel ?? filterModel"
                     :form-model-name="name"
@@ -117,7 +117,37 @@ watch(
                         <slot :name="slotName" v-bind="slotProps" />
                     </template>
                 </field-renderer>
+                <div
+                    v-if="boundaryIndex === 0 && boundaryNames.length > 1"
+                    :class="theme('separator')"
+                    data-qa="field-set-range-separator"
+                    aria-hidden="true"
+                >
+                    <!-- @slot [separator] Replaces the glyph rendered between the lower and upper sub-fields. -->
+                    <slot name="separator">
+                        <component
+                            :is="icon('rangeSeparator').component"
+                            v-if="icon('rangeSeparator')"
+                            v-bind="icon('rangeSeparator').props"
+                        />
+                        <span v-else aria-hidden="true">→</span>
+                    </slot>
+                </div>
             </template>
+        </div>
+        <div v-if="hasChoresContent || hasChoresSlot" :class="theme('choresPanel')" data-qa="field-set-range-chores">
+            <!-- @slot [field-set-level-chores] Override the validation block rendered below the range sub-fields. -->
+            <slot name="field-set-level-chores">
+                <FieldDescription v-if="fieldContext.state.help">
+                    {{ fieldContext.state.help }}
+                </FieldDescription>
+                <FieldMessage :messages="Object.values(fieldContext.state.errors)" />
+                <FieldMessage
+                    v-if="Object.keys(fieldContext.state.messages).length"
+                    severity="warning"
+                    :messages="Object.values(fieldContext.state.messages)"
+                />
+            </slot>
         </div>
     </div>
 </template>
