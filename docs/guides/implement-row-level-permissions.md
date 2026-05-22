@@ -1,7 +1,7 @@
 ---
 title: Implement Row-Level Permissions
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

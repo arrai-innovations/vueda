@@ -1,7 +1,7 @@
 ---
 title: Handle Form Validation and Server Errors
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -110,35 +110,36 @@ In this example, blurring the `sku` field within a line item clears server error
 
 ## Non-Field and Field Feedback Rendering
 
-Non-field errors; server validation that is not associated with a specific field; arrive under the key `non_field_errors` (the DRF convention, preserved as `NON_FIELD_ERRORS_KEY` on the client). These are rendered by `FormFeedback` when it is inside a form context but outside a field context:
+Non-field errors; server validation that is not associated with a specific field; arrive under the key `non_field_errors` (the DRF convention, preserved as `NON_FIELD_ERRORS_KEY` on the client). These are rendered by `FormMessage` placed inside the form context. Multiple messages collapse into a single Alert containing a list, rather than a stack of individual Alerts:
 
 ```vue
 <form @submit.prevent="submit">
-  <form-feedback type="error" />
-  <form-feedback type="message" />
+  <form-message type="error" />
+  <form-message type="message" />
   <!-- field components -->
 </form>
 ```
 
-Field-level feedback is rendered by `FormFeedback` (or `FormChores`, which composes help text with error and message feedback) when inside a field context:
+Field-level feedback is rendered automatically by `FormField` via `FieldMessage` (a muted line under the control). The same `FormField` also renders help text via `FieldDescription`, so a typical field requires no explicit feedback elements:
 
 ```vue
-<field-string name="email" label="Email" required>
+<form-field name="email" label="Email" required>
   <form-label>
     <widget-input />
   </form-label>
-  <form-chores />
-</field-string>
+</form-field>
 ```
 
-`FormChores` renders both error and message feedback for the field, using named slot conventions for customization. For non-field feedback with structured objects, the server must emit objects with a `detail` template property:
+### Structured Feedback Objects
+
+Most feedback entries are plain strings. When a single message needs to carry structured payload (e.g. a list of offending rows that should render as a bullet list), the server may emit an object instead of a string:
 
 ```python
 raise VuedaValidationError(
     {
         "non_field_errors": [
             {
-                "detail": "Some rows are invalid: ${rows}",
+                "detail": "Some rows are invalid:",
                 "rows": rows,
             }
         ]
@@ -146,7 +147,23 @@ raise VuedaValidationError(
 )
 ```
 
-The `FormFeedback` renderer replaces `${token}` placeholders with the corresponding properties from the object. Array-valued properties are rendered as HTML lists. This is a hard contract: structured objects without a `detail` property throw at render time, and the client does not provide a fallback renderer for them.
+The default `FormMessage` renderer has no opinion on object shape: it iterates the object's entries and renders each as a `name: value` line. That fallback is rarely what you want for a structured payload, so the expectation is that consumers override `FormMessage`'s default slot with a purpose-built component that pattern-matches on the shape and renders it appropriately:
+
+```vue
+<form-message type="error">
+  <template #default="{ message }">
+    <template v-if="message && typeof message === 'object' && Array.isArray(message.rows)">
+      <p>{{ message.detail }}</p>
+      <ul>
+        <li v-for="row in message.rows" :key="row">{{ row }}</li>
+      </ul>
+    </template>
+    <template v-else>{{ message }}</template>
+  </template>
+</form-message>
+```
+
+Each shape gets its own renderer. This keeps the formatting next to the UI and avoids stringly typed template payloads on the wire.
 
 ## Server Contract Expectations
 
@@ -160,19 +177,19 @@ For the validation pipeline to work correctly, the server must follow these conv
 
 **Keep `non_field_errors` for cross-field validation.** DRF's exception handler rewrites top-level list errors into `{non_field_errors: [...]}`. The client expects this key and renders it at the form level, not at any specific field.
 
-**Treat structured feedback objects as contract-bound.** If you emit object-valued feedback entries, include a `detail` template string on each object. Missing `detail` is treated as invalid payload shape and causes a render-time `TypeError` in `FormFeedback`.
+**Render structured feedback objects client-side.** Object-valued feedback entries do not have a wire-format template contract. The default renderer falls back to a `name: value` line per entry. If you emit structured objects, plan to render them with a purpose-built component that overrides `FormMessage`'s default slot and matches on the shape; see the structured feedback example above.
 
 ## Verification Checklist
 
 With the validation pipeline wired, verify these behaviors:
 
 - Submitting a form with invalid data produces field-level error messages under the correct fields.
-- Non-field errors appear at the form level (above or below the field list, depending on `FormFeedback` placement).
+- Non-field errors appear at the form level (above or below the field list, depending on `FormMessage` placement).
 - Blurring a field that had a server error clears the error message.
 - After clearing a server error by blur, resubmitting sends the request (server-only errors do not block).
 - Local validation errors (required fields left empty, custom validate failures) block submission with a "Pre-save Validation Failed" toast.
 - Server warnings (from `is_warning=True`) appear with warning severity (yellow) and do not block submission.
-- Structured non-field error objects render their `detail` template with token substitution.
+- Structured non-field error objects render through `FormMessage`'s default slot override (or, without an override, as `name: value` fallback lines).
 - The first-error scroll navigates to `non_field_errors` first, then to the first displayed field with an error.
 
 ## Troubleshooting
@@ -210,5 +227,6 @@ With the validation pipeline wired, verify these behaviors:
 - Vue.js Components:
     - {@api vue:component:ActionForm}
     - {@api vue:component:ModelActionForm}
-    - {@api vue:component:FormChores}
-    - {@api vue:component:FormFeedback}
+    - {@api vue:component:FormMessage}
+    - {@api vue:component:FieldMessage}
+    - {@api vue:component:FieldDescription}

@@ -1,7 +1,7 @@
 ---
 title: Build Nested/Inlined Writes
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

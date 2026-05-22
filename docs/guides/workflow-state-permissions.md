@@ -1,7 +1,7 @@
 ---
 title: Add Workflow State and Transition Permissions
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

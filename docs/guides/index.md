@@ -1,12 +1,22 @@
 ---
-audience: implementors
+audience: integrator
 status: draft
 type: index
 ---
 
 # Guides
 
-Guides are task-focused recipes for implementors working on real VUEDA projects. They assume you already know your domain model and need practical steps for wiring server + client behavior.
+Guides are task-focused recipes for integrators working on real VUEDA projects. They assume you already know your domain model and need practical steps for wiring server + client behavior.
+
+## Environment & Networking
+
+- [Local HTTPS Development](local-https-setup.md): Set up mkcert, gunicorn TLS, and Vite HTTPS for a production-like local environment with secure cookies.
+
+## Client Setup & Theming
+
+- [Client Plugin Prerequisites](client-plugin-prerequisites.md): Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting.
+- [shadcn-vue and VUEDA](shadcn-vue.md): How VUEDA relates to shadcn-vue, what `shadcn-vue add` does and does not support, and how to use shadcn-vue blocks alongside VUEDA.
+- [Customize VUEDA Appearance](customize-vueda-appearance.md): Concrete recipes for the four customization scopes: instance, component, family, and brand.
 
 ## Resource Modeling & CRUDL
 

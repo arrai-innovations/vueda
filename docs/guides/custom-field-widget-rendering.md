@@ -1,7 +1,7 @@
 ---
 title: Customize Field and Widget Rendering
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -58,7 +58,7 @@ modelConfigStore.setConfig(
     { app: "myapp", model: "mymodel" },
     {
         fieldComponents: { line_items: "FieldSetTabularInline" },
-        widgetComponents: { line_items__status: "WidgetSelect" },
+        widgetComponents: { line_items__status: "WidgetSelectDropdown" },
     },
 );
 ```
@@ -156,7 +156,7 @@ modelConfigStore.setConfig(
     { app: "myapp", model: "mymodel" },
     {
         fieldComponents: { line_items: "FieldSetTabularInline" },
-        widgetComponents: { line_items__status: "WidgetSelect" },
+        widgetComponents: { line_items__status: "WidgetSelectDropdown" },
         fieldProps: { line_items: { showCreateButton: false } },
         widgetProps: { line_items__amount: { step: 0.01 } },
     },
@@ -214,5 +214,5 @@ const widget = useWidget(props, emit);
     - {@api vue:component:DetailedView}
     - {@api vue:component:FilterForm}
     - {@api vue:component:FieldSetTabularInline}
-    - {@api vue:component:WidgetSelect}
+    - {@api vue:component:WidgetSelectDropdown}
     - {@api vue:component:WidgetUnmapped}

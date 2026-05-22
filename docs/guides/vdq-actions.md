@@ -1,7 +1,7 @@
 ---
 title: Run Actions in the VUEDA Dispatch Queue (VDQ)
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
