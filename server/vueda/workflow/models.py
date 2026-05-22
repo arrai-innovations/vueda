@@ -753,10 +753,8 @@ class HasWorkflowModelMixin(models.Model):
         """
         Override this method to add custom logic on transition.
         """
-        pass
 
     def on_transition_ignored(self, transition: Transition, user: User | None = None):
         """
         Override this method to add custom logic when a transition is intentionally ignored.
         """
-        pass

@@ -6,7 +6,7 @@ orbs:
     pypi: arrai/pypi@3.1.0
     pytest: arrai/pytest@9.1.1
     pip-audit: arrai/pip-audit@1.0.4
-    utils: arrai/utils@1.21.1
+    utils: arrai/utils@1.22.0
 
 parameters:
     run-client-workflows:
@@ -126,7 +126,13 @@ workflows:
                   hook_manager: lefthook
                   install_deps: true
                   setup:
-                      - utils/add_npm_config
+                      - utils/add_npm_config:
+                            registry: npm.arrai.dev
+                            token: $NPM_ARRAI_DEV_TOKEN
+                            scopes: |
+                                @arrai-innovations:registry=https://npm.arrai.dev/
+                                @fortawesome:registry=https://npm.arrai.dev/
+                                @awesome.me:registry=https://npm.arrai.dev/
                       - run:
                             name: Install server dev dependencies
                             command: |
@@ -154,7 +160,13 @@ workflows:
                   create_badges: false
                   install_deps: true
                   setup:
-                      - utils/add_npm_config
+                      - utils/add_npm_config:
+                            registry: npm.arrai.dev
+                            token: $NPM_ARRAI_DEV_TOKEN
+                            scopes: |
+                                @arrai-innovations:registry=https://npm.arrai.dev/
+                                @fortawesome:registry=https://npm.arrai.dev/
+                                @awesome.me:registry=https://npm.arrai.dev/
                       - run:
                             name: Install server dev dependencies
                             command: |

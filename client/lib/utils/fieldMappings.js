@@ -42,6 +42,13 @@ export const defaultFieldMappings = {
             fieldProps: { validation: "text" },
         },
     },
+    CompositePrimaryKeyField: {
+        CompositePrimaryKey: {
+            component: availableFields.FieldString,
+            widget: availableWidgets.WidgetReadOnly,
+            default: true,
+        },
+    },
     DateField: {
         DateField: {
             widget: availableWidgets.WidgetDateField,

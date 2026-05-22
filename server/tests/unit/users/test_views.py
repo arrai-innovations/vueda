@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import ClassVar
 
 import pytest
 from django.urls import reverse
@@ -9,14 +10,14 @@ from tests.conftest import BaseTestUserMixin
 
 @pytest.mark.django_db
 class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
             ("tests", "Timesheet", "read"),
         ],
     }
 
-    users_to_create = {
-        "test_user+timesheet+reader@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_user+timesheet+reader@domain.invalid": {
             "name": "Test User reader",
             "password": "testpass",
             "groups": ["Timesheet Reader"],
@@ -24,7 +25,7 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     def test_as_user(self, api_client):
-        user = self.users["test_user+timesheet+reader@example.com"]
+        user = self.users["test_user+timesheet+reader@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         url = reverse("who-is")
@@ -41,5 +42,5 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
             "totp_devices",
             "recently_logged_in",
         }
-        assert response.data["email"] == "test_user+timesheet+reader@example.com"
+        assert response.data["email"] == "test_user+timesheet+reader@domain.invalid"
         assert response.data["formatted_name"] == response.data["email"]

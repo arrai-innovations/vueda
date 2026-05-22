@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 import pytest
 from django.urls import reverse
 
@@ -9,7 +11,7 @@ from tests.models import Product
 
 @pytest.mark.django_db
 class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, BaseTestUserMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("tests", "Product", "read"),
             ("tests", "Product", "list"),
@@ -32,29 +34,29 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         ],
     }
 
-    users_to_create = {
-        "test_super_user@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_super_user@domain.invalid": {
             "name": "Test Super User",
             "password": "testpass",
             "is_superuser": True,
             "groups": [],
         },
-        "test_admin@example.com": {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer@example.com": {
+        "test_customer@domain.invalid": {
             "name": "Test Customer",
             "password": "testpass",
             "groups": ["Customer"],
         },
-        "test_customer_deleter@example.com": {
+        "test_customer_deleter@domain.invalid": {
             "name": "Test Customer Deleter",
             "password": "testpass",
             "groups": ["Customer Deleter"],
         },
-        "test_employee@example.com": {
+        "test_employee@domain.invalid": {
             "name": "Test Employee",
             "password": "testpass",
             "groups": ["Employee"],
@@ -69,7 +71,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
     }
 
     def test_retrieve_product_super_user(self, api_client):
-        user = self.users["test_super_user@example.com"]
+        user = self.users["test_super_user@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         product = Product.objects.get(name="Apple")
@@ -84,7 +86,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         self.assert_response(response, 200)
 
     def test_retrieve_product_true(self, api_client):
-        user = self.users["test_admin@example.com"]
+        user = self.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         product = Product.objects.get(name="Banana")  # Admin can access products that are not for sale.
@@ -100,7 +102,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert response.data["name"] == "Banana"
 
     def test_retrieve_product_available_for_sale_true(self, api_client):
-        user = self.users["test_customer@example.com"]
+        user = self.users["test_customer@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         product = Product.objects.get(name="Apple")
@@ -116,7 +118,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert response.data["name"] == "Apple"
 
     def test_retrieve_product_available_for_sale_false(self, api_client):
-        user = self.users["test_customer@example.com"]
+        user = self.users["test_customer@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         product = Product.objects.get(name="Banana")
@@ -131,7 +133,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         self.assert_response(response, 404)
 
     def test_retrieve_product_false(self, api_client):
-        user = self.users["test_employee@example.com"]
+        user = self.users["test_employee@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         product = Product.objects.get(name="Apple")
@@ -146,7 +148,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         self.assert_response(response, 404)
 
     def test_list_products_super_user(self, api_client):
-        user = self.users["test_super_user@example.com"]
+        user = self.users["test_super_user@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
 
@@ -159,7 +161,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert {x["name"] for x in response.data["results"]} == {"Apple", "Banana", "Mango", "Orange"}
 
     def test_list_products_true(self, api_client):
-        user = self.users["test_admin@example.com"]
+        user = self.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
 
@@ -173,7 +175,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert {x["name"] for x in response.data["results"]} == {"Apple", "Banana", "Mango", "Orange"}
 
     def test_list_products_filtered_by_q(self, api_client):
-        user = self.users["test_customer@example.com"]
+        user = self.users["test_customer@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
 
@@ -188,7 +190,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert {x["name"] for x in response.data["results"]} == {"Apple", "Mango"}
 
     def test_list_product_false(self, api_client):
-        user = self.users["test_employee@example.com"]
+        user = self.users["test_employee@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
 
@@ -202,7 +204,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert not response.data["results"]
 
     def test_bulk_destroy_products_mixed_row_level_permissions(self, api_client):
-        user = self.users["test_customer_deleter@example.com"]
+        user = self.users["test_customer_deleter@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         apple = Product.objects.get(name="Apple")
@@ -223,7 +225,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert Product.objects.filter(pk=banana.pk).exists()
 
     def test_bulk_destroy_products_allowed_by_row_level_permissions(self, api_client):
-        user = self.users["test_customer_deleter@example.com"]
+        user = self.users["test_customer_deleter@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         apple = Product.objects.get(name="Apple")
@@ -243,7 +245,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert Product.objects.filter(pk=banana.pk).exists()
 
     def test_detail_destroy_product_allowed_by_row_level_permissions(self, api_client):
-        user = self.users["test_customer_deleter@example.com"]
+        user = self.users["test_customer_deleter@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         apple = Product.objects.get(name="Apple")
@@ -255,7 +257,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert not Product.objects.filter(pk=apple.pk).exists()
 
     def test_detail_destroy_product_denied_by_row_level_permissions(self, api_client):
-        user = self.users["test_customer_deleter@example.com"]
+        user = self.users["test_customer_deleter@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         banana = Product.objects.get(name="Banana")

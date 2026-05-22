@@ -1,14 +1,16 @@
 """Monkey-patches Django permission codenames to use CRUDL naming conventions."""
 
+# You shouldn't use anything from this module directly, but this is needed for the docs.
 __all__ = (
     "get_builtin_permissions",
     "get_permission_codename",
     "permission_names_mapping",
 )
 
-# Imported in vueda.core.__init__.py
+# Must be imported in your project settings.py in order for things
+# to get patched before they are used to create permissions.
 
-# Patch get_permission_codename, so that it converts add, view, and change into create, read and update respectably.
+# Patch get_permission_codename, so that it converts add, view, and change into create, read and update respectively.
 # This appears to be the only way we can change the history table permissions, without patching more things.
 from django.conf import settings
 from django.contrib import auth
@@ -35,7 +37,7 @@ def get_permission_codename(action, opts):
 auth.get_permission_codename = get_permission_codename
 
 
-# Patch get_builtin_permissions, so that it converts add, view, and change into create, read and update respectably.
+# Patch get_builtin_permissions, so that it converts add, view, and change into create, read and update respectively.
 # This appears to be the only way we can change the history table permissions, without patching more things.
 from django.contrib.auth import management  # noqa E402
 

@@ -253,7 +253,7 @@ def test_sent_item_clone_creates_new_queue_item(sender, receiver):
     )
     attachment.attachment.save("doc.txt", ContentFile(b"hello"))
     detail.attachments.add(attachment)
-    SMSQueueItem.objects.create(queue_item=qi, body="hello", media_url=["http://example.com"], message_sid="sid")
+    SMSQueueItem.objects.create(queue_item=qi, body="hello", media_url=["http://domain.invalid"], message_sid="sid")
 
     qi.fast_transition("send")
     qi.fast_transition("await")

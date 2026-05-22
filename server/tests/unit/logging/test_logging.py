@@ -3,6 +3,7 @@ import os
 from copy import deepcopy
 from http import HTTPStatus
 from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from django.db import connections
@@ -49,7 +50,7 @@ def log_to_db(settings):
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
 class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
             ("contenttypes", "ContentType", "read"),
@@ -59,8 +60,8 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         ],
     }
 
-    users_to_create = {
-        "test_admin@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
@@ -69,7 +70,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
 
     def test_warnings_ignored_from_log_mixed_errors_and_warnings(self, api_client, log_to_db):
         process_id = os.getpid()
-        api_client.force_authenticate(user=self.users["test_admin@example.com"])
+        api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
         router = IncludeAppInRouteNameRouter()
         router.register("log_records", viewsets.LogRecordsViewSet)
@@ -119,7 +120,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
 
     def test_warnings_ignored_from_log_only_errors(self, api_client, log_to_db):
         process_id = os.getpid()
-        api_client.force_authenticate(user=self.users["test_admin@example.com"])
+        api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
         router = IncludeAppInRouteNameRouter()
         router.register("log_records", viewsets.LogRecordsViewSet)
@@ -165,7 +166,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
 
     def test_warnings_ignored_from_log_only_warnings(self, api_client, log_to_db):
         process_id = os.getpid()
-        api_client.force_authenticate(user=self.users["test_admin@example.com"])
+        api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
         router = IncludeAppInRouteNameRouter()
         router.register("log_records", viewsets.LogRecordsViewSet)

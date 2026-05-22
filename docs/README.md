@@ -168,6 +168,20 @@ Use comments to visually separate sections if needed:
 </VuedaDemo>
 ```
 
+## Callouts
+
+Use VitePress custom containers for callouts in authored docs:
+
+```
+::: warning
+Body text here.
+:::
+```
+
+Available containers: `info`, `tip`, `warning`, `danger`, `details`. See https://vitepress.dev/guide/markdown#custom-containers.
+
+Do not use GitHub-flavored Markdown alert syntax (`> [!WARNING]`) in authored docs; VitePress will not render it as a callout. The exception is this `README.md`, which is excluded from the VitePress build and rendered by GitHub.
+
 ## Backticks vs Links
 
 Use backticks and custom refs for different purposes:
@@ -182,3 +196,9 @@ Examples:
 - Correct link usage in prose: `Use {@term Expand} selection via the \`e\` query parameter.`
 - Correct literal token usage: `The literal wire parameter name is \`expand\`.`
 - Incorrect when you want a link: `` `{@term Expand}` ``
+
+## Wording Cases
+
+In documentation, the following rules should be applied:
+
+- Use 'JSON' instead of 'json'.

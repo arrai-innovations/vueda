@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from django.conf import settings
@@ -15,7 +16,7 @@ from vueda import info
 
 
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
             ("contenttypes", "ContentType", "read"),
@@ -57,6 +58,21 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "OrderItem", "list"),
             ("store", "OrderItem", "read"),
             ("store", "OrderItem", "update"),
+            ("store", "OrderCompositePK", "create"),
+            ("store", "OrderCompositePK", "delete"),
+            ("store", "OrderCompositePK", "list"),
+            ("store", "OrderCompositePK", "read"),
+            ("store", "OrderCompositePK", "update"),
+            ("store", "OrderItemCompositePK", "create"),
+            ("store", "OrderItemCompositePK", "delete"),
+            ("store", "OrderItemCompositePK", "list"),
+            ("store", "OrderItemCompositePK", "read"),
+            ("store", "OrderItemCompositePK", "update"),
+            ("store", "OrderItemAltCompositePK", "create"),
+            ("store", "OrderItemAltCompositePK", "delete"),
+            ("store", "OrderItemAltCompositePK", "list"),
+            ("store", "OrderItemAltCompositePK", "read"),
+            ("store", "OrderItemAltCompositePK", "update"),
             ("store", "OrderState", "create"),
             ("store", "OrderState", "delete"),
             ("store", "OrderState", "list"),
@@ -116,6 +132,15 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "OrderItem", "create"),
             ("store", "OrderItem", "list"),
             ("store", "OrderItem", "read"),
+            ("store", "OrderCompositePK", "create"),
+            ("store", "OrderCompositePK", "list"),
+            ("store", "OrderCompositePK", "read"),
+            ("store", "OrderItemCompositePK", "create"),
+            ("store", "OrderItemCompositePK", "list"),
+            ("store", "OrderItemCompositePK", "read"),
+            ("store", "OrderItemAltCompositePK", "create"),
+            ("store", "OrderItemAltCompositePK", "list"),
+            ("store", "OrderItemAltCompositePK", "read"),
             ("store", "OrderState", "list"),
             ("store", "OrderState", "read"),
             ("store", "PackingBox", "list"),
@@ -132,18 +157,18 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
         ],
     }
 
-    users_to_create = {
-        "test_admin@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer_1@example.com": {
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
         },
-        "test_customer_2@example.com": {
+        "test_customer_2@domain.invalid": {
             "name": "Test Customer 2",
             "password": "testpass",
             "groups": ["Customer"],
@@ -175,6 +200,11 @@ class TestModelInfoSerializer:
         info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
         info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)
+        info.register(store_serializers.OrderCompositePKSerializer, store_viewsets.OrderCompositePKViewSet)
+        info.register(store_serializers.OrderItemCompositePKSerializer, store_viewsets.OrderItemCompositePKViewSet)
+        info.register(
+            store_serializers.OrderItemAltCompositePKSerializer, store_viewsets.OrderItemAltCompositePKViewSet
+        )
 
     def check_model_actions_data(self, response_data, expected_data, app_label, model_name):
         data = response_data.data["model_actions"]
@@ -267,7 +297,7 @@ class TestModelInfoSerializer:
                         assert value == expected_model_permission[key], str(model_permission)
 
     def test_info_list(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -275,7 +305,7 @@ class TestModelInfoSerializer:
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
         assert response.status_code == HTTPStatus.OK, str(response.data)
-        assert response.data["totalRecords"] == 12  # noqa: PLR2004
+        assert response.data["totalRecords"] == 15  # noqa: PLR2004
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",
@@ -289,7 +319,7 @@ class TestModelInfoSerializer:
         model_name,
         kwargs,
     ):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -337,7 +367,7 @@ class TestModelInfoSerializer:
         model_name,
         kwargs,
     ):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()

@@ -1492,7 +1492,7 @@ describe("lib/use/useForm.js", () => {
                     const { formContext } = getForm({
                         initialValues: {
                             name: "John",
-                            email: "john@example.com",
+                            email: "john@domain.invalid",
                             profile: {
                                 age: 30,
                                 bio: "Dev",

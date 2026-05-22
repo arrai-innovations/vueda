@@ -1,4 +1,9 @@
-"""DRF serializer fields for content types, durations, ranges, and files."""
+"""DRF serializer fields for general-purpose Django field types.
+
+Serializer counterparts for content types, durations, ranges, and files.
+These are not specific to any Vueda domain model; they bridge Django
+field types that DRF does not handle out of the box.
+"""
 
 __all__ = (
     "ContentTypeField",
