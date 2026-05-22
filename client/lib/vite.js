@@ -87,7 +87,6 @@ const generateAliasesForLinkedPackage = (
  *
  * @param {object} [options] - Configuration options.
  * @param {string} [options.root] - The project root directory. Defaults to process.cwd().
- * @param {boolean} [options.enableSourceAlias] - Whether to enable source aliases. Defaults to true.
  * @param {boolean} [options.enableSymlinkFixes] - Whether to enable symlink fixes. Defaults to true.
  * @param {boolean} [options.enableRuntimeAliases] - Whether to enable runtime aliases. Defaults to true.
  * @param {string[]} [options.excludePackages] - Packages to exclude from aliasing.
@@ -98,7 +97,6 @@ const generateAliasesForLinkedPackage = (
 export const vuedaViteConfig = (options = {}) => {
     const {
         root = process.cwd(),
-        enableSourceAlias = true,
         enableSymlinkFixes = true,
         enableRuntimeAliases = true,
         excludePackages = DEFAULT_EXCLUDE_PACKAGES,
@@ -144,7 +142,7 @@ export const vuedaViteConfig = (options = {}) => {
 
     const alias = {
         ...dynamicAliases,
-        ...(enableSourceAlias ? { "@vueda": path.resolve(topNodeModulesPath, VUEDA_PACKAGE, "lib") } : {}),
+        "@vueda": path.resolve(topNodeModulesPath, VUEDA_PACKAGE, "lib"),
         [REACTIVE_HELPERS_PACKAGE]: path.resolve(topNodeModulesPath, REACTIVE_HELPERS_PACKAGE),
         ...(enableRuntimeAliases
             ? {
