@@ -6,7 +6,7 @@
  *     kind: "theme-keys",
  *     entries: [{
  *       name, isMetaKey, description, source: { file, line },
- *       slots: [{ name, isFunction, composes, rawClasses, source }],
+ *       slots: [{ name, shape, composes, rawClasses, source }],
  *       composedBy: [{ consumer, slot, condition }]
  *     }]
  *   }
@@ -33,7 +33,7 @@ export class ThemeKeysNormalizer extends Normalizer {
             source: entry.source || { file: "", line: 0 },
             slots: (entry.slots || []).map((slot) => ({
                 name: slot.name,
-                isFunction: !!slot.isFunction,
+                shape: slot.shape || "object",
                 composes: Array.isArray(slot.composes) ? [...slot.composes] : [],
                 rawClasses: Array.isArray(slot.rawClasses) ? [...slot.rawClasses] : [],
                 source: slot.source || { file: "", line: 0 },

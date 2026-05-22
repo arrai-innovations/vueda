@@ -53,21 +53,20 @@ function extractComposes(arrayExpr) {
             out.push(el.value);
         }
         // Non-literal entries (like the dynamic `variantKey` template) are skipped;
-        // their containing slot will already be flagged isFunction in that case.
+        // their containing slot will already have shape === "function" in that case.
     }
     return out;
 }
 
 function parseSlotValue(slotValueNode) {
-    // Function-form: () => ({...}) or function(...) {...}
     if (
         slotValueNode &&
         (slotValueNode.type === "ArrowFunctionExpression" || slotValueNode.type === "FunctionExpression")
     ) {
-        return { isFunction: true, composes: [], rawClasses: [] };
+        return { shape: "function", composes: [], rawClasses: [] };
     }
     if (!slotValueNode || slotValueNode.type !== "ObjectExpression") {
-        return { isFunction: false, composes: [], rawClasses: [] };
+        return { shape: "unknown", composes: [], rawClasses: [] };
     }
     let composes = [];
     const rawClasses = [];
@@ -80,7 +79,7 @@ function parseSlotValue(slotValueNode) {
             collectStringLiterals(prop.value, rawClasses);
         }
     }
-    return { isFunction: false, composes, rawClasses };
+    return { shape: "object", composes, rawClasses };
 }
 
 function findDefaultExportObject(ast) {
@@ -117,7 +116,7 @@ function extractEntriesFromAst(ast, sourceRel) {
                 const parsed = parseSlotValue(slotProp.value);
                 slots.push({
                     name: slotName,
-                    isFunction: parsed.isFunction,
+                    shape: parsed.shape,
                     composes: parsed.composes,
                     rawClasses: parsed.rawClasses,
                     source: { file: sourceRel, line: slotLine },
@@ -136,6 +135,27 @@ function extractEntriesFromAst(ast, sourceRel) {
     return entries;
 }
 
+export async function extractThemeKeysPayload({ sources = DEFAULT_SOURCES, repoRoot } = {}) {
+    const root = repoRoot ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+    const allEntries = [];
+    const sourceFiles = [];
+    for (const src of sources) {
+        const resolvedSource = path.isAbsolute(src) ? src : path.join(root, src);
+        const sourceRel = path.relative(root, resolvedSource).split(path.sep).join("/");
+        sourceFiles.push(sourceRel);
+
+        const code = await readFile(resolvedSource, "utf-8");
+        const ast = acorn.parse(code, {
+            ecmaVersion: "latest",
+            sourceType: "module",
+            locations: true,
+        });
+        const entries = extractEntriesFromAst(ast, sourceRel);
+        allEntries.push(...entries);
+    }
+    return { sourceFiles, entries: allEntries };
+}
+
 export class ThemeKeysExtractor extends Extractor {
     async extract({ outputPath, sources = DEFAULT_SOURCES } = {}) {
         if (!outputPath) {
@@ -145,27 +165,7 @@ export class ThemeKeysExtractor extends Extractor {
         const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
         const resolvedOutput = path.isAbsolute(outputPath) ? outputPath : path.join(repoRoot, outputPath);
 
-        const allEntries = [];
-        const sourceFiles = [];
-        for (const src of sources) {
-            const resolvedSource = path.isAbsolute(src) ? src : path.join(repoRoot, src);
-            const sourceRel = path.relative(repoRoot, resolvedSource).split(path.sep).join("/");
-            sourceFiles.push(sourceRel);
-
-            const code = await readFile(resolvedSource, "utf-8");
-            const ast = acorn.parse(code, {
-                ecmaVersion: "latest",
-                sourceType: "module",
-                locations: true,
-            });
-            const entries = extractEntriesFromAst(ast, sourceRel);
-            allEntries.push(...entries);
-        }
-
-        const payload = {
-            sourceFiles,
-            entries: allEntries,
-        };
+        const payload = await extractThemeKeysPayload({ sources, repoRoot });
 
         await mkdir(path.dirname(resolvedOutput), { recursive: true });
         await writeFile(resolvedOutput, JSON.stringify(payload, null, 2));

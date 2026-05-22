@@ -129,6 +129,10 @@ pre-commit:
                 - "docs/.vitepress/**"
                 - "**/AGENTS.md"
             run: docs-tooling/bin/docs-tooling.js validate --files {staged_files}
+        validate-doc-sources:
+            glob:
+                - "client/lib/theme/vueda-tailwind/**/*.js"
+            run: docs-tooling/bin/docs-tooling.js validate-sources --files {staged_files}
         circleci-config:
             run: |
                 readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')
