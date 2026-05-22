@@ -1,0 +1,8 @@
+# pnpm
+node_modules
+# uv
+.venv*
+# jetbrains
+.idea
+# local gunicorn overrides (machine-specific paths, e.g. TLS cert/key)
+server/gunicorn.conf.py
