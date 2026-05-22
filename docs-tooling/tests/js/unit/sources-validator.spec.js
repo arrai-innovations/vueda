@@ -5,55 +5,40 @@ import {
 } from "../../../js/validators/sources.js";
 import { describe, expect, it } from "vitest";
 
-const slot = (overrides = {}) => ({
-    name: "root",
-    shape: "object",
+const entry = (component, slot, overrides = {}) => ({
+    family: "controls",
+    component,
+    slot,
+    kind: component.startsWith("_") ? "primitive" : "key",
+    valueShape: "static",
+    staticClass: [],
+    callbackSource: null,
     composes: [],
-    rawClasses: [],
-    source: { file: "client/lib/theme/vueda-tailwind/controls/index.js", line: 10 },
-    ...overrides,
-});
-
-const entry = (name, slots, overrides = {}) => ({
-    name,
-    isMetaKey: name.startsWith("_"),
     description: null,
-    source: { file: "client/lib/theme/vueda-tailwind/controls/index.js", line: 1 },
-    slots,
+    group: null,
+    source: { file: "client/lib/theme/vueda-tailwind/controls/index.js", line: 10, column: 5 },
     ...overrides,
 });
 
 describe("validateThemeKeysPayload", () => {
     it("returns no diagnostics for a clean payload", () => {
         const payload = {
-            entries: [entry("_Base", [slot()]), entry("Button", [slot({ composes: ["_Base.root"] })])],
+            entries: [entry("_Base", "root"), entry("Button", "root", { composes: ["_Base.root"] })],
         };
         expect(validateThemeKeysPayload(payload)).toEqual([]);
     });
 
-    it("flags unknown slot shapes as error", () => {
-        const payload = { entries: [entry("Bad", [slot({ shape: "unknown" })])] };
-        const diags = validateThemeKeysPayload(payload);
-        expect(diags).toHaveLength(1);
-        expect(diags[0]).toMatchObject({
-            severity: "error",
-            code: "themeKeys/unknown-slot-shape",
-            file: "client/lib/theme/vueda-tailwind/controls/index.js",
-            line: 10,
-        });
-    });
-
     it("flags composes refs to a missing target as error", () => {
-        const payload = { entries: [entry("Button", [slot({ composes: ["_Missing.root"] })])] };
+        const payload = { entries: [entry("Button", "root", { composes: ["_Missing.root"] })] };
         const diags = validateThemeKeysPayload(payload);
         expect(diags).toHaveLength(1);
         expect(diags[0].code).toBe("themeKeys/unresolved-composes-ref");
-        expect(diags[0].message).toMatch(/no entry "_Missing"/);
+        expect(diags[0].message).toMatch(/no component "_Missing"/);
     });
 
     it("flags composes refs to an existing target but missing slot as error", () => {
         const payload = {
-            entries: [entry("_Base", [slot({ name: "root" })]), entry("X", [slot({ composes: ["_Base.label"] })])],
+            entries: [entry("_Base", "root"), entry("X", "root", { composes: ["_Base.label"] })],
         };
         const diags = validateThemeKeysPayload(payload);
         expect(diags).toHaveLength(1);
@@ -62,13 +47,15 @@ describe("validateThemeKeysPayload", () => {
     });
 
     it("flags malformed composes refs (no dot) as error", () => {
-        const payload = { entries: [entry("X", [slot({ composes: ["nodot"] })])] };
+        const payload = { entries: [entry("X", "root", { composes: ["nodot"] })] };
         const diags = validateThemeKeysPayload(payload);
         expect(diags[0].code).toBe("themeKeys/malformed-composes-ref");
     });
 
-    it("ignores function-form slots (composes is empty by extractor contract)", () => {
-        const payload = { entries: [entry("X", [slot({ shape: "function" })])] };
+    it("ignores callback slots with no composes refs", () => {
+        const payload = {
+            entries: [entry("X", "root", { valueShape: "callback", callbackSource: "() => ({})" })],
+        };
         expect(validateThemeKeysPayload(payload)).toEqual([]);
     });
 

@@ -351,7 +351,15 @@ async function runRender(argv) {
         try {
             const tkRaw = await fs.promises.readFile(tkPath, "utf-8");
             const tkBundle = JSON.parse(tkRaw);
-            themeKeysIndex = new Set((tkBundle.entries || []).map((e) => e.name));
+            const names = new Set();
+            for (const family of tkBundle.families || []) {
+                for (const component of family.components || []) {
+                    if (component.kind === "key" && component.name) {
+                        names.add(component.name);
+                    }
+                }
+            }
+            themeKeysIndex = names;
         } catch {
             themeKeysIndex = undefined;
         }
@@ -359,8 +367,13 @@ async function runRender(argv) {
         try {
             const vdRaw = await fs.promises.readFile(vdPath, "utf-8");
             const vdBundle = JSON.parse(vdRaw);
-            const components = (vdBundle.nodes || []).filter((n) => n.kind === "component");
-            componentNames = new Set(components.map((c) => c.name).filter(Boolean));
+            const names = new Set();
+            for (const node of vdBundle.nodes || []) {
+                if (node.kind === "component" && node.name) {
+                    names.add(node.name);
+                }
+            }
+            componentNames = names;
         } catch {
             componentNames = undefined;
         }
@@ -450,11 +463,13 @@ function collectMarkdownFiles(docsDir, excludes) {
 
 async function runValidate(argv) {
     const docsDir = path.join(repoRoot, "docs");
-    const apiRoot = path.join(docsDir, "reference", "api");
+    const apiRoots = [path.join(docsDir, "reference", "api"), path.join(docsDir, "reference", "theming")];
     const glossaryFile = path.join(docsDir, "reference", "glossary.md");
 
-    if (!fs.existsSync(apiRoot)) {
-        console.warn("warning: docs/reference/api/ not found; skipping API reference validation");
+    if (!apiRoots.some((root) => fs.existsSync(root))) {
+        console.warn(
+            "warning: no reference roots found under docs/reference/{api,theming}; skipping API reference validation",
+        );
     }
 
     let files;
@@ -468,7 +483,7 @@ async function runValidate(argv) {
         return;
     }
 
-    const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({ files, apiRoot, glossaryFile });
+    const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({ files, apiRoots, glossaryFile });
 
     console.error(
         `Checked ${files.length} file(s) against ${apiIndexSize} API ids and ${glossaryIndexSize} glossary terms`,
@@ -505,7 +520,7 @@ async function runValidateSources(argv) {
     }
 
     console.error(
-        `Source validation: ${errors.length} error(s), ${warnings.length} warning(s) across ${themeKeysPayload.entries.length} theme entries.`,
+        `Source validation: ${errors.length} error(s), ${warnings.length} warning(s) across ${themeKeysPayload.entries.length} theme slots.`,
     );
 
     if (errors.length > 0) {
