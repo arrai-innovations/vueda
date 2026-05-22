@@ -27,7 +27,7 @@ parent-brand logos live alongside this README:
   `logo-text-solid.raw.svg`: the VUEDA wordmark (pre-rendered Galano
   Grotesque SemiBold paths).
 - `arrai-logo-*.svg`: Arrai parent-brand logos in three lock-ups.
-- `Arrai Brand-Standards.pdf`: Arrai's full brand standards reference.
+- `Arrai-Brand-Standards.pdf`: Arrai's full brand standards reference.
 
 The wordmark is set in Galano Grotesque SemiBold; the licence forbids
 web embedding, so live brand type ships as pre-rendered SVG paths
