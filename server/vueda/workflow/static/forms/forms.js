@@ -25,6 +25,7 @@ setEvenAndOdd();
 for (const button of document.querySelectorAll(".button-add-inline")) {
     button.addEventListener("click", (e) => {
         const inline = e.target.dataset.inline;
+        const noinline = e.target.dataset.noinline;
         const total_forms = document.getElementById("id_" + inline + "-TOTAL_FORMS");
         const add_form_index = total_forms.value - 1;
         const els = document.querySelectorAll('[data-prefix="' + inline + "-" + add_form_index + '"]');
@@ -46,6 +47,10 @@ for (const button of document.querySelectorAll(".button-add-inline")) {
         }
         total_forms.value = parseInt(total_forms.value, 10) + 1;
         setEvenAndOdd();
+        const no_inline_text = document.querySelector('[data-noinlinetext="' + inline + '"]');
+        if (no_inline_text) {
+            no_inline_text.classList.add("hidden");
+        }
     });
 }
 
