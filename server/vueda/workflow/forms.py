@@ -32,6 +32,7 @@ from simple_history.models import HistoricalChanges
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.fields import form as core_form
 from vueda.workflow import models
+from vueda.workflow.globals import CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT
 
 
 def _workflow_content_type_queryset():
@@ -43,6 +44,7 @@ def _workflow_content_type_queryset():
         or content_type.model_class() is not None
         and (
             issubclass(content_type.model_class(), HistoricalChanges)
+            or issubclass(content_type.model_class(), CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT)
             or hasattr(content_type.model_class(), "pgh_tracked_model")
             or content_type.model_class()._meta.abstract
         )

@@ -137,7 +137,11 @@ Test row-level denied retrieve attempts explicitly. The `404` response (not `403
 - Column totals (when configured via `column_totals` on the viewset) aggregate only the filtered rows.
 - Paginated navigation stays consistent; the user does not see "page 3 of 5" when their visible set has only 2 pages.
 
-Note: row-level filtering and column totals are tested separately in the current test suite. There is no dedicated combined integration test, so verify the combined behaviour explicitly in your project if both features are active.
+::: warning
+
+row-level filtering and column totals are tested separately in the current test suite. There is no dedicated combined integration test, so verify the combined behaviour explicitly in your project if both features are active.
+
+:::
 
 ## Troubleshooting and Known Gaps
 

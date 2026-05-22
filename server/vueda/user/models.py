@@ -182,12 +182,11 @@ class AbstractVUEDAUserWithHistory(AbstractVUEDAUser):
 
 class GroupChange(models.Model):
     """
-    For local use of the permission overview screen, where you can add/edit/delete groups, we
-    need to keep track of group changes, since they don't have history.  With this info, we
-    can make migrations based on the changes.  So, this model will store group changes, and
-    then the `makegroupmigrations` management command will clear this table when it is done.
-    In case permissions are deleted, we store the historical values from the permission, instead
-    of a foreign key, since the ids can be different on machines where the migration is run.
+    For local use of the permission overview screen, where you can add/edit/delete
+    groups, we need to keep track of group changes, since they don't have history.
+    With this info, we can make migrations based on the changes.  In case permissions
+    are deleted, we store the historical values from the permission, instead of a
+    foreign key, since the ids can be different on machines where the migration is run.
     """
 
     ADDED = "added"
@@ -208,7 +207,7 @@ class GroupChange(models.Model):
             (DELETED, DELETED),
         ),
     )
-    when = models.DateTimeField(auto_now=True)
+    when = models.DateTimeField(auto_now_add=True)
     historical_permission_codename = models.CharField(max_length=100, blank=True)
     historical_permission_content_type_app_label = models.CharField(max_length=100, blank=True)
     historical_permission_content_type_model_name = models.CharField(max_length=100, blank=True)
