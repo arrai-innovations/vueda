@@ -4,13 +4,23 @@ import { defineComponent, h, reactive } from "vue";
 
 const mockedUseViewDestroy = vi.fn();
 
+const ConsequencesBulletsStub = defineComponent({
+    name: "ConsequencesBulletsStub",
+    inheritAttrs: false,
+    props: ["items"],
+    setup(props) {
+        return () => h("ul", { "data-qa": "view-destroy-cascade", "data-item-count": props.items?.length });
+    },
+});
+vi.mock("@vueda/components/ConsequencesBullets.vue", () => ({ default: ConsequencesBulletsStub }));
+
 vi.mock("@vueda/use/useViewDestroy.js", () => ({
     useViewDestroy: mockedUseViewDestroy,
 }));
 
 const ModelActionFormStub = defineComponent({
     name: "ModelActionFormStub",
-    props: ["app", "model", "action", "runAction", "fetchState"],
+    props: ["app", "model", "action", "runAction", "fetchState", "confirmText"],
     setup(props, { attrs, slots }) {
         return () =>
             h(
@@ -63,6 +73,103 @@ scopedIt("renders ActionForm when model config is loaded", () => {
     expect(arg.app).toBe("app1");
     expect(arg.model).toBe("thing");
     expect(arg.pk).toBe("5");
+});
+
+scopedIt("wraps ModelActionForm in a danger-toned card with a banner", () => {
+    const modelConfig = reactive({ info: { pk: "id", verboseName: "thing", verboseNamePlural: "things" } });
+    mockedUseViewDestroy.mockReturnValue({
+        modelConfig,
+        handleDelete: vi.fn(),
+        instanceList: { state: reactive({}) },
+    });
+
+    const wrapper = mount(ViewDestroy, { props: { app: "a", model: "thing", pk: "5" } });
+
+    const card = wrapper.get('[data-qa="view-destroy-card"]');
+    expect(card.attributes("data-tone")).toBe("danger");
+    const title = wrapper.get('[data-qa="view-destroy-banner-title"]');
+    expect(title.text()).toContain("permanently delete");
+    expect(title.text()).toContain("thing");
+    expect(wrapper.get('[data-qa="view-destroy-banner-description"]').text()).toContain(
+        "This action cannot be undone.",
+    );
+    expect(wrapper.findComponent(ModelActionFormStub).exists()).toBe(true);
+});
+
+scopedIt("renders linkedObjectCounts entries via ConsequencesBullets", () => {
+    const modelConfig = reactive({ info: { pk: "id", verboseName: "thing", verboseNamePlural: "things" } });
+    mockedUseViewDestroy.mockReturnValue({
+        modelConfig,
+        handleDelete: vi.fn(),
+        instanceList: { state: reactive({}) },
+    });
+
+    const wrapper = mount(ViewDestroy, {
+        props: {
+            app: "a",
+            model: "thing",
+            pk: ["5", "6"],
+            linkedObjectCounts: [
+                { verboseNamePlural: "comments", count: 12 },
+                { verboseNamePlural: "tags", count: 3 },
+            ],
+        },
+    });
+
+    const cascade = wrapper.get('[data-qa="view-destroy-cascade"]');
+    expect(cascade.attributes("data-item-count")).toBe("2");
+    const items = wrapper.getComponent(ConsequencesBulletsStub).props("items");
+    expect(items[0]).toMatchObject({ label: "12 comments", description: "will also be removed", tone: "danger" });
+    expect(items[1]).toMatchObject({ label: "3 tags", description: "will also be removed", tone: "danger" });
+    expect(wrapper.find('[data-qa="view-destroy-banner-description"]').exists()).toBe(false);
+    // Bulk title pluralizes via verboseNamePlural.
+    expect(wrapper.get('[data-qa="view-destroy-banner-title"]').text()).toContain("2 things");
+});
+
+scopedIt("custom banner slot overrides default chrome", () => {
+    const modelConfig = reactive({ info: { pk: "id" } });
+    mockedUseViewDestroy.mockReturnValue({
+        modelConfig,
+        handleDelete: vi.fn(),
+        instanceList: { state: reactive({}) },
+    });
+
+    const wrapper = mount(ViewDestroy, {
+        props: { app: "a", model: "thing", pk: "5" },
+        slots: { "view-destroy-banner": '<div data-qa="custom-banner">custom</div>' },
+    });
+
+    expect(wrapper.find('[data-qa="custom-banner"]').exists()).toBe(true);
+    expect(wrapper.find('[data-qa="view-destroy-banner"]').exists()).toBe(false);
+});
+
+scopedIt("forwards confirmText to ModelActionForm", () => {
+    const modelConfig = reactive({ info: { pk: "id", verboseName: "thing", verboseNamePlural: "things" } });
+    mockedUseViewDestroy.mockReturnValue({
+        modelConfig,
+        handleDelete: vi.fn(),
+        instanceList: { state: reactive({}) },
+    });
+
+    const wrapper = mount(ViewDestroy, {
+        props: { app: "a", model: "thing", pk: ["5", "6"], confirmText: "delete 2 things" },
+    });
+
+    const af = wrapper.getComponent(ModelActionFormStub);
+    expect(af.props("confirmText")).toBe("delete 2 things");
+});
+
+scopedIt("omits confirmText when the prop is not set", () => {
+    const modelConfig = reactive({ info: { pk: "id" } });
+    mockedUseViewDestroy.mockReturnValue({
+        modelConfig,
+        handleDelete: vi.fn(),
+        instanceList: { state: reactive({}) },
+    });
+
+    const wrapper = mount(ViewDestroy, { props: { app: "a", model: "thing", pk: "5" } });
+
+    expect(wrapper.getComponent(ModelActionFormStub).props("confirmText")).toBeUndefined();
 });
 
 scopedIt("renders a loading spinner while model info is empty", () => {

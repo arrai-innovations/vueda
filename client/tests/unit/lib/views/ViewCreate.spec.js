@@ -51,7 +51,12 @@ const PageTitleStub = defineComponent({
 const StickyBarStub = defineComponent({
     name: "StickyBarStub",
     setup(_, { slots, attrs }) {
-        return () => h("div", { "data-qa": "sticky-bar", ...attrs }, slots.default ? slots.default() : null);
+        return () =>
+            h("div", { "data-qa": "sticky-bar", ...attrs }, [
+                slots.default ? slots.default() : null,
+                slots.primary ? slots.primary() : null,
+                slots.secondary ? slots.secondary() : null,
+            ]);
     },
 });
 const FormModelStub = defineComponent({
@@ -97,16 +102,25 @@ const LinkModelViewStub = defineComponent({
 });
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["form", "label", "loading", "type"],
-    setup(props) {
+    props: ["form", "loading", "type"],
+    setup(props, { slots }) {
         return () =>
-            h("button", {
-                "data-qa": "button",
-                "data-form": props.form,
-                "data-loading": String(props.loading),
-                "data-label": props.label,
-                "data-type": props.type,
-            });
+            h(
+                "button",
+                {
+                    "data-qa": "button",
+                    "data-form": props.form,
+                    "data-loading": String(props.loading),
+                    "data-type": props.type,
+                },
+                slots.default?.(),
+            );
+    },
+});
+const FeedbackSpinnerStub = defineComponent({
+    name: "FeedbackSpinnerStub",
+    setup() {
+        return () => h("div", { "data-qa": "feedback-spinner" });
     },
 });
 
@@ -115,7 +129,8 @@ vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
 vi.mock("@vueda/components/FormModel.vue", () => ({ default: FormModelStub }));
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
 
 vi.mock("vue", async () => {
     const actual = await vi.importActual("vue");
