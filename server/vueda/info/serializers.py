@@ -329,6 +329,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
             field_data = {
                 "choices": False,
+                "hidden": field.style.get("hidden", False),
                 "label": effective_label,
                 "many": many,
                 "read_only": field.read_only,
@@ -477,7 +478,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # Similar to actions, we'll need to have a canonical serializer to determine what expands are available
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
 
-        return serializer().get_expandable_fields()
+        expands = serializer().get_expandable_fields()
+        fields_param = settings.REST_FLEX_FIELDS["FIELDS_PARAM"]
+        for expand in expands:
+            if fields_param in expand:
+                for field in expand[fields_param].values():
+                    field.setdefault("hidden", False)
+        return expands
 
     def get_model_ordering(self, instance):
         """

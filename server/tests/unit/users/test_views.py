@@ -39,7 +39,6 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
             "groups",
             "is_superuser",
             "formatted_name",
-            "available_actions",
             "totp_devices",
             "recently_logged_in",
         }
