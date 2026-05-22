@@ -1,13 +1,12 @@
 <script setup>
-import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
+import Textarea from "@vueda/controls/textarea/Textarea.vue";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject } from "vue";
+import { inject } from "vue";
 
 /**
- * A checkbox widget that renders a Checkbox with form field integration.
- * Supports tri-state (checked, unchecked, indeterminate) for NullBooleanField,
- * translating null field values to the indeterminate visual state.
+ * A textarea widget that renders a Textarea with form field integration.
+ * Used for CharField (TextField variant) and similar multi-line string fields when paired with FormField.
  */
 defineOptions({
     inheritAttrs: false,
@@ -19,24 +18,17 @@ const emit = defineEmits([...WIDGET_EMITS]);
 /** @type {import('@vueda/use/useField.js').FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
 const widgetContext = useWidget(props, emit);
-
-const controlValue = computed({
-    get: () => (widgetContext.state.combinedValue === null ? "indeterminate" : widgetContext.state.combinedValue),
-    set: (v) => {
-        widgetContext.state.combinedValue = v === "indeterminate" ? null : v;
-    },
-});
 </script>
 <template>
-    <Checkbox
+    <Textarea
         :id="fieldContext?.state.fieldId"
-        v-model="controlValue"
+        v-model="widgetContext.state.combinedValue"
         :disabled="widgetContext.state.disabled"
         :aria-invalid="widgetContext.state.validationState.invalid || undefined"
         :aria-required="widgetContext.state.required || undefined"
         :name="widgetContext.state.combinedName"
         v-bind="$attrs"
-        data-qa="widget-checkbox"
+        data-qa="widget-text-textarea"
         @blur="widgetContext.blur"
         @focus="widgetContext.focus"
     />

@@ -2,12 +2,13 @@
 import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { sanitizeMessage } from "@vueda/utils/html.js";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import WidgetHtml from "@vueda/widgets/WidgetHtml.vue";
-import WidgetInput from "@vueda/widgets/WidgetInput.vue";
-import WidgetTextarea from "@vueda/widgets/WidgetTextarea.vue";
+import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
+import WidgetTextTextarea from "@vueda/widgets/WidgetTextTextarea.vue";
 import get from "lodash-es/get.js";
 import omit from "lodash-es/omit.js";
-import { computed } from "vue";
+import { computed, inject } from "vue";
 
 /**
  * A widget that combines an editable input (HTML editor, plain input, or textarea) with a live
@@ -43,6 +44,8 @@ const computeddisplayDependencies = computed(() => {
     return deps.includes(props.tagsKey) ? deps : [...deps, props.tagsKey];
 });
 const emit = defineEmits([...WIDGET_EMITS]);
+/** @type {import('@vueda/use/useField.js').FieldContext|null} */
+const fieldContext = inject(FieldContextSymbol, null);
 const widgetContext = useWidget(props, emit);
 const tagsData = computed(() => {
     return widgetContext.state.dependencyValues[props.tagsKey];
@@ -60,8 +63,8 @@ const inputComponent = computed(
     () =>
         ({
             editor: WidgetHtml,
-            input: WidgetInput,
-            textarea: WidgetTextarea,
+            input: WidgetTextInput,
+            textarea: WidgetTextTextarea,
         })[props.type] || WidgetHtml,
 );
 
@@ -86,7 +89,7 @@ const theme = useWidgetTheme("WidgetPreviewableTemplate");
                 <!-- eslint-disable vue/no-v-html -->
                 <div
                     :class="theme('preview')"
-                    :aria-labelledby="widgetContext.state.widgetId"
+                    :aria-labelledby="fieldContext?.state.fieldId"
                     data-qa="widget-previewable-template-preview"
                     v-html="renderedContent"
                 />
