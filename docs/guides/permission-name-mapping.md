@@ -1,7 +1,7 @@
 ---
 title: Map Django and VUEDA Permission Names
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -22,7 +22,7 @@ The objective is a project where:
 
 Before you begin, ensure the following are in place:
 
-The project has a Django settings module that calls `get_defaults` from `vueda.core.default_settings` or otherwise defines `PERMISSION_NAMES_MAPPING`. The default mapping is `{"add": "create", "change": "update", "view": "read"}`; this is the standard VUEDA configuration and what VUEDA's own tests exercise. If you started from a VUEDA project template, this is already set up in your base settings (see `templates/implementor-monorepo/server/config/settings/base.py.jinja` for the reference implementation).
+The project has a Django settings module that calls `get_defaults` from `vueda.core.default_settings` or otherwise defines `PERMISSION_NAMES_MAPPING`. The default mapping is `{"add": "create", "change": "update", "view": "read"}`; this is the standard VUEDA configuration and what VUEDA's own tests exercise. If you started from a VUEDA project template, this is already set up in your base settings (see `templates/integrator-monorepo/server/config/settings/base.py.jinja` for the reference implementation).
 
 ## Choose Mapping Direction
 

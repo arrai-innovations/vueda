@@ -1,7 +1,7 @@
 ---
 title: Cancellable Network Operations
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

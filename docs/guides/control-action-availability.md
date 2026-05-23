@@ -1,7 +1,7 @@
 ---
 title: Control Action Availability in the UI
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

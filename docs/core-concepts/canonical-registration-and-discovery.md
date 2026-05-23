@@ -1,7 +1,7 @@
 ---
 title: Canonical Registration and Model Discovery
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

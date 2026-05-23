@@ -1,7 +1,7 @@
 ---
 title: Workflow as a Permission Overlay
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 
