@@ -7,7 +7,7 @@
     <div>
         <h2{% if not has_add_button %} class="no-add-button"{% endif %}>{{ name }}</h2>
         {% if has_add_button %}
-        <div class="centered-button"><button type="button" class="button-add-inline" data-inline="{{ formset.prefix }}">Add {{ name }}</button></div>
+        <div class="centered-button"><button type="button" class="button-add-inline" data-inline="{{ formset.prefix }}" data-noinline="{{ formset.prefix }}">Add {{ name }}</button></div>
         {% endif %}
     </div>
 </div>

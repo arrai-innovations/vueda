@@ -152,6 +152,10 @@
                                         <div class="transition_permission">
                                             <code class="permission">{{ transition_permission.permission.codename }}</code>
                                         </div>
+                                    {% else %}
+                                        <div class="transition_permission">
+                                            Users won't be able to do this transition unless a transition permission is added.
+                                        </div>
                                     {% endfor %}
                                 </div>
                             </div>

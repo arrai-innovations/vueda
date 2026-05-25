@@ -35,7 +35,7 @@ For workflow-enabled models, the guard includes permitted transition codes in th
 
 {@api vue:component:ViewActionRouter} resolves the permitted action to a view component. Standard CRUDL actions resolve to their built-in views. Transition codes resolve to `ViewWorkflowTransition`. When the action cannot be resolved, it passes the guard but has no corresponding view component; `ViewActionNotFound` is rendered.
 
-The guard requires transition objects to have a valid string `code`. If a transition lacks a `code` or the `code` is not a string, the guard throws an error (`requireModelInfo: workflow transition is missing a string code`) rather than silently treating it as unavailable. Check the workflow configuration if this error surfaces.
+The guard requires transition objects to have a valid string `code`. The server enforces this as a required, non-blank field, so the guard's check should not trigger in normal operation. If this error surfaces, it indicates a data integrity issue rather than a workflow misconfiguration.
 
 ## Action Form Submit, Dry-Run, and Cancel Flow
 
@@ -100,8 +100,6 @@ After implementing transition UX, verify the following:
 - Locked-row transition attempt surfaces a user-friendly error message.
 
 ## Known Limitations
-
-**Transition objects without string codes cause hard errors.** The route guard throws rather than gracefully degrading when a transition lacks a valid string `code`. This surfaces as a runtime exception in the navigation flow, not as a toast or redirect.
 
 **`ViewWorkflowTransition` requires a valid transition code on submit.** If the selected transition is invalid or missing at submission time, the component throws rather than displaying a validation error. Ensure the transition selection UI only offers valid options.
 
