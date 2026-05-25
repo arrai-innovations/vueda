@@ -4,9 +4,9 @@ orbs:
   github: arrai/github@5.0.0
   lintinator: arrai/lintinator@2.1.1
   pypi: arrai/pypi@3.1.0
+  pysentry: arrai/pysentry@1.0.0
   pytest: arrai/pytest@9.1.1
-  pip-audit: arrai/pip-audit@1.0.4
-  utils: arrai/utils@1.21.1
+  utils: arrai/utils@1.22.0
 
 parameters:
   run-client-workflows:
@@ -180,7 +180,13 @@ workflows:
           hook_manager: lefthook
           install_deps: false
           setup:
-            - utils/add_npm_config
+            - utils/add_npm_config:
+                  registry: npm.arrai.dev
+                  token: $NPM_ARRAI_DEV_TOKEN
+                  scopes: |
+                      @arrai-innovations:registry=https://npm.arrai.dev/
+                      @fortawesome:registry=https://npm.arrai.dev/
+                      @awesome.me:registry=https://npm.arrai.dev/
             - run:
                 name: Install tooling
                 command: |
@@ -197,7 +203,7 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - v2.x.x
       - lintinator/lint_python:
           name: lint-no-badge
           context: arrai-global
@@ -207,7 +213,13 @@ workflows:
           create_badges: false
           install_deps: false
           setup:
-            - utils/add_npm_config
+            - utils/add_npm_config:
+                  registry: npm.arrai.dev
+                  token: $NPM_ARRAI_DEV_TOKEN
+                  scopes: |
+                      @arrai-innovations:registry=https://npm.arrai.dev/
+                      @fortawesome:registry=https://npm.arrai.dev/
+                      @awesome.me:registry=https://npm.arrai.dev/
             - run:
                 name: Install tooling
                 command: |
@@ -224,26 +236,26 @@ workflows:
           filters:
             branches:
               ignore:
-                - main
+                - v2.x.x
 
   audit:
     jobs:
-      - pip-audit/pip_audit_ip:
-          name: pip-audit
+      - pysentry/pysentry_ip:
+          name: server-pysentry
           context: arrai-global
           executor: python311-base
-          env_type: uv
+          version: 0.4.5
           filters:
             branches:
               only:
-                - main
-      - pip-audit/pip_audit:
-          name: pip-audit-no-badge
+                - v2.x.x
+      - pysentry/pysentry:
+          name: server-pysentry-no-badge
           context: arrai-global
           executor: python311-base
-          env_type: uv
+          version: 0.4.5
           create_badges: false
           filters:
             branches:
               ignore:
-                - main
+                - v2.x.x

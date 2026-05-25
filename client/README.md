@@ -1,4 +1,4 @@
-# vueda-client
+n# vueda-client
 
 ![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
 
@@ -28,7 +28,7 @@
     - [Writing Tests](#writing-tests)
     - [Coverage](#coverage)
   - [Reporting Bugs](#reporting-bugs)
-  - [Getting my changes into the main branch](#getting-my-changes-into-the-main-branch)
+  - [Getting my changes into the v2.x.x branch](#getting-my-changes-into-the-v2xx-branch)
   - [Making a Release](#making-a-release)
   - [Changelog](#changelog)
 
@@ -190,9 +190,9 @@ $ npm run coverage
 
 Report any bugs you find in the issues section of this repository, and tag them with the `bug` label. Please include a description of the bug, the steps to reproduce it, and the expected and actual results.
 
-### Getting my changes into the main branch
+### Getting my changes into the v2.x.x branch
 
-Make a pull request with your changes, a description of the changes, and tests. The pull request will be reviewed and, if accepted, merged into the main branch.
+Make a pull request with your changes, a description of the changes, and tests. The pull request will be reviewed and, if accepted, merged into the v2.x.x branch.
 
 If you want your changes OK'd before making a pull request, you can create an issue with a description of the changes and tag using the `change-request` label.
 
@@ -201,10 +201,10 @@ If you want your changes OK'd before making a pull request, you can create an is
 1. Change the version number in `package.json`.
 2. Install dependencies with `npm install`, which will update the version in `package-lock.json`.
 3. Commit the changes to `package.json` and `package-lock.json`.
-4. Merge the changes into the `main` branch.
-5. On the `main` branch, with the latest changes, create a new tag and push to GitHub.
+4. Merge the changes into the `v2.x.x` branch.
+5. On the `v2.x.x` branch, with the latest changes, create a new tag and push to GitHub.
     ```console
-    $ git tag v1.0.0
+    $ git tag v2.0.0
     $ git push --tags
     ```
 6. The circleci will publish a new version to NPM and create a release on GitHub.
@@ -215,12 +215,12 @@ See [CHANGELOG.md](./CHANGELOG.md) for a complete list of changes by version.
 
 [prettier]: https://github.com/prettier/prettier
 [code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
-[coverage]: https://docs.arrai.dev/vueda-client/artifacts/main/coverage_tests/
-[coverage: status]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.coverage.svg
-[eslint]: https://docs.arrai.dev/vueda-client/artifacts/main/eslint.svg
-[audit]: https://docs.arrai.dev/vueda-client/artifacts/main/npm-audit.svg
-[tests]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.svg
-[vueda-client]: https://github.com/arrai-innovations/vueda-client
-[vueda-server]: https://github.com/arrai-innovations/vueda-server
+[coverage]: https://docs.arrai.dev/vueda-client/artifacts/v2.x.x/coverage_tests/
+[coverage: status]: https://docs.arrai.dev/vueda-client/artifacts/v2.x.x/tests.coverage.svg
+[eslint]: https://docs.arrai.dev/vueda-client/artifacts/v2.x.x/eslint.svg
+[audit]: https://docs.arrai.dev/vueda-client/artifacts/v2.x.x/npm-audit.svg
+[tests]: https://docs.arrai.dev/vueda-client/artifacts/v2.x.x/tests.svg
+[vueda-client]: https://github.com/arrai-innovations/vueda/client
+[vueda-server]: https://github.com/arrai-innovations/vueda/server
 [@testing-library/vue]: https://github.com/testing-library/vue-testing-library
 [vitest]: https://github.com/vitest-dev/vitest

@@ -1,12 +1,14 @@
 packages:
-  - client
-  - server
+    - client
+    - docs
+    - docs-tooling
+    - server
 
-ignoredBuiltDependencies:
-  - lefthook
-
-onlyBuiltDependencies:
-  - esbuild
-  - msw
-  - unrs-resolver
-  - vue-demi
+allowBuilds:
+    core-js: true
+    esbuild: true
+    lefthook: true
+    msw: true
+    protobufjs: true
+    unrs-resolver: true
+    vue-demi: true
