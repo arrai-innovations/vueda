@@ -222,27 +222,13 @@ class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, 
         context = self.get_context_data(**kwargs)
         context["title"] = "Workflow"
         context["formset"] = forms.WorkflowModelEditFormSet(queryset=queryset)
-        context["inline_formsets"] = (
-            {
-                "class": "workflow-permissions",
-                "name": "Workflow Permissions",
-                "formset": forms.WorkflowPermissionFormSet(instance=model_instance),
-            },
-            {
-                "class": "initial_state",
-                "name": "Initial State",
-                "formset": forms.InitialStateFormSet(instance=model_instance),
-            },
-            {
-                "class": "states",
-                "name": "States",
-                "formset": forms.StateFormSet(instance=model_instance),
-            },
-            {
-                "class": "transitions",
-                "name": "Transitions",
-                "formset": forms.TransitionFormSet(instance=model_instance),
-            },
+        context["inline_formsets"] = self.get_inlines_context_data(
+            formsets=(
+                forms.WorkflowPermissionFormSet(instance=model_instance),
+                forms.InitialStateFormSet(instance=model_instance),
+                forms.StateFormSet(instance=model_instance),
+                forms.TransitionFormSet(instance=model_instance),
+            )
         )
 
         return render(request, self.get_template_names(), context)
@@ -258,27 +244,13 @@ class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, 
         context = self.get_context_data(**kwargs)
         context["title"] = "Workflow"
         context["formset"] = forms.WorkflowModelEditFormSet(request.POST, request.FILES)
-        context["inline_formsets"] = (
-            {
-                "class": "workflow-permissions",
-                "name": "Workflow Permissions",
-                "formset": forms.WorkflowPermissionFormSet(request.POST, request.FILES, instance=model_instance),
-            },
-            {
-                "class": "initial_state",
-                "name": "Initial State",
-                "formset": forms.InitialStateFormSet(request.POST, request.FILES, instance=model_instance),
-            },
-            {
-                "class": "states",
-                "name": "States",
-                "formset": forms.StateFormSet(request.POST, request.FILES, instance=model_instance),
-            },
-            {
-                "class": "transitions",
-                "name": "Transitions",
-                "formset": forms.TransitionFormSet(request.POST, request.FILES, instance=model_instance),
-            },
+        context["inline_formsets"] = self.get_inlines_context_data(
+            formsets=(
+                forms.WorkflowPermissionFormSet(request.POST, request.FILES, instance=model_instance),
+                forms.InitialStateFormSet(request.POST, request.FILES, instance=model_instance),
+                forms.StateFormSet(request.POST, request.FILES, instance=model_instance),
+                forms.TransitionFormSet(request.POST, request.FILES, instance=model_instance),
+            )
         )
 
         # Since we are going to display state, initial state, and transition inlines on the edit form, and states are
@@ -344,12 +316,8 @@ class WorkflowStateEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMi
         context["head_title"] = "State"
         context["title"] = mark_safe('<span class="state_title">State</span>')
         context["formset"] = forms.StateModelFormSet(queryset=queryset)
-        context["inline_formsets"] = (
-            {
-                "class": "state-permissions",
-                "formset": forms.StatePermissionFormSet(instance=model_instance),
-                "name": "State Permissions",
-            },
+        context["inline_formsets"] = self.get_inlines_context_data(
+            formsets=(forms.StatePermissionFormSet(instance=model_instance),)
         )
         return render(request, self.get_template_names(), context)
 
@@ -365,14 +333,9 @@ class WorkflowStateEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMi
         context["head_title"] = "State"
         context["title"] = mark_safe('<span class="state_title">State</span>')
         context["formset"] = forms.StateModelFormSet(request.POST, request.FILES)
-        context["inline_formsets"] = (
-            {
-                "class": "state-permissions",
-                "formset": forms.StatePermissionFormSet(request.POST, request.FILES, instance=model_instance),
-                "name": "State Permissions",
-            },
+        context["inline_formsets"] = self.get_inlines_context_data(
+            formsets=(forms.StatePermissionFormSet(request.POST, request.FILES, instance=model_instance),)
         )
-
         is_valid = context["formset"].is_valid()
         for inline_data in context["inline_formsets"]:
             is_valid &= inline_data["formset"].is_valid()
@@ -413,17 +376,11 @@ class WorkflowTransitionEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequi
         context["head_title"] = "Transition"
         context["title"] = mark_safe('<span class="transition_title">Transition</span>')
         context["formset"] = forms.TransitionModelFormSet(queryset=queryset)
-        context["inline_formsets"] = (
-            {
-                "class": "transition-permissions",
-                "formset": forms.TransitionPermissionFormSet(instance=model_instance),
-                "name": "Transition Permissions",
-            },
-            {
-                "class": "transition-sources",
-                "formset": forms.TransitionSourceFormSet(instance=model_instance),
-                "name": "Transition Sources",
-            },
+        context["inline_formsets"] = self.get_inlines_context_data(
+            formsets=(
+                forms.TransitionPermissionFormSet(instance=model_instance),
+                forms.TransitionSourceFormSet(instance=model_instance),
+            )
         )
         return render(request, self.get_template_names(), context)
 
@@ -439,19 +396,12 @@ class WorkflowTransitionEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequi
         context["head_title"] = "Transition"
         context["title"] = mark_safe('<span class="transition_title">Transition</span>')
         context["formset"] = forms.TransitionModelFormSet(request.POST, request.FILES)
-        context["inline_formsets"] = (
-            {
-                "class": "transition-permissions",
-                "formset": forms.TransitionPermissionFormSet(request.POST, request.FILES, instance=model_instance),
-                "name": "Transition Permissions",
-            },
-            {
-                "class": "transition-sources",
-                "formset": forms.TransitionSourceFormSet(request.POST, request.FILES, instance=model_instance),
-                "name": "Transition Sources",
-            },
+        context["inline_formsets"] = self.get_inlines_context_data(
+            formsets=(
+                forms.TransitionPermissionFormSet(request.POST, request.FILES, instance=model_instance),
+                forms.TransitionSourceFormSet(request.POST, request.FILES, instance=model_instance),
+            )
         )
-
         is_valid = context["formset"].is_valid()
         for inline_data in context["inline_formsets"]:
             is_valid &= inline_data["formset"].is_valid()
