@@ -24,6 +24,7 @@ logs
 site/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+docs/.vitepress/.temp/
 docs/api/
 docs/reference/api/
 docs/reference/theming/tokens/
@@ -37,3 +38,4 @@ docs/public/api/rest.html
 docs/.generated/
 # docs-tooling generated outputs
 docs-tooling/.generated/
+docs/temp/
