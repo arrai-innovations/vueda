@@ -13,7 +13,7 @@ workflows:
           mapping: |
               client/.* run-client-workflows true .circleci/client.yml
               server/.* run-server-workflows true .circleci/server.yml
-          base-revision: main
+          base-revision: v2.x.x
           config-path: .circleci/no-changes.yml
           filters:
             tags:

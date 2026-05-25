@@ -370,7 +370,7 @@ In development, pull new changes from the git repo and update your environment w
 Git tags are used to indicate to CircleCI that a commit is considered a release. You can make git tags like this:
 
 ```console
-[vueda-server]$ git tag v1.0.1
+[vueda-server]$ git tag v2.0.0
 [vueda-server]$ git push --tags
 ```
 
@@ -417,11 +417,11 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [ruff]: https://docs.astral.sh/ruff/formatter/#style-guide
 [code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
 [prettier]: https://github.com/prettier/prettier
-[pytest status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.svg
-[coverage status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.coverage.svg
-[ruff status]: https://docs.arrai.dev/vueda-server/artifacts/main/ruff.svg
+[pytest status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/pytest.svg
+[coverage status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/pytest.coverage.svg
+[ruff status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/ruff.svg
 [pipenv]: https://github.com/pypa/pipenv
-[pip-audit status]: https://docs.arrai.dev/vueda-server/artifacts/main/pip-audit.svg
+[pip-audit status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/pip-audit.svg
 [django-filter]: https://github.com/carltongibson/django-filter
 [drf-flex-fields]: https://github.com/rsinger86/drf-flex-fields
 [drf-writable-nested]: https://github.com/beda-software/drf-writable-nested

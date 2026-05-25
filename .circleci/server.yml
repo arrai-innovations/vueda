@@ -203,7 +203,7 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - v2.x.x
       - lintinator/lint_python:
           name: lint-no-badge
           context: arrai-global
@@ -236,7 +236,7 @@ workflows:
           filters:
             branches:
               ignore:
-                - main
+                - v2.x.x
 
   audit:
     jobs:
@@ -248,7 +248,7 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - v2.x.x
       - pysentry/pysentry:
           name: server-pysentry-no-badge
           context: arrai-global
@@ -258,4 +258,4 @@ workflows:
           filters:
             branches:
               ignore:
-                - main
+                - v2.x.x
