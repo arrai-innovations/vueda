@@ -47,7 +47,7 @@ for (const button of document.querySelectorAll(".button-add-inline")) {
         }
         total_forms.value = parseInt(total_forms.value, 10) + 1;
         setEvenAndOdd();
-        const no_inline_text = document.querySelector('[data-noinlinetext="' + inline + '"]');
+        const no_inline_text = document.querySelector('[data-noinlinetext="' + noinline + '"]');
         if (no_inline_text) {
             no_inline_text.classList.add("hidden");
         }
