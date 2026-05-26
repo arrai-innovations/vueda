@@ -49,6 +49,19 @@ workflows:
                       server/.* run-server-workflows true .circleci/server.yml
                       docs/.* run-docs-workflows true .circleci/docs.yml
                       docs-tooling/.* run-docs-workflows true .circleci/docs.yml
+                      uv\.lock$ run-server-workflows true .circleci/server.yml
+                      uv\.lock$ run-docs-workflows true .circleci/docs.yml
+                      pnpm-lock\.yaml$ run-client-workflows true .circleci/client.yml
+                      pnpm-lock\.yaml$ run-server-workflows true .circleci/server.yml
+                      pnpm-lock\.yaml$ run-docs-workflows true .circleci/docs.yml
+                      pyproject\.toml$ run-server-workflows true .circleci/server.yml
+                      pyproject\.toml$ run-docs-workflows true .circleci/docs.yml
+                      package\.json$ run-client-workflows true .circleci/client.yml
+                      package\.json$ run-server-workflows true .circleci/server.yml
+                      package\.json$ run-docs-workflows true .circleci/docs.yml
+                      pnpm-workspace\.yaml$ run-client-workflows true .circleci/client.yml
+                      pnpm-workspace\.yaml$ run-server-workflows true .circleci/server.yml
+                      pnpm-workspace\.yaml$ run-docs-workflows true .circleci/docs.yml
                       templates/.*/client/.* run-client-workflows true .circleci/client.yml
                       templates/.*/server/.* run-server-workflows true .circleci/server.yml
                       templates/.*/copier\.yml run-client-workflows true .circleci/client.yml
