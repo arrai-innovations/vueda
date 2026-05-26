@@ -123,9 +123,6 @@ VUEDA's own test suite exercises the default CRUDL mapping. If you use a non-def
 - Python:
     - {@api py:function:vueda.core.default_settings.get_defaults}
     - {@api py:module:vueda.core.patch_django}
-    - {@api py:function:vueda.core.patch_django.get_permission_codename}
-    - {@api py:function:vueda.core.patch_django.get_builtin_permissions}
-    - {@api py:property:vueda.core.patch_django.permission_names_mapping}
     - {@api py:class:vueda.core.permissions.ObjectPermissions}
     - {@api py:property:vueda.core.permissions.ObjectPermissions.perms_map}
     - {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}

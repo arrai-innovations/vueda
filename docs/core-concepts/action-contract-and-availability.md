@@ -106,7 +106,6 @@ The layered contract exhibits several characteristic failure patterns when the l
 ## Relevant Implementation Surface
 
 - {@api py:module:vueda.core.decorators}
-- {@api py:property:vueda.core.decorators.DRY_RUN_HEADER}
 - {@api py:module:vueda.core.routers}
 - {@api py:class:vueda.core.routers.VuedaRouter}
 - {@api py:function:vueda.core.routers.VuedaRouter.get_routes}

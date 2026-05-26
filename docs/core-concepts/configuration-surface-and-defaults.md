@@ -108,7 +108,6 @@ Configuration failures surface at different points in the application lifecycle 
 - {@api py:function:vueda.core.default_settings.get_production_defaults}
 - {@api py:module:vueda.core.config}
 - {@api py:class:vueda.core.config.TomlEnv}
-- {@api py:function:vueda.core.config.load_toml}
 - {@api py:module:vueda.core.patch_django}
 - {@api py:module:vueda.core.permissions}
 - {@api js:module:@arrai-innovations/vueda/utils/constants}
