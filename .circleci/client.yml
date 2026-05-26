@@ -3,6 +3,7 @@ version: 2.1
 orbs:
     github: arrai/github@5.0.0
     lintinator: arrai/lintinator@2.1.1
+    pnpm: arrai/pnpm@dev:2
     utils: arrai/utils@1.22.0
 
 parameters:
@@ -168,6 +169,42 @@ workflows:
                                 echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
                                 export PATH="$HOME/.local/bin:$PATH"
                                 pnpm --version
+                  filters:
+                      branches:
+                          ignore:
+                              - main
+
+    client-audit:
+        jobs:
+            - pnpm/audit_fixed_ip:
+                  name: client-pnpm-audit
+                  context: arrai-global
+                  executor: pnpm/lts
+                  config:
+                      - utils/add_npm_config:
+                            registry: npm.arrai.dev
+                            token: $NPM_ARRAI_DEV_TOKEN
+                            scopes: |
+                                @arrai-innovations:registry=https://npm.arrai.dev/
+                                @fortawesome:registry=https://npm.arrai.dev/
+                                @awesome.me:registry=https://npm.arrai.dev/
+                  filters:
+                      branches:
+                          only:
+                              - main
+            - pnpm/audit:
+                  name: client-pnpm-audit-no-badge
+                  context: arrai-global
+                  executor: pnpm/lts
+                  create_badges: false
+                  config:
+                      - utils/add_npm_config:
+                            registry: npm.arrai.dev
+                            token: $NPM_ARRAI_DEV_TOKEN
+                            scopes: |
+                                @arrai-innovations:registry=https://npm.arrai.dev/
+                                @fortawesome:registry=https://npm.arrai.dev/
+                                @awesome.me:registry=https://npm.arrai.dev/
                   filters:
                       branches:
                           ignore:
