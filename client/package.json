@@ -2,7 +2,8 @@
   "name": "@arrai-innovations/vueda",
   "version": "3.0.0-alpha.0",
   "publishConfig": {
-    "tag": "latest"
+    "tag": "latest",
+    "registry": "https://npm.arrai.dev/"
   },
   "description": "Vue 3 component library for VUEDA Server. Provides components and composables for form handling, CRUD views, and dynamic routing, driven by server-supplied model and field metadata. Includes authentication, navigation, permission management, and theming support.",
   "main": "index.js",
