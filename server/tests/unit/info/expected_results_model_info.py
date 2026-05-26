@@ -7147,6 +7147,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "order_number": {
                             "label": "Order Number",
@@ -7159,6 +7160,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                         "order_date": {
                             "label": "Order Date",
@@ -7169,6 +7171,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -7191,6 +7194,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "name": {
                             "label": "Name",
@@ -7202,6 +7206,7 @@ EXPECTED_RESULTS = [
                             "read_only": False,
                             "required": True,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -7217,6 +7222,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
@@ -7227,6 +7233,7 @@ EXPECTED_RESULTS = [
                     "type_db": None,
                     "type_model": None,
                     "type_serializer": "CharField",
+                    "hidden": True,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
@@ -7237,6 +7244,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "order": {
                     "label": "Order",
@@ -7249,6 +7257,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "product": {
                     "label": "Product",
@@ -7261,6 +7270,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "quantity": {
                     "label": "Quantity",
@@ -7273,6 +7283,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {
@@ -7395,6 +7406,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
@@ -7405,6 +7417,7 @@ EXPECTED_RESULTS = [
                     "type_db": None,
                     "type_model": None,
                     "type_serializer": "CharField",
+                    "hidden": True,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
@@ -7415,6 +7428,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "order": {
                     "label": "Order",
@@ -7427,6 +7441,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "product": {
                     "label": "Product",
@@ -7439,6 +7454,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
                 "quantity": {
                     "label": "Quantity",
@@ -7451,6 +7467,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {},
@@ -7562,6 +7579,7 @@ EXPECTED_RESULTS = [
                             "type_db": "ForeignKey",
                             "type_model": "ForeignKey",
                             "type_serializer": "PrimaryKeyRelatedField",
+                            "hidden": False,
                         },
                         "pk": {
                             "choices": False,
@@ -7573,6 +7591,7 @@ EXPECTED_RESULTS = [
                             "type_db": "CompositePrimaryKey",
                             "type_model": "CompositePrimaryKey",
                             "type_serializer": "CompositePrimaryKeyField",
+                            "hidden": False,
                         },
                         "product": {
                             "app_label": "store",
@@ -7585,6 +7604,7 @@ EXPECTED_RESULTS = [
                             "type_db": "ForeignKey",
                             "type_model": "ForeignKey",
                             "type_serializer": "PrimaryKeyRelatedField",
+                            "hidden": False,
                         },
                         "quantity": {
                             "choices": False,
@@ -7597,6 +7617,7 @@ EXPECTED_RESULTS = [
                             "type_db": "IntegerField",
                             "type_model": "IntegerField",
                             "type_serializer": "IntegerField",
+                            "hidden": False,
                         },
                     },
                 },
@@ -7614,6 +7635,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
@@ -7624,16 +7646,18 @@ EXPECTED_RESULTS = [
                     "type_db": None,
                     "type_model": None,
                     "type_serializer": "CharField",
+                    "hidden": True,
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
                     "type_db": "CharField",
                     "type_model": "GeneratedField",
-                    "type_serializer": "ModelField",
+                    "type_serializer": "CharField",
                     "many": False,
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "order_date": {
                     "label": "Order Date",
@@ -7644,6 +7668,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "order_number": {
                     "label": "Order Number",
@@ -7656,6 +7681,7 @@ EXPECTED_RESULTS = [
                     "choices": False,
                     "decimal_places": 0,
                     "max_digits": 7,
+                    "hidden": False,
                 },
                 "order_items_composite_pks": {
                     "label": "Order Items Composite Pks",
@@ -7668,6 +7694,7 @@ EXPECTED_RESULTS = [
                     "read_only": False,
                     "required": True,
                     "choices": True,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {},
