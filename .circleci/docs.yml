@@ -43,8 +43,6 @@ jobs:
                   token: $NPM_ARRAI_DEV_TOKEN
                   scopes: |
                       @arrai-innovations:registry=https://npm.arrai.dev/
-                      @fortawesome:registry=https://npm.arrai.dev/
-                      @awesome.me:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
@@ -118,8 +116,6 @@ jobs:
                   token: $NPM_ARRAI_DEV_TOKEN
                   scopes: |
                       @arrai-innovations:registry=https://npm.arrai.dev/
-                      @fortawesome:registry=https://npm.arrai.dev/
-                      @awesome.me:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
@@ -181,8 +177,6 @@ jobs:
                   token: $NPM_ARRAI_DEV_TOKEN
                   scopes: |
                       @arrai-innovations:registry=https://npm.arrai.dev/
-                      @fortawesome:registry=https://npm.arrai.dev/
-                      @awesome.me:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}

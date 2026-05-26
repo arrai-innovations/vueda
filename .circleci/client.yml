@@ -49,8 +49,6 @@ jobs:
                   token: $NPM_ARRAI_DEV_TOKEN
                   scopes: |
                       @arrai-innovations:registry=https://npm.arrai.dev/
-                      @fortawesome:registry=https://npm.arrai.dev/
-                      @awesome.me:registry=https://npm.arrai.dev/
             - run:
                   name: Install Dependencies
                   command: pnpm install
@@ -68,8 +66,6 @@ jobs:
                   token: $NPM_ARRAI_DEV_TOKEN
                   scopes: |
                       @arrai-innovations:registry=https://npm.arrai.dev/
-                      @fortawesome:registry=https://npm.arrai.dev/
-                      @awesome.me:registry=https://npm.arrai.dev/
             - run:
                   name: Install Dependencies
                   command: pnpm install
@@ -134,8 +130,6 @@ workflows:
                             token: $NPM_ARRAI_DEV_TOKEN
                             scopes: |
                                 @arrai-innovations:registry=https://npm.arrai.dev/
-                                @fortawesome:registry=https://npm.arrai.dev/
-                                @awesome.me:registry=https://npm.arrai.dev/
                       - run:
                             name: Ensure pnpm command is available
                             command: |
@@ -163,8 +157,6 @@ workflows:
                             token: $NPM_ARRAI_DEV_TOKEN
                             scopes: |
                                 @arrai-innovations:registry=https://npm.arrai.dev/
-                                @fortawesome:registry=https://npm.arrai.dev/
-                                @awesome.me:registry=https://npm.arrai.dev/
                       - run:
                             name: Ensure pnpm command is available
                             command: |
@@ -191,8 +183,6 @@ workflows:
                             token: $NPM_ARRAI_DEV_TOKEN
                             scopes: |
                                 @arrai-innovations:registry=https://npm.arrai.dev/
-                                @fortawesome:registry=https://npm.arrai.dev/
-                                @awesome.me:registry=https://npm.arrai.dev/
                   filters:
                       branches:
                           only:
@@ -208,8 +198,6 @@ workflows:
                             token: $NPM_ARRAI_DEV_TOKEN
                             scopes: |
                                 @arrai-innovations:registry=https://npm.arrai.dev/
-                                @fortawesome:registry=https://npm.arrai.dev/
-                                @awesome.me:registry=https://npm.arrai.dev/
                   filters:
                       branches:
                           ignore:
