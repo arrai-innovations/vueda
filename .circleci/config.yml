@@ -49,6 +49,8 @@ workflows:
                       server/.* run-server-workflows true .circleci/server.yml
                       docs/.* run-docs-workflows true .circleci/docs.yml
                       docs-tooling/.* run-docs-workflows true .circleci/docs.yml
+                      client/.* run-docs-workflows true .circleci/docs.yml
+                      server/.* run-docs-workflows true .circleci/docs.yml
                       uv\.lock$ run-server-workflows true .circleci/server.yml
                       uv\.lock$ run-docs-workflows true .circleci/docs.yml
                       pnpm-lock\.yaml$ run-client-workflows true .circleci/client.yml
