@@ -83,7 +83,7 @@
     "browser-util-inspect": "^0.2.0",
     "decimal.js": "^10.5.0",
     "dompurify": "^3.4.0",
-    "js-cookie": "^3.0.5",
+    "js-cookie": "^3.0.6",
     "maska": "^3.2.0",
     "p-limit": "^5.0.0",
     "platform-detect": "^3.0.1",
