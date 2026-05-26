@@ -110,6 +110,7 @@ docs:
   just docs-serve
 
 docs-validate:
+  just docs-api
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js validate
 
 docs-build:

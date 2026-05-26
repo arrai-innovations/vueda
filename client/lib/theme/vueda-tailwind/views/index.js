@@ -462,7 +462,7 @@ export default {
         searchInput: {
             class: ["lg:max-w-[30ch]"],
         },
-        /** Per-button class applied to bulk-action {@api theme-key:LinkModelView} entries inside the bulk-actions strip. `grow` on narrow viewports lets each button claim its share of the row width; `sm:grow-0` reverts to natural width once the row can hold the buttons inline. */
+        /** Per-button class applied to bulk-action `LinkModelView` entries inside the bulk-actions strip. `grow` on narrow viewports lets each button claim its share of the row width; `sm:grow-0` reverts to natural width once the row can hold the buttons inline. */
         bulkActionButton: {
             class: ["grow sm:grow-0"],
         },
@@ -526,7 +526,7 @@ export default {
         root: {
             class: [],
         },
-        /** Row passthrough forwarded to the embedded {@api theme-key:ObjectsGrid.row}. Paints a 2 px primary left-stripe on the first cell of every row that belongs to a revision (both `data-rev-start` and `data-rev-child`), so a multi-row revision reads as a single grouped band. The card surrounding the grid carries the outer border, so this binding does not redeclare the row's own border. */
+        /** Row passthrough forwarded to the embedded {@api theme-key:ObjectsGrid.bodyRow}. Paints a 2 px primary left-stripe on the first cell of every row that belongs to a revision (both `data-rev-start` and `data-rev-child`), so a multi-row revision reads as a single grouped band. The card surrounding the grid carries the outer border, so this binding does not redeclare the row's own border. */
         row: {
             class: [
                 "data-[rev-start=true]:[&>*:first-child]:border-l-2",
@@ -651,7 +651,7 @@ export default {
         root: {
             class: ["flex min-h-full items-center justify-center p-8"],
         },
-        /** 20 px {@api theme-key:LoadingSpinnerBlock} forwarded into the card's `crest-icon` slot on the normal (non-slow) path. Sized to read as a glyph beside the crest label, not as the dominant figure in the card. */
+        /** 20 px `LoadingSpinnerBlock` forwarded into the card's `crest-icon` slot on the normal (non-slow) path. Sized to read as a glyph beside the crest label, not as the dominant figure in the card. */
         crest: {
             class: ["w-5 h-5"],
         },
@@ -732,7 +732,7 @@ export default {
      * generic view-action structure.
      */
     ViewActivate: {
-        /** Outer wrapper around the embedded {@api theme-key:PageTitle} and the activate-flow {@api theme-key:ModelActionForm}. Empty by default; the chrome lives on the inner shells. The view also renders a centred {@api theme-key:LoadingSpinnerBlock} while {@api theme-key:ModelActionForm}'s model config loads; that fallback inherits its own block recipe and is not themed here. */
+        /** Outer wrapper around the embedded {@api theme-key:PageTitle} and the activate-flow {@api theme-key:ModelActionForm}. Empty by default; the chrome lives on the inner shells. The view also renders a centred `LoadingSpinnerBlock` while {@api theme-key:ModelActionForm}'s model config loads; that fallback inherits its own block recipe and is not themed here. */
         root: {
             class: [],
         },
@@ -773,7 +773,7 @@ export default {
         recoveryToggle: {
             class: ["self-start"],
         },
-        /** Class forwarded to the {@api theme-key:WidgetTextInput} rendered for the recovery-code path. Mono with a small letter-spacing bump so the dashed code reads as machine-input alongside the OTP grid it replaces. */
+        /** Class forwarded to the `WidgetTextInput` rendered for the recovery-code path. Mono with a small letter-spacing bump so the dashed code reads as machine-input alongside the OTP grid it replaces. */
         recoveryInput: {
             class: ["font-mono tracking-[0.04em]"],
         },
@@ -883,7 +883,7 @@ export default {
         buttons: {
             class: ["flex gap-1 w-full justify-end"],
         },
-        /** Class forwarded to the {@api theme-key:LinkModelView} inside the page-title buttons cluster. `whitespace-nowrap` keeps the link from breaking mid-label; `grow shrink-0` lets the link claim row width when narrow without ever collapsing below its natural width. */
+        /** Class forwarded to the `LinkModelView` inside the page-title buttons cluster. `whitespace-nowrap` keeps the link from breaking mid-label; `grow shrink-0` lets the link claim row width when narrow without ever collapsing below its natural width. */
         returnLink: {
             class: ["whitespace-nowrap grow shrink-0"],
         },

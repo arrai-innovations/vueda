@@ -96,7 +96,7 @@ export default {
             ],
         }),
         /**
-         * The moving progress fill. Determinate values are translated by the component inline style, while indeterminate progress narrows the fill and uses {@api css-token:animate-vueda-progress-slide}.
+         * The moving progress fill. Determinate values are translated by the component inline style, while indeterminate progress narrows the fill and uses the `--animate-vueda-progress-slide` animation.
          */
         indicator: ({ tone }) => ({
             class: [
