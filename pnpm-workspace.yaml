@@ -11,6 +11,10 @@ overrides:
     lodash-es: ">=4.17.24"
     postcss: ">=8.5.10"
 
+peerDependencyRules:
+    allowedVersions:
+        glob-promise>glob: "10 || 11"
+
 allowBuilds:
   lefthook: false
   esbuild: true

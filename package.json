@@ -7,17 +7,6 @@
         "fix:eslint": "eslint --no-warn-ignored --cache --fix client docs docs-tooling eslint.config.mjs",
         "fix:prettier": "prettier --write ."
     },
-    "pnpm": {
-        "patchedDependencies": {
-            "vitepress-plugin-diagrams": "patches/vitepress-plugin-diagrams.patch",
-            "vitepress": "patches/vitepress.patch"
-        },
-        "peerDependencyRules": {
-            "allowedVersions": {
-                "glob-promise>glob": "10 || 11"
-            }
-        }
-    },
     "devDependencies": {
         "@arrai-innovations/commitlint-config": "^2.1.0",
         "@commitlint/cli": "^19.8.1",
