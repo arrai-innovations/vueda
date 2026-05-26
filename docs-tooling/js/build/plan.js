@@ -25,7 +25,7 @@ import path from "node:path";
  * @property {string} normalizeSource - Value passed to `normalize`/`render --source`.
  * @property {string} canonical - Normalized artifact filename under the generated dir.
  * @property {InputSpec[]} inputs - Source files whose change requires re-extraction.
- * @property {string[]} tooling - Tooling module files (repo-relative) whose change also invalidates the cache.
+ * @property {string[]} tooling - Tooling module entrypoints (repo-relative) whose change invalidates the cache. Their transitive relative imports are folded in automatically (see {@link resolveImportClosure}), so only entrypoints need listing here.
  */
 
 const SERVER_PY_INPUTS = [
@@ -62,7 +62,15 @@ export const SOURCES = [
         extractTarget: "javascript",
         normalizeSource: "typedoc",
         canonical: "typedoc.canonical.json",
-        inputs: [{ type: "tree", dir: "client/lib", exts: [".js", ".ts"] }],
+        inputs: [
+            { type: "tree", dir: "client/lib", exts: [".js", ".ts"] },
+            // TypeDoc runs via these configs (typedoc.json -> typedoc.tsconfig.json
+            // -> client/tsconfig.json). Changes to entry points, includes, or
+            // aliases here alter the extracted output, so they invalidate the cache.
+            { type: "file", path: "docs-tooling/typedoc.json" },
+            { type: "file", path: "docs-tooling/typedoc.tsconfig.json" },
+            { type: "file", path: "client/tsconfig.json" },
+        ],
         tooling: [
             "docs-tooling/js/extractors/javascript.js",
             "docs-tooling/js/normalizers/typedoc.js",
@@ -172,9 +180,55 @@ function resolveSpec(repoRoot, spec) {
     throw new Error(`Unknown input spec type: ${spec.type}`);
 }
 
+// Captures the specifier of any `... from "<spec>"` (static import or re-export).
+// This codebase uses only static, single-line ESM with explicit extensions, so a
+// regex closure is reliable; dynamic import() and side-effect imports are absent.
+const FROM_SPECIFIER_RE = /\bfrom\s*["']([^"']+)["']/g;
+
+/**
+ * Collect the transitive closure of relative imports reachable from a set of
+ * entry files. Only `./` and `../` specifiers are followed; bare package imports
+ * (e.g. `typedoc`, `node:fs`) are out of scope because their versions are pinned
+ * by the lockfile. Files that cannot be read are skipped, so a stale or
+ * not-yet-created module never throws.
+ *
+ * @param {string[]} entryFiles - Absolute paths to start from.
+ * @returns {string[]} Absolute paths in the closure, including the entries.
+ */
+export function resolveImportClosure(entryFiles) {
+    const seen = new Set();
+    const stack = [...entryFiles];
+    while (stack.length > 0) {
+        const file = stack.pop();
+        if (seen.has(file)) {
+            continue;
+        }
+        seen.add(file);
+        let contents;
+        try {
+            contents = fs.readFileSync(file, "utf-8");
+        } catch {
+            continue;
+        }
+        for (const match of contents.matchAll(FROM_SPECIFIER_RE)) {
+            const spec = match[1];
+            if (!spec.startsWith(".")) {
+                continue;
+            }
+            const resolved = path.resolve(path.dirname(file), spec);
+            if (!seen.has(resolved)) {
+                stack.push(resolved);
+            }
+        }
+    }
+    return Array.from(seen);
+}
+
 /**
  * Resolve every input + tooling file for a source to a sorted, de-duplicated
- * list of absolute paths.
+ * list of absolute paths. Tooling entrypoints are expanded to their full
+ * transitive relative-import closure so a change to any imported helper
+ * (e.g. `utils/source.js`) invalidates the cache.
  *
  * @param {string} repoRoot
  * @param {SourceDescriptor} source
@@ -187,8 +241,8 @@ export function sourceFiles(repoRoot, source) {
             files.add(f);
         }
     }
-    for (const rel of source.tooling) {
-        const full = path.join(repoRoot, rel);
+    const toolingEntries = source.tooling.map((rel) => path.join(repoRoot, rel)).filter((full) => fs.existsSync(full));
+    for (const full of resolveImportClosure(toolingEntries)) {
         if (fs.existsSync(full)) {
             files.add(full);
         }
