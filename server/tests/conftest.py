@@ -421,7 +421,7 @@ class BaseTestModelViewSet(
 
 
 class BaseTestCallCommand:
-    def call_command(self, *args, redirect_output=True):
+    def call_command(self, *args):
         """
         Call a management command and capture the results.
 
@@ -439,10 +439,7 @@ class BaseTestCallCommand:
         # If we don't do this, sometimes we can't import a newly created migration.
         # Do it here, so we don't need to know which calls require it, and which don't.
         importlib.invalidate_caches()
-        if redirect_output:
-            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-                call_command(*args)
-        else:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             call_command(*args)
 
         # Did an error occur?
