@@ -8,9 +8,9 @@ import get from "lodash-es/get.js";
  * Retrieves a value from a plain, related, or calculated object based on a namespaced field path.
  * Paths prefixed with "related." or "calculated." are resolved against the corresponding object.
  *
- * @param {object} obj - The primary object.
- * @param {object} relatedObj - The related object.
- * @param {object} calculatedObj - The calculated object.
+ * @param {{ [key: string]: unknown }|undefined} obj - The primary object.
+ * @param {{ [key: string]: unknown }|undefined} relatedObj - The related object.
+ * @param {{ [key: string]: unknown }|undefined} calculatedObj - The calculated object.
  * @param {string} fieldPath - The field path, optionally prefixed with "related." or "calculated.".
  * @returns {unknown} The resolved value.
  */

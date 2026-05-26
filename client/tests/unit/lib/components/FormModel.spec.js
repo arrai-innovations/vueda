@@ -15,11 +15,11 @@ const FieldRendererStub = defineComponent({
     },
 });
 
-const FormChoresStub = defineComponent({
-    name: "FormChoresStub",
-    props: ["variant"],
+const FormMessageStub = defineComponent({
+    name: "FormMessageStub",
+    props: ["type"],
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-chores" }, slots.default ? slots.default() : null);
+        return () => h("div", { "data-qa": "form-message" }, slots.default ? slots.default() : null);
     },
 });
 
@@ -35,7 +35,7 @@ const mockedUseTheme = vi.fn(() => themeFn);
 const mockedUseFormModel = vi.fn();
 
 vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: FieldRendererStub }));
-vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
+vi.mock("@vueda/components/FormMessage.vue", () => ({ default: FormMessageStub }));
 vi.mock("@vueda/components/LoadingSpinnerBlock.vue", () => ({ default: LoadingSpinnerBlockStub }));
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
 vi.mock("@vueda/use/useFormModel.js", () => ({ useFormModel: mockedUseFormModel }));

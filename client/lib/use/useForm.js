@@ -41,6 +41,7 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * @property {{[path: string]: boolean}} touched - Whether each field has been touched (blurred).
  * @property {boolean} anyTouched - Whether any field has been touched.
  * @property {string|null} focused - The currently focused field (if any).
+ * @property {boolean} submitted - Whether the form has had a submission attempt (set by setAllTouched, cleared by reset).
  *
  * // *** Tracking & Modification ***
  * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} modified - Tracks modified fields.
@@ -318,6 +319,7 @@ const setAllTouched = (state) => {
     if (!state.anyTouched) {
         state.anyTouched = true;
     }
+    state.submitted = true;
 };
 
 /**
@@ -343,6 +345,9 @@ const clearAllTouched = (state) => {
     assignReactiveObject(state.touched, {});
     if (state.anyTouched) {
         state.anyTouched = false;
+    }
+    if (state.submitted) {
+        state.submitted = false;
     }
 };
 
@@ -427,8 +432,7 @@ const reset = (state, hasInitialized) => {
         assignReactiveObject(state.errors, {});
         state.anyError = false;
         assignReactiveObject(state.messages, {});
-        assignReactiveObject(state.touched, {});
-        state.anyTouched = false;
+        clearAllTouched(state);
         state.focused = null;
     } else {
         hasInitialized.value = true;
@@ -597,7 +601,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @example
  * ```vue
  * <script setup>
- * import Button from "primevue/button";
+ * import Button from "@vueda/controls/button/Button.vue"
  * const myState = reactive({
  *     submitting: false,
  *     // when initialValues is changed, the form's values are reset to match
@@ -610,13 +614,13 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *         // allow all validation to run
  *         formContext.setAllTouched();
  *         await nextTick();
- *         if (formContext.anyError) {
+ *         if (formContext.state.anyError) {
  *             return;
  *         }
- *         if (!formContext.anyModified) {
+ *         if (!formContext.state.anyModified) {
  *             return;
  *         }
- *         await submitToServer(formContext.values);
+ *         await submitToServer(formContext.state.submittingValues);
  *     } catch (e) {
  *         if (e instanceof FormValidationError) {
  *             formContext.handleServerFormValidationError(e);
@@ -630,25 +634,19 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * </script>
  * <template>
  * <form @submit.prevent="handleSubmit">
- *     <form-feedback type="error" />
- *     <form-feedback type="message" />
- *     <field-string name="field1" label="Field 1">
+ *     <form-message type="error" />
+ *     <form-message type="message" />
+ *     <form-field name="field1" label="Field 1">
  *         <form-label>
  *             <widget-input />
  *         </form-label>
- *         <form-help-text />
- *         <form-feedback type="error" />
- *         <form-feedback type="message" />
- *     </field-string>
- *     <field-number name="field2" label="Field 2" :max-value="100" :min-value="1">
+ *     </form-field>
+ *     <form-field name="field2" label="Field 2" validation="numeric" :max-value="100" :min-value="1">
  *         <form-label>
  *             <widget-input step="1" />
  *         </form-label>
- *         <form-help-text />
- *         <form-feedback type="error" />
- *         <form-feedback type="message" />
- *     </field-number>
- *     <Button type="submit" severity="info" />
+ *     </form-field>
+ *     <Button type="submit">Submit</Button>
  * </form>
  * </template>
  * ```
@@ -697,6 +695,7 @@ export function useForm(props) {
         touched: {},
         anyTouched: false,
         focused: null,
+        submitted: false,
 
         // *** Tracking & Modification ***
         modified: modifiedHookRegistry.computedAggregates,

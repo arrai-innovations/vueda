@@ -18,6 +18,9 @@ export const FilterModelSymbol = Symbol("filterModel");
 /** @type {symbol} Injection key for the lookup (searchable-select) context. */
 export const LookupContextSymbol = Symbol("lookupContext");
 
+/** @type {symbol} Injection key for a component-level icon registry override. */
+export const IconOverrideSymbol = Symbol("iconOverride");
+
 /** @type {symbol} Injection key for a component-level theme override. */
 export const ThemeOverrideSymbol = Symbol("themeOverride");
 

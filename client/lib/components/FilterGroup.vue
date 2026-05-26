@@ -2,13 +2,13 @@
 import { deepUnref, keyDiff } from "@arrai-innovations/reactive-helpers";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterComponent from "@vueda/components/FilterComponent.vue";
+import Button from "@vueda/controls/button/Button.vue";
 import { useFilter } from "@vueda/use/useFilter.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { ListFilterError } from "@vueda/utils/errors.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
-import Button from "primevue/button";
 import { computed, effectScope, reactive, readonly, ref, useSlots, watch } from "vue";
 import { useRoute } from "vue-router";
 
@@ -202,12 +202,9 @@ const theme = useTheme("FilterGroup", props);
                 :severity="!!addedFilters?.length ? 'warn' : 'secondary'"
                 @click="clearFilters"
             >
-                <Button
-                    label="Clear Filters"
-                    name="clear-filters-button"
-                    :severity="!!addedFilters?.length ? 'warn' : 'secondary'"
-                    @click="clearFilters"
-                />
+                <Button :variant="!!addedFilters?.length ? 'outline' : 'secondary'" @click="clearFilters">
+                    Clear Filters
+                </Button>
             </slot>
         </div>
         <div :class="theme('messageWrapper')">

@@ -1,19 +1,22 @@
 <script setup>
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_PROPS } from "@vueda/use/useWidget.js";
-import Message from "primevue/message";
 
 /**
  * Renders an error message when a field's widget name is not mapped to any known widget component.
  * Useful as a development-time diagnostic to surface misconfigured field definitions.
  */
-defineOptions({});
+defineOptions({ inheritAttrs: false });
 
-defineProps({
+const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     ...WIDGET_PROPS,
 });
+
+const theme = useTheme("WidgetUnmapped", props);
 </script>
 <template>
-    <Message severity="error">
-        <strong>Unmapped Widget</strong> - The name "{{ name }}" is not mapped to a widget component.
-    </Message>
+    <div role="alert" data-qa="unmapped-widget-message" :class="theme('root')" v-bind="$attrs">
+        <strong>Unmapped Widget</strong> &mdash; The name "{{ name }}" is not mapped to a widget component.
+    </div>
 </template>

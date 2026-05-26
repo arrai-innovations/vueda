@@ -42,7 +42,7 @@ const makeSearchParamsString = (searchParams) => {
  * - If a property is a `File`, it appends it directly.
  * - If a property is empty or undefined, it appends an empty string.
  *
- * @param {object} object - The source object to convert into `FormData`.
+ * @param {{ [key: string]: unknown }} object - The source object to convert into `FormData`.
  * @returns {FormData} - A `FormData` instance containing key-value pairs from the object, formatted for multipart form submission.
  */
 const getFormData = (object) => {

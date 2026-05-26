@@ -1,18 +1,31 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { defineComponent, h, reactive } from "vue";
 
-const themeFn = vi.fn((key) => `t-${key}`);
-const mockedUseWidgetTheme = vi.fn(() => themeFn);
-vi.mock("@vueda/use/useWidgetTheme.js", () => ({
-    useWidgetTheme: mockedUseWidgetTheme,
-}));
+const QA = "widget-checkbox";
+const QA_SEL = `[data-qa='${QA}']`;
 
-const mockedUseWarningClass = vi.fn(() => "pt-class");
-vi.mock("@vueda/use/useWarningClass.js", () => ({
-    PASSTHROUGH_OPTION_PROPS: {},
-    useWarningClass: mockedUseWarningClass,
-}));
+const ControlCheckboxStub = defineComponent({
+    name: "ControlCheckboxStub",
+    props: ["modelValue", "id", "disabled", "name"],
+    emits: ["update:modelValue", "focus", "blur"],
+    setup(props, { emit, attrs }) {
+        return () =>
+            h("button", {
+                id: props.id,
+                disabled: props.disabled,
+                name: props.name,
+                "data-value": String(props.modelValue),
+                role: "checkbox",
+                ...attrs,
+                onFocus: () => emit("focus"),
+                onBlur: () => emit("blur"),
+                onClick: () => emit("update:modelValue", !props.modelValue),
+            });
+    },
+});
+vi.mock("@vueda/controls/checkbox/Checkbox.vue", () => ({ default: ControlCheckboxStub }));
 
 let widgetContext;
 const mockedUseWidget = vi.fn(() => {
@@ -20,11 +33,9 @@ const mockedUseWidget = vi.fn(() => {
         state: reactive({
             combinedValue: false,
             disabled: false,
-            widgetId: "wid",
             validationState: reactive({ invalid: false }),
-            combinedName: "name",
+            combinedName: "test-name",
             required: false,
-            value: null,
         }),
         blur: vi.fn(),
         focus: vi.fn(),
@@ -37,104 +48,156 @@ vi.mock("@vueda/use/useWidget.js", () => ({
     useWidget: mockedUseWidget,
 }));
 
-const WidgetLabelStub = defineComponent({
-    name: "WidgetLabelStub",
-    props: ["for"],
-    setup(props, { slots }) {
-        return () =>
-            h(
-                "label",
-                { "data-qa": "widget-label", for: props.for },
-                slots.default ? slots.default({ class: "lbl" }) : null,
-            );
-    },
-});
-vi.mock("@vueda/widgets/WidgetLabel.vue", () => ({
-    default: WidgetLabelStub,
-    WIDGET_LABEL_PROPS: {},
-    getWidgetSlotsComputed: () => () => [],
-}));
-
-const ToggleSwitchStub = defineComponent({
-    name: "ToggleSwitchStub",
-    props: ["modelValue", "class", "inputId", "disabled", "invalid", "name", "pt", "ariaRequired"],
-    emits: ["update:modelValue", "blur", "focus"],
-    setup(props, { emit, attrs }) {
-        return () =>
-            h("input", {
-                "data-qa": "toggle-switch",
-                type: "checkbox",
-                class: props.class,
-                id: props.inputId,
-                disabled: props.disabled,
-                "data-invalid": props.invalid,
-                name: props.name,
-                "data-pt": props.pt,
-                "aria-required": props.ariaRequired,
-                checked: props.modelValue,
-                ...attrs,
-                onBlur: () => emit("blur"),
-                onFocus: () => emit("focus"),
-                onChange: (e) => emit("update:modelValue", e.target.checked),
-            });
-    },
-});
-vi.mock("primevue/toggleswitch", () => ({ default: ToggleSwitchStub }));
-
 const importComponent = () => import("@vueda/widgets/WidgetCheckbox.vue");
 
 describe("lib/widgets/WidgetCheckbox.vue", () => {
-    let WidgetCheckbox, vue;
+    let WidgetCheckbox;
 
     beforeEach(async () => {
         WidgetCheckbox = (await importComponent()).default;
-        vue = await import("vue");
         mockedUseWidget.mockClear();
-        mockedUseWidgetTheme.mockClear();
-        mockedUseWarningClass.mockClear();
-        themeFn.mockClear();
     });
 
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    scopedIt("applies theme classes and forwards attrs", async () => {
-        const wrapper = mount(WidgetCheckbox, {
-            attrs: { class: "extra", "aria-label": "a", value: "v" },
+    describe("Rendering", () => {
+        scopedIt("renders a Checkbox element", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            expect(wrapper.get(QA_SEL).element.tagName).toBe("BUTTON");
         });
-        await vue.nextTick();
-        expect(mockedUseWidgetTheme).toHaveBeenCalled();
-        expect(wrapper.classes()).toContain("t-root");
-        expect(wrapper.classes()).not.toContain("extra");
-        const inner = wrapper.get("[data-qa='widget-checkbox-inner']");
-        expect(inner.classes()).toContain("t-inner");
-        const toggle = wrapper.get("[data-qa='toggle-switch']");
-        expect(toggle.classes()).toContain("t-input");
-        expect(toggle.attributes("aria-label")).toBe("a");
-        expect(toggle.attributes("value")).toBeUndefined();
-        expect(toggle.attributes("id")).toBe("wid");
+
+        scopedIt("sets data-qa attribute on the root control", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            expect(wrapper.get(QA_SEL).exists()).toBe(true);
+        });
     });
 
-    scopedIt("updates value and handles focus/blur", async () => {
-        const wrapper = mount(WidgetCheckbox);
-        await vue.nextTick();
-        const toggle = wrapper.get("[data-qa='toggle-switch']");
-        await toggle.trigger("focus");
-        expect(widgetContext.focus).toHaveBeenCalled();
-        await toggle.trigger("blur");
-        expect(widgetContext.blur).toHaveBeenCalled();
-        await toggle.setValue(true); // this triggers change event due to wrapper API
-        await vue.nextTick();
-        expect(widgetContext.state.combinedValue).toBe(true);
+    describe("Field context integration", () => {
+        scopedIt("applies fieldId from field context to the control id", async () => {
+            const fc = { state: reactive({ fieldId: "field-123" }) };
+            const wrapper = mount(WidgetCheckbox, {
+                global: { provide: { [FieldContextSymbol]: fc } },
+            });
+            expect(wrapper.get(QA_SEL).attributes("id")).toBe("field-123");
+        });
+
+        scopedIt("renders without field context (id is undefined)", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            expect(wrapper.get(QA_SEL).attributes("id")).toBeUndefined();
+        });
     });
 
-    scopedIt("sets aria-required when required and value null", async () => {
-        const wrapper = mount(WidgetCheckbox);
-        widgetContext.state.required = true;
-        widgetContext.state.value = null;
-        await vue.nextTick();
-        const toggle = wrapper.get("[data-qa='toggle-switch']");
-        expect(toggle.attributes("aria-required")).toBe("true");
+    describe("Widget state bindings", () => {
+        scopedIt("binds v-model to widgetContext.state.combinedValue", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            expect(wrapper.get(QA_SEL).attributes("data-value")).toBe("false");
+            widgetContext.state.combinedValue = true;
+            const { nextTick } = await vi.importActual("vue");
+            await nextTick();
+            expect(wrapper.get(QA_SEL).attributes("data-value")).toBe("true");
+        });
+
+        scopedIt("applies disabled state", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            expect(wrapper.get(QA_SEL).attributes("disabled")).toBeUndefined();
+            widgetContext.state.disabled = true;
+            const { nextTick } = await vi.importActual("vue");
+            await nextTick();
+            expect(wrapper.get(QA_SEL).element.disabled).toBe(true);
+        });
+
+        scopedIt("applies combinedName to name attribute", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            expect(wrapper.get(QA_SEL).attributes("name")).toBe("test-name");
+        });
+    });
+
+    describe("Accessibility attributes", () => {
+        scopedIt("applies aria-invalid when validation fails", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            expect(wrapper.get(QA_SEL).attributes("aria-invalid")).toBeUndefined();
+            widgetContext.state.validationState.invalid = true;
+            const { nextTick } = await vi.importActual("vue");
+            await nextTick();
+            expect(wrapper.get(QA_SEL).attributes("aria-invalid")).toBe("true");
+        });
+
+        scopedIt("does not render aria-invalid='false' when valid", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            expect(wrapper.get(QA_SEL).attributes("aria-invalid")).toBeUndefined();
+        });
+
+        scopedIt("applies aria-required when required", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            expect(wrapper.get(QA_SEL).attributes("aria-required")).toBeUndefined();
+            widgetContext.state.required = true;
+            const { nextTick } = await vi.importActual("vue");
+            await nextTick();
+            expect(wrapper.get(QA_SEL).attributes("aria-required")).toBe("true");
+        });
+
+        scopedIt("does not render aria-required='false' when not required", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            expect(wrapper.get(QA_SEL).attributes("aria-required")).toBeUndefined();
+        });
+    });
+
+    describe("Events", () => {
+        scopedIt("calls widgetContext.blur on blur event", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            await wrapper.get(QA_SEL).trigger("blur");
+            expect(widgetContext.blur).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("calls widgetContext.focus on focus event", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            await wrapper.get(QA_SEL).trigger("focus");
+            expect(widgetContext.focus).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("Attribute passthrough", () => {
+        scopedIt("passes through non-class attrs via v-bind=$attrs", async () => {
+            const wrapper = mount(WidgetCheckbox, {
+                attrs: { "aria-label": "checkbox field", "data-testid": "my-checkbox" },
+            });
+            const el = wrapper.get(QA_SEL);
+            expect(el.attributes("aria-label")).toBe("checkbox field");
+            expect(el.attributes("data-testid")).toBe("my-checkbox");
+        });
+    });
+
+    describe("Null value translation", () => {
+        scopedIt("translates null combinedValue to 'indeterminate' for the control", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            widgetContext.state.combinedValue = null;
+            const { nextTick } = await vi.importActual("vue");
+            await nextTick();
+            expect(wrapper.get(QA_SEL).attributes("data-value")).toBe("indeterminate");
+        });
+
+        scopedIt("translates 'indeterminate' from the control back to null on combinedValue", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            const ctrl = wrapper.getComponent(ControlCheckboxStub);
+            ctrl.vm.$emit("update:modelValue", "indeterminate");
+            const { nextTick } = await vi.importActual("vue");
+            await nextTick();
+            expect(widgetContext.state.combinedValue).toBeNull();
+        });
+
+        scopedIt("passes true/false values through without translation", async () => {
+            const wrapper = mount(WidgetCheckbox);
+            const { nextTick } = await vi.importActual("vue");
+
+            widgetContext.state.combinedValue = true;
+            await nextTick();
+            expect(wrapper.get(QA_SEL).attributes("data-value")).toBe("true");
+
+            widgetContext.state.combinedValue = false;
+            await nextTick();
+            expect(wrapper.get(QA_SEL).attributes("data-value")).toBe("false");
+        });
     });
 });

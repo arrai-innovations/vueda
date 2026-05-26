@@ -1,10 +1,10 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
+import Button from "@vueda/controls/button/Button.vue";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
-import Button from "primevue/button";
 import { computed, inject, unref, useSlots } from "vue";
 
 /**
@@ -68,9 +68,19 @@ const remainingSlotNames = computed(() => {
     const knownSlotNames = ["default", ...slotNames.flatMap((name) => unref(fieldSetSlotNames?.[name]?.possibleNames))];
     return slotNames.filter((slotName) => !knownSlotNames.includes(slotName));
 });
+
+const rowState = computed(() => {
+    if (props.fieldSetContextState?.selected?.includes?.(props.index)) {
+        return "selected-for-destroy";
+    }
+    if (props.pk === undefined || props.pk === null) {
+        return "dirty";
+    }
+    return null;
+});
 </script>
 <template>
-    <div v-if="formModel.expand?.length" :class="theme('root')">
+    <div v-if="formModel.expand?.length" :class="[theme('root'), 'group/row']" :data-state="rowState ?? undefined">
         <div v-if="fieldSetSlotNames['before-fields'].name" :class="theme('beforeFields')">
             <slot name="before-fields" />
         </div>
@@ -127,7 +137,7 @@ const remainingSlotNames = computed(() => {
                             verb="destroy"
                             @click="onDelete"
                         >
-                            <Button label="Delete" text @click="onDelete" />
+                            <Button variant="ghost" @click="onDelete">Delete</Button>
                         </slot>
                         <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox] Checkbox used to mark an existing inline row for deletion. -->
                         <slot
@@ -170,7 +180,7 @@ const remainingSlotNames = computed(() => {
                             }"
                             @update:model-value="emit('update:model-value', $event)"
                         >
-                            <Button :label="action.label" @update:model-value="emit('update:model-value', $event)" />
+                            <Button @update:model-value="emit('update:model-value', $event)">{{ action.label }}</Button>
                         </slot>
                     </template>
                 </template>

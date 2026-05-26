@@ -1,7 +1,9 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h, reactive } from "vue";
+import { defineComponent, h } from "vue";
 
+const mockOnSubmissionErrorHandler = vi.fn();
+const mockRedirectTo = vi.fn();
 const ActionFormStub = defineComponent({
     name: "ActionFormStub",
     props: ["runAction", "onSubmissionErrorHandler", "redirectTo"],
@@ -19,35 +21,17 @@ const PageTitleStub = defineComponent({
     },
 });
 
-const toastAdd = vi.fn();
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
-
-const routerPush = vi.fn();
-let routeQuery = {};
-vi.mock("vue-router", () => ({
-    useRouter: () => ({ push: routerPush }),
-    useRoute: () => ({ fullPath: "/current", query: routeQuery }),
+const formContext = { state: { values: { email: "" } } };
+const useAuthFlow = vi.fn(() => ({
+    formContext,
+    onSubmissionErrorHandler: mockOnSubmissionErrorHandler,
+    redirectTo: mockRedirectTo,
 }));
+vi.mock("@vueda/use/useAuthFlow.js", () => ({ useAuthFlow }));
 
-const UnauthorizedError = class extends Error {};
-const storeState = reactive({
-    pendingFlow: null,
-});
+const storeState = { pendingFlow: null };
 const storeUser = vi.fn(() => storeState);
-vi.mock("@vueda/stores/storeUser.js", () => ({
-    UnauthorizedError,
-    storeUser,
-}));
-
-const formState = { values: { email: "" } };
-const useForm = vi.fn(() => ({ state: formState }));
-vi.mock("@vueda/use/useForm.js", () => ({ useForm }));
-
-const useIsActive = vi.fn(() => ({ value: true }));
-vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive }));
-
-const defaultOnSubmissionError = vi.fn(async () => false);
-vi.mock("@vueda/use/useObjectForm.js", () => ({ defaultOnSubmissionError }));
+vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser }));
 
 const useTheme = vi.fn(() => () => "theme");
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme, THEME_OVERRIDE_PROPS: {} }));
@@ -55,7 +39,7 @@ vi.mock("@vueda/use/useTheme.js", () => ({ useTheme, THEME_OVERRIDE_PROPS: {} })
 vi.mock("@vueda/components/ActionForm.vue", () => ({ default: ActionFormStub }));
 vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
 
-let AuthForm, vue;
+let AuthForm;
 
 function mountAuthForm(options = {}) {
     return mount(AuthForm, {
@@ -71,24 +55,25 @@ function mountAuthForm(options = {}) {
 
 describe("lib/components/AuthForm.vue", () => {
     beforeEach(async () => {
-        vue = await import("vue");
         AuthForm = (await import("@vueda/components/AuthForm.vue")).default;
-        toastAdd.mockClear();
-        routerPush.mockClear();
-        defaultOnSubmissionError.mockClear();
-        useForm.mockClear();
+        useAuthFlow.mockClear();
         useTheme.mockClear();
         storeUser.mockClear();
-        storeState.pendingFlow = null;
-        routeQuery = {};
     });
 
     scopedIt("emits form-object on mount and renders ActionForm", () => {
         const wrapper = mountAuthForm();
         const emitArg = wrapper.emitted("form-object")[0][0];
-        expect(emitArg.value).toBe(formState.values);
+        expect(emitArg.value).toBe(formContext.state.values);
         expect(wrapper.find('[data-qa="action-form"]').exists()).toBe(true);
         expect(wrapper.find('[data-qa="page-title"]').attributes("data-title")).toBe("Sign In");
+    });
+
+    scopedIt("wires onSubmissionErrorHandler and redirectTo from useAuthFlow to ActionForm", () => {
+        const wrapper = mountAuthForm();
+        const stub = wrapper.getComponent(ActionFormStub);
+        expect(stub.props("onSubmissionErrorHandler")).toBe(mockOnSubmissionErrorHandler);
+        expect(stub.props("redirectTo")).toBe(mockRedirectTo);
     });
 
     scopedIt("forwards slot content via form-content slot", () => {
@@ -100,41 +85,10 @@ describe("lib/components/AuthForm.vue", () => {
         expect(wrapper.find('[data-qa="custom-form"]').exists()).toBe(true);
     });
 
-    scopedIt("redirectTo pushes returnPath on cancel", async () => {
-        routeQuery = { returnPath: "/back" };
-        const wrapper = mountAuthForm();
-        const redirectTo = wrapper.getComponent(ActionFormStub).props("redirectTo");
-        await redirectTo("cancel");
-        expect(routerPush).toHaveBeenCalledWith("/back");
-    });
-
-    scopedIt("OnSubmissionErrorHandler handles UnauthorizedError", async () => {
-        const wrapper = mountAuthForm();
-        const handler = wrapper.getComponent(ActionFormStub).props("onSubmissionErrorHandler");
-        const result = await handler({
-            error: new UnauthorizedError("nope"),
-            formContext: {},
-            toast: { add: toastAdd },
-        });
-        expect(result).toBe(true);
-        expect(routerPush).toHaveBeenCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
-        expect(toastAdd).toHaveBeenCalledWith(
-            expect.objectContaining({ severity: "warn", summary: expect.stringContaining("verify") }),
+    scopedIt("delegates to useAuthFlow with component props", () => {
+        mountAuthForm({ props: { formProps: { initialValues: { email: "" } } } });
+        expect(useAuthFlow).toHaveBeenCalledWith(
+            expect.objectContaining({ formProps: { initialValues: { email: "" } } }),
         );
-    });
-
-    scopedIt("falls back to defaultOnSubmissionError for other errors", async () => {
-        const wrapper = mountAuthForm();
-        const handler = wrapper.getComponent(ActionFormStub).props("onSubmissionErrorHandler");
-        const error = new Error("bad");
-        await handler({ error, formContext: {}, toast: { add: toastAdd } });
-        expect(defaultOnSubmissionError).toHaveBeenCalledWith({ error, formContext: {}, toast: { add: toastAdd } });
-    });
-
-    scopedIt("watches pendingFlow for reauthentication flows", async () => {
-        mountAuthForm();
-        storeState.pendingFlow = { id: "mfa_reauthenticate" };
-        await vue.nextTick();
-        expect(routerPush).toHaveBeenCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
     });
 });

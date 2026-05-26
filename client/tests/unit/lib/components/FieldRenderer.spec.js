@@ -14,9 +14,9 @@ vi.mock("@vueda/use/useTheme.js", () => ({
     mergeTheme: (...args) => Object.assign({}, ...args),
 }));
 
-vi.mock("primevue/skeleton", () => ({
+vi.mock("@vueda/feedback/skeleton/Skeleton.vue", () => ({
     default: defineComponent({
-        name: "SkeletonStub",
+        name: "FeedbackSkeletonStub",
         setup() {
             return () => h("div");
         },

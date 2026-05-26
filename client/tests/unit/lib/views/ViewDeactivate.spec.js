@@ -1,142 +1,260 @@
-import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
+import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { FIELDS_PARAM } from "@vueda/utils/constants.js";
-import { defineComponent, h } from "vue";
+import { defineComponent, h, reactive } from "vue";
 
-var provideStore, mockedProvide, mockedInject;
+// --- stubs ---------------------------------------------------------------
 
-const mockedUseIsActive = vi.fn();
-const mockedUseModelConfig = vi.fn();
-const mockedUseLookupContext = vi.fn();
-const mockedUseList = vi.fn();
-
-vi.mock("@vueda/use/useIsActive.js", () => ({
-    useIsActive: mockedUseIsActive,
-}));
-vi.mock("@vueda/use/useModelConfig.js", () => ({
-    useModelConfig: mockedUseModelConfig,
-}));
-vi.mock("@vueda/use/useLookupContext.js", () => ({
-    useLookupContext: mockedUseLookupContext,
-}));
-vi.mock("@arrai-innovations/reactive-helpers", async () => {
-    const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
-    return {
-        __esModule: true,
-        ...actual,
-        useList: mockedUseList,
-    };
+const SystemMessageCardStub = defineComponent({
+    name: "SystemMessageCardStub",
+    inheritAttrs: false,
+    props: ["tone"],
+    setup(props, { slots }) {
+        return () =>
+            h("div", { "data-qa": "system-message-card", "data-tone": props.tone }, [
+                slots["crest-eyebrow"] ? h("div", { "data-slot": "crest-eyebrow" }, slots["crest-eyebrow"]()) : null,
+                slots["crest-kind"] ? h("div", { "data-slot": "crest-kind" }, slots["crest-kind"]()) : null,
+                ...(slots.default ? slots.default() : []),
+                slots.actions ? h("div", { "data-slot": "actions" }, slots.actions()) : null,
+            ]);
+    },
 });
+vi.mock("@vueda/components/SystemMessageCard.vue", () => ({ default: SystemMessageCardStub }));
 
-const ModelActionFormStub = defineComponent({
-    name: "ModelActionFormStub",
-    props: ["app", "model", "action"],
-    setup(props, { attrs, slots }) {
+const ConsequencesBulletsStub = defineComponent({
+    name: "ConsequencesBulletsStub",
+    inheritAttrs: false,
+    props: ["items"],
+    setup(props) {
+        return () => h("ul", { "data-qa": "consequences-bullets", "data-item-count": props.items?.length });
+    },
+});
+vi.mock("@vueda/components/ConsequencesBullets.vue", () => ({ default: ConsequencesBulletsStub }));
+
+const TypedConfirmFieldStub = defineComponent({
+    name: "TypedConfirmFieldStub",
+    inheritAttrs: false,
+    props: ["expectedValue"],
+    emits: ["match"],
+    setup(props, { emit }) {
+        return () =>
+            h("div", {
+                "data-qa": "typed-confirm-field",
+                "data-expected": props.expectedValue,
+                "onTrigger-match": (v) => emit("match", v),
+            });
+    },
+});
+vi.mock("@vueda/components/TypedConfirmField.vue", () => ({ default: TypedConfirmFieldStub }));
+
+const ButtonStub = defineComponent({
+    name: "ButtonStub",
+    props: ["variant", "disabled"],
+    setup(props, { slots, attrs }) {
         return () =>
             h(
-                "div",
-                {
-                    "data-qa": "model-action-form",
-                    "data-app": props.app,
-                    "data-model": props.model,
-                    "data-action": props.action,
-                    ...attrs,
-                },
-                Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
+                "button",
+                { "data-variant": props.variant, disabled: props.disabled, ...attrs },
+                slots.default ? slots.default() : null,
             );
     },
 });
-vi.mock("@vueda/components/ModelActionForm.vue", () => ({
-    default: ModelActionFormStub,
-}));
-const LoadingSpinnerBlockStub = defineComponent({
-    name: "LoadingSpinnerBlockStub",
-    setup(_, { attrs }) {
-        return () => h("div", { "data-qa": "spinner", ...attrs });
-    },
-});
-vi.mock("@vueda/components/LoadingSpinnerBlock.vue", () => ({
-    default: LoadingSpinnerBlockStub,
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+
+// --- composable mocks ----------------------------------------------------
+
+const mockedUseIcons = vi.fn();
+vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: mockedUseIcons }));
+
+const mockedUseRouter = vi.fn();
+vi.mock("vue-router", () => ({ useRouter: mockedUseRouter }));
+
+const mockedGetDetailUrl = vi.fn();
+vi.mock("@vueda/utils/urls.js", () => ({ getDetailUrl: mockedGetDetailUrl }));
+
+vi.mock("@vueda/utils/csrf.js", () => ({ getCSRFValue: () => "csrf-token" }));
+
+// --- store mock -----------------------------------------------------------
+
+let userStoreState;
+
+vi.mock("@vueda/stores/storeUser.js", () => ({
+    storeUser: () => userStoreState,
 }));
 
-vi.mock("vue", async () => {
-    const actual = await vi.importActual("vue");
-    ({ provideStore, mockedProvide, mockedInject } = mockProvideInject(vi));
-    return {
-        __esModule: true,
-        ...actual,
-        inject: mockedInject,
-        provide: mockedProvide,
-    };
-});
+// --- state ---------------------------------------------------------------
 
-let ViewDeactivate, vue, modelConfig, instanceList;
+let ViewDeactivate, mockFetch, mockRouter;
 
 beforeEach(async () => {
-    vue = await vi.importActual("vue");
-    modelConfig = vue.reactive({
-        info: { pk: "id" },
-        loading: false,
+    userStoreState = reactive({
+        loggedIn: true,
+        loggedInUser: { email: "mara.tani@example.com" },
+        initialized: true,
     });
-    instanceList = {
-        state: vue.reactive({ objects: [], errored: false, error: null }),
-        executeAction: vi.fn().mockResolvedValue(),
-    };
-    mockedUseIsActive.mockReturnValue(vue.ref(true));
-    mockedUseModelConfig.mockReturnValue(modelConfig);
-    mockedUseList.mockReturnValue(instanceList);
+
+    mockRouter = { back: vi.fn() };
+    mockedUseRouter.mockReturnValue(mockRouter);
+
+    mockedUseIcons.mockReturnValue(() => null);
+
+    mockedGetDetailUrl.mockReturnValue("/api/myapp/mymodel/deactivate/");
+
+    mockFetch = vi.fn().mockResolvedValue({ status: 200 });
+    vi.stubGlobal("fetch", mockFetch);
+
     ViewDeactivate = (await import("@vueda/views/ViewDeactivate.vue")).default;
-    provideStore.clear();
 });
 
 afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
 });
 
-scopedIt("calls useLookupContext if lookup context is missing", () => {
-    mockedInject.mockReturnValueOnce(null);
-    mount(ViewDeactivate, { props: { app: "a", model: "b", pk: "1" } });
-    expect(mockedUseLookupContext).toHaveBeenCalled();
-});
+describe("lib/views/ViewDeactivate.vue", () => {
+    describe("card chrome", () => {
+        scopedIt("renders a warning-toned SystemMessageCard", () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "myapp", model: "mymodel", pk: "1" } });
+            expect(wrapper.find('[data-qa="system-message-card"]').attributes("data-tone")).toBe("warning");
+        });
 
-scopedIt("does not call useLookupContext when lookup context exists", () => {
-    mockedInject.mockReturnValueOnce({});
-    mount(ViewDeactivate, { props: { app: "a", model: "b", pk: "1" } });
-    expect(mockedUseLookupContext).not.toHaveBeenCalled();
-});
+        scopedIt("crest-eyebrow contains the model name", () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "myapp", model: "account", pk: "1" } });
+            expect(wrapper.find('[data-slot="crest-eyebrow"]').text()).toContain("account");
+        });
 
-scopedIt("renders form and handles deactivation", async () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewDeactivate, {
-        props: { app: "myApp", model: "thing", pk: "9" },
-        attrs: { foo: "bar" },
+        scopedIt("crest-kind contains app, model, and 'deactivate'", () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "myapp", model: "account", pk: "1" } });
+            expect(wrapper.find('[data-slot="crest-kind"]').text()).toBe("myapp/account/deactivate");
+        });
     });
 
-    const form = wrapper.find('[data-qa="action-form"]');
-    expect(form.attributes("data-app")).toBe("myApp");
-    expect(form.attributes("data-model")).toBe("thing");
-    expect(form.attributes("data-action")).toBe("deactivate");
+    describe("default message slot", () => {
+        scopedIt("renders the default suspension explanation", () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="view-deactivate-message"]').exists()).toBe(true);
+        });
 
-    await wrapper.vm.handleDeactivate();
-    expect(instanceList.executeAction).toHaveBeenCalled();
+        scopedIt("accepts a custom message via the message slot", () => {
+            const wrapper = mount(ViewDeactivate, {
+                props: { app: "a", model: "m", pk: "1" },
+                slots: { message: '<span data-qa="custom-msg">Custom warning</span>' },
+            });
+            expect(wrapper.find('[data-qa="custom-msg"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="view-deactivate-message"]').exists()).toBe(false);
+        });
+    });
 
-    instanceList.state.errored = true;
-    instanceList.state.error = new Error("fail");
-    await expect(wrapper.vm.handleDeactivate()).rejects.toThrow("fail");
-});
+    describe("consequences", () => {
+        scopedIt("omits ConsequencesBullets when consequences prop is empty", () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="consequences-bullets"]').exists()).toBe(false);
+        });
 
-scopedIt("shows spinner when model config is empty", () => {
-    mockedInject.mockReturnValueOnce({});
-    modelConfig.info = {};
-    const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "b", pk: "1" } });
-    expect(wrapper.find('[data-qa="spinner"]').exists()).toBe(true);
-});
+        scopedIt("renders ConsequencesBullets when consequences has items", () => {
+            const wrapper = mount(ViewDeactivate, {
+                props: {
+                    app: "a",
+                    model: "m",
+                    pk: "1",
+                    consequences: [{ label: "Sessions revoked" }, { label: "Tokens disabled" }],
+                },
+            });
+            const bullets = wrapper.find('[data-qa="consequences-bullets"]');
+            expect(bullets.exists()).toBe(true);
+            expect(bullets.attributes("data-item-count")).toBe("2");
+        });
+    });
 
-scopedIt("passes both field selection and ids to useList params", () => {
-    mockedInject.mockReturnValueOnce({});
-    mount(ViewDeactivate, { props: { app: "app", model: "thing", pk: "9" } });
-    const params = mockedUseList.mock.calls[0][0].props.params;
-    expect(params[FIELDS_PARAM]).toEqual({});
-    expect(Array.isArray(params.id)).toBe(true);
-    expect(params.id[0].value).toBe("9");
+    describe("TypedConfirmField", () => {
+        scopedIt("renders the confirm field with the user email as expected value", () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            const field = wrapper.find('[data-qa="typed-confirm-field"]');
+            expect(field.exists()).toBe(true);
+            expect(field.attributes("data-expected")).toBe("mara.tani@example.com");
+        });
+
+        scopedIt("omits the confirm field when the user email is not available", () => {
+            userStoreState.loggedInUser = {};
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="typed-confirm-field"]').exists()).toBe(false);
+        });
+    });
+
+    describe("action buttons", () => {
+        scopedIt("renders a cancel button and a destructive submit button", () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="view-deactivate-cancel"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="view-deactivate-submit"]').exists()).toBe(true);
+        });
+
+        scopedIt("submit button is disabled when the confirm field has not matched", () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="view-deactivate-submit"]').attributes("disabled")).toBeDefined();
+        });
+
+        scopedIt("cancel calls router.back()", async () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            await wrapper.find('[data-qa="view-deactivate-cancel"]').trigger("click");
+            expect(mockRouter.back).toHaveBeenCalled();
+        });
+    });
+
+    describe("deactivate submit", () => {
+        scopedIt("POSTes a PATCH to the detail URL with the correct PKs", async () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "myapp", model: "mymodel", pk: "42" } });
+            wrapper.vm.confirmMatch = true;
+            await wrapper.vm.handleDeactivate();
+            expect(mockedGetDetailUrl).toHaveBeenCalledWith("myapp", "mymodel", "deactivate");
+            expect(mockFetch).toHaveBeenCalledWith(
+                "/api/myapp/mymodel/deactivate/",
+                expect.objectContaining({
+                    method: "PATCH",
+                    body: JSON.stringify({ pks: ["42"] }),
+                }),
+            );
+        });
+
+        scopedIt("wraps an array pk as-is in the request body", async () => {
+            const wrapper = mount(ViewDeactivate, {
+                props: { app: "a", model: "m", pk: ["1", "2"] },
+            });
+            wrapper.vm.confirmMatch = true;
+            await wrapper.vm.handleDeactivate();
+            const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+            expect(body.pks).toEqual(["1", "2"]);
+        });
+
+        scopedIt("emits 'success' after a 200 response", async () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            wrapper.vm.confirmMatch = true;
+            await wrapper.vm.handleDeactivate();
+            expect(wrapper.emitted("success")).toBeTruthy();
+        });
+
+        scopedIt("sets submitError when the response is not 200", async () => {
+            mockFetch.mockResolvedValue({
+                status: 400,
+                text: async () => "Bad request",
+            });
+            vi.mock("@vueda/utils/fetchSupport.js", () => ({ getJsonOrText: async (r) => await r.text() }));
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            wrapper.vm.confirmMatch = true;
+            await wrapper.vm.handleDeactivate();
+            expect(wrapper.find('[data-qa="view-deactivate-error"]').exists()).toBe(true);
+        });
+
+        scopedIt("does not submit when confirmMatch is false", async () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            await wrapper.vm.handleDeactivate();
+            expect(mockFetch).not.toHaveBeenCalled();
+        });
+
+        scopedIt("does not submit when already submitting", async () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "a", model: "m", pk: "1" } });
+            wrapper.vm.confirmMatch = true;
+            wrapper.vm.isSubmitting = true;
+            await wrapper.vm.handleDeactivate();
+            expect(mockFetch).not.toHaveBeenCalled();
+        });
+    });
 });

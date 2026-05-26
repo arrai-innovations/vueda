@@ -1,4 +1,4 @@
-import { scopedIt } from "@tests/unit/utils.js";
+import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { nextTick, reactive } from "vue";
 
 vi.mock("@vueda/utils/buildForm.js", () => ({
@@ -35,7 +35,7 @@ describe("lib/use/useFilter.js", () => {
             filterables: ["status"],
             filterableDetails: { status: { typeFilter: "CharField" } },
         });
-        const state = useFilter(props);
+        const state = await withSetup(() => useFilter(props));
         await nextTick();
         expect(state.fieldComponents.status).toBe("status-field");
         expect(state.widgetComponents.status).toBe("status-widget");
@@ -48,7 +48,7 @@ describe("lib/use/useFilter.js", () => {
             filterables: ["created"],
             filterableDetails: { created: { typeFilter: "DateRangeField", suffixes: ["after", "before"] } },
         });
-        const state = useFilter(props);
+        const state = await withSetup(() => useFilter(props));
         await nextTick();
         expect(state.fieldComponents).toHaveProperty("created__after");
         expect(state.fieldComponents).toHaveProperty("created__before");
@@ -56,7 +56,7 @@ describe("lib/use/useFilter.js", () => {
         expect(state.widgetComponents.created).toBeUndefined();
     });
 
-    scopedIt("warns for unknown filter detail", () => {
+    scopedIt("warns for unknown filter detail", async () => {
         const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
         const props = reactive({
@@ -66,7 +66,7 @@ describe("lib/use/useFilter.js", () => {
             filterableDetails: { foo: {} },
         });
 
-        useFilter(props);
+        await withSetup(() => useFilter(props));
 
         expect(consoleWarnSpy).toHaveBeenCalledWith("Unknown typeFilter for filterable fields in a.b:", ["foo"]);
 

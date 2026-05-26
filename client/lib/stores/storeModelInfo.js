@@ -35,9 +35,9 @@ const modelInfoUrl = ({ app, model }) =>
 /**
  * A function to convert snake_case properties deeply on an object to be camelCase.
  *
- * @param {object} obj - The object to convert.
+ * @param {unknown} obj - The value to convert.
  * @param {string[]} [skipKeys=[]] - An array of keys to skip when converting.
- * @returns {object} The object with all snake_case properties converted to camelCase, except for the specified keys.
+ * @returns {unknown} The value with all snake_case object keys converted to camelCase, except for the specified keys.
  * @private
  */
 const camelCaseObject = (obj, skipKeys = []) => {
@@ -238,9 +238,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * Otherwise, it fetches from the server and caches the result.
  *
  * @function FetchModelInfo
- * @param {object} args - The arguments for fetching model info.
- * @param {string} args.app - The app label for the model.
- * @param {string} args.model - The model name.
+ * @param {{ app: string, model: string }} args - The arguments for fetching model info.
  * @returns {import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>} A promise that resolves to the model information.
  * @throws {ModelInfoError} Throws an error if the fetch operation fails.
  */

@@ -10,7 +10,6 @@ import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import debounce from "lodash-es/debounce.js";
-import isEqual from "lodash-es/isEqual.js";
 import { effectScope, nextTick, provide, reactive, readonly } from "vue";
 
 /**
@@ -148,32 +147,13 @@ export function useLookupContext() {
             if (
                 config.target.app !== instance.state.crud.args.app ||
                 config.target.model !== instance.state.crud.args.model ||
-                config.pkKey !== instance.state.crud.args.pkKey ||
-                (isList
-                    ? !isEqual(config.params.id, instance.state.params.id)
-                    : config.params.pk !== instance.state.params.pk) ||
-                !isEqual(config.params[FIELDS_PARAM], instance.state.params[FIELDS_PARAM]) ||
-                !isEqual(config.params[EXPAND_PARAM], instance.state.params[EXPAND_PARAM])
+                config.pkKey !== instance.state.crud.args.pkKey
             ) {
-                // TEMPORARY: Manually sync reactive config into instance state.
-                // Some downstream consumers (e.g. useList/useObject internals) may not
-                // observe reactivity changes immediately - updates can lag by several ticks.
-                // This ensures updated values are visible synchronously during reuse.
-                //
-                // FUTURE: Once we've upgraded to the next major of reactive-helpers
-                // and have full coverage, try removing this to see if it's still necessary.
+                // state.crud.args is a plain snapshot set once at init by assignCrud; it is not
+                // reactively derived from props.target, so we must push updates manually on reuse.
                 instance.state.crud.args.app = config.target.app;
                 instance.state.crud.args.model = config.target.model;
                 instance.state.crud.args.pkKey = config.pkKey;
-                if (isList) {
-                    instance.state.params.id = config.params.id;
-                    instance.state.params[FIELDS_PARAM] = config.params[FIELDS_PARAM];
-                    instance.state.params[EXPAND_PARAM] = config.params[EXPAND_PARAM];
-                } else {
-                    instance.state.pk = config.pk;
-                    instance.state.params[FIELDS_PARAM] = config.params[FIELDS_PARAM];
-                    instance.state.params[EXPAND_PARAM] = config.params[EXPAND_PARAM];
-                }
             }
             return isList ? instance.list() : instance.retrieve();
         } catch (e) {

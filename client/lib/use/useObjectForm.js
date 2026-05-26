@@ -9,9 +9,9 @@ import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constan
 import { FormValidationError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
-import { useToast } from "primevue/usetoast";
 import { computed, nextTick, reactive } from "vue";
 import { useRouter } from "vue-router";
+import { toast } from "vue-sonner";
 
 /**
  * @typedef {object} ObjectFormRawProps
@@ -50,7 +50,7 @@ import { useRouter } from "vue-router";
  * Type for handling when there are no changes detected upon submission attempt.
  * @typedef {(options: {
  *     formContext: FormContext,
- *     toast: import("primevue/toastservice").ToastServiceMethods
+ *     toast: import("vue-sonner").toast
  * }) => Promise<boolean>} OnSubmitNotAnyModified
  */
 
@@ -58,7 +58,7 @@ import { useRouter } from "vue-router";
  * Type for handling submission when form errors are present.
  * @typedef {(options: {
  *     formContext: FormContext,
- *     toast: import("primevue/toastservice").ToastServiceMethods
+ *     toast: import("vue-sonner").toast
  * }) => Promise<boolean>} OnSubmitAnyError
  */
 
@@ -67,7 +67,7 @@ import { useRouter } from "vue-router";
  * @typedef {(options: {
  *     error: Error,
  *     formContext: FormContext,
- *     toast: import("primevue/toastservice").ToastServiceMethods,
+ *     toast: import("vue-sonner").toast,
  *     isUpdate: boolean,
  *     state: ObjectFormState
  * }) => Promise<Boolean>} OnSubmissionError
@@ -78,7 +78,7 @@ import { useRouter } from "vue-router";
  * @typedef {(options: {
  *     isUpdate: boolean,
  *     state: ObjectFormState,
- *     toast: import("primevue/toastservice").ToastServiceMethods,
+ *     toast: import("vue-sonner").toast,
  *     router: import("vue-router").Router,
  *     formContext: FormContext
  * }) => Promise<void>} OnSubmissionSuccess
@@ -88,15 +88,13 @@ import { useRouter } from "vue-router";
  * Default implementation for onSubmitNotAnyModified hook.
  *
  * @param {object} options
- * @param {import("primevue/toastservice").ToastServiceMethods} options.toast
+ * @param {import("vue-sonner").toast} options.toast
  * @returns {Promise<boolean>} True if the submission should be stopped.
  */
 export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
-    toast.add({
-        severity: "info",
-        summary: "No Changes Detected",
-        detail: "Please modify the fields before submitting.",
-        life: 15000,
+    toast.info("No Changes Detected", {
+        description: "Please modify the fields before submitting.",
+        duration: 15000,
     });
     return true;
 };
@@ -105,7 +103,7 @@ export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
  * Default implementation for onSubmitAnyError hook.
  *
  * @param {object} options
- * @param {import("primevue/toastservice").ToastServiceMethods} options.toast
+ * @param {import("vue-sonner").toast} options.toast
  * @param {FormContext} options.formContext
  * @returns {Promise<boolean>} True if the submission should be stopped.
  */
@@ -130,11 +128,9 @@ export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => 
     if (nonServerErrors.length) {
         const plural = nonServerErrors.length > 1;
         // no submission if there are errors
-        toast.add({
-            severity: "warn",
-            summary: "Pre-save Validation Failed",
-            detail: `Please correct the error${plural ? "s" : ""} indicated.`,
-            life: 15000,
+        toast.warning("Pre-save Validation Failed", {
+            description: `Please correct the error${plural ? "s" : ""} indicated.`,
+            duration: 15000,
         });
         const elementsByName = document.getElementsByName(state.firstErrorField);
         if (elementsByName.length) {
@@ -153,18 +149,16 @@ export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => 
  * @param {ObjectFormState} options.state - The form state.
  * @param {Error} options.error - The error that occurred.
  * @param {FormContext} options.formContext - The form context.
- * @param {import("primevue/toastservice").ToastServiceMethods} options.toast - The toast service.
+ * @param {import("vue-sonner").toast} options.toast - The toast service.
  * @returns {Promise<boolean>} - True if the error should be marked as handled. Otherwise it may be displayed.
  */
 export const defaultOnSubmissionError = async ({ state, error, formContext, toast }) => {
     if (error instanceof FormValidationError) {
         formContext.handleServerFormValidationError(error);
         const plural = Object.keys(error.messages).length > 1;
-        toast.add({
-            severity: "warn",
-            summary: "Save Validation Failed",
-            detail: `Please review the new error${plural ? "s" : ""} displayed. You have been scrolled to the first error.`,
-            life: 15000,
+        toast.warning("Save Validation Failed", {
+            description: `Please review the new error${plural ? "s" : ""} displayed. You have been scrolled to the first error.`,
+            duration: 15000,
         });
         // scroll to the anchor we render for each field by path/name.
         const elementsByName = document.getElementsByName(state.firstErrorField);
@@ -180,7 +174,7 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
  *
  * @param {object} options
  * @param {boolean} options.isUpdate - Whether it was a create or update submission.
- * @param {import("primevue/toastservice").ToastServiceMethods} options.toast - The toast service.
+ * @param {import("vue-sonner").toast} options.toast - The toast service.
  * @param {import("vue-router").Router} options.router - The router.
  * @param {ObjectFormState} options.state - The form state.
  * @returns {Promise<void>}
@@ -196,11 +190,9 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
         detailMsg = "Returning to the list view.";
     }
 
-    toast.add({
-        severity: "success",
-        summary: `${memoizedStartCase(state.verboseName)} Successfully ${isUpdate ? "Updated" : "Created"}`,
-        detail: detailMsg,
-        life: 15000,
+    toast.success(`${memoizedStartCase(state.verboseName)} Successfully ${isUpdate ? "Updated" : "Created"}`, {
+        description: detailMsg,
+        duration: 15000,
     });
     if (redirectAfter === "list") {
         await router.push({
@@ -336,7 +328,6 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         onSubmissionSuccess: defaultOnSubmissionSuccess,
     };
     useLeaveUnload(state);
-    const toast = useToast();
     const router = useRouter();
     const promises = {
         submit: null,

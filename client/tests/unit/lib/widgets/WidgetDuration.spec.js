@@ -1,55 +1,94 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h, ref } from "vue";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import { defineComponent, h, reactive } from "vue";
 
-const clickSpies = {};
+/* ------------------------------------------------------------------ */
+/*  Stubs for the NumberField family                           */
+/* ------------------------------------------------------------------ */
 
-const InputNumberStub = defineComponent({
-    name: "InputNumberStub",
-    props: ["modelValue"],
-    emits: ["update:model-value"],
-    setup(props, { emit, attrs, expose }) {
-        const label = attrs["aria-label"];
-        const onClick = vi.fn();
-        clickSpies[label] = onClick;
-        expose({ onClick });
+const ControlNumberFieldStub = defineComponent({
+    name: "ControlNumberFieldStub",
+    props: ["modelValue", "disabled", "min", "max"],
+    emits: ["update:modelValue"],
+    setup(props, { slots, emit }) {
+        return () => h("div", { "data-stub": "number-field" }, slots.default?.());
+    },
+});
+
+const ControlNumberFieldContentStub = defineComponent({
+    name: "ControlNumberFieldContentStub",
+    setup(_props, { slots }) {
+        return () => h("div", { "data-stub": "number-field-content" }, slots.default?.());
+    },
+});
+
+const ControlNumberFieldInputStub = defineComponent({
+    name: "ControlNumberFieldInputStub",
+    setup(_props, { attrs }) {
         return () =>
             h("input", {
-                "data-qa": "input-number",
-                "data-label": label,
-                value: props.modelValue ?? "",
-                onInput: (e) => emit("update:model-value", Number(e.target.value)),
-                onClick,
+                type: "text",
+                "data-stub": "number-input",
+                "aria-label": attrs["aria-label"],
+                "data-qa": attrs["data-qa"],
             });
     },
 });
 
-const WidgetLabelStub = defineComponent({
-    name: "WidgetLabelStub",
-    emits: ["click"],
-    setup(_, { emit, slots }) {
-        return () =>
-            h(
-                "div",
-                { "data-qa": "widget-label", onClick: () => emit("click") },
-                slots.default ? slots.default({ class: "" }) : null,
-            );
+const ControlNumberFieldIncrementStub = defineComponent({
+    name: "ControlNumberFieldIncrementStub",
+    setup() {
+        return () => h("button", { "data-stub": "increment" }, "+");
     },
 });
-const WIDGET_LABEL_PROPS = {};
-const getWidgetSlotsComputed = () => () => [];
 
-vi.mock("primevue/inputnumber", () => ({ default: InputNumberStub }));
-vi.mock("@vueda/widgets/WidgetLabel.vue", () => ({
-    __esModule: true,
-    default: WidgetLabelStub,
-    WIDGET_LABEL_PROPS,
-    getWidgetSlotsComputed,
+const ControlNumberFieldDecrementStub = defineComponent({
+    name: "ControlNumberFieldDecrementStub",
+    setup() {
+        return () => h("button", { "data-stub": "decrement" }, "-");
+    },
+});
+
+vi.mock("@vueda/controls/number-field/NumberField.vue", () => ({ default: ControlNumberFieldStub }));
+vi.mock("@vueda/controls/number-field/NumberFieldContent.vue", () => ({
+    default: ControlNumberFieldContentStub,
 }));
+vi.mock("@vueda/controls/number-field/NumberFieldInput.vue", () => ({ default: ControlNumberFieldInputStub }));
+vi.mock("@vueda/controls/number-field/NumberFieldIncrement.vue", () => ({
+    default: ControlNumberFieldIncrementStub,
+}));
+vi.mock("@vueda/controls/number-field/NumberFieldDecrement.vue", () => ({
+    default: ControlNumberFieldDecrementStub,
+}));
+
 vi.mock("@vueda/use/useWidgetTheme.js", () => ({ useWidgetTheme: () => () => "" }));
-vi.mock("@vueda/use/useWarningClass.js", () => ({ useWarningClass: () => ref({}), PASSTHROUGH_OPTION_PROPS: {} }));
 
 let WidgetDuration;
+
+const fieldContext = {
+    state: reactive({
+        fieldId: "test-field-id",
+        dependencyValues: {},
+        value: undefined,
+        required: false,
+        errors: {},
+        name: "duration",
+    }),
+    registerDependencyValues: vi.fn(),
+    unregisterDependencyValues: vi.fn(),
+    setTouched: vi.fn(),
+    clearTouched: vi.fn(),
+    focus: vi.fn(),
+    blur: vi.fn(),
+};
+const mountOptions = {
+    global: {
+        provide: {
+            [FieldContextSymbol]: fieldContext,
+        },
+    },
+};
 
 beforeEach(async () => {
     WidgetDuration = (await import("@vueda/widgets/WidgetDuration.vue")).default;
@@ -61,27 +100,45 @@ afterEach(() => {
 
 describe("lib/widgets/WidgetDuration.vue", () => {
     scopedIt("renders minutes input by default", () => {
-        const wrapper = mount(WidgetDuration, { props: { modelValue: { minutes: 1 } } });
-        expect(wrapper.findAllComponents(InputNumberStub).length).toBe(1);
-        expect(wrapper.find('input[data-label="minutes"]').exists()).toBe(true);
-        expect(wrapper.find('input[data-label="hours"]').exists()).toBe(false);
-        expect(wrapper.find('input[data-label="days"]').exists()).toBe(false);
+        fieldContext.state.value = { minutes: 1 };
+        const wrapper = mount(WidgetDuration, { props: { modelValue: { minutes: 1 } }, ...mountOptions });
+        const numberFields = wrapper.findAllComponents(ControlNumberFieldStub);
+        expect(numberFields.length).toBe(1);
+        expect(wrapper.find("[data-qa='duration-minutes']").exists()).toBe(true);
+        expect(wrapper.find("[data-qa='duration-hours']").exists()).toBe(false);
+        expect(wrapper.find("[data-qa='duration-days']").exists()).toBe(false);
     });
 
-    scopedIt("focuses first input and emits updates", async () => {
+    scopedIt("renders multiple time units when enabled", () => {
+        fieldContext.state.value = { days: 1, hours: 2, minutes: 3 };
         const wrapper = mount(WidgetDuration, {
             props: {
                 modelValue: { days: 1, hours: 2, minutes: 3 },
                 showDays: true,
                 showHours: true,
             },
+            ...mountOptions,
         });
-        await wrapper.get('[data-qa="widget-label"]').trigger("click");
-        expect(clickSpies.days).toHaveBeenCalled();
+        expect(wrapper.find("[data-qa='duration-days']").exists()).toBe(true);
+        expect(wrapper.find("[data-qa='duration-hours']").exists()).toBe(true);
+        expect(wrapper.find("[data-qa='duration-minutes']").exists()).toBe(true);
+        expect(wrapper.find("[data-qa='duration-seconds']").exists()).toBe(false);
+    });
 
-        await wrapper.find('input[data-label="hours"]').setValue("5");
-        const emitted = wrapper.emitted("update:modelValue");
-        expect(emitted).toBeTruthy();
-        expect(emitted[0][0]).toEqual({ days: 1, hours: 5, minutes: 3, seconds: undefined });
+    scopedIt("emits duration updates when a unit value changes", async () => {
+        fieldContext.state.value = { days: 1, hours: 2, minutes: 3 };
+        const wrapper = mount(WidgetDuration, {
+            props: {
+                modelValue: { days: 1, hours: 2, minutes: 3 },
+                showDays: true,
+                showHours: true,
+            },
+            ...mountOptions,
+        });
+        // Simulate hours update via the second NumberField (hours)
+        // Order: days (0), hours (1), minutes (2)
+        const allFields = wrapper.findAllComponents(ControlNumberFieldStub);
+        allFields[1].vm.$emit("update:modelValue", 5);
+        expect(fieldContext.state.value).toEqual({ days: 1, hours: 5, minutes: 3, seconds: undefined });
     });
 });

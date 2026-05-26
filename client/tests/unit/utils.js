@@ -3,10 +3,32 @@ import get from "lodash-es/get.js";
 
 // WARNING: do not import vue here. it will cause issues when mocking vue in a test
 
+/**
+ * Create a named mock for `useRoute()`.
+ *
+ * Useful when a test needs to stub `vue-router` and control what `useRoute()`
+ * returns without importing the real router composable.
+ *
+ * @param {import("vitest").VitestUtils} vi - The Vitest instance.
+ * @returns {import("vitest").Mock} A named mock function for `useRoute()`.
+ */
 export function mockUseRoute(vi) {
     return vi.fn().mockName("mockedUseRoute");
 }
 
+/**
+ * Create paired mocks for Vue's `provide()` and `inject()`.
+ *
+ * Values written through `mockedProvide` are stored in an in-memory map so
+ * `mockedInject` can read them back during the same test.
+ *
+ * @param {import("vitest").VitestUtils} vi - The Vitest instance.
+ * @returns {{
+ *   provideStore: Map<unknown, unknown>,
+ *   mockedProvide: import("vitest").Mock,
+ *   mockedInject: import("vitest").Mock
+ * }} Mocked provide/inject helpers and their backing store.
+ */
 export function mockProvideInject(vi) {
     const provideStore = new Map();
     const mockedProvide = vi
@@ -20,6 +42,32 @@ export function mockProvideInject(vi) {
     return { provideStore, mockedProvide, mockedInject };
 }
 
+/**
+ * Create mocks for Vue lifecycle hooks and capture registered callbacks.
+ *
+ * Use this when testing composables or setup logic that registers lifecycle
+ * hooks and you want to trigger those hooks manually.
+ *
+ * @param {import("vitest").VitestUtils} vi - The Vitest instance.
+ * @returns {{
+ *   mountedFunctions: (() => void)[],
+ *   unmountedFunctions: (() => void)[],
+ *   activatedFunctions: (() => void)[],
+ *   deactivatedFunctions: (() => void)[],
+ *   mockedOnMounted: import("vitest").Mock,
+ *   mockedOnUnmounted: import("vitest").Mock,
+ *   mockedOnActivated: import("vitest").Mock,
+ *   mockedOnDeactivated: import("vitest").Mock,
+ *   runMountedHooks: () => void,
+ *   runUnmountedHooks: () => void,
+ *   runActivatedHooks: () => void,
+ *   runDeactivatedHooks: () => void,
+ *   clearMounted: () => void,
+ *   clearUnmounted: () => void,
+ *   clearActivated: () => void,
+ *   clearDeactivated: () => void
+ * }} Lifecycle hook mocks, captured callbacks, and test helpers.
+ */
 export function mockLifecycle(vi) {
     const mountedFunctions = [];
     const unmountedFunctions = [];
@@ -93,6 +141,19 @@ export function mockLifecycle(vi) {
     };
 }
 
+/**
+ * Register one or two watchers against a props object and expose their spies.
+ *
+ * This helper is useful when a test needs to assert that a watch source reacts
+ * to one path and optionally ignores another.
+ *
+ * @param {typeof import("vue")} vue - The mocked or real Vue module.
+ * @param {{ [key: string]: unknown }} props - The object being watched.
+ * @param {string} pos - The positive watch path to assert.
+ * @param {string|false} [neg=false] - An optional second watch path to assert separately.
+ * @param {boolean} [deep=false] - Whether to deep-clone watch sources before tracking changes.
+ * @returns {[() => void, import("vitest").Mock, import("vitest").Mock|undefined]} Stop function and watcher spies.
+ */
 export function testWatches(vue, props, pos, neg = false, deep = false) {
     const stopFns = [];
     const stop = () => {
@@ -142,6 +203,24 @@ export const expectReadOnlyWarning = (fn, name) => {
     expect(matched).toBe(true);
 };
 
+/**
+ * Create mocks for Vue Router leave and update guards.
+ *
+ * Use this when a composable or component registers `onBeforeRouteLeave()` or
+ * `onBeforeRouteUpdate()` and the test needs to invoke those guards manually.
+ *
+ * @param {import("vitest").VitestUtils} vi - The Vitest instance.
+ * @returns {{
+ *   leaveFns: (() => void)[],
+ *   updateFns: (() => void)[],
+ *   mockedOnBeforeRouteLeave: import("vitest").Mock,
+ *   mockedOnBeforeRouteUpdate: import("vitest").Mock,
+ *   runLeaveHooks: () => void,
+ *   runUpdateHooks: () => void,
+ *   clearLeave: () => void,
+ *   clearUpdate: () => void
+ * }} Router lifecycle mocks, captured guards, and test helpers.
+ */
 export const mockVueRouterLifecycle = (vi) => {
     const leaveFns = [];
     const updateFns = [];
@@ -180,6 +259,20 @@ export const mockVueRouterLifecycle = (vi) => {
     };
 };
 
+/**
+ * Create mocks for `addEventListener()` and `removeEventListener()`.
+ *
+ * Registered listeners are stored in-memory so tests can inspect which handlers
+ * were added or removed.
+ *
+ * @param {import("vitest").VitestUtils} vi - The Vitest instance.
+ * @returns {{
+ *   eventListeners: {event: string, fn: Function}[],
+ *   mockedAddEventListener: import("vitest").Mock,
+ *   mockedRemoveEventListener: import("vitest").Mock,
+ *   clear: () => void
+ * }} Event listener mocks and the recorded listeners.
+ */
 export const mockEventListener = (vi) => {
     const eventListeners = [];
     const mockedAddEventListener = vi
@@ -208,7 +301,37 @@ export const mockEventListener = (vi) => {
 };
 
 /**
- * Run a test in a Vue effect scope.
+ * Run a composable inside a synthetic component setup() so it has a real
+ * component instance for provide(), inject(), and lifecycle hooks.
+ *
+ * The synthetic app is unmounted automatically when the test finishes.
+ *
+ * @param {() => T} composable - Invoked once during setup; its return value is forwarded to the caller.
+ * @returns {Promise<T>} The composable's return value.
+ * @template T
+ */
+export async function withSetup(composable) {
+    const { createApp } = await vi.importActual("vue");
+    let result;
+    const app = createApp({
+        setup() {
+            result = composable();
+            return () => null;
+        },
+    });
+    app.mount(document.createElement("div"));
+    onTestFinished(() => app.unmount());
+    return result;
+}
+
+/**
+ * Run a test in a fresh Vue effect scope.
+ *
+ * Use for tests that touch Vue reactivity, lifecycle hooks, provide/inject,
+ * composables, or mounted components.
+ *
+ * Do not use for plain non-Vue utility tests where normal `it()` is enough.
+ *
  * @param {string} name - The name of the test.
  * @param {() => Promise<void>|void} fn - The test function.
  * @param {number} [timeout] - The timeout for the test.

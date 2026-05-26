@@ -1,4 +1,4 @@
-import { scopedIt } from "@tests/unit/utils.js";
+import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 
 let retrieveSpy;
@@ -111,7 +111,7 @@ afterEach(() => {
 describe("lib/use/useLookupContext.js", () => {
     describe("cache hits for identical requests", () => {
         scopedIt("returns the cached object on the 2nd call (no new retrieve)", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", ["b", "a"], []);
             await vi.advanceTimersByTimeAsync(250);
             await flushPromises();
@@ -127,7 +127,7 @@ describe("lib/use/useLookupContext.js", () => {
         });
 
         scopedIt("returns cached list results on second identical call", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], []);
             const p2 = lookup.requestObject("app", "model", "2", [], []);
             await vi.advanceTimersByTimeAsync(250);
@@ -146,7 +146,7 @@ describe("lib/use/useLookupContext.js", () => {
         });
 
         scopedIt("ignores order of fields when computing the key", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", ["b", "a"], []);
             await vi.advanceTimersByTimeAsync(250);
             await flushPromises();
@@ -160,7 +160,7 @@ describe("lib/use/useLookupContext.js", () => {
         });
 
         scopedIt("ignores order of expand when computing the key", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], ["y", "x"]);
             await vi.advanceTimersByTimeAsync(250);
             await flushPromises();
@@ -174,7 +174,7 @@ describe("lib/use/useLookupContext.js", () => {
         });
 
         scopedIt("creates a fresh cache entry when *fields* differ", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", ["a"], []);
             await vi.advanceTimersByTimeAsync(250);
             await flushPromises();
@@ -189,7 +189,7 @@ describe("lib/use/useLookupContext.js", () => {
         });
 
         scopedIt("creates a fresh cache entry when *expand* differs", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], ["a"]);
             await vi.advanceTimersByTimeAsync(250);
             await flushPromises();
@@ -207,7 +207,7 @@ describe("lib/use/useLookupContext.js", () => {
             "creates a fresh request when the *fields* differ while the first call is still in-flight",
             async () => {
                 const deferred1 = (retrieveDeferred = makeDeferred());
-                const lookup = useLookupContext();
+                const lookup = await withSetup(() => useLookupContext());
                 const p1 = lookup.requestObject("app", "model", "1", ["a"], []);
                 await vi.advanceTimersByTimeAsync(300);
                 await flushPromises();
@@ -241,7 +241,7 @@ describe("lib/use/useLookupContext.js", () => {
             "creates a fresh request when the *expands* differ while the first call is still in-flight",
             async () => {
                 const deferred1 = (retrieveDeferred = makeDeferred());
-                const lookup = useLookupContext();
+                const lookup = await withSetup(() => useLookupContext());
                 const p1 = lookup.requestObject("app", "model", "1", [], ["a"]);
                 await vi.advanceTimersByTimeAsync(300);
                 await flushPromises();
@@ -272,7 +272,7 @@ describe("lib/use/useLookupContext.js", () => {
         );
 
         scopedIt("separates cache by app + model namespace", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("a1", "m1", "1", [], []);
             await vi.advanceTimersByTimeAsync(250);
             await flushPromises();
@@ -287,7 +287,7 @@ describe("lib/use/useLookupContext.js", () => {
         });
 
         scopedIt("retains previous cache entries when requesting a new pk later", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
 
             const first = lookup.requestObject("app", "model", "1", [], []);
             await vi.advanceTimersByTimeAsync(250);
@@ -311,7 +311,7 @@ describe("lib/use/useLookupContext.js", () => {
     describe("deduplicates concurrent requests", () => {
         scopedIt("second caller during in-flight shares the same promise", async () => {
             retrieveDeferred = makeDeferred();
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], []);
             const p2 = lookup.requestObject("app", "model", "1", [], []);
             await vi.advanceTimersByTimeAsync(300);
@@ -325,7 +325,7 @@ describe("lib/use/useLookupContext.js", () => {
 
         scopedIt("all callers receive the same resolved value", async () => {
             retrieveDeferred = makeDeferred();
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], []);
             const p2 = lookup.requestObject("app", "model", "1", [], []);
             await vi.advanceTimersByTimeAsync(250);
@@ -338,7 +338,7 @@ describe("lib/use/useLookupContext.js", () => {
 
         scopedIt("cancelling *one* consumer keeps the request alive for the rest", async () => {
             retrieveDeferred = makeDeferred();
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], []);
             const p2 = lookup.requestObject("app", "model", "1", [], []);
             await vi.advanceTimersByTimeAsync(250);
@@ -351,7 +351,7 @@ describe("lib/use/useLookupContext.js", () => {
 
         scopedIt("cancelling the **last** consumer aborts the underlying retrieve", async () => {
             retrieveDeferred = makeDeferred();
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p = lookup.requestObject("app", "model", "1", [], []);
             await vi.advanceTimersByTimeAsync(250);
             await p.cancel();
@@ -361,7 +361,7 @@ describe("lib/use/useLookupContext.js", () => {
 
         scopedIt("propagates a single retrieve() rejection to all in-flight consumers (no extra call)", async () => {
             retrieveDeferred = makeDeferred();
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
 
             const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -390,7 +390,7 @@ describe("lib/use/useLookupContext.js", () => {
 
     describe("request batching window", () => {
         scopedIt("multiple PKs queued inside 250 ms trigger a *single* list() call", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], []);
             const p2 = lookup.requestObject("app", "model", "2", [], []);
             await vi.advanceTimersByTimeAsync(250);
@@ -401,7 +401,7 @@ describe("lib/use/useLookupContext.js", () => {
         });
 
         scopedIt("requests separated by > 250 ms but < maxWait still batch", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], []);
             await vi.advanceTimersByTimeAsync(200);
             const p2 = lookup.requestObject("app", "model", "2", [], []);
@@ -416,7 +416,7 @@ describe("lib/use/useLookupContext.js", () => {
         });
 
         scopedIt("after maxWait (1 s) the queue is flushed automatically", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const promises = [lookup.requestObject("app", "model", "1", [], [])];
             for (let i = 2; i <= 4; i++) {
                 await vi.advanceTimersByTimeAsync(200);
@@ -431,7 +431,7 @@ describe("lib/use/useLookupContext.js", () => {
 
     describe("object vs list manager", () => {
         scopedIt("uses *object* manager for a single-PK batch", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             lookup.requestObject("app", "model", "1", [], []);
             await vi.advanceTimersByTimeAsync(250);
             await flushPromises();
@@ -440,7 +440,7 @@ describe("lib/use/useLookupContext.js", () => {
         });
 
         scopedIt("uses list manager for multi-PK batched request", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
 
             const p1 = lookup.requestObject("app", "model", "1", [], []);
             const p2 = lookup.requestObject("app", "model", "2", [], []);
@@ -458,7 +458,7 @@ describe("lib/use/useLookupContext.js", () => {
 
     describe("manager reuse across app/model pairs", () => {
         scopedIt("updates params and crud args when reused", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
 
             const p1 = lookup.requestObject("a1", "m1", "1", [], []);
             const p2 = lookup.requestObject("a1", "m1", "2", [], []);
@@ -490,7 +490,7 @@ describe("lib/use/useLookupContext.js", () => {
 
     describe("optional arguments", () => {
         scopedIt("handles calls without fields or expand", async () => {
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
 
             const p1 = lookup.requestObject("app", "model", "1");
             await vi.advanceTimersByTimeAsync(250);
@@ -508,7 +508,7 @@ describe("lib/use/useLookupContext.js", () => {
     describe("re-requesting after cancellation", () => {
         scopedIt("cancelled request can be retried with fresh retrieve call", async () => {
             retrieveDeferred = makeDeferred();
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], []);
             await p1.cancel();
             retrieveDeferred = null;
@@ -533,7 +533,7 @@ describe("lib/use/useLookupContext.js", () => {
             process.on("unhandledRejection", handler);
             forceSyncRetrieveError = true;
             try {
-                const lookup = useLookupContext();
+                const lookup = await withSetup(() => useLookupContext());
 
                 const p = lookup.requestObject("app", "model", "1", [], []);
                 await vi.advanceTimersByTimeAsync(300);
@@ -557,7 +557,7 @@ describe("lib/use/useLookupContext.js", () => {
 
             const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
             try {
-                const lookup = useLookupContext();
+                const lookup = await withSetup(() => useLookupContext());
 
                 const p1 = lookup.requestObject("app", "model", "1", [], []);
                 const p2 = lookup.requestObject("app", "model", "2", [], []);
@@ -581,7 +581,7 @@ describe("lib/use/useLookupContext.js", () => {
         scopedIt('logs "skipped request, no consumers"', async () => {
             const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p = lookup.requestObject("app", "model", "1", [], []);
             await p.cancel();
             await vi.advanceTimersByTimeAsync(300);
@@ -599,7 +599,7 @@ describe("lib/use/useLookupContext.js", () => {
         scopedIt('logs "No inflightPromise yet"', async () => {
             const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p = lookup.requestObject("app", "model", "1", [], []);
             await p.cancel();
 
@@ -616,7 +616,7 @@ describe("lib/use/useLookupContext.js", () => {
         scopedIt("logs on double cancel", async () => {
             const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p = lookup.requestObject("app", "model", "1", [], []);
             await p.cancel();
             await p.cancel();
@@ -634,7 +634,7 @@ describe("lib/use/useLookupContext.js", () => {
             listDeferred = makeDeferred();
             const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], []);
             lookup.requestObject("app", "model", "2", [], []);
             await vi.advanceTimersByTimeAsync(300);
@@ -658,7 +658,7 @@ describe("lib/use/useLookupContext.js", () => {
             const err = new Error("async boom");
             const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p1 = lookup.requestObject("app", "model", "1", [], []);
             const p2 = lookup.requestObject("app", "model", "2", [], []);
             await vi.advanceTimersByTimeAsync(300);
@@ -678,7 +678,7 @@ describe("lib/use/useLookupContext.js", () => {
             });
 
             retrieveDeferred = makeDeferred();
-            const lookup = useLookupContext();
+            const lookup = await withSetup(() => useLookupContext());
             const p = lookup.requestObject("app", "model", "1", [], []);
 
             await vi.advanceTimersByTimeAsync(300);

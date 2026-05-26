@@ -17,29 +17,33 @@ const ErrorDisplayStub = defineComponent({
     },
 });
 
-const FormChoresStub = defineComponent({
-    name: "FormChoresStub",
+const FormMessageStub = defineComponent({
+    name: "FormMessageStub",
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-chores" }, slots.default ? slots.default() : null);
+        return () => h("div", { "data-qa": "form-message" }, slots.default ? slots.default() : null);
     },
 });
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label", "loading"],
+    props: ["loading"],
     emits: ["click"],
     setup(props, { emit, slots }) {
-        return () =>
-            h(
+        return () => {
+            const children = slots.default?.();
+            const textNode = children?.find((c) => typeof c.children === "string");
+            const label = textNode?.children;
+            return h(
                 "button",
                 {
                     "data-qa": "prime-button",
-                    "data-label": props.label,
+                    "data-label": typeof label === "string" ? label.trim() : undefined,
                     "data-loading": String(props.loading),
                     onClick: (event) => emit("click", event),
                 },
-                slots.default ? slots.default() : null,
+                children,
             );
+        };
     },
 });
 
@@ -48,29 +52,42 @@ vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERR
 const mockedUseModelConfig = vi.fn(() => ({ config: { actionRedirects: {} } }));
 vi.mock("@vueda/use/useModelConfig", () => ({ useModelConfig: mockedUseModelConfig }));
 
-const toastAdd = vi.fn();
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
 vi.mock("vue-router", () => ({
     useRouter: () => ({ push: routerPush }),
 }));
 
-const defaultOnSubmissionError = vi.fn(async () => false);
 const defaultOnSubmitNotAnyModified = vi.fn(async () => undefined);
 vi.mock("@vueda/use/useObjectForm.js", async () => {
     const actual = await vi.importActual("@vueda/use/useObjectForm.js");
     return {
         __esModule: true,
         ...actual,
-        defaultOnSubmissionError,
         defaultOnSubmitNotAnyModified,
     };
 });
 
+const FeedbackSpinnerStub = defineComponent({
+    name: "FeedbackSpinnerStub",
+    setup() {
+        return () => h("div", { "data-qa": "feedback-spinner" });
+    },
+});
+
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
-vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/components/FormMessage.vue", () => ({ default: FormMessageStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
 
 const lifecycle = mockLifecycle(vi);
 const { mockedOnDeactivated, runDeactivatedHooks, clearDeactivated } = lifecycle;
@@ -126,9 +143,8 @@ describe("lib/components/ActionForm.vue", () => {
         vue = await import("vue");
         ActionForm = (await import("@vueda/components/ActionForm.vue")).default;
         vi.unmock("vue");
-        toastAdd.mockClear();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
-        defaultOnSubmissionError.mockClear();
         defaultOnSubmitNotAnyModified.mockClear();
         mockedUseTheme.mockClear();
         mockedUseModelConfig.mockClear();
@@ -190,9 +206,7 @@ describe("lib/components/ActionForm.vue", () => {
             await flushPromises();
             expect(runAction).toHaveBeenCalledWith({ dryRun: false, formValues: {} });
             expect(redirectTo).toHaveBeenCalledWith("success");
-            expect(toastAdd).toHaveBeenCalledWith(
-                expect.objectContaining({ severity: "success", summary: "Action Succeeded" }),
-            );
+            expect(toastMock.success).toHaveBeenCalledWith("Action Succeeded", expect.any(Object));
         });
 
         scopedIt("uses onSubmissionSuccessHandler when provided", async () => {
@@ -208,7 +222,7 @@ describe("lib/components/ActionForm.vue", () => {
             await flushPromises();
             expect(handler).toHaveBeenCalledWith("ok");
             expect(redirectTo).not.toHaveBeenCalled();
-            expect(toastAdd).not.toHaveBeenCalledWith(expect.objectContaining({ severity: "success" }));
+            expect(toastMock.success).not.toHaveBeenCalled();
         });
 
         scopedIt("performs dry run automatically when ready", async () => {
@@ -226,7 +240,7 @@ describe("lib/components/ActionForm.vue", () => {
 
             expect(runAction).toHaveBeenCalledWith({ dryRun: true, formValues: {} });
             expect(onSubmissionSuccessHandler).not.toHaveBeenCalled();
-            expect(toastAdd).not.toHaveBeenCalled();
+            expect(toastMock.success).not.toHaveBeenCalled();
             expect(redirectTo).not.toHaveBeenCalled();
         });
 
@@ -236,13 +250,8 @@ describe("lib/components/ActionForm.vue", () => {
             const { wrapper } = mountActionForm({ runAction });
             await wrapper.find("form").trigger("submit.prevent");
             await flushPromises();
-            expect(defaultOnSubmissionError).toHaveBeenCalledWith({
-                error,
-                formContext: expect.any(Object),
-                toast: expect.any(Object),
-            });
             expect(wrapper.find('[data-qa="error-display"]').attributes("data-error")).toBe("true");
-            expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ severity: "error" }));
+            expect(toastMock.error).toHaveBeenCalled();
         });
 
         scopedIt("respects custom error handler", async () => {
@@ -254,7 +263,7 @@ describe("lib/components/ActionForm.vue", () => {
             await flushPromises();
             expect(handler).toHaveBeenCalled();
             expect(wrapper.find('[data-qa="error-display"]').attributes("data-error")).toBe("false");
-            expect(toastAdd).not.toHaveBeenCalledWith(expect.objectContaining({ severity: "error" }));
+            expect(toastMock.error).not.toHaveBeenCalled();
         });
 
         scopedIt("actionState error should be displayed when not handled", async () => {
@@ -359,12 +368,7 @@ describe("lib/components/ActionForm.vue", () => {
             }
             expect(formContext.setAllTouched).toHaveBeenCalled();
             expect(runAction).not.toHaveBeenCalled();
-            expect(toastAdd).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    severity: "warn",
-                    summary: "Submission Blocked",
-                }),
-            );
+            expect(toastMock.warning).toHaveBeenCalledWith("Submission Blocked", expect.any(Object));
         });
     });
 
@@ -372,7 +376,10 @@ describe("lib/components/ActionForm.vue", () => {
         scopedIt("calls redirectTo on cancel", async () => {
             const redirectTo = vi.fn();
             const { wrapper } = mountActionForm({ redirectTo });
-            await wrapper.find('[data-qa="prime-button"][data-label="Cancel, go back"]').trigger("click");
+            const cancelBtn = wrapper
+                .findAll('[data-qa="prime-button"]')
+                .find((btn) => btn.text().includes("Cancel, go back"));
+            await cancelBtn.trigger("click");
             expect(redirectTo).toHaveBeenCalledWith("cancel");
         });
     });

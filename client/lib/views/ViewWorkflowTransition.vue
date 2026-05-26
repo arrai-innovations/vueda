@@ -1,18 +1,18 @@
 <script setup>
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
+import Button from "@vueda/controls/button/Button.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getAppModelDotName, memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
-import { computedAsync } from "@vueuse/core";
 import isEmpty from "lodash-es/isEmpty.js";
-import Button from "primevue/button";
-import RadioButton from "primevue/radiobutton";
-import { useToast } from "primevue/usetoast";
 import { computed, inject, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
+import { toast } from "vue-sonner";
 
 /**
  * View that lists the available workflow transitions for one or more model instances and allows
@@ -22,6 +22,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
@@ -44,9 +45,10 @@ const props = defineProps({
     },
 });
 const workflow = storeWorkflow();
-const toast = useToast();
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const theme = useTheme("ViewWorkflowTransition", props);
+const icon = useIcons("ViewWorkflowTransition");
 
 if (!inject(LookupContextSymbol, null)) {
     useLookupContext();
@@ -58,19 +60,23 @@ const titleStr = computed(() => {
 });
 const selectedAction = ref(null);
 
-const modelWorkflowTransitions = computedAsync(async () => {
-    try {
-        await workflow.fetchWorkflowTransition(props.app, props.model);
-        return workflow.workflowTransitions[appModelKey.value] || [];
-    } catch (error) {
-        return [];
-    }
-}, []);
-
 const transitionsForPk = (pk) => {
     const entry = workflow.objectTransitions?.[appModelKey.value]?.[pk];
     return entry?.transitions || [];
 };
+
+const currentStateName = computed(() => {
+    if (!appModelKey.value || Array.isArray(props.pk) || !props.pk) {
+        return null;
+    }
+    return workflow.objectStates?.[appModelKey.value]?.[props.pk]?.state?.name || null;
+});
+
+const emptyTitleStr = computed(() => {
+    return currentStateName.value
+        ? `No transitions available from ${currentStateName.value}.`
+        : "No transitions available.";
+});
 
 const availableTransitions = computed(() => {
     if (!appModelKey.value) {
@@ -102,7 +108,7 @@ watch(
             }
             return;
         }
-        await workflow.fetchObjectTransitions(app, model, pk);
+        await Promise.all([workflow.fetchObjectTransitions(app, model, pk), workflow.fetchObjectState(app, model, pk)]);
     },
     { immediate: true },
 );
@@ -115,10 +121,10 @@ const handleSubmit = async () => {
         if (props.pk) {
             await workflow.executeTransition(props.app, props.model, props.pk, selectedAction.value, router);
         }
-        toast.add({ severity: "success", summary: "transition succeeded" });
+        toast.success("transition succeeded");
         router.back();
     } catch (error) {
-        toast.add({ severity: "error", summary: "transition failed" });
+        toast.error("transition failed");
     }
 };
 </script>
@@ -127,10 +133,10 @@ const handleSubmit = async () => {
     <div :class="props.class">
         <page-title :loading="workflow.loading" :title="titleStr">
             <template #button>
-                <div class="flex gap-1 w-full justify-end">
+                <div :class="theme('buttons')">
                     <link-model-view
                         :app="app"
-                        class="whitespace-nowrap grow shrink-0"
+                        :class="theme('returnLink')"
                         label="Return to List"
                         :model="model"
                         view="list"
@@ -138,25 +144,63 @@ const handleSubmit = async () => {
                 </div>
             </template>
         </page-title>
-        <div>
-            available workflow transitions for {{ modelConfig.info?.verbose_name }} are {{ modelWorkflowTransitions }}
+        <div :class="theme('inner')">
             <div v-if="availableTransitions.length">
-                <p>the available transitions for the select objects are</p>
+                <div v-if="currentStateName" :class="theme('current')">
+                    <span :class="theme('currentLabel')">Currently</span>
+                    <span :class="theme('currentPill')">{{ currentStateName }}</span>
+                </div>
                 <form @submit.prevent="handleSubmit">
-                    <div v-for="transition in availableTransitions" :key="transition.code">
-                        <RadioButton
-                            v-model="selectedAction"
-                            :input-id="transition.code"
-                            name="dynamic"
-                            :value="transition.code"
-                        />
-                        <label class="ml-2" :for="transition.code">{{ transition.name }}</label>
+                    <div :class="theme('list')">
+                        <label
+                            v-for="transition in availableTransitions"
+                            :key="transition.code"
+                            :for="transition.code"
+                            :class="theme('option')"
+                            :data-selected="selectedAction === transition.code || undefined"
+                            :data-disabled="transition.disabled || undefined"
+                        >
+                            <input
+                                :id="transition.code"
+                                v-model="selectedAction"
+                                type="radio"
+                                name="workflow-transition"
+                                :value="transition.code"
+                                :disabled="transition.disabled"
+                                :class="theme('optionRadio')"
+                            />
+                            <span :class="theme('optionName')">{{ transition.name }}</span>
+                            <span v-if="transition.description" :class="theme('optionDesc')">{{
+                                transition.description
+                            }}</span>
+                            <span
+                                v-if="transition.target_state_label"
+                                :class="theme('optionTarget')"
+                                :data-tone="transition.target_state_tone || 'neutral'"
+                                >{{ transition.target_state_label }}</span
+                            >
+                            <span
+                                v-if="transition.disabled && transition.disabled_reason"
+                                :class="theme('optionDesc')"
+                                >{{ transition.disabled_reason }}</span
+                            >
+                        </label>
                     </div>
-                    <Button :disabled="!selectedAction" label="execute transition" type="submit" />
+                    <Button :disabled="!selectedAction" type="submit">execute transition</Button>
                 </form>
             </div>
-            <div v-else>
-                <p>no transition available for selected {{ modelConfig.info?.verbose_name }}</p>
+            <div v-else :class="theme('empty')" data-qa="view-workflow-transition-empty">
+                <div :class="theme('emptyIcon')" aria-hidden="true">
+                    <component :is="icon('flag').component" v-if="icon('flag')" v-bind="icon('flag').props" />
+                </div>
+                <strong :class="theme('emptyTitle')">{{ emptyTitleStr }}</strong>
+                <p :class="theme('emptyDesc')">
+                    There are no further actions for this
+                    {{ memoizedStartCase(modelConfig.info?.verbose_name) }}.
+                </p>
+                <div :class="theme('emptyAction')">
+                    <Button variant="ghost" @click="router.back()">Back to detail view</Button>
+                </div>
             </div>
         </div>
     </div>

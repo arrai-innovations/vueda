@@ -5,15 +5,15 @@
 import { mergeTheme } from "@vueda/use/useTheme.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, markRaw, shallowReadonly, unref } from "vue";
+import { computed, effectScope, markRaw, shallowReadonly, toRaw, unref } from "vue";
 
 /**
  * @typedef {object} FieldRendererProps
  * @property {string} formModelName - The fully-qualified name of the field in the form model.
  * @property {import('@vueda/use/useFormModel.js').UseFormModelState} formModel - The reactive form model instance.
- * @property {object} [objectGridFieldSlotProps] - Slot props passed from an ObjectGrid when rendering inline.
- * @property {object} [fieldsetStackedInlineProps] - Slot props used for stacked inline rendering.
- * @property {object} [fieldProps] - Additional field-level props.
+ * @property {{ [key: string]: unknown }} [objectGridFieldSlotProps] - Slot props passed from an ObjectGrid when rendering inline.
+ * @property {{ [key: string]: unknown }} [fieldsetStackedInlineProps] - Slot props used for stacked inline rendering.
+ * @property {{ [key: string]: unknown }} [fieldProps] - Additional field-level props.
  * @property {boolean} [hidden] - Whether to hide the widget from rendering.
  * @property {boolean} isFilter - Whether to this was used with a filter model.
  */
@@ -24,9 +24,9 @@ import { computed, effectScope, markRaw, shallowReadonly, unref } from "vue";
  * @property {import('vue').ComputedRef<import('vue').ComponentInternalInstance>} widgetComponent - The widget component.
  * @property {import('vue').ComputedRef<string>} fieldSlotName - The field slot name.
  * @property {import('vue').ComputedRef<string>} widgetSlotName - The widget slot name.
- * @property {import('vue').ComputedRef<object>} fieldProps - The field props.
- * @property {import('vue').ComputedRef<object>} widgetProps - The widget props.
- * @property {import('vue').ComputedRef<object>} fieldDetail - The field detail.
+ * @property {import('vue').ComputedRef<{ [key: string]: unknown }>} fieldProps - The field props.
+ * @property {import('vue').ComputedRef<{ [key: string]: unknown }>} widgetProps - The widget props.
+ * @property {import('vue').ComputedRef<{ [key: string]: unknown }>} fieldDetail - The field detail.
  * @property {import('vue').ComputedRef<string>} fieldValuePath - The field value path.
  * @property {import('vue').ComputedRef<string>} fieldDefaultSlotName - The field default slot name.
  * @property {import('vue').ComputedRef<string>} widgetDefaultSlotName - The widget default slot name.
@@ -46,7 +46,7 @@ import { computed, effectScope, markRaw, shallowReadonly, unref } from "vue";
  *  - Auto-naming the field input for context or standalone usage
  *
  * @param {FieldRendererProps} props - The props from the FieldRenderer component.
- * @param {Record<string, any>} attrs - Raw `useAttrs()` output (e.g. class, id, etc.).
+ * @param {{ [key: string]: any }} attrs - Raw `useAttrs()` output (e.g. class, id, etc.).
  * @param {import('vue').Slots} slots - Raw `useSlots()` output, for detecting scoped slot names.
  * @param {FieldContext | null} [fieldSetContext] - The injected field context if inside a fieldset; used to compute full path names.
  * @returns {import('vue').Readonly<FieldRendererRawInstance>} - The reactive field renderer instance.
@@ -83,15 +83,21 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
         const remainingSlots = computed(() =>
             Object.keys(slots).filter((slotName) => !unref(knownSlots).includes(slotName)),
         );
-        const fieldComponent = computed(() => markRaw(props.formModel.fieldComponents[props.formModelName]));
+        const fieldComponent = computed(() => markRaw(toRaw(props.formModel.fieldComponents[props.formModelName])));
         const widgetComponent = computed(() =>
-            markRaw(props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped),
+            markRaw(toRaw(props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped)),
         );
         const fieldDetail = computed(() =>
             props.isFilter
                 ? props.formModel.filterableDetails[props.formModelName]
                 : props.formModel.fieldDetails[props.formModelName],
         );
+        const computedHidden = computed(() => {
+            if (props.hidden !== undefined) {
+                return props.hidden;
+            }
+            return !!fieldSetContext;
+        });
         const fieldProps = computed(() => ({
             ...omit(props.objectGridFieldSlotProps, ["value"]),
             ...omit(props.formModel.fieldProps[props.formModelName], ["themeOverride"]),
@@ -99,23 +105,17 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             name: unref(fieldValuePath),
             formModelName: props.formModelName,
             modelValue: props.objectGridFieldSlotProps?.value,
+            hidden: computedHidden.value,
             themeOverride: mergeTheme(
                 props.formModel.fieldProps[props.formModelName]?.themeOverride,
                 props.themeOverride,
             ),
         }));
-        const computedHidden = computed(() => {
-            if (props.hidden !== undefined) {
-                return props.hidden;
-            }
-            return !!fieldSetContext;
-        });
         const widgetProps = computed(() => ({
             ...props.objectGridFieldSlotProps,
             ...omit(props.formModel.widgetProps[props.formModelName], ["themeOverride"]),
             ...omit(attrs, ["class"]),
             ...props.widgetProps,
-            hidden: computedHidden.value,
             themeOverride: mergeTheme(
                 props.formModel.fieldProps[props.formModelName]?.themeOverride,
                 props.formModel.widgetProps[props.formModelName]?.themeOverride,

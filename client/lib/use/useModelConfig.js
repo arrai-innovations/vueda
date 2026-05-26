@@ -4,7 +4,7 @@
  */
 import { useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
-import { useIsActive } from "@vueda/use/useIsActive";
+import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";

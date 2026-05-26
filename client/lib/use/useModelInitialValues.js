@@ -98,7 +98,7 @@ const fieldInitialValueMappings = {
 /**
  * Merge custom field initial value mappings into the default set used for forms.
  *
- * @param {Record<string, unknown>} customMappings - Additional mappings keyed by field type.
+ * @param {{ [key: string]: unknown }} customMappings - Additional mappings keyed by field type.
  * @returns {typeof fieldInitialValueMappings} The updated initial value field mappings.
  */
 export function mergeModelInitialValuesMappings(customMappings) {
