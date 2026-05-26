@@ -140,3 +140,13 @@ pre-commit:
                 for file in {staged_files}; do
                   circleci config validate "$file"
                 done
+
+pre-push:
+    commands:
+        docs-guard:
+            glob:
+                - "client/lib/**"
+                - "server/**/*.py"
+                - "docs/**"
+                - "docs-tooling/**"
+            run: just docs-validate

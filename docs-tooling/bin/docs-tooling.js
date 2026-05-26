@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { SOURCES, computeHashes, readManifest, selectStale, writeManifest } from "../js/build/plan.js";
 import { ComponentsExtractor } from "../js/extractors/components.js";
 import { CssTokensExtractor } from "../js/extractors/css-tokens.js";
 import { JavaScriptExtractor } from "../js/extractors/javascript.js";
@@ -522,7 +523,70 @@ async function runValidateSources(argv) {
     }
 }
 
+const generatedDir = path.join(repoRoot, "docs-tooling", ".generated");
+const manifestPath = path.join(generatedDir, "extract-manifest.json");
+
+async function wipeReferenceTrees() {
+    const docsRef = path.join(repoRoot, "docs", "reference");
+    const targets = [
+        path.join(docsRef, "api"),
+        path.join(docsRef, "theming", "tokens"),
+        path.join(docsRef, "theming", "tokens.md"),
+        path.join(docsRef, "theming", "keys"),
+        path.join(docsRef, "theming", "keys.md"),
+    ];
+    for (const target of targets) {
+        await fs.promises.rm(target, { recursive: true, force: true });
+    }
+    await fs.promises.mkdir(path.join(docsRef, "api"), { recursive: true });
+}
+
+async function runBuild(argv) {
+    const currentHashes = computeHashes(repoRoot);
+    const manifest = argv.force ? {} : readManifest(manifestPath);
+    const stale = argv.force ? SOURCES : selectStale({ sources: SOURCES, currentHashes, manifest, generatedDir });
+
+    if (stale.length === 0) {
+        console.log("build: extracts up to date; re-rendering only");
+    } else {
+        console.log(`build: re-extracting ${stale.map((s) => s.key).join(", ")}`);
+    }
+
+    for (const source of stale) {
+        await runExtract({ target: [source.extractTarget] });
+        await runNormalize({ source: [source.normalizeSource] });
+    }
+
+    await wipeReferenceTrees();
+    await runRender({ source: ["all"] });
+
+    // Snapshot all current hashes only after extract+render succeed. Non-stale
+    // sources already match the manifest, so this is a no-op for them.
+    writeManifest(manifestPath, currentHashes);
+
+    if (argv.validate) {
+        await runValidate({});
+    }
+}
+
 yargs(hideBin(process.argv))
+    .command(
+        "build",
+        "Incrementally extract+normalize changed sources, then full render (optionally validate)",
+        (y) =>
+            y
+                .option("force", {
+                    type: "boolean",
+                    default: false,
+                    describe: "Re-extract every source regardless of the manifest",
+                })
+                .option("validate", {
+                    type: "boolean",
+                    default: false,
+                    describe: "Run {@api}/{@term} reference validation after rendering",
+                }),
+        runBuild,
+    )
     .command(
         "extract",
         "Run documentation extractors",

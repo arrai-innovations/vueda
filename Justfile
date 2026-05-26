@@ -101,17 +101,17 @@ docs-render:
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js render
 
 docs-api:
-  just docs-extract
-  just docs-normalize
-  just docs-render
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js build
+
+docs-api-force:
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js build --force
 
 docs:
   just docs-api
   just docs-serve
 
 docs-validate:
-  just docs-api
-  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js validate
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js build --validate
 
 docs-build:
   just docs-api
