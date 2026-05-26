@@ -4,16 +4,16 @@ packages:
   - docs-tooling
   - server
 patchedDependencies:
-    vitepress-plugin-diagrams@1.1.2: patches/vitepress-plugin-diagrams.patch
-    vitepress@1.6.4: patches/vitepress.patch
+  vitepress-plugin-diagrams@1.1.2: patches/vitepress-plugin-diagrams.patch
+  vitepress@1.6.4: patches/vitepress.patch
 
 overrides:
-    lodash-es: ">=4.17.24"
-    postcss: ">=8.5.10"
+  lodash-es: ">=4.17.24"
+  postcss: ">=8.5.10"
 
 peerDependencyRules:
-    allowedVersions:
-        glob-promise>glob: "10 || 11"
+  allowedVersions:
+    glob-promise>glob: "10 || 11"
 
 allowBuilds:
   lefthook: false
@@ -23,3 +23,6 @@ allowBuilds:
   vue-demi: true
   core-js: false
   protobufjs: false
+
+minimumReleaseAgeExclude:
+  - '@arrai-innovations/reactive-helpers@21.1.2'

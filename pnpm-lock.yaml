@@ -71,8 +71,8 @@ importers:
   client:
     dependencies:
       '@arrai-innovations/reactive-helpers':
-        specifier: ^21.1.0
-        version: 21.1.0(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+        specifier: ^21.1.2
+        version: 21.1.2(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
       '@internationalized/date':
         specifier: ^3.5.0
         version: 3.12.1
@@ -413,6 +413,13 @@ packages:
 
   '@arrai-innovations/reactive-helpers@21.1.0':
     resolution: {integrity: sha512-TJPoReGG+AiDamFkV49Xq/1CcZ43VDEpaQEtqRRhGTHPa5ZCtqhlElzpul0Zmc4eJdD+0au2PI5zToqgCn88og==}
+    peerDependencies:
+      '@vueuse/core': ^13.0.0
+      lodash-es: '>=4.17.24'
+      vue: ^3.5.13
+
+  '@arrai-innovations/reactive-helpers@21.1.2':
+    resolution: {integrity: sha512-1uoj6PMYebCM2LxENs9KdTwNyYOt9RjkH6G0XEQSFIRgX46jmcA36lLVLUmv5rx/fyFbZ5bhw9i+I7B5fp/ybw==}
     peerDependencies:
       '@vueuse/core': ^13.0.0
       lodash-es: '>=4.17.24'
@@ -6195,10 +6202,10 @@ snapshots:
     dependencies:
       '@commitlint/config-conventional': 19.8.1
 
-  '@arrai-innovations/reactive-helpers@21.1.0(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
+  '@arrai-innovations/reactive-helpers@21.1.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@jcoreio/async-throttle': 1.7.0
-      '@vueuse/core': 13.9.0(vue@3.5.27(typescript@5.9.3))
+      '@vueuse/core': 14.3.0(vue@3.5.27(typescript@5.9.3))
       browser-util-inspect: 0.2.0
       flexsearch: 0.7.21
       lodash-es: 4.18.1
@@ -6207,10 +6214,10 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@arrai-innovations/reactive-helpers@21.1.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
+  '@arrai-innovations/reactive-helpers@21.1.2(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@jcoreio/async-throttle': 1.7.0
-      '@vueuse/core': 14.3.0(vue@3.5.27(typescript@5.9.3))
+      '@vueuse/core': 13.9.0(vue@3.5.27(typescript@5.9.3))
       browser-util-inspect: 0.2.0
       flexsearch: 0.7.21
       lodash-es: 4.18.1
