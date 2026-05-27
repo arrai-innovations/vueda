@@ -958,7 +958,7 @@ export default {
                 "text-[18px] leading-none",
             ],
         },
-        /** Empty-card title ("No transitions available from <state>"). 14 px / 600 / foreground; same recipe as banner titles on {@api theme-key:ModelActionForm.bannerTitle} so empty states read consistently across surfaces. */
+        /** Empty-card title ("No transitions available from `<state>`"). 14 px / 600 / foreground; same recipe as banner titles on {@api theme-key:ModelActionForm.bannerTitle} so empty states read consistently across surfaces. */
         emptyTitle: {
             class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
         },
