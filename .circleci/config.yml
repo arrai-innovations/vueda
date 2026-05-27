@@ -3,9 +3,34 @@ version: 2.1
 setup: true
 
 orbs:
+  continuation: circleci/continuation@1.0.0
   path-filtering: circleci/path-filtering@3.0.0
 
 workflows:
+  client-publish-on-tag:
+    jobs:
+      - continuation/continue:
+          name: client-publish-on-tag
+          configuration_path: .circleci/client.yml
+          parameters: '{"run-client-workflows": true}'
+          filters:
+            tags:
+              only: /^client-v.*/
+            branches:
+              ignore: /.*/
+
+  server-publish-on-tag:
+    jobs:
+      - continuation/continue:
+          name: server-publish-on-tag
+          configuration_path: .circleci/server.yml
+          parameters: '{"run-server-workflows": true}'
+          filters:
+            tags:
+              only: /^server-v.*/
+            branches:
+              ignore: /.*/
+
   detect-code-changes:
     jobs:
       - path-filtering/filter:
