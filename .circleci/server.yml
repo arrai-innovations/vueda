@@ -53,12 +53,8 @@ jobs:
             - run:
                   name: Build Package
                   command: |
-                      cd server
-                      uv build --wheel
-                      cd ..
                       rm -rf dist
-                      mkdir -p dist
-                      cp server/dist/* dist/
+                      uv build --package vueda --wheel --out-dir dist
             - save_cache:
                   paths:
                       - ~/project/dist
