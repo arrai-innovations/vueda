@@ -34,7 +34,7 @@
     --vp-c-text-1: var(--vueda-docs-text);
     --vp-c-text-2: var(--vueda-docs-text-muted);
     --vp-c-text-3: #697789;
-    --vp-nav-bg-color: color-mix(in srgb, var(--vueda-docs-chrome) 92%, transparent);
+    --vp-nav-bg-color: color-mix(in srgb, var(--vueda-docs-chrome) 92%, var(--vp-c-bg));
     --vp-nav-logo-height: 34px;
     --vp-sidebar-bg-color: var(--vueda-docs-surface-muted);
     --vp-code-bg: var(--vueda-docs-code-bg);
@@ -102,7 +102,7 @@ body {
 .VPNavBarSearch .DocSearch-Button {
     border: 1px solid var(--vueda-docs-border);
     border-radius: 4px;
-    background: color-mix(in srgb, var(--vueda-docs-surface) 78%, transparent);
+    background: color-mix(in srgb, var(--vueda-docs-surface) 78%, var(--vueda-docs-bg));
 }
 
 .VPSidebar {
@@ -129,11 +129,11 @@ body {
 .VPSidebarItem.level-1 .link:hover,
 .VPSidebarItem.level-2 .link:hover,
 .VPSidebarItem.level-3 .link:hover {
-    background: color-mix(in srgb, var(--vueda-docs-brand) 7%, transparent);
+    background: color-mix(in srgb, var(--vueda-docs-brand) 7%, var(--vueda-docs-bg));
 }
 
 .VPSidebarItem.is-active > .item .link {
-    background: color-mix(in srgb, var(--vueda-docs-brand) 10%, transparent);
+    background: color-mix(in srgb, var(--vueda-docs-brand) 10%, var(--vueda-docs-bg));
 }
 
 .VPSidebarItem.is-active > .item .text {
@@ -148,7 +148,7 @@ body {
 .vp-doc a {
     color: var(--vueda-docs-brand-strong);
     font-weight: 500;
-    text-decoration-color: color-mix(in srgb, currentColor 32%, transparent);
+    text-decoration-color: color-mix(in srgb, currentColor 32%, var(--vueda-docs-bg));
     text-underline-offset: 3px;
 }
 
@@ -158,7 +158,7 @@ body {
 }
 
 .vp-doc :not(pre) > code {
-    border: 1px solid color-mix(in srgb, var(--vueda-docs-border) 72%, transparent);
+    border: 1px solid color-mix(in srgb, var(--vueda-docs-border) 72%, var(--vueda-docs-bg));
     border-radius: 4px;
     color: var(--vueda-docs-text);
     font-size: 0.88em;
