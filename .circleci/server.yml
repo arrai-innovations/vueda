@@ -56,10 +56,6 @@ jobs:
           command: |
             cd server
             uv build --wheel
-            cd ..
-            rm -rf dist
-            mkdir -p dist
-            cp server/dist/* dist/
       - save_cache:
           paths:
             - ~/project/dist
