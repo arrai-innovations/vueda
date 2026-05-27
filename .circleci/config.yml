@@ -42,5 +42,6 @@ workflows:
           config-path: .circleci/no-changes.yml
           filters:
             tags:
-              only:
-                - /.*/
+              ignore:
+                - /^client-v.*/
+                - /^server-v.*/
