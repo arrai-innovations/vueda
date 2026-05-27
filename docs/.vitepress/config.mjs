@@ -582,6 +582,36 @@ const buildRouteTitleIndex = () => {
 
 const routeTitles = buildRouteTitleIndex();
 
+// Stamp the docs with the client and server versions present at the tagged
+// commit. Read from source so this works in local dev and CI without needing
+// the Python venv: client/package.json is the npm package version, and the
+// server's __init__.py holds the literal __version__ that pyproject reads.
+const repoRoot = path.join(docsRoot, "..");
+
+const readClientVersion = () => {
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "client", "package.json"), "utf-8"));
+        return pkg.version || null;
+    } catch {
+        return null;
+    }
+};
+
+const readServerVersion = () => {
+    try {
+        const src = fs.readFileSync(path.join(repoRoot, "server", "vueda", "__init__.py"), "utf-8");
+        const match = src.match(/^__version__\s*=\s*["']([^"']+)["']/m);
+        return match ? match[1] : null;
+    } catch {
+        return null;
+    }
+};
+
+const packageVersions = {
+    client: readClientVersion(),
+    server: readServerVersion(),
+};
+
 export default defineConfig({
     title: "VUEDA",
     description: "integrator guide, changelog, and reference for VUEDA.",
@@ -606,6 +636,7 @@ export default defineConfig({
         logo: "/assets/logo-cube-solid.svg",
         outline: "deep",
         routeTitles,
+        vueda: packageVersions,
         nav: [
             { text: "About", link: "/" },
             { text: "Tutorials", link: "/tutorials/" },

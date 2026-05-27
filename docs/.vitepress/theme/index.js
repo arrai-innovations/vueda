@@ -4,6 +4,7 @@ import DemoCard from "./components/DemoCard.vue";
 import ForceState from "./components/ForceState.vue";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
 import StateLabel from "./components/StateLabel.vue";
+import VersionFooter from "./components/VersionFooter.vue";
 import VuedaDemo from "./components/VuedaDemo.vue";
 import "./showcase-portals.css";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
@@ -117,6 +118,7 @@ const theme = {
     Layout() {
         return h(Layout, null, {
             "layout-top": () => h(DarkModeTransitionGuard),
+            "layout-bottom": () => h(VersionFooter),
         });
     },
     enhanceApp(ctx) {
