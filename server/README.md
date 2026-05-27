@@ -2,7 +2,7 @@
 
 ![VUEDA Logo - Vue.js User Experience for Django Admin](/VUEDA.png)
 
-[![code style: ruff][]][ruff] [![code style: prettier][]][prettier] ![pytest status][] ![coverage status][] ![ruff status][] ![pip-audit status][]
+[![code style: ruff][]][ruff] [![code style: prettier][]][prettier] ![pytest status][] ![coverage status][] ![ruff status][] ![pysentry status][]
 
 <!--prettier-ignore-start-->
 <!--TOC-->
@@ -417,11 +417,11 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [ruff]: https://docs.astral.sh/ruff/formatter/#style-guide
 [code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
 [prettier]: https://github.com/prettier/prettier
-[pytest status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/pytest.svg
-[coverage status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/pytest.coverage.svg
+[pytest status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/server-pytest.svg
+[coverage status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/server-pytest.coverage.svg
 [ruff status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/ruff.svg
 [pipenv]: https://github.com/pypa/pipenv
-[pip-audit status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/pip-audit.svg
+[pysentry status]: https://docs.arrai.dev/vueda-server/artifacts/v2.x.x/server-pysentry.svg
 [django-filter]: https://github.com/carltongibson/django-filter
 [drf-flex-fields]: https://github.com/rsinger86/drf-flex-fields
 [drf-writable-nested]: https://github.com/beda-software/drf-writable-nested
