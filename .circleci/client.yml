@@ -59,6 +59,7 @@ jobs:
     client-publish:
         executor: node-lts
         resource_class: small
+        circleci_ip_ranges: true
         steps:
             - checkout
             - utils/add_npm_config:
