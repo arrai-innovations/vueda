@@ -207,8 +207,8 @@ jobs:
             - run:
                   name: Stage Documentation for Deploy
                   command: |
-                      mkdir -p -m 0750 publish/documentation/$CIRCLE_TAG/
-                      cp -r site/* publish/documentation/$CIRCLE_TAG/
+                      mkdir -p -m 0750 publish/$CIRCLE_TAG/
+                      cp -r site/* publish/$CIRCLE_TAG/
                       ./scripts/version-manifest.sh docs publish/artifacts/versions/$CIRCLE_TAG.json
             - utils/rsync_folder:
                   when: on_success
