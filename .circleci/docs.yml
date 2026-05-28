@@ -203,7 +203,7 @@ jobs:
                   name: Build VitePress Site
                   command: |
                       rm -rf docs/.vitepress/.temp docs/.vitepress/cache
-                      cd docs && VITEPRESS_BASE="/vueda/documentation/$CIRCLE_TAG/" pnpm exec vitepress build
+                      cd docs && NODE_OPTIONS=--max-old-space-size=4096 VITEPRESS_BASE="/vueda/documentation/$CIRCLE_TAG/" pnpm exec vitepress build
             - run:
                   name: Stage Documentation for Deploy
                   command: |
