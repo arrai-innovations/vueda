@@ -137,9 +137,8 @@ jobs:
             - run:
                   name: Render API Documentation
                   command: |
-                      rm -rf docs/reference/api
                       mkdir -p docs/reference/api
-                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render
             - run:
                   name: Validate Documentation References
                   command: |
@@ -198,9 +197,8 @@ jobs:
             - run:
                   name: Render API Documentation
                   command: |
-                      rm -rf docs/reference/api
                       mkdir -p docs/reference/api
-                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render
             - run:
                   name: Build VitePress Site
                   command: |
