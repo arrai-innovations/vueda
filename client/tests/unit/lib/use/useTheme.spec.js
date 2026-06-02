@@ -1,6 +1,13 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { getTheme, mergeTheme, patchTheme, setTheme, useTheme, useThemeOverride } from "@vueda/use/useTheme.js";
-import { reactive, ref } from "vue";
+import { nextTick, reactive, ref } from "vue";
+
+const flush = async () => {
+    for (let i = 0; i < 5; i++) {
+        await Promise.resolve();
+        await nextTick();
+    }
+};
 
 describe("lib/use/useTheme.js", () => {
     afterEach(() => {
@@ -128,5 +135,59 @@ describe("lib/use/useTheme.js", () => {
         });
         const fn = useTheme("Button", reactive({ themeOverride: {} }));
         expect(() => fn("root")).toThrow(/invalid composes reference/);
+    });
+
+    scopedIt("useTheme.loading is undefined when no loader is involved (sync path)", () => {
+        // reactive-helpers convention: undefined = never loaded (no loading
+        // activity ever happened on this instance). Reading a slot on the sync
+        // path doesn't flip it.
+        setTheme({ Button: { root: { class: "own" } } });
+        const fn = useTheme("Button", reactive({ themeOverride: {} }));
+        expect(fn.loading.value).toBeUndefined();
+        fn("root");
+        expect(fn.loading.value).toBeUndefined();
+    });
+
+    scopedIt("useTheme.loading flips true on useTheme() call when entry is a loader", async () => {
+        // Loader form: a function that fires patchTheme on resolution.
+        const loader = () =>
+            Promise.resolve().then(() => {
+                patchTheme({ Button: { root: { class: "loaded" } } });
+            });
+        patchTheme({ Button: loader });
+
+        const fn = useTheme("Button", reactive({ themeOverride: {} }));
+        // Loading should be true immediately — before any slot is read.
+        expect(fn.loading.value).toBe(true);
+        // Slot read at this moment returns empty (still pending).
+        expect(fn("root")).toBe("");
+
+        await flush();
+
+        // After the loader settles and patchTheme registers real data, the
+        // outer computed re-runs the sync path and returns the real classes.
+        // Loading is now `false` (loaded at least once), not undefined.
+        expect(fn.loading.value).toBe(false);
+        expect(fn("root")).toBe("loaded");
+    });
+
+    scopedIt("useTheme.hideStyle hides while loading, clears when settled", async () => {
+        const loader = () =>
+            Promise.resolve().then(() => {
+                patchTheme({ Button: { root: { class: "loaded" } } });
+            });
+        patchTheme({ Button: loader });
+
+        const fn = useTheme("Button", reactive({ themeOverride: {} }));
+        expect(fn.hideStyle.value).toBe("display: none !important");
+        await flush();
+        expect(fn.hideStyle.value).toBe("");
+    });
+
+    scopedIt("useTheme.hideStyle is empty when no loader is involved", () => {
+        setTheme({ Button: { root: { class: "own" } } });
+        const fn = useTheme("Button", reactive({ themeOverride: {} }));
+        // loading is `undefined` (never loaded), so hideStyle is "".
+        expect(fn.hideStyle.value).toBe("");
     });
 });
