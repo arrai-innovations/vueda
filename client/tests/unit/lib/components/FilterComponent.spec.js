@@ -63,8 +63,9 @@ vi.mock("@vueda/use/useForm.js", async () => {
     const actual = await vi.importActual("@vueda/use/useForm.js");
     return { __esModule: true, ...actual, useForm: mockedUseForm };
 });
-const themeFn = vi.fn(() => "t");
-const mockedUseTheme = vi.fn(() => themeFn);
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeFn = makeThemeFn({ slotResolver: () => "t" });
+const mockedUseTheme = makeUseThemeMock({ themeFn });
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
     THEME_OVERRIDE_PROPS: {},

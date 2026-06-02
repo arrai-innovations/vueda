@@ -2,8 +2,9 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
 
-const themeFn = vi.fn((key) => `theme-${key}`);
-const mockedUseTheme = vi.fn(() => themeFn);
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeFn = makeThemeFn({ slotResolver: (key) => `theme-${key}` });
+const mockedUseTheme = makeUseThemeMock({ themeFn });
 
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,

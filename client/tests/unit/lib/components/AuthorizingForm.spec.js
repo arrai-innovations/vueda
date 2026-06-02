@@ -14,7 +14,8 @@ const formContext = { state: { values: {} } };
 const useSignInFlow = vi.fn(() => ({ formContext }));
 vi.mock("@vueda/use/useSignInFlow.js", () => ({ useSignInFlow }));
 
-const useTheme = vi.fn(() => () => "theme");
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const useTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme, THEME_OVERRIDE_PROPS: {} }));
 
 vi.mock("@vueda/components/ActionForm.vue", () => ({ default: ActionFormStub }));

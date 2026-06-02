@@ -30,8 +30,9 @@ const LoadingSpinnerBlockStub = defineComponent({
     },
 });
 
-const themeFn = vi.fn((k) => `theme-${k}`);
-const mockedUseTheme = vi.fn(() => themeFn);
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeFn = makeThemeFn({ slotResolver: (k) => `theme-${k}` });
+const mockedUseTheme = makeUseThemeMock({ themeFn });
 const mockedUseFormModel = vi.fn();
 
 vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: FieldRendererStub }));

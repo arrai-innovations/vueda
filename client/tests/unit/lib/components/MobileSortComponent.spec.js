@@ -124,8 +124,9 @@ vi.mock("@vueda/controls/select/SelectTrigger.vue", () => ({ default: ControlSel
 vi.mock("@vueda/controls/select/SelectValue.vue", () => ({ default: ControlSelectValueStub }));
 vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
 
-const themeMock = vi.fn((key) => key);
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => themeMock }));
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeMock = makeThemeFn({ slotResolver: (key) => key });
+vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: makeUseThemeMock({ themeFn: themeMock }) }));
 
 let MobileSortComponent;
 

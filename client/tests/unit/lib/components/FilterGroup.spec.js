@@ -51,7 +51,8 @@ const mockedUseFilter = vi.fn((props) =>
         filterableDetails: toRef(props, "filterableDetails"),
     }),
 );
-const mockedUseTheme = vi.fn(() => () => "theme");
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 
 const route = reactive({ query: {} });
 

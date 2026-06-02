@@ -5,8 +5,9 @@ import { defineComponent, h } from "vue";
 const skeletonClass = "h-6 w-24";
 const getSkeletonClassForField = vi.fn(() => skeletonClass);
 
-const themeFn = vi.fn((key) => `theme-${key}`);
-const mockedUseTheme = vi.fn(() => themeFn);
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeFn = makeThemeFn({ slotResolver: (key) => `theme-${key}` });
+const mockedUseTheme = makeUseThemeMock({ themeFn });
 
 const SkeletonStub = defineComponent({
     name: "FeedbackSkeletonStub",

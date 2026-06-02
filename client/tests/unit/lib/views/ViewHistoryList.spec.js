@@ -30,7 +30,8 @@ vi.mock("@arrai-innovations/reactive-helpers", async () => {
     return { ...actual, useList: mockedUseList };
 });
 
-const mockedUseTheme = vi.fn(() => () => "theme");
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
 }));

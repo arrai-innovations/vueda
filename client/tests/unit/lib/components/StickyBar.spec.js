@@ -2,10 +2,12 @@ import { mockEventListener, scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 
-let themeContext;
-const mockedUseTheme = vi.fn((comp, props, context) => {
-    themeContext = context;
-    return vi.fn();
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeCapture = { context: undefined };
+const mockedUseTheme = makeUseThemeMock({
+    onCall: (comp, props, context) => {
+        themeCapture.context = context;
+    },
 });
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
@@ -32,7 +34,7 @@ describe("lib/components/StickyBar.vue", () => {
         vi.useRealTimers();
         mockedListeners.clear();
         vi.clearAllMocks();
-        themeContext = undefined;
+        themeCapture.context = undefined;
     });
 
     scopedIt("registers and cleans up scroll listener", async () => {
@@ -48,22 +50,22 @@ describe("lib/components/StickyBar.vue", () => {
         const { default: StickyBar } = await importComponent();
         const wrapper = mount(StickyBar);
         await nextTick();
-        expect(themeContext.hidden).toBe(false);
+        expect(themeCapture.context.hidden).toBe(false);
 
         const handler = mockedListeners.mockedAddEventListener.mock.calls.find(([e]) => e === "scroll")[1];
         window.scrollY = 100;
         handler();
         await nextTick();
-        expect(themeContext.hidden).toBe(true);
+        expect(themeCapture.context.hidden).toBe(true);
 
         vi.advanceTimersByTime(300);
         await nextTick();
-        expect(themeContext.hidden).toBe(false);
+        expect(themeCapture.context.hidden).toBe(false);
 
         window.scrollY = 50;
         handler();
         await nextTick();
-        expect(themeContext.hidden).toBe(false);
+        expect(themeCapture.context.hidden).toBe(false);
         wrapper.unmount();
     });
 

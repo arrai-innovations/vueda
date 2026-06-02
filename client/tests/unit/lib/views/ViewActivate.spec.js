@@ -30,7 +30,10 @@ vi.mock("@vueda/use/useModelConfig.js", () => ({
     useModelConfig: mockedUseModelConfig,
 }));
 
-const mockedUseTheme = vi.fn(() => (key) => (key === "root" ? "theme-root" : ""));
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({
+    slotResolver: (key) => (key === "root" ? "theme-root" : ""),
+});
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
     THEME_OVERRIDE_PROPS: {},

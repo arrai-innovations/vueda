@@ -2,6 +2,8 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, reactive } from "vue";
 
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+
 const AuthFormStub = defineComponent({
     name: "AuthFormStub",
     emits: ["form-object"],
@@ -107,7 +109,10 @@ vi.mock("vue-sonner", () => ({ toast: toastMock }));
 vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => useModelConfigMock() }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part, THEME_OVERRIDE_PROPS: {} }));
+vi.mock("@vueda/use/useTheme.js", () => ({
+    useTheme: makeUseThemeMock({ slotResolver: (part) => part }),
+    THEME_OVERRIDE_PROPS: {},
+}));
 
 const toastMock = {
     success: vi.fn(),

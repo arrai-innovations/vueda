@@ -3,6 +3,8 @@ import { mount } from "@vue/test-utils";
 import flushPromises from "flush-promises";
 import { defineComponent, h, reactive, ref } from "vue";
 
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+
 const useIsActiveMock = vi.fn();
 const storeUserMock = vi.fn();
 const useClipboardMock = vi.fn();
@@ -80,7 +82,7 @@ vi.mock("@vueda/components/AuthForm.vue", () => ({ default: AuthFormStub }));
 vi.mock("@vueda/components/ClickToCopyText.vue", () => ({ default: ClickToCopyTextStub }));
 vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock() }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part }));
+vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: makeUseThemeMock({ slotResolver: (part) => part }) }));
 vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
 vi.mock("@vueuse/core", () => ({ useClipboard: () => useClipboardMock() }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));

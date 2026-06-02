@@ -3,6 +3,8 @@ import { mount } from "@vue/test-utils";
 import flushPromises from "flush-promises";
 import { defineComponent, h, reactive, ref } from "vue";
 
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+
 const AuthorizingFormStub = defineComponent({
     name: "AuthorizingFormStub",
     emits: ["form-object"],
@@ -125,7 +127,10 @@ vi.mock("@vueda/controls/input-otp/InputOTPSlot.vue", () => ({ default: InputOTP
 vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
 vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
 vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock() }));
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part, THEME_OVERRIDE_PROPS: {} }));
+vi.mock("@vueda/use/useTheme.js", () => ({
+    useTheme: makeUseThemeMock({ slotResolver: (part) => part }),
+    THEME_OVERRIDE_PROPS: {},
+}));
 vi.mock("vue-sonner", () => ({ toast: toastMock }));
 vi.mock("@vueda/utils/html.js", () => ({ escapeHtml: (v) => v }));
 vi.mock("@vueda/stores/storeUser.js", async () => {

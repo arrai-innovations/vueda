@@ -1,8 +1,9 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 vi.mock("@vueda/use/useTheme.js", () => ({
-    useTheme: vi.fn(() => () => "t"),
+    useTheme: makeUseThemeMock({ slotResolver: () => "t" }),
     THEME_OVERRIDE_PROPS: {},
 }));
 

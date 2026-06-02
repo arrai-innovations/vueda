@@ -28,9 +28,10 @@ const fieldContext = {
 };
 vi.mock("@vueda/use/useField.js", () => ({ FIELD_PROPS: {}, FIELD_EMITS: [], useField: () => fieldContext }));
 
-const themeFn = vi.fn(() => "theme-root");
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeFn = makeThemeFn({ slotResolver: () => "theme-root" });
 
-const mockedUseTheme = vi.fn(() => themeFn);
+const mockedUseTheme = makeUseThemeMock({ themeFn });
 
 vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: SimpleStub("field-renderer") }));
 vi.mock("@vueda/shell/field/FieldDescription.vue", () => ({

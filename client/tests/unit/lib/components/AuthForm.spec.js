@@ -33,7 +33,8 @@ const storeState = { pendingFlow: null };
 const storeUser = vi.fn(() => storeState);
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser }));
 
-const useTheme = vi.fn(() => () => "theme");
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const useTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme, THEME_OVERRIDE_PROPS: {} }));
 
 vi.mock("@vueda/components/ActionForm.vue", () => ({ default: ActionFormStub }));

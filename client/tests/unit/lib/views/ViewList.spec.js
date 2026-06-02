@@ -35,7 +35,8 @@ vi.mock("@vueda/use/useSlotNameResolver.js", () => ({
     useSlotNameResolver: mockedUseSlotNameResolver,
 }));
 
-const mockedUseTheme = vi.fn(() => () => "theme");
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
     THEME_OVERRIDE_PROPS: {},

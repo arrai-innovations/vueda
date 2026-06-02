@@ -51,7 +51,8 @@ vi.mock("@vueda/shell/field/FieldMessage.vue", () => ({
 vi.mock("@vueda/shell/separator/Separator.vue", () => ({ default: ShellSeparatorStub }));
 vi.mock("@vueda/components/FieldSetStackedInlineRow.vue", () => ({ default: InlineRowStub }));
 
-const mockedUseTheme = vi.fn(() => () => "theme");
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
 
 let fieldState, fieldSetContext;

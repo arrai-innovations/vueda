@@ -52,7 +52,8 @@ const RouterLinkStub = defineComponent({
     },
 });
 
-const mockedUseTheme = vi.fn(() => () => "cls");
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "cls" });
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
 
 const mockedFormatError = vi.fn(() => "formatted-error");

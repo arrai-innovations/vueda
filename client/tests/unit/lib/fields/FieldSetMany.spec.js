@@ -50,9 +50,10 @@ const SlotButton = defineComponent({
     },
 });
 
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const warnSpy = vi.fn();
 const useFieldMock = vi.fn();
-const themeFn = vi.fn((cls) => `t-${cls}`);
+const themeFn = makeThemeFn({ slotResolver: (cls) => `t-${cls}` });
 
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ControlButtonStub }));
 vi.mock("@vueda/shell/field/FieldDescription.vue", () => ({
@@ -77,7 +78,7 @@ vi.mock("@vueda/use/useField.js", () => ({
     FIELD_PROPS: { name: { type: String, required: true } },
     useField: useFieldMock,
 }));
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: vi.fn(() => themeFn), THEME_OVERRIDE_PROPS: {} }));
+vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: makeUseThemeMock({ themeFn }), THEME_OVERRIDE_PROPS: {} }));
 
 let FieldSetMany, vue;
 
