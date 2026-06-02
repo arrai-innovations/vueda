@@ -33,6 +33,7 @@ const theme = useTheme("ContextMenuLabel", props);
         :data-inset="inset ? '' : undefined"
         v-bind="delegatedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </ContextMenuLabel>

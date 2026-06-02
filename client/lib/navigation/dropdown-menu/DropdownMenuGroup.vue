@@ -26,7 +26,12 @@ const theme = useTheme("DropdownMenuGroup", props);
 </script>
 
 <template>
-    <DropdownMenuGroup data-slot="dropdown-menu-group" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <DropdownMenuGroup
+        data-slot="dropdown-menu-group"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </DropdownMenuGroup>
 </template>

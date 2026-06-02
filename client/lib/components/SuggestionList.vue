@@ -65,7 +65,12 @@ const formatScore = (score) => `${Math.round(score * 100)}%`;
 </script>
 
 <template>
-    <div data-slot="suggestion-list" :class="[theme('root'), props.class]" data-qa="suggestion-list-root">
+    <div
+        data-slot="suggestion-list"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        data-qa="suggestion-list-root"
+    >
         <div v-if="head || source" :class="theme('headRow')" data-qa="suggestion-list-head-row">
             <span v-if="head" :class="theme('head')" data-qa="suggestion-list-head">{{ head }}</span>
             <span v-if="source" :class="theme('source')" data-qa="suggestion-list-source">{{ source }}</span>

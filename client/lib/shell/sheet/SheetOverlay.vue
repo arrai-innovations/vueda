@@ -24,7 +24,12 @@ const theme = useTheme("SheetOverlay", props);
 </script>
 
 <template>
-    <DialogOverlay data-slot="sheet-overlay" :class="[theme('root'), props.class]" v-bind="delegatedProps">
+    <DialogOverlay
+        data-slot="sheet-overlay"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="delegatedProps"
+    >
         <slot />
     </DialogOverlay>
 </template>

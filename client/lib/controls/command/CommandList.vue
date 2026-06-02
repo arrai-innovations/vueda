@@ -29,7 +29,12 @@ const theme = useTheme("CommandList", props);
 </script>
 
 <template>
-    <ListboxContent data-slot="command-list" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <ListboxContent
+        data-slot="command-list"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <div role="presentation">
             <slot />
         </div>

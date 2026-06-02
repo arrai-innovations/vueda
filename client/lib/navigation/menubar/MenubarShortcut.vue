@@ -19,7 +19,7 @@ const theme = useTheme("MenubarShortcut", props);
 </script>
 
 <template>
-    <span data-slot="menubar-shortcut" :class="[theme('root'), props.class]">
+    <span data-slot="menubar-shortcut" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </span>
 </template>

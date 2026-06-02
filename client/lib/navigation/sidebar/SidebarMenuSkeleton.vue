@@ -24,7 +24,12 @@ const width = computed(() => `${Math.floor(Math.random() * 40) + 50}%`);
 </script>
 
 <template>
-    <div data-slot="sidebar-menu-skeleton" data-sidebar="menu-skeleton" :class="[theme('root'), props.class]">
+    <div
+        data-slot="sidebar-menu-skeleton"
+        data-sidebar="menu-skeleton"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <Skeleton v-if="showIcon" class="size-4 rounded-vueda-checkbox" data-sidebar="menu-skeleton-icon" />
 
         <Skeleton

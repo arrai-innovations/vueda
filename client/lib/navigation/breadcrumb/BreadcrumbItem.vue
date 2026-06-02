@@ -19,7 +19,7 @@ const theme = useTheme("BreadcrumbItem", props);
 </script>
 
 <template>
-    <li data-slot="breadcrumb-item" :class="[theme('root'), props.class]">
+    <li data-slot="breadcrumb-item" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </li>
 </template>

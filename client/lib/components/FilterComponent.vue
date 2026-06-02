@@ -300,7 +300,7 @@ watch(
 </script>
 
 <template>
-    <div>
+    <div :style="theme.hideStyle?.value">
         <ButtonGroup>
             <!-- @slot [filter-clear-button, filter-clear-button(filterName)] Replaces the clear-filter button shown when a filter value is active. -->
             <slot

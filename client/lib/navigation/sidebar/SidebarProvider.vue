@@ -78,10 +78,13 @@ provideSidebarContext({
     <TooltipProvider :delay-duration="0">
         <div
             data-slot="sidebar-wrapper"
-            :style="{
-                '--sidebar-width': 'var(--vueda-sidebar-width)',
-                '--sidebar-width-icon': 'var(--vueda-sidebar-width-icon)',
-            }"
+            :style="[
+                {
+                    '--sidebar-width': 'var(--vueda-sidebar-width)',
+                    '--sidebar-width-icon': 'var(--vueda-sidebar-width-icon)',
+                },
+                theme.hideStyle?.value,
+            ]"
             :class="[theme('root'), props.class]"
             v-bind="$attrs"
         >

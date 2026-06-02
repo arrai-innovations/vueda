@@ -19,7 +19,7 @@ const theme = useTheme("SidebarInset", props);
 </script>
 
 <template>
-    <main data-slot="sidebar-inset" :class="[theme('root'), props.class]">
+    <main data-slot="sidebar-inset" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </main>
 </template>

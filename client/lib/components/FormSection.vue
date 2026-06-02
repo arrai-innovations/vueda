@@ -26,7 +26,12 @@ const hasHead = computed(() => Boolean(slots.title || slots.aside));
 </script>
 
 <template>
-    <section data-slot="form-section" :class="[theme('root'), props.class]" data-qa="form-section">
+    <section
+        data-slot="form-section"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        data-qa="form-section"
+    >
         <div v-if="hasHead" :class="theme('head')" data-qa="form-section-head">
             <!-- @slot title Section title; usually a `<FormSectionTitle>`. -->
             <slot name="title" />

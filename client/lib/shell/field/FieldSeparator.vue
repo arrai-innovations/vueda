@@ -21,7 +21,12 @@ const theme = useTheme("FieldSeparator", props);
 </script>
 
 <template>
-    <div data-slot="field-separator" :data-content="!!$slots.default" :class="[theme('root'), props.class]">
+    <div
+        data-slot="field-separator"
+        :data-content="!!$slots.default"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <Separator :class="theme('line')" />
         <span v-if="$slots.default" :class="theme('content')" data-slot="field-separator-content">
             <slot />

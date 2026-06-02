@@ -130,7 +130,7 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-    <div :class="props.class">
+    <div :class="props.class" :style="theme.hideStyle?.value">
         <page-title :loading="workflow.loading" :title="titleStr">
             <template #button>
                 <div :class="theme('buttons')">

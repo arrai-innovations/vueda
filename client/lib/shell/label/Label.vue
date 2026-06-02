@@ -28,7 +28,12 @@ const theme = useTheme("Label", props);
 </script>
 
 <template>
-    <Label data-slot="label" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <Label
+        data-slot="label"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </Label>
 </template>

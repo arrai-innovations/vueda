@@ -54,6 +54,7 @@ const theme = useTheme("HoverCardContent", props);
             data-slot="hover-card-content"
             v-bind="{ ...$attrs, ...forwardedProps }"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         >
             <slot />
         </HoverCardContent>

@@ -65,6 +65,7 @@ const dotClass = computed(() => (props.tone === "slow" ? theme("dotSlow") : them
         data-slot="loading-heartbeat-strip"
         :data-tone="tone"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         data-qa="loading-heartbeat-strip-root"
     >
         <span :class="theme('id')" data-qa="loading-heartbeat-strip-id">

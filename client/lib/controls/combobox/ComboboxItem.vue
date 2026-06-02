@@ -40,7 +40,12 @@ const theme = useTheme("ComboboxItem", props);
 </script>
 
 <template>
-    <ComboboxItem data-slot="combobox-item" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <ComboboxItem
+        data-slot="combobox-item"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ComboboxItem>
 </template>

@@ -19,7 +19,7 @@ const theme = useTheme("BreadcrumbList", props);
 </script>
 
 <template>
-    <ol data-slot="breadcrumb-list" :class="[theme('root'), props.class]">
+    <ol data-slot="breadcrumb-list" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </ol>
 </template>

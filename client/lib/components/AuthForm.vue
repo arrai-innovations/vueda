@@ -62,7 +62,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div :class="theme('root')" data-qa="auth-form-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="auth-form-root">
         <div :class="theme('outer')" data-qa="auth-form-outer">
             <div :class="theme('inner')" data-qa="auth-form-inner">
                 <div :class="theme('contentContainer')" data-qa="auth-form-content-container">

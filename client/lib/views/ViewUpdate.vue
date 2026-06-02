@@ -155,6 +155,7 @@ onMounted(() => {
 });
 </script>
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root; useTheme here is only a StickyBar helper, this component has no own theme entry to gate on. -->
     <div :class="props.class" data-qa="update-form-root">
         <page-title :loading="instance.pageLoading" :title="instance.titleStr">
             <template #button>

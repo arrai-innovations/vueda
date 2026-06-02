@@ -16,7 +16,7 @@ const theme = useTheme("InputGroupText", props);
 </script>
 
 <template>
-    <span v-bind="$attrs" :class="[theme('root'), props.class]">
+    <span v-bind="$attrs" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </span>
 </template>

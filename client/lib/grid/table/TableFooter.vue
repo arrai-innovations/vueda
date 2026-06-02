@@ -19,7 +19,7 @@ const theme = useTheme("TableFooter", props);
 </script>
 
 <template>
-    <tfoot data-slot="table-footer" :class="[theme('root'), props.class]">
+    <tfoot data-slot="table-footer" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </tfoot>
 </template>

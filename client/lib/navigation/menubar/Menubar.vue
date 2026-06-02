@@ -37,7 +37,13 @@ const theme = useTheme("Menubar", props);
 </script>
 
 <template>
-    <MenubarRoot v-slot="slotProps" data-slot="menubar" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <MenubarRoot
+        v-slot="slotProps"
+        data-slot="menubar"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot v-bind="slotProps" />
     </MenubarRoot>
 </template>

@@ -22,7 +22,12 @@ const theme = useTheme("FieldLegend", props);
 </script>
 
 <template>
-    <legend data-slot="field-legend" :data-variant="variant" :class="[theme('root'), props.class]">
+    <legend
+        data-slot="field-legend"
+        :data-variant="variant"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </legend>
 </template>

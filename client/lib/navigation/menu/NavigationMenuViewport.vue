@@ -36,6 +36,7 @@ const theme = useTheme("NavigationMenuViewport", props);
             data-slot="navigation-menu-viewport"
             v-bind="forwardedProps"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         />
     </div>
 </template>

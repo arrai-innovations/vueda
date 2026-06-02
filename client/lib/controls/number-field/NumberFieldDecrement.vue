@@ -31,7 +31,12 @@ const theme = useTheme("NumberFieldDecrement", props);
 </script>
 
 <template>
-    <NumberFieldDecrement data-slot="decrement" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <NumberFieldDecrement
+        data-slot="decrement"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot>
             <span aria-hidden="true" class="select-none">−</span>
         </slot>

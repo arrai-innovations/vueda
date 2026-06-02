@@ -52,6 +52,7 @@ const theme = useTheme("ComboboxInput", props);
         <ComboboxInput
             data-slot="combobox-input"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
             v-bind="{ ...$attrs, ...forwarded }"
         >
             <slot />

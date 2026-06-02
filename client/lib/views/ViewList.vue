@@ -188,7 +188,7 @@ onMounted(() => {
 });
 </script>
 <template>
-    <div>
+    <div :style="theme.hideStyle?.value">
         <page-title :loading="list.instanceList.state.loading" :title="list.titleStr">
             <template #button>
                 <slot name="targetless-action-buttons" :targetless-actions="actions.targetlessActions">

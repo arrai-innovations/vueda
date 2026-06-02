@@ -21,7 +21,7 @@ const theme = useTheme("AlertActions", props);
 </script>
 
 <template>
-    <div data-slot="alert-actions" :class="[theme('root'), props.class]">
+    <div data-slot="alert-actions" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </div>
 </template>

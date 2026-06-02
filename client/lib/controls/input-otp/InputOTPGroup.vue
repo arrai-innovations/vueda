@@ -16,7 +16,12 @@ const theme = useTheme("InputOTPGroup", props);
 </script>
 
 <template>
-    <div data-slot="input-otp-group" v-bind="$attrs" :class="[theme('root'), props.class]">
+    <div
+        data-slot="input-otp-group"
+        v-bind="$attrs"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </div>
 </template>

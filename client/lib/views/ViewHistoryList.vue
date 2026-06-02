@@ -272,7 +272,7 @@ const rowAttrs = (obj) => {
 const slots = useSlots();
 </script>
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
         <page-title :loading="instanceList.state.loading" :title="titleStr">
             <template #button>
                 <Button variant="ghost" @click="router.back()">Back</Button>

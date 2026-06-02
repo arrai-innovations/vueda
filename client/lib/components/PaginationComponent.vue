@@ -83,7 +83,7 @@ const handleShowAllPagesClick = () => {
 </script>
 
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
         <!-- Total record count area; receives `totalRecords`, `loading`, and `showTotalRecordNum` as slot props. -->
         <slot
             name="total-records"

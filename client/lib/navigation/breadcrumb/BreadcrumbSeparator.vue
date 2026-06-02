@@ -19,7 +19,13 @@ const theme = useTheme("BreadcrumbSeparator", props);
 </script>
 
 <template>
-    <li data-slot="breadcrumb-separator" role="presentation" aria-hidden="true" :class="[theme('root'), props.class]">
+    <li
+        data-slot="breadcrumb-separator"
+        role="presentation"
+        aria-hidden="true"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot>/</slot>
     </li>
 </template>

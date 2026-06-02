@@ -33,7 +33,12 @@ const theme = useTheme("StepperItem", props);
 </script>
 
 <template>
-    <StepperItem v-slot="slotProps" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <StepperItem
+        v-slot="slotProps"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot v-bind="slotProps" />
     </StepperItem>
 </template>

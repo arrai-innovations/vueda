@@ -233,7 +233,7 @@ watch(
 );
 </script>
 <template>
-    <div :class="theme('root')" :data-density="density" data-qa="objects-grid-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" :data-density="density" data-qa="objects-grid-root">
         <div :class="theme('table')" data-qa="objects-grid-table" role="table">
             <div :class="theme('headerRowGroup')" data-qa="objects-grid-header-row-group" role="rowgroup">
                 <div :class="theme('headerRow')" data-qa="objects-grid-header-row" role="row">

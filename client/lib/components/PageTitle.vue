@@ -41,7 +41,7 @@ const theme = useTheme(
 );
 </script>
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
         <div :class="theme('container')">
             <div :class="theme('titleContainer')">
                 <div :class="theme('titleWrapper')">

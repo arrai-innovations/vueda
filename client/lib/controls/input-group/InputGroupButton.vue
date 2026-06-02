@@ -28,7 +28,12 @@ const theme = useTheme(
 </script>
 
 <template>
-    <Button :data-size="props.size" :variant="props.variant" :class="[theme('root'), props.class]">
+    <Button
+        :data-size="props.size"
+        :variant="props.variant"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </Button>
 </template>

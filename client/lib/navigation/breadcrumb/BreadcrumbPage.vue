@@ -25,6 +25,7 @@ const theme = useTheme("BreadcrumbPage", props);
         aria-disabled="true"
         aria-current="page"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </span>

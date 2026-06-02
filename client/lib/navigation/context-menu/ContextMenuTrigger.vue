@@ -29,7 +29,12 @@ const theme = useTheme("ContextMenuTrigger", props);
 </script>
 
 <template>
-    <ContextMenuTrigger data-slot="context-menu-trigger" v-bind="forwardedProps" :class="[theme('root'), props.class]">
+    <ContextMenuTrigger
+        data-slot="context-menu-trigger"
+        v-bind="forwardedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ContextMenuTrigger>
 </template>

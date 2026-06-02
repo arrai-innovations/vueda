@@ -23,7 +23,13 @@ const theme = useTheme("Field", props, reactive({ orientation: toRef(props, "ori
 </script>
 
 <template>
-    <div role="group" data-slot="field" :data-orientation="orientation" :class="[theme('root'), props.class]">
+    <div
+        role="group"
+        data-slot="field"
+        :data-orientation="orientation"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </div>
 </template>

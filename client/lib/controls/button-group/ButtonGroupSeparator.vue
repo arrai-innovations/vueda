@@ -30,5 +30,6 @@ const theme = useTheme("ButtonGroupSeparator", props);
         v-bind="delegatedProps"
         :orientation="props.orientation"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     />
 </template>

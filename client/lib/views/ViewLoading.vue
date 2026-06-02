@@ -86,7 +86,7 @@ const crestKind = computed(() => {
 </script>
 
 <template>
-    <div :class="theme('root')" data-qa="view-loading-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="view-loading-root">
         <system-message-card :tone="cardTone" data-qa="view-loading-card">
             <template #crest-icon>
                 <loading-spinner-block v-if="!isSlow" :class="theme('crest')" aria-hidden="true" />

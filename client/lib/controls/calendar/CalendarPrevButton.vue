@@ -22,7 +22,12 @@ const forwardedProps = useForwardProps(delegatedProps);
 </script>
 
 <template>
-    <CalendarPrev data-slot="calendar-prev-button" :class="[theme('root'), props.class]" v-bind="forwardedProps">
+    <CalendarPrev
+        data-slot="calendar-prev-button"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="forwardedProps"
+    >
         <slot>
             <component
                 :is="icon('chevronLeft').component"

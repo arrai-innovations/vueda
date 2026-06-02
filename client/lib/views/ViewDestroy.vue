@@ -96,6 +96,7 @@ const computedBannerTitle = computed(() => {
 </script>
 
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root -->
     <div v-if="!isEmpty(modelConfig.info)" :class="theme('root')">
         <div :class="theme('card')" data-tone="danger" data-qa="view-destroy-card">
             <!-- @slot [view-destroy-banner] Override the danger banner shown above the confirmation form. -->

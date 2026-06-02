@@ -61,7 +61,7 @@ watch(
 </script>
 
 <template>
-    <div :class="theme('root')" data-vueda-fieldset v-bind="$attrs">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-vueda-fieldset v-bind="$attrs">
         <div :class="theme('inner')">
             <div
                 :class="[theme('titleBar'), fieldSetInline.state.hidable ? theme('titleBarToggle') : '']"

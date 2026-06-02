@@ -43,6 +43,7 @@ const icon = useIcons("SelectTrigger");
         :data-size="size"
         v-bind="forwardedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
         <SelectIcon as-child>

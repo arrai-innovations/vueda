@@ -32,6 +32,7 @@ const { toggleSidebar } = useSidebar();
         variant="ghost"
         size="icon"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         @click="toggleSidebar"
     >
         <!-- Replaces the sidebar toggle icon; receives no slot props. -->

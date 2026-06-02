@@ -44,7 +44,13 @@ const theme = useTheme("Accordion", props);
 </script>
 
 <template>
-    <AccordionRoot v-slot="slotProps" data-slot="accordion" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <AccordionRoot
+        v-slot="slotProps"
+        data-slot="accordion"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot v-bind="slotProps" />
     </AccordionRoot>
 </template>

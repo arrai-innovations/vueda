@@ -43,7 +43,12 @@ const icon = useIcons("MenubarCheckboxItem");
 </script>
 
 <template>
-    <MenubarCheckboxItem data-slot="menubar-checkbox-item" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <MenubarCheckboxItem
+        data-slot="menubar-checkbox-item"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <span :class="theme('indicator')">
             <MenubarItemIndicator>
                 <slot name="check-icon">

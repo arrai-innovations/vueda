@@ -23,7 +23,12 @@ const theme = useTheme("FormGrid", props);
 </script>
 
 <template>
-    <div data-slot="form-grid" :class="[theme('root'), props.class]" data-qa="form-grid">
+    <div
+        data-slot="form-grid"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        data-qa="form-grid"
+    >
         <slot />
     </div>
 </template>

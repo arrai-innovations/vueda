@@ -24,7 +24,12 @@ const theme = useTheme("DrawerOverlay", props);
 </script>
 
 <template>
-    <DrawerOverlay data-slot="drawer-overlay" :class="[theme('root'), props.class]" v-bind="delegatedProps">
+    <DrawerOverlay
+        data-slot="drawer-overlay"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="delegatedProps"
+    >
         <slot />
     </DrawerOverlay>
 </template>

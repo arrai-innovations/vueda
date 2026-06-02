@@ -30,6 +30,7 @@ const theme = useTheme("SidebarGroupLabel", props);
         :as="as"
         :as-child="asChild"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </Primitive>

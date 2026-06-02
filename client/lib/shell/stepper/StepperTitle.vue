@@ -27,7 +27,7 @@ const theme = useTheme("StepperTitle", props);
 </script>
 
 <template>
-    <StepperTitle v-bind="forwarded" :class="[theme('root'), props.class]">
+    <StepperTitle v-bind="forwarded" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </StepperTitle>
 </template>

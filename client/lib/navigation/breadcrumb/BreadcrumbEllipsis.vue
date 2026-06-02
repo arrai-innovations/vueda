@@ -37,6 +37,7 @@ const icon = useIcons("BreadcrumbEllipsis");
         :role="props.interactive ? undefined : 'presentation'"
         :aria-hidden="props.interactive ? undefined : true"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot name="icon">
             <component :is="icon('ellipsis').component" v-if="icon('ellipsis')" v-bind="icon('ellipsis').props" />

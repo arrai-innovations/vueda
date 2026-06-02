@@ -33,7 +33,12 @@ const theme = useTheme("ScrollArea", props);
 </script>
 
 <template>
-    <ScrollAreaRoot data-slot="scroll-area" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <ScrollAreaRoot
+        data-slot="scroll-area"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <ScrollAreaViewport data-slot="scroll-area-viewport" :class="theme('viewport')">
             <slot />
         </ScrollAreaViewport>

@@ -65,6 +65,7 @@ const theme = useTheme("ContextMenuSubContent", props);
         data-slot="context-menu-sub-content"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </ContextMenuSubContent>

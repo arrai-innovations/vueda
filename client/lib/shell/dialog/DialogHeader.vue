@@ -19,7 +19,7 @@ const theme = useTheme("DialogHeader", props);
 </script>
 
 <template>
-    <div data-slot="dialog-header" :class="[theme('root'), props.class]">
+    <div data-slot="dialog-header" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </div>
 </template>

@@ -28,7 +28,12 @@ const theme = useTheme("NavigationMenuItem", props);
 </script>
 
 <template>
-    <NavigationMenuItem data-slot="navigation-menu-item" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <NavigationMenuItem
+        data-slot="navigation-menu-item"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </NavigationMenuItem>
 </template>

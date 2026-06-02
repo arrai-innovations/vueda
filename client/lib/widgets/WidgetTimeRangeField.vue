@@ -78,7 +78,7 @@ const theme = useTheme("WidgetTimeRangeField", props);
 </script>
 
 <template>
-    <div :class="theme('root')" data-qa="widget-time-range-field" v-bind="$attrs">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="widget-time-range-field" v-bind="$attrs">
         <TimeField
             :id="fieldContext?.state.fieldId"
             v-model="startValue"

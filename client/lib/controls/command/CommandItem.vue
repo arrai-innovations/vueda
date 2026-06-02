@@ -88,6 +88,7 @@ const theme = useTheme("CommandItem", props);
         ref="itemRef"
         data-slot="command-item"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         @select="
             () => {
                 filterState.search = '';

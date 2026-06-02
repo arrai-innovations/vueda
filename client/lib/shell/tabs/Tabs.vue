@@ -42,7 +42,13 @@ const theme = useTheme("Tabs", props);
 </script>
 
 <template>
-    <TabsRoot v-slot="slotProps" data-slot="tabs" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <TabsRoot
+        v-slot="slotProps"
+        data-slot="tabs"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot v-bind="slotProps" />
     </TabsRoot>
 </template>

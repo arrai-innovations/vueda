@@ -31,7 +31,12 @@ const theme = useTheme("ComboboxViewport", props);
 </script>
 
 <template>
-    <ComboboxViewport data-slot="combobox-viewport" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <ComboboxViewport
+        data-slot="combobox-viewport"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ComboboxViewport>
 </template>

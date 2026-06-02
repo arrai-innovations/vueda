@@ -31,7 +31,12 @@ const theme = useTheme("CommandSeparator", props);
 </script>
 
 <template>
-    <Separator data-slot="command-separator" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <Separator
+        data-slot="command-separator"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </Separator>
 </template>

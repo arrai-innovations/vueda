@@ -51,6 +51,7 @@ const theme = useTheme("ComboboxList", props);
             data-slot="combobox-list"
             v-bind="{ ...$attrs, ...forwarded }"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         >
             <slot />
         </ComboboxContent>

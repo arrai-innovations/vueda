@@ -26,7 +26,12 @@ const theme = useTheme("DrawerDescription", props);
 </script>
 
 <template>
-    <DialogDescription data-slot="drawer-description" :class="[theme('root'), props.class]" v-bind="delegatedProps">
+    <DialogDescription
+        data-slot="drawer-description"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="delegatedProps"
+    >
         <slot />
     </DialogDescription>
 </template>

@@ -51,7 +51,13 @@ const theme = useTheme("RadioGroup", props);
 </script>
 
 <template>
-    <RadioGroupRoot v-slot="slotProps" data-slot="radio-group" :class="[theme('root'), props.class]" v-bind="forwarded">
+    <RadioGroupRoot
+        v-slot="slotProps"
+        data-slot="radio-group"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="forwarded"
+    >
         <slot v-bind="slotProps" />
     </RadioGroupRoot>
 </template>

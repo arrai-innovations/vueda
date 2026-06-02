@@ -31,6 +31,7 @@ const theme = useTheme("SidebarMenuAction", props, reactive({ showOnHover: toRef
         data-slot="sidebar-menu-action"
         data-sidebar="menu-action"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         :as="as"
         :as-child="asChild"
     >

@@ -48,6 +48,7 @@ const theme = useTheme("TooltipContent", props);
             data-slot="tooltip-content"
             v-bind="{ ...forwarded, ...$attrs }"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         >
             <slot />
 

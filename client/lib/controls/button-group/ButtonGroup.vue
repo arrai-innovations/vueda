@@ -31,6 +31,7 @@ const theme = useTheme(
         data-slot="button-group"
         :data-orientation="props.orientation"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </div>

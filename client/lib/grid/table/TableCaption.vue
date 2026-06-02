@@ -19,7 +19,7 @@ const theme = useTheme("TableCaption", props);
 </script>
 
 <template>
-    <caption data-slot="table-caption" :class="[theme('root'), props.class]">
+    <caption data-slot="table-caption" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </caption>
 </template>

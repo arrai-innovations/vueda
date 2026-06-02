@@ -19,7 +19,12 @@ const theme = useTheme("SidebarGroupContent", props);
 </script>
 
 <template>
-    <div data-slot="sidebar-group-content" data-sidebar="group-content" :class="[theme('root'), props.class]">
+    <div
+        data-slot="sidebar-group-content"
+        data-sidebar="group-content"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </div>
 </template>

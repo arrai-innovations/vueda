@@ -29,7 +29,12 @@ const theme = useTheme("MenubarTrigger", props);
 </script>
 
 <template>
-    <MenubarTrigger data-slot="menubar-trigger" v-bind="forwardedProps" :class="[theme('root'), props.class]">
+    <MenubarTrigger
+        data-slot="menubar-trigger"
+        v-bind="forwardedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </MenubarTrigger>
 </template>

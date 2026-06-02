@@ -19,7 +19,12 @@ const theme = useTheme("RangeCalendarGrid", props);
 </script>
 
 <template>
-    <RangeCalendarGrid data-slot="range-calendar-grid" :class="[theme('root'), props.class]" v-bind="$attrs">
+    <RangeCalendarGrid
+        data-slot="range-calendar-grid"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="$attrs"
+    >
         <slot />
     </RangeCalendarGrid>
 </template>

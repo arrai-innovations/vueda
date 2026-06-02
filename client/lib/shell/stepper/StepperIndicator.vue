@@ -27,7 +27,12 @@ const theme = useTheme("StepperIndicator", props);
 </script>
 
 <template>
-    <StepperIndicator v-slot="slotProps" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <StepperIndicator
+        v-slot="slotProps"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot v-bind="slotProps" />
     </StepperIndicator>
 </template>

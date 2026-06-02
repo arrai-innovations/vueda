@@ -19,7 +19,7 @@ const theme = useTheme("TableHeader", props);
 </script>
 
 <template>
-    <thead data-slot="table-header" :class="[theme('root'), props.class]">
+    <thead data-slot="table-header" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </thead>
 </template>

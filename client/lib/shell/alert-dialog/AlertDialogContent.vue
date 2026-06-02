@@ -45,6 +45,7 @@ const theme = useTheme("AlertDialogContent", props);
             data-slot="alert-dialog-content"
             v-bind="{ ...$attrs, ...forwarded }"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         >
             <slot />
         </AlertDialogContent>

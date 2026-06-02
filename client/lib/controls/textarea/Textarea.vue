@@ -33,5 +33,11 @@ const theme = useTheme("Textarea", props);
 </script>
 
 <template>
-    <textarea v-model="modelValue" data-slot="textarea" v-bind="$attrs" :class="[theme('root'), props.class]" />
+    <textarea
+        v-model="modelValue"
+        data-slot="textarea"
+        v-bind="$attrs"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    />
 </template>

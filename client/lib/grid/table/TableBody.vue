@@ -19,7 +19,7 @@ const theme = useTheme("TableBody", props);
 </script>
 
 <template>
-    <tbody data-slot="table-body" :class="[theme('root'), props.class]">
+    <tbody data-slot="table-body" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </tbody>
 </template>

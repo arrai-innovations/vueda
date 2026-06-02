@@ -58,7 +58,13 @@ const theme = useTheme(
 </script>
 
 <template>
-    <Toggle v-slot="slotProps" data-slot="toggle" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <Toggle
+        v-slot="slotProps"
+        data-slot="toggle"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot v-bind="slotProps" />
     </Toggle>
 </template>

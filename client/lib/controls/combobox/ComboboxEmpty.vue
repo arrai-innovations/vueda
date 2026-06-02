@@ -27,7 +27,12 @@ const theme = useTheme("ComboboxEmpty", props);
 </script>
 
 <template>
-    <ComboboxEmpty data-slot="combobox-empty" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <ComboboxEmpty
+        data-slot="combobox-empty"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ComboboxEmpty>
 </template>

@@ -61,7 +61,7 @@ const theme = useTheme("UserAvatar", props, reactive({ tone: toRef(props, "tone"
         data-slot="user-avatar"
         :data-tone="tone"
         :class="[theme('root'), props.class]"
-        :style="sizeStyle"
+        :style="[sizeStyle, theme.hideStyle?.value]"
         :aria-label="name || undefined"
     >
         <span :class="theme('initials')" aria-hidden="true">{{ resolvedInitials }}</span>

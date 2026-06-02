@@ -19,5 +19,5 @@ const theme = useTheme("Skeleton", props);
 </script>
 
 <template>
-    <div data-slot="skeleton" :class="[theme('root'), props.class]" />
+    <div data-slot="skeleton" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value" />
 </template>

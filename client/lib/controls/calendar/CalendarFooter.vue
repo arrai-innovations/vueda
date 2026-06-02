@@ -22,7 +22,7 @@ const theme = useTheme("CalendarFooter", props);
 </script>
 
 <template>
-    <div data-slot="calendar-footer" :class="[theme('root'), props.class]">
+    <div data-slot="calendar-footer" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot>
             <span data-slot="calendar-footer-summary" :class="theme('summary')">
                 <!-- @slot summary Leading mono summary label, typically the selected range and its day count. -->

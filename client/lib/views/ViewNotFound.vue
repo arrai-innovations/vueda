@@ -83,7 +83,7 @@ function handleHome() {
 </script>
 
 <template>
-    <div :class="theme('root')" v-bind="$attrs" data-qa="view-not-found-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-not-found-root">
         <system-message-card tone="info" data-qa="view-not-found-card">
             <template #crest-icon>
                 <component

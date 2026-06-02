@@ -57,6 +57,7 @@ const icon = useIcons("SheetContent");
         <DialogContent
             data-slot="sheet-content"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
             v-bind="{ ...$attrs, ...forwarded }"
         >
             <slot />

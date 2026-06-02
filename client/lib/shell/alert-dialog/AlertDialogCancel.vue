@@ -26,7 +26,7 @@ const theme = useTheme("AlertDialogCancel", props);
 </script>
 
 <template>
-    <AlertDialogCancel v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <AlertDialogCancel v-bind="delegatedProps" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </AlertDialogCancel>
 </template>

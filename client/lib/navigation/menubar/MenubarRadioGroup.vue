@@ -35,7 +35,12 @@ const theme = useTheme("MenubarRadioGroup", props);
 </script>
 
 <template>
-    <MenubarRadioGroup data-slot="menubar-radio-group" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <MenubarRadioGroup
+        data-slot="menubar-radio-group"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </MenubarRadioGroup>
 </template>

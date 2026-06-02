@@ -29,6 +29,7 @@ const theme = useTheme("TimeFieldInput", props);
         data-slot="time-field-input"
         :part="props.part"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         v-bind="$attrs"
         ><slot
     /></TimeFieldInput>

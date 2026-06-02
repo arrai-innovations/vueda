@@ -105,6 +105,7 @@ const theme = useTheme("MobileSortComponent", props);
 const icon = useIcons("MobileSortComponent");
 </script>
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root -->
     <!-- Button that opens the sort drawer; receives `label`, `size`, `severity`, and `badge` as slot props. -->
     <slot
         name="toggle-drawer-button"

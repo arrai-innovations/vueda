@@ -78,6 +78,7 @@ const theme = useTheme("PopoverContent", props, reactive({ size: toRef(props, "s
             data-slot="popover-content"
             v-bind="{ ...$attrs, ...forwarded }"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         >
             <slot />
         </PopoverContent>

@@ -44,6 +44,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 </script>
 
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root -->
     <div v-if="collapsible === 'none'" data-slot="sidebar" :class="[theme('rootNone'), props.class]" v-bind="$attrs">
         <slot />
     </div>

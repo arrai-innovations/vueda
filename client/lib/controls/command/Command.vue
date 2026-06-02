@@ -120,7 +120,12 @@ const theme = useTheme("Command", props);
 </script>
 
 <template>
-    <ListboxRoot data-slot="command" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <ListboxRoot
+        data-slot="command"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ListboxRoot>
 </template>

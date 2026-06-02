@@ -24,7 +24,12 @@ const theme = useTheme("AlertClose", props);
 </script>
 
 <template>
-    <button data-slot="alert-close" :class="[theme('root'), props.class]" @click="emit('close')">
+    <button
+        data-slot="alert-close"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        @click="emit('close')"
+    >
         <slot>&#x2715;</slot>
     </button>
 </template>

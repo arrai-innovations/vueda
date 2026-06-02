@@ -27,7 +27,12 @@ const theme = useTheme("NavigationMenuList", props);
 </script>
 
 <template>
-    <NavigationMenuList data-slot="navigation-menu-list" v-bind="forwardedProps" :class="[theme('root'), props.class]">
+    <NavigationMenuList
+        data-slot="navigation-menu-list"
+        v-bind="forwardedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </NavigationMenuList>
 </template>

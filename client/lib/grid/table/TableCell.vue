@@ -19,7 +19,7 @@ const theme = useTheme("TableCell", props);
 </script>
 
 <template>
-    <td data-slot="table-cell" :class="[theme('root'), props.class]">
+    <td data-slot="table-cell" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </td>
 </template>

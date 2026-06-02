@@ -52,7 +52,13 @@ const icon = useIcons("Checkbox");
 </script>
 
 <template>
-    <CheckboxRoot v-slot="slotProps" data-slot="checkbox" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <CheckboxRoot
+        v-slot="slotProps"
+        data-slot="checkbox"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <CheckboxIndicator data-slot="checkbox-indicator" :class="theme('indicator')">
             <slot v-bind="slotProps">
                 <component

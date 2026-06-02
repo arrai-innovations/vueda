@@ -28,7 +28,12 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 </script>
 
 <template>
-    <PaginationEllipsis data-slot="pagination-ellipsis" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <PaginationEllipsis
+        data-slot="pagination-ellipsis"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot>
             <component
                 :is="icon('ellipsis').component"

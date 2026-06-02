@@ -42,7 +42,7 @@ const theme = useTheme("ClickToCopyText", props);
 </script>
 
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
         <!-- Renders the text value; receives `text` as a slot prop. -->
         <slot name="text" :text="text">
             {{ text }}

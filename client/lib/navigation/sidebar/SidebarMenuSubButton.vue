@@ -37,6 +37,7 @@ const theme = useTheme("SidebarMenuSubButton", props, reactive({ size: toRef(pro
         :data-size="size"
         :data-active="isActive"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </Primitive>

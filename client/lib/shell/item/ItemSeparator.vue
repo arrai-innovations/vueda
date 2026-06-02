@@ -24,5 +24,6 @@ const theme = useTheme("ItemSeparator", props);
         orientation="horizontal"
         :decorative="props.decorative"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     />
 </template>

@@ -49,7 +49,13 @@ const theme = useTheme("Switch", props);
 </script>
 
 <template>
-    <SwitchRoot v-slot="slotProps" data-slot="switch" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <SwitchRoot
+        v-slot="slotProps"
+        data-slot="switch"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <SwitchThumb data-slot="switch-thumb" :class="theme('thumb')">
             <slot name="thumb" v-bind="slotProps" />
         </SwitchThumb>

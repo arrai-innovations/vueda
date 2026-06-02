@@ -90,7 +90,7 @@ const theme = useTheme("ViewAction", props);
 </script>
 
 <template>
-    <div :class="theme('root')" v-bind="$attrs" data-qa="view-action-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-action-root">
         <PageTitle :title="actionTitleText">
             <template #button>
                 <slot label="Go Back" name="return-button" verb="return" @click="handleReturnClick">

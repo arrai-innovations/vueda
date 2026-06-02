@@ -20,7 +20,7 @@ const theme = useTheme("FieldSet", props);
 </script>
 
 <template>
-    <fieldset data-slot="field-set" :class="[theme('root'), props.class]">
+    <fieldset data-slot="field-set" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </fieldset>
 </template>

@@ -19,7 +19,12 @@ const theme = useTheme("SidebarHeader", props);
 </script>
 
 <template>
-    <div data-slot="sidebar-header" data-sidebar="header" :class="[theme('root'), props.class]">
+    <div
+        data-slot="sidebar-header"
+        data-sidebar="header"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </div>
 </template>

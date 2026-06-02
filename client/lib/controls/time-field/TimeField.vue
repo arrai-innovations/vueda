@@ -84,7 +84,13 @@ const theme = useTheme(
 </script>
 
 <template>
-    <TimeFieldRoot v-slot="slotProps" data-slot="time-field" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <TimeFieldRoot
+        v-slot="slotProps"
+        data-slot="time-field"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot v-bind="slotProps" />
     </TimeFieldRoot>
 </template>

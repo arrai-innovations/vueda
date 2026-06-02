@@ -72,6 +72,7 @@ const theme = useTheme("NumberField", props);
         data-slot="number-field"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot v-bind="slotProps" />
     </NumberFieldRoot>

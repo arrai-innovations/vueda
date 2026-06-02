@@ -60,6 +60,7 @@ const theme = useTheme(
         :data-spacing="context?.spacing"
         v-bind="forwardedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot v-bind="slotProps" />
     </ToggleGroupItem>

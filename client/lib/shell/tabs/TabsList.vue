@@ -30,7 +30,12 @@ const theme = useTheme("TabsList", props);
 </script>
 
 <template>
-    <TabsList data-slot="tabs-list" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <TabsList
+        data-slot="tabs-list"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </TabsList>
 </template>

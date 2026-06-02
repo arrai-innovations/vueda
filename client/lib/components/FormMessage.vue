@@ -44,7 +44,12 @@ const theme = useTheme("FormMessage", props);
 </script>
 
 <template>
-    <Alert v-if="messages.length" :variant="variant" :class="[theme('root'), props.class]">
+    <Alert
+        v-if="messages.length"
+        :variant="variant"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <AlertDescription>
             <template v-if="messages.length === 1">
                 <!-- Replaces the rendering for a single message; receives `message` as a slot prop. -->

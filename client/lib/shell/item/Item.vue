@@ -34,6 +34,7 @@ const theme = useTheme("Item", props, reactive({ variant: toRef(props, "variant"
         :as="as"
         :as-child="asChild"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </Primitive>

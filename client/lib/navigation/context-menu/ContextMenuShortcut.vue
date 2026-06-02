@@ -19,7 +19,7 @@ const theme = useTheme("ContextMenuShortcut", props);
 </script>
 
 <template>
-    <span data-slot="context-menu-shortcut" :class="[theme('root'), props.class]">
+    <span data-slot="context-menu-shortcut" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </span>
 </template>

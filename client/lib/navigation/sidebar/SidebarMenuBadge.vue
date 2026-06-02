@@ -33,6 +33,7 @@ const theme = useTheme("SidebarMenuBadge", props, reactive({ tone: toRef(props, 
         data-sidebar="menu-badge"
         :data-tone="tone"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </div>

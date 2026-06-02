@@ -21,7 +21,7 @@ const theme = useTheme("FieldLabel", props);
 </script>
 
 <template>
-    <Label data-slot="field-label" :class="[theme('root'), props.class]">
+    <Label data-slot="field-label" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </Label>
 </template>

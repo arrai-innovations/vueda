@@ -19,7 +19,12 @@ const theme = useTheme("Breadcrumb", props);
 </script>
 
 <template>
-    <nav aria-label="breadcrumb" data-slot="breadcrumb" :class="[theme('root'), props.class]">
+    <nav
+        aria-label="breadcrumb"
+        data-slot="breadcrumb"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </nav>
 </template>

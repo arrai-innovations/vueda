@@ -28,7 +28,12 @@ const theme = useTheme("CollapsibleContent", props);
 </script>
 
 <template>
-    <CollapsibleContent data-slot="collapsible-content" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <CollapsibleContent
+        data-slot="collapsible-content"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </CollapsibleContent>
 </template>

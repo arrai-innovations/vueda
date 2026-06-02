@@ -16,7 +16,7 @@ const theme = useTheme("ItemGroup", props);
 </script>
 
 <template>
-    <div role="list" data-slot="item-group" :class="[theme('root'), props.class]">
+    <div role="list" data-slot="item-group" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </div>
 </template>

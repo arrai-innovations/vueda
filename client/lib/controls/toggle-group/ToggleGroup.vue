@@ -75,9 +75,7 @@ const theme = useTheme("ToggleGroup", props);
         :data-size="size"
         :data-variant="variant"
         :data-spacing="spacing"
-        :style="{
-            '--gap': spacing,
-        }"
+        :style="[{ '--gap': spacing }, theme.hideStyle?.value]"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
     >

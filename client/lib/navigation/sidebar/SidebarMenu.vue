@@ -19,7 +19,12 @@ const theme = useTheme("SidebarMenu", props);
 </script>
 
 <template>
-    <ul data-slot="sidebar-menu" data-sidebar="menu" :class="[theme('root'), props.class]">
+    <ul
+        data-slot="sidebar-menu"
+        data-sidebar="menu"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ul>
 </template>

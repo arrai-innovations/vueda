@@ -36,7 +36,12 @@ const theme = useTheme("PaginationItem", props, reactive({ isActive: toRef(props
 </script>
 
 <template>
-    <PaginationListItem data-slot="pagination-item" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <PaginationListItem
+        data-slot="pagination-item"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </PaginationListItem>
 </template>

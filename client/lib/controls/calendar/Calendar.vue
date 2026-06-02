@@ -178,6 +178,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         v-model:placeholder="placeholder"
         data-slot="calendar"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <CalendarHeader class="pt-0">
             <nav class="flex items-center gap-1 absolute top-0 inset-x-0 justify-between">

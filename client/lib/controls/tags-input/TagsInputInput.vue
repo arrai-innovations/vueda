@@ -35,5 +35,10 @@ const theme = useTheme("TagsInputInput", props);
 </script>
 
 <template>
-    <TagsInputInput data-slot="tags-input-input" v-bind="forwardedProps" :class="[theme('root'), props.class]" />
+    <TagsInputInput
+        data-slot="tags-input-input"
+        v-bind="forwardedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    />
 </template>

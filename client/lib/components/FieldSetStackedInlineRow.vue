@@ -80,7 +80,12 @@ const rowState = computed(() => {
 });
 </script>
 <template>
-    <div v-if="formModel.expand?.length" :class="[theme('root'), 'group/row']" :data-state="rowState ?? undefined">
+    <div
+        v-if="formModel.expand?.length"
+        :class="[theme('root'), 'group/row']"
+        :style="theme.hideStyle?.value"
+        :data-state="rowState ?? undefined"
+    >
         <div v-if="fieldSetSlotNames['before-fields'].name" :class="theme('beforeFields')">
             <slot name="before-fields" />
         </div>

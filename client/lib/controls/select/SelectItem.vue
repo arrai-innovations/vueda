@@ -37,7 +37,12 @@ const icon = useIcons("SelectItem");
 </script>
 
 <template>
-    <SelectItem data-slot="select-item" v-bind="forwardedProps" :class="[theme('root'), props.class]">
+    <SelectItem
+        data-slot="select-item"
+        v-bind="forwardedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <span class="absolute right-2 flex size-3.5 items-center justify-center">
             <SelectItemIndicator>
                 <slot name="indicator-icon">

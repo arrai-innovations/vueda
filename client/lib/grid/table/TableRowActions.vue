@@ -22,7 +22,7 @@ const theme = useTheme("TableRowActions", props);
 </script>
 
 <template>
-    <span data-slot="table-row-actions" :class="[theme('root'), props.class]">
+    <span data-slot="table-row-actions" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot :action-class="theme('action')" />
     </span>
 </template>

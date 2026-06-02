@@ -16,7 +16,7 @@ const theme = useTheme("NativeSelectOption", props);
 </script>
 
 <template>
-    <option data-slot="native-select-option" :class="[theme('root'), props.class]">
+    <option data-slot="native-select-option" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </option>
 </template>

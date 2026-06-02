@@ -22,7 +22,12 @@ const theme = useTheme("Avatar", props);
 </script>
 
 <template>
-    <AvatarRoot data-slot="avatar" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <AvatarRoot
+        data-slot="avatar"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </AvatarRoot>
 </template>

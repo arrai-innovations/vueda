@@ -118,6 +118,7 @@ const doAfterSuccess = async (response) => {
 </script>
 
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root; root is a delegated <auth-form> child that owns its own hideStyle, this component only themes inner slots. -->
     <auth-form
         :run-action="handleSubmit"
         sub-title="With 2FA, you have to log in with your username and password and provide another form of authentication that only you know or have access to."

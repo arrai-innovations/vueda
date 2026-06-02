@@ -73,6 +73,7 @@ const containerClass = computed(() => normalizeClass([theme("root"), props.class
         :container-class="containerClass"
         data-slot="input-otp"
         class="disabled:cursor-not-allowed"
+        :style="theme.hideStyle?.value"
     >
         <slot v-bind="slotProps" />
     </OTPInput>

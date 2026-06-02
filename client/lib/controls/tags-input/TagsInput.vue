@@ -64,7 +64,13 @@ const theme = useTheme("TagsInput", props);
 </script>
 
 <template>
-    <TagsInputRoot v-slot="slotProps" data-slot="tags-input" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <TagsInputRoot
+        v-slot="slotProps"
+        data-slot="tags-input"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot v-bind="slotProps" />
     </TagsInputRoot>
 </template>

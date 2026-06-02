@@ -40,6 +40,7 @@ const icon = useIcons("DropdownMenuSubTrigger");
         :data-inset="inset ? '' : undefined"
         v-bind="forwardedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
         <span :class="theme('iconWrapper')" aria-hidden="true"

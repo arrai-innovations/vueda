@@ -80,6 +80,7 @@ const theme = useTheme("WidgetDateField", props);
 </script>
 
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root -->
     <Popover v-model:open="popoverOpen">
         <DateField
             :id="fieldContext?.state.fieldId"

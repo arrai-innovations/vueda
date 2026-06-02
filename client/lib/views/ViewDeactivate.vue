@@ -106,7 +106,7 @@ function handleCancel() {
 </script>
 
 <template>
-    <div :class="theme('root')" data-qa="view-deactivate-root" v-bind="$attrs">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="view-deactivate-root" v-bind="$attrs">
         <system-message-card tone="warning" data-qa="view-deactivate-card">
             <template #crest-icon>
                 <component

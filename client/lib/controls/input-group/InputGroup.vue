@@ -16,7 +16,13 @@ const theme = useTheme("InputGroup", props);
 </script>
 
 <template>
-    <div data-slot="input-group" role="group" v-bind="$attrs" :class="[theme('root'), props.class]">
+    <div
+        data-slot="input-group"
+        role="group"
+        v-bind="$attrs"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </div>
 </template>

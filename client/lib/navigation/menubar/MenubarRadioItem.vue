@@ -41,7 +41,12 @@ const icon = useIcons("MenubarRadioItem");
 </script>
 
 <template>
-    <MenubarRadioItem data-slot="menubar-radio-item" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <MenubarRadioItem
+        data-slot="menubar-radio-item"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <span :class="theme('indicator')">
             <MenubarItemIndicator>
                 <slot name="indicator">

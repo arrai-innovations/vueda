@@ -19,7 +19,7 @@ const theme = useTheme("CardFooter", props);
 </script>
 
 <template>
-    <div data-slot="card-footer" :class="[theme('root'), props.class]">
+    <div data-slot="card-footer" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </div>
 </template>

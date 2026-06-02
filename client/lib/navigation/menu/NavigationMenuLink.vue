@@ -35,7 +35,12 @@ const theme = useTheme("NavigationMenuLink", props);
 </script>
 
 <template>
-    <NavigationMenuLink data-slot="navigation-menu-link" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <NavigationMenuLink
+        data-slot="navigation-menu-link"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </NavigationMenuLink>
 </template>

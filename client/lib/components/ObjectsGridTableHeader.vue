@@ -62,7 +62,7 @@ const uniqueKeyForSlot = computed(() =>
 );
 </script>
 <template>
-    <div :class="theme('root')" data-qa="objects-grid-table-header-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="objects-grid-table-header-root">
         <span :class="theme('label')" data-qa="objects-grid-table-header-label">
             <!-- Column label content; receives `columnIndex`, `columnCount`, `field`, `isTableLayout`, `isCardLayout`, and any `fieldProps` as slot props. -->
             <slot

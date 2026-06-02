@@ -35,6 +35,7 @@ const slot = computed(() => context?.value.slots[props.index]);
         data-slot="input-otp-slot"
         :data-active="slot?.isActive"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         {{ slot?.char }}
         <div v-if="slot?.hasFakeCaret" class="pointer-events-none absolute inset-0 flex items-center justify-center">

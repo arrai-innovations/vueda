@@ -28,6 +28,7 @@ const forwardedProps = useForwardProps(delegatedProps);
     <CalendarCellTrigger
         data-slot="calendar-cell-trigger"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         v-bind="forwardedProps"
     >
         <slot />

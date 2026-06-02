@@ -19,7 +19,7 @@ const theme = useTheme("CommandShortcut", props);
 </script>
 
 <template>
-    <span data-slot="command-shortcut" :class="[theme('root'), props.class]">
+    <span data-slot="command-shortcut" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </span>
 </template>

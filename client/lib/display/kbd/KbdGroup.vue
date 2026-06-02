@@ -19,7 +19,7 @@ const theme = useTheme("KbdGroup", props);
 </script>
 
 <template>
-    <kbd data-slot="kbd-group" :class="[theme('root'), props.class]">
+    <kbd data-slot="kbd-group" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </kbd>
 </template>

@@ -34,7 +34,12 @@ const theme = useTheme("ResizableHandle", props);
 </script>
 
 <template>
-    <SplitterResizeHandle data-slot="resizable-handle" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <SplitterResizeHandle
+        data-slot="resizable-handle"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <template v-if="props.withHandle">
             <div :class="theme('handle')">
                 <slot>

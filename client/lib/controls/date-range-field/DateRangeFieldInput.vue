@@ -33,6 +33,7 @@ const theme = useTheme("DateRangeFieldInput", props);
         :part="props.part"
         :type="props.type"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         v-bind="$attrs"
         ><slot
     /></DateRangeFieldInput>

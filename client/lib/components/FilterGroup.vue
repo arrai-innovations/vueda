@@ -166,7 +166,7 @@ const theme = useTheme("FilterGroup", props);
 </script>
 
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
         <div :class="theme('filtersWrapper')">
             <template v-for="(filter, index) in validFilterables" :key="index">
                 <!-- @slot [filter-component, filter-component(filterName)] Replaces a single filter component in the group. -->

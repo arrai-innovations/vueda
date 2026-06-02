@@ -36,7 +36,12 @@ const icon = useIcons("PaginationNext");
 </script>
 
 <template>
-    <PaginationNext data-slot="pagination-next" :class="[theme('root'), props.class]" v-bind="forwarded">
+    <PaginationNext
+        data-slot="pagination-next"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="forwarded"
+    >
         <slot>
             <span class="hidden sm:block">Next</span>
             <component

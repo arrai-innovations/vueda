@@ -35,6 +35,7 @@ const icon = useIcons("TagsInputItemDelete");
         data-slot="tags-input-item-delete"
         v-bind="forwardedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot>
             <component

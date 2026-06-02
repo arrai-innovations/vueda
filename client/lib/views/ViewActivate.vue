@@ -124,7 +124,7 @@ const theme = useTheme("ViewActivate", props);
 </script>
 
 <template>
-    <div :class="theme('root')" v-bind="$attrs" data-qa="view-activate-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-activate-root">
         <PageTitle :title="activateTitleText">
             <template #button>
                 <slot label="Go Back" name="return-button" verb="return" @click="handleReturnClick">

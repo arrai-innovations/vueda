@@ -21,7 +21,7 @@ const theme = useTheme("CommandFooter", props);
 </script>
 
 <template>
-    <div data-slot="command-footer" :class="[theme('root'), props.class]">
+    <div data-slot="command-footer" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot>
             <span :class="theme('hints')">
                 <!-- @slot start Leading hint group; render any number of `kbd` and label spans. -->

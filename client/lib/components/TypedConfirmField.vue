@@ -84,6 +84,7 @@ const theme = useTheme("TypedConfirmField", props, reactive({ match: toRef(() =>
         data-slot="typed-confirm-field"
         :data-match="isMatch ? 'true' : 'false'"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <span :class="theme('label')" data-qa="typed-confirm-field-label">
             <!-- @slot [label] Override the label content. Default renders `{labelLead}` + an inline `<code>` chip + `{labelTail}`. Receives `expectedValue` and `chipClass` slot props. -->

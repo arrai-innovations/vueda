@@ -27,5 +27,5 @@ const theme = useTheme("StepperSeparator", props);
 </script>
 
 <template>
-    <StepperSeparator v-bind="forwarded" :class="[theme('root'), props.class]" />
+    <StepperSeparator v-bind="forwarded" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value" />
 </template>

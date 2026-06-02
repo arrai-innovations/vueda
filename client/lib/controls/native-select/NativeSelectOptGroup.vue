@@ -16,7 +16,7 @@ const theme = useTheme("NativeSelectOptGroup", props);
 </script>
 
 <template>
-    <optgroup data-slot="native-select-optgroup" :class="[theme('root'), props.class]">
+    <optgroup data-slot="native-select-optgroup" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </optgroup>
 </template>

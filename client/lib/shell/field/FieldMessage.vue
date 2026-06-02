@@ -55,6 +55,7 @@ const content = computed(() => {
         data-slot="field-message"
         :data-severity="severity"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot v-if="$slots.default" />
 

@@ -32,7 +32,13 @@ const theme = useTheme("CommandEmpty", props);
 </script>
 
 <template>
-    <Primitive v-if="isRender" data-slot="command-empty" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <Primitive
+        v-if="isRender"
+        data-slot="command-empty"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </Primitive>
 </template>

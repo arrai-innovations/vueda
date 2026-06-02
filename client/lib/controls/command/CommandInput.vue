@@ -48,6 +48,7 @@ const theme = useTheme("CommandInput", props);
             data-slot="command-input"
             auto-focus
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         />
     </div>
 </template>

@@ -29,5 +29,10 @@ const theme = useTheme("SelectSeparator", props);
 </script>
 
 <template>
-    <SelectSeparator data-slot="select-separator" v-bind="delegatedProps" :class="[theme('root'), props.class]" />
+    <SelectSeparator
+        data-slot="select-separator"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    />
 </template>

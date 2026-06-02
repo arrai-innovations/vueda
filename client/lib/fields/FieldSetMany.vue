@@ -63,7 +63,7 @@ const theme = useTheme("FieldSetMany", props);
 const icon = useIcons("FieldSetMany");
 </script>
 <template>
-    <div :class="theme('root')" data-qa="field-set-many" data-vueda-fieldset>
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="field-set-many" data-vueda-fieldset>
         <div :class="theme('inner')">
             <div :class="theme('header')">
                 <!-- @slot [label] Override the field label. -->

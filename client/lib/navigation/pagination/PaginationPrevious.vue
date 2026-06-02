@@ -36,7 +36,12 @@ const icon = useIcons("PaginationPrevious");
 </script>
 
 <template>
-    <PaginationPrev data-slot="pagination-previous" :class="[theme('root'), props.class]" v-bind="forwarded">
+    <PaginationPrev
+        data-slot="pagination-previous"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="forwarded"
+    >
         <slot>
             <component
                 :is="icon('chevronLeft').component"

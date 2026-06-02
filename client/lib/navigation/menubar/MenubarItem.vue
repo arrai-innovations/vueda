@@ -47,6 +47,7 @@ const theme = useTheme("MenubarItem", props);
         :data-variant="variant"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </MenubarItem>

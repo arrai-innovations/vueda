@@ -19,7 +19,7 @@ const theme = useTheme("DrawerHeader", props);
 </script>
 
 <template>
-    <div data-slot="drawer-header" :class="[theme('root'), props.class]">
+    <div data-slot="drawer-header" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </div>
 </template>

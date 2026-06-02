@@ -42,6 +42,7 @@ function handleInputGroupAddonClick(e) {
         :data-align="props.align"
         v-bind="$attrs"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         @click="handleInputGroupAddonClick"
     >
         <slot />

@@ -39,7 +39,7 @@ const theme = useTheme("TableEmpty", props);
 
 <template>
     <TableRow>
-        <TableCell :class="[theme('root'), props.class]" v-bind="delegatedProps">
+        <TableCell :class="[theme('root'), props.class]" :style="theme.hideStyle?.value" v-bind="delegatedProps">
             <div :class="theme('content')" :data-variant="props.variant">
                 <slot />
             </div>

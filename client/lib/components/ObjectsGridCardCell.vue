@@ -89,6 +89,7 @@ const uniqueKeyForSlot = computed(() =>
 const effectiveHeaderClass = combineClasses(theme("header"), toRef(props, "headerClass"));
 </script>
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root -->
     <!-- Field label header; receives `class`, `rowIndex`, `columnIndex`, `rowCount`, `columnCount`, `field`, `isTableLayout`, `isCardLayout`, and `dataCardHeader` as slot props. -->
     <slot
         :key="uniqueKeyForSlot"

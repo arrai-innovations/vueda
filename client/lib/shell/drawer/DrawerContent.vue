@@ -52,6 +52,7 @@ const theme = useTheme("DrawerContent", props);
         <DrawerContent
             data-slot="drawer-content"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
             v-bind="{ ...$attrs, ...forwarded }"
         >
             <div :class="theme('handle')" />

@@ -41,7 +41,12 @@ const icon = useIcons("ContextMenuRadioItem");
 </script>
 
 <template>
-    <ContextMenuRadioItem data-slot="context-menu-radio-item" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <ContextMenuRadioItem
+        data-slot="context-menu-radio-item"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <span :class="theme('indicator')">
             <ContextMenuItemIndicator>
                 <slot name="indicator">

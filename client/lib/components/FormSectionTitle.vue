@@ -22,7 +22,12 @@ const theme = useTheme("FormSectionTitle", props);
 </script>
 
 <template>
-    <h3 data-slot="form-section-title" :class="[theme('root'), props.class]" data-qa="form-section-title">
+    <h3
+        data-slot="form-section-title"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        data-qa="form-section-title"
+    >
         <slot />
     </h3>
 </template>

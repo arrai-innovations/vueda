@@ -90,6 +90,7 @@ const fieldInnerClass = theme("fieldInner");
 </script>
 
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root; this component is a renderless <slot> pass-through with no root element to style. -->
     <!-- @slot [field(fieldName)] Override the entire rendered output for a specific field; receives all field and widget context as bindings. -->
     <slot
         :field-class="fieldClass"

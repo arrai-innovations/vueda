@@ -121,6 +121,7 @@ onBeforeUnmount(clearCooldownTimer);
 </script>
 
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root; root is a delegated <authorizing-form> child that owns its own hideStyle, this component only themes inner slots. -->
     <authorizing-form
         :run-action="handleSubmit"
         sub-title="Select a device/method to authorize through two-factor authentication:"

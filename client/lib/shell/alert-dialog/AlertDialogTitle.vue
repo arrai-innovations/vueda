@@ -26,7 +26,12 @@ const theme = useTheme("AlertDialogTitle", props);
 </script>
 
 <template>
-    <AlertDialogTitle data-slot="alert-dialog-title" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <AlertDialogTitle
+        data-slot="alert-dialog-title"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </AlertDialogTitle>
 </template>

@@ -75,7 +75,7 @@ const theme = useTheme(
 );
 </script>
 <template>
-    <div ref="root" :class="theme('root')" data-qa="sticky-bar-root">
+    <div ref="root" :class="theme('root')" :style="theme.hideStyle?.value" data-qa="sticky-bar-root">
         <div :class="theme('inner')" data-qa="sticky-bar-inner">
             <template v-if="useNamedSlots">
                 <div v-if="hasPrimarySlot" :class="theme('primary')" data-qa="sticky-bar-primary">

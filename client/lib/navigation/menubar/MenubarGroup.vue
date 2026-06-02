@@ -26,7 +26,12 @@ const theme = useTheme("MenubarGroup", props);
 </script>
 
 <template>
-    <MenubarGroup data-slot="menubar-group" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <MenubarGroup
+        data-slot="menubar-group"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </MenubarGroup>
 </template>

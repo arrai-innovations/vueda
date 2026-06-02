@@ -33,7 +33,12 @@ const theme = useTheme("Table", props);
 </script>
 
 <template>
-    <div data-slot="table-container" :data-sticky="props.sticky ? '' : null" :class="theme('container')">
+    <div
+        data-slot="table-container"
+        :data-sticky="props.sticky ? '' : null"
+        :class="theme('container')"
+        :style="theme.hideStyle?.value"
+    >
         <table data-slot="table" :data-density="props.density ?? null" :class="[theme('table'), props.class]">
             <slot />
         </table>

@@ -65,7 +65,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div :class="theme('root')" data-qa="authorizing-form-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="authorizing-form-root">
         <div :class="theme('outer')" data-qa="authorizing-form-outer">
             <!-- Content rendered before the form card, outside the inner container. -->
             <slot name="auth-form-prefix-header" />

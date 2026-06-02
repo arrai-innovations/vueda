@@ -35,6 +35,7 @@ const icon = useIcons("SelectScrollUpButton");
         data-slot="select-scroll-up-button"
         v-bind="forwardedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot>
             <component

@@ -32,7 +32,12 @@ const theme = useTheme("TabsTrigger", props);
 </script>
 
 <template>
-    <TabsTrigger data-slot="tabs-trigger" :class="[theme('root'), props.class]" v-bind="forwardedProps">
+    <TabsTrigger
+        data-slot="tabs-trigger"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="forwardedProps"
+    >
         <slot />
     </TabsTrigger>
 </template>

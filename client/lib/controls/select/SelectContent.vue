@@ -57,6 +57,7 @@ const theme = useTheme(
             data-slot="select-content"
             v-bind="{ ...$attrs, ...forwarded }"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         >
             <SelectScrollUpButton />
             <SelectViewport :class="[theme('viewport')]">

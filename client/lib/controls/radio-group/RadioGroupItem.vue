@@ -39,7 +39,12 @@ const theme = useTheme("RadioGroupItem", props);
 </script>
 
 <template>
-    <RadioGroupItem data-slot="radio-group-item" v-bind="forwardedProps" :class="[theme('root'), props.class]">
+    <RadioGroupItem
+        data-slot="radio-group-item"
+        v-bind="forwardedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <RadioGroupIndicator data-slot="radio-group-indicator" :class="theme('indicator')">
             <slot>
                 <span aria-hidden="true" :class="theme('dot')"></span>

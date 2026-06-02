@@ -21,7 +21,7 @@ const props = defineProps({
 const theme = useTheme("ObjectsGridBodyCell", props);
 </script>
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
         <Skeleton :class="getSkeletonClassForField(field)" />
     </div>
 </template>

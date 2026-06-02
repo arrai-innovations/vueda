@@ -75,6 +75,7 @@ const icon = useIcons("ViewRecoveryCodes");
 </script>
 
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root; root is a delegated <auth-form> child that owns its own hideStyle, this component only themes inner slots. -->
     <auth-form
         :run-action="() => userStore.generateRecoveryCode()"
         sub-title="Recovery codes can be used to access your account in the event you lose access to your device and cannot receive two-factor authentication codes."

@@ -26,7 +26,12 @@ const theme = useTheme("ContextMenuGroup", props);
 </script>
 
 <template>
-    <ContextMenuGroup data-slot="context-menu-group" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <ContextMenuGroup
+        data-slot="context-menu-group"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ContextMenuGroup>
 </template>

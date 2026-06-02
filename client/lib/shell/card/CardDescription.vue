@@ -19,7 +19,7 @@ const theme = useTheme("CardDescription", props);
 </script>
 
 <template>
-    <p data-slot="card-description" :class="[theme('root'), props.class]">
+    <p data-slot="card-description" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </p>
 </template>

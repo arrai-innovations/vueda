@@ -29,7 +29,12 @@ const theme = useTheme("ComboboxGroup", props);
 </script>
 
 <template>
-    <ComboboxGroup data-slot="combobox-group" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <ComboboxGroup
+        data-slot="combobox-group"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <ComboboxLabel v-if="heading" data-slot="combobox-group-heading" :class="theme('heading')">
             {{ heading }}
         </ComboboxLabel>

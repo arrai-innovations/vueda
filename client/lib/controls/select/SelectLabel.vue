@@ -24,7 +24,13 @@ const theme = useTheme("SelectLabel", props);
 </script>
 
 <template>
-    <SelectLabel data-slot="select-label" :as="as" :as-child="asChild" :class="[theme('root'), props.class]">
+    <SelectLabel
+        data-slot="select-label"
+        :as="as"
+        :as-child="asChild"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </SelectLabel>
 </template>

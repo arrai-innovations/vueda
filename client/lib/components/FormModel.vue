@@ -226,7 +226,7 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
 </script>
 
 <template>
-    <div :class="theme('root')" data-qa="form-model">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="form-model">
         <template v-if="formModel.fields?.length">
             <div v-if="slots['before-fields']" :class="theme('beforeFields')">
                 <slot :form-attrs="$attrs" :form-props="$props" name="before-fields" />

@@ -121,7 +121,7 @@ const theme = useTheme("ErrorDisplay", props);
 </script>
 
 <template>
-    <Alert v-if="errored" :class="theme('root')" variant="destructive">
+    <Alert v-if="errored" :class="theme('root')" :style="theme.hideStyle?.value" variant="destructive">
         <AlertClose v-if="dismissible" @close="onDismiss" />
         <AlertDescription>
             <div :class="theme('container')">

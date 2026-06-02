@@ -36,6 +36,7 @@ const theme = useTheme("AccordionItem", props);
         data-slot="accordion-item"
         v-bind="forwardedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot v-bind="slotProps" />
     </AccordionItem>

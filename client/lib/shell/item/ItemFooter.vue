@@ -16,7 +16,7 @@ const theme = useTheme("ItemFooter", props);
 </script>
 
 <template>
-    <div data-slot="item-footer" :class="[theme('root'), props.class]">
+    <div data-slot="item-footer" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </div>
 </template>

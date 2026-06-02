@@ -65,6 +65,7 @@ const theme = useTheme("DropdownMenuSubContent", props);
         data-slot="dropdown-menu-sub-content"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </DropdownMenuSubContent>

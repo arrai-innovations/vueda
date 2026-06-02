@@ -62,6 +62,7 @@ const theme = useTheme("ContextMenuContent", props);
             data-slot="context-menu-content"
             v-bind="{ ...$attrs, ...forwarded }"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         >
             <slot />
         </ContextMenuContent>

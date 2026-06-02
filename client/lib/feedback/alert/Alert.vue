@@ -25,7 +25,7 @@ const theme = useTheme("Alert", props, reactive({ variant: toRef(props, "variant
 </script>
 
 <template>
-    <div data-slot="alert" :class="[theme('root'), props.class]" role="alert">
+    <div data-slot="alert" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value" role="alert">
         <slot />
     </div>
 </template>

@@ -28,7 +28,12 @@ const theme = useTheme("AvatarFallback", props);
 </script>
 
 <template>
-    <AvatarFallback data-slot="avatar-fallback" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <AvatarFallback
+        data-slot="avatar-fallback"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </AvatarFallback>
 </template>

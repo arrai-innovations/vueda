@@ -51,6 +51,7 @@ const icon = useIcons("DialogScrollContent");
         <DialogOverlay :class="theme('overlay')">
             <DialogContent
                 :class="[theme('root'), props.class]"
+                :style="theme.hideStyle?.value"
                 v-bind="{ ...$attrs, ...forwarded }"
                 @pointer-down-outside="
                     (event) => {

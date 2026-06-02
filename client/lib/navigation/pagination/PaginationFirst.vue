@@ -36,7 +36,12 @@ const icon = useIcons("PaginationFirst");
 </script>
 
 <template>
-    <PaginationFirst data-slot="pagination-first" :class="[theme('root'), props.class]" v-bind="forwarded">
+    <PaginationFirst
+        data-slot="pagination-first"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="forwarded"
+    >
         <slot>
             <component
                 :is="icon('chevronLeft').component"

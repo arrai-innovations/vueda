@@ -42,7 +42,12 @@ const theme = useTheme(
 </script>
 
 <template>
-    <Primitive data-slot="badge" :class="[theme('root'), props.class]" v-bind="delegatedProps">
+    <Primitive
+        data-slot="badge"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="delegatedProps"
+    >
         <slot />
     </Primitive>
 </template>

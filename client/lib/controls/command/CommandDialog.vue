@@ -44,6 +44,7 @@ const theme = useTheme("CommandDialog", props);
 </script>
 
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root -->
     <Dialog v-slot="slotProps" v-bind="forwarded">
         <DialogContent :class="theme('content')">
             <DialogHeader :class="theme('header')">

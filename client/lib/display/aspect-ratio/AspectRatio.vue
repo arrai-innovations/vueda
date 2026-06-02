@@ -34,6 +34,7 @@ const theme = useTheme("AspectRatio", props);
         data-slot="aspect-ratio"
         v-bind="delegatedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot v-bind="slotProps" />
     </AspectRatio>

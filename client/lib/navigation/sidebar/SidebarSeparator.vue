@@ -20,5 +20,10 @@ const theme = useTheme("SidebarSeparator", props);
 </script>
 
 <template>
-    <Separator data-slot="sidebar-separator" data-sidebar="separator" :class="[theme('root'), props.class]" />
+    <Separator
+        data-slot="sidebar-separator"
+        data-sidebar="separator"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    />
 </template>

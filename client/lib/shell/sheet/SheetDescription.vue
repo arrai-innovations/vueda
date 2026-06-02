@@ -26,7 +26,12 @@ const theme = useTheme("SheetDescription", props);
 </script>
 
 <template>
-    <DialogDescription data-slot="sheet-description" :class="[theme('root'), props.class]" v-bind="delegatedProps">
+    <DialogDescription
+        data-slot="sheet-description"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="delegatedProps"
+    >
         <slot />
     </DialogDescription>
 </template>

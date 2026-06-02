@@ -21,6 +21,7 @@ const props = defineProps({
 const theme = useTheme("ObjectsGridCardCell", props);
 </script>
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root -->
     <div :class="theme('header')">
         {{ field.label }}
     </div>

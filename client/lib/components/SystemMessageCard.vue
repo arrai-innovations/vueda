@@ -42,6 +42,7 @@ const theme = useTheme("SystemMessageCard", props);
         data-slot="system-message-card"
         :data-tone="tone"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         data-qa="system-message-card-root"
     >
         <!-- Crest: icon tile + meta column + optional trailing code -->

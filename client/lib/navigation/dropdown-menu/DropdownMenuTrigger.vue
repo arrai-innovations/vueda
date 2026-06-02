@@ -33,6 +33,7 @@ const theme = useTheme("DropdownMenuTrigger", props);
         data-slot="dropdown-menu-trigger"
         v-bind="forwardedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </DropdownMenuTrigger>

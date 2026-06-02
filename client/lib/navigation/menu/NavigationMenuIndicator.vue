@@ -33,6 +33,7 @@ const theme = useTheme("NavigationMenuIndicator", props);
         data-slot="navigation-menu-indicator"
         v-bind="forwardedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <div :class="theme('arrow')" />
     </NavigationMenuIndicator>

@@ -27,6 +27,7 @@ const theme = useTheme("CalendarHeading", props);
         data-slot="calendar-heading"
         v-bind="forwardedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot :heading-value="headingValue">
             {{ headingValue }}

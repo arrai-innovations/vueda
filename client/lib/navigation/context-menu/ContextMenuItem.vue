@@ -47,6 +47,7 @@ const theme = useTheme("ContextMenuItem", props);
         :data-variant="variant"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </ContextMenuItem>

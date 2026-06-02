@@ -27,7 +27,12 @@ const theme = useTheme("ComboboxSeparator", props);
 </script>
 
 <template>
-    <ComboboxSeparator data-slot="combobox-separator" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <ComboboxSeparator
+        data-slot="combobox-separator"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ComboboxSeparator>
 </template>

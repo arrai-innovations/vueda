@@ -16,7 +16,7 @@ const theme = useTheme("ItemDescription", props);
 </script>
 
 <template>
-    <p data-slot="item-description" :class="[theme('root'), props.class]">
+    <p data-slot="item-description" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </p>
 </template>

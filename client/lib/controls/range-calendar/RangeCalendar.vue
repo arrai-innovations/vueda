@@ -90,6 +90,7 @@ const theme = useTheme("RangeCalendar", props);
         v-slot="{ grid, weekDays }"
         data-slot="range-calendar"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         v-bind="forwarded"
     >
         <RangeCalendarHeader>

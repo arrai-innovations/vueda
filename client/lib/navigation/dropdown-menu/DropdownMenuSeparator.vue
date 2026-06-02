@@ -30,5 +30,6 @@ const theme = useTheme("DropdownMenuSeparator", props);
         data-slot="dropdown-menu-separator"
         v-bind="delegatedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     />
 </template>

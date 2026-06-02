@@ -39,7 +39,12 @@ const theme = useTheme("DiagnosticStrip", props);
 </script>
 
 <template>
-    <dl data-slot="diagnostic-strip" :class="[theme('root'), props.class]" data-qa="diagnostic-strip-root">
+    <dl
+        data-slot="diagnostic-strip"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        data-qa="diagnostic-strip-root"
+    >
         <template v-for="row in rows" :key="row.label">
             <dt :class="theme('dt')" data-qa="diagnostic-strip-dt">{{ row.label }}</dt>
             <dd :class="[theme('dd'), { 'font-mono': mono }]" data-qa="diagnostic-strip-dd">{{ row.value }}</dd>

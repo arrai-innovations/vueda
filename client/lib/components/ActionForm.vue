@@ -126,7 +126,7 @@ const validationTitle = computed(() => {
 </script>
 
 <template>
-    <div :class="theme('root')" data-qa="action-form-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="action-form-root">
         <error-display :error="combinedError" :errored="combinedErrored" :ignore-form-validation-errors="true" />
         <div :class="theme('inner')" data-qa="action-form-inner">
             <div :class="theme('nonFieldErrorBlock')">

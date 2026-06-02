@@ -20,5 +20,10 @@ const theme = useTheme("SidebarInput", props);
 </script>
 
 <template>
-    <Input data-slot="sidebar-input" data-sidebar="input" :class="[theme('root'), props.class]" />
+    <Input
+        data-slot="sidebar-input"
+        data-sidebar="input"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    />
 </template>

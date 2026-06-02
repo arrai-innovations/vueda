@@ -61,6 +61,7 @@ const theme = useTheme("Slider", props);
         v-slot="{ modelValue: sliderValue }"
         data-slot="slider"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         v-bind="forwarded"
     >
         <SliderTrack data-slot="slider-track" :class="theme('track')">

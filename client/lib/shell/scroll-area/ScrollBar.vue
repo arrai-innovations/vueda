@@ -35,6 +35,7 @@ const theme = useTheme("ScrollBar", props, reactive({ orientation: toRef(props, 
         data-slot="scroll-area-scrollbar"
         v-bind="delegatedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <ScrollAreaThumb data-slot="scroll-area-thumb" :class="theme('thumb')" />
     </ScrollAreaScrollbar>

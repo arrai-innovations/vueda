@@ -31,7 +31,13 @@ const theme = useTheme("ComboboxTrigger", props);
 </script>
 
 <template>
-    <ComboboxTrigger data-slot="combobox-trigger" tabindex="0" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <ComboboxTrigger
+        data-slot="combobox-trigger"
+        tabindex="0"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ComboboxTrigger>
 </template>

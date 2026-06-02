@@ -27,7 +27,7 @@ const theme = useTheme("StepperTrigger", props);
 </script>
 
 <template>
-    <StepperTrigger v-bind="forwarded" :class="[theme('root'), props.class]">
+    <StepperTrigger v-bind="forwarded" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </StepperTrigger>
 </template>

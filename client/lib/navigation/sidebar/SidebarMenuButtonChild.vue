@@ -44,6 +44,7 @@ const theme = useTheme(
         :data-size="size"
         :data-active="isActive"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         :as="as"
         :as-child="asChild"
         v-bind="$attrs"

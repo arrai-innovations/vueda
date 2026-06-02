@@ -303,6 +303,7 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
             <component
                 :is="bare ? 'div' : 'section'"
                 :class="bare ? theme('bare') : theme('card')"
+                :style="theme.hideStyle?.value"
                 :data-tone="bare ? undefined : tone"
                 :data-qa="bare ? undefined : 'model-action-form-card'"
             >

@@ -19,7 +19,12 @@ const theme = useTheme("CalendarHeader", props);
 </script>
 
 <template>
-    <CalendarHeader data-slot="calendar-header" :class="[theme('root'), props.class]" v-bind="$attrs">
+    <CalendarHeader
+        data-slot="calendar-header"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="$attrs"
+    >
         <slot />
     </CalendarHeader>
 </template>

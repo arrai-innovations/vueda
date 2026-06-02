@@ -57,7 +57,7 @@ const toneClass = (tone) => {
 </script>
 
 <template>
-    <ul data-slot="consequences-bullets" :class="[theme('root'), props.class]">
+    <ul data-slot="consequences-bullets" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <li
             v-for="item in resolvedItems"
             :key="item.key"

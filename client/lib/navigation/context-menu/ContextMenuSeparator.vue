@@ -30,5 +30,6 @@ const theme = useTheme("ContextMenuSeparator", props);
         data-slot="context-menu-separator"
         v-bind="delegatedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     />
 </template>

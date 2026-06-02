@@ -19,7 +19,7 @@ const theme = useTheme("DropdownMenuShortcut", props);
 </script>
 
 <template>
-    <span data-slot="dropdown-menu-shortcut" :class="[theme('root'), props.class]">
+    <span data-slot="dropdown-menu-shortcut" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </span>
 </template>

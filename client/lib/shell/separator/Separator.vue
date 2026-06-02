@@ -30,5 +30,10 @@ const theme = useTheme("Separator", props);
 </script>
 
 <template>
-    <Separator data-slot="separator" v-bind="delegatedProps" :class="[theme('root'), props.class]" />
+    <Separator
+        data-slot="separator"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    />
 </template>

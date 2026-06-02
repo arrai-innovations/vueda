@@ -43,7 +43,12 @@ const theme = useTheme("NavigationMenuContent", props);
 </script>
 
 <template>
-    <NavigationMenuContent data-slot="navigation-menu-content" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <NavigationMenuContent
+        data-slot="navigation-menu-content"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </NavigationMenuContent>
 </template>

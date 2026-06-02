@@ -39,6 +39,7 @@ const theme = useTheme("ContextMenuRadioGroup", props);
         data-slot="context-menu-radio-group"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </ContextMenuRadioGroup>

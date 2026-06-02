@@ -68,6 +68,7 @@ const theme = useTheme("MenubarSubContent", props);
             data-slot="menubar-sub-content"
             v-bind="{ ...$attrs, ...forwarded }"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         >
             <slot />
         </MenubarSubContent>

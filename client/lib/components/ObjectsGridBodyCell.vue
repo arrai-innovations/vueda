@@ -81,7 +81,7 @@ const uniqueKeyForSlot = computed(() =>
 );
 </script>
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
         <!-- Cell content; receives `calculatedObj`, `columnIndex`, `field`, `formatted`, `isTableLayout`, `isCardLayout`, `obj`, `pk`, `pkKey`, `relatedObj`, `rowIndex`, `rowCount`, `columnCount`, `value`, and any `fieldProps` as slot props. -->
         <slot
             :key="uniqueKeyForSlot"

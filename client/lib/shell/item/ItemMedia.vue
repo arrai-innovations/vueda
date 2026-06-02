@@ -19,7 +19,12 @@ const theme = useTheme("ItemMedia", props, reactive({ variant: toRef(props, "var
 </script>
 
 <template>
-    <div data-slot="item-media" :data-variant="props.variant" :class="[theme('root'), props.class]">
+    <div
+        data-slot="item-media"
+        :data-variant="props.variant"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </div>
 </template>

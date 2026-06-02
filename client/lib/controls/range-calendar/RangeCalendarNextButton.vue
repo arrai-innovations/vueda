@@ -25,6 +25,7 @@ const forwardedProps = useForwardProps(delegatedProps);
     <RangeCalendarNext
         data-slot="range-calendar-next-button"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         v-bind="forwardedProps"
     >
         <slot>

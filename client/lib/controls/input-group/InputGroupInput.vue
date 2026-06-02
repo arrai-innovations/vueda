@@ -17,5 +17,5 @@ const theme = useTheme("InputGroupInput", props);
 </script>
 
 <template>
-    <Input data-slot="input-group-control" :class="[theme('root'), props.class]" />
+    <Input data-slot="input-group-control" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value" />
 </template>

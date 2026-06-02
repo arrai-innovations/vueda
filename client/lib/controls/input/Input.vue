@@ -33,5 +33,11 @@ const theme = useTheme("Input", props);
 </script>
 
 <template>
-    <input v-model="modelValue" data-slot="input" v-bind="$attrs" :class="[theme('root'), props.class]" />
+    <input
+        v-model="modelValue"
+        data-slot="input"
+        v-bind="$attrs"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    />
 </template>

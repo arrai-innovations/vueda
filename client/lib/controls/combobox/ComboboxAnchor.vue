@@ -29,7 +29,12 @@ const theme = useTheme("ComboboxAnchor", props);
 </script>
 
 <template>
-    <ComboboxAnchor data-slot="combobox-anchor" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <ComboboxAnchor
+        data-slot="combobox-anchor"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ComboboxAnchor>
 </template>

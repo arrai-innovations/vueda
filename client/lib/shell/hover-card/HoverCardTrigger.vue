@@ -26,7 +26,12 @@ const theme = useTheme("HoverCardTrigger", props);
 </script>
 
 <template>
-    <HoverCardTrigger data-slot="hover-card-trigger" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <HoverCardTrigger
+        data-slot="hover-card-trigger"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </HoverCardTrigger>
 </template>

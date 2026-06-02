@@ -16,7 +16,13 @@ const props = defineProps({
 const theme = useTheme("WidgetUnmapped", props);
 </script>
 <template>
-    <div role="alert" data-qa="unmapped-widget-message" :class="theme('root')" v-bind="$attrs">
+    <div
+        role="alert"
+        data-qa="unmapped-widget-message"
+        :class="theme('root')"
+        :style="theme.hideStyle?.value"
+        v-bind="$attrs"
+    >
         <strong>Unmapped Widget</strong> &mdash; The name "{{ name }}" is not mapped to a widget component.
     </div>
 </template>

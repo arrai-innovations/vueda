@@ -19,7 +19,12 @@ const theme = useTheme("SidebarFooter", props);
 </script>
 
 <template>
-    <div data-slot="sidebar-footer" data-sidebar="footer" :class="[theme('root'), props.class]">
+    <div
+        data-slot="sidebar-footer"
+        data-sidebar="footer"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </div>
 </template>

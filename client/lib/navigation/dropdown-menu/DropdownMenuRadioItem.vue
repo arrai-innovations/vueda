@@ -45,6 +45,7 @@ const icon = useIcons("DropdownMenuRadioItem");
         data-slot="dropdown-menu-radio-item"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <span :class="theme('indicator')">
             <DropdownMenuItemIndicator>

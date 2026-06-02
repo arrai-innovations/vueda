@@ -49,6 +49,7 @@ const theme = useTheme("CommandGroup", props);
         :id="id"
         data-slot="command-group"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         :hidden="isRender ? undefined : true"
     >
         <ListboxGroupLabel v-if="heading" data-slot="command-group-heading" :class="theme('heading')">

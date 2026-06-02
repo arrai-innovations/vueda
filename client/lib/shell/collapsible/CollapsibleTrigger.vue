@@ -26,7 +26,12 @@ const theme = useTheme("CollapsibleTrigger", props);
 </script>
 
 <template>
-    <CollapsibleTrigger data-slot="collapsible-trigger" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <CollapsibleTrigger
+        data-slot="collapsible-trigger"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </CollapsibleTrigger>
 </template>

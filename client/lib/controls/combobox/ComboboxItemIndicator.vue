@@ -29,7 +29,12 @@ const theme = useTheme("ComboboxItemIndicator", props);
 </script>
 
 <template>
-    <ComboboxItemIndicator data-slot="combobox-item-indicator" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <ComboboxItemIndicator
+        data-slot="combobox-item-indicator"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </ComboboxItemIndicator>
 </template>

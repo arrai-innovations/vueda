@@ -52,7 +52,12 @@ const resolvedBars = computed(() => (props.pattern ? PATTERNS[props.pattern] : p
 </script>
 
 <template>
-    <div data-slot="loading-skeleton-ghost" :class="[theme('root'), props.class]" data-qa="loading-skeleton-ghost-root">
+    <div
+        data-slot="loading-skeleton-ghost"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        data-qa="loading-skeleton-ghost-root"
+    >
         <Skeleton
             v-for="(width, i) in resolvedBars"
             :key="i"

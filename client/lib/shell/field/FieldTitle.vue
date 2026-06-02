@@ -20,7 +20,7 @@ const theme = useTheme("FieldTitle", props);
 </script>
 
 <template>
-    <div data-slot="field-label" :class="[theme('root'), props.class]">
+    <div data-slot="field-label" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </div>
 </template>

@@ -45,6 +45,7 @@ const theme = useTheme("Collapsible", props);
         data-slot="collapsible"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot v-bind="slotProps" />
     </CollapsibleRoot>

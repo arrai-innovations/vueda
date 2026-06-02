@@ -19,7 +19,7 @@ const theme = useTheme("AlertDialogFooter", props);
 </script>
 
 <template>
-    <div data-slot="alert-dialog-footer" :class="[theme('root'), props.class]">
+    <div data-slot="alert-dialog-footer" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </div>
 </template>

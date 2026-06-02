@@ -26,6 +26,7 @@ const theme = useTheme("RangeCalendarHeading", props);
         v-slot="{ headingValue }"
         data-slot="range-calendar-heading"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         v-bind="forwardedProps"
     >
         <slot :heading-value="headingValue">

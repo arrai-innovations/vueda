@@ -42,6 +42,7 @@ const icon = useIcons("NativeSelect");
             v-model="modelValue"
             data-slot="native-select"
             :class="[theme('root'), props.class]"
+            :style="theme.hideStyle?.value"
         >
             <slot />
         </select>

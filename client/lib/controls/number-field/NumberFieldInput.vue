@@ -21,5 +21,5 @@ const theme = useTheme("NumberFieldInput", props);
 </script>
 
 <template>
-    <NumberFieldInput data-slot="input" :class="[theme('root'), props.class]" />
+    <NumberFieldInput data-slot="input" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value" />
 </template>

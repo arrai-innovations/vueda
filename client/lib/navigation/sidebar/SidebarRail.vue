@@ -28,6 +28,7 @@ const { toggleSidebar } = useSidebar();
         :tabindex="-1"
         title="Toggle Sidebar"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         @click="toggleSidebar"
     >
         <slot />

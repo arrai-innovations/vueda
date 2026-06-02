@@ -28,7 +28,12 @@ const theme = useTheme("DialogDescription", props);
 </script>
 
 <template>
-    <DialogDescription data-slot="dialog-description" v-bind="forwardedProps" :class="[theme('root'), props.class]">
+    <DialogDescription
+        data-slot="dialog-description"
+        v-bind="forwardedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </DialogDescription>
 </template>

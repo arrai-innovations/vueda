@@ -42,7 +42,12 @@ const theme = useTheme("TriedUrlCallout", props);
 </script>
 
 <template>
-    <div data-slot="tried-url-callout" :class="[theme('root'), props.class]" data-qa="tried-url-callout-root">
+    <div
+        data-slot="tried-url-callout"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        data-qa="tried-url-callout-root"
+    >
         <span :class="theme('label')" data-qa="tried-url-callout-label">{{ label }}</span>
         <span :class="theme('value')" data-qa="tried-url-callout-value">
             <template v-for="(seg, i) in segments" :key="i">

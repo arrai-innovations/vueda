@@ -28,7 +28,7 @@ const theme = useTheme("SidebarUserBlock", props);
 </script>
 
 <template>
-    <div data-slot="sidebar-user-block" :class="[theme('root'), props.class]">
+    <div data-slot="sidebar-user-block" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <UserAvatar :name="name" :initials="initials" :size="32" tone="sidebar" />
         <div :class="theme('text')">
             <span :class="theme('name')">{{ name }}</span>

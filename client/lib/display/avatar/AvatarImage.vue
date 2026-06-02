@@ -24,5 +24,10 @@ const theme = useTheme("AvatarImage", props);
 </script>
 
 <template>
-    <AvatarImage data-slot="avatar-image" v-bind="delegatedProps" :class="[theme('root'), props.class]" />
+    <AvatarImage
+        data-slot="avatar-image"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    />
 </template>

@@ -30,7 +30,7 @@ const icon = useIcons("AccordionTrigger");
 </script>
 
 <template>
-    <AccordionHeader :class="theme('header')">
+    <AccordionHeader :class="theme('header')" :style="theme.hideStyle?.value">
         <AccordionTrigger data-slot="accordion-trigger" v-bind="delegatedProps" :class="[theme('root'), props.class]">
             <slot />
             <slot name="icon">

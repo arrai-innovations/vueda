@@ -99,7 +99,7 @@ watch(
 );
 </script>
 <template>
-    <div :class="theme('root')" data-qa="field-set-range" data-vueda-fieldset>
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="field-set-range" data-vueda-fieldset>
         <div :class="theme('header')">
             <label :class="theme('label')" :for="fieldContext.state.name">
                 {{ fieldContext.state.label }}

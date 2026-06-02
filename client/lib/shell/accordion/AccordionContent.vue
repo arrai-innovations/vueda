@@ -28,7 +28,12 @@ const theme = useTheme("AccordionContent", props);
 </script>
 
 <template>
-    <AccordionContent data-slot="accordion-content" v-bind="delegatedProps" :class="theme('root')">
+    <AccordionContent
+        data-slot="accordion-content"
+        v-bind="delegatedProps"
+        :class="theme('root')"
+        :style="theme.hideStyle?.value"
+    >
         <div :class="[theme('inner'), props.class]">
             <slot />
         </div>

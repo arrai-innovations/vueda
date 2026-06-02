@@ -106,6 +106,7 @@ defineExpose({ openFilePicker });
         :as="as"
         :as-child="asChild"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         :data-dropzone="dropzone || undefined"
         :data-dragging="dragging || undefined"
         :data-disabled="disabled || undefined"

@@ -46,6 +46,7 @@ const theme = useTheme("DropdownMenuItem", props);
         :data-inset="inset ? '' : undefined"
         :data-variant="variant"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
         v-bind="forwarded"
     >
         <slot />

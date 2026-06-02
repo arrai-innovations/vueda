@@ -19,7 +19,7 @@ const theme = useTheme("Kbd", props);
 </script>
 
 <template>
-    <kbd :class="[theme('root'), props.class]">
+    <kbd :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </kbd>
 </template>

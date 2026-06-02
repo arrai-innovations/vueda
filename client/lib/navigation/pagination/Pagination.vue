@@ -42,7 +42,13 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
-    <PaginationRoot v-slot="slotProps" data-slot="pagination" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <PaginationRoot
+        v-slot="slotProps"
+        data-slot="pagination"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot v-bind="slotProps" />
     </PaginationRoot>
 </template>

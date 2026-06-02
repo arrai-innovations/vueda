@@ -46,6 +46,7 @@ const theme = useTheme("ResizablePanelGroup", props);
         data-slot="resizable-panel-group"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot v-bind="slotProps" />
     </SplitterGroup>

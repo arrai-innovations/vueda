@@ -47,6 +47,7 @@ const icon = useIcons("DropdownMenuCheckboxItem");
         data-slot="dropdown-menu-checkbox-item"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <span :class="theme('indicator')">
             <DropdownMenuItemIndicator>

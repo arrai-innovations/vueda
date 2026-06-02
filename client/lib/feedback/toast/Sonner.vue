@@ -42,12 +42,15 @@ const icon = useIcons("Sonner");
     <Sonner
         data-slot="toaster"
         :class="[theme('root'), props.class]"
-        :style="{
-            '--normal-bg': 'var(--popover)',
-            '--normal-text': 'var(--popover-foreground)',
-            '--normal-border': 'var(--border)',
-            '--border-radius': 'var(--vueda-card-radius)',
-        }"
+        :style="[
+            {
+                '--normal-bg': 'var(--popover)',
+                '--normal-text': 'var(--popover-foreground)',
+                '--normal-border': 'var(--border)',
+                '--border-radius': 'var(--vueda-card-radius)',
+            },
+            theme.hideStyle?.value,
+        ]"
         :position="position"
         :close-button="closeButton"
         :rich-colors="richColors"

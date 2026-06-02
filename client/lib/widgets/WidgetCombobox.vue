@@ -178,6 +178,7 @@ const theme = useTheme("WidgetCombobox", props);
 const icon = useIcons("WidgetCombobox");
 </script>
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root -->
     <template v-if="props.readonly">
         <LinkModelView
             v-if="isApiMode"

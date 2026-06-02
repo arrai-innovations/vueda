@@ -35,6 +35,7 @@ const icon = useIcons("NavigationMenuTrigger");
         data-slot="navigation-menu-trigger"
         v-bind="forwardedProps"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
         <span

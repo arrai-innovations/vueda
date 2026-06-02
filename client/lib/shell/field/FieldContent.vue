@@ -20,7 +20,7 @@ const theme = useTheme("FieldContent", props);
 </script>
 
 <template>
-    <div data-slot="field-content" :class="[theme('root'), props.class]">
+    <div data-slot="field-content" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
     </div>
 </template>

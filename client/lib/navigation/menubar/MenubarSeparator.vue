@@ -27,5 +27,10 @@ const theme = useTheme("MenubarSeparator", props);
 </script>
 
 <template>
-    <MenubarSeparator data-slot="menubar-separator" :class="[theme('root'), props.class]" v-bind="forwardedProps" />
+    <MenubarSeparator
+        data-slot="menubar-separator"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="forwardedProps"
+    />
 </template>

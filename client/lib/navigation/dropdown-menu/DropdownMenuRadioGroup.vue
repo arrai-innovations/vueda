@@ -39,6 +39,7 @@ const theme = useTheme("DropdownMenuRadioGroup", props);
         data-slot="dropdown-menu-radio-group"
         v-bind="forwarded"
         :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
     >
         <slot />
     </DropdownMenuRadioGroup>

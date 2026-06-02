@@ -46,7 +46,13 @@ const indeterminate = computed(() => props.max == null);
 </script>
 
 <template>
-    <ProgressRoot data-slot="progress" :data-size="size" v-bind="delegatedProps" :class="[theme('root'), props.class]">
+    <ProgressRoot
+        data-slot="progress"
+        :data-size="size"
+        v-bind="delegatedProps"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <ProgressIndicator
             data-slot="progress-indicator"
             :class="theme('indicator')"

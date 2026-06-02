@@ -27,7 +27,12 @@ const theme = useTheme("BreadcrumbLink", props);
 </script>
 
 <template>
-    <Primitive data-slot="breadcrumb-link" v-bind="forwarded" :class="[theme('root'), props.class]">
+    <Primitive
+        data-slot="breadcrumb-link"
+        v-bind="forwarded"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </Primitive>
 </template>

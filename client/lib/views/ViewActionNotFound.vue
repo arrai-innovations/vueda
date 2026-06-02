@@ -118,7 +118,7 @@ function handleBrowse() {
 </script>
 
 <template>
-    <div :class="theme('root')" v-bind="$attrs" data-qa="view-action-not-found-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-action-not-found-root">
         <system-message-card tone="info" data-qa="view-action-not-found-card">
             <template #crest-icon>
                 <component

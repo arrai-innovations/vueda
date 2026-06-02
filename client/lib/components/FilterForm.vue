@@ -57,7 +57,7 @@ const remainingSlotNames = computed(() => {
 </script>
 
 <template>
-    <form @submit.prevent="applyFilter">
+    <form :style="theme.hideStyle?.value" @submit.prevent="applyFilter">
         <div :class="theme('outer')">
             <!-- @slot [filter-form-header, filter-form-header(filterName)] Header area at the top of the filter form. -->
             <slot :name="resolvedSlotNames.header.name" :class="theme('heading')" :filter-label="filterLabel">
