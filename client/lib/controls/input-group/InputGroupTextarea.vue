@@ -1,5 +1,6 @@
 <script setup>
 import Textarea from "@vueda/controls/textarea/Textarea.vue";
+import "@vueda/theme/vueda-tailwind/controls/InputGroupTextarea.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

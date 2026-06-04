@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/controls/RangeCalendarGridRow.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { RangeCalendarGridRow } from "reka-ui";
 

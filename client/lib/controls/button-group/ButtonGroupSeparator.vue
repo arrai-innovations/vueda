@@ -1,5 +1,6 @@
 <script setup>
 import Separator from "@vueda/shell/separator/Separator.vue";
+import "@vueda/theme/vueda-tailwind/controls/ButtonGroupSeparator.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 

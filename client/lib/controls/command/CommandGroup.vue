@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/controls/CommandGroup.theme.js";
 import { provideCommandGroupContext, useCommand } from "@vueda/use/useCommand.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";

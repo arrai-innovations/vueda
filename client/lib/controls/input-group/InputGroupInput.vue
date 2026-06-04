@@ -1,5 +1,6 @@
 <script setup>
 import Input from "@vueda/controls/input/Input.vue";
+import "@vueda/theme/vueda-tailwind/controls/InputGroupInput.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

@@ -13,6 +13,7 @@ import CalendarPrevButton from "./CalendarPrevButton.vue";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
 import NativeSelectOption from "@vueda/controls/native-select/NativeSelectOption.vue";
+import "@vueda/theme/vueda-tailwind/controls/Calendar.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { createReusableTemplate, reactiveOmit, useVModel } from "@vueuse/core";

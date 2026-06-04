@@ -1,6 +1,7 @@
 <script setup>
 import SelectScrollDownButton from "./SelectScrollDownButton.vue";
 import SelectScrollUpButton from "./SelectScrollUpButton.vue";
+import "@vueda/theme/vueda-tailwind/controls/SelectContent.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";

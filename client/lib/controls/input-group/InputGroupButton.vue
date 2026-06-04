@@ -1,5 +1,6 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/controls/InputGroupButton.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactive, toRef } from "vue";
 

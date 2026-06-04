@@ -5,6 +5,7 @@ import DialogContent from "@vueda/shell/dialog/DialogContent.vue";
 import DialogDescription from "@vueda/shell/dialog/DialogDescription.vue";
 import DialogHeader from "@vueda/shell/dialog/DialogHeader.vue";
 import DialogTitle from "@vueda/shell/dialog/DialogTitle.vue";
+import "@vueda/theme/vueda-tailwind/controls/CommandDialog.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";

@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/controls/Command.theme.js";
 import { provideCommandContext } from "@vueda/use/useCommand.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";

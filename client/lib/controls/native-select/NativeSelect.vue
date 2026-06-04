@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/controls/NativeSelect.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit, useVModel } from "@vueuse/core";

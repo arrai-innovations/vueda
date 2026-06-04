@@ -10,6 +10,7 @@ import RangeCalendarHeader from "./RangeCalendarHeader.vue";
 import RangeCalendarHeading from "./RangeCalendarHeading.vue";
 import RangeCalendarNextButton from "./RangeCalendarNextButton.vue";
 import RangeCalendarPrevButton from "./RangeCalendarPrevButton.vue";
+import "@vueda/theme/vueda-tailwind/controls/RangeCalendar.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
