@@ -4,6 +4,7 @@ import NumberFieldContent from "@vueda/controls/number-field/NumberFieldContent.
 import NumberFieldDecrement from "@vueda/controls/number-field/NumberFieldDecrement.vue";
 import NumberFieldIncrement from "@vueda/controls/number-field/NumberFieldIncrement.vue";
 import NumberFieldInput from "@vueda/controls/number-field/NumberFieldInput.vue";
+import "@vueda/theme/vueda-tailwind/widgets/WidgetDuration.theme.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";

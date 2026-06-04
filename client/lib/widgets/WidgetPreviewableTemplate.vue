@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/widgets/WidgetPreviewableTemplate.theme.js";
 import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { sanitizeMessage } from "@vueda/utils/html.js";

@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/widgets/WidgetGenericAutoComplete.theme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetCombobox from "@vueda/widgets/WidgetCombobox.vue";
 import omit from "lodash-es/omit.js";

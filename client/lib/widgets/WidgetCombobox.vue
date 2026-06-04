@@ -11,6 +11,7 @@ import ComboboxList from "@vueda/controls/combobox/ComboboxList.vue";
 import ComboboxTrigger from "@vueda/controls/combobox/ComboboxTrigger.vue";
 import ComboboxViewport from "@vueda/controls/combobox/ComboboxViewport.vue";
 import ComboboxVirtualizer from "@vueda/controls/combobox/ComboboxVirtualizer.vue";
+import "@vueda/theme/vueda-tailwind/widgets/WidgetCombobox.theme.js";
 import { useComboboxSearch } from "@vueda/use/useComboboxSearch.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";

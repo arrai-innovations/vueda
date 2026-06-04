@@ -1,6 +1,7 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
 import FileUpload from "@vueda/controls/file-upload/FileUpload.vue";
+import "@vueda/theme/vueda-tailwind/widgets/WidgetFile.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";

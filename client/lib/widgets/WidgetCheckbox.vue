@@ -1,5 +1,6 @@
 <script setup>
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
+import "@vueda/theme/vueda-tailwind/widgets/WidgetCheckbox.theme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject } from "vue";

@@ -1,5 +1,6 @@
 <script setup>
 import LinkModelView from "@vueda/components/LinkModelView.vue";
+import "@vueda/theme/vueda-tailwind/widgets/WidgetReadOnly.theme.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
