@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/display/AvatarImage.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { AvatarImage } from "reka-ui";

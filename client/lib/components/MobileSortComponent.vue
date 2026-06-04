@@ -9,6 +9,7 @@ import Drawer from "@vueda/shell/drawer/Drawer.vue";
 import DrawerContent from "@vueda/shell/drawer/DrawerContent.vue";
 import DrawerHeader from "@vueda/shell/drawer/DrawerHeader.vue";
 import DrawerTitle from "@vueda/shell/drawer/DrawerTitle.vue";
+import "@vueda/theme/vueda-tailwind/display/MobileSortComponent.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";

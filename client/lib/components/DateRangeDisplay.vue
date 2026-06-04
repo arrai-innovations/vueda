@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/display/DateRangeDisplay.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { DateTime } from "luxon";
 import { computed } from "vue";

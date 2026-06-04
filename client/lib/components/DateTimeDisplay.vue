@@ -1,5 +1,6 @@
 <script setup>
 import EmptyComponent from "@vueda/components/EmptyComponent.vue";
+import "@vueda/theme/vueda-tailwind/display/DateTimeDisplay.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { DateTime } from "luxon";
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from "vue";

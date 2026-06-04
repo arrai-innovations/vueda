@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/vue";
 import Alert from "@vueda/feedback/alert/Alert.vue";
 import AlertClose from "@vueda/feedback/alert/AlertClose.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
+import "@vueda/theme/vueda-tailwind/display/ErrorDisplay.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";

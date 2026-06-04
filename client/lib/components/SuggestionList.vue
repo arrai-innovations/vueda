@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/display/SuggestionList.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 

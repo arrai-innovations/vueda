@@ -1,5 +1,6 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/display/ClickToCopyText.theme.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
 import { toast as sonnerToast } from "vue-sonner";
