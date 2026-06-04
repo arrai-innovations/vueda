@@ -14,20 +14,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
-### Breaking Changes
-
-No entries yet.
-
-### Features
-
 - **Theme registration and lazy loading**:
     - The built-in `vueda-tailwind` theme is now authored as per-component `*.theme.js` modules. Components can register only the theme entries they need, while the existing global `setTheme(vuedaTailwind)` path remains supported.
     - Three loading paths are supported: global eager theme registration, per-family side-effect imports, and fully lazy component-level registration.
       _No action is required if your application already calls `setTheme(vuedaTailwind)`. To reduce bundle size, remove the global `setTheme(vuedaTailwind)` call and let components register their own theme entries as they render. Keep importing `@vueda/theme/vueda-tailwind/base.css`._
-
-### Fixes
-
-No entries yet.
 
 ## Public Baseline
 
@@ -35,18 +25,6 @@ Earlier VUEDA client versions existed for internal or private use. The v3 prerel
 public-facing documentation baseline.
 
 ## v3.0.0-alpha.1 (2026-05-27)
-
-### Breaking Changes
-
-No entries.
-
-### Features
-
-No entries.
-
-### Fixes
-
-No entries.
 
 This release only bumped the package version to exercise the alpha publication flow.
 
