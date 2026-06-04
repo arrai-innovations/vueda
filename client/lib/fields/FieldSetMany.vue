@@ -2,6 +2,7 @@
 import Button from "@vueda/controls/button/Button.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
 import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
+import "@vueda/theme/vueda-tailwind/form/FieldSetMany.theme.js";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { useIcons } from "@vueda/use/useIcons.js";

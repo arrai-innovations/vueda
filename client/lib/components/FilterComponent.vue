@@ -5,6 +5,7 @@ import ButtonGroup from "@vueda/controls/button-group/ButtonGroup.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Popover from "@vueda/shell/popover/Popover.vue";
 import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
+import "@vueda/theme/vueda-tailwind/form/FilterComponent.theme.js";
 import { useFilterField } from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIcons } from "@vueda/use/useIcons.js";

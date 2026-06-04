@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/form/TypedConfirmField.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useVModel } from "@vueuse/core";
 import { computed, reactive, toRef, useId, watch } from "vue";

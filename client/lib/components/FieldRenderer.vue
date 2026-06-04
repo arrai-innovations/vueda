@@ -1,5 +1,6 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import "@vueda/theme/vueda-tailwind/form/FormModel.theme.js";
 import { useFieldRenderer } from "@vueda/use/useFieldRenderer.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";

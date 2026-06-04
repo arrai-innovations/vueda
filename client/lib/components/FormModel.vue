@@ -2,6 +2,7 @@
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import FormMessage from "@vueda/components/FormMessage.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
+import "@vueda/theme/vueda-tailwind/form/FormModel.theme.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, useSlots } from "vue";

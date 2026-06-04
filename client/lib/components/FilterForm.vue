@@ -1,6 +1,7 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/form/FilterForm.theme.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FilterModelSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
