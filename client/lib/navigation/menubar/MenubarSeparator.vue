@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/navigation/MenubarSeparator.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { MenubarSeparator, useForwardProps } from "reka-ui";

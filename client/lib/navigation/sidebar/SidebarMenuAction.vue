@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/navigation/SidebarMenuAction.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Primitive } from "reka-ui";
 import { reactive, toRef } from "vue";

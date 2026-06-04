@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/navigation/ContextMenuSeparator.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ContextMenuSeparator } from "reka-ui";

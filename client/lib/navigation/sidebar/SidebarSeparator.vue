@@ -1,5 +1,6 @@
 <script setup>
 import Separator from "@vueda/shell/separator/Separator.vue";
+import "@vueda/theme/vueda-tailwind/navigation/SidebarSeparator.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

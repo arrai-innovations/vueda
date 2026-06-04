@@ -4,6 +4,7 @@ import SheetContent from "@vueda/shell/sheet/SheetContent.vue";
 import SheetDescription from "@vueda/shell/sheet/SheetDescription.vue";
 import SheetHeader from "@vueda/shell/sheet/SheetHeader.vue";
 import SheetTitle from "@vueda/shell/sheet/SheetTitle.vue";
+import "@vueda/theme/vueda-tailwind/navigation/Sidebar.theme.js";
 import { useSidebar } from "@vueda/use/useSidebar.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactive, toRef } from "vue";

@@ -1,5 +1,6 @@
 <script setup>
 import TooltipProvider from "@vueda/shell/tooltip/TooltipProvider.vue";
+import "@vueda/theme/vueda-tailwind/navigation/SidebarProvider.theme.js";
 import { provideSidebarContext } from "@vueda/use/useSidebar.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_COOKIE_NAME, SIDEBAR_KEYBOARD_SHORTCUT } from "@vueda/utils/constants.js";

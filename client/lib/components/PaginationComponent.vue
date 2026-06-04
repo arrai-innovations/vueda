@@ -6,6 +6,7 @@ import PaginationFirst from "@vueda/navigation/pagination/PaginationFirst.vue";
 import PaginationLast from "@vueda/navigation/pagination/PaginationLast.vue";
 import PaginationNext from "@vueda/navigation/pagination/PaginationNext.vue";
 import PaginationPrevious from "@vueda/navigation/pagination/PaginationPrevious.vue";
+import "@vueda/theme/vueda-tailwind/navigation/PaginationComponent.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed } from "vue";
 

@@ -1,5 +1,6 @@
 <script setup>
 import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
+import "@vueda/theme/vueda-tailwind/navigation/SidebarUserBlock.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

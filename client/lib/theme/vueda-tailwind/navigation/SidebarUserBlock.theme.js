@@ -1,0 +1,38 @@
+/**
+ * @module theme/vueda-tailwind/navigation/SidebarUserBlock.theme
+ *
+ * Per-component theme registration for SidebarUserBlock. Imported as a side effect by
+ * SidebarUserBlock.vue, so a route chunk that pulls only that SFC drags only this
+ * component's theme entry, not the entire navigation family.
+ *
+ * Prototype-phase duplication: this entry mirrors the SidebarUserBlock slice of
+ * navigation/index.js, which remains the docs-tooling source of truth until the
+ * extractor learns to walk *.theme.js files. Under the legacy
+ * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
+ * identical data.
+ */
+import { patchTheme } from "@vueda/use/themeRegistry.js";
+
+patchTheme({
+    /**
+     * SidebarUserBlock lays out user identity details inside the sidebar footer.
+     */
+    SidebarUserBlock: {
+        /** Horizontal account row for the sidebar footer. */
+        root: {
+            class: "flex w-full items-center gap-2",
+        },
+        /** Min-width guard for truncating name and role text beside the avatar and action button. */
+        text: {
+            class: "flex min-w-0 flex-1 flex-col",
+        },
+        /** Display-name text. Tight leading and truncation keep long names inside the dense footer row. */
+        name: {
+            class: "truncate text-[length:var(--vueda-text-body)] font-medium leading-tight text-sidebar-foreground",
+        },
+        /** Secondary role text using the same micro scale as {@api theme-key:SidebarGroupLabel.root}. */
+        role: {
+            class: "truncate text-[length:var(--vueda-text-micro)] font-normal leading-tight text-muted-foreground",
+        },
+    },
+});

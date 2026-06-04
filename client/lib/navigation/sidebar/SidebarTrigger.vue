@@ -1,5 +1,6 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/navigation/SidebarTrigger.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useSidebar } from "@vueda/use/useSidebar.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";

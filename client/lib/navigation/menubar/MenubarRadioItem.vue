@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/navigation/MenubarRadioItem.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
