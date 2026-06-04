@@ -461,7 +461,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         response = api_client.get(
             reverse("info.model_info_filterset_choices-list", args=("store", "product", "tangible_type")),
-            data={"": "cookies"},
+            data={"name_icontains": "cookies"},
             format="json",
         )
 

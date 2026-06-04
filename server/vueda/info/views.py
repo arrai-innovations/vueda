@@ -95,7 +95,7 @@ def _user_can_access_workflow(all_wps, has_state_permissions, user_group_ids, is
     if user_group_ids is None:
         return None
     if has_state_permissions:
-        return True
+        return None
     if not all_wps:
         return False
     if is_superuser:
@@ -232,11 +232,12 @@ class InfoOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView):
                 pass
 
         # Groups Section
+        user_group_names = set(selected_user.groups.values_list("name", flat=True)) if selected_user else set()
         groups_data = []
         for group in Group.objects.order_by("name"):
             group_data = {"name": group.name}
             if selected_user:
-                group_data["user_has_group"] = selected_user.groups.filter(name=group.name).exists()
+                group_data["user_has_group"] = group.name in user_group_names
             groups_data.append(group_data)
 
         # Permissions with their groups, ordered by app / model / CRUDL

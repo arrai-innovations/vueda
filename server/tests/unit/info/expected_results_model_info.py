@@ -69,6 +69,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.distributor",
                     "detail": True,
                     "method_names": ["get"],
+                    "parameters": ["pk"],
                 },
             ],
             "expected_actions_customer": [
@@ -1823,6 +1824,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.customerorder",
                     "detail": True,
                     "method_names": ["get"],
+                    "parameters": ["pk"],
                 },
             ],
             "expected_actions_customer": [
@@ -1862,6 +1864,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.customerorder",
                     "detail": True,
                     "method_names": ["get"],
+                    "parameters": ["pk"],
                 },
             ],
             "expected_expands": [
@@ -3058,6 +3061,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.product",
                     "detail": True,
                     "method_names": ["get"],
+                    "parameters": ["pk"],
                 },
             ],
             "expected_actions_customer": [
@@ -3090,6 +3094,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.product",
                     "detail": True,
                     "method_names": ["get"],
+                    "parameters": ["pk"],
                 },
             ],
             "expected_expands": [
@@ -4420,6 +4425,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.productoption",
                     "detail": True,
                     "method_names": ["get"],
+                    "parameters": ["pk"],
                 },
             ],
             "expected_actions_customer": [
@@ -4452,6 +4458,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.productoption",
                     "detail": True,
                     "method_names": ["get"],
+                    "parameters": ["pk"],
                 },
             ],
             "expected_expands": [
@@ -7809,6 +7816,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.distributorproxy",
                     "detail": True,
                     "method_names": ["get"],
+                    "parameters": ["pk"],
                 },
             ],
             "expected_actions_customer": [
@@ -7847,19 +7855,22 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "description": {
                             "choices": False,
+                            "hidden": False,
                             "label": "Description",
                             "many": False,
                             "max_length": 1024,
@@ -7879,6 +7890,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -7890,6 +7902,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -7900,6 +7913,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -7910,6 +7924,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -7920,6 +7935,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -7930,6 +7946,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -7940,6 +7957,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -7961,19 +7979,22 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "description": {
                             "choices": False,
+                            "hidden": False,
                             "label": "Description",
                             "many": False,
                             "max_length": 1024,
@@ -7993,6 +8014,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -8004,6 +8026,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -8014,6 +8037,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -8024,6 +8048,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -8034,6 +8059,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -8044,6 +8070,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -8056,6 +8083,7 @@ EXPECTED_RESULTS = [
                             "model": "user",
                             "app_label": "user",
                             "choices": True,
+                            "hidden": False,
                         },
                     },
                 },
@@ -8077,19 +8105,22 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "formatted_name": {
                             "label": "Formatted Name",
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
-                            "type_serializer": "ModelField",
+                            "type_serializer": "CharField",
                             "many": False,
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": True,
                         },
                         "description": {
                             "choices": False,
+                            "hidden": False,
                             "label": "Description",
                             "many": False,
                             "max_length": 1024,
@@ -8109,6 +8140,7 @@ EXPECTED_RESULTS = [
                             "required": True,
                             "max_length": 255,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_id": {
                             "label": "History ID",
@@ -8120,6 +8152,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_date": {
                             "label": "History Date",
@@ -8130,6 +8163,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_change_reason": {
                             "label": "Change Reason",
@@ -8140,6 +8174,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_type": {
                             "label": "History Type",
@@ -8150,6 +8185,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_relation": {
                             "label": "In Relation To",
@@ -8160,6 +8196,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                         "history_user": {
                             "label": "History User",
@@ -8170,6 +8207,7 @@ EXPECTED_RESULTS = [
                             "read_only": True,
                             "required": False,
                             "choices": False,
+                            "hidden": False,
                         },
                     },
                 },
@@ -8187,9 +8225,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": False,
                 },
                 "available_actions": {
                     "choices": False,
+                    "hidden": True,
                     "label": "Available Actions",
                     "many": True,
                     "read_only": True,
@@ -8207,9 +8247,11 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "description": {
                     "choices": False,
+                    "hidden": False,
                     "label": "Description",
                     "many": False,
                     "max_length": 1024,
@@ -8223,11 +8265,12 @@ EXPECTED_RESULTS = [
                     "label": "Formatted Name",
                     "type_db": "CharField",
                     "type_model": "GeneratedField",
-                    "type_serializer": "ModelField",
+                    "type_serializer": "CharField",
                     "many": False,
                     "read_only": True,
                     "required": False,
                     "choices": False,
+                    "hidden": True,
                 },
                 "name": {
                     "label": "Name",
@@ -8239,6 +8282,7 @@ EXPECTED_RESULTS = [
                     "required": True,
                     "max_length": 255,
                     "choices": False,
+                    "hidden": False,
                 },
             },
             "expected_filtering": {

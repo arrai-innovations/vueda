@@ -53,7 +53,7 @@ class ProxyAwareHistoricalRecords(HistoricalRecords):
             models.signals.post_delete.connect(self.post_delete, sender=sender, weak=False)
             models.signals.pre_delete.connect(self.pre_delete, sender=sender, weak=False)
             # Required so instance.history.values() returns results.
-            setattr(sender, self.manager_name, sender._meta.proxy_for_model.history)
+            setattr(sender, self.manager_name, sender._meta.concrete_model.history)
             # Required so pre_delete's deferred-field reload and utility functions work.
             sender._meta.simple_history_manager_attribute = self.manager_name
             return

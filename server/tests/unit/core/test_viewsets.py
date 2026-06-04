@@ -6,6 +6,7 @@ from typing import TypedDict
 
 import pytest
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
@@ -16,6 +17,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.models import Employee
 from tests.models import Product
 from tests.models import Timesheet
+from tests.models import TimesheetEntry
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
@@ -43,6 +45,28 @@ def test_vueda_viewset_warns_when_combined_with_read_only_viewset():
             pass
 
     assert InvalidCombinedViewSet is not None
+
+
+@pytest.mark.django_db
+def test_history_list_detail_action_accepts_request_and_pk(api_client):
+    user = get_user_model().objects.create_user(
+        email="history-list-user@domain.invalid",
+        password="testpass",
+        name="History List User",
+        is_superuser=True,
+    )
+    api_client.force_authenticate(user=user)
+
+    employee = Employee.objects.create(user=user, employee_number="E100")
+    timesheet = Timesheet.objects.create(period_start="2026-01-01", period_end="2026-01-15", employee=employee)
+    entry = TimesheetEntry.objects.create(timesheet=timesheet, date="2026-01-01", hours="7.50")
+    entry.hours = "8.00"
+    entry.save()
+
+    response = api_client.get(reverse("tests.timesheetentry-history-list", kwargs={"pk": entry.pk}))
+
+    assert response.status_code == HTTPStatus.OK, response.data
+    assert [result["history_type"] for result in response.data["results"]] == ["~", "+"]
 
 
 @pytest.mark.django_db

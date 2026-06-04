@@ -379,7 +379,7 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
             queryset = (FilterChoice(self.empty_value, self.empty_label),) + tuple(queryset)
         return super().paginate_queryset(queryset)
 
-    def validate_queryset(self, filterset, filter_mapping):
+    def validate_queryset(self, filterset_instance, filter_mapping):
         if self.choices_field not in filter_mapping:
             valid_filter_names = tuple(filter_mapping)
             if valid_filter_names:
@@ -387,7 +387,7 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
                     f"Invalid filter '{self.choices_field}'. Valid filters are {', '.join(sorted(valid_filter_names))}."
                 )
             else:
-                raise Http404(f"Invalid filter '{self.choices_field}'. No filters found on {filterset}.")
+                raise Http404(f"Invalid filter '{self.choices_field}'. No filters found on {filterset_instance}.")
 
     def get_queryset(self):
         """
@@ -406,7 +406,7 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         filterset_instance = filterset_class(
             queryset=model_class.objects.all(), data=self.request.query_params.copy(), request=self.request
         )
-        filterset_instance.errors  # noqa B018 - trigger validation / clean data
+        filterset_instance.is_valid()
         filter_mapping = dict(filterset_instance.filters.items())
 
         self.validate_queryset(filterset_instance, filter_mapping)
