@@ -2,7 +2,7 @@
 title: Local HTTPS Development
 audience: integrator
 status: draft
-type: guide
+type: how-to
 ---
 
 # Local HTTPS Development

@@ -1,7 +1,7 @@
 ---
 title: Use the Permissions and Workflow Overview
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

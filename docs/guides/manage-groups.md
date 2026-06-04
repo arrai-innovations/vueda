@@ -1,7 +1,7 @@
 ---
 title: Manage Groups and Generate Group Migrations
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

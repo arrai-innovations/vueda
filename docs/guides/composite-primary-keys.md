@@ -1,7 +1,7 @@
 ---
 title: Set Up CRUDL for a Composite Primary Key Model
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

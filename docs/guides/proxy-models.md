@@ -1,7 +1,7 @@
 ---
 title: Expose a Proxy Model as a Separate CRUDL Surface
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

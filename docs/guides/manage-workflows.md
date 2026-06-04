@@ -1,7 +1,7 @@
 ---
 title: Manage Workflows and Generate Workflow Migrations
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
