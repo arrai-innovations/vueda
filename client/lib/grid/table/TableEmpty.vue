@@ -1,6 +1,7 @@
 <script setup>
 import TableCell from "./TableCell.vue";
 import TableRow from "./TableRow.vue";
+import "@vueda/theme/vueda-tailwind/grid/TableEmpty.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 
