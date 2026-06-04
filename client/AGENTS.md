@@ -72,7 +72,18 @@ The scope should reference the affected filename (sans extension), module, or co
 
 ## Changelog
 
-All notable changes are recorded in `CHANGELOG.md`. For each release tag, use the following format:
+Public client changelog entries belong in `docs/reference/changelog/client.md`.
+Use the shared convention before adding entries:
+
+[Changelog authoring convention](../docs/reference/changelog/README.md)
+
+@../docs/reference/changelog/README.md
+
+Add entries for changes that affect integrators: public components, composables,
+routes, stores, theme behavior, build integration, dependency expectations,
+documented behavior, and migration notes.
+
+For each release tag, use the following format:
 
 ```md
 ## vX.Y.Z (2025-MM-DD)
@@ -88,7 +99,8 @@ All notable changes are recorded in `CHANGELOG.md`. For each release tag, use th
     - _actions that consuming developers of the library should take_
 ```
 
-When making changes, suggest Changelog entries if they impact consumers or public components.
+When making changes, suggest changelog entries if they impact consuming
+applications or public components.
 
 **If there is no current unreleased section**, start a new one using the next version number and set the date to `unreleased`. For example:
 

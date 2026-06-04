@@ -48,6 +48,19 @@ The docs-tooling pipeline reads several annotation conventions from `server/vued
 
 @../docs-tooling/briefings/server-annotations.md
 
+## Changelog
+
+Public server changelog entries belong in `docs/reference/changelog/server.md`.
+Use the shared convention before adding entries:
+
+[Changelog authoring convention](../docs/reference/changelog/README.md)
+
+@../docs/reference/changelog/README.md
+
+Add entries for changes that affect integrators: Django apps, settings,
+serializers, viewsets, permissions, metadata responses, management commands,
+migrations, REST behavior, documented behavior, and compatibility notes.
+
 ## Commit Message Style
 
 We use a custom commitlint configuration based on [Conventional Commits](https://www.conventionalcommits.org/). It is customized to have the following valid types:

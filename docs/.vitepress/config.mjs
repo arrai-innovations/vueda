@@ -543,6 +543,7 @@ const docsSidebar = {
     "/guides/": buildSectionSidebar("guides", "Guides"),
     "/core-concepts/": buildSectionSidebar("core-concepts", "Core Concepts"),
     "/reference/components/": buildSectionSidebar("reference/components", "Components"),
+    "/reference/changelog/": buildSectionSidebar("reference/changelog", "Changelog"),
     "/reference/": buildSectionSidebar("reference", "Reference"),
     "/reference/api/": buildApiSidebar(),
 };

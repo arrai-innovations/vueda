@@ -110,6 +110,16 @@ Examples:
 - `{@api theme-key:Card.root}` (links to a slot anchor on that page)
 - `{@api css-token:vueda-card-radius}` (links to the token anchor under its group page)
 
+## Changelog authoring
+
+Public changelog pages live under `docs/reference/changelog/`. Use the ignored
+convention file when deciding whether a client or server change needs an
+integrator-facing entry:
+
+[Changelog authoring convention](reference/changelog/README.md)
+
+@reference/changelog/README.md
+
 ### Theming IDs
 
 The theme-keys and css-tokens renderers publish member IDs through the `member_ids` frontmatter on each page. To discover an unfamiliar slot or token ID, search there:
