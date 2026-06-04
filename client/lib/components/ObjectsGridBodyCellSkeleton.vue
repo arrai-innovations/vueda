@@ -1,5 +1,6 @@
 <script setup>
 import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
+import "@vueda/theme/vueda-tailwind/objects-grid/ObjectsGridBodyCell.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getSkeletonClassForField } from "@vueda/utils/objectGridSkeletonClass.js";
 

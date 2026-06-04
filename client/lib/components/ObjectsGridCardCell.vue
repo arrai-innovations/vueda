@@ -1,5 +1,6 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import "@vueda/theme/vueda-tailwind/objects-grid/ObjectsGridCardCell.theme.js";
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, reactive, toRef } from "vue";

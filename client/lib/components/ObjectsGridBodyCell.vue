@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/objects-grid/ObjectsGridBodyCell.theme.js";
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, reactive } from "vue";

@@ -6,6 +6,7 @@ import ObjectsGridBodyCellSkeleton from "@vueda/components/ObjectsGridBodyCellSk
 import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
 import ObjectsGridCardCellSkeleton from "@vueda/components/ObjectsGridCardCellSkeleton.vue";
 import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
+import "@vueda/theme/vueda-tailwind/objects-grid/ObjectsGrid.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
