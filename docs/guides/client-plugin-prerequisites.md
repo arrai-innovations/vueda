@@ -194,8 +194,8 @@ After completing the registration sequence, verify the following:
 ## Relevant Implementation Surface
 
 - JavaScript:
-    - {@api js:function:@arrai-innovations/vueda/use/useTheme#setTheme}
-    - {@api js:function:@arrai-innovations/vueda/use/useTheme#patchTheme}
+    - {@api js:function:@arrai-innovations/vueda/use/themeRegistry#setTheme}
+    - {@api js:function:@arrai-innovations/vueda/use/themeRegistry#patchTheme}
     - {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud}
     - {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud}
 - Vue.js Components:

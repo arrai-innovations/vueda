@@ -628,6 +628,10 @@ export default app;
 
 `setTheme(vuedaTailwind)` registers the built-in Tailwind CSS theme so that all VUEDA components receive their default styling classes. The theme system is CSS-framework-agnostic; `vuedaTailwind` is a first-party preset that maps component slots to Tailwind utility classes. {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUDL operation. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each plugin.
 
+::: tip
+`setTheme(vuedaTailwind)` registers every component's default theme up front. It is the simplest path and the one this tutorial uses. If you later want to trim the bundle to just the components your app renders, VUEDA also supports per-family and fully-lazy registration; see [How the theme is registered](/core-concepts/theming-and-customization#how-the-theme-is-registered).
+:::
+
 ### Add a Sign-In View
 
 The scaffolded router's `authRedirect` points to a `sign-in` route that does not exist yet. Create `client/src/views/ViewSignIn.vue`:

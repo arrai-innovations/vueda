@@ -21,6 +21,13 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Features
 
+- **Theme registration and lazy loading**:
+    - The built-in `vueda-tailwind` default theme is no longer one monolithic object. Each component's default theme is authored as a co-located per-component module (`@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`) that registers itself through `patchTheme`, and every themed component side-effect-imports its own `*.theme.js`. A route that renders only a few components now registers (and bundles) only those components' theme entries instead of the entire catalog.
+    - The theme registration API moved to a new `@vueda/use/themeRegistry.js` module (`setTheme`, `patchTheme`, `getTheme`, `mergeTheme`). `@vueda/use/useTheme.js` re-exports all four, so existing imports from `@vueda/use/useTheme.js` continue to work unchanged.
+    - `patchTheme(partial)` performs an additive merge for object entries and replace semantics when either side is a function (a component-level loader), so component self-registration composes with any prior `setTheme` call.
+    - Three registration paths are now supported. Global-eager: `setTheme(vuedaTailwind)` in `main.js` registers every component's theme up front (unchanged, and still the default for new projects). Per-family: `import "@vueda/theme/vueda-tailwind/<family>/index.js"` registers one family. Fully-lazy: omit `setTheme` and let each component register its own theme entries as it renders, so components you never use ship no theme.
+      _No action required: the global `setTheme(vuedaTailwind)` path is unchanged. To shrink the bundle for an app that uses a subset of components, drop the `setTheme(vuedaTailwind)` call and the `vuedaTailwind` import from `main.js`; components register their own theme entries as they render. Keep the `@vueda/theme/vueda-tailwind/base.css` import in every case (it defines the design tokens the classes resolve against)._
+
 - **UserAvatar (new)**:
     - New display primitive `@vueda/display/avatar/UserAvatar.vue` rendering an initials chip from a `name` (or explicit `initials`) prop. `size` (number, default 32) drives width / height / font-size via inline style; `tone` selects the color recipe (`primary` default with primary-tinted bg + primary border + primary ink, or `sidebar` with solid `--sidebar-accent` + `--sidebar-foreground` ink). Initials algorithm: first + last token initials when the name has two or more whitespace-separated tokens, otherwise the first two characters of the single token; always uppercased. Theme key: `UserAvatar.{root, initials}` (`root` is tone-aware).
     - `src` photo support is intentionally deferred; the chip is initials-only for now.

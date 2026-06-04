@@ -7,7 +7,7 @@ status: draft
 
 # Theming and Customization
 
-VUEDA's components carry no hardcoded styles in their templates. Every class on every rendered element comes from the active theme: a JavaScript object that maps each component's slots to class strings, resolved at render time and merged with any overrides in scope. The theme is registered at app startup via {@api js:function:@arrai-innovations/vueda/use/useTheme#setTheme}, and consumers customize it through a small set of mechanisms with sharply different reach.
+VUEDA's components carry no hardcoded styles in their templates. Every class on every rendered element comes from the active theme: a JavaScript object that maps each component's slots to class strings, resolved at render time and merged with any overrides in scope. The theme is registered at app startup via {@api js:function:@arrai-innovations/vueda/use/themeRegistry#setTheme}, and consumers customize it through a small set of mechanisms with sharply different reach.
 
 This page explains what those mechanisms are, what each one is for, and why they map to four distinct scopes. The integrator's pilot is "find the smallest scope that covers the change you actually want."
 
@@ -18,7 +18,7 @@ Customization concerns sort into four scopes, ordered from narrowest to broadest
 | Scope     | Mechanism                                                                                                              | Affects                             |
 | --------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
 | Instance  | {@api js:function:@arrai-innovations/vueda/use/useTheme#useThemeOverride} (via `themeOverride` prop or provide/inject) | One subtree                         |
-| Component | {@api js:function:@arrai-innovations/vueda/use/useTheme#setTheme} on a leaf entry                                      | All instances of that component     |
+| Component | {@api js:function:@arrai-innovations/vueda/use/themeRegistry#setTheme} on a leaf entry                                 | All instances of that component     |
 | Family    | `setTheme` on a meta key (`_ButtonBase`, etc.)                                                                         | All components that compose from it |
 | Brand     | CSS token override (`--vueda-*`, `--primary`, etc.)                                                                    | Every consumer of the token         |
 
@@ -120,6 +120,31 @@ Many customization stories that read like "change the theme" are really "rebrand
 The rule of thumb: if a customization is a value (color, dimension, duration), it is a token. If it is a composition (a different class arrangement, a different structural recipe, a new state behavior), it is the theme. Mixing the two in code is a sign the boundary is being crossed for the wrong reason; values that change between brands belong in tokens, even if the immediate use case is one component.
 
 The token layer is also where the design system ships its defaults. A consumer who never touches `setTheme` but overrides a few tokens has a re-skinned VUEDA. That is the supported, normal path for adopters customizing their brand.
+
+## How the theme is registered
+
+The four scopes above are about reach: which rendered elements a customization affects. Registration is a separate concern: which component defaults are present in the active theme at all, and what ships in the bundle. The active theme is a registry that registration calls build up.
+
+Two registration functions back it, both exported from {@api js:module:@arrai-innovations/vueda/use/useTheme} (which re-exports them from the underlying `@vueda/use/themeRegistry.js`):
+
+- `setTheme(theme)` replaces the registry wholesale. This is the global-eager entry point: `setTheme(vuedaTailwind)` installs the entire built-in theme at once.
+- `patchTheme(partial)` registers entries additively, without disturbing the rest of the registry. It is how each component contributes its own default.
+
+The built-in `vueda-tailwind` theme is authored as one small module per component, co-located by family at `@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`. Each module calls `patchTheme` with its own entry, and each themed component imports its theme module as a side effect. So a component registers its own default the moment its code loads, independent of any global setup.
+
+That yields three registration paths an integrator chooses between in `main.js`:
+
+| Path         | Setup                                                    | What registers                          |
+| ------------ | -------------------------------------------------------- | --------------------------------------- |
+| Global-eager | `setTheme(vuedaTailwind)`                                | Every component's default, up front     |
+| Per-family   | `import "@vueda/theme/vueda-tailwind/<family>/index.js"` | One family's defaults                   |
+| Fully-lazy   | nothing                                                  | Each component's default, as it renders |
+
+Global-eager is the default for new projects and the simplest to reason about: the whole theme is present before anything renders. The fully-lazy path trades that simplicity for bundle size. Because a component imports its own theme module, a route chunk that pulls in only a handful of components drags in only those components' theme entries; components the app never renders contribute nothing to the bundle. The per-family path sits in between: register the families you use and skip the rest.
+
+All three paths are independent of the CSS token layer. The `@vueda/theme/vueda-tailwind/base.css` import (the design tokens the class strings resolve against) is required regardless of which path you choose; dropping `setTheme` does not drop the tokens.
+
+When a component renders before its default has been registered (only possible on a deferred path), the resolver reports `loading` and the component's root carries a hide style until the entry arrives, so it does not flash unstyled content. Under the eager side-effect import the theme is registered before the component's setup runs, so this stays dormant.
 
 ## Relationship to shadcn-vue
 

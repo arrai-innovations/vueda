@@ -27,6 +27,11 @@ import TheApp from "./TheApp.vue";
 
 faConfig.autoAddCss = false;
 
+// Register the built-in vueda-tailwind theme up front (the global-eager path).
+// Two leaner paths exist: import only the families you use
+// (e.g. import "@vueda/theme/vueda-tailwind/controls/index.js";), or drop this
+// call entirely and let each component register its own theme as it renders
+// (the fully-lazy path). Keep the base.css import in your stylesheet either way.
 setTheme(vuedaTailwind);
 setIcons({
     Checkbox: {

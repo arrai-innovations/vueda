@@ -65,7 +65,7 @@ This is the right scope when you want a specific surface to render differently w
 
 ## Restyle one component system-wide
 
-Use {@api js:function:@arrai-innovations/vueda/use/useTheme#patchTheme} at app startup to merge an override into the default theme. Every instance of the component picks up the override as its baseline.
+Use {@api js:function:@arrai-innovations/vueda/use/themeRegistry#patchTheme} at app startup to merge an override into the default theme. Every instance of the component picks up the override as its baseline.
 
 ```js
 // main.js
