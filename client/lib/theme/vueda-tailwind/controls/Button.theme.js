@@ -25,7 +25,15 @@ import "./_ButtonPrimitives.theme.js";
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
+    /**
+     * The standard pressable control. Variants pick which `_Button*` primitive
+     * composes into the root (`default`, `destructive`, `outline`, `secondary`,
+     * `ghost`, `link`); `size` picks the control-height tier (`default`, `sm`,
+     * `lg`, plus `icon` / `icon-sm` / `icon-lg`). The `link` variant is
+     * inline-flow and skips the control-height + padding recipe.
+     */
     Button: {
+        /** The pressable root. Composes {@api theme-key:_ButtonBase.root} plus the variant primitive named by `variant`, then layers the per-size height / padding pair from `base.css § Control sizing` (or `size-vueda-control*` for icon-only sizes). The `link` variant skips the control-height block and goes inline. The `data-state=cooldown` state (set by the component while a one-shot action is recovering) mutes the label to `--muted-foreground` and suppresses hover so a recently-clicked button reads as "wait" without changing layout. */
         root: ({ variant, size }) => {
             const v = variant || "default";
             const variantKey = `_Button${v.charAt(0).toUpperCase()}${v.slice(1)}.root`;

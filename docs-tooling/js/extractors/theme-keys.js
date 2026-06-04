@@ -1,9 +1,20 @@
 /**
  * Theme keys extraction.
  *
- * Parses every `client/lib/theme/vueda-tailwind/<family>/index.js` file with
- * @babel/parser and produces a raw JSON payload describing every slot defined
- * across the family default exports.
+ * Produces a raw JSON payload describing every theme slot by JOINING two
+ * sources per family with @babel/parser:
+ *
+ *   - the family `client/lib/theme/vueda-tailwind/<family>/index.js`, read as a
+ *     MANIFEST: it supplies the component ORDER, family membership, and the
+ *     `// ---------- Title ----------` group banner for each component.
+ *   - the per-component `client/lib/theme/vueda-tailwind/<family>/*.theme.js`
+ *     files, each registering via a top-level `patchTheme({ ... })` call, read
+ *     as the DATA source: they supply every slot's value, descriptions, and the
+ *     `source` location.
+ *
+ * Entries are emitted in manifest order with `group` taken from the manifest
+ * and every other field taken from the theme file. (`payload.sources` still
+ * lists the family `index.js` paths, so the family `sourceFile` is unchanged.)
  *
  * Each emitted entry corresponds to one slot of one component (or composition
  * primitive) and records:
@@ -22,7 +33,7 @@
  */
 import { Extractor } from "../core.js";
 import { parse as babelParse } from "@babel/parser";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -230,60 +241,96 @@ function familyFromSourceRel(sourceRel) {
     return parts.length >= 2 ? parts[parts.length - 2] : "";
 }
 
-function extractEntriesFromAst(ast, source, sourceRel, family) {
+/**
+ * Collect the component-key properties of every top-level `patchTheme({ ... })`
+ * call argument in a parsed `*.theme.js` module. Returns a flat list of
+ * ObjectProperty nodes (one per component key). Defensive against more than one
+ * patchTheme call per file, though each file currently has exactly one.
+ */
+function findPatchThemeProperties(ast) {
+    const props = [];
+    for (const node of ast.program.body) {
+        if (node.type !== "ExpressionStatement") continue;
+        const expr = node.expression;
+        if (!expr || expr.type !== "CallExpression") continue;
+        if (!expr.callee || expr.callee.type !== "Identifier" || expr.callee.name !== "patchTheme") continue;
+        const arg = expr.arguments && expr.arguments[0];
+        if (!arg || arg.type !== "ObjectExpression") continue;
+        for (const prop of arg.properties) props.push(prop);
+    }
+    return props;
+}
+
+/**
+ * Read the ordered component manifest from a family `index.js` `export default`
+ * object. The manifest provides the component ORDER, family membership, and the
+ * banner-style GROUP for each component. Slot data is intentionally NOT read
+ * here; it is sourced from the per-component `*.theme.js` files instead.
+ *
+ * Returns an array of `{ component, group }` in source order.
+ */
+function buildManifestFromAst(ast) {
     const obj = findDefaultExportObject(ast);
-    const entries = [];
-    if (!obj) return entries;
+    const manifest = [];
+    if (!obj) return manifest;
 
     let currentGroup = null;
-
     for (const prop of obj.properties) {
-        // Each iteration represents one top-level component key.
-        if (prop.type !== "ObjectProperty" && prop.type !== "Property") {
-            continue;
-        }
-
+        if (prop.type !== "ObjectProperty" && prop.type !== "Property") continue;
         // Walk this property's leading comments to refresh the group banner.
-        const leading = prop.leadingComments || [];
-        const refreshed = pickBannerFromComments(leading);
+        const refreshed = pickBannerFromComments(prop.leadingComments || []);
         if (refreshed) currentGroup = refreshed;
-        const componentDescription = extractJsDocText(pickJsDocComment(leading));
-
         const componentName = literalKeyName(prop.key);
         if (!componentName) continue;
-        const kind = componentName.startsWith("_") ? "primitive" : "key";
+        manifest.push({ component: componentName, group: currentGroup });
+    }
+    return manifest;
+}
+
+/**
+ * Build a `componentKey -> { kind, description, slots[] }` map from the
+ * properties of a `patchTheme(...)` object. Each slot records its parsed value
+ * (valueShape / staticClass / callbackSource / composes), its description (slot
+ * JSDoc, falling back to the component JSDoc), and a `source` location pointing
+ * at the `*.theme.js` file. Group is omitted on purpose; it comes from the
+ * manifest at join time.
+ */
+function buildComponentDataMap(props, source, sourceRel) {
+    const map = new Map();
+    for (const prop of props) {
+        if (prop.type !== "ObjectProperty" && prop.type !== "Property") continue;
+        const componentName = literalKeyName(prop.key);
+        if (!componentName) continue;
 
         const valueNode = prop.value;
-        if (!valueNode || valueNode.type !== "ObjectExpression") {
-            continue;
-        }
+        if (!valueNode || valueNode.type !== "ObjectExpression") continue;
 
+        const componentDescription = extractJsDocText(pickJsDocComment(prop.leadingComments || []));
+        const kind = componentName.startsWith("_") ? "primitive" : "key";
+
+        const slots = [];
         for (const slotProp of valueNode.properties) {
             if (slotProp.type !== "ObjectProperty" && slotProp.type !== "Property") continue;
             const slotName = literalKeyName(slotProp.key);
             if (!slotName) continue;
 
-            const slotLeading = slotProp.leadingComments || [];
-            const slotDescription = extractJsDocText(pickJsDocComment(slotLeading));
-
+            const slotDescription = extractJsDocText(pickJsDocComment(slotProp.leadingComments || []));
             const parsed = parseSlotValue(slotProp.value, source);
 
-            entries.push({
-                family,
-                component: componentName,
+            slots.push({
                 slot: slotName,
-                kind,
                 valueShape: parsed.valueShape,
                 staticClass: parsed.staticClass,
                 callbackSource: parsed.callbackSource,
                 composes: parsed.composes,
                 description: slotDescription || componentDescription || null,
-                group: currentGroup,
                 source: locOf(slotProp, sourceRel),
             });
         }
+
+        map.set(componentName, { kind, description: componentDescription, slots });
     }
-    return entries;
+    return map;
 }
 
 export async function extractThemeKeysPayload({ sources, repoRoot } = {}) {
@@ -297,15 +344,57 @@ export async function extractThemeKeysPayload({ sources, repoRoot } = {}) {
         const sourceRel = path.relative(resolvedRoot, resolvedSource).split(path.sep).join("/");
         sourceFiles.push(sourceRel);
 
-        const code = await readFile(resolvedSource, "utf-8");
-        const ast = babelParse(code, {
-            sourceType: "module",
-            attachComment: true,
-            tokens: false,
-        });
         const family = familyFromSourceRel(sourceRel);
-        const entries = extractEntriesFromAst(ast, code, sourceRel, family);
-        allEntries.push(...entries);
+
+        // 1. Manifest: ordered component keys + group banners from the family index.js.
+        const manifestCode = await readFile(resolvedSource, "utf-8");
+        const manifestAst = babelParse(manifestCode, { sourceType: "module", attachComment: true, tokens: false });
+        const manifest = buildManifestFromAst(manifestAst);
+
+        // 2. Data: slot data from the sibling *.theme.js files in the family dir.
+        const familyDir = path.dirname(resolvedSource);
+        let themeFiles = [];
+        try {
+            themeFiles = (await readdir(familyDir)).filter((name) => name.endsWith(".theme.js")).sort();
+        } catch {
+            themeFiles = [];
+        }
+        const dataMap = new Map();
+        for (const fileName of themeFiles) {
+            const themePath = path.join(familyDir, fileName);
+            const themeRel = path.relative(resolvedRoot, themePath).split(path.sep).join("/");
+            const themeCode = await readFile(themePath, "utf-8");
+            const themeAst = babelParse(themeCode, { sourceType: "module", attachComment: true, tokens: false });
+            const fileMap = buildComponentDataMap(findPatchThemeProperties(themeAst), themeCode, themeRel);
+            for (const [key, value] of fileMap) {
+                if (!dataMap.has(key)) dataMap.set(key, value);
+            }
+        }
+
+        // 3. Join: emit entries in manifest order, slot data from the theme files,
+        //    group from the manifest.
+        for (const { component, group } of manifest) {
+            const data = dataMap.get(component);
+            if (!data) {
+                console.warn(`theme-keys: no *.theme.js data for "${component}" in family "${family}" (${sourceRel})`);
+                continue;
+            }
+            for (const slot of data.slots) {
+                allEntries.push({
+                    family,
+                    component,
+                    slot: slot.slot,
+                    kind: data.kind,
+                    valueShape: slot.valueShape,
+                    staticClass: slot.staticClass,
+                    callbackSource: slot.callbackSource,
+                    composes: slot.composes,
+                    description: slot.description,
+                    group: group || null,
+                    source: slot.source,
+                });
+            }
+        }
     }
 
     return { sources: sourceFiles, entries: allEntries };
