@@ -1,5 +1,6 @@
 <script setup>
 import ScrollBar from "./ScrollBar.vue";
+import "@vueda/theme/vueda-tailwind/shell/ScrollArea.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ScrollAreaCorner, ScrollAreaRoot, ScrollAreaViewport } from "reka-ui";

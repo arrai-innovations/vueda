@@ -1,5 +1,6 @@
 <script setup>
 import SheetOverlay from "./SheetOverlay.vue";
+import "@vueda/theme/vueda-tailwind/shell/SheetContent.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";

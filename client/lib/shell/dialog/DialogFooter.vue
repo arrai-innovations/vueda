@@ -1,5 +1,6 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/shell/DialogFooter.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { DialogClose } from "reka-ui";
 

@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/shell/TabsTrigger.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { TabsTrigger, useForwardProps } from "reka-ui";

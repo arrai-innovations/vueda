@@ -1,5 +1,6 @@
 <script setup>
 import DrawerOverlay from "./DrawerOverlay.vue";
+import "@vueda/theme/vueda-tailwind/shell/DrawerContent.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";

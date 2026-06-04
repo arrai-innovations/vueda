@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/shell/AccordionContent.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { AccordionContent } from "reka-ui";

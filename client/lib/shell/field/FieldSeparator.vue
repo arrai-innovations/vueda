@@ -1,5 +1,6 @@
 <script setup>
 import Separator from "@vueda/shell/separator/Separator.vue";
+import "@vueda/theme/vueda-tailwind/shell/FieldSeparator.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

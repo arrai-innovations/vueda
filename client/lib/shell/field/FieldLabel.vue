@@ -1,5 +1,6 @@
 <script setup>
 import Label from "@vueda/shell/label/Label.vue";
+import "@vueda/theme/vueda-tailwind/shell/FieldLabel.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**

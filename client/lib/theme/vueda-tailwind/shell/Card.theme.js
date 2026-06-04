@@ -1,0 +1,28 @@
+/**
+ * @module theme/vueda-tailwind/shell/Card.theme
+ *
+ * Per-component theme registration for Card. Imported as a side effect by
+ * Card.vue, so a route chunk that pulls only that SFC drags only this
+ * component's theme entry, not the entire shell family.
+ *
+ * Prototype-phase duplication: this entry mirrors the Card slice of
+ * shell/index.js, which remains the docs-tooling source of truth until the
+ * extractor learns to walk *.theme.js files. Under the legacy
+ * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
+ * identical data.
+ */
+import { patchTheme } from "@vueda/use/themeRegistry.js";
+
+patchTheme({
+    /**
+     * Card styles the basic framed surface used for panels and contained content.
+     */
+    Card: {
+        /**
+         * The framed card surface. It owns the card background, border, radius, vertical rhythm, and non-raised shadow contract; padding on the horizontal axis belongs to child slots.
+         */
+        root: {
+            class: "bg-card text-card-foreground flex flex-col gap-6 rounded-vueda-card border py-6 shadow-vueda-card",
+        },
+    },
+});

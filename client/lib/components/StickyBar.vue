@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/shell/StickyBar.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, onBeforeUnmount, onMounted, reactive, ref, useSlots, useTemplateRef, watch } from "vue";
 
