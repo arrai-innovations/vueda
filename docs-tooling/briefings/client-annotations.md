@@ -71,45 +71,78 @@ The first name in the bracket list is the canonical slot name; remaining names a
 
 Use the consumer-facing API name, not the internal expression. For static slot names (`name="foo"`) with no fallbacks, vue-docgen picks up the name automatically and no annotation is needed.
 
-## Theme key annotations (`lib/theme/vueda-tailwind/<family>/index.js`)
+## Theme key annotations
 
-The theme-keys extractor (`docs-tooling/js/extractors/theme-keys.js`) walks the default-export object of each family `index.js` file and emits one entry per slot. Authors control the rendered theming pages through five conventions inside those files.
+The theme-keys extractor (`docs-tooling/js/extractors/theme-keys.js`) joins two sources per family:
 
-**Component key.** Each top-level key in the default export is one rendered theme entry. The key name must match the consumer-facing Vue component name so the generated `Theme entry: {@api theme-key:<Name>}` cross-link from the component's API page resolves.
+- **`index.js` (the manifest):** provides the ordered list of component keys and the `// ---------- Title ----------` group banners. Slot data is not read from `index.js`.
+- **Per-component `*.theme.js` files (the data):** each file calls `patchTheme({ <Component>: { <slot>: ... } })` and provides all slot data: classes, callbacks, `composes`, JSDoc descriptions, and the `source` location reported in the rendered docs. Underscore-prefixed primitives that are shared across components live in a single `_*Primitives.theme.js` file and contribute multiple keys via one `patchTheme` call.
+
+The extractor walks the manifest in declaration order, looks up each component's slot data in the theme-file map, and emits one entry per slot with the group from `index.js` and everything else from the `*.theme.js` file. Authors control the rendered theming pages through five conventions split across those two files.
+
+**Component key.** Each top-level key in both the `index.js` default export and the `patchTheme({...})` call is one rendered theme entry. The key name must match the consumer-facing Vue component name so the generated `Theme entry: {@api theme-key:<Name>}` cross-link from the component's API page resolves.
+
+`index.js` provides the manifest order:
 
 ```js
 export default {
     Card: {
-        // ...slots
+        /* slot data is ignored here */
     },
 };
 ```
 
-**Primitive prefix.** An underscore prefix marks the entry as a composition primitive (rendered with `kind: "primitive"` and an explanatory note on the page). Primitives exist to be referenced by other entries' `composes` lists; they are not consumed directly.
+`Card.theme.js` provides the actual slot data:
 
 ```js
-_ButtonBase: { root: { class: "..." } },
-Button: { root: { composes: ["_ButtonBase.root"], class: "..." } },
+import { patchTheme } from "@vueda/use/themeRegistry.js";
+
+patchTheme({
+    Card: {
+        root: { class: "..." },
+    },
+});
 ```
 
-**Group banner.** A line comment of the form `// ---------- Title ----------` above a component key sets the group label used to bucket the family index page. The most recent banner sticks until a new one appears.
+**Primitive prefix.** An underscore prefix marks the entry as a composition primitive (rendered with `kind: "primitive"` and an explanatory note on the page). Primitives exist to be referenced by other entries' `composes` lists; they are not consumed directly. Shared primitives that multiple components compose from live together in a single `_*Primitives.theme.js` file.
 
 ```js
+// _ButtonPrimitives.theme.js
+patchTheme({
+    _ButtonBase: { root: { class: "..." } },
+});
+
+// Button.theme.js
+patchTheme({
+    Button: { root: { composes: ["_ButtonBase.root"], class: "..." } },
+});
+```
+
+**Group banner.** A line comment of the form `// ---------- Title ----------` above a component key in `index.js` sets the group label used to bucket the family index page. The most recent banner sticks until a new one appears. Banners live only in `index.js`; the `*.theme.js` files do not carry them.
+
+```js
+// index.js
 // ---------- Card ----------
 Card: { /* ... */ },
 CardHeader: { /* ... */ },
 ```
 
-**JSDoc descriptions.** A `/** ... */` block immediately above a slot key becomes the slot description in both the per-component page and the family summary table. A JSDoc block on the component key becomes the fallback description used when a slot has none.
+**JSDoc descriptions.** A `/** ... */` block immediately above a slot key in the `*.theme.js` file becomes the slot description in both the per-component page and the family summary table. A JSDoc block on the component key in the `*.theme.js` file becomes the fallback description used when a slot has none.
 
 ```js
-Card: {
-    /** The outer card surface: border, radius, shadow, fill. */
-    root: { class: "..." },
-},
+// Card.theme.js
+patchTheme({
+    /**
+     * The Card component description, used as fallback for undocumented slots.
+     */
+    Card: {
+        /** The outer card surface: border, radius, shadow, fill. */
+        root: { class: "..." },
+    },
+});
 ```
 
-**Slot value shape.** The extractor accepts four shapes for a slot value:
+**Slot value shape.** The extractor accepts four shapes for a slot value in `*.theme.js` files:
 
 - A bare string, array, or template literal at the top level is treated as the `class` and flattened into the static class list.
 - An object with `class:` and optional `composes:` is the canonical form. `class:` may be a string, array (nested arrays and object keys are flattened), template literal with no expressions, or callback. `composes:` must be an array of `"Target.slot"` string literals.

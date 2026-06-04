@@ -1,5 +1,6 @@
 <script setup>
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import "@vueda/theme/vueda-tailwind/views/PageTitle.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactive, toRef } from "vue";
 
@@ -41,30 +42,36 @@ const theme = useTheme(
 );
 </script>
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
         <div :class="theme('container')">
             <div :class="theme('titleContainer')">
                 <div :class="theme('titleWrapper')">
-                    <h1 :class="theme('title')">
-                        <!-- Page title content rendered inside the `<h1>`; falls back to the `title` prop. -->
-                        <slot name="title">{{ title }}</slot>
-                        <template v-if="loading">
-                            &nbsp;
-                            <loading-spinner-inline v-if="loading" />
-                        </template>
-                    </h1>
-                    <!-- Content rendered to the right of the title text, inside the title row. -->
-                    <slot name="title-suffix" />
+                    <div v-if="$slots.eyebrow" :class="theme('eyebrow')">
+                        <!-- Eyebrow line rendered above the title (e.g. breadcrumb-style context). -->
+                        <slot name="eyebrow" />
+                    </div>
+                    <div :class="theme('titleRow')">
+                        <h1 :class="theme('title')">
+                            <!-- Page title content rendered inside the `<h1>`; falls back to the `title` prop. -->
+                            <slot name="title">{{ title }}</slot>
+                            <template v-if="loading">
+                                &nbsp;
+                                <loading-spinner-inline v-if="loading" />
+                            </template>
+                        </h1>
+                        <span v-if="$slots['title-suffix']" :class="theme('titleSuffix')">
+                            <!-- Content rendered to the right of the title text, inside the title row. -->
+                            <slot name="title-suffix" />
+                        </span>
+                    </div>
                 </div>
                 <div :class="theme('buttons')">
                     <!-- Action buttons rendered in the header action area. -->
                     <slot name="button" />
                 </div>
-                <hr :class="theme('spacer')" />
             </div>
-            <hr :class="theme('divider')" />
             <div v-if="$slots.subtitle || $slots['under-actions']" :class="theme('subtitleContainer')">
-                <!-- Subtitle content rendered below the divider. -->
+                <!-- Subtitle content rendered below the title row. -->
                 <slot name="subtitle" />
                 <!-- Content rendered alongside the subtitle, aligned to the action side. -->
                 <slot name="under-actions" />

@@ -1,32 +1,178 @@
 @import url("./fonts.css");
 
 :root {
-    --arrai-blue: #0077f7;
-    --ink: #0f172a;
-    --muted: #475569;
-    --paper: #f8fafc;
-    --accent: #f77700;
+    --vueda-docs-brand: #0077f7;
+    --vueda-docs-brand-strong: #005fcc;
+    --vueda-docs-brand-soft: rgba(0, 119, 247, 0.14);
+    --vueda-docs-accent: #f77700;
+    --vueda-docs-text: #111827;
+    --vueda-docs-text-muted: #526071;
+    --vueda-docs-bg: #f8fafc;
+    --vueda-docs-surface: #ffffff;
+    --vueda-docs-surface-muted: #eef2f6;
+    --vueda-docs-chrome: #e5e7eb;
+    --vueda-docs-chrome-strong: #d7dee8;
+    --vueda-docs-border: #d9e2ec;
+    --vueda-docs-code-bg: #edf2f7;
+    --vueda-docs-code-block-bg: #101820;
+    --vueda-docs-shadow: 0 1px 0 rgba(17, 24, 39, 0.04);
 
     --vp-font-family-base: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
     --vp-font-family-heading: "Darker Grotesque", ui-sans-serif, system-ui, sans-serif;
     --vp-font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-    --vp-c-brand-1: #005fcc;
-    --vp-c-brand-2: var(--arrai-blue);
+    --vp-c-brand-1: var(--vueda-docs-brand-strong);
+    --vp-c-brand-2: var(--vueda-docs-brand);
     --vp-c-brand-3: #2f8fff;
-    --vp-c-brand-soft: rgba(0, 119, 247, 0.14);
+    --vp-c-brand-soft: var(--vueda-docs-brand-soft);
 
-    --vp-nav-bg-color: #e5e5e5;
-    --vp-c-bg-elv: #e5e5e5;
-    --vp-nav-logo-height: 48px;
+    --vp-c-bg: var(--vueda-docs-bg);
+    --vp-c-bg-alt: var(--vueda-docs-surface-muted);
+    --vp-c-bg-elv: var(--vueda-docs-chrome);
+    --vp-c-bg-soft: var(--vueda-docs-surface-muted);
+    --vp-c-divider: var(--vueda-docs-border);
+    --vp-c-gutter: var(--vueda-docs-border);
+    --vp-c-text-1: var(--vueda-docs-text);
+    --vp-c-text-2: var(--vueda-docs-text-muted);
+    --vp-c-text-3: #697789;
+    --vp-nav-bg-color: color-mix(in srgb, var(--vueda-docs-chrome) 92%, var(--vp-c-bg));
+    --vp-nav-logo-height: 34px;
+    --vp-sidebar-bg-color: var(--vueda-docs-surface-muted);
+    --vp-code-bg: var(--vueda-docs-code-bg);
+    --vp-code-block-bg: var(--vueda-docs-code-block-bg);
+    --vp-button-brand-bg: var(--vueda-docs-brand);
+    --vp-button-brand-hover-bg: var(--vueda-docs-brand-strong);
+    --vp-button-brand-active-bg: var(--vueda-docs-brand-strong);
 }
 
 .dark {
-    --vp-nav-bg-color: #000;
-    --vp-c-bg-elv: #000;
-    --vp-c-bg: #1a1a1a;
-    --vp-sidebar-bg-color: #0d0d0d;
-    --vp-code-bg: #0d0d0d;
-    --vp-code-block-bg: #0d0d0d;
+    --vueda-docs-brand: #45a0ff;
+    --vueda-docs-brand-strong: #78bbff;
+    --vueda-docs-brand-soft: rgba(69, 160, 255, 0.16);
+    --vueda-docs-text: #eef4fb;
+    --vueda-docs-text-muted: #a6b2c0;
+    --vueda-docs-bg: #161a1f;
+    --vueda-docs-surface: #1b2027;
+    --vueda-docs-surface-muted: #11151a;
+    --vueda-docs-chrome: #07090c;
+    --vueda-docs-chrome-strong: #252c35;
+    --vueda-docs-border: #303844;
+    --vueda-docs-code-bg: #0d1116;
+    --vueda-docs-code-block-bg: #0d1116;
+    --vueda-docs-shadow: 0 1px 0 rgba(0, 0, 0, 0.42);
+}
+
+html {
+    background: var(--vueda-docs-bg);
+}
+
+body {
+    color: var(--vueda-docs-text);
+    background: var(--vueda-docs-bg);
+}
+
+.VPNavBar {
+    border-bottom: 1px solid var(--vueda-docs-chrome-strong);
+    box-shadow: var(--vueda-docs-shadow);
+}
+
+.VPNavBarTitle .title {
+    font-family: var(--vp-font-family-base);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.VPNavBarTitle .logo {
+    margin-right: 10px;
+}
+
+.VPNavBarMenuLink,
+.VPNavBarMenuGroup .button {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+}
+
+.VPNavBarMenuLink.active,
+.VPNavBarMenuLink:hover,
+.VPNavBarMenuGroup .button:hover {
+    color: var(--vueda-docs-brand-strong);
+}
+
+.VPNavBarSearch .DocSearch-Button {
+    border: 1px solid var(--vueda-docs-border);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--vueda-docs-surface) 78%, var(--vueda-docs-bg));
+}
+
+.VPSidebar {
+    border-right: 1px solid var(--vueda-docs-border);
+}
+
+.VPSidebarItem .text {
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.VPSidebarItem.level-0 > .item > .text {
+    color: var(--vueda-docs-text);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.VPSidebarItem.level-1 .link,
+.VPSidebarItem.level-2 .link,
+.VPSidebarItem.level-3 .link {
+    border-radius: 4px;
+}
+
+.VPSidebarItem.level-1 .link:hover,
+.VPSidebarItem.level-2 .link:hover,
+.VPSidebarItem.level-3 .link:hover {
+    background: color-mix(in srgb, var(--vueda-docs-brand) 7%, var(--vueda-docs-bg));
+}
+
+.VPSidebarItem.is-active > .item .link {
+    background: color-mix(in srgb, var(--vueda-docs-brand) 10%, var(--vueda-docs-bg));
+}
+
+.VPSidebarItem.is-active > .item .text {
+    color: var(--vueda-docs-brand-strong);
+    font-weight: 600;
+}
+
+.vp-doc {
+    font-size: 15px;
+}
+
+.vp-doc a {
+    color: var(--vueda-docs-brand-strong);
+    font-weight: 500;
+    text-decoration-color: color-mix(in srgb, currentColor 32%, var(--vueda-docs-bg));
+    text-underline-offset: 3px;
+}
+
+.vp-doc a:hover {
+    color: var(--vueda-docs-brand);
+    text-decoration-color: currentColor;
+}
+
+.vp-doc :not(pre) > code {
+    border: 1px solid color-mix(in srgb, var(--vueda-docs-border) 72%, var(--vueda-docs-bg));
+    border-radius: 4px;
+    color: var(--vueda-docs-text);
+    font-size: 0.88em;
+}
+
+.vp-doc table {
+    font-size: 14px;
+}
+
+.vp-doc th {
+    background: var(--vueda-docs-surface-muted);
+    color: var(--vueda-docs-text);
+    font-size: 12px;
+    font-weight: 600;
 }
 
 /* Prevent page background bleed on the right */

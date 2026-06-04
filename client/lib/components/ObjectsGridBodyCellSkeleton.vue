@@ -1,7 +1,8 @@
 <script setup>
+import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
+import "@vueda/theme/vueda-tailwind/objects-grid/ObjectsGridBodyCell.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { getSkeletonPropsForField } from "@vueda/utils/objectGridSkeletonProps.js";
-import Skeleton from "primevue/skeleton";
+import { getSkeletonClassForField } from "@vueda/utils/objectGridSkeletonClass.js";
 
 /**
  * Renders a single table-layout body cell skeleton placeholder while
@@ -21,7 +22,7 @@ const props = defineProps({
 const theme = useTheme("ObjectsGridBodyCell", props);
 </script>
 <template>
-    <div :class="theme('root')">
-        <Skeleton height="2rem" width="6rem" v-bind="getSkeletonPropsForField(field)" />
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
+        <Skeleton :class="getSkeletonClassForField(field)" />
     </div>
 </template>

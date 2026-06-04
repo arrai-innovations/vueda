@@ -1,42 +1,42 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h, reactive } from "vue";
+import { defineComponent, h, markRaw, reactive } from "vue";
 
-const ButtonStub = defineComponent({
-    name: "ButtonStub",
-    props: ["label", "icon", "rounded"],
+const ControlButtonStub = defineComponent({
+    name: "ControlButtonStub",
+    props: ["variant", "size", "disabled"],
     emits: ["click"],
-    setup(props, { emit }) {
+    setup(props, { emit, slots }) {
         return () =>
-            h("button", {
-                "data-qa": "prime-button",
-                "data-label": props.label,
-                "data-icon": props.icon,
-                "data-rounded": String(props.rounded),
-                onClick: () => emit("click"),
-            });
+            h(
+                "button",
+                {
+                    "data-qa": "control-button",
+                    "data-variant": props.variant,
+                    "data-size": props.size,
+                    "data-disabled": props.disabled ? "true" : undefined,
+                    disabled: props.disabled || undefined,
+                    onClick: () => emit("click"),
+                },
+                slots.default?.(),
+            );
     },
 });
 
-const FormChoresStub = defineComponent({
-    name: "FormChoresStub",
-    setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-chores" }, slots.default ? slots.default() : null);
-    },
-});
-
-const ManyComponentStub = defineComponent({
-    name: "ManyComponentStub",
-    props: ["name", "required"],
-    setup(props) {
-        return () =>
-            h("div", {
-                "data-qa": "many-component",
-                "data-name": props.name,
-                "data-required": String(props.required),
-            });
-    },
-});
+const ManyComponentStub = markRaw(
+    defineComponent({
+        name: "ManyComponentStub",
+        props: ["name", "required"],
+        setup(props) {
+            return () =>
+                h("div", {
+                    "data-qa": "many-component",
+                    "data-name": props.name,
+                    "data-required": String(props.required),
+                });
+        },
+    }),
+);
 
 const SlotButton = defineComponent({
     name: "SlotButton",
@@ -50,20 +50,35 @@ const SlotButton = defineComponent({
     },
 });
 
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const warnSpy = vi.fn();
 const useFieldMock = vi.fn();
-const themeFn = vi.fn((cls) => `t-${cls}`);
+const themeFn = makeThemeFn({ slotResolver: (cls) => `t-${cls}` });
 
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
-vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ControlButtonStub }));
+vi.mock("@vueda/shell/field/FieldDescription.vue", () => ({
+    default: defineComponent({
+        name: "FieldDescription",
+        setup:
+            (_, { slots }) =>
+            () =>
+                h("p", { "data-qa": "field-description" }, slots.default?.()),
+    }),
+}));
+vi.mock("@vueda/shell/field/FieldMessage.vue", () => ({
+    default: defineComponent({
+        name: "FieldMessage",
+        props: ["messages", "severity"],
+        setup: (props) => () => h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),
+    }),
+}));
 vi.mock("@vueda/use/useDevLogger.js", () => ({ useDevLogger: () => ({ warn: warnSpy }) }));
 vi.mock("@vueda/use/useField.js", () => ({
     FIELD_EMITS: [],
     FIELD_PROPS: { name: { type: String, required: true } },
     useField: useFieldMock,
 }));
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: vi.fn(() => themeFn), THEME_OVERRIDE_PROPS: {} }));
-vi.mock("@vueda/utils/buildForm.js", () => ({ getFormChoresSlotNames: () => [] }));
+vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: makeUseThemeMock({ themeFn }), THEME_OVERRIDE_PROPS: {} }));
 
 let FieldSetMany, vue;
 
@@ -81,7 +96,9 @@ afterEach(() => {
 
 describe("lib/fields/FieldSetMany.vue", () => {
     scopedIt("warns when value is not an array", async () => {
-        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: {} }) };
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: {}, help: "", errors: {}, messages: {} }),
+        };
         useFieldMock.mockReturnValue(fieldContext);
         mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
         await vue.nextTick();
@@ -95,11 +112,13 @@ describe("lib/fields/FieldSetMany.vue", () => {
     });
 
     scopedIt("adds items and computes names", async () => {
-        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: [1] }) };
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: [1], help: "", errors: {}, messages: {} }),
+        };
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
-        await wrapper.find('[data-label="add"]').trigger("click");
+        await wrapper.find('[data-variant="outline"]').trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([1, undefined]);
         const comps = wrapper.findAll('[data-qa="many-component"]');
@@ -109,22 +128,40 @@ describe("lib/fields/FieldSetMany.vue", () => {
     });
 
     scopedIt("destroys items when remove clicked", async () => {
-        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: [1, 2] }) };
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
+        };
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(2);
-        await wrapper.find('[data-icon="pi pi-times"]').trigger("click");
+        const removes = wrapper.findAll('[data-qa="field-set-many-remove"] [data-size="icon-sm"]');
+        expect(removes).toHaveLength(2);
+        await removes[1].trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([1]);
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
     });
 
+    scopedIt("renders the first-entry remove disabled rather than hidden", () => {
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
+        };
+        useFieldMock.mockReturnValue(fieldContext);
+        const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
+        const removes = wrapper.findAll('[data-qa="field-set-many-remove"] [data-size="icon-sm"]');
+        expect(removes).toHaveLength(2);
+        expect(removes[0].attributes("data-disabled")).toBe("true");
+        expect(removes[1].attributes("data-disabled")).toBeUndefined();
+    });
+
     scopedIt("handles undefined value for add and destroy", async () => {
-        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: undefined }) };
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: undefined, help: "", errors: {}, messages: {} }),
+        };
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
 
-        await wrapper.find('[data-label="add"]').trigger("click");
+        await wrapper.find('[data-variant="outline"]').trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([undefined]);
 
@@ -134,17 +171,66 @@ describe("lib/fields/FieldSetMany.vue", () => {
         expect(fieldContext.state.value).toEqual([]);
     });
 
-    scopedIt("destroys items when slot clicked", async () => {
-        const fieldContext = { state: reactive({ name: "nums", label: "Nums", value: [1, 2] }) };
+    scopedIt("renders field-set-level-chores slot when provided", () => {
+        const fieldContext = {
+            state: reactive({
+                name: "nums",
+                label: "Nums",
+                value: [1],
+                help: "Default help",
+                errors: { required: "Required" },
+                messages: {},
+            }),
+        };
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, {
             props: { name: "nums", manyComponent: ManyComponentStub },
-            slots: { destroy: ({ onClick }) => h(SlotButton, { onClick }) },
+            slots: {
+                "field-set-level-chores": () => h("div", { "data-qa": "custom-chores" }, "Custom feedback"),
+            },
+        });
+        expect(wrapper.find('[data-qa="custom-chores"]').exists()).toBe(true);
+        expect(wrapper.find('[data-qa="custom-chores"]').text()).toBe("Custom feedback");
+        expect(wrapper.find('[data-qa="field-description"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="field-message"]').exists()).toBe(false);
+    });
+
+    scopedIt("destroys items when slot clicked", async () => {
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
+        };
+        useFieldMock.mockReturnValue(fieldContext);
+        const wrapper = mount(FieldSetMany, {
+            props: { name: "nums", manyComponent: ManyComponentStub },
+            slots: { destroy: ({ onClick, disabled }) => h(SlotButton, { onClick, disabled }) },
         });
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(2);
-        await wrapper.getComponent(SlotButton).trigger("click");
+        const slotButtons = wrapper.findAllComponents(SlotButton);
+        expect(slotButtons).toHaveLength(2);
+        await slotButtons[1].trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([1]);
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
+    });
+
+    scopedIt("passes disabled slot prop to destroy slot for first entry", () => {
+        const fieldContext = {
+            state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
+        };
+        useFieldMock.mockReturnValue(fieldContext);
+        const seen = [];
+        mount(FieldSetMany, {
+            props: { name: "nums", manyComponent: ManyComponentStub },
+            slots: {
+                destroy: (props) => {
+                    seen.push({ disabled: props.disabled, index: props.index });
+                    return h(SlotButton);
+                },
+            },
+        });
+        expect(seen).toEqual([
+            { disabled: true, index: 0 },
+            { disabled: false, index: 1 },
+        ]);
     });
 });

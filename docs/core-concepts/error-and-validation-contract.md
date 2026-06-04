@@ -1,7 +1,7 @@
 ---
 title: Error and Validation Contract
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -42,8 +42,8 @@ flowchart TD
     SPLIT -- "No" --> ERR
     SPLIT -- "Yes" --> MSG
 
-    ERR --> RENDER_E["FormFeedback type=error<br/>severity=error (red)"]
-    MSG --> RENDER_W["FormFeedback type=message<br/>severity=warn (yellow)"]
+    ERR --> RENDER_E["FormMessage / FieldMessage<br/>severity=error (red)"]
+    MSG --> RENDER_W["FormMessage / FieldMessage<br/>severity=warn (yellow)"]
 
     style Server fill:#f8f4e8,stroke:#c9a227
     style Client fill:#e8f0f8,stroke:#2768c9
@@ -154,7 +154,7 @@ This means that a form component fetching choices for a field that references an
 
 **Warning-only responses on form-validation transport.** A response containing only warnings still uses HTTP 400 and still arrives as a `FormValidationError`. The client routes all entries to `.messages` (none to `.errors`), so the form will not show any blocking errors. However, callers that treat any `FormValidationError` as a hard failure (without checking the error/message split) may incorrectly block the user.
 
-**Non-field errors in field-level components.** `non_field_errors` entries are rendered by `FormFeedback` only when it is at the form level (inside a form context but outside a field context). Field-level `FormFeedback` instances do not automatically pick up non-field errors. If a form does not include a form-level `FormFeedback`, non-field errors will appear in state but be invisible in the UI.
+**Non-field errors with no `FormMessage`.** `non_field_errors` entries are rendered by `FormMessage` placed inside a form context. Field-scope `FieldMessage` instances do not pick up non-field errors. If a form does not include a `FormMessage`, non-field errors will appear in state but be invisible in the UI.
 
 **Choices endpoint 404 vs validation 400.** A missing or invalid model/field/filter on a choices endpoint returns 404, not 400. Code that only handles `FormValidationError` will miss these failures. The error surfaces as a `FetchError` and must be caught separately.
 

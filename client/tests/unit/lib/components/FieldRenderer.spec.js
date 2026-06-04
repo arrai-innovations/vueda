@@ -7,16 +7,17 @@ vi.mock("@vueda/use/useFieldRenderer.js", () => ({
     useFieldRenderer: mockedUseFieldRenderer,
 }));
 
-const themeFn = vi.fn((key) => `theme-${key}`);
-const mockedUseTheme = vi.fn(() => themeFn);
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeFn = makeThemeFn({ slotResolver: (key) => `theme-${key}` });
+const mockedUseTheme = makeUseThemeMock({ themeFn });
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
     mergeTheme: (...args) => Object.assign({}, ...args),
 }));
 
-vi.mock("primevue/skeleton", () => ({
+vi.mock("@vueda/feedback/skeleton/Skeleton.vue", () => ({
     default: defineComponent({
-        name: "SkeletonStub",
+        name: "FeedbackSkeletonStub",
         setup() {
             return () => h("div");
         },

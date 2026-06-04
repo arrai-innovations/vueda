@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/display/DateRangeDisplay.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { DateTime } from "luxon";
 import { computed } from "vue";
@@ -79,7 +80,7 @@ const formattedDateRange = computed(() => {
 </script>
 
 <template>
-    <span :class="theme('root')">
+    <span :class="theme('root')" :style="theme.hideStyle?.value">
         <span :class="theme('from')">{{ formattedDateRange?.[0] }}</span>
         <template v-if="formattedDateRange.length > 1">
             <span :class="theme('separator')"> &ndash; </span>

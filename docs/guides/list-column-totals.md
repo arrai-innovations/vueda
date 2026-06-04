@@ -1,7 +1,7 @@
 ---
 title: Expose Aggregates in `list` Responses
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

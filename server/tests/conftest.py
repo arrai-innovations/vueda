@@ -242,7 +242,7 @@ class BaseTestListModelViewSet:
 
     # page_data is needed for object creation, even though it isn't used directly in test_list.
     def test_list(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id", "formatted_name", "available_actions"}.union(self.list_keys_arguments)
+        keys = {"id", "current_history_id", "formatted_name"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -280,28 +280,8 @@ class BaseTestCreateModelViewSet:
         return dict(create_arguments)
 
     def update_expected_create_response(self, expected_create_response, new_instance):
-        if self.has_delete_permission:
-            available_actions = [
-                "list",
-                "retrieve",
-                "update",
-                "partial_update",
-                "destroy",
-                "current",
-                "history-list",
-            ]
-        else:
-            available_actions = [
-                "list",
-                "retrieve",
-                "update",
-                "partial_update",
-                "current",
-                "history-list",
-            ]
         expected_create_response.update(
             {
-                "available_actions": available_actions,
                 "current_history_id": new_instance.history.latest().history_id,
                 "id": new_instance.id,
             }
@@ -342,26 +322,6 @@ class BaseTestRetrieveModelViewSet:
         raise NotImplementedError
 
     def update_expected_retrieve_response(self, expected_retrieve_response, instance):
-        if self.has_delete_permission:
-            available_actions = [
-                "list",
-                "retrieve",
-                "update",
-                "partial_update",
-                "destroy",
-                "current",
-                "history-list",
-            ]
-        else:
-            available_actions = [
-                "list",
-                "retrieve",
-                "update",
-                "partial_update",
-                "current",
-                "history-list",
-            ]
-        expected_retrieve_response["available_actions"] = available_actions
         # Do we have a workflow?
         if hasattr(instance, "workflow") and "workflow_state_code" not in expected_retrieve_response:
             expected_retrieve_response.update(
@@ -413,27 +373,6 @@ class BaseTestUpdateModelViewSet:
     def update_expected_update_response(self, expected_update_response, updated_instance):
         expected_update_response["current_history_id"] = updated_instance.history.latest().history_id
 
-        if self.has_delete_permission:
-            available_actions = [
-                "list",
-                "retrieve",
-                "update",
-                "partial_update",
-                "destroy",
-                "current",
-                "history-list",
-            ]
-        else:
-            available_actions = [
-                "list",
-                "retrieve",
-                "update",
-                "partial_update",
-                "current",
-                "history-list",
-            ]
-        expected_update_response["available_actions"] = available_actions
-
         # Do we have a workflow?
         if hasattr(updated_instance, "workflow") and "workflow_state_code" not in expected_update_response:
             expected_update_response.update(
@@ -482,7 +421,7 @@ class BaseTestModelViewSet(
 
 
 class BaseTestCallCommand:
-    def call_command(self, *args, redirect_output=True):
+    def call_command(self, *args):
         """
         Call a management command and capture the results.
 
@@ -500,10 +439,7 @@ class BaseTestCallCommand:
         # If we don't do this, sometimes we can't import a newly created migration.
         # Do it here, so we don't need to know which calls require it, and which don't.
         importlib.invalidate_caches()
-        if redirect_output:
-            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-                call_command(*args)
-        else:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             call_command(*args)
 
         # Did an error occur?

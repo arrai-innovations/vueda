@@ -1,7 +1,7 @@
 ---
 title: DRF Ecosystem Compatibility Boundaries
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

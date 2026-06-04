@@ -1,7 +1,7 @@
 ---
 title: VDQ and Background Work Model
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -105,7 +105,6 @@ The view enforces authentication but does not perform object-level permission ch
 ## Relevant Implementation Surface
 
 - {@api py:module:vueda.vdq}
-- {@api py:property:vueda.vdq.celery_app}
 - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.fast_available_transitions}
 - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.fast_transition}
 - {@api rest:endpoint:GET:/vueda.vdq/queueitem/}

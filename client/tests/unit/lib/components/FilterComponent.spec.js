@@ -31,20 +31,25 @@ const FilterFormStub = defineComponent({
         return () => h("form", { "data-qa": "filter-form" }, slots.default ? slots.default() : null);
     },
 });
-let popoverToggle, popoverHide;
-const PopoverStub = defineComponent({
-    name: "PopoverStub",
-    setup(_, { expose, slots }) {
-        popoverToggle = vi.fn();
-        popoverHide = vi.fn();
-        expose({ toggle: popoverToggle, hide: popoverHide });
+const ShellPopoverStub = defineComponent({
+    name: "ShellPopoverStub",
+    props: ["open"],
+    emits: ["update:open"],
+    setup(_, { slots }) {
         return () => h("div", { "data-qa": "popover" }, slots.default ? slots.default() : null);
     },
 });
+const ShellPopoverContentStub = defineComponent({
+    name: "ShellPopoverContentStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "popover-content" }, slots.default ? slots.default() : null);
+    },
+});
 
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
-vi.mock("primevue/buttongroup", () => ({ default: ButtonGroupStub }));
-vi.mock("primevue/popover", () => ({ default: PopoverStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button-group/ButtonGroup.vue", () => ({ default: ButtonGroupStub }));
+vi.mock("@vueda/shell/popover/Popover.vue", () => ({ default: ShellPopoverStub }));
+vi.mock("@vueda/shell/popover/PopoverContent.vue", () => ({ default: ShellPopoverContentStub }));
 vi.mock("@vueda/components/FilterForm.vue", () => ({ default: FilterFormStub }));
 
 const mockedUseSlotNameResolver = vi.fn(() => ({ name: "slot" }));
@@ -58,8 +63,9 @@ vi.mock("@vueda/use/useForm.js", async () => {
     const actual = await vi.importActual("@vueda/use/useForm.js");
     return { __esModule: true, ...actual, useForm: mockedUseForm };
 });
-const themeFn = vi.fn(() => "t");
-const mockedUseTheme = vi.fn(() => themeFn);
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeFn = makeThemeFn({ slotResolver: () => "t" });
+const mockedUseTheme = makeUseThemeMock({ themeFn });
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
     THEME_OVERRIDE_PROPS: {},
@@ -74,8 +80,6 @@ let FilterComponent;
 beforeEach(async () => {
     mockedUseForm.mockReset();
     FilterComponent = (await import("@vueda/components/FilterComponent.vue")).default;
-    popoverToggle = undefined;
-    popoverHide = undefined;
     mockedUseSlotNameResolver.mockClear();
     mockedUseTheme.mockClear();
 });
@@ -101,7 +105,8 @@ function mountComponent(options = {}) {
             stubs: {
                 Button: ButtonStub,
                 ButtonGroup: ButtonGroupStub,
-                Popover: PopoverStub,
+                Popover: ShellPopoverStub,
+                PopoverContent: ShellPopoverContentStub,
                 FilterForm: FilterFormStub,
             },
         },
@@ -119,7 +124,6 @@ describe("lib/components/FilterComponent.vue", () => {
         wrapper.vm.doToggle(event);
         expect(event.preventDefault).toHaveBeenCalled();
         expect(wrapper.vm.internalShowState).toBe(true);
-        expect(popoverToggle).toHaveBeenCalledWith(event);
     });
 
     scopedIt("applyFilter adds and updates filter", async () => {
@@ -130,7 +134,7 @@ describe("lib/components/FilterComponent.vue", () => {
         expect(addedFilters.value).toHaveLength(1);
         expect(addedFilters.value[0].value).toBe("open");
         expect(wrapper.vm.computedFilterLabel).toBe("Status | open");
-        expect(popoverHide).toHaveBeenCalled();
+        expect(wrapper.vm.internalShowState).toBe(false);
         expect(wrapper.emitted()["hide-filter-form"][0]).toEqual(["status"]);
 
         state.submittingValues["status"] = "closed";

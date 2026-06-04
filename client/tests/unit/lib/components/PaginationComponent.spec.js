@@ -1,73 +1,84 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h } from "vue";
 
-const PaginatorStub = defineComponent({
-    name: "PaginatorStub",
-    props: ["first", "rows", "currentPageReportTemplate", "totalRecords"],
-    emits: ["page", "update:first"],
-    setup(props, { attrs }) {
-        return () =>
-            h("div", {
-                "data-qa": "paginator",
-                "data-first": props.first,
-                "data-rows": props.rows,
-                "data-template": props.currentPageReportTemplate,
-                "data-total-records": props.totalRecords,
-                ...attrs,
-            });
-    },
-});
-
-vi.mock("primevue/paginator", () => ({ default: PaginatorStub }));
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 vi.mock("@vueda/use/useTheme.js", () => ({
-    useTheme: vi.fn(() => () => "t"),
+    useTheme: makeUseThemeMock({ slotResolver: () => "t" }),
     THEME_OVERRIDE_PROPS: {},
 }));
 
 describe("lib/components/PaginationComponent.vue", () => {
-    let PaginationComponent, vue;
+    let PaginationComponent;
 
     beforeEach(async () => {
         PaginationComponent = (await import("@vueda/components/PaginationComponent.vue")).default;
-        vue = await import("vue");
     });
 
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    scopedIt("emits update:currentPage when page changes", () => {
+    scopedIt("emits update:currentPage when navigating to next page", async () => {
         const wrapper = mount(PaginationComponent, {
             props: { totalRecords: 50, currentPage: 1, rows: 10 },
         });
-        const paginator = wrapper.getComponent(PaginatorStub);
-        paginator.vm.$emit("page", { first: 20, rows: 10 });
-        expect(wrapper.emitted()["update:currentPage"][0]).toEqual([3]);
+        const nextButton = wrapper.find('[data-slot="pagination-next"]');
+        await nextButton.trigger("click");
+        expect(wrapper.emitted()["update:currentPage"][0]).toEqual([2]);
     });
 
-    scopedIt("uses correct template strings", () => {
-        const wrapper1 = mount(PaginationComponent, {
+    scopedIt("displays correct page report text", () => {
+        const wrapper = mount(PaginationComponent, {
             props: { totalRecords: 50, currentPage: 1, rows: 10 },
         });
-        expect(wrapper1.getComponent(PaginatorStub).props("currentPageReportTemplate")).toBe(
-            "{currentPage} of {totalPages}",
-        );
-
-        const wrapper2 = mount(PaginationComponent, {
-            props: { totalRecords: 50, currentPage: 1, rows: 10, loading: true },
-        });
-        expect(wrapper2.getComponent(PaginatorStub).props("currentPageReportTemplate")).toBe("{currentPage} of ?");
+        expect(wrapper.text()).toContain("1 of 5");
     });
 
-    scopedIt("computes totalRecords from offset when loading", async () => {
+    scopedIt("displays loading page report when loading", () => {
         const wrapper = mount(PaginationComponent, {
             props: { totalRecords: 50, currentPage: 1, rows: 10, loading: true },
         });
-        const paginator = wrapper.getComponent(PaginatorStub);
-        expect(paginator.attributes("data-total-records")).toBe("1");
-        paginator.vm.$emit("update:first", 10);
-        await vue.nextTick();
-        expect(wrapper.getComponent(PaginatorStub).attributes("data-total-records")).toBe("11");
+        expect(wrapper.text()).toContain("1 of ?");
+    });
+
+    scopedIt("disables navigation buttons when loading", () => {
+        const wrapper = mount(PaginationComponent, {
+            props: { totalRecords: 50, currentPage: 2, rows: 10, loading: true },
+        });
+        const navButtons = wrapper.findAll('[data-slot="pagination-content"] button');
+        expect(navButtons.length).toBeGreaterThan(0);
+        navButtons.forEach((button) => {
+            expect(button.attributes("disabled")).toBeDefined();
+        });
+    });
+
+    scopedIt("hides paginator when showingAllPages is true", () => {
+        const wrapper = mount(PaginationComponent, {
+            props: { totalRecords: 50, currentPage: 1, rows: 10, showingAllPages: true },
+        });
+        expect(wrapper.find('[data-slot="pagination"]').exists()).toBe(false);
+    });
+
+    scopedIt("shows 'Show All Pages' button when there are multiple pages", () => {
+        const wrapper = mount(PaginationComponent, {
+            props: { totalRecords: 50, currentPage: 1, rows: 10 },
+        });
+        expect(wrapper.text()).toContain("Show All Pages");
+    });
+
+    scopedIt("emits update:showingAllPages when 'Show All Pages' is clicked", async () => {
+        const wrapper = mount(PaginationComponent, {
+            props: { totalRecords: 50, currentPage: 1, rows: 10 },
+        });
+        const showAllButton = wrapper.findAll("button").find((b) => b.text().includes("Show All Pages"));
+        await showAllButton.trigger("click");
+        expect(wrapper.emitted()["update:showingAllPages"][0]).toEqual([true]);
+    });
+
+    scopedIt("hides total record count when showTotalRecordNum is false", () => {
+        const wrapper = mount(PaginationComponent, {
+            props: { totalRecords: 50, currentPage: 1, rows: 10, showTotalRecordNum: false },
+        });
+        expect(wrapper.text()).not.toContain("total results");
     });
 });

@@ -53,12 +53,8 @@ jobs:
             - run:
                   name: Build Package
                   command: |
-                      cd server
-                      uv build --wheel
-                      cd ..
                       rm -rf dist
-                      mkdir -p dist
-                      cp server/dist/* dist/
+                      uv build --package vueda --wheel --out-dir dist
             - save_cache:
                   paths:
                       - ~/project/dist
@@ -131,8 +127,6 @@ workflows:
                             token: $NPM_ARRAI_DEV_TOKEN
                             scopes: |
                                 @arrai-innovations:registry=https://npm.arrai.dev/
-                                @fortawesome:registry=https://npm.arrai.dev/
-                                @awesome.me:registry=https://npm.arrai.dev/
                       - run:
                             name: Install server dev dependencies
                             command: |
@@ -165,8 +159,6 @@ workflows:
                             token: $NPM_ARRAI_DEV_TOKEN
                             scopes: |
                                 @arrai-innovations:registry=https://npm.arrai.dev/
-                                @fortawesome:registry=https://npm.arrai.dev/
-                                @awesome.me:registry=https://npm.arrai.dev/
                       - run:
                             name: Install server dev dependencies
                             command: |

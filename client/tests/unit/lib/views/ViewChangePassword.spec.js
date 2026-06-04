@@ -18,25 +18,24 @@ const AuthFormStub = defineComponent({
     },
 });
 
-const FieldStringStub = defineComponent({
-    name: "FieldStringStub",
-    props: ["label", "name"],
+const FormFieldStub = defineComponent({
+    name: "FormFieldStub",
+    props: ["label", "name", "hidden", "validation"],
     setup(props, { slots }) {
         return () => h("div", null, slots.default ? slots.default() : null);
     },
 });
 
-const WidgetInputStub = defineComponent({
-    name: "WidgetInputStub",
+const WidgetTextInputStub = defineComponent({
+    name: "WidgetTextInputStub",
     setup(_, { slots }) {
         return () => h("div", null, slots.default ? slots.default({}) : null);
     },
 });
 
 vi.mock("@vueda/components/AuthForm.vue", () => ({ default: AuthFormStub }));
-vi.mock("@vueda/fields/FieldString.vue", () => ({ default: FieldStringStub }));
-vi.mock("@vueda/widgets/WidgetInput.vue", () => ({ default: WidgetInputStub }));
-vi.mock("@vueda/widgets/WidgetLabel.vue", () => ({ getWidgetSlotsComputed: () => ["label"] }));
+vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
+vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => ({ changePassword: changePasswordMock }) }));
 
 let ViewChangePassword;
@@ -92,17 +91,14 @@ describe("lib/views/ViewChangePassword.vue", () => {
             required: true,
             type: "password",
             autocomplete: "current-password",
-            feedback: false,
         });
         expect(widgetSlotProps.new_password1).toMatchObject({
             required: true,
             type: "password",
-            feedback: false,
         });
         expect(widgetSlotProps.new_password2).toMatchObject({
             required: true,
             type: "password",
-            feedback: false,
         });
 
         expect(wrapper.findComponent(AuthFormStub).exists()).toBe(true);

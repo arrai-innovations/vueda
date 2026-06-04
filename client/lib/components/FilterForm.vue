@@ -1,9 +1,10 @@
 <script setup>
 import FieldRenderer from "@vueda/components/FieldRenderer.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/form/FilterForm.theme.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FilterModelSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
-import Button from "primevue/button";
 import { computed, inject, useSlots } from "vue";
 
 /**
@@ -57,7 +58,7 @@ const remainingSlotNames = computed(() => {
 </script>
 
 <template>
-    <form @submit.prevent="applyFilter">
+    <form :style="theme.hideStyle?.value" @submit.prevent="applyFilter">
         <div :class="theme('outer')">
             <!-- @slot [filter-form-header, filter-form-header(filterName)] Header area at the top of the filter form. -->
             <slot :name="resolvedSlotNames.header.name" :class="theme('heading')" :filter-label="filterLabel">
@@ -77,7 +78,7 @@ const remainingSlotNames = computed(() => {
                 :disabled="formContext.state.anyError"
                 :modified="formContext.state.anyModified"
             >
-                <Button type="submit" label="Apply" size="small" :disabled="formContext.state.anyError" />
+                <Button type="submit" size="sm" :disabled="formContext.state.anyError">Apply</Button>
             </slot>
         </div>
     </form>

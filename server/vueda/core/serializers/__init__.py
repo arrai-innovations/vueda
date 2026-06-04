@@ -429,6 +429,14 @@ class VuedaSerializer(
     """
 
     available_actions = AvailableActionsField()
+    formatted_name = serializers.ReadOnlyField(style={"hidden": True})
+
+    def to_representation(self, instance):
+        repr_data = super().to_representation(instance)
+        sparse_fields, _ = split_levels(self._flex_options_all["fields"])
+        if "available_actions" not in sparse_fields:
+            repr_data.pop("available_actions", None)
+        return repr_data
 
     serializer_field_mapping: ClassVar[dict] = {
         **serializers.ModelSerializer.serializer_field_mapping,

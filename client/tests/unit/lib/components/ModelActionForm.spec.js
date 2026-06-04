@@ -21,24 +21,56 @@ const ActionFormStub = defineComponent({
                     slots["action-form-inner"]
                         ? slots["action-form-inner"]({ combinedLoading: props.fetchState?.loading ?? false })
                         : null,
+                    h(
+                        "div",
+                        { "data-qa": "action-form-stub-confirm-slot" },
+                        slots["confirm-button"]
+                            ? slots["confirm-button"]({
+                                  label: "Yes, continue",
+                                  loading: props.fetchState?.loading ?? false,
+                                  verb: "confirm",
+                                  type: "submit",
+                                  disabled: false,
+                              })
+                            : null,
+                    ),
                     slots.default ? slots.default() : null,
                 ],
             );
     },
 });
 
-const FormChoresStub = defineComponent({
-    name: "FormChoresStub",
-    setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-chores" }, slots.default ? slots.default() : null);
+const ButtonStub = defineComponent({
+    name: "ButtonStub",
+    props: ["type", "disabled", "variant"],
+    setup(props, { slots, attrs }) {
+        return () =>
+            h(
+                "button",
+                {
+                    type: props.type,
+                    disabled: props.disabled || undefined,
+                    "data-qa": "button-stub",
+                    "data-variant": props.variant,
+                    ...attrs,
+                },
+                slots.default ? slots.default() : null,
+            );
     },
 });
 
-const FieldStringStub = defineComponent({
-    name: "FieldStringStub",
-    props: ["fieldValue", "label", "name"],
+const LoadingSpinnerInlineStub = defineComponent({
+    name: "LoadingSpinnerInlineStub",
+    setup() {
+        return () => h("span", { "data-qa": "spinner-inline" });
+    },
+});
+
+const FormFieldStub = defineComponent({
+    name: "FormFieldStub",
+    props: ["fieldValue", "label", "name", "readOnly"],
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "field-string" }, slots.default ? slots.default() : null);
+        return () => h("div", { "data-qa": "form-field" }, slots.default ? slots.default() : null);
     },
 });
 
@@ -49,7 +81,8 @@ const WidgetReadOnlyStub = defineComponent({
     },
 });
 
-const mockedUseTheme = vi.fn(() => () => "theme");
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
 
 const modelConfig = {
@@ -59,8 +92,15 @@ const modelConfig = {
 const mockedUseModelConfig = vi.fn(() => modelConfig);
 vi.mock("@vueda/use/useModelConfig", () => ({ useModelConfig: mockedUseModelConfig }));
 
-const toastAdd = vi.fn();
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
 
 let routeQuery = {};
 const routerPush = vi.fn();
@@ -88,8 +128,9 @@ const fetchHelper = vi.fn((url, options, message, errorResolver) => {
 vi.mock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper }));
 
 vi.mock("@vueda/components/ActionForm.vue", () => ({ default: ActionFormStub }));
-vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
-vi.mock("@vueda/fields/FieldString.vue", () => ({ default: FieldStringStub }));
+vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: LoadingSpinnerInlineStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetReadOnly.vue", () => ({ default: WidgetReadOnlyStub }));
 
 let ModelActionForm, vue;
@@ -123,6 +164,7 @@ function mountModelActionForm(options = {}) {
             transformSubmitDataFn: options.transformSubmitDataFn,
             requestMethod: options.requestMethod,
             enableDryRun: options.enableDryRun,
+            confirmText: options.confirmText,
         },
         slots: options.slots,
         global: {
@@ -138,7 +180,7 @@ describe("lib/components/ModelActionForm.vue", () => {
         ModelActionForm = (await import("@vueda/components/ModelActionForm.vue")).default;
         mockedUseModelConfig.mockClear();
         mockedUseTheme.mockClear();
-        toastAdd.mockClear();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         getListUrl.mockClear();
         getDetailUrl.mockClear();
@@ -160,6 +202,16 @@ describe("lib/components/ModelActionForm.vue", () => {
             const message = wrapper.get('[data-qa="action-form-message"]').text();
             expect(message).toContain("Are you sure you want to activate the selected People?");
             expect(mockedUseTheme).toHaveBeenCalledWith("ModelActionForm", expect.any(Object));
+        });
+
+        scopedIt("tags the selected-objects container with neutral tone and renders pk chips", () => {
+            const { wrapper } = mountModelActionForm();
+            const container = wrapper.get('[data-qa="action-form-selected-objects"]');
+            expect(container.attributes("data-tone")).toBe("neutral");
+            const pkChips = wrapper.findAll('[data-qa="action-form-list-item-pk"]');
+            expect(pkChips).toHaveLength(2);
+            expect(pkChips[0].text()).toBe("1");
+            expect(pkChips[1].text()).toBe("2");
         });
 
         scopedIt("shows loading placeholder when fetchState.loading", () => {
@@ -325,6 +377,63 @@ describe("lib/components/ModelActionForm.vue", () => {
                 name: LIST_VIEW_CRUD_NAME,
                 params: { app: "app", model: "person", action: "list" },
             });
+        });
+    });
+
+    describe("Typed-confirm gating", () => {
+        scopedIt("omits the TypedConfirmField when confirmText is not set", () => {
+            const { wrapper } = mountModelActionForm();
+            expect(wrapper.find('[data-slot="typed-confirm-field"]').exists()).toBe(false);
+        });
+
+        scopedIt("renders the TypedConfirmField when confirmText is set", () => {
+            const { wrapper } = mountModelActionForm({ confirmText: "delete 2 people" });
+            const field = wrapper.get('[data-slot="typed-confirm-field"]');
+            expect(field.attributes("data-match")).toBe("false");
+            expect(wrapper.get('[data-qa="typed-confirm-field-chip"]').text()).toBe("delete 2 people");
+        });
+
+        scopedIt("keeps the default confirm button disabled until the typed value matches", async () => {
+            const { wrapper } = mountModelActionForm({ confirmText: "delete 2 people" });
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            expect(button.attributes("disabled")).toBeDefined();
+
+            const input = wrapper.get('[data-qa="typed-confirm-field-input"]');
+            await input.setValue("delete");
+            expect(button.attributes("disabled")).toBeDefined();
+
+            await input.setValue("delete 2 people");
+            expect(button.attributes("disabled")).toBeUndefined();
+            expect(wrapper.get('[data-slot="typed-confirm-field"]').attributes("data-match")).toBe("true");
+        });
+
+        scopedIt("re-disables when the typed value drifts back out of match", async () => {
+            const { wrapper } = mountModelActionForm({ confirmText: "delete 2 people" });
+            const input = wrapper.get('[data-qa="typed-confirm-field-input"]');
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+
+            await input.setValue("delete 2 people");
+            expect(button.attributes("disabled")).toBeUndefined();
+
+            await input.setValue("delete 2 peopl");
+            expect(button.attributes("disabled")).toBeDefined();
+        });
+
+        scopedIt("forwards a parent confirm-button slot with augmented disabled", async () => {
+            const { wrapper } = mountModelActionForm({
+                confirmText: "yes",
+                slots: {
+                    "confirm-button": `<template #confirm-button="{ disabled, label }">
+                        <button data-qa="custom-confirm" :disabled="disabled || undefined">{{ label }}</button>
+                    </template>`,
+                },
+            });
+            const custom = wrapper.get('[data-qa="custom-confirm"]');
+            expect(custom.text()).toBe("Yes, continue");
+            expect(custom.attributes("disabled")).toBeDefined();
+
+            await wrapper.get('[data-qa="typed-confirm-field-input"]').setValue("yes");
+            expect(custom.attributes("disabled")).toBeUndefined();
         });
     });
 });

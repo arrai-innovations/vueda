@@ -1,7 +1,7 @@
 ---
 title: Filtering and Ordering Semantics
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

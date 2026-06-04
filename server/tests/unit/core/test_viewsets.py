@@ -146,41 +146,14 @@ class TestProductViewSet(BaseTestModelViewSet):
     def update_expected_create_response(self, expected_create_response, new_instance):
         super().update_expected_create_response(expected_create_response, new_instance)
         expected_create_response["formatted_name"] = expected_create_response["name"]
-        expected_create_response["available_actions"] = [
-            "list",
-            "retrieve",
-            "update",
-            "partial_update",
-            "destroy",
-            "current",
-            "history-list",
-        ]
 
     def update_expected_retrieve_response(self, expected_retrieve_response, instance):
         super().update_expected_retrieve_response(expected_retrieve_response, instance)
         expected_retrieve_response["formatted_name"] = expected_retrieve_response["name"]
-        expected_retrieve_response["available_actions"] = [
-            "list",
-            "retrieve",
-            "update",
-            "partial_update",
-            "destroy",
-            "current",
-            "history-list",
-        ]
 
     def update_expected_update_response(self, expected_update_response, updated_instance):
         super().update_expected_update_response(expected_update_response, updated_instance)
         expected_update_response["formatted_name"] = expected_update_response["name"]
-        expected_update_response["available_actions"] = [
-            "list",
-            "retrieve",
-            "update",
-            "partial_update",
-            "destroy",
-            "current",
-            "history-list",
-        ]
 
     def test_list_with_invalid_filter_returns_400(self, page_data, authenticated_client, list_querystring):
         list_querystring["nonexistent_filter"] = "value"
@@ -264,10 +237,8 @@ class TestProductViewSet(BaseTestModelViewSet):
                 expected_retrieve_response["current_history_id"] = first_history_entry[key]
                 first_history_entry["current_history_id"] = first_history_entry[key]
             del first_history_entry[key]
-        # Now these three dictionaries are mostly the same.
+        # Now these three dictionaries are the same.
         assert expected_retrieve_response == response.data
-        # Except that there are no available_actions in history.
-        del expected_retrieve_response["available_actions"]
         assert first_history_entry == expected_retrieve_response
 
     def test_bulk_destroy_without_delete_permission(self, page_data, authenticated_client):
@@ -416,7 +387,6 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
             "order_state",
             "shipping_method",
             "formatted_name",
-            "available_actions",
             "current_history_id",
             "valid_transitions",
             "workflow_state_code",
@@ -617,15 +587,6 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         period_end = instance.period_end
         formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
         expected_retrieve_response["formatted_name"] = formatted_name
-        expected_retrieve_response["available_actions"] = [
-            "list",
-            "retrieve",
-            "update",
-            "partial_update",
-            "destroy",
-            "current",
-            "history-list",
-        ]
 
     def update_expected_update_response(self, expected_update_response, updated_instance):
         super().update_expected_update_response(expected_update_response, updated_instance)
@@ -636,7 +597,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         expected_update_response["formatted_name"] = formatted_name
 
     def test_list_with_valid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id", "formatted_name", "available_actions"}.union(self.list_keys_arguments)
+        keys = {"id", "current_history_id", "formatted_name"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):

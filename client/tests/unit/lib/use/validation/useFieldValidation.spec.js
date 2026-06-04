@@ -28,6 +28,13 @@ describe("lib/use/validation/useFieldValidation.js", () => {
         expect(ctx.updateError).toHaveBeenCalledWith("maxValue", "Must be 5 or less.");
     });
 
+    scopedIt("dispatches to decimal validation with coercion", async () => {
+        const ctx = makeFieldContext("10");
+        useFieldValidation("decimal", ctx, { maxValue: 5 });
+        await nextTick();
+        expect(ctx.updateError).toHaveBeenCalledWith("maxValue", "Must be 5 or less.");
+    });
+
     scopedIt("dispatches to date validation with dateOnly", async () => {
         const ctx = makeFieldContext("2024-05-11");
         useFieldValidation("date", ctx, { maxValue: "2024-05-10" });

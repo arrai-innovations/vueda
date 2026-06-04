@@ -1,11 +1,17 @@
 <script setup>
+import Button from "@vueda/controls/button/Button.vue";
+import Pagination from "@vueda/navigation/pagination/Pagination.vue";
+import PaginationContent from "@vueda/navigation/pagination/PaginationContent.vue";
+import PaginationFirst from "@vueda/navigation/pagination/PaginationFirst.vue";
+import PaginationLast from "@vueda/navigation/pagination/PaginationLast.vue";
+import PaginationNext from "@vueda/navigation/pagination/PaginationNext.vue";
+import PaginationPrevious from "@vueda/navigation/pagination/PaginationPrevious.vue";
+import "@vueda/theme/vueda-tailwind/navigation/PaginationComponent.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import Button from "primevue/button";
-import Paginator from "primevue/paginator";
-import { computed, ref } from "vue";
+import { computed } from "vue";
 
 /**
- * Pagination bar that combines a PrimeVue Paginator with a total-record count display and a "Show All Pages" button.
+ * Pagination bar that combines a Pagination with a total-record count display and a "Show All Pages" button.
  */
 defineOptions({});
 
@@ -59,16 +65,18 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const offset = ref(0);
-const onPaginate = async (page) => {
-    emit("update:currentPage", page.first / page.rows + 1);
-};
+
+const page = computed({
+    get: () => props.currentPage,
+    set: (value) => emit("update:currentPage", value),
+});
 const theme = useTheme("PaginationComponent", props);
-const currentPageReportTemplate = computed(() => {
+const currentPageReport = computed(() => {
     if (props.loading) {
-        return "{currentPage} of ?";
+        return `${props.currentPage} of ?`;
     }
-    return "{currentPage} of {totalPages}";
+    const pageCount = Math.max(1, Math.ceil(props.totalRecords / (props.rows || 1)));
+    return `${props.currentPage} of ${pageCount}`;
 });
 const handleShowAllPagesClick = () => {
     emit("update:showingAllPages", true);
@@ -76,7 +84,7 @@ const handleShowAllPagesClick = () => {
 </script>
 
 <template>
-    <div :class="theme('root')">
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
         <!-- Total record count area; receives `totalRecords`, `loading`, and `showTotalRecordNum` as slot props. -->
         <slot
             name="total-records"
@@ -88,17 +96,22 @@ const handleShowAllPagesClick = () => {
                 {{ loading ? "" : `${totalRecords} total results` }}
             </span>
         </slot>
-        <Paginator
+        <Pagination
             v-if="!showingAllPages"
-            v-model:first="offset"
+            v-model:page="page"
             :class="theme('paginator')"
-            :current-page-report-template="currentPageReportTemplate"
-            :rows="loading ? 1 : rows"
-            template="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
-            :total-records="loading ? offset + 1 : totalRecords"
-            @page="onPaginate"
+            :total="loading ? 0 : totalRecords"
+            :items-per-page="rows"
+            :disabled="loading"
         >
-        </Paginator>
+            <PaginationContent>
+                <PaginationFirst />
+                <PaginationPrevious />
+                <span :class="theme('pageReport')">{{ currentPageReport }}</span>
+                <PaginationNext />
+                <PaginationLast />
+            </PaginationContent>
+        </Pagination>
         <!-- "Show All Pages" button area; receives `allowShowAllPages`, `showingAllPages`, and a click handler as slot props. -->
         <slot
             name="show-all-pages"
@@ -109,7 +122,7 @@ const handleShowAllPagesClick = () => {
             <Button
                 v-if="allowShowAllPages && !showingAllPages && totalRecords > rows"
                 type="button"
-                variant="text"
+                variant="ghost"
                 @click="handleShowAllPagesClick"
             >
                 Show All Pages
@@ -117,5 +130,3 @@ const handleShowAllPagesClick = () => {
         </slot>
     </div>
 </template>
-
-<style scoped></style>

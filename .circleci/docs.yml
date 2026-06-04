@@ -43,8 +43,6 @@ jobs:
                   token: $NPM_ARRAI_DEV_TOKEN
                   scopes: |
                       @arrai-innovations:registry=https://npm.arrai.dev/
-                      @fortawesome:registry=https://npm.arrai.dev/
-                      @awesome.me:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
@@ -118,8 +116,6 @@ jobs:
                   token: $NPM_ARRAI_DEV_TOKEN
                   scopes: |
                       @arrai-innovations:registry=https://npm.arrai.dev/
-                      @fortawesome:registry=https://npm.arrai.dev/
-                      @awesome.me:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
@@ -141,9 +137,8 @@ jobs:
             - run:
                   name: Render API Documentation
                   command: |
-                      rm -rf docs/reference/api
                       mkdir -p docs/reference/api
-                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render
             - run:
                   name: Validate Documentation References
                   command: |
@@ -181,8 +176,6 @@ jobs:
                   token: $NPM_ARRAI_DEV_TOKEN
                   scopes: |
                       @arrai-innovations:registry=https://npm.arrai.dev/
-                      @fortawesome:registry=https://npm.arrai.dev/
-                      @awesome.me:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
@@ -204,19 +197,19 @@ jobs:
             - run:
                   name: Render API Documentation
                   command: |
-                      rm -rf docs/reference/api
                       mkdir -p docs/reference/api
-                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render
             - run:
                   name: Build VitePress Site
                   command: |
                       rm -rf docs/.vitepress/.temp docs/.vitepress/cache
-                      cd docs && VITEPRESS_BASE="/vueda/documentation/$CIRCLE_TAG/" pnpm exec vitepress build
+                      cd docs && NODE_OPTIONS=--max-old-space-size=4096 VITEPRESS_BASE="/vueda/documentation/$CIRCLE_TAG/" pnpm exec vitepress build
             - run:
                   name: Stage Documentation for Deploy
                   command: |
                       mkdir -p -m 0750 publish/$CIRCLE_TAG/
                       cp -r site/* publish/$CIRCLE_TAG/
+                      ./scripts/version-manifest.sh docs publish/artifacts/versions/$CIRCLE_TAG.json
             - utils/rsync_folder:
                   when: on_success
                   folder: ~/project/publish/

@@ -1,5 +1,6 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import "@vueda/theme/vueda-tailwind/form/FormModel.theme.js";
 import { useFieldRenderer } from "@vueda/use/useFieldRenderer.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
@@ -90,6 +91,7 @@ const fieldInnerClass = theme("fieldInner");
 </script>
 
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root; this component is a renderless <slot> pass-through with no root element to style. -->
     <!-- @slot [field(fieldName)] Override the entire rendered output for a specific field; receives all field and widget context as bindings. -->
     <slot
         :field-class="fieldClass"

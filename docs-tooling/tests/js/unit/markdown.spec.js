@@ -210,4 +210,23 @@ describe("formatMembers", () => {
         const rows = formatMembers([{ kind: "prop", name: "x" }], "prop");
         expect(rows[0][1]).toBe("");
     });
+
+    it("wraps the default column in inline code so raw expressions cannot be parsed as HTML", () => {
+        const rows = formatMembers(
+            [
+                {
+                    kind: "prop",
+                    name: "slowAfterMs",
+                    default: '() => { if (typeof window === "undefined") return 3000; }',
+                },
+            ],
+            "prop",
+        );
+        expect(rows[0][3]).toBe('`() => { if (typeof window === "undefined") return 3000; }`');
+    });
+
+    it("leaves the default column empty when no default is present", () => {
+        const rows = formatMembers([{ kind: "prop", name: "x" }], "prop");
+        expect(rows[0][3]).toBe("");
+    });
 });

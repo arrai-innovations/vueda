@@ -14,7 +14,9 @@ from vueda.history.fields import filter_fields_for_flexlike_on_historical_record
 
 
 class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
-    current_history_id = drf_serializers.IntegerField(read_only=True, label="Current History ID")
+    current_history_id = drf_serializers.IntegerField(
+        read_only=True, label="Current History ID", style={"hidden": True}
+    )
 
     class Meta:
         fields = ["current_history_id"]
@@ -226,6 +228,8 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
                         field["required"] = False
                     if "choices" not in field:
                         field["choices"] = False
+                    if "hidden" not in field:
+                        field["hidden"] = False
 
         return expandable_fields
 

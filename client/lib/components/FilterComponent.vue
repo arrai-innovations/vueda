@@ -1,18 +1,21 @@
 <script setup>
 import { assignReactiveObject, deepUnref } from "@arrai-innovations/reactive-helpers";
 import FilterForm from "@vueda/components/FilterForm.vue";
+import ButtonGroup from "@vueda/controls/button-group/ButtonGroup.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import Popover from "@vueda/shell/popover/Popover.vue";
+import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
+import "@vueda/theme/vueda-tailwind/form/FilterComponent.theme.js";
 import { useFilterField } from "@vueda/use/useFilterForm.js";
 import { useForm } from "@vueda/use/useForm.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { useModelChoices } from "@vueda/use/useModelChoices.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FilterModelSymbol } from "@vueda/utils/symbols.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isObject from "lodash-es/isObject.js";
-import Button from "primevue/button";
-import ButtonGroup from "primevue/buttongroup";
-import Popover from "primevue/popover";
-import { computed, inject, reactive, ref, toRef, useSlots, useTemplateRef, watch } from "vue";
+import { computed, inject, reactive, ref, toRef, useSlots, watch } from "vue";
 
 /**
  * Renders a single filterable field as a button-triggered popover. The button
@@ -100,7 +103,6 @@ const formContext = useForm({
 
 // TODO: this is built assuming each filter field has only one lookup expression
 const emit = defineEmits(["hide-filter-form"]);
-const popoverRef = useTemplateRef("popoverRef");
 const addedFilters = defineModel({
     type: Object,
     required: true,
@@ -142,9 +144,6 @@ const doToggle = (event) => {
         event.preventDefault();
     }
     internalShowState.value = !internalShowState.value;
-    if (!slots[resolvedSlotNames.formPopover.name] && popoverRef.value) {
-        popoverRef.value.toggle(event);
-    }
 };
 
 const filterFormValue = computed(() => formContext.state?.submittingValues?.[props.filterName]);
@@ -259,9 +258,6 @@ const applyFilter = () => {
     }
     internalShowState.value = false;
     emit("hide-filter-form", props.filterName);
-    if (!slots[resolvedSlotNames.formPopover.name] && popoverRef.value) {
-        popoverRef.value.hide();
-    }
 };
 
 const isRangeObjectEmpty = (rangeObject) => {
@@ -288,6 +284,7 @@ const theme = useTheme(
         errored: toRef(props, "errored"),
     }),
 );
+const icon = useIcons("FilterComponent");
 
 watch(
     toRef(formState, "initialValues"),
@@ -304,8 +301,8 @@ watch(
 </script>
 
 <template>
-    <div>
-        <ButtonGroup size="small">
+    <div :style="theme.hideStyle?.value">
+        <ButtonGroup>
             <!-- @slot [filter-clear-button, filter-clear-button(filterName)] Replaces the clear-filter button shown when a filter value is active. -->
             <slot
                 :class="theme('clearButton')"
@@ -316,31 +313,26 @@ watch(
                 :label="computedFilterLabel"
                 :name="resolvedSlotNames.clearButton.name"
                 :remove-filter="removeFilter"
-                severity="warn"
+                variant="outline"
                 :show-state="internalShowState"
             >
-                <Button
-                    v-if="hasFilterValue"
-                    rounded
-                    severity="warn"
-                    size="small"
-                    variant="outlined"
-                    @click.prevent="removeFilter"
-                >
-                    <template #icon>
-                        <!-- @slot [filter-clear-button-icon, filter-clear-button-icon(filterName)] Icon inside the clear-filter button. -->
-                        <slot
-                            class="p-button-icon p-button-icon-left"
-                            :filter-details="filterDetails"
-                            :filter-name="filterName"
-                            :has-filter-value="hasFilterValue"
-                            :name="resolvedSlotNames.clearButtonIcon.name"
-                            :remove-filter="removeFilter"
-                            :show-state="internalShowState"
-                        >
-                            <span class="p-button-icon p-button-icon-left"> ✖️ </span>
-                        </slot>
-                    </template>
+                <Button v-if="hasFilterValue" variant="outline" size="sm" @click.prevent="removeFilter">
+                    <!-- @slot [filter-clear-button-icon, filter-clear-button-icon(filterName)] Icon inside the clear-filter button. -->
+                    <slot
+                        :filter-details="filterDetails"
+                        :filter-name="filterName"
+                        :has-filter-value="hasFilterValue"
+                        :name="resolvedSlotNames.clearButtonIcon.name"
+                        :remove-filter="removeFilter"
+                        :show-state="internalShowState"
+                    >
+                        <component
+                            :is="icon('close').component"
+                            v-if="icon('close')"
+                            v-bind="icon('close').props"
+                            aria-hidden="true"
+                        />
+                    </slot>
                 </Button>
             </slot>
             <!-- @slot [filter-dropdown-button, filter-dropdown-button(filterName)] Replaces the dropdown trigger button for this filter. -->
@@ -352,64 +344,63 @@ watch(
                 :label="computedFilterLabel"
                 :name="resolvedSlotNames.dropdownButton.name"
                 :remove-filter="removeFilter"
-                severity="info"
+                variant="outline"
                 :show-state="internalShowState"
                 @click="doToggle"
             >
-                <Button
-                    :class="theme('dropdownButton')"
-                    :label="computedFilterLabel"
-                    rounded
-                    severity="info"
-                    size="small"
-                    variant="outlined"
-                    @click="doToggle"
-                >
-                    <template #default>
-                        <!-- primevue passes nothing via their button default slot... -->
-                        <!-- when using the default slot, they don't render the icon slot... -->
-                        <!-- @slot [filter-dropdown-button-icon, filter-dropdown-button-icon(filterName)] Icon inside the dropdown button, shown when no filter value is set. -->
-                        <slot
-                            v-if="!hasFilterValue"
-                            class="p-button-icon p-button-icon-left"
-                            :filter-details="filterDetails"
-                            :filter-name="filterName"
-                            :has-filter-value="hasFilterValue"
-                            :name="resolvedSlotNames.dropdownButtonIcon.name"
-                            :remove-filter="removeFilter"
-                            :show-state="internalShowState"
-                        >
-                            <span class="p-button-icon p-button-icon-left"> ➕ </span>
-                        </slot>
-                        <!-- @slot [filter-dropdown-button-label, filter-dropdown-button-label(filterName)] Label text inside the dropdown button. -->
-                        <slot
-                            class="p-button-label"
-                            :filter-details="filterDetails"
-                            :filter-name="filterName"
-                            :has-filter-value="hasFilterValue"
-                            :label="computedFilterLabel"
-                            :name="resolvedSlotNames.dropdownButtonLabel.name"
-                            :show-state="internalShowState"
-                        >
-                            <span class="p-button-label">
-                                {{ computedFilterLabel }}
-                            </span>
-                        </slot>
-                        <!-- @slot [filter-dropdown-button-suffix, filter-dropdown-button-suffix(filterName)] Suffix indicator (expand/collapse arrow) inside the dropdown button. -->
-                        <slot
-                            class="p-button-label"
-                            :filter-details="filterDetails"
-                            :filter-name="filterName"
-                            :has-filter-value="hasFilterValue"
-                            :label="computedFilterLabel"
-                            :name="resolvedSlotNames.dropdownButtonSuffix.name"
-                            :show-state="internalShowState"
-                        >
-                            <span class="p-button-label">
-                                {{ hasFilterValue ? (internalShowState ? "▲" : "▼") : "" }}
-                            </span>
-                        </slot>
-                    </template>
+                <Button :class="theme('dropdownButton')" variant="outline" size="sm" @click="doToggle">
+                    <!-- @slot [filter-dropdown-button-icon, filter-dropdown-button-icon(filterName)] Icon inside the dropdown button, shown when no filter value is set. -->
+                    <slot
+                        v-if="!hasFilterValue"
+                        :filter-details="filterDetails"
+                        :filter-name="filterName"
+                        :has-filter-value="hasFilterValue"
+                        :name="resolvedSlotNames.dropdownButtonIcon.name"
+                        :remove-filter="removeFilter"
+                        :show-state="internalShowState"
+                    >
+                        <component
+                            :is="icon('plus').component"
+                            v-if="icon('plus')"
+                            v-bind="icon('plus').props"
+                            aria-hidden="true"
+                        />
+                    </slot>
+                    <!-- @slot [filter-dropdown-button-label, filter-dropdown-button-label(filterName)] Label text inside the dropdown button. -->
+                    <slot
+                        :filter-details="filterDetails"
+                        :filter-name="filterName"
+                        :has-filter-value="hasFilterValue"
+                        :label="computedFilterLabel"
+                        :name="resolvedSlotNames.dropdownButtonLabel.name"
+                        :show-state="internalShowState"
+                    >
+                        <span>{{ computedFilterLabel }}</span>
+                    </slot>
+                    <!-- @slot [filter-dropdown-button-suffix, filter-dropdown-button-suffix(filterName)] Suffix indicator (expand/collapse arrow) inside the dropdown button. -->
+                    <slot
+                        :filter-details="filterDetails"
+                        :filter-name="filterName"
+                        :has-filter-value="hasFilterValue"
+                        :label="computedFilterLabel"
+                        :name="resolvedSlotNames.dropdownButtonSuffix.name"
+                        :show-state="internalShowState"
+                    >
+                        <template v-if="hasFilterValue">
+                            <component
+                                :is="icon('caretUp').component"
+                                v-if="internalShowState && icon('caretUp')"
+                                v-bind="icon('caretUp').props"
+                                aria-hidden="true"
+                            />
+                            <component
+                                :is="icon('caretDown').component"
+                                v-else-if="icon('caretDown')"
+                                v-bind="icon('caretDown').props"
+                                aria-hidden="true"
+                            />
+                        </template>
+                    </slot>
                 </Button>
             </slot>
         </ButtonGroup>
@@ -422,33 +413,28 @@ watch(
             :name="resolvedSlotNames.formPopover.name"
             :show-state="internalShowState"
         >
-            <Popover
-                ref="popoverRef"
-                :apply-filter="onApplyFilter"
-                :class="theme('formPopover')"
-                :filter-details="filterDetails"
-                :filter-name="filterName"
-                :has-filter-value="hasFilterValue"
-            >
-                <!-- @slot [filter-form, filter-form(filterName)] Replaces the filter form body inside the popover. -->
-                <slot
-                    :apply-filter="onApplyFilter"
-                    :filter-details="filterDetails"
-                    :filter-name="filterName"
-                    :has-filter-value="hasFilterValue"
-                    :name="resolvedSlotNames.form.name"
-                >
-                    <FilterForm
-                        :filter-name="filterName"
-                        :filter-label="props.filterDetails.label ?? props.filterName"
+            <Popover v-model:open="internalShowState">
+                <PopoverContent :class="theme('formPopover')">
+                    <!-- @slot [filter-form, filter-form(filterName)] Replaces the filter form body inside the popover. -->
+                    <slot
                         :apply-filter="onApplyFilter"
+                        :filter-details="filterDetails"
+                        :filter-name="filterName"
                         :has-filter-value="hasFilterValue"
+                        :name="resolvedSlotNames.form.name"
                     >
-                        <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
-                            <slot :name="slotName" v-bind="slotProps || {}" />
-                        </template>
-                    </FilterForm>
-                </slot>
+                        <FilterForm
+                            :filter-name="filterName"
+                            :filter-label="props.filterDetails.label ?? props.filterName"
+                            :apply-filter="onApplyFilter"
+                            :has-filter-value="hasFilterValue"
+                        >
+                            <template v-for="slotName in remainingSlotNames" #[slotName]="slotProps">
+                                <slot :name="slotName" v-bind="slotProps || {}" />
+                            </template>
+                        </FilterForm>
+                    </slot>
+                </PopoverContent>
             </Popover>
         </slot>
     </div>

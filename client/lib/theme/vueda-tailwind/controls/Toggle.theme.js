@@ -1,0 +1,40 @@
+/**
+ * @module theme/vueda-tailwind/controls/Toggle.theme
+ *
+ * Per-component theme registration for Toggle. Imported as a side effect by
+ * its consuming SFC, so a route chunk that pulls only that SFC drags only this
+ * component's theme entry, not the entire controls family.
+ *
+ * Prototype-phase duplication: this entry mirrors the Toggle slice of
+ * controls/index.js, which remains the docs-tooling source of truth until the
+ * extractor learns to walk *.theme.js files. Under the legacy
+ * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
+ * identical data.
+ */
+import { patchTheme } from "@vueda/use/themeRegistry.js";
+
+patchTheme({
+    /**
+     * A button-shaped on/off control. Differs from Button in that the pressed
+     * state is a neutral "this view is active" affordance (`--accent`), not a
+     * CTA (`--primary`).
+     */
+    Toggle: {
+        /** The on/off button shell. Reads as a Button shape (control radius, `text-sm font-medium`, 16px icon) but the pressed state (`data-state=on`) paints `--accent` instead of `--primary` so a pressed toggle does not compete with a CTA on the same surface. Two variants (default, `outline`) and three size tiers ride the shared `h-vueda-control*` scale; `min-w-vueda-control*` keeps a single-icon toggle square. */
+        root: ({ variant, size }) => ({
+            class: [
+                "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:hairline-ring focus-visible:focus-ring-shadow transition-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive whitespace-nowrap",
+                {
+                    "bg-transparent": !variant || variant === "default",
+                    "border border-input bg-transparent shadow-vueda-control hover:bg-accent hover:text-accent-foreground":
+                        variant === "outline",
+                },
+                {
+                    "h-vueda-control px-2 min-w-vueda-control": !size || size === "default",
+                    "h-vueda-control-sm px-1.5 min-w-vueda-control-sm": size === "sm",
+                    "h-vueda-control-lg px-2.5 min-w-vueda-control-lg": size === "lg",
+                },
+            ],
+        }),
+    },
+});

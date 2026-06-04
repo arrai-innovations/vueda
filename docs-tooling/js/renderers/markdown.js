@@ -134,7 +134,11 @@ export function formatMembers(members, kindLabel = "property") {
             member.name || "",
             renderCodeInline(labelFromType(member.type)),
             member.required === true ? "yes" : member.required === false ? "no" : "",
-            member.default || "",
+            // Wrap defaults in inline code (like the type column). A raw default
+            // such as a multi-line arrow-function getter would otherwise be parsed
+            // as inline HTML by VitePress and break the Vue compiler (duplicate
+            // attribute) when the markdown is rendered.
+            renderCodeInline(member.default),
             member.description || "",
         ]);
 }

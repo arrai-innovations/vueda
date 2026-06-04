@@ -1,0 +1,182 @@
+/**
+ * @module theme/vueda-tailwind/navigation
+ * @description Tailwind CSS theme configuration for VUEDA Client navigation primitives.
+ */
+import "./Breadcrumb.theme.js";
+import "./BreadcrumbEllipsis.theme.js";
+import "./BreadcrumbItem.theme.js";
+import "./BreadcrumbLink.theme.js";
+import "./BreadcrumbList.theme.js";
+import "./BreadcrumbPage.theme.js";
+import "./BreadcrumbSeparator.theme.js";
+import "./ContextMenuCheckboxItem.theme.js";
+import "./ContextMenuContent.theme.js";
+import "./ContextMenuGroup.theme.js";
+import "./ContextMenuItem.theme.js";
+import "./ContextMenuLabel.theme.js";
+import "./ContextMenuRadioGroup.theme.js";
+import "./ContextMenuRadioItem.theme.js";
+import "./ContextMenuSeparator.theme.js";
+import "./ContextMenuShortcut.theme.js";
+import "./ContextMenuSubContent.theme.js";
+import "./ContextMenuSubTrigger.theme.js";
+import "./ContextMenuTrigger.theme.js";
+import "./DropdownMenuCheckboxItem.theme.js";
+import "./DropdownMenuContent.theme.js";
+import "./DropdownMenuGroup.theme.js";
+import "./DropdownMenuItem.theme.js";
+import "./DropdownMenuLabel.theme.js";
+import "./DropdownMenuRadioGroup.theme.js";
+import "./DropdownMenuRadioItem.theme.js";
+import "./DropdownMenuSeparator.theme.js";
+import "./DropdownMenuShortcut.theme.js";
+import "./DropdownMenuSubContent.theme.js";
+import "./DropdownMenuSubTrigger.theme.js";
+import "./DropdownMenuTrigger.theme.js";
+import "./Menubar.theme.js";
+import "./MenubarCheckboxItem.theme.js";
+import "./MenubarContent.theme.js";
+import "./MenubarGroup.theme.js";
+import "./MenubarItem.theme.js";
+import "./MenubarLabel.theme.js";
+import "./MenubarRadioGroup.theme.js";
+import "./MenubarRadioItem.theme.js";
+import "./MenubarSeparator.theme.js";
+import "./MenubarShortcut.theme.js";
+import "./MenubarSubContent.theme.js";
+import "./MenubarSubTrigger.theme.js";
+import "./MenubarTrigger.theme.js";
+import "./NavigationMenu.theme.js";
+import "./NavigationMenuContent.theme.js";
+import "./NavigationMenuIndicator.theme.js";
+import "./NavigationMenuItem.theme.js";
+import "./NavigationMenuLink.theme.js";
+import "./NavigationMenuList.theme.js";
+import "./NavigationMenuTrigger.theme.js";
+import "./NavigationMenuViewport.theme.js";
+import "./NavigationPaginationBar.theme.js";
+import "./NavigationPaginationNavButton.theme.js";
+import "./Pagination.theme.js";
+import "./PaginationComponent.theme.js";
+import "./PaginationContent.theme.js";
+import "./PaginationEllipsis.theme.js";
+import "./PaginationItem.theme.js";
+import "./PaginationMeta.theme.js";
+import "./Sidebar.theme.js";
+import "./SidebarContent.theme.js";
+import "./SidebarFooter.theme.js";
+import "./SidebarGroup.theme.js";
+import "./SidebarGroupAction.theme.js";
+import "./SidebarGroupContent.theme.js";
+import "./SidebarGroupLabel.theme.js";
+import "./SidebarHeader.theme.js";
+import "./SidebarInput.theme.js";
+import "./SidebarInset.theme.js";
+import "./SidebarMenu.theme.js";
+import "./SidebarMenuAction.theme.js";
+import "./SidebarMenuBadge.theme.js";
+import "./SidebarMenuButtonChild.theme.js";
+import "./SidebarMenuItem.theme.js";
+import "./SidebarMenuSkeleton.theme.js";
+import "./SidebarMenuSub.theme.js";
+import "./SidebarMenuSubButton.theme.js";
+import "./SidebarMenuSubItem.theme.js";
+import "./SidebarProvider.theme.js";
+import "./SidebarRail.theme.js";
+import "./SidebarSeparator.theme.js";
+import "./SidebarTrigger.theme.js";
+import "./SidebarUserBlock.theme.js";
+
+export default {
+    // ---------- Breadcrumb ----------
+    Breadcrumb: {},
+    BreadcrumbList: {},
+    BreadcrumbItem: {},
+    BreadcrumbLink: {},
+    BreadcrumbPage: {},
+    BreadcrumbSeparator: {},
+    BreadcrumbEllipsis: {},
+    // ---------- Dropdown Menu ----------
+    DropdownMenuGroup: {},
+    DropdownMenuRadioGroup: {},
+    DropdownMenuTrigger: {},
+    DropdownMenuContent: {},
+    DropdownMenuItem: {},
+    DropdownMenuCheckboxItem: {},
+    DropdownMenuRadioItem: {},
+    DropdownMenuLabel: {},
+    DropdownMenuSeparator: {},
+    DropdownMenuShortcut: {},
+    DropdownMenuSubTrigger: {},
+    DropdownMenuSubContent: {},
+    // ---------- Context Menu ----------
+    ContextMenuGroup: {},
+    ContextMenuRadioGroup: {},
+    ContextMenuTrigger: {},
+    ContextMenuContent: {},
+    ContextMenuItem: {},
+    ContextMenuCheckboxItem: {},
+    ContextMenuRadioItem: {},
+    ContextMenuLabel: {},
+    ContextMenuSeparator: {},
+    ContextMenuShortcut: {},
+    ContextMenuSubTrigger: {},
+    ContextMenuSubContent: {},
+    // ---------- Menubar ----------
+    MenubarGroup: {},
+    MenubarRadioGroup: {},
+    Menubar: {},
+    MenubarTrigger: {},
+    MenubarContent: {},
+    MenubarItem: {},
+    MenubarCheckboxItem: {},
+    MenubarRadioItem: {},
+    MenubarLabel: {},
+    MenubarSeparator: {},
+    MenubarShortcut: {},
+    MenubarSubTrigger: {},
+    MenubarSubContent: {},
+    // ---------- Navigation Menu ----------
+    NavigationMenu: {},
+    NavigationMenuList: {},
+    NavigationMenuItem: {},
+    NavigationMenuTrigger: {},
+    NavigationMenuContent: {},
+    NavigationMenuLink: {},
+    NavigationMenuIndicator: {},
+    NavigationMenuViewport: {},
+    // ---------- Pagination ----------
+    PaginationItem: {},
+    NavigationPaginationNavButton: {},
+    PaginationContent: {},
+    PaginationEllipsis: {},
+    Pagination: {},
+    NavigationPaginationBar: {},
+    PaginationMeta: {},
+    PaginationComponent: {},
+    // ---------- Sidebar ----------
+    SidebarContent: {},
+    SidebarFooter: {},
+    SidebarUserBlock: {},
+    SidebarGroupContent: {},
+    SidebarGroup: {},
+    SidebarHeader: {},
+    SidebarInput: {},
+    SidebarMenuItem: {},
+    SidebarMenuSub: {},
+    SidebarMenuSubItem: {},
+    SidebarMenu: {},
+    SidebarGroupAction: {},
+    SidebarGroupLabel: {},
+    SidebarInset: {},
+    SidebarMenuBadge: {},
+    SidebarRail: {},
+    SidebarSeparator: {},
+    SidebarTrigger: {},
+    SidebarMenuAction: {},
+    SidebarMenuSubButton: {},
+    SidebarMenuSkeleton: {},
+    SidebarProvider: {},
+    Sidebar: {},
+    SidebarMenuButtonChild: {},
+};

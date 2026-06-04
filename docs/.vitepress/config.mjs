@@ -6,6 +6,7 @@ import {
     stripInlineMarkdown,
 } from "../../docs-tooling/js/utils/reference-parser.js";
 import { slugify } from "../../docs-tooling/js/utils/slugify.js";
+import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -95,15 +96,20 @@ const buildGlossaryIndex = () => {
     return index;
 };
 
-const apiPathForFile = (filePath) => {
-    const rel = path.relative(apiRoot, filePath).split(path.sep).join("/");
+const referenceRoots = [
+    { root: apiRoot, urlPrefix: "/reference/api/" },
+    { root: path.join(docsRoot, "reference", "theming"), urlPrefix: "/reference/theming/" },
+];
+
+const pathForFile = (filePath, root, urlPrefix) => {
+    const rel = path.relative(root, filePath).split(path.sep).join("/");
     if (rel.endsWith("/index.md")) {
-        return `/reference/api/${rel.slice(0, -"index.md".length)}`;
+        return `${urlPrefix}${rel.slice(0, -"index.md".length)}`;
     }
     if (rel === "index.md") {
-        return "/reference/api/";
+        return urlPrefix;
     }
-    return `/reference/api/${rel}`;
+    return `${urlPrefix}${rel}`;
 };
 
 const memberNameFromId = (memberId) => {
@@ -113,38 +119,40 @@ const memberNameFromId = (memberId) => {
 
 const buildApiIndex = () => {
     const index = new Map();
-    if (!fs.existsSync(apiRoot)) {
-        return index;
-    }
-    const files = walkFiles(apiRoot).filter((file) => file.endsWith(".md"));
-    for (const filePath of files) {
-        const raw = fs.readFileSync(filePath, "utf-8");
-        const { frontmatter, body } = parseFrontmatter(raw);
-        if (!frontmatter.id) {
+    for (const { root, urlPrefix } of referenceRoots) {
+        if (!fs.existsSync(root)) {
             continue;
         }
-        if (index.has(frontmatter.id)) {
-            throw new Error(`Duplicate API id: ${frontmatter.id}`);
-        }
-        const title = frontmatter.title || extractHeading(body) || frontmatter.id;
-        const pageHref = apiPathForFile(filePath);
-        index.set(frontmatter.id, {
-            href: pageHref,
-            title,
-            filePath,
-        });
-        if (Array.isArray(frontmatter.member_ids)) {
-            for (const memberId of frontmatter.member_ids) {
-                if (!memberId || index.has(memberId)) {
-                    continue;
+        const files = walkFiles(root).filter((file) => file.endsWith(".md"));
+        for (const filePath of files) {
+            const raw = fs.readFileSync(filePath, "utf-8");
+            const { frontmatter, body } = parseFrontmatter(raw);
+            if (!frontmatter.id) {
+                continue;
+            }
+            if (index.has(frontmatter.id)) {
+                throw new Error(`Duplicate API id: ${frontmatter.id}`);
+            }
+            const title = frontmatter.title || extractHeading(body) || frontmatter.id;
+            const pageHref = pathForFile(filePath, root, urlPrefix);
+            index.set(frontmatter.id, {
+                href: pageHref,
+                title,
+                filePath,
+            });
+            if (Array.isArray(frontmatter.member_ids)) {
+                for (const memberId of frontmatter.member_ids) {
+                    if (!memberId || index.has(memberId)) {
+                        continue;
+                    }
+                    const memberName = memberNameFromId(memberId);
+                    const anchor = slugify(memberName);
+                    index.set(memberId, {
+                        href: anchor ? `${pageHref}#${anchor}` : pageHref,
+                        title: `${title}.${memberName}`,
+                        filePath,
+                    });
                 }
-                const memberName = memberNameFromId(memberId);
-                const anchor = slugify(memberName);
-                index.set(memberId, {
-                    href: anchor ? `${pageHref}#${anchor}` : pageHref,
-                    title: `${title}.${memberName}`,
-                    filePath,
-                });
             }
         }
     }
@@ -538,34 +546,104 @@ const docsSidebar = {
     "/reference/api/": buildApiSidebar(),
 };
 
+const breadcrumbContentDirs = ["tutorials", "guides", "core-concepts", "reference"];
+const isExcludedFromBreadcrumbs = (rel) => {
+    const base = path.posix.basename(rel);
+    if (base === "AGENTS.md" || base === "CONTENT_PLAN.md" || base === "README.md") {
+        return true;
+    }
+    return rel.startsWith("temp/") || rel.includes("/node_modules/") || rel.startsWith("node_modules/");
+};
+
+const buildRouteTitleIndex = () => {
+    const titles = {};
+    const candidates = [];
+    const rootIndex = path.join(docsRoot, "index.md");
+    if (fs.existsSync(rootIndex)) {
+        candidates.push(rootIndex);
+    }
+    for (const dir of breadcrumbContentDirs) {
+        candidates.push(...walkFiles(path.join(docsRoot, dir)).filter((file) => file.endsWith(".md")));
+    }
+    for (const filePath of candidates) {
+        const rel = posixPath(path.relative(docsRoot, filePath));
+        if (isExcludedFromBreadcrumbs(rel)) {
+            continue;
+        }
+        const { title } = readDocMeta(filePath);
+        let route = toDocRoute(filePath);
+        if (route !== "/" && route.endsWith("/")) {
+            route = route.slice(0, -1);
+        }
+        titles[route] = title;
+    }
+    return titles;
+};
+
+const routeTitles = buildRouteTitleIndex();
+
+// Stamp the docs with the client and server versions present at the tagged
+// commit. Read from source so this works in local dev and CI without needing
+// the Python venv: client/package.json is the npm package version, and the
+// server's __init__.py holds the literal __version__ that pyproject reads.
+const repoRoot = path.join(docsRoot, "..");
+
+const readClientVersion = () => {
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, "client", "package.json"), "utf-8"));
+        return pkg.version || null;
+    } catch {
+        return null;
+    }
+};
+
+const readServerVersion = () => {
+    try {
+        const src = fs.readFileSync(path.join(repoRoot, "server", "vueda", "__init__.py"), "utf-8");
+        const match = src.match(/^__version__\s*=\s*["']([^"']+)["']/m);
+        return match ? match[1] : null;
+    } catch {
+        return null;
+    }
+};
+
+const packageVersions = {
+    client: readClientVersion(),
+    server: readServerVersion(),
+};
+
 export default defineConfig({
     title: "VUEDA",
-    description: "Implementor guide, changelog, and reference for VUEDA.",
+    description: "integrator guide, changelog, and reference for VUEDA.",
     lastUpdated: true,
     base,
     outDir: "../site",
     srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md", "**/README.md", "temp/**"],
     head: [
-        ["link", { rel: "icon", href: `${base}assets/logo-cube.svg` }],
+        ["link", { rel: "icon", href: `${base}assets/logo-cube-solid.svg` }],
         [
             "link",
             {
                 rel: "icon",
                 type: "image/png",
                 sizes: "32x32",
-                href: `${base}assets/logo-cube.png`,
+                href: `${base}assets/logo-cube-solid.png`,
             },
         ],
-        ["link", { rel: "apple-touch-icon", href: `${base}assets/logo-cube.png` }],
+        ["link", { rel: "apple-touch-icon", href: `${base}assets/logo-cube-solid.png` }],
     ],
     themeConfig: {
-        logo: "/assets/logo-cube.svg",
+        logo: "/assets/logo-cube-solid.svg",
+        outline: "deep",
+        routeTitles,
+        vueda: packageVersions,
         nav: [
             { text: "About", link: "/" },
             { text: "Tutorials", link: "/tutorials/" },
             { text: "Guides", link: "/guides" },
             { text: "Core Concepts", link: "/core-concepts" },
             { text: "Reference", link: "/reference" },
+            { text: "Components", link: "/reference/components/" },
         ],
         sidebar: docsSidebar,
         socialLinks: [
@@ -596,6 +674,14 @@ export default defineConfig({
         },
     },
     vite: {
+        resolve: {
+            alias: {
+                "@vueda": fileURLToPath(new URL("../../client/lib/", import.meta.url)),
+                "@internationalized/date": fileURLToPath(
+                    new URL("../../client/node_modules/@internationalized/date", import.meta.url),
+                ),
+            },
+        },
         server: {
             host: true,
             https: httpsConfig,
@@ -613,6 +699,6 @@ export default defineConfig({
             host: true,
             https: httpsConfig,
         },
-        plugins: [generatedAssetsPlugin()],
+        plugins: [tailwindcss(), generatedAssetsPlugin()],
     },
 });

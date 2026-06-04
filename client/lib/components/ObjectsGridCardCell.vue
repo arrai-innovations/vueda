@@ -1,5 +1,6 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import "@vueda/theme/vueda-tailwind/objects-grid/ObjectsGridCardCell.theme.js";
 import { useObjectGridCell } from "@vueda/use/useObjectGridCell.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, reactive, toRef } from "vue";
@@ -89,6 +90,7 @@ const uniqueKeyForSlot = computed(() =>
 const effectiveHeaderClass = combineClasses(theme("header"), toRef(props, "headerClass"));
 </script>
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root -->
     <!-- Field label header; receives `class`, `rowIndex`, `columnIndex`, `rowCount`, `columnCount`, `field`, `isTableLayout`, `isCardLayout`, and `dataCardHeader` as slot props. -->
     <slot
         :key="uniqueKeyForSlot"
@@ -108,7 +110,7 @@ const effectiveHeaderClass = combineClasses(theme("header"), toRef(props, "heade
             {{ field.label }}
         </div>
     </slot>
-    <div :class="combineClasses(theme('value'), $attrs.class)" :data-card="field.name">
+    <div :class="theme('value')" v-bind="$attrs" :data-card="field.name">
         <!-- Cell value content; receives `calculatedObj`, `columnIndex`, `field`, `formatted`, `isTableLayout`, `isCardLayout`, `obj`, `pk`, `pkKey`, `relatedObj`, `rowIndex`, `rowCount`, `columnCount`, `value`, and any `fieldProps` as slot props. -->
         <slot
             :key="uniqueKeyForSlot"

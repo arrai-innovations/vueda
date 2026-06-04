@@ -2,20 +2,29 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
+import PageTitle from "@vueda/components/PageTitle.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewActivate.theme.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
-import { useModelConfig } from "@vueda/use/useModelConfig";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { memoizedStartCase } from "@vueda/utils/case.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl } from "@vueda/utils/urls.js";
 import isEmpty from "lodash-es/isEmpty.js";
-import { computed, inject, reactive, toRef } from "vue";
+import omit from "lodash-es/omit.js";
+import { computed, inject, reactive, toRef, useSlots } from "vue";
+import { useRouter } from "vue-router";
 
 /**
  * View that renders a confirmation form for the activate action via ModelActionForm, then sends
- * a PATCH request to the activate endpoint when the user confirms.
+ * a PATCH request to the activate endpoint when the user confirms. Wraps the form in a PageTitle
+ * for breadcrumb parity with sibling action-router views (ViewAction, ViewWorkflowTransition,
+ * ViewHistoryList).
  */
 defineOptions({
     inheritAttrs: false,
@@ -36,8 +45,15 @@ const props = defineProps({
         type: [String, Array],
         required: true,
     },
+    /** Page title override; defaults to "Activate {Model}". */
+    title: {
+        type: String,
+        default: undefined,
+    },
+    ...THEME_OVERRIDE_PROPS,
 });
 
+const slots = useSlots();
 const isActive = useIsActive();
 const validAndActive = computed(
     () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.loading === false),
@@ -97,20 +113,44 @@ const handleActivate = async () => {
         throw instanceList.state.error;
     }
 };
+
+const activateTitleText = computed(() => {
+    return props.title?.length > 0 ? props.title : `Activate ${memoizedStartCase(props.model)}`;
+});
+const router = useRouter();
+const handleReturnClick = () => {
+    router.back();
+};
+const theme = useTheme("ViewActivate", props);
 </script>
 
 <template>
-    <div v-if="!isEmpty(modelConfig.info)">
-        <model-action-form
-            action="activate"
-            :app="app"
-            :model="model"
-            :objects="instanceList.state.objects"
-            :run-action="handleActivate"
-            :fetch-state="instanceList.state"
-            v-bind="$attrs"
-        >
-        </model-action-form>
+    <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-activate-root">
+        <PageTitle :title="activateTitleText">
+            <template #button>
+                <slot label="Go Back" name="return-button" verb="return" @click="handleReturnClick">
+                    <Button @click="handleReturnClick">Go Back</Button>
+                </slot>
+            </template>
+            <template v-for="(_, slot) in omit(slots, ['default'])" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
+            </template>
+        </PageTitle>
+        <div v-if="!isEmpty(modelConfig.info)">
+            <model-action-form
+                action="activate"
+                :app="app"
+                :model="model"
+                :objects="instanceList.state.objects"
+                :run-action="handleActivate"
+                :fetch-state="instanceList.state"
+                v-bind="omit($attrs, ['class'])"
+            >
+                <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                    <slot :name="slot" v-bind="slotProps || {}" />
+                </template>
+            </model-action-form>
+        </div>
+        <div v-else><loading-spinner-block /></div>
     </div>
-    <div v-else><loading-spinner-block /></div>
 </template>

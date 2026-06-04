@@ -1,4 +1,5 @@
 <script setup>
+import "@vueda/theme/vueda-tailwind/objects-grid/ObjectsGridTableHeader.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, reactive } from "vue";
 
@@ -62,7 +63,7 @@ const uniqueKeyForSlot = computed(() =>
 );
 </script>
 <template>
-    <div :class="theme('root')" data-qa="objects-grid-table-header-root">
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="objects-grid-table-header-root">
         <span :class="theme('label')" data-qa="objects-grid-table-header-label">
             <!-- Column label content; receives `columnIndex`, `columnCount`, `field`, `isTableLayout`, `isCardLayout`, and any `fieldProps` as slot props. -->
             <slot
@@ -93,7 +94,7 @@ const uniqueKeyForSlot = computed(() =>
                 name="sort-icon"
                 v-bind="fieldProps"
             >
-                <!-- iconless text, screams to implementors to provide an icon -->
+                <!-- iconless text, screams to integrators to provide an icon -->
                 <template v-if="ascending">⬆️</template>
                 <template v-else-if="descending">⬇️</template>
                 <template v-else>↕️</template>

@@ -131,7 +131,7 @@ describe("renderThemeKeysBundle", () => {
 
     it("renders each slot detail with a Source: <file>:<line> footer", () => {
         const page = outputs.get("theming/keys/Button.md");
-        expect(page).toMatch(/Source:\s+`[^`]*sample\.js:\d+`/);
+        expect(page).toMatch(/Source:\s+`[^`]*\.theme\.js:\d+`/);
     });
 
     it("renders primitive components with an italic composition-primitive note and primitive frontmatter kind", () => {

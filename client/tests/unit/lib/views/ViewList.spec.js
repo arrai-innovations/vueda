@@ -35,7 +35,8 @@ vi.mock("@vueda/use/useSlotNameResolver.js", () => ({
     useSlotNameResolver: mockedUseSlotNameResolver,
 }));
 
-const mockedUseTheme = vi.fn(() => () => "theme");
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
     THEME_OVERRIDE_PROPS: {},
@@ -83,11 +84,11 @@ const FilterGroupStub = defineComponent({
             );
     },
 });
-const FormFeedbackStub = defineComponent({
-    name: "FormFeedbackStub",
+const FormMessageStub = defineComponent({
+    name: "FormMessageStub",
     props: ["type"],
     setup(props) {
-        return () => h("div", { "data-qa": `form-feedback-${props.type}` });
+        return () => h("div", { "data-qa": `form-message-${props.type}` });
     },
 });
 const LinkModelViewStub = defineComponent({
@@ -98,7 +99,6 @@ const LinkModelViewStub = defineComponent({
     },
 });
 let objectsGridProps;
-let multiSelectProps;
 const ObjectsGridStub = defineComponent({
     name: "ObjectsGridStub",
     props: ["fields", "sorted"],
@@ -147,8 +147,8 @@ const InputGroupStub = defineComponent({
         return () => h("div", { "data-qa": "input-group" }, slots.default ? slots.default() : null);
     },
 });
-const InputTextStub = defineComponent({
-    name: "InputTextStub",
+const InputGroupInputStub = defineComponent({
+    name: "InputGroupInputStub",
     props: ["modelValue"],
     emits: ["update:model-value", "search"],
     setup(props, { attrs, emit }) {
@@ -162,17 +162,23 @@ const InputTextStub = defineComponent({
             });
     },
 });
+const InputGroupButtonStub = defineComponent({
+    name: "InputGroupButtonStub",
+    emits: ["click"],
+    setup(_, { emit, slots }) {
+        return () => h("button", { "data-qa": "button", onClick: () => emit("click") }, slots.default?.());
+    },
+});
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label"],
     emits: ["click"],
-    setup(props, { emit }) {
-        return () => h("button", { "data-qa": "button", "data-label": props.label, onClick: () => emit("click") });
+    setup(_, { emit, slots }) {
+        return () => h("button", { "data-qa": "button", onClick: () => emit("click") }, slots.default?.());
     },
 });
 const CheckboxStub = defineComponent({
     name: "CheckboxStub",
-    props: ["modelValue", "value", "inputId"],
+    props: ["modelValue", "value", "id"],
     emits: ["update:modelValue"],
     setup(props, { emit, attrs }) {
         return () =>
@@ -180,45 +186,74 @@ const CheckboxStub = defineComponent({
                 type: "checkbox",
                 "data-qa": "checkbox",
                 value: props.value,
-                id: props.inputId,
+                id: props.id,
                 ...attrs,
-                onChange: () => emit("update:modelValue", props.value),
+                onChange: () => emit("update:modelValue", !props.modelValue),
             });
     },
 });
-const MultiSelectStub = defineComponent({
-    name: "MultiSelectStub",
-    props: ["modelValue", "options", "optionValue", "optionLabel", "loading", "size"],
+let selectProps;
+const SelectStub = defineComponent({
+    name: "SelectStub",
+    props: { modelValue: {}, multiple: { type: Boolean } },
     emits: ["update:modelValue"],
     setup(props, { slots, attrs }) {
         return () => {
-            multiSelectProps = {
+            selectProps = {
                 modelValue: Array.isArray(props.modelValue) ? [...props.modelValue] : props.modelValue,
-                options: Array.isArray(props.options) ? props.options.map((option) => ({ ...option })) : props.options,
-                optionValue: props.optionValue,
-                optionLabel: props.optionLabel,
-                loading: props.loading,
-                size: props.size,
+                multiple: props.multiple,
             };
-            return h("div", { "data-qa": "multi-select", ...attrs }, slots.default ? slots.default() : null);
+            return h("div", { "data-qa": "select", ...attrs }, slots.default ? slots.default() : null);
         };
+    },
+});
+const SelectTriggerStub = defineComponent({
+    name: "SelectTriggerStub",
+    props: ["size"],
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "select-trigger" }, slots.default ? slots.default() : null);
+    },
+});
+const SelectValueStub = defineComponent({
+    name: "SelectValueStub",
+    setup(_, { slots }) {
+        return () => h("span", { "data-qa": "select-value" }, slots.default ? slots.default() : null);
+    },
+});
+const SelectContentStub = defineComponent({
+    name: "SelectContentStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "select-content" }, slots.default ? slots.default() : null);
+    },
+});
+const SelectItemStub = defineComponent({
+    name: "SelectItemStub",
+    props: ["value"],
+    setup(props, { slots }) {
+        return () =>
+            h("div", { "data-qa": "select-item", "data-value": props.value }, slots.default ? slots.default() : null);
     },
 });
 
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
 vi.mock("@vueda/components/FilterGroup.vue", () => ({ default: FilterGroupStub }));
-vi.mock("@vueda/components/FormFeedback.vue", () => ({ default: FormFeedbackStub }));
+vi.mock("@vueda/components/FormMessage.vue", () => ({ default: FormMessageStub }));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 vi.mock("@vueda/components/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
 vi.mock("@vueda/components/MobileSortComponent.vue", () => ({ default: MobileSortComponentStub }));
 vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
 vi.mock("@vueda/components/PaginationComponent.vue", () => ({ default: PaginationComponentStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
-vi.mock("primevue/inputgroup", () => ({ __esModule: true, default: InputGroupStub }));
-vi.mock("primevue/inputtext", () => ({ __esModule: true, default: InputTextStub }));
-vi.mock("primevue/button", () => ({ __esModule: true, default: ButtonStub }));
-vi.mock("primevue/checkbox", () => ({ __esModule: true, default: CheckboxStub }));
-vi.mock("primevue/multiselect", () => ({ __esModule: true, default: MultiSelectStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/checkbox/Checkbox.vue", () => ({ default: CheckboxStub }));
+vi.mock("@vueda/controls/input-group/InputGroup.vue", () => ({ default: InputGroupStub }));
+vi.mock("@vueda/controls/input-group/InputGroupButton.vue", () => ({ default: InputGroupButtonStub }));
+vi.mock("@vueda/controls/input-group/InputGroupInput.vue", () => ({ default: InputGroupInputStub }));
+vi.mock("@vueda/controls/select/Select.vue", () => ({ default: SelectStub }));
+vi.mock("@vueda/controls/select/SelectContent.vue", () => ({ default: SelectContentStub }));
+vi.mock("@vueda/controls/select/SelectItem.vue", () => ({ default: SelectItemStub }));
+vi.mock("@vueda/controls/select/SelectTrigger.vue", () => ({ default: SelectTriggerStub }));
+vi.mock("@vueda/controls/select/SelectValue.vue", () => ({ default: SelectValueStub }));
 
 const route = { query: {} };
 const routerPush = vi.fn();
@@ -252,7 +287,7 @@ const resetListPreferenceStoreMock = () => {
 beforeEach(async () => {
     vue = await vi.importActual("vue");
     objectsGridProps = undefined;
-    multiSelectProps = undefined;
+    selectProps = undefined;
     route.query = {};
     routerPush.mockReset();
     routerPush.mockImplementation(({ query }) => {
@@ -392,6 +427,20 @@ scopedIt("hides pagination when there are no records", async () => {
     await vue.nextTick();
 
     expect(wrapper.find('[data-qa="pagination-component"]').exists()).toBe(false);
+    expect(wrapper.find('[data-qa="view-list-pagination"]').exists()).toBe(false);
+
+    wrapper.unmount();
+});
+
+scopedIt("wraps pagination in a footer-strip when records exist", async () => {
+    mockedInject.mockReturnValueOnce({});
+    instanceList.state.paginateInfo.totalRecords = 5;
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+
+    const footer = wrapper.get('[data-qa="view-list-pagination"]');
+    expect(footer.find('[data-qa="pagination-component"]').exists()).toBe(true);
 
     wrapper.unmount();
 });
@@ -414,9 +463,9 @@ scopedIt("renders column selector when column hiding allowed", async () => {
     const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
     await vue.nextTick();
     await vue.nextTick();
-    expect(wrapper.find('[data-qa="multi-select"]').exists()).toBe(true);
-    expect(multiSelectProps.modelValue).toEqual(["field__name"]);
-    expect(multiSelectProps.options).toEqual([{ label: "Field Name", value: "field__name" }]);
+    expect(wrapper.find('[data-qa="select"]').exists()).toBe(true);
+    expect(selectProps.modelValue).toEqual(["field__name"]);
+    expect(selectProps.multiple).toBe(true);
     wrapper.unmount();
 });
 
@@ -432,7 +481,7 @@ scopedIt("initializes columns using stored hidden preferences", async () => {
     await vue.nextTick();
 
     expect(listPreferenceStoreMock.getHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" });
-    expect(multiSelectProps.modelValue).toEqual(["field__name"]);
+    expect(selectProps.modelValue).toEqual(["field__name"]);
     wrapper.unmount();
 });
 
@@ -447,7 +496,7 @@ scopedIt("persists hidden column selections to the preference store", async () =
     await vue.nextTick();
 
     listPreferenceStoreMock.setHiddenColumns.mockClear();
-    wrapper.findComponent(MultiSelectStub).vm.$emit("update:modelValue", ["other_field"]);
+    wrapper.findComponent(SelectStub).vm.$emit("update:modelValue", ["other_field"]);
     await vue.nextTick();
 
     expect(listPreferenceStoreMock.setHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" }, [
@@ -477,7 +526,7 @@ scopedIt("saves search queries to the preference store", async () => {
     await vue.nextTick();
 
     listPreferenceStoreMock.setFilters.mockClear();
-    const input = wrapper.findComponent(InputTextStub);
+    const input = wrapper.findComponent(InputGroupInputStub);
     input.vm.$emit("update:model-value", "search-term");
     await vue.nextTick();
     input.vm.$emit("search");
@@ -559,7 +608,7 @@ scopedIt("appends new display fields without resetting hidden preferences", asyn
 
     await vue.nextTick();
 
-    expect(wrapper.vm.columns).toContain("field3");
+    expect(wrapper.vm.columns.columns).toContain("field3");
     expect(listPreferenceStoreMock.getHiddenColumns).toHaveBeenCalledTimes(1);
     expect(listPreferenceStoreMock.setHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" }, ["field1"]);
     expect(hiddenPreference).toEqual(["field1"]);
@@ -576,7 +625,7 @@ scopedIt("keeps filter parameters when clearing search input", async () => {
     listPreferenceStoreMock.setFilters.mockClear();
     routerPush.mockClear();
 
-    const input = wrapper.findComponent(InputTextStub);
+    const input = wrapper.findComponent(InputGroupInputStub);
     input.vm.$emit("update:model-value", "");
     await vue.nextTick();
     input.vm.$emit("search");

@@ -19,7 +19,10 @@ vi.mock("@vueda/use/useWarnings.js", () => ({
     useWarnings: mockedUseWarnings,
 }));
 
-const mockedUseTheme = vi.fn(() => ({ root: "theme-root" }));
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({
+    slotResolver: (key) => (key === "root" ? "theme-root" : ""),
+});
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
     THEME_OVERRIDE_PROPS: {},
@@ -59,24 +62,19 @@ vi.mock("@vueda/components/ModelActionForm.vue", () => ({
 const ButtonStub = defineComponent({
     name: "ButtonStub",
     emits: ["click"],
-    props: ["label", "verb"],
-    setup(props, { emit }) {
+    setup(_, { emit, slots }) {
         return () =>
             h(
                 "button",
                 {
                     "data-qa": "prime-button",
-                    "data-label": props.label,
-                    "data-verb": props.verb,
                     onClick: () => emit("click"),
                 },
-                "button",
+                slots.default?.(),
             );
     },
 });
-vi.mock("primevue/button", () => ({
-    default: ButtonStub,
-}));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 
 const PageTitleStub = defineComponent({
     name: "PageTitleStub",

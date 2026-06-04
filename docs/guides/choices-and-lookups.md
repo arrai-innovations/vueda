@@ -1,7 +1,7 @@
 ---
 title: Model Choices, Lookup Fields, and Dynamic Options
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

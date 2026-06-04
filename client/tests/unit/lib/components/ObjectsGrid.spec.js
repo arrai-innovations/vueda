@@ -125,4 +125,114 @@ describe("lib/components/ObjectsGrid.vue", () => {
         await nextTick();
         expect(wrapper.findAll('[data-qa="body-cell"]').length).toBe(1);
     });
+
+    describe("density prop", () => {
+        scopedIt("defaults data-density to 'default' on the root", () => {
+            const wrapper = mount(ObjectsGrid, { props: { fields: [{ name: "a" }], objectsInOrder: [] } });
+            expect(wrapper.find('[data-qa="objects-grid-root"]').attributes("data-density")).toBe("default");
+        });
+
+        scopedIt.each(["default", "compact", "condensed"])(
+            "forwards density=%s as data-density on the root",
+            (density) => {
+                const wrapper = mount(ObjectsGrid, {
+                    props: { fields: [{ name: "a" }], objectsInOrder: [], density },
+                });
+                expect(wrapper.find('[data-qa="objects-grid-root"]').attributes("data-density")).toBe(density);
+            },
+        );
+    });
+
+    describe("empty state", () => {
+        scopedIt("renders default body with emptyText as title", () => {
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyText: "Nothing here." },
+            });
+            const empty = wrapper.find('[data-qa="objects-grid-body-row-group-empty"]');
+            expect(empty.exists()).toBe(true);
+            expect(empty.find("strong").text()).toBe("Nothing here.");
+        });
+
+        scopedIt("suppresses the empty row when emptyText is null and no slot is provided", () => {
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyText: null },
+            });
+            expect(wrapper.find('[data-qa="objects-grid-body-row-group-empty"]').exists()).toBe(false);
+        });
+
+        scopedIt("forwards emptyVariant as data-variant on the content wrapper", () => {
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyVariant: "loading" },
+            });
+            const content = wrapper.find('[data-qa="objects-grid-body-row-group-empty"] [data-variant]');
+            expect(content.attributes("data-variant")).toBe("loading");
+        });
+
+        scopedIt("default-named empty slot replaces the default body", () => {
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyText: "fallback" },
+                slots: { empty: '<span data-qa="custom-empty">Custom empty body</span>' },
+            });
+            expect(wrapper.find('[data-qa="custom-empty"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="objects-grid-body-row-group-empty"] strong').exists()).toBe(false);
+        });
+
+        scopedIt("renders the empty row when only the empty slot is provided (no emptyText)", () => {
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyText: null },
+                slots: { empty: '<span data-qa="custom-empty">Custom</span>' },
+            });
+            expect(wrapper.find('[data-qa="custom-empty"]').exists()).toBe(true);
+        });
+
+        scopedIt("renders the icon registered for the active variant via useIcons", async () => {
+            const IconStub = defineComponent({
+                name: "IconStub",
+                props: ["tone"],
+                setup(props) {
+                    return () => h("i", { "data-qa": "registered-icon", "data-tone": props.tone });
+                },
+            });
+            const { setIcons } = await import("@vueda/use/useIcons.js");
+            setIcons({ ObjectsGrid: { error: { component: IconStub, props: { tone: "danger" } } } });
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "a" }], objectsInOrder: [], emptyVariant: "error" },
+            });
+            const icon = wrapper.find('[data-qa="registered-icon"]');
+            expect(icon.exists()).toBe(true);
+            expect(icon.attributes("data-slot")).toBe("icon");
+            expect(icon.attributes("data-tone")).toBe("danger");
+        });
+    });
+
+    describe("data-numeric forwarding", () => {
+        scopedIt("sets data-numeric on the header cell when field.numeric is true", () => {
+            tableRef.value = true;
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "qty", numeric: true }], objectsInOrder: [] },
+            });
+            expect(wrapper.find('[data-qa="objects-grid-header"]').attributes("data-numeric")).toBe("true");
+        });
+
+        scopedIt("omits data-numeric on the header cell when field.numeric is falsy", () => {
+            tableRef.value = true;
+            const wrapper = mount(ObjectsGrid, {
+                props: { fields: [{ name: "qty" }], objectsInOrder: [] },
+            });
+            expect(wrapper.find('[data-qa="objects-grid-header"]').attributes("data-numeric")).toBeUndefined();
+        });
+
+        scopedIt("forwards data-numeric to body cells in table mode when field.numeric is true", async () => {
+            tableRef.value = true;
+            const wrapper = mount(ObjectsGrid, {
+                props: {
+                    fields: [{ name: "qty", numeric: true }],
+                    objectsInOrder: [{ id: 1, qty: 5 }],
+                    pkKey: "id",
+                },
+            });
+            await nextTick();
+            expect(wrapper.find('[data-qa="body-cell"]').attributes("data-numeric")).toBe("true");
+        });
+    });
 });

@@ -100,7 +100,7 @@ describe("ThemeKeysExtractor", () => {
     it("records a source location with file, line, and column for each slot", async () => {
         const payload = await runExtractor();
         for (const entry of payload.entries) {
-            expect(entry.source.file).toMatch(/sample\.js$/);
+            expect(entry.source.file).toMatch(/\.theme\.js$/);
             expect(entry.source.line).toBeGreaterThan(0);
             expect(typeof entry.source.column).toBe("number");
         }
@@ -111,7 +111,9 @@ describe("ThemeKeysExtractor", () => {
         for (const entry of payload.entries) {
             expect(entry.family).toBe("theme-keys");
         }
-        expect(payload.sources).toContain(payload.entries[0].source.file);
+        // payload.sources lists the index/manifest file; per-slot source.file points at the theme file
+        expect(payload.sources[0]).toMatch(/sample\.js$/);
+        expect(payload.entries[0].source.file).toMatch(/\.theme\.js$/);
     });
 
     it("requires outputPath", async () => {

@@ -19,17 +19,17 @@ const ButtonStub = defineComponent({
     },
 });
 
-const DrawerStub = defineComponent({
-    name: "DrawerStub",
-    props: ["visible"],
-    emits: ["update:visible"],
+const ShellDrawerStub = defineComponent({
+    name: "ShellDrawerStub",
+    props: ["open"],
+    emits: ["update:open"],
     setup(props, { slots, attrs }) {
         return () =>
             h(
                 "div",
                 {
                     "data-qa": "drawer",
-                    "data-visible": props.visible,
+                    "data-open": props.open,
                     ...attrs,
                 },
                 slots.default ? slots.default() : null,
@@ -37,38 +37,62 @@ const DrawerStub = defineComponent({
     },
 });
 
-const SelectStub = defineComponent({
-    name: "SelectStub",
-    props: ["modelValue", "options"],
+const ShellDrawerContentStub = defineComponent({
+    name: "ShellDrawerContentStub",
+    setup(_, { slots }) {
+        return () => h("div", null, slots.default?.());
+    },
+});
+
+const ShellDrawerHeaderStub = defineComponent({
+    name: "ShellDrawerHeaderStub",
+    setup(_, { slots }) {
+        return () => h("div", null, slots.default?.());
+    },
+});
+
+const ShellDrawerTitleStub = defineComponent({
+    name: "ShellDrawerTitleStub",
+    setup(_, { slots }) {
+        return () => h("div", null, slots.default?.());
+    },
+});
+
+const ControlSelectStub = defineComponent({
+    name: "ControlSelectStub",
+    props: ["modelValue"],
     emits: ["update:modelValue"],
-    setup(props, { emit, attrs, slots }) {
-        return () => {
-            const dataQa = attrs["data-qa"] || "select";
-            const selectAttrs = {
-                ...attrs,
-                "data-qa": dataQa,
-                value: props.modelValue,
-                onChange: (event) => emit("update:modelValue", event.target.value),
-            };
-            const optionNodes = (props.options || []).map((option) => {
-                const optionContent = slots.option ? slots.option({ option }) : (option.label ?? option.value);
-                return h(
-                    "option",
-                    {
-                        value: option.value,
-                        selected: props.modelValue === option.value,
-                    },
-                    optionContent,
-                );
-            });
+    setup(props, { slots, attrs }) {
+        return () => h("div", { ...attrs }, slots.default?.());
+    },
+});
 
-            const valueDisplay = slots.value ? slots.value({ value: props.modelValue }) : props.modelValue;
+const ControlSelectTriggerStub = defineComponent({
+    name: "ControlSelectTriggerStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { ...attrs }, slots.default?.());
+    },
+});
 
-            return h("div", { "data-qa": `${dataQa}-wrapper` }, [
-                h("div", { "data-qa": `${dataQa}-value` }, valueDisplay),
-                h("select", selectAttrs, optionNodes),
-            ]);
-        };
+const ControlSelectValueStub = defineComponent({
+    name: "ControlSelectValueStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { "data-qa": "select-value", ...attrs }, slots.default?.());
+    },
+});
+
+const ControlSelectContentStub = defineComponent({
+    name: "ControlSelectContentStub",
+    setup(_, { slots }) {
+        return () => h("div", null, slots.default?.());
+    },
+});
+
+const ControlSelectItemStub = defineComponent({
+    name: "ControlSelectItemStub",
+    props: ["value"],
+    setup(_, { slots }) {
+        return () => h("div", null, slots.default?.());
     },
 });
 
@@ -88,13 +112,21 @@ const DraggableStub = defineComponent({
     },
 });
 
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
-vi.mock("primevue/drawer", () => ({ default: DrawerStub }));
-vi.mock("primevue/select", () => ({ default: SelectStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/shell/drawer/Drawer.vue", () => ({ default: ShellDrawerStub }));
+vi.mock("@vueda/shell/drawer/DrawerContent.vue", () => ({ default: ShellDrawerContentStub }));
+vi.mock("@vueda/shell/drawer/DrawerHeader.vue", () => ({ default: ShellDrawerHeaderStub }));
+vi.mock("@vueda/shell/drawer/DrawerTitle.vue", () => ({ default: ShellDrawerTitleStub }));
+vi.mock("@vueda/controls/select/Select.vue", () => ({ default: ControlSelectStub }));
+vi.mock("@vueda/controls/select/SelectContent.vue", () => ({ default: ControlSelectContentStub }));
+vi.mock("@vueda/controls/select/SelectItem.vue", () => ({ default: ControlSelectItemStub }));
+vi.mock("@vueda/controls/select/SelectTrigger.vue", () => ({ default: ControlSelectTriggerStub }));
+vi.mock("@vueda/controls/select/SelectValue.vue", () => ({ default: ControlSelectValueStub }));
 vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
 
-const themeMock = vi.fn((key) => key);
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => themeMock }));
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeMock = makeThemeFn({ slotResolver: (key) => key });
+vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: makeUseThemeMock({ themeFn: themeMock }) }));
 
 let MobileSortComponent;
 
@@ -108,20 +140,20 @@ afterEach(() => {
 
 function mountComponent(options = {}) {
     const sorted = ref(options.props?.sorted ?? []);
-    const visible = ref(options.props?.visible ?? false);
+    const open = ref(options.props?.open ?? false);
 
     const props = {
         sortables: ["name", "created_at"],
         fieldDetails: {},
         sorted: sorted.value,
-        visible: visible.value,
+        open: open.value,
         "onUpdate:sorted": (value) => {
             sorted.value = value;
             wrapper.setProps({ sorted: value });
         },
-        "onUpdate:visible": (value) => {
-            visible.value = value;
-            wrapper.setProps({ visible: value });
+        "onUpdate:open": (value) => {
+            open.value = value;
+            wrapper.setProps({ open: value });
         },
         ...options.props,
     };
@@ -131,8 +163,11 @@ function mountComponent(options = {}) {
         global: {
             stubs: {
                 Button: ButtonStub,
-                Drawer: DrawerStub,
-                Select: SelectStub,
+                Drawer: ShellDrawerStub,
+                DrawerContent: ShellDrawerContentStub,
+                DrawerHeader: ShellDrawerHeaderStub,
+                DrawerTitle: ShellDrawerTitleStub,
+                Select: ControlSelectStub,
                 draggable: DraggableStub,
             },
         },
@@ -142,14 +177,14 @@ function mountComponent(options = {}) {
 }
 
 describe("lib/components/MobileSortComponent.vue", () => {
-    scopedIt("emits visibility updates through the computed proxy", async () => {
+    scopedIt("emits open updates through the computed proxy", async () => {
         const { wrapper } = mountComponent();
 
-        wrapper.vm.internalVisible = true;
-        expect(wrapper.emitted()["update:visible"][0]).toEqual([true]);
+        wrapper.vm.internalOpen = true;
+        expect(wrapper.emitted()["update:open"][0]).toEqual([true]);
 
-        wrapper.vm.internalVisible = false;
-        expect(wrapper.emitted()["update:visible"][1]).toEqual([false]);
+        wrapper.vm.internalOpen = false;
+        expect(wrapper.emitted()["update:open"][1]).toEqual([false]);
     });
 
     scopedIt("opens and closes the drawer via the toggle button interactions", async () => {
@@ -157,15 +192,18 @@ describe("lib/components/MobileSortComponent.vue", () => {
 
         const drawer = () => wrapper.find('[data-qa="sort-component-drawer"]');
 
-        expect(drawer().attributes("data-visible")).toBe("false");
+        expect(drawer().attributes("data-open")).toBe("false");
 
-        await wrapper.find('[label="Sort"]').trigger("click");
+        await wrapper
+            .findAll('[data-qa="button"]')
+            .find((b) => b.text().includes("Sort"))
+            .trigger("click");
         await wrapper.vm.$nextTick();
-        expect(drawer().attributes("data-visible")).toBe("true");
+        expect(drawer().attributes("data-open")).toBe("true");
 
-        wrapper.findComponent(DrawerStub).vm.$emit("update:visible", false);
+        wrapper.findComponent(ShellDrawerStub).vm.$emit("update:open", false);
         await wrapper.vm.$nextTick();
-        expect(drawer().attributes("data-visible")).toBe("false");
+        expect(drawer().attributes("data-open")).toBe("false");
     });
 
     scopedIt("manages the sorted list when adding, toggling, and removing entries", async () => {
@@ -220,7 +258,7 @@ describe("lib/components/MobileSortComponent.vue", () => {
             },
         });
 
-        const clearButton = wrapper.find('[label="Clear all"]');
+        const clearButton = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Clear all"));
         expect(clearButton.attributes("disabled")).toBeDefined();
     });
 
@@ -232,7 +270,7 @@ describe("lib/components/MobileSortComponent.vue", () => {
             },
         });
 
-        const addButton = wrapper.find('[label="Add Sort"]');
+        const addButton = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Add Sort"));
         expect(addButton.attributes("disabled")).toBeDefined();
     });
 
@@ -257,11 +295,12 @@ describe("lib/components/MobileSortComponent.vue", () => {
             },
         });
 
-        const selectDisplays = wrapper.findAll('[data-qa="sort-component-select-value"]');
+        const selectDisplays = wrapper.findAll('[data-qa="select-value"]');
 
         expect(selectDisplays[0].text()).toBe("Display Name");
         expect(selectDisplays[1].text()).toBe("Created");
-        expect(wrapper.find('[label="Sort"]').attributes("badge")).toBe("2");
+        const sortBtn = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Sort"));
+        expect(sortBtn.text()).toContain("2");
     });
 
     scopedIt("does not emit add events when all sortables are already selected", () => {
@@ -285,7 +324,7 @@ describe("lib/components/MobileSortComponent.vue", () => {
             },
         });
 
-        await wrapper.findComponent(SelectStub).vm.$emit("update:modelValue", "created_at");
+        await wrapper.findComponent(ControlSelectStub).vm.$emit("update:modelValue", "created_at");
 
         expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["created_at"]);
     });

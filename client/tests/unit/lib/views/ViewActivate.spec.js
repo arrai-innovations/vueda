@@ -30,6 +30,24 @@ vi.mock("@vueda/use/useModelConfig.js", () => ({
     useModelConfig: mockedUseModelConfig,
 }));
 
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({
+    slotResolver: (key) => (key === "root" ? "theme-root" : ""),
+});
+vi.mock("@vueda/use/useTheme.js", () => ({
+    useTheme: mockedUseTheme,
+    THEME_OVERRIDE_PROPS: {},
+}));
+
+vi.mock("@vueda/utils/case.js", () => ({
+    memoizedStartCase: (v) => v.toUpperCase(),
+}));
+
+const routerBack = vi.fn();
+vi.mock("vue-router", () => ({
+    useRouter: () => ({ back: routerBack }),
+}));
+
 const ModelActionFormStub = defineComponent({
     name: "ModelActionFormStub",
     props: ["app", "model", "action", "runAction", "fetchState"],
@@ -60,6 +78,39 @@ const LoadingSpinnerBlockStub = defineComponent({
 });
 vi.mock("@vueda/components/LoadingSpinnerBlock.vue", () => ({ default: LoadingSpinnerBlockStub }));
 
+const ButtonStub = defineComponent({
+    name: "ButtonStub",
+    emits: ["click"],
+    setup(_, { emit, slots }) {
+        return () =>
+            h(
+                "button",
+                {
+                    "data-qa": "prime-button",
+                    onClick: () => emit("click"),
+                },
+                slots.default?.(),
+            );
+    },
+});
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+
+const PageTitleStub = defineComponent({
+    name: "PageTitleStub",
+    props: ["title"],
+    setup(props, { slots }) {
+        return () =>
+            h(
+                "div",
+                { "data-qa": "page-title", "data-title": props.title },
+                Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
+            );
+    },
+});
+vi.mock("@vueda/components/PageTitle.vue", () => ({
+    default: PageTitleStub,
+}));
+
 vi.mock("vue", async () => {
     const actual = await vi.importActual("vue");
     ({ provideStore, mockedProvide, mockedInject } = mockProvideInject(vi));
@@ -81,6 +132,8 @@ beforeEach(async () => {
     ViewActivate = (await import("@vueda/views/ViewActivate.vue")).default;
     provideStore.clear();
     mockedInject.mockReset();
+    mockedUseTheme.mockClear();
+    routerBack.mockClear();
 });
 
 afterEach(() => {
@@ -107,6 +160,13 @@ scopedIt("renders spinner when model config info is empty", () => {
     expect(wrapper.find('[data-qa="model-action-form"]').exists()).toBe(false);
 });
 
+scopedIt("renders PageTitle even while spinner is showing", () => {
+    mockedInject.mockReturnValueOnce({});
+    modelConfig.info = {};
+    const wrapper = mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
+    expect(wrapper.find('[data-qa="page-title"]').exists()).toBe(true);
+});
+
 scopedIt("passes props to ActionForm when loaded", () => {
     mockedInject.mockReturnValueOnce({});
     const wrapper = mount(ViewActivate, { props: { app: "myApp", model: "myModel", pk: "id123" } });
@@ -115,6 +175,48 @@ scopedIt("passes props to ActionForm when loaded", () => {
     expect(af.attributes("data-app")).toBe("myApp");
     expect(af.attributes("data-model")).toBe("myModel");
     expect(af.attributes("data-action")).toBe("activate");
+});
+
+scopedIt("renders PageTitle with computed activateTitleText and applies theme root", () => {
+    mockedInject.mockReturnValueOnce({});
+    const wrapper = mount(ViewActivate, {
+        props: { app: "app", model: "person", pk: "1", class: "custom" },
+    });
+    const root = wrapper.find('[data-qa="view-activate-root"]');
+    expect(root.classes()).toContain("theme-root");
+    expect(root.classes()).toContain("custom");
+    const page = wrapper.find('[data-qa="page-title"]');
+    expect(page.attributes("data-title")).toBe("Activate PERSON");
+    expect(mockedUseTheme).toHaveBeenCalledWith("ViewActivate", expect.any(Object));
+});
+
+scopedIt("uses title prop when provided", () => {
+    mockedInject.mockReturnValueOnce({});
+    const wrapper = mount(ViewActivate, {
+        props: { app: "app", model: "person", pk: "1", title: "Reactivate user" },
+    });
+    expect(wrapper.find('[data-qa="page-title"]').attributes("data-title")).toBe("Reactivate user");
+});
+
+scopedIt("forwards return-button slot and falls back to Go Back button that calls router.back", async () => {
+    mockedInject.mockReturnValueOnce({});
+    const wrapper = mount(ViewActivate, {
+        props: { app: "app", model: "model", pk: "1" },
+    });
+    await wrapper.find('[data-qa="prime-button"]').trigger("click");
+    expect(routerBack).toHaveBeenCalled();
+});
+
+scopedIt("custom return-button slot replaces fallback Go Back button", () => {
+    mockedInject.mockReturnValueOnce({});
+    const wrapper = mount(ViewActivate, {
+        props: { app: "app", model: "model", pk: "1" },
+        slots: {
+            "return-button": "<button data-qa='custom-return'>back</button>",
+        },
+    });
+    expect(wrapper.find('[data-qa="custom-return"]').exists()).toBe(true);
+    expect(wrapper.find('[data-qa="prime-button"]').exists()).toBe(false);
 });
 
 scopedIt("runAction executes list action and throws on error", async () => {

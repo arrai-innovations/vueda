@@ -1,0 +1,42 @@
+<script setup>
+import "@vueda/theme/vueda-tailwind/shell/AccordionContent.theme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { reactiveOmit } from "@vueuse/core";
+import { AccordionContent } from "reka-ui";
+
+/**
+ * The collapsible content area of an AccordionItem.
+ */
+defineOptions({});
+
+const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
+    class: { type: [String, Array, Object], default: undefined },
+    /** Whether to force mount the content. */
+    forceMount: { type: Boolean, default: undefined },
+    /** The element or component to render as. */
+    as: { type: [String, Object], default: undefined },
+    /** When true, merges props onto the child element instead of rendering a wrapper. */
+    asChild: { type: Boolean, default: false },
+});
+
+const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const theme = useTheme("AccordionContent", props);
+</script>
+
+<template>
+    <AccordionContent
+        data-slot="accordion-content"
+        v-bind="delegatedProps"
+        :class="theme('root')"
+        :style="theme.hideStyle?.value"
+    >
+        <div :class="[theme('inner'), props.class]">
+            <slot />
+        </div>
+    </AccordionContent>
+</template>

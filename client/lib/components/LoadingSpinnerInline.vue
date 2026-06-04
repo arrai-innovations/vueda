@@ -1,19 +1,17 @@
 <script setup>
-import ProgressSpinner from "primevue/progressspinner";
-import { inject } from "vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 
 /**
- * Renders an inline loading spinner. Uses a PrimeVue ProgressSpinner by
- * default, but accepts a replacement via the `vuedaLoadingSpinnerInline`
- * injection key so consuming applications can substitute their own component.
+ * Renders the configured inline loading icon. The icon entry is resolved from
+ * `useIcons("LoadingSpinnerInline")`, falling back to `Default.loading`.
  */
 defineOptions({});
 
-// Try to inject the provided component, or use the default
-const loadingSpinnerComponent = inject("vuedaLoadingSpinnerInline", null);
+const icon = useIcons("LoadingSpinnerInline");
 </script>
 
 <template>
-    <component :is="loadingSpinnerComponent" v-if="loadingSpinnerComponent" />
-    <ProgressSpinner v-else aria-label="Loading..." stroke-width="8" />
+    <span v-if="icon('loading')" role="status" aria-label="Loading">
+        <component :is="icon('loading').component" v-bind="icon('loading').props" aria-hidden="true" />
+    </span>
 </template>

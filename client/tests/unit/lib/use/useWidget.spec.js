@@ -1,4 +1,4 @@
-import { expectReadOnlyWarning, mockLifecycle, mockProvideInject, scopedIt, testWatches } from "@tests/unit/utils.js";
+import { mockLifecycle, mockProvideInject, scopedIt, testWatches } from "@tests/unit/utils.js";
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 
@@ -210,41 +210,30 @@ describe("lib/use/useWidget.js", () => {
                 });
             });
         });
-        describe.skip("Display", () => {
-            describe.skip("label", () => {});
-            describe.skip("help", () => {});
+        describe("Display", () => {
+            describe.todo("label");
+            describe.todo("help");
         });
 
-        describe.skip("Validation", () => {
-            describe.skip("required", () => {});
+        describe("Validation", () => {
+            describe.todo("required");
         });
 
-        describe.skip("Value Handling", () => {
-            describe.skip("modelValue", () => {});
+        describe("Value Handling", () => {
+            describe.todo("modelValue");
         });
 
-        describe.skip("Disabled Behavior", () => {
-            describe.skip("disabled", () => {});
+        describe("Disabled Behavior", () => {
+            describe.todo("disabled");
         });
 
-        describe.skip("Field Context Behavior", () => {
-            describe.skip("contextless", () => {});
+        describe("Field Context Behavior", () => {
+            describe.todo("contextless");
         });
     });
 
     describe("state", () => {
         describe("Identification & Metadata", () => {
-            describe("widgetId", () => {
-                scopedIt("should be a string, using a-z + 0-9", () => {
-                    vi.spyOn(Math, "random").mockReturnValueOnce(0.1234).mockReturnValueOnce(0.5678);
-                    const { widget } = mountWidgetNoContext({});
-                    const { widgetId } = widget.state;
-                    expect(widgetId).toBe("4fxcm49g2j9kfv9yqdpilq");
-                    expectReadOnlyWarning(() => {
-                        widget.state.widgetId = "fakeId";
-                    }, "widgetId");
-                });
-            });
             describe("combinedName", () => {
                 testComputedFromContextOrProps({
                     widgetComputedProperty: "combinedName",
@@ -495,8 +484,8 @@ describe("lib/use/useWidget.js", () => {
             });
         });
 
-        describe.skip("Interaction & State Tracking", () => {
-            describe.skip("focused", () => {});
+        describe("Interaction & State Tracking", () => {
+            describe.todo("focused");
         });
 
         describe("Disabled Behavior", () => {

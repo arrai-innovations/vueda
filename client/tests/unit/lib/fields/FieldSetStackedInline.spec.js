@@ -12,26 +12,24 @@ const RowStub = defineComponent({
     },
 });
 
-const FormChoresStub = defineComponent({
-    name: "FormChoresStub",
-    setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-chores-stub" }, slots.default ? slots.default() : null);
-    },
-});
-
-const ButtonStub = defineComponent({
-    name: "ButtonStub",
-    props: ["label"],
+const ControlButtonStub = defineComponent({
+    name: "ControlButtonStub",
+    props: ["variant", "size"],
     emits: ["click"],
-    setup(props, { emit }) {
-        return () => h("button", { "data-qa": "button-stub", "data-label": props.label, onClick: () => emit("click") });
+    setup(props, { emit, slots }) {
+        return () =>
+            h(
+                "button",
+                { "data-qa": "button-stub", "data-variant": props.variant, onClick: () => emit("click") },
+                slots.default?.(),
+            );
     },
 });
 
-const DividerStub = defineComponent({
-    name: "DividerStub",
-    setup(_, { slots }) {
-        return () => h("div", { "data-qa": "divider-stub" }, slots.default ? slots.default() : null);
+const ShellSeparatorStub = defineComponent({
+    name: "ShellSeparatorStub",
+    setup() {
+        return () => h("hr", { "data-qa": "separator-stub" });
     },
 });
 
@@ -41,9 +39,25 @@ const warnSpy = vi.fn();
 describe("lib/fields/FieldSetStackedInline.vue", () => {
     beforeEach(async () => {
         vi.doMock("@vueda/components/FieldSetStackedInlineRow.vue", () => ({ default: RowStub }));
-        vi.doMock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
-        vi.doMock("primevue/button", () => ({ default: ButtonStub }));
-        vi.doMock("primevue/divider", () => ({ default: DividerStub }));
+        vi.doMock("@vueda/controls/button/Button.vue", () => ({ default: ControlButtonStub }));
+        vi.doMock("@vueda/shell/field/FieldDescription.vue", () => ({
+            default: defineComponent({
+                name: "FieldDescription",
+                setup:
+                    (_, { slots }) =>
+                    () =>
+                        h("p", { "data-qa": "field-description" }, slots.default?.()),
+            }),
+        }));
+        vi.doMock("@vueda/shell/field/FieldMessage.vue", () => ({
+            default: defineComponent({
+                name: "FieldMessage",
+                props: ["messages", "severity"],
+                setup: (props) => () =>
+                    h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),
+            }),
+        }));
+        vi.doMock("@vueda/shell/separator/Separator.vue", () => ({ default: ShellSeparatorStub }));
 
         useField = vi.fn();
         useFieldSetInline = vi.fn();
@@ -62,8 +76,6 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
                 debug: vi.fn(),
             }),
         }));
-        vi.doMock("@vueda/utils/buildForm.js", () => ({ getFormChoresSlotNames: vi.fn(() => []) }));
-
         FieldSetStackedInline = (await import("@vueda/fields/FieldSetStackedInline.vue")).default;
     });
 
@@ -74,7 +86,9 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
     });
 
     scopedIt("logs warnings for invalid value", async () => {
-        const fieldSetContext = { state: reactive({ name: "fs", label: "FS", value: {} }) };
+        const fieldSetContext = {
+            state: reactive({ name: "fs", label: "FS", value: {}, help: "", errors: {}, messages: {} }),
+        };
         const fieldSetInline = {
             state: reactive({
                 hidable: false,
@@ -88,6 +102,7 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
                 "toggle-button": { name: "toggle" },
                 "field-set-level-chores": { name: "chores" },
                 title: { name: "title" },
+                "empty-state": { name: "empty-state" },
             },
         };
         useField.mockReturnValue(fieldSetContext);
@@ -116,7 +131,9 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
     });
 
     scopedIt("renders create button and triggers handler", async () => {
-        const fieldSetContext = { state: reactive({ name: "fs", label: "FS", value: [] }) };
+        const fieldSetContext = {
+            state: reactive({ name: "fs", label: "FS", value: [], help: "", errors: {}, messages: {} }),
+        };
         const fieldSetInline = {
             state: reactive({
                 hidable: false,
@@ -131,20 +148,24 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
                 "toggle-button": { name: "toggle" },
                 "field-set-level-chores": { name: "chores" },
                 title: { name: "title" },
+                "empty-state": { name: "empty-state" },
             },
         };
         useField.mockReturnValue(fieldSetContext);
         useFieldSetInline.mockReturnValue(fieldSetInline);
 
         const wrapper = mount(FieldSetStackedInline, { props: {} });
-        const btn = wrapper.get('[data-qa="button-stub"]');
-        expect(btn.attributes("data-label")).toBe("Create");
-        await btn.trigger("click");
+        const buttons = wrapper.findAll('[data-qa="button-stub"]');
+        const createBtn = buttons.find((b) => b.text().includes("Create"));
+        expect(createBtn.exists()).toBe(true);
+        await createBtn.trigger("click");
         expect(fieldSetInline.doCreate).toHaveBeenCalled();
     });
 
     scopedIt("does not warn for null or undefined value", async () => {
-        const fieldSetContext = { state: reactive({ name: "fs", label: "FS", value: null }) };
+        const fieldSetContext = {
+            state: reactive({ name: "fs", label: "FS", value: null, help: "", errors: {}, messages: {} }),
+        };
         const fieldSetInline = {
             state: reactive({
                 hidable: false,
@@ -158,6 +179,7 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
                 "toggle-button": { name: "toggle" },
                 "field-set-level-chores": { name: "chores" },
                 title: { name: "title" },
+                "empty-state": { name: "empty-state" },
             },
         };
         useField.mockReturnValue(fieldSetContext);
@@ -173,7 +195,7 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
 
     scopedIt("slot interactions trigger handlers", async () => {
         const fieldSetContext = {
-            state: reactive({ name: "fs", label: "FS", value: [{ id: 1 }] }),
+            state: reactive({ name: "fs", label: "FS", value: [{ id: 1 }], help: "", errors: {}, messages: {} }),
         };
         const fieldSetInline = {
             state: reactive({
@@ -192,6 +214,7 @@ describe("lib/fields/FieldSetStackedInline.vue", () => {
                 "toggle-button": { name: "toggle" },
                 "field-set-level-chores": { name: "chores" },
                 title: { name: "title" },
+                "empty-state": { name: "empty-state" },
             },
         };
         useField.mockReturnValue(fieldSetContext);

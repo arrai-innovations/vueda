@@ -1,7 +1,7 @@
 ---
 title: Map Django and VUEDA Permission Names
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -22,7 +22,7 @@ The objective is a project where:
 
 Before you begin, ensure the following are in place:
 
-The project has a Django settings module that calls `get_defaults` from `vueda.core.default_settings` or otherwise defines `PERMISSION_NAMES_MAPPING`. The default mapping is `{"add": "create", "change": "update", "view": "read"}`; this is the standard VUEDA configuration and what VUEDA's own tests exercise. If you started from a VUEDA project template, this is already set up in your base settings (see `templates/implementor-monorepo/server/config/settings/base.py.jinja` for the reference implementation).
+The project has a Django settings module that calls `get_defaults` from `vueda.core.default_settings` or otherwise defines `PERMISSION_NAMES_MAPPING`. The default mapping is `{"add": "create", "change": "update", "view": "read"}`; this is the standard VUEDA configuration and what VUEDA's own tests exercise. If you started from a VUEDA project template, this is already set up in your base settings (see `templates/integrator-monorepo/server/config/settings/base.py.jinja` for the reference implementation).
 
 ## Choose Mapping Direction
 
@@ -123,9 +123,6 @@ VUEDA's own test suite exercises the default CRUDL mapping. If you use a non-def
 - Python:
     - {@api py:function:vueda.core.default_settings.get_defaults}
     - {@api py:module:vueda.core.patch_django}
-    - {@api py:function:vueda.core.patch_django.get_permission_codename}
-    - {@api py:function:vueda.core.patch_django.get_builtin_permissions}
-    - {@api py:property:vueda.core.patch_django.permission_names_mapping}
     - {@api py:class:vueda.core.permissions.ObjectPermissions}
     - {@api py:property:vueda.core.permissions.ObjectPermissions.perms_map}
     - {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}

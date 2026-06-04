@@ -4,7 +4,7 @@
  */
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import isEqual from "lodash-es/isEqual.js";
-import { computed, inject, onUnmounted, provide, reactive, readonly, ref, toRef, unref, watch } from "vue";
+import { computed, inject, onUnmounted, provide, reactive, readonly, toRef, unref, watch } from "vue";
 
 /**
  * Vue component props definition for widget components. Spread into component options to include standard
@@ -159,7 +159,6 @@ export const WIDGET_EMITS = [
  * @typedef {object} WidgetContextRawState
  *
  * // *** Identification & Metadata ***
- * @property {Readonly<import('vue').Ref<string>>} widgetId - A unique identifier for the widget.
  * @property {import('vue').ComputedRef<string>} combinedName - The effective name of the widget, from props or field context.
  * @property {import('vue').ComputedRef<string>} [formModelName] - The form model name from the field context.
  *
@@ -264,9 +263,6 @@ export function useWidget(props, emit) {
     /** @type {WidgetContextState} */
     const state = reactive({
         // *** Identification & Metadata ***
-        widgetId: readonly(
-            ref(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)),
-        ),
         combinedName: computed(() => {
             const fc = unref(fieldContext);
             if (fc) {

@@ -1,10 +1,11 @@
 {
   "name": "@arrai-innovations/vueda",
-  "version": "2.0.5",
+  "version": "3.0.0-alpha.1",
   "publishConfig": {
-    "tag": "latest"
+    "tag": "latest",
+    "registry": "https://npm.arrai.dev/"
   },
-  "description": "Vue.js User Experience for Django Administration (VUEDA) - Client Library\n\n`vueda-client` offers a dynamic Vue.js frontend framework, perfectly tailored\n for seamless integration with Django REST Framework backends and designed to\n complement `vueda-server`. This client library enables rapid development of\n reactive user interfaces in Django-Vue projects. It features components and\n composables for efficient form handling, CRUD operations, and dynamic routing.\n These tools allow client-side configuration and leverage server-supplied model\n and field metadata to drive forms, fields, views, and routes dynamically.\n Prioritizing developer flexibility, `vueda-client` provides extensive\n customization and theming options for its default components. It also includes\n advanced authentication, navigation, and permission management features, all\n meticulously crafted to integrate smoothly with the corresponding backend\n services of `vueda-server`.\n",
+  "description": "Vue 3 component library for VUEDA Server. Provides components and composables for form handling, CRUD views, and dynamic routing, driven by server-supplied model and field metadata. Includes authentication, navigation, permission management, and theming support.",
   "main": "index.js",
   "types": "types/index.d.ts",
   "type": "module",
@@ -20,7 +21,7 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "npx --no-install vitest",
+    "test": "npx --no-install vitest run",
     "coverage": "npm test -- run --coverage",
     "lint": "pnpm -C .. exec eslint --no-warn-ignored --cache client",
     "format": "pnpm -C .. exec prettier --check client",
@@ -39,13 +40,9 @@
     "url": "https://github.com/arrai-innovations/vueda-client/issues"
   },
   "homepage": "https://github.com/arrai-innovations/vueda-client#readme",
-  "overrides": {
-    "glob": "^11.0.0"
-  },
   "devDependencies": {
-    "@arrai-innovations/commitlint-config": "^2.1.0",
-    "@commitlint/cli": "^19.8.0",
     "@rollup/plugin-strip": "^3.0.4",
+    "@tailwindcss/vite": "^4.2.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.6.1",
     "@testing-library/vue": "^8.1.0",
@@ -59,6 +56,8 @@
     "jsdoc": "^4.0.2",
     "jsdom": "^23.0.0",
     "msw": "^2.0.9",
+    "tailwindcss": "^4.2.1",
+    "tw-animate-css": "^1.4.0",
     "typescript": "^5.9.3",
     "vite": "^6.3.3",
     "vite-plugin-circular-dependency": "^0.2.1",
@@ -66,31 +65,35 @@
     "vue-docgen-api": "^4.79.2"
   },
   "peerDependencies": {
-    "@fortawesome/pro-duotone-svg-icons": "^6.6.0",
-    "@arrai-innovations/reactive-helpers": "^21.1.0",
-    "@fortawesome/vue-fontawesome": "^3.0.8",
-    "@floating-ui/vue": "^1.0.2",
-    "@primeuix/themes": "~1.2.1",
+    "@arrai-innovations/reactive-helpers": "^21.1.2",
     "@sentry/vue": "^9.5.0",
-    "@vueuse/core": "^13.0.0",
+    "@vueuse/core": "^13.9.0",
     "lodash-es": "^4.17.21",
     "luxon": "^3.5.0",
     "pinia": "^3.0.1",
-    "primevue": "~4.3.6",
-    "quill": "2.0.2",
     "vue": "^3.5.13",
     "vue-draggable-next": "^2.3.0",
     "vue-router": "^4.5.0"
   },
   "dependencies": {
+    "@internationalized/date": "^3.5.0",
+    "@tanstack/vue-table": "^8.21.3",
+    "@tiptap/extension-underline": "^3.22.3",
+    "@tiptap/starter-kit": "^3.22.3",
+    "@tiptap/vue-3": "^3.22.3",
     "browser-util-inspect": "^0.2.0",
     "decimal.js": "^10.5.0",
-    "dompurify": "^3.2.0",
-    "js-cookie": "^3.0.5",
+    "dompurify": "^3.4.0",
+    "js-cookie": "^3.0.6",
+    "maska": "^3.2.0",
     "p-limit": "^5.0.0",
     "platform-detect": "^3.0.1",
     "pluralize": "^8.0.0",
+    "reka-ui": "^2.9.5",
     "semver": "^7.7.1",
-    "string-similarity-js": "^2.1.4"
+    "string-similarity-js": "^2.1.4",
+    "vaul-vue": "^0.4.1",
+    "vue-input-otp": "^0.3.2",
+    "vue-sonner": "^2.0.9"
   }
 }

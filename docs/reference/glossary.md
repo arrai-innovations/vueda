@@ -1,7 +1,7 @@
 ---
 title: Glossary
 type: reference
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -67,7 +67,7 @@ Contract option to request a sparse response containing selected fields.
 
 A `GeneratedField` on every `VuedaModel` that produces a display-ready string, by default derived from the model's `name` field.
 
-## Implementor
+## Integrator
 
 A team integrating VUEDA into a domain application.
 

@@ -1,33 +1,39 @@
 <script setup>
-import { useList } from "@arrai-innovations/reactive-helpers";
-import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import ModelActionForm from "@vueda/components/ModelActionForm.vue";
-import { useIsActive } from "@vueda/use/useIsActive.js";
-import { useLookupContext } from "@vueda/use/useLookupContext.js";
-import { useModelConfig } from "@vueda/use/useModelConfig";
-import { FIELDS_PARAM } from "@vueda/utils/constants.js";
+import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
+import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
+import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import { storeUser } from "@vueda/stores/storeUser.js";
+import "@vueda/theme/vueda-tailwind/views/ViewDeactivate.theme.js";
+import { useIcons } from "@vueda/use/useIcons.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
-import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl } from "@vueda/utils/urls.js";
-import isEmpty from "lodash-es/isEmpty.js";
-import { computed, inject, reactive, toRef } from "vue";
+import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 
 /**
- * View that renders a confirmation form for the deactivate action via ModelActionForm, then sends
- * a PATCH request to the deactivate endpoint when the user confirms.
+ * Self-service account deactivation view. Wraps the deactivate action in a
+ * warning-toned `SystemMessageCard` chassis: an icon crest identifies the
+ * action, an optional `ConsequencesBullets` list communicates the impact, and
+ * a `TypedConfirmField` gates the destructive button on the operator typing
+ * their own email address. Sends a PATCH to the model's deactivate endpoint
+ * on confirmation.
  */
 defineOptions({
     inheritAttrs: false,
 });
+
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
         required: true,
     },
-    /** Django model name whose instances will be deactivated. */
+    /** Django model name whose instance will be deactivated. */
     model: {
         type: String,
         required: true,
@@ -37,82 +43,114 @@ const props = defineProps({
         type: [String, Array],
         required: true,
     },
+    /**
+     * Consequence rows forwarded to `ConsequencesBullets`. When empty no
+     * bullets section is rendered. Each entry follows the
+     * `{ icon?, label, description?, tone? }` shape from `ConsequencesBullets`.
+     *
+     * @type {{ icon?: string, label: string, description?: string, tone?: ('default'|'warn'|'danger') }[]}
+     */
+    consequences: {
+        type: Array,
+        default: () => [],
+    },
 });
 
-const isActive = useIsActive();
-const validAndActive = computed(
-    () => !!(isActive.value && props.app && props.model && props.pk && modelConfig.loading === false),
-);
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+const emit = defineEmits([
+    /** Emitted after the deactivate PATCH succeeds. */
+    "success",
+]);
 
-if (!inject(LookupContextSymbol, null)) {
-    useLookupContext();
-}
+const userStore = storeUser();
+const expectedConfirmValue = computed(() => userStore.loggedInUser?.email || "");
 
-const instanceListProps = reactive({
-    target: {
-        app: toRef(props, "app"),
-        model: toRef(props, "model"),
-    },
-    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    params: {
-        [FIELDS_PARAM]: {},
-        id: Array.isArray(toRef(props, "pk")) ? toRef(props, "pk") : [toRef(props, "pk")],
-    },
-    intendToList: validAndActive,
-});
-async function executeAction({ target, pks }) {
-    const abortController = new AbortController();
-    const url = getDetailUrl(target.app, target.model, "deactivate");
-    const returnedPromise = fetch(url, {
-        method: "PATCH",
-        headers: {
-            "X-CSRFToken": getCSRFValue(),
-            "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ pks }),
-        signal: abortController.signal,
-    }).then(async (response) => {
-        if (response.status === 200) {
-            return response;
+const theme = useTheme("ViewDeactivate", props);
+const icon = useIcons("ViewDeactivate");
+
+const router = useRouter();
+
+const confirmMatch = ref(false);
+const isSubmitting = ref(false);
+const submitError = ref(null);
+
+async function handleDeactivate() {
+    if (!confirmMatch.value || isSubmitting.value) return;
+    isSubmitting.value = true;
+    submitError.value = null;
+    try {
+        const pks = Array.isArray(props.pk) ? props.pk : [props.pk];
+        const url = getDetailUrl(props.app, props.model, "deactivate");
+        const response = await fetch(url, {
+            method: "PATCH",
+            headers: {
+                "X-CSRFToken": getCSRFValue(),
+                "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ pks }),
+        });
+        if (response.status !== 200) {
+            const body = await getJsonOrText(response);
+            throw new FetchError("Failed to deactivate account", response, body);
         }
-        throw new FetchError("Failed to activate object", response, await getJsonOrText(response));
-    });
-    returnedPromise.cancel = () => abortController.abort();
-    return returnedPromise;
+        emit("success");
+    } catch (err) {
+        submitError.value = err?.message || "Deactivation failed. Please try again.";
+    } finally {
+        isSubmitting.value = false;
+    }
 }
 
-const instanceList = useList({
-    props: instanceListProps,
-    handlers: {
-        executeAction,
-    },
-    keepOldPages: false,
-    clearListOnListIntentTriggered: false,
-});
-
-const handleDeactivate = async () => {
-    await instanceList.executeAction();
-    if (instanceList.state.errored) {
-        throw instanceList.state.error;
-    }
-};
+function handleCancel() {
+    router.back();
+}
 </script>
 
 <template>
-    <div v-if="!isEmpty(modelConfig.info)">
-        <model-action-form
-            action="deactivate"
-            :app="app"
-            :model="model"
-            :objects="instanceList.state.objects"
-            :run-action="handleDeactivate"
-            :fetch-state="instanceList.state"
-            data-qa="action-form"
-            v-bind="$attrs"
-        >
-        </model-action-form>
+    <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="view-deactivate-root" v-bind="$attrs">
+        <system-message-card tone="warning" data-qa="view-deactivate-card">
+            <template #crest-icon>
+                <component
+                    :is="icon('warning').component"
+                    v-if="icon('warning')"
+                    v-bind="icon('warning').props"
+                    aria-hidden="true"
+                />
+            </template>
+            <template #crest-eyebrow>{{ model }} · deactivate</template>
+            <template #crest-kind>{{ app }}/{{ model }}/deactivate</template>
+            <!-- @slot message Override the default suspension explanation paragraph. -->
+            <slot name="message">
+                <p :class="theme('message')" data-qa="view-deactivate-message">
+                    Your account will be suspended. Active sessions will end immediately, API tokens will be disabled,
+                    and shared resources will be reassigned. After 30 days this action is permanent.
+                </p>
+            </slot>
+            <consequences-bullets
+                v-if="consequences.length"
+                :items="consequences"
+                data-qa="view-deactivate-consequences"
+            />
+            <typed-confirm-field
+                v-if="expectedConfirmValue"
+                :expected-value="expectedConfirmValue"
+                label-lead="Type your email address"
+                label-tail="to confirm"
+                data-qa="view-deactivate-confirm-field"
+                @match="confirmMatch = $event"
+            />
+            <p v-if="submitError" :class="theme('error')" data-qa="view-deactivate-error">{{ submitError }}</p>
+            <template #actions>
+                <Button variant="outline" data-qa="view-deactivate-cancel" @click="handleCancel">Cancel</Button>
+                <Button
+                    variant="destructive"
+                    class="ml-auto"
+                    :disabled="!confirmMatch || isSubmitting || !expectedConfirmValue"
+                    data-qa="view-deactivate-submit"
+                    @click="handleDeactivate"
+                    >Deactivate account</Button
+                >
+            </template>
+        </system-message-card>
     </div>
-    <div v-else><loading-spinner-block /></div>
 </template>

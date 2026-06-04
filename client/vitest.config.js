@@ -6,6 +6,7 @@ export default defineConfig((configEnv) =>
         viteConfig(configEnv),
         defineConfig({
             test: {
+                watch: false,
                 globals: true,
                 environment: "jsdom",
                 coverage: {
@@ -17,8 +18,6 @@ export default defineConfig((configEnv) =>
                         "lib/theme", // mostly static configuration, even though contained in .js files
                         "lib/utils/dev.js", // only used in dev mode, basically a no-op
                         "lib/utils/fieldMappings.js", // static configuration
-                        "lib/utils/primevueConsts.js", // copy of primevue constants
-                        "lib/utils/objectGridSkeletonProps.js", // configuration for object grid skeletons
                     ],
                     reporter: ["text", "json-summary", "html", "lcov"],
                 },

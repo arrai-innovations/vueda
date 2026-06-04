@@ -72,7 +72,7 @@ fix-eslint:
   cd {{justfile_directory()}} && pnpm run fix:eslint
 
 fix-prettier:
-  cd {{justfile_directory()}} && pnpm run fix:prettier
+  cd {{justfile_directory()}} && pnpm run fix:prettier | sed '/unchanged/d'
 
 manage *args:
   cd {{justfile_directory()}}/server && uv run --no-sync python manage.py {{args}}
@@ -83,7 +83,7 @@ docs-rebuild:
   cd {{justfile_directory()}}/docs && pnpm exec vitepress build
 
 docs-serve:
-  cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8000
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8081
 
 docs-extract:
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js extract
@@ -110,6 +110,7 @@ docs:
   just docs-serve
 
 docs-validate:
+  just docs-api
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js validate
 
 docs-build:

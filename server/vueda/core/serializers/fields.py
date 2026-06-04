@@ -29,6 +29,7 @@ class AvailableActionsField(serializers.ListField):
             "child": serializers.CharField(read_only=True),
             "read_only": True,
             "required": False,
+            "style": {"hidden": True},
         }
         super().__init__(**kwargs)
 

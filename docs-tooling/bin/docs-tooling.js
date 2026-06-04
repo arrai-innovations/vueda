@@ -426,19 +426,13 @@ async function runRender(argv) {
     }
 }
 
-const defaultExcludes = [
-    "reference/api",
-    "reference/theming/tokens",
-    "reference/theming/tokens.md",
-    "reference/theming/keys",
-    "reference/theming/keys.md",
-    ".vitepress",
-    ".generated",
-    "temp",
-    "AGENTS.md",
-    "README.md",
-    "CONTENT_PLAN.md",
-];
+// Mirror VitePress srcExclude (docs/.vitepress/config.mjs): everything under
+// docs/ is validated except build config, intermediates, and the meta docs
+// VitePress itself does not render. The generated reference trees
+// (reference/api, reference/theming/*) ARE scanned so that {@api} references
+// embedded in generated prose (e.g. JSDoc copied into theme-key pages) are
+// caught here instead of only at VitePress build time.
+const defaultExcludes = [".vitepress", ".generated", "temp", "AGENTS.md", "README.md", "CONTENT_PLAN.md"];
 
 function collectMarkdownFiles(docsDir, excludes) {
     const results = [];

@@ -1,7 +1,8 @@
 <script setup>
+import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
+import "@vueda/theme/vueda-tailwind/objects-grid/ObjectsGridCardCell.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { getSkeletonPropsForField } from "@vueda/utils/objectGridSkeletonProps.js";
-import Skeleton from "primevue/skeleton";
+import { getSkeletonClassForField } from "@vueda/utils/objectGridSkeletonClass.js";
 
 /**
  * Renders a single card-layout cell skeleton placeholder while ObjectsGrid
@@ -21,10 +22,11 @@ const props = defineProps({
 const theme = useTheme("ObjectsGridCardCell", props);
 </script>
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root -->
     <div :class="theme('header')">
         {{ field.label }}
     </div>
     <div :class="theme('value')">
-        <Skeleton v-bind="getSkeletonPropsForField(field)" />
+        <Skeleton :class="getSkeletonClassForField(field)" />
     </div>
 </template>

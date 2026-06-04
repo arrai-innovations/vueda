@@ -49,7 +49,7 @@ def read_server_version() -> str | None:
 
 
 def expected_server_dependency(version: str) -> str | None:
-    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:(?:a|b|rc)\d+)?", version)
     if match is None:
         return None
     major = int(match.group(1))

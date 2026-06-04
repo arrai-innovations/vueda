@@ -1,5 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { mount } from "@vue/test-utils";
+import { config, mount } from "@vue/test-utils";
 import { computed, defineComponent, h, reactive, ref, toRef } from "vue";
 
 const FilterComponentStub = defineComponent({
@@ -18,16 +18,19 @@ const FilterComponentStub = defineComponent({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label", "severity", "name"],
+    props: ["variant", "name"],
     emits: ["click"],
-    setup(props, { emit }) {
+    setup(props, { emit, slots }) {
         return () =>
-            h("button", {
-                "data-qa": "button",
-                "data-label": props.label,
-                "data-severity": props.severity,
-                onClick: () => emit("click"),
-            });
+            h(
+                "button",
+                {
+                    "data-qa": "button",
+                    "data-variant": props.variant,
+                    onClick: () => emit("click"),
+                },
+                slots.default?.(),
+            );
     },
 });
 
@@ -48,12 +51,13 @@ const mockedUseFilter = vi.fn((props) =>
         filterableDetails: toRef(props, "filterableDetails"),
     }),
 );
-const mockedUseTheme = vi.fn(() => () => "theme");
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 
 const route = reactive({ query: {} });
 
 vi.mock("@vueda/components/FilterComponent.vue", () => ({ default: FilterComponentStub }));
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/use/useSlotNameResolver.js", () => ({ useSlotNameResolver }));
 vi.mock("@vueda/use/useFilter.js", () => ({ useFilter: mockedUseFilter }));
 vi.mock("@vueda/use/useTheme.js", async () => {
@@ -65,15 +69,20 @@ vi.mock("vue-router", () => ({ useRoute: () => route }));
 let FilterGroup, vue;
 
 describe("lib/components/FilterGroup.vue", () => {
+    let previousStubs;
+
     beforeEach(async () => {
         vue = await import("vue");
         FilterGroup = (await import("@vueda/components/FilterGroup.vue")).default;
         useSlotNameResolver.mockClear();
         stopFns.length = 0;
         route.query = {};
+        previousStubs = config.global.stubs;
+        config.global.stubs = { ...previousStubs, "router-link": true };
     });
 
     afterEach(() => {
+        config.global.stubs = previousStubs;
         vi.resetModules();
         vi.clearAllMocks();
     });
@@ -199,11 +208,11 @@ describe("lib/components/FilterGroup.vue", () => {
 
         wrapper.vm.addedFilters.push({ param: "foo", value: "bar" });
         await vue.nextTick();
-        expect(wrapper.get('[data-qa="button"]').attributes("data-severity")).toBe("warn");
+        expect(wrapper.get('[data-qa="button"]').attributes("data-variant")).toBe("outline");
 
         await wrapper.get('[data-qa="button"]').trigger("click");
         await vue.nextTick();
         expect(wrapper.vm.addedFilters.length).toBe(0);
-        expect(wrapper.get('[data-qa="button"]').attributes("data-severity")).toBe("secondary");
+        expect(wrapper.get('[data-qa="button"]').attributes("data-variant")).toBe("secondary");
     });
 });

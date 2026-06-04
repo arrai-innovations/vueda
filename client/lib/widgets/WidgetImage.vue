@@ -1,77 +1,82 @@
 <script setup>
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import Button from "@vueda/controls/button/Button.vue";
+import FileUpload from "@vueda/controls/file-upload/FileUpload.vue";
+import "@vueda/theme/vueda-tailwind/widgets/WidgetImage.theme.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
-import WidgetLabel, { WIDGET_LABEL_PROPS, getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
-import pick from "lodash-es/pick.js";
-import Button from "primevue/button";
-import FileUpload from "primevue/fileupload";
-import Image from "primevue/image";
-import { useSlots } from "vue";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import isString from "lodash-es/isString.js";
+import { inject, toRef, watch } from "vue";
 
 /**
  * An image upload widget that shows a file picker when no image is selected and a preview with a
  * remove button once one has been chosen. The widget value is the raw File object selected by the
  * user.
  */
-
 defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
     ...WIDGET_PROPS,
-    ...WIDGET_LABEL_PROPS,
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
-const upload = (e) => {
-    widgetContext.state.combinedValue = e.files[0];
+/** @type {import('@vueda/use/useField.js').FieldContext|null} */
+const fieldContext = inject(FieldContextSymbol, null);
+const theme = useWidgetTheme("WidgetImage", props, widgetContext.state);
+const icon = useIcons("WidgetImage");
+
+if (fieldContext) {
+    watch(
+        toRef(fieldContext.state, "value"),
+        (newValue) => {
+            if (isString(newValue)) {
+                fieldContext.ignore();
+                return;
+            }
+            fieldContext.removeIgnore();
+        },
+        { immediate: true },
+    );
+}
+
+const onFileSelected = (file) => {
+    widgetContext.state.combinedValue = file;
 };
 
 const onRemove = () => {
     widgetContext.state.combinedValue = null;
 };
-const theme = useWidgetTheme("WidgetImage", props, widgetContext.state);
-// todo: click handler for the widget-label to focus the image
-// todo: aria-labelledby? or use id to the hidden file input
-// todo: warning/invalid states?
-const slots = useSlots();
-const availableLabelSlotNames = getWidgetSlotsComputed(slots);
 </script>
+
 <template>
     <div :class="theme('root')">
-        <widget-label
-            :id="widgetContext.state.widgetId"
-            label-tag="div"
-            v-bind="pick(props, Object.keys(WIDGET_LABEL_PROPS))"
-        >
-            <template v-for="slotName in availableLabelSlotNames" :key="slotName" #[slotName]="slotProps">
-                <slot :name="slotName" v-bind="slotProps" />
-            </template>
-            <template #default="{ class: labelControlClass }">
-                <div :class="combineClasses(theme('inner'), labelControlClass)" data-qa="widget-image-inner">
-                    <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
-                        <Image alt="Image" :src="widgetContext.state.combinedValue" width="250" />
-                        <Button icon="pi pi-times" rounded @click="onRemove" />
-                    </div>
-                    <div v-else>
-                        <FileUpload
-                            accept="image/*"
-                            :aria-labelledby="widgetContext.state.widgetId"
-                            auto
-                            custom-upload
-                            :disabled="widgetContext.state.disabled"
-                            :max-file-size="1000000"
-                            mode="basic"
-                            name="demo[]"
-                            :aria-required="widgetContext.state.required"
-                            @uploader="upload"
-                        />
-                    </div>
-                </div>
-            </template>
-        </widget-label>
+        <div :class="theme('inner')" data-qa="widget-image-inner">
+            <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
+                <img alt="Image" :src="widgetContext.state.combinedValue" width="250" data-qa="image-preview" />
+                <Button variant="ghost" size="icon-sm" data-qa="image-remove" @click="onRemove">
+                    <component
+                        :is="icon('close').component"
+                        v-if="icon('close')"
+                        v-bind="icon('close').props"
+                        aria-hidden="true"
+                    />
+                    <span class="sr-only">Remove image</span>
+                </Button>
+            </div>
+            <div v-else>
+                <FileUpload
+                    accept="image/*"
+                    :aria-labelledby="fieldContext?.state.fieldId"
+                    :aria-required="widgetContext.state.required"
+                    :disabled="widgetContext.state.disabled"
+                    :max-file-size="1000000"
+                    @update:model-value="onFileSelected"
+                />
+            </div>
+        </div>
     </div>
 </template>

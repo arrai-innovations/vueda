@@ -1,6 +1,6 @@
 # Agent Guidelines: `@arrai-innovations/vueda`
 
-This directory contains **`@arrai-innovations/vueda`**, a Vue 3 component library built with **Vite**. Consuming projects use an alias `@vueda` that resolves directly to the `lib/` source directory. This allows customization developers to import uncompiled components and composables.
+This directory contains **`@arrai-innovations/vueda`**, a Vue 3 component library built with **Vite**. Consuming projects use an alias `@vueda` that resolves directly to the `lib/` source directory. This allows customization developers to import uncompiled components and composables. The library source (`lib/`) is **plain JavaScript** (no TypeScript). There are no `.ts` files. Type information is expressed through JSDoc annotations.
 
 ---
 
@@ -15,6 +15,9 @@ To get started:
     ```
 
 - Run tests: `just test-client` (accepts extra vitest args, paths relative to `client/`)
+
+    **Testing scope:** this is a component library with no standalone dev app. "Test" means Vitest unit tests -- do not attempt to start a Vite dev server or verify components by rendering them in a browser. Unit tests are the only automated verification available. If something cannot be confirmed by a unit test, say so explicitly rather than trying to serve or scrape rendered output.
+
 
     ```bash
     just test-client
@@ -35,7 +38,7 @@ To get started:
 
 Scripts defined in `package.json`:
 
-- **test** - `npx --no-install vitest`
+- **test** - `npx --no-install vitest run`
 
 - **coverage** - `npm test -- run --coverage`
 
@@ -108,74 +111,11 @@ When making changes, suggest Changelog entries if they impact consumers or publi
 
 ## API Documentation Annotations
 
-The docs pipeline (`docs-tooling/`) picks up two custom annotations from `client/lib/` source files. Use them when adding or updating components.
+The docs-tooling pipeline reads several annotation conventions from `client/lib/` source files. The authoritative contract lives in the docs-tooling package next to the extractors that enforce it:
 
-### Component description (Vue SFCs)
+[Client annotation contract](../docs-tooling/briefings/client-annotations.md)
 
-Every Vue SFC in `client/lib/` should have a JSDoc block that describes what the component does. Place it **after** the imports and **immediately before `defineOptions()`**. vue-docgen-api reads the description from the JSDoc that directly precedes `defineOptions()` — a JSDoc placed before the imports will be silently ignored.
-
-Always include `defineOptions()` even when you have no options to set; it provides the required anchor for the description comment.
-
-```vue
-<script setup>
-import { ... } from "...";
-
-/**
- * One to three sentences describing what this component does.
- */
-defineOptions({
-    inheritAttrs: false, // only when needed
-});
-```
-
-Prop descriptions use inline JSDoc above each key inside `defineProps({...})`:
-
-```js
-const props = defineProps({
-    /** The field name. */
-    name: { type: String, required: true },
-});
-```
-
-### `@vueda-spread` on shared prop/emit constants (JS files)
-
-When a composable exports a constant that components spread into `props` or `emits`, mark it with `@vueda-spread props` or `@vueda-spread emits` in its JSDoc block. The normalizer injects those entries into every component that spreads the constant.
-
-```js
-/**
- * Props shared by all field components.
- *
- * @vueda-spread props
- */
-export const FIELD_PROPS = {
-    /** The field name. */
-    name: { type: String, required: true },
-};
-```
-
-Add a JSDoc line comment (`/** ... */`) above each prop or emit entry. Those comments become the member descriptions in the rendered API reference.
-
-### `<!-- @slot ... -->` for dynamic slots (Vue SFC templates)
-
-vue-docgen-api cannot statically read dynamic slot names (`:name="someExpression"`). Place an HTML comment immediately before any such `<slot>` element.
-
-**Bare form** (no fallbacks):
-
-```html
-<!-- @slot filter-clear-button Replaces the clear button inside the filter form. -->
-<slot :name="resolvedSlotNames.clearButton.name" />
-```
-
-**Bracket form** (with fallback slot names):
-
-```html
-<!-- @slot [filter-clear-button, filter-clear-button(filterName)] Replaces the clear button inside the filter form. -->
-<slot :name="resolvedSlotNames.clearButton.name" />
-```
-
-The first name in the bracket list is the canonical slot name; remaining names are fallbacks accepted by the same outlet. An empty bracket list `[]` is a parse error. The bracket form also works on static slots when you want to document fallbacks alongside an already-named slot.
-
-Use the consumer-facing API name, not the internal expression. For static slot names (`name="foo"`) with no fallbacks, vue-docgen picks up the name automatically and no annotation is needed.
+@../docs-tooling/briefings/client-annotations.md
 
 ---
 
@@ -318,6 +258,32 @@ Run the full suite before marking a task complete or opening a PR:
 
 ```bash
 pnpm -C client test run
+```
+
+### Terse output
+
+For a compact summary, use `--reporter=dot` (one character per test) or `--reporter=basic` (one line per file):
+
+```bash
+pnpm -C client test run --reporter=dot
+pnpm -C client test run tests/unit/lib/components/MyComponent.spec.js --reporter=basic
+```
+
+To stop on the first failure, add `--bail=1`:
+
+```bash
+pnpm -C client test run --bail=1 --reporter=dot
+```
+
+### Piping caution
+
+**Do not pipe test output through `head` or `tail`.** Vitest spawns multiple worker processes; when `head`/`tail` exits early and sends SIGPIPE, the workers may not terminate cleanly and will continue consuming memory in the background. Running the suite again before those workers die compounds the problem and can OOM the system.
+
+To capture output for later inspection, redirect to a file instead:
+
+```bash
+pnpm -C client test run > /tmp/test-out.txt 2>&1
+grep "FAIL\|×" /tmp/test-out.txt
 ```
 
 ---

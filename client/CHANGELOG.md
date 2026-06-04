@@ -6,18 +6,119 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Breaking Changes
 
+- **ViewRead**:
+    - No longer delegates to `DetailView.vue`. `useDetailView` is now called directly, and the template is fully inlined. HTML attributes (class, style, data-\*, etc.) that were previously forwarded to `DetailView`'s inner `<form>` element now land on the inner content `<div>` wrapping the error display and fields.
+      _If you passed arbitrary HTML attributes to `ViewRead` and relied on them landing on the inner `<form>` element, they now land on the inner content `<div>` instead. Most usages are unaffected._
+
+- **availableFields / Field type components**:
+    - Removed all type-specific `Field<Type>` components (`FieldString`, `FieldNumber`, `FieldBoolean`, `FieldDate`, `FieldDateTime`, `FieldTime`, `FieldDecimal`, `FieldDuration`, `FieldRange`, `FieldArray`, `FieldObject`, `FieldEmail`, `FieldURL`, `FieldUUID`, `FieldIP`, `FieldFile`, `FieldImage`) and their entries in `availableFields`. `FormField` is now the sole generic field component.
+    - Also removed `useDevTypeGuard` (was only used internally by the removed components).
+      _If you referenced these components by string name (e.g. in `fieldComponents` model config) or imported them directly, replace them with `FormField` and pass the appropriate `validation` prop (e.g. `validation: "text"`, `"numeric"`, `"decimal"`, `"date"`, `"datetime"`, or `"time"`)._
+
 - **makeCrud**:
     - `makeCRUDRoutes` now requires `actionRedirect` (e.g. `{ name: "not-found" }`) so missing model/action guard paths cannot attempt to resolve a null redirect.
       _If you were relying on the previous default, pass an explicit redirect route that is not gated by `requireModelInfo` to avoid redirect loops._
 
 ### Features
 
+- **Theme registration and lazy loading**:
+    - The built-in `vueda-tailwind` default theme is no longer one monolithic object. Each component's default theme is authored as a co-located per-component module (`@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`) that registers itself through `patchTheme`, and every themed component side-effect-imports its own `*.theme.js`. A route that renders only a few components now registers (and bundles) only those components' theme entries instead of the entire catalog.
+    - The theme registration API moved to a new `@vueda/use/themeRegistry.js` module (`setTheme`, `patchTheme`, `getTheme`, `mergeTheme`). `@vueda/use/useTheme.js` re-exports all four, so existing imports from `@vueda/use/useTheme.js` continue to work unchanged.
+    - `patchTheme(partial)` performs an additive merge for object entries and replace semantics when either side is a function (a component-level loader), so component self-registration composes with any prior `setTheme` call.
+    - Three registration paths are now supported. Global-eager: `setTheme(vuedaTailwind)` in `main.js` registers every component's theme up front (unchanged, and still the default for new projects). Per-family: `import "@vueda/theme/vueda-tailwind/<family>/index.js"` registers one family. Fully-lazy: omit `setTheme` and let each component register its own theme entries as it renders, so components you never use ship no theme.
+      _No action required: the global `setTheme(vuedaTailwind)` path is unchanged. To shrink the bundle for an app that uses a subset of components, drop the `setTheme(vuedaTailwind)` call and the `vuedaTailwind` import from `main.js`; components register their own theme entries as they render. Keep the `@vueda/theme/vueda-tailwind/base.css` import in every case (it defines the design tokens the classes resolve against)._
+
+- **UserAvatar (new)**:
+    - New display primitive `@vueda/display/avatar/UserAvatar.vue` rendering an initials chip from a `name` (or explicit `initials`) prop. `size` (number, default 32) drives width / height / font-size via inline style; `tone` selects the color recipe (`primary` default with primary-tinted bg + primary border + primary ink, or `sidebar` with solid `--sidebar-accent` + `--sidebar-foreground` ink). Initials algorithm: first + last token initials when the name has two or more whitespace-separated tokens, otherwise the first two characters of the single token; always uppercased. Theme key: `UserAvatar.{root, initials}` (`root` is tone-aware).
+    - `src` photo support is intentionally deferred; the chip is initials-only for now.
+
+- **ConsequencesBullets (new)**:
+    - New leaf primitive `@vueda/components/ConsequencesBullets.vue` rendering a destructive-action consequence list. Props: `items` (required array of `{ icon?, label, description?, tone? }` rows), `class`, and theme override props. Root is `<ul data-slot="consequences-bullets">`; each row is a `<li>` carrying `data-tone="default|warn|danger"`. Icons resolve through `useIcons("ConsequencesBullets")` so consumers can register the per-row glyphs that fit their messaging; when the lookup returns null the icon cell still renders so labels stay aligned. Theme key: `ConsequencesBullets.{root, item, icon, text, label, description, toneWarn, toneDanger}` — `toneWarn` and `toneDanger` apply `text-warning` / `text-destructive` to the icon wrapper.
+
+- **TypedConfirmField (new)**:
+    - New leaf primitive `@vueda/components/TypedConfirmField.vue` for "type it to mean it" anti-mistake confirmation. Props: `expectedValue` (required), `modelValue` (v-model), `placeholder` (defaults to `expectedValue`), `labelLead` / `labelTail` flanking the chip (defaults "Type" / "to confirm"), `inputId` (auto-generated via `useId`), `class`, and theme override props. Emits `update:modelValue` plus a `match` event whenever the typed value crosses equality with `expectedValue` (case- and whitespace-sensitive). Root carries `data-slot="typed-confirm-field"` and `data-match="true|false"` for parent gating. Theme key: `TypedConfirmField.{root,label,expectedChip,input}`.
+
+- **ViewDestroy / ModelActionForm — `confirmText`**:
+    - New optional `confirmText` prop on `ViewDestroy.vue` (forwarded into `ModelActionForm.vue`). When set, `ModelActionForm` renders a `TypedConfirmField` inside the body (below the confirm-prompt and any `extra-fields` slot content) and overrides ActionForm's `confirm-button` slot so the submit button stays disabled until the typed value matches the literal `confirmText`. Consumer-supplied `confirm-button` slots are forwarded with `disabled` augmented to OR in the typed-confirm gate; no change for callers that omit `confirmText`. Threshold remains caller-controlled — kit canon: "single-record destroy is fine without; more than one wants the speed bump."
+      _Adopt by passing a literal phrase (the kit convention is "delete N {verbose}", e.g. "delete 3 customers") as `confirm-text` on `ViewDestroy` for bulk destroys. Single-record destroys can continue to omit the prop._
+
+- **SidebarUserBlock (new)**:
+    - New SFC `@vueda/navigation/sidebar/SidebarUserBlock.vue` for the sidebar footer user block. Composes `UserAvatar` at 32 px with `tone="sidebar"`, plus a name line (13 px / 500 / `--sidebar-foreground`), an optional role line (11 px / 400 / `--muted-foreground`), and a `kebab` named slot for the account-menu trigger. Theme key: `SidebarUserBlock.{root, text, name, role}`.
+
+- **ViewHistoryList**:
+    - The `field(history_user)` slot now renders a 22 px `UserAvatar` chip beside the user's display name, replacing the generic ObjectsGrid cell fallback. New theme keys `ViewHistoryList.cellUser` (the inline-flex row) and `cellUserName` (the name span; 12 px / 500 / `--foreground`). The `field(history_user)` named slot remains the override hook for richer cells.
+    - The `field(history_type)` slot default now renders a tonal pill (rounded-full border with a leading icon and lowercase label) instead of the raw django-simple-history code. A client-side map normalizes `+` / `created` to success, `~` / `updated` / `changed` to info, `-` / `deleted` to destructive, and `restored` to warning; unknown values fall through to the raw string. Icons resolve through `useIcons("ViewHistoryList")` under `typeCreated` / `typeUpdated` / `typeDeleted` / `typeRestored`. New theme key `ViewHistoryList.typePill` carries the pill recipe with `data-kind` selecting the tonal variant.
+      _Register `typeCreated`, `typeUpdated`, `typeDeleted`, and `typeRestored` icon entries (in `ViewHistoryList` or `Default`) to see the leading glyphs; without them, only the colored label renders._
+    - Added a meta strip between `PageTitle` and the grid carrying a `meta-filters` slot on the left for consumer-supplied filter chips and a Table / Cards layout toggle on the right. The toggle drives a local `layoutOverride` ref (`"auto" | "table" | "cards"`) which remaps `tableBreakpoint` on `ObjectsGrid` (`xs` forces table, `inf` forces cards). New `hideMetaStrip` prop suppresses the row entirely. New `meta-strip` named slot exposes `{ isTable, layoutOverride, setLayoutOverride }` for full replacement. New theme keys `ViewHistoryList.{meta, metaItem, metaDivider, metaSpacer, layoutToggle, layoutButton, layoutButtonActive}`. The strip is suppressed when the dedicated empty state is showing.
+      _If you want the kit's Range / Type / User filter chips, render them inside the `meta-filters` slot from your own filter state — the default leaves the slot empty._
+
+- **ObjectsGrid**:
+    - Card-mode `bodyRowGroup` now defaults to a 1 / 2 / 3 column responsive grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`). Projects can still override per-list via `useTheme`.
+      _If you previously set custom `grid-cols-*` classes on the bodyRowGroup via theme override, the override continues to win. If you relied on the previous unset behavior (single implicit column), set `grid-cols-1` (or your preferred override) explicitly._
+    - `ObjectsGridCardCell` label / value typography aligns with the form-field read-only row recipe: the label is 10px sans 600 uppercase with `0.06em` tracking on `--muted-foreground`; the value is 13px sans 400 on `--foreground`. Card mode now reads as a compact label/value detail pane per row.
+      _If you depended on the previous neutral-900 semibold header or neutral-800 normal value styling, override `ObjectsGridCardCell.header` / `.value` via `useTheme`._
+    - Card-mode `cardContainer` is now a `grid grid-cols-[minmax(96px,max-content)_1fr] items-baseline` instead of `flex flex-col`, so labels and values from every cell within a card line up as two aligned columns. `ObjectsGridCardCell` and its skeleton sibling render as a header + value fragment, so each cell's two halves participate directly in the parent grid (no `display: contents` wrapper needed).
+      _If you override the `value` slot with a layout that assumed a single-column flex parent, switch to a layout that fills the second grid column (or override `ObjectsGrid.cardContainer` via `useTheme` to restore `flex flex-col`)._
+    - Empty-state row now follows the `TableEmpty` recipe: a flex column inside a new `ObjectsGrid.emptyContent` theme key drives `data-variant` (`empty` | `loading` | `error` | `filtered`) on the wrapper, with the icon resolved through `useIcons("ObjectsGrid")` keyed by the active variant. Variant CSS spins the icon on `loading` and recolors it to `--destructive` on `error`. Added `emptyVariant` prop and a single `empty` slot (full escape hatch; receives `variant`). `:empty-text="null"` continues to suppress the empty row.
+      _Out of the box you'll see a strong `emptyText` title with no icon. To get the kit's icon defaults, register entries via `setIcons({ ObjectsGrid: { empty: ..., error: ..., filtered: ... } })` (and/or `Default.loading`). To override the entire body, use `<template #empty="{ variant }">…</template>`._
+    - `bodyRow` now responds to `data-state="marked-destroy"`: a 4% destructive tint plus a `line-through` on every cell whose `data-field` / `data-card` / `data-card-header` is not `item-action-bar` (the action column owned by `FieldSetTabularInline`). Action controls remain readable so the user can clear the destroy mark.
+    - `root` reads an ancestor `[data-flush]` attribute and drops `rounded-vueda-card`, `border-x`, and `border-t` while keeping the bottom hairline, so an embedding card (e.g. `FieldSetTabularInline.body`) can merge the grid with its own border without doubling.
+
+- **Progress**:
+    - Added `size` prop accepting `sm` (4px), `md` (8px, default), and `lg` (12px) to control track and indicator height. The value is also reflected as a `data-size` attribute on the root for consumer CSS hooks.
+    - Added `tone` prop accepting `success`, `warning`, and `destructive` to swap track and indicator from the primary surface to the matching status surface (`bg-{tone}/20` track, `bg-{tone}` indicator).
+    - Indeterminate state (when `max` is omitted) now animates via the new `--animate-vueda-progress-slide` motion token. The component drops the determinate inline `transform` style in this state so the keyframe sweep drives the indicator.
+      _If you currently rely on `Progress` rendering with a static indicator at `translateX(-100%)` when `max` is omitted, pass `:max="100"` (or another finite value) explicitly to keep determinate behavior._
+
+- **ViewRead**:
+    - Now emits `related-object` and `calculated-object` on mount (they were declared but never fired in the previous delegation-based implementation).
+
+- **useViewUpdate**:
+    - New composable that extracts all update-view logic from `ViewUpdate.vue`. Custom shell components can call `useViewUpdate(props)` to get the same reactive state (`formInitialValue`, `formContext`, `objectForm`, `modelConfig`, `instanceObject`, `instance`, `actions`) without copying the default component.
+    - `ViewUpdate.vue` is now a thin wrapper around this composable and retains its existing props, emits, and slots unchanged.
+
+- **useViewList**:
+    - New composable that extracts all list-view logic from `ViewList.vue`. Custom shell components can call `useViewList(props)` to get the same sub-grouped reactive state (`modelConfig`, `list`, `actions`, `search`, `sort`, `columns`, `pagination`) without copying the default component.
+    - `ViewList.vue` is now a thin wrapper around this composable and retains its existing props, emits, and slots unchanged.
+
+- **useDetailView**:
+    - New composable that extracts all detail-view logic from `DetailView.vue`. Custom shell components can call `useDetailView(options, formInitialValue)` to get the same reactive state (`modelConfig`, `instanceObject`, `instance`, `actions`) without copying the default component.
+    - `DetailView.vue` is a thin wrapper around this composable and retains its existing props, emits, and slots unchanged.
+
 - **DetailView**:
     - Added `DetailView` as the canonical base component for `read` and `update` detail flows.
     - `DetailedView` is now deprecated and will be removed in the next major release.
       _If you import `@vueda/components/DetailedView.vue`, switch to `@vueda/components/DetailView.vue`._
 
+- **SidebarMenuBadge**:
+    - New `tone` prop accepting `neutral` (default), `primary`, and `destructive`. The value is reflected as `data-tone` on the badge and drives the chromatic treatment: `neutral` paints `--sidebar-accent` and auto-promotes to a `--sidebar-primary` `color-mix` tint when the ancestor menu button is active; `primary` and `destructive` force their respective tints. Type recipe also changes — `font-mono` at 11px / 600 / `tabular-nums`, with `rounded-vueda-control` (slab) replacing `rounded-md`.
+      _If you styled `SidebarMenuBadge` via theme override against the previous `text-xs font-medium tabular-nums rounded-md` recipe, your override continues to win. To use the kit recipe, drop the override._
+
+- **SidebarTrigger**:
+    - Toggle glyph now resolves through `useIcons("SidebarTrigger").("toggle")`. The previous Unicode `◫` placeholder is removed.
+      _Register the canonical glyph (or any other) via `setIcons({ SidebarTrigger: { toggle: { component: ..., props: ... } } })`. The `icon` named slot continues to work as a per-instance escape hatch. With no registration and no slot, the button renders only its `sr-only` label._
+
+- **FieldSetTabularInline**:
+    - Rows marked for destruction (the Destroy? checkbox in persisted rows) now propagate `data-state="marked-destroy"` onto the embedded `ObjectsGrid` body row via the new `:row-attrs` wiring, activating the grid's destructive tint and strikethrough chrome (see ObjectsGrid changes above).
+    - The action column also renders a new `Will destroy` pill (`destroyPill` theme key, `bg-destructive/10 text-destructive` micro-eyebrow on `rounded-vueda-control`) next to the Destroy? checkbox once the row is selected.
+    - The embedded `ObjectsGrid` is now wrapped in a new `body` element (theme key, `data-flush="true"`) so its rounded edge plus its top and side borders collapse into the fieldset card; the chores panel below paints the closing edge.
+
 ### Fixes
+
+- **Sidebar (visual refinements, theme keys)**: A batch of kit-aligned theme-key tweaks across the Sidebar family. Override slots via `useTheme` if you depended on the previous values.
+    - **`SidebarGroupLabel`** — adopts the page-level eyebrow recipe: `text-muted-foreground`, `h-6`, `text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.08em]`, `rounded-md` removed; collapsible-icon hide step shrinks from `-mt-8` to `-mt-6`.
+    - **`SidebarMenuButtonChild`** — active state now paints a 2px `--sidebar-primary` rail via `::before` (token: `--vueda-sidebar-active-rail`) and flips the leading icon to `--sidebar-primary`. The `data-[active=true]:font-medium` weight bump is removed (it shifted layout by ~1px and read as jitter on hover). In collapsed (icon-only) mode, the rail shifts to `-left-2` so it lands flush with the 48px panel edge. Base also drops `overflow-hidden` (the inner span's `truncate` handles its own clipping).
+    - **`SidebarMenuSubButton`** — active state paints the same 2px `--sidebar-primary` rail at `before:left-[-11px]` so it lands on the sub-list's `border-l` indent rail. Sub-button `size="sm"` now sets `h-6` alongside `text-xs` (was: only `text-xs`, height stayed `h-7`).
+    - **`SidebarMenuSub`** — horizontal margin tightens from `mx-3.5` to `mx-3`.
+    - **`SidebarSeparator`** — full-bleed: `mx-2 w-auto` removed, `my-1` added.
+    - **`SidebarMenuSkeleton`** — icon-skeleton radius changes from `rounded-md` to `rounded-vueda-checkbox`.
+    - **`SidebarInput`** — overrides `--vueda-hairline-color` to `--sidebar-border` (and to `--sidebar-ring` on focus) so the search input's edge and focus ring use the sidebar palette rather than the generic `--input` / `--ring` (visible mismatch in dark mode).
+
+- **useField / useForm**: Required-field errors are now suppressed on blur for fields that started empty and remain empty, until the form has had a submission attempt (via `setAllTouched`) or the field has been modified. This prevents a wall of required errors when a user tabs through an empty form without typing anything. Fields without a form context retain the previous behavior (errors fire on blur immediately).
+    - _No action required for most forms. If you relied on required errors firing on blur for fields that have never been touched and were always empty (e.g. contextless fields), behavior is unchanged. For fields inside a form context, errors now require either user modification or a submission attempt before appearing._
+
+- **ViewUpdate**: The `redirectAfter` prop was silently discarded and redirects after a successful update never fired. This is now fixed.
+    - _If you relied on `redirectAfter` having no effect, note that it will now redirect as documented._
 
 - **FieldSetSingularStackedInline**: Wait for fieldObjects to be ready before auto-creating inline row and loading initial values in FieldSetSingularStackedInline
 

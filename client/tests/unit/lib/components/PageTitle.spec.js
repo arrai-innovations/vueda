@@ -2,8 +2,9 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
 
-const themeFn = vi.fn((key) => `theme-${key}`);
-const mockedUseTheme = vi.fn(() => themeFn);
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeFn = makeThemeFn({ slotResolver: (key) => `theme-${key}` });
+const mockedUseTheme = makeUseThemeMock({ themeFn });
 
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
@@ -43,6 +44,7 @@ scopedIt("applies theme classes and renders slots", () => {
         props: { title: "Hello" },
         slots: {
             title: "<span data-qa='title-slot'>Slot</span>",
+            eyebrow: "<span data-qa='eyebrow'>Crumbs</span>",
             "title-suffix": "<span data-qa='suffix'>Sfx</span>",
             button: "<button data-qa='btn'>Btn</button>",
             subtitle: "<div data-qa='subtitle'>Sub</div>",
@@ -55,11 +57,21 @@ scopedIt("applies theme classes and renders slots", () => {
     expect(wrapper.find("h1").classes()).toContain("theme-title");
     expect(wrapper.find('[data-qa="loading-spinner-inline"]').exists()).toBe(false);
     expect(wrapper.find('[data-qa="title-slot"]').exists()).toBe(true);
+    expect(wrapper.find('[data-qa="eyebrow"]').exists()).toBe(true);
+    expect(wrapper.find(".theme-eyebrow").exists()).toBe(true);
+    expect(wrapper.find(".theme-titleRow").exists()).toBe(true);
     expect(wrapper.find('[data-qa="suffix"]').exists()).toBe(true);
+    expect(wrapper.find(".theme-titleSuffix").exists()).toBe(true);
     expect(wrapper.find('[data-qa="btn"]').exists()).toBe(true);
     expect(wrapper.find('[data-qa="subtitle"]').exists()).toBe(true);
     expect(wrapper.find('[data-qa="under"]').exists()).toBe(true);
     expect(wrapper.find('[data-qa="footer"]').exists()).toBe(true);
+});
+
+scopedIt("omits eyebrow and titleSuffix wrappers when their slots are not provided", () => {
+    const wrapper = mount(PageTitle, { props: { title: "t" } });
+    expect(wrapper.find(".theme-eyebrow").exists()).toBe(false);
+    expect(wrapper.find(".theme-titleSuffix").exists()).toBe(false);
 });
 
 scopedIt("shows spinner and gradient when loading and sticky", () => {

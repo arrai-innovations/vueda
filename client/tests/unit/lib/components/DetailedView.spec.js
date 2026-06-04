@@ -66,21 +66,35 @@ const PageTitleStub = defineComponent({
 const StickyBarStub = defineComponent({
     name: "StickyBarStub",
     setup(_, { slots }) {
-        return () => h("div", { "data-qa": "sticky-bar" }, slots.default ? slots.default() : null);
+        return () =>
+            h("div", { "data-qa": "sticky-bar" }, [
+                slots.default ? slots.default() : null,
+                slots.primary ? slots.primary() : null,
+                slots.secondary ? slots.secondary() : null,
+            ]);
     },
 });
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["form", "label", "loading", "type"],
-    setup(props) {
+    props: ["form", "loading", "type"],
+    setup(props, { slots }) {
         return () =>
-            h("button", {
-                "data-qa": "prime-button",
-                "data-form": props.form,
-                "data-label": props.label,
-                "data-loading": String(props.loading),
-                "data-type": props.type,
-            });
+            h(
+                "button",
+                {
+                    "data-qa": "prime-button",
+                    "data-form": props.form,
+                    "data-loading": String(props.loading),
+                    "data-type": props.type,
+                },
+                slots.default?.(),
+            );
+    },
+});
+const FeedbackSpinnerStub = defineComponent({
+    name: "FeedbackSpinnerStub",
+    setup() {
+        return () => h("div", { "data-qa": "feedback-spinner" });
     },
 });
 
@@ -89,7 +103,8 @@ vi.mock("@vueda/components/FormModel.vue", () => ({ default: FormModelStub }));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
 
 const filteredActions = reactive({ actions: [] });
 vi.mock("@vueda/use/useFilteredActions.js", () => ({ useFilteredActions: () => filteredActions }));

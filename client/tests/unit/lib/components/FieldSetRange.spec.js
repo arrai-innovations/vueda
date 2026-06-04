@@ -10,35 +10,51 @@ const SimpleStub = (qa) =>
         },
     });
 
-const FormChoresStub = defineComponent({
-    name: "FormChoresStub",
-    setup(_, { slots }) {
-        return () => h("div", { "data-qa": "form-chores" }, slots.default ? slots.default() : null);
-    },
-});
-
 const loggerWarn = vi.fn();
 vi.mock("@vueda/use/useDevLogger.js", () => ({ useDevLogger: () => ({ warn: loggerWarn }) }));
 
 const fieldContext = {
-    state: reactive({ name: "range", label: "Range", value: null }),
+    state: reactive({
+        name: "range",
+        label: "Range",
+        value: null,
+        help: "",
+        errors: {},
+        messages: {},
+        formModelName: "range",
+    }),
     deleteError: vi.fn(),
     updateError: vi.fn(),
 };
 vi.mock("@vueda/use/useField.js", () => ({ FIELD_PROPS: {}, FIELD_EMITS: [], useField: () => fieldContext }));
 
-const themeFn = vi.fn(() => "theme-root");
+const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const themeFn = makeThemeFn({ slotResolver: () => "theme-root" });
 
-const mockedUseTheme = vi.fn(() => themeFn);
+const mockedUseTheme = makeUseThemeMock({ themeFn });
 
 vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: SimpleStub("field-renderer") }));
-vi.mock("@vueda/components/FormChores.vue", () => ({ default: SimpleStub("form-chores") }));
+vi.mock("@vueda/shell/field/FieldDescription.vue", () => ({
+    default: defineComponent({
+        name: "FieldDescription",
+        setup:
+            (_, { slots }) =>
+            () =>
+                h("p", { "data-qa": "field-description" }, slots.default?.()),
+    }),
+}));
+vi.mock("@vueda/shell/field/FieldMessage.vue", () => ({
+    default: defineComponent({
+        name: "FieldMessage",
+        props: ["messages", "severity"],
+        setup: (props) => () => h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),
+    }),
+}));
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
     THEME_OVERRIDE_PROPS: {},
     mergeTheme: (...themes) => Object.assign({}, ...themes),
 }));
-vi.mock("@vueda/components/FormChores.vue", () => ({ default: FormChoresStub }));
 
 let FieldSetRange;
 

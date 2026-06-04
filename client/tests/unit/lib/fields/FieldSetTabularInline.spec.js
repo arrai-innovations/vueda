@@ -14,14 +14,26 @@ const SimpleStub = (qa) =>
     });
 
 vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: SimpleStub("field-renderer") }));
-vi.mock("@vueda/components/FormChores.vue", () => ({ default: SimpleStub("form-chores") }));
 vi.mock("@vueda/components/ObjectsGrid.vue", () => ({ default: SimpleStub("objects-grid") }));
-vi.mock("@vueda/components/WidgetLabelContextByProps.vue", () => ({
-    default: SimpleStub("widget-label-context-by-props"),
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: SimpleStub("control-button") }));
+vi.mock("@vueda/shell/field/FieldDescription.vue", () => ({
+    default: defineComponent({
+        name: "FieldDescription",
+        setup:
+            (_, { slots }) =>
+            () =>
+                h("p", { "data-qa": "field-description" }, slots.default?.()),
+    }),
+}));
+vi.mock("@vueda/shell/field/FieldMessage.vue", () => ({
+    default: defineComponent({
+        name: "FieldMessage",
+        props: ["messages", "severity"],
+        setup: (props) => () => h("div", { "data-qa": "field-message", "data-severity": props.severity ?? "error" }),
+    }),
 }));
 vi.mock("@vueda/widgets/WidgetCheckbox.vue", () => ({ default: SimpleStub("widget-checkbox") }));
-vi.mock("primevue/button", () => ({ default: SimpleStub("prime-button") }));
-vi.mock("primevue/divider", () => ({ default: SimpleStub("prime-divider") }));
+vi.mock("@vueda/shell/separator/Separator.vue", () => ({ default: SimpleStub("shell-separator") }));
 
 // Mock composable used by component
 const useFieldSetTabularInline = vi.fn();
@@ -61,7 +73,17 @@ function mountWithContext(value, options = {}) {
         selected: [],
         ...stateOverride,
     });
-    const fieldSetContext = { state: reactive({ value, label: "Label", name: "items", formModelName: "fm" }) };
+    const fieldSetContext = {
+        state: reactive({
+            value,
+            label: "Label",
+            name: "items",
+            formModelName: "fm",
+            help: "",
+            errors: {},
+            messages: {},
+        }),
+    };
     useFieldSetTabularInline.mockReturnValue({
         state,
         fieldSetContext,
@@ -74,6 +96,8 @@ function mountWithContext(value, options = {}) {
             "destroy-button": { name: "destroy-button" },
             "destroy-checkbox": { name: "destroy-checkbox" },
             "item-action-button": { name: "item-action-button" },
+            "field-set-level-chores": { name: "field-set-level-chores", exists: false },
+            "empty-state": { name: "empty-state" },
         },
         theme: () => "",
         doCreate: vi.fn(),
@@ -129,19 +153,14 @@ describe("lib/fields/FieldSetTabularInline.vue", () => {
         expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    scopedIt("emits toggleVisibility when slot content clicked", async () => {
-        let slotClick;
+    scopedIt("emits toggleVisibility when title bar is clicked", async () => {
         const wrapper = mountWithContext([], {
             state: { hidable: true },
-            slots: {
-                "toggle-button": (slotProps) => {
-                    slotClick = slotProps.onClick;
-                    return h("button", { "data-qa": "slot-toggle" }, "Toggle");
-                },
-            },
         });
-        expect(typeof slotClick).toBe("function");
-        slotClick();
+        const titleBar = wrapper.find('[data-qa="field-set-tabular-inline-title-bar"]');
+        expect(titleBar.attributes("role")).toBe("button");
+        expect(titleBar.attributes("aria-expanded")).toBe("true");
+        await titleBar.trigger("click");
         expect(wrapper.vm.fieldSetTabularInline.toggleVisibility).toHaveBeenCalled();
     });
 });
