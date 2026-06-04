@@ -133,22 +133,6 @@ const theme = {
         app.component("ForceState", ForceState);
         app.component("StateLabel", StateLabel);
         app.component("VuedaDemo", VuedaDemo);
-
-        if (typeof window !== "undefined") {
-            const { router } = ctx;
-            const renderMermaid = () => {
-                const mermaid = window.mermaid;
-                if (mermaid) {
-                    mermaid.init();
-                }
-            };
-
-            router.onAfterRouteChanged = () => {
-                requestAnimationFrame(renderMermaid);
-            };
-
-            requestAnimationFrame(renderMermaid);
-        }
     },
 };
 
