@@ -542,6 +542,7 @@ const docsSidebar = {
     "/tutorials/": buildSectionSidebar("tutorials", "Tutorials"),
     "/guides/": buildSectionSidebar("guides", "Guides"),
     "/core-concepts/": buildSectionSidebar("core-concepts", "Core Concepts"),
+    "/reference/components/": buildSectionSidebar("reference/components", "Components"),
     "/reference/": buildSectionSidebar("reference", "Reference"),
     "/reference/api/": buildApiSidebar(),
 };
@@ -643,7 +644,6 @@ export default defineConfig({
             { text: "Guides", link: "/guides" },
             { text: "Core Concepts", link: "/core-concepts" },
             { text: "Reference", link: "/reference" },
-            { text: "Components", link: "/reference/components/" },
         ],
         sidebar: docsSidebar,
         socialLinks: [
