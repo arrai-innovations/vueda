@@ -7,6 +7,7 @@ import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
 import InputOTPSlot from "@vueda/controls/input-otp/InputOTPSlot.vue";
 import FormField from "@vueda/fields/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import "@vueda/theme/vueda-tailwind/views/ViewSetupDevice.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useTheme } from "@vueda/use/useTheme.js";

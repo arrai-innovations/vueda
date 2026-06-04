@@ -3,6 +3,7 @@ import LoadingHeartbeatStrip from "@vueda/components/LoadingHeartbeatStrip.vue";
 import LoadingSkeletonGhost from "@vueda/components/LoadingSkeletonGhost.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewLoading.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 

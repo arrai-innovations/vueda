@@ -1,5 +1,6 @@
 <script setup>
 import ActionForm from "@vueda/components/ActionForm.vue";
+import "@vueda/theme/vueda-tailwind/views/AuthorizingForm.theme.js";
 import { useSignInFlow } from "@vueda/use/useSignInFlow.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { onMounted, toRef } from "vue";

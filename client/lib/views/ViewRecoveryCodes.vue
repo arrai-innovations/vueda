@@ -6,6 +6,7 @@ import Alert from "@vueda/feedback/alert/Alert.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import "@vueda/theme/vueda-tailwind/views/ViewRecoveryCodes.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useTheme } from "@vueda/use/useTheme.js";

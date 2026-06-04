@@ -2,6 +2,7 @@
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewAction.theme.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";

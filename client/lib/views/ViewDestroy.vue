@@ -2,6 +2,7 @@
 import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewDestroy.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";

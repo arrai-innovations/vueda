@@ -4,6 +4,7 @@ import SuggestionList from "@vueda/components/SuggestionList.vue";
 import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
 import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewNotFound.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useSuggestRoutes } from "@vueda/use/useSuggestRoute.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";

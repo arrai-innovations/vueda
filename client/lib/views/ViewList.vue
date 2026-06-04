@@ -18,6 +18,7 @@ import SelectContent from "@vueda/controls/select/SelectContent.vue";
 import SelectItem from "@vueda/controls/select/SelectItem.vue";
 import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
 import SelectValue from "@vueda/controls/select/SelectValue.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewList.theme.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewList } from "@vueda/use/useViewList.js";

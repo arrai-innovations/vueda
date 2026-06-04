@@ -2,6 +2,7 @@
 import ActionForm from "@vueda/components/ActionForm.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import "@vueda/theme/vueda-tailwind/views/AuthForm.theme.js";
 import { useAuthFlow } from "@vueda/use/useAuthFlow.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { onMounted, toRef } from "vue";

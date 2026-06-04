@@ -3,6 +3,7 @@ import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
+import "@vueda/theme/vueda-tailwind/views/ViewWorkflowTransition.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";

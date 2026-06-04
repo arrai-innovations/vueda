@@ -5,6 +5,7 @@ import PageTitle from "@vueda/components/PageTitle.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewHistoryList.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";

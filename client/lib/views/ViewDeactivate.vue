@@ -4,6 +4,7 @@ import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
 import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import "@vueda/theme/vueda-tailwind/views/ViewDeactivate.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";

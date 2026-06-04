@@ -4,6 +4,7 @@ import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewActivate.theme.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";

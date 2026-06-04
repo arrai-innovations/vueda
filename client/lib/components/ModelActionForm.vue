@@ -4,6 +4,7 @@ import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import FormField from "@vueda/fields/FormField.vue";
+import "@vueda/theme/vueda-tailwind/views/ModelActionForm.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useTheme } from "@vueda/use/useTheme.js";

@@ -5,6 +5,7 @@ import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
 import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
+import "@vueda/theme/vueda-tailwind/views/ViewActionNotFound.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";

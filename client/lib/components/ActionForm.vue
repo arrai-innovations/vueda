@@ -3,6 +3,7 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormMessage from "@vueda/components/FormMessage.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/views/ActionForm.theme.js";
 import { useActionForm } from "@vueda/use/useActionForm.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
