@@ -8,7 +8,6 @@ status: draft
 # Model Choices, Lookup Fields, and Dynamic Options
 
 This guide covers the end-to-end flow for loading dynamic option lists; both field-level choices (from serializer/model definitions) and filter-level choices (from filterset definitions); using VUEDA's info endpoints and client composables. By the end, choice-backed fields and filter lookups will load their options dynamically, respect permissions, and handle edge cases like empty labels and lazy loading.
-[create-crudl-surface_bak.md](create-crudl-surface_bak.md)
 The guide assumes familiarity with the identifier and metadata contracts. If you have not read [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline), start there; it explains how choice values are normalized to strings and why identifier comparison uses string equality. For the model registration and `formatted_name` configuration that choice endpoints depend on, see [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract).
 
 ## Goal and Preconditions
