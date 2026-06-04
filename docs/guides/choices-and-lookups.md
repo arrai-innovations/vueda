@@ -8,7 +8,7 @@ status: draft
 # Model Choices, Lookup Fields, and Dynamic Options
 
 This guide covers the end-to-end flow for loading dynamic option lists; both field-level choices (from serializer/model definitions) and filter-level choices (from filterset definitions); using VUEDA's info endpoints and client composables. By the end, choice-backed fields and filter lookups will load their options dynamically, respect permissions, and handle edge cases like empty labels and lazy loading.
-
+[create-crudl-surface_bak.md](create-crudl-surface_bak.md)
 The guide assumes familiarity with the identifier and metadata contracts. If you have not read [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline), start there; it explains how choice values are normalized to strings and why identifier comparison uses string equality. For the model registration and `formatted_name` configuration that choice endpoints depend on, see [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract).
 
 ## Goal and Preconditions
@@ -78,6 +78,12 @@ Requesting choices for a filter name that does not exist on the filterset return
 
 Filter choice responses follow the same `{label, value}` structure as field choices. Values are normalized to strings. For queryset-backed filter choices, the queryset is filtered and paginated according to the filter's configuration before choices are extracted.
 
+### Dynamic filtering and typeahead
+
+The filter-choices endpoint is designed for interactive search: the client can pass the user's current input as a query parameter matching the filter's field name, and the endpoint narrows the returned options accordingly. For filters with `startswith`, `istartswith`, `contains`, or `icontains` lookup expressions, this narrowing happens in-memory on static choice lists and is applied directly to queryset-backed filters. This makes the endpoint well-suited for typeahead dropdowns that progressively reduce the option list as the user types.
+
+For queryset-backed `ModelChoiceFilter` filters and `AllValues`-style filters, the endpoint also considers the other active filter parameters when building the choice queryset. The returned options reflect only the values present in the currently filtered dataset, not the full set of possible values.
+
 ## Client Fetch Strategy
 
 The client loads choices through two coordinated layers: {@api js:module:@arrai-innovations/vueda/stores/storeModelChoices} for state management and deduplication, and {@api js:module:@arrai-innovations/vueda/use/useModelChoices} for reactive fetching with intent controls.
@@ -136,7 +142,7 @@ With choice loading wired, verify these behaviors:
 
 **Choice endpoint returns 404 for a valid field name.** The field must have choices defined on the serializer; either static choices in the field definition or a related-model queryset source. A plain `CharField` without choices will return 404 from the field-choices endpoint even though it exists in model-info metadata.
 
-**Related-model choice labels show raw values instead of formatted names.** The related model's `formatted_name` strategy is not configured correctly. If the model sets `formatted_name = None`, it must provide either `formatted_name_lookup_expression` or a `get_formatted_name()` method. If using `get_formatted_name()`, the related model's serializer must declare `formatted_name = serializers.SerializerMethodField()`. See [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract) for the configuration options.
+**Related-model choice labels show raw values instead of formatted names.** The related model's `formatted_name` strategy is not configured correctly. If the model sets `formatted_name = None`, it must provide either `formatted_name_lookup_expression` or a `get_formatted_name()` method. A system check (`vueda_info.E001`) catches this misconfiguration at startup. If using `get_formatted_name()`, the related model's serializer must declare `formatted_name = serializers.SerializerMethodField()`. See [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract) for the configuration options.
 
 **Filter choices are empty on initial page load.** This is expected behavior for lazily-loaded filter choices. The filter UI fetches choices when the dropdown is opened or when the URL already contains a filter value. If you need eager loading, configure `intendToFetch: true` and ensure the component is active at mount time.
 

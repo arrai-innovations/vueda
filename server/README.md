@@ -17,6 +17,7 @@
     - [Developer Tools](#developer-tools)
       - [Group Management](#group-management)
       - [Workflow Management](#workflow-management)
+      - [Permissions and Workflow Overview](#permissions-and-workflow-overview)
     - [Set up Dispatch Queue](#set-up-dispatch-queue)
       - [start celery worker:](#start-celery-worker)
   - [Development](#development)
@@ -228,6 +229,12 @@ For full instructions, see [Manage Groups and Generate Group Migrations](https:/
 The workflow overview screen at `/routes/vueda.workflow/overview/` lets you create and configure workflows with states, transitions, and permissions. When you are ready to roll those changes out to other environments, run `makeworkflowmigrations` to produce a migration with the changes.
 
 For full instructions, see [Manage Workflows and Generate Workflow Migrations](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/manage-workflows.md).
+
+#### Permissions and Workflow Overview
+
+The permissions and workflow overview at `/vueda.info/overview/` provides a read-only audit of which groups have which permissions and which workflow transitions they can trigger. Select a specific user to see exactly what that user can and cannot do. The page can be printed as a reference to share with clients or as a starting point when diagnosing access issues.
+
+For full instructions, see [Use the Permissions and Workflow Overview](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/permissions-workflow-overview.md).
 
 ### Set up Dispatch Queue
 

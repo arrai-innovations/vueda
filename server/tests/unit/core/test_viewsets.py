@@ -6,6 +6,7 @@ from typing import TypedDict
 
 import pytest
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
@@ -16,6 +17,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.models import Employee
 from tests.models import Product
 from tests.models import Timesheet
+from tests.models import TimesheetEntry
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
@@ -43,6 +45,28 @@ def test_vueda_viewset_warns_when_combined_with_read_only_viewset():
             pass
 
     assert InvalidCombinedViewSet is not None
+
+
+@pytest.mark.django_db
+def test_history_list_detail_action_accepts_request_and_pk(api_client):
+    user = get_user_model().objects.create_user(
+        email="history-list-user@domain.invalid",
+        password="testpass",
+        name="History List User",
+        is_superuser=True,
+    )
+    api_client.force_authenticate(user=user)
+
+    employee = Employee.objects.create(user=user, employee_number="E100")
+    timesheet = Timesheet.objects.create(period_start="2026-01-01", period_end="2026-01-15", employee=employee)
+    entry = TimesheetEntry.objects.create(timesheet=timesheet, date="2026-01-01", hours="7.50")
+    entry.hours = "8.00"
+    entry.save()
+
+    response = api_client.get(reverse("tests.timesheetentry-history-list", kwargs={"pk": entry.pk}))
+
+    assert response.status_code == HTTPStatus.OK, response.data
+    assert [result["history_type"] for result in response.data["results"]] == ["~", "+"]
 
 
 @pytest.mark.django_db
@@ -1086,3 +1110,99 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
         self.assert_response(response, 400)
         assert "xxx_invalid_field" in response.data
         assert "formatted_name" in response.data["xxx_invalid_field"][0]
+
+
+@pytest.mark.django_db
+class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
+    model = store_models.DistributorProxy
+    has_delete_permission = True
+
+    groups_to_create: ClassVar[dict] = {
+        "Distributor Proxy Admin": [
+            ("store", "DistributorProxy", "read"),
+            ("store", "DistributorProxy", "list"),
+            ("store", "DistributorProxy", "create"),
+            ("store", "DistributorProxy", "update"),
+            ("store", "DistributorProxy", "delete"),
+            ("store", "DistributorProxy", "manage"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_distributor_proxy_admin@domain.invalid": {
+            "name": "Test Distributor Proxy Admin",
+            "password": "testpass",
+            "groups": ["Distributor Proxy Admin"],
+        },
+    }
+
+    list_keys_arguments = {"name", "description"}
+
+    page_data_arguments = (
+        {"name": "Distributor A", "description": "Description A"},
+        {"name": "Distributor B", "description": "Description B"},
+        {"name": "Distributor C", "description": "Description C"},
+    )
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        user = self.users["test_distributor_proxy_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    @pytest.fixture
+    def list_querystring(self, page_data):
+        ids = tuple(page_data.values_list("pk", flat=True))
+        return {"id": ids}
+
+    @pytest.fixture
+    def create_arguments(self):
+        return {
+            "name": "Distributor New",
+            "description": "New Description",
+        }
+
+    @pytest.fixture
+    def update_arguments(self, page_data):
+        instance = page_data.first()
+        return {
+            "current_history_id": instance.current_history_id,
+            "description": "Updated Description",
+            "id": instance.id,
+            "name": instance.name,
+        }
+
+    @pytest.fixture
+    def expected_retrieve_response(self, page_data):
+        instance = page_data.first()
+        return {
+            "current_history_id": instance.current_history_id,
+            "description": instance.description,
+            "id": instance.id,
+            "name": instance.name,
+        }
+
+    def update_expected_create_response(self, expected_create_response, new_instance):
+        super().update_expected_create_response(expected_create_response, new_instance)
+        expected_create_response["formatted_name"] = expected_create_response["name"]
+
+    def update_expected_retrieve_response(self, expected_retrieve_response, instance):
+        super().update_expected_retrieve_response(expected_retrieve_response, instance)
+        expected_retrieve_response["formatted_name"] = expected_retrieve_response["name"]
+
+    def update_expected_update_response(self, expected_update_response, updated_instance):
+        super().update_expected_update_response(expected_update_response, updated_instance)
+        expected_update_response["formatted_name"] = expected_update_response["name"]
+
+    def test_retrieve_with_history_expand(self, page_data, authenticated_client, expected_retrieve_response):
+        instance = page_data.first()
+
+        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry"}
+        response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
+
+        self.update_expected_retrieve_response(expected_retrieve_response, instance)
+
+        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert "first_history_entry" in response.data, f"Missing first_history_entry in response.data: {response.data}"
+        assert "history" in response.data, f"Missing history in response.data: {response.data}"
+        assert response.data["history"][0] == response.data["first_history_entry"]

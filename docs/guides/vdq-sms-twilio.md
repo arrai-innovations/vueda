@@ -91,7 +91,9 @@ The periodic task `check_sms_status` fetches Twilio status for awaiting SMS mess
 
 Both webhook and polling modes check for timeout. `update_sms_qi` evaluates whether the timeout window (`VDQ_TWILIO_SMS_TIMEOUT_HOURS`) has been exceeded based on the queue item's `done_since` field. Items past the timeout window transition to `unconfirmed` (a done state).
 
-Note that `done_since` is not automatically updated by VDQ workflow transitions. The timeout age is anchored to the value set at row creation or by explicit code paths. Unexpected drift in `done_since` can cause items to enter timeout handling sooner or later than expected.
+::: warning
+`done_since` is not automatically updated by VDQ workflow transitions. The timeout age is anchored to the value set at row creation or by explicit code paths. Unexpected drift in `done_since` can cause items to enter timeout handling sooner or later than expected.
+:::
 
 ## Retry and Failure Bookkeeping
 

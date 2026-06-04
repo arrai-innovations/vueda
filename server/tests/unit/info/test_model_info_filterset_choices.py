@@ -72,7 +72,6 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
             {"label": "None"},
             {"label": "Dangerous", "value": None},
             {"label": "Fragile", "value": None},
-            {"label": "Oversized", "value": None},
             {"label": "Perishable", "value": None},
             {"label": "Temperature Controlled", "value": None},
         ),
@@ -84,7 +83,6 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
         "tangible_type",
         (
             {"label": "None"},
-            {"label": "Digital", "value": None},
             {"label": "Physical", "value": None},
         ),
         "",
@@ -376,6 +374,122 @@ class TestModelInfoFiltersetChoices:
 
         assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
         assert response.data["detail"] == (
-            "Invalid filter 'invalid_filterset_field'. Valid filters are disabled, "
+            "Invalid filter 'invalid_filterset_field'. Valid filters are condition, disabled, "
             "distributor, id, last_ordered, name, name_icontains, quantity, special_care, tangible_type."
+        )
+
+
+@pytest.mark.django_db
+class TestModelInfoFilterSetChoicesQueryParamFiltering:
+    """Tests that passing filterset query params to the choices endpoint narrows the returned choices."""
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+
+    def test_distributor_choices_filtered_by_name_icontains_cookies(self, test_data, api_client):
+        """name_icontains=cookies matches only the two Tasty Treats products, so only that distributor appears."""
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "distributor")),
+            data={"name_icontains": "cookies"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
+        result_labels = frozenset(r["label"] for r in response.data["results"])
+        assert result_labels == frozenset({"None", "Tasty Treats Assoc."}), (
+            f"Expected distributor choices filtered to cookie-product distributor only, got: {result_labels}"
+        )
+
+    def test_distributor_choices_filtered_by_quantity_of_ten(self, test_data, api_client):
+        """quantity=3 matches only the one T-Shirt product, so only that distributor appears."""
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "distributor")),
+            data={"quantity": "10"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
+        result_labels = frozenset(r["label"] for r in response.data["results"])
+        assert result_labels == frozenset({"None", "T-Shirt Corp.", "Vibrant Looks Inc."}), (
+            f"Expected distributor choices filtered to shirt-product distributor only, got: {result_labels}"
+        )
+
+    def test_special_care_choices_filtered_by_name_icontains_cookies(self, test_data, api_client):
+        """name_icontains=cookies narrows special_care choices (queryset path) to only those used by cookie products.
+
+        Cookie products use: fragile, perishable, temperature_controlled.
+        Dangerous (paint products only) and Oversized (unused) should be absent.
+        """
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "special_care")),
+            data={"name_icontains": "cookies"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
+        result_labels = frozenset(r["label"] for r in response.data["results"])
+        assert result_labels == frozenset({"None", "Fragile", "Perishable", "Temperature Controlled"}), (
+            f"Expected special_care choices filtered to cookie-product values only, got: {result_labels}"
+        )
+
+    def test_tangible_type_choices_filtered_by_tangible_type_digital(self, test_data, api_client):
+        """name_icontains=cookies narrows tangible_type choices (queryset path) to only those used by cookie products.
+
+        All cookie products are Physical; Digital is not used by any product, so it should be absent.
+        """
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "tangible_type")),
+            data={"name_icontains": "cookies"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
+        result_labels = frozenset(r["label"] for r in response.data["results"])
+        assert result_labels == frozenset({"None", "Physical"}), (
+            f"Expected tangible_type choices filtered to cookie-product values only, got: {result_labels}"
+        )
+
+    def test_condition_choices_filtered_by_ne(self, test_data, api_client):
+        """Passing condition=ne filters static choices to those whose value contains 'ne'.
+
+        'ne' is a substring of 'new' and 'like_new' but not 'refurbished' or 'used'.
+        The ChoiceFilter empty label ('---------') is excluded since '' does not contain 'ne'.
+        The paginate_queryset 'None' empty label is still prepended.
+        """
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "condition")),
+            data={"condition": "ne"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
+        result_labels = frozenset(r["label"] for r in response.data["results"])
+        assert result_labels == frozenset({"None", "New", "Like New"}), (
+            f"Expected only choices containing 'ne', got: {result_labels}"
         )

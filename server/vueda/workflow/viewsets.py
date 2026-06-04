@@ -93,10 +93,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         },
     )
     @action(detail=True, methods=["get"], url_path=r"object-state/(?P<object_id>[^/.]+)")
-    def object_state(self, request, *args, **kwargs):
+    def object_state(self, request, app_label, model, object_id):
         user = request.user
-        app_label = kwargs["app_label"]
-        model = kwargs["model"]
         instance = self.get_object()
         if not isinstance(instance, HasWorkflowModelMixin):
             return Response(
@@ -144,7 +142,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         },
     )
     @action(detail=True, methods=["get"])
-    def permitted_transitions(self, request, *args, **kwargs):
+    def permitted_transitions(self, request, app_label, model):
         try:
             workflow = self.get_workflow()
         except Http404:
@@ -197,7 +195,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         },
     )
     @action(detail=True, methods=["get"], url_path=r"object-transitions/(?P<object_id>[^/.]+)")
-    def object_transitions(self, request, *args, **kwargs):
+    def object_transitions(self, request, app_label, model, object_id):
         instance = self.get_object()
         return Response(list(instance.available_transitions(request.user).order_by("name").values("code", "name")))
 
@@ -208,9 +206,9 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         },
     )
     @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[^/.]+))?")
-    def execute_transition(self, request, *args, **kwargs):
+    def execute_transition(self, request, app_label, model, object_id=None):
         transition_code = request.data.get("transition_code")
-        if "object_id" in self.request_kwargs:
+        if object_id:
             instance = self.get_object()
             with transaction.atomic():
                 response_data = self._apply_transition_to_instance(instance, transition_code, request)

@@ -77,11 +77,16 @@ class NoExtraFieldsSerializerMixin:
 
                 initial_fields.add(field_name)
 
-            if "formatted_name" not in initial_fields and hasattr(self, "Meta") and hasattr(self.Meta, "model"):
-                formatted_name = getattr(self.Meta.model, "formatted_name_lookup_expression", None)
-
-                if isinstance(formatted_name, str):
-                    initial_fields.add("formatted_name")
+            if (
+                "formatted_name" not in initial_fields
+                and hasattr(self, "Meta")
+                and hasattr(self.Meta, "model")
+                and (
+                    isinstance(getattr(self.Meta.model, "formatted_name_lookup_expression", None), str)
+                    or callable(getattr(self.Meta.model, "get_formatted_name", None))
+                )
+            ):
+                initial_fields.add("formatted_name")
 
             extra_keys_fields = initial_fields - set(self.fields.keys())
             for extra_key in extra_keys_fields:

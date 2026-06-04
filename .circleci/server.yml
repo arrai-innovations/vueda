@@ -4,8 +4,8 @@ orbs:
     github: arrai/github@5.0.0
     lintinator: arrai/lintinator@2.1.1
     pypi: arrai/pypi@3.1.0
+    pysentry: arrai/pysentry@1.0.0
     pytest: arrai/pytest@9.1.1
-    pip-audit: arrai/pip-audit@1.0.4
     utils: arrai/utils@1.22.0
 
 parameters:
@@ -180,20 +180,20 @@ workflows:
 
     server-audit:
         jobs:
-            - pip-audit/pip_audit_ip:
-                  name: server-pip-audit
+            - pysentry/pysentry_ip:
+                  name: server-pysentry
                   context: arrai-global
                   executor: python311-base
-                  env_type: uv
+                  version: 0.4.5
                   filters:
                       branches:
                           only:
                               - main
-            - pip-audit/pip_audit:
-                  name: server-pip-audit-no-badge
+            - pysentry/pysentry:
+                  name: server-pysentry-no-badge
                   context: arrai-global
                   executor: python311-base
-                  env_type: uv
+                  version: 0.4.5
                   create_badges: false
                   filters:
                       branches:

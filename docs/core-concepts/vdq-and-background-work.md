@@ -38,7 +38,7 @@ The workflow state and transition graph is defined by workflow migrations and st
 
 The workflow engine enforces `TransitionSource` rules that define which transitions are valid from which states. VDQ uses an additional mechanism: **ignored transition sources**. These are source-state entries marked as no-ops; when a transition is attempted from an ignored source, the engine accepts it without raising `InvalidTransitionError` but does not change state or execute transition hooks.
 
-Ignored sources exist to tolerate late or out-of-band events. For example, if a provider's delivery callback arrives after the queue item has already been cancelled, the system must handle it correctly. Without ignored sources, the callback would attempt a state transition from `cancelled` to `succeeded`. This would fail because `cancelled` is not a valid source for the `succeed` transition. With an ignored source, the callback is accepted silently, and the item remains in `cancelled` state. This way, only valid transitions are allowed, and invalid late events do not disrupt the process.
+Ignored sources exist to tolerate late or out-of-band events. For example, if a provider's delivery callback arrives after the queue item has already been cancelled, the system must handle it correctly. Without ignored sources, the callback would attempt a state transition from `cancelled` to `succeeded`. This would fail because `cancelled` is not a valid source for the `succeed` transition. With an ignored source, the callback is accepted silently, and the item remains in the `cancelled` state. This way, only valid transitions are allowed, and invalid late events do not disrupt the process.
 
 This design means that late callbacks do not produce errors, but they also do not update the queue item's state. A cancelled item that later receives a delivery confirmation stays cancelled. The delivery information may be logged, but is not reflected in the workflow state.
 
@@ -90,7 +90,11 @@ VDQ defines a set of terminal workflow states, `QUEUE_ITEM_DONE_STATES`, that dr
 
 **Resend.** Resend clones a done `SentItem` into a new `QueueItem` in the workflow initial state and schedules it. Clones include method-specific detail rows and relationships. The resend action is permission-gated (`vueda_vdq.can_resend`).
 
-**Attachment URLs.** Attachment download URLs are derived from `settings.VDQ_URL` and served by `PrivateAttachmentView`, which requires authentication. Note that the view enforces authentication but does not perform object-level permission checks against the associated queue item; any authenticated user can fetch an attachment by ID if they can obtain or guess the URL.
+**Attachment URLs.** Attachment download URLs are derived from `settings.VDQ_URL` and served by `PrivateAttachmentView`, which requires authentication.
+
+::: warning
+The view enforces authentication but does not perform object-level permission checks against the associated queue item; any authenticated user can fetch an attachment by ID if they can obtain or guess the URL.
+:::
 
 **Enqueue failure is observable.** Broker failures during `schedule_queue_item` are not silent. The queue item transitions to `errored` and stores the exception text in `result`. No Celery task is created.
 

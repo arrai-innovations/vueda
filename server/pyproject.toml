@@ -88,7 +88,7 @@ docs = [
 ]
 
 [tool.uv]
-default-groups = "all"
+default-groups = ["dev", "docs"]
 
 [tool.setuptools]
 include-package-data = false
@@ -141,3 +141,6 @@ filterwarnings = [
     "ignore:.*You can remove default_app_config:PendingDeprecationWarning",
     "ignore:Model observation with save points is unsupported and will result in unexpected beauvoir."
 ]
+
+[tool.pysentry.ignore]
+while_no_fix = ["PYSEC-2025-183"] # aka CVE-2025-45768; disputed by upstream

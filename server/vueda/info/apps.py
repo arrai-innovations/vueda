@@ -13,5 +13,9 @@ class InfoConfig(AppConfig):
     def ready(self):
         # Add a default ordering to content types, to remove a warning.
         from django.contrib.contenttypes.models import ContentType
+        from django.core.checks import register
+
+        from .checks import check_formatted_name_configuration
 
         ContentType._meta.ordering = ["app_label", "model"]
+        register(check_formatted_name_configuration)

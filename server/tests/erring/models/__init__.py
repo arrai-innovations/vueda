@@ -1,5 +1,7 @@
+from .models import BothFormattedNameConfigured  # noqa: F401
 from .models import NoExpandableFieldsData  # noqa: F401
 from .models import NoNameField  # noqa: F401
+from .models import PropertyFormattedName  # noqa: F401
 from .models import RelatedObjectsAreMissingData  # noqa: F401
 from .workflow_mixins import MoSoVoWo  # noqa: F401
 from .workflow_mixins import MoSoVoWx  # noqa: F401

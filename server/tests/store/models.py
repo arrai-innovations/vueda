@@ -72,6 +72,16 @@ class Product(VuedaHistoryModel):
     internal_comments = postgres_fields.ArrayField(models.TextField(), blank=True, default=list)
     last_ordered = models.DateField(null=True)
     quantity = models.IntegerField(db_default=0)
+    condition = models.CharField(
+        max_length=20,
+        choices=(
+            ("new", "New"),
+            ("like_new", "Like New"),
+            ("refurbished", "Refurbished"),
+            ("used", "Used"),
+        ),
+        blank=True,
+    )
 
     class Meta(VuedaHistoryModel.Meta):
         ordering = ["name"]
@@ -341,3 +351,10 @@ class OrderItemAltCompositePK(VuedaModel):
         ordering = ["order", "product", "quantity"]
         verbose_name = "Order Items Alt Composite PK"
         verbose_name_plural = "Order Items Alt Composite PKs"
+
+
+class DistributorProxy(Distributor):
+    class Meta(Distributor.Meta):
+        proxy = True
+        verbose_name = "distributor proxy"
+        verbose_name_plural = "distributor proxies"

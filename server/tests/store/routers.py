@@ -2,6 +2,7 @@ from tests.store.viewsets import CartItemViewSet
 from tests.store.viewsets import CartViewSet
 from tests.store.viewsets import CustomerOrderViewSet
 from tests.store.viewsets import CustomerViewSet
+from tests.store.viewsets import DistributorProxyViewSet
 from tests.store.viewsets import DistributorViewSet
 from tests.store.viewsets import InventoryRecordReasonViewSet
 from tests.store.viewsets import InventoryRecordViewSet
@@ -21,6 +22,7 @@ store_tests_router.register("carts", CartViewSet)
 store_tests_router.register("cart_items", CartItemViewSet)
 store_tests_router.register("customers", CustomerViewSet)
 store_tests_router.register("customer_orders", CustomerOrderViewSet)
+store_tests_router.register("distributor_proxies", DistributorProxyViewSet)
 store_tests_router.register("distributors", DistributorViewSet)
 store_tests_router.register("inventory_records", InventoryRecordViewSet)
 store_tests_router.register("inventory_record_reasons", InventoryRecordReasonViewSet)

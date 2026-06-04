@@ -64,9 +64,7 @@ class DefaultSentItemViewSet(VuedaReadOnlyViewSet):
     @conditional_extend_schema_decorator(summary="Resend sent item(s)")
     @atomic
     @action(detail=True, bulk=True, methods=["post"])
-    def resend(self, request, *args, **kwargs):
-        pk = kwargs.get("pk")
-
+    def resend(self, request, pk=None):
         if pk:
             queue_item = self.get_object()
             new_queue_item = queue_item.clone()

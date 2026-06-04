@@ -409,6 +409,19 @@ class Migration(migrations.Migration):
                     models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.tangibletype"),
                 ),
                 (
+                    "condition",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("new", "New"),
+                            ("like_new", "Like New"),
+                            ("refurbished", "Refurbished"),
+                            ("used", "Used"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                (
                     "formatted_name",
                     models.GeneratedField(
                         db_persist=True, expression=models.F("name"), output_field=models.CharField()
@@ -501,6 +514,19 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.DO_NOTHING,
                         related_name="+",
                         to="store.tangibletype",
+                    ),
+                ),
+                (
+                    "condition",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("new", "New"),
+                            ("like_new", "Like New"),
+                            ("refurbished", "Refurbished"),
+                            ("used", "Used"),
+                        ],
+                        max_length=20,
                     ),
                 ),
                 (
@@ -940,6 +966,20 @@ class Migration(migrations.Migration):
                 "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "order_items_alt_composite_pks",
             },
+        ),
+        migrations.CreateModel(
+            name="DistributorProxy",
+            fields=[],
+            options={
+                "verbose_name": "distributor proxy",
+                "verbose_name_plural": "distributor proxies",
+                "abstract": False,
+                "proxy": True,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+                "indexes": [],
+                "constraints": [],
+            },
+            bases=("store.distributor",),
         ),
         migrations.RunPython(make_sure_permissions_exist, reverse_code=migrations.RunPython.noop),
         migrations.RunSQL(
