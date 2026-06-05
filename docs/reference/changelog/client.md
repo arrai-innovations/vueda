@@ -18,6 +18,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - The built-in `vueda-tailwind` theme is now authored as per-component `*.theme.js` modules. Components can register only the theme entries they need, while the existing global `setTheme(vuedaTailwind)` path remains supported.
     - Three loading paths are supported: global eager theme registration, per-family side-effect imports, and fully lazy component-level registration.
       _No action is required if your application already calls `setTheme(vuedaTailwind)`. To reduce bundle size, remove the global `setTheme(vuedaTailwind)` call and let components register their own theme entries as they render. Keep importing `@vueda/theme/vueda-tailwind/base.css`._
+- **Toast dependencies**:
+    - `vue-sonner` is now a peer dependency of `@arrai-innovations/vueda`, and the Copier client templates install it directly.
+      _Add `vue-sonner` to consuming applications so direct `toast` imports and VUEDA's toaster resolve the same package instance._
 
 ## Public Baseline
 

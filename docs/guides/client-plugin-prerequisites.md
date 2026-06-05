@@ -17,7 +17,7 @@ The objective is a `main.js` that registers all required plugins and setup funct
 
 Before you begin:
 
-The project must have `primevue` and `@primeuix/themes` installed as dependencies. These are peer dependencies of `@arrai-innovations/vueda`. Pinia and Vue Router must also be installed; they are assumed throughout but are not VUEDA-specific.
+The project must have `primevue`, `@primeuix/themes`, and `vue-sonner` installed as dependencies. These are peer dependencies of `@arrai-innovations/vueda`. Pinia and Vue Router must also be installed; they are assumed throughout but are not VUEDA-specific.
 
 If you are using the built-in `vueda-tailwind` theme (recommended), you also need `tailwindcss` and `@tailwindcss/vite` installed as dev dependencies, and the Vite plugin registered in `vite.config.js`. Tailwindcss is a build tool, not a runtime peer dependency of VUEDA.
 
@@ -123,7 +123,7 @@ VUEDA uses the Aura preset by default. Any PrimeVue preset is compatible; the ch
 
 ## Toast Notifications (FeedbackToaster)
 
-Toast notifications use `vue-sonner` instead of PrimeVue's ToastService. No plugin registration is needed; `toast` is a plain module import that works anywhere (components, composables, stores, route guards).
+Toast notifications use `vue-sonner` instead of PrimeVue's ToastService. Install it as a direct application dependency so VUEDA's toaster and any application code that imports `toast` share the same module instance. No plugin registration is needed; `toast` is a plain module import that works anywhere (components, composables, stores, route guards).
 
 **Setup:** Render `<FeedbackToaster />` once in your root component (e.g. `TheApp.vue`):
 
