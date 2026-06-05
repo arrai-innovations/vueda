@@ -15,6 +15,9 @@ export const FormModelSymbol = Symbol("formModel");
 /** @type {symbol} Injection key for the reactive filter model. */
 export const FilterModelSymbol = Symbol("filterModel");
 
+/** @type {symbol} Injection key for the page-title context shared between a layout display and the active view. */
+export const PageTitleContextSymbol = Symbol("pageTitleContext");
+
 /** @type {symbol} Injection key for the lookup (searchable-select) context. */
 export const LookupContextSymbol = Symbol("lookupContext");
 
