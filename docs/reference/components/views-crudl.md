@@ -7,7 +7,9 @@ type: reference
 
 <script setup>
 import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Input from "@vueda/controls/input/Input.vue";
@@ -49,7 +51,7 @@ import {
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { faBuilding, faEnvelope } from "@fortawesome/free-regular-svg-icons";
-import { ref } from "vue";
+import { defineComponent, h, ref } from "vue";
 
 const fields = [
     { name: "account", label: "Account" },
@@ -73,11 +75,41 @@ const statusClasses = {
 };
 
 const sorted = ref(["-updated"]);
+
+// Registers a title source into the surrounding page-title context, rendering nothing itself.
+// In a real app this is what a view does via usePageTitle(() => ({ title, loading })).
+const TitleRegistrar = defineComponent({
+    name: "TitleRegistrar",
+    props: { title: { type: String, default: undefined }, loading: { type: Boolean, default: undefined } },
+    setup(props) {
+        usePageTitle(() => ({ title: props.title, loading: props.loading }));
+        return () => null;
+    },
+});
+
+// Demo-only wrapper. Each example needs its own title, so this establishes an isolated page-title
+// context (usePageTitle with no args), registers the title, and renders the real PageTitle display
+// plus a PageActions cluster from the #actions slot. In a real app the layout calls usePageTitle()
+// once above <RouterView> and each view registers its own title; here we collapse that into one
+// component so every demo is self-contained. Client-only because PageActions teleports into the
+// title bar's action zone, which only exists after the display mounts.
+const DemoTitleBar = defineComponent({
+    name: "DemoTitleBar",
+    props: { title: { type: String, default: undefined }, loading: { type: Boolean, default: undefined } },
+    setup(props, { slots }) {
+        usePageTitle();
+        return () => [
+            h(TitleRegistrar, { title: props.title, loading: props.loading }),
+            h(PageTitle),
+            slots.actions ? h(PageActions, null, { default: slots.actions }) : null,
+        ];
+    },
+});
 </script>
 
 # CRUDL Views
 
-Five view-scale layouts that form the backbone of every VUEDA application: list, create, read, update, and destroy. The two new components introduced here are {@api vue:component:PageTitle}, the header bar that anchors every view, and {@api vue:component:StickyBar}, a scroll-aware action zone that keeps submit controls reachable on long forms. All other chrome — fields, field sets, alerts, ObjectsGrid, badges — is composed from earlier families.
+Five view-scale layouts that form the backbone of every VUEDA application: list, create, read, update, and destroy. The two new components introduced here are {@api vue:component:PageTitle}, the layout-level header that displays each view's title and page actions, and {@api vue:component:StickyBar}, a scroll-aware action zone that keeps submit controls reachable on long forms. All other chrome — fields, field sets, alerts, ObjectsGrid, badges — is composed from earlier families.
 
 Token surface: {@api css-token:background}, {@api css-token:card}, {@api css-token:border}, {@api css-token:primary}, {@api css-token:destructive}, {@api css-token:muted}, {@api css-token:muted-foreground}.
 
@@ -85,64 +117,48 @@ This page is the visual contract the default theme guarantees at view scale. Use
 
 ## PageTitle
 
-{@api vue:component:PageTitle} is the standard top-of-view header. It provides a title row with action buttons, an optional subtitle row, and optional footer slot. Setting `sticky` pins the bar and adds a gradient fade below it.
+{@api vue:component:PageTitle} is the layout-level page header. The integrator places it once above `<RouterView>`; it reads the active view's title and loading state from `usePageTitle` (not from props) and hosts the action zone that `PageActions` teleports page-level buttons into. Setting `sticky` pins the bar and adds a gradient fade below it.
+
+The demos below use a small `DemoTitleBar` wrapper that stands in for the layout: it establishes the page-title context, registers a title, and renders `PageTitle` plus a `PageActions` cluster. In an application the layout owns that wiring and each view contributes only its title and actions.
 
 Theme keys: {@api theme-key:PageTitle}.
 
 <VuedaDemo class="flex flex-col gap-6">
   <DemoCard title="title + actions">
     <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-      <PageTitle title="Customers">
-        <template #button>
-          <Button size="sm" variant="outline">
-            <FontAwesomeIcon :icon="faArrowUpFromBracket" />
-            Export
-          </Button>
-          <Button size="sm" variant="default">
-            <FontAwesomeIcon :icon="faPlus" />
-            New customer
-          </Button>
-        </template>
-      </PageTitle>
+      <ClientOnly>
+        <DemoTitleBar title="Customers">
+          <template #actions>
+            <Button size="sm" variant="outline">
+              <FontAwesomeIcon :icon="faArrowUpFromBracket" />
+              Export
+            </Button>
+            <Button size="sm" variant="default">
+              <FontAwesomeIcon :icon="faPlus" />
+              New customer
+            </Button>
+          </template>
+        </DemoTitleBar>
+      </ClientOnly>
     </div>
     <template #footer>
-      <span>title prop + button slot</span>
+      <span>title via usePageTitle; actions via PageActions</span>
       <span>theme key: <code>PageTitle.title</code>, <code>PageTitle.buttons</code></span>
     </template>
   </DemoCard>
-  <DemoCard title="with subtitle">
+  <DemoCard title="loading">
     <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-      <PageTitle title="Customers">
-        <template #button>
-          <Button size="sm" variant="default">
-            <FontAwesomeIcon :icon="faPlus" />
-            New
-          </Button>
-        </template>
-        <template #subtitle>
-          <span class="text-sm text-muted-foreground"><strong class="text-foreground font-semibold">142</strong> customers · last sync 2 minutes ago</span>
-        </template>
-      </PageTitle>
+      <ClientOnly>
+        <DemoTitleBar title="Northwind Logistics" :loading="true">
+          <template #actions>
+            <Button size="sm" variant="default" disabled>Edit</Button>
+          </template>
+        </DemoTitleBar>
+      </ClientOnly>
     </div>
     <template #footer>
-      <span>subtitle slot rendered below the divider</span>
-      <span>theme key: <code>PageTitle.subtitleContainer</code></span>
-    </template>
-  </DemoCard>
-  <DemoCard title="title suffix + loading">
-    <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-      <PageTitle title="Northwind Logistics" :loading="true">
-        <template #title-suffix>
-          <span class="font-mono text-base text-muted-foreground">#1024</span>
-        </template>
-        <template #button>
-          <Button size="sm" variant="default" disabled>Edit</Button>
-        </template>
-      </PageTitle>
-    </div>
-    <template #footer>
-      <span>title-suffix slot: PK badge right of title text</span>
-      <span>loading prop: inline spinner after title</span>
+      <span>loading state via usePageTitle: inline spinner after the title</span>
+      <span>theme key: <code>PageTitle.title</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -228,26 +244,24 @@ The list view is the entry point for every {@term CRUDL} resource. PageTitle anc
     <span class="font-mono">sorted: {{ sorted.join(", ") }}</span>
   </header>
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <PageTitle title="Customers">
-      <template #button>
-        <Button size="sm" variant="outline">
-          <FontAwesomeIcon :icon="faArrowUpFromBracket" />
-          Export
-        </Button>
-        <Button size="sm" variant="outline">
-          <FontAwesomeIcon :icon="faFileImport" />
-          Import
-        </Button>
-        <Button size="sm" variant="default">
-          <FontAwesomeIcon :icon="faPlus" />
-          New customer
-        </Button>
-      </template>
-      <template #subtitle>
-        <span class="text-sm text-muted-foreground"><strong class="text-foreground font-semibold">142</strong> customers · last sync 2 minutes ago</span>
-        <span class="text-sm text-muted-foreground">View <strong class="text-foreground font-semibold">All customers</strong></span>
-      </template>
-    </PageTitle>
+    <ClientOnly>
+      <DemoTitleBar title="Customers">
+        <template #actions>
+          <Button size="sm" variant="outline">
+            <FontAwesomeIcon :icon="faArrowUpFromBracket" />
+            Export
+          </Button>
+          <Button size="sm" variant="outline">
+            <FontAwesomeIcon :icon="faFileImport" />
+            Import
+          </Button>
+          <Button size="sm" variant="default">
+            <FontAwesomeIcon :icon="faPlus" />
+            New customer
+          </Button>
+        </template>
+      </DemoTitleBar>
+    </ClientOnly>
     <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
       <div class="flex items-center gap-2">
         <Button size="sm" variant="outline">
@@ -381,11 +395,13 @@ The create view pairs PageTitle with a StickyBar immediately below it. The Stick
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view create · blank form · pristine</header>
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <PageTitle title="Create customer">
-      <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
+    <ClientOnly>
+      <DemoTitleBar title="Create customer">
+        <template #actions>
+          <Button size="sm" variant="ghost">Cancel</Button>
+        </template>
+      </DemoTitleBar>
+    </ClientOnly>
     <StickyBar>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
@@ -516,17 +532,13 @@ The read view presents a single record in a non-editable layout. Inputs are repl
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view read · single record · Northwind Logistics</header>
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <PageTitle title="Northwind Logistics">
-      <template #title-suffix>
-        <span class="font-mono text-base text-muted-foreground">#1024</span>
-      </template>
-      <template #button>
-        <span class="inline-flex items-center rounded border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">Active</span>
-      </template>
-      <template #subtitle>
-        <span class="text-sm text-muted-foreground">Owner <strong class="text-foreground font-semibold">Mara Tani</strong> · Updated 2 minutes ago by Mara Tani</span>
-      </template>
-    </PageTitle>
+    <ClientOnly>
+      <DemoTitleBar title="Northwind Logistics">
+        <template #actions>
+          <span class="inline-flex items-center rounded border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">Active</span>
+        </template>
+      </DemoTitleBar>
+    </ClientOnly>
     <StickyBar>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
@@ -619,7 +631,7 @@ The read view presents a single record in a non-editable layout. Inputs are repl
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>read-only rows: fixed-width label column (160 px) + 1fr value; border-bottom separators</span>
     <span>StickyBar: Edit is the primary action; secondary actions are context-specific transitions and history</span>
-    <span>status badge: lives in the button slot, right-aligned in the title row</span>
+    <span>status badge: rendered through PageActions, right-aligned in the title row</span>
   </footer>
 </VuedaDemo>
 
@@ -630,14 +642,13 @@ The update view flips read mode to editable. Fields with pending changes get a m
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · 2 fields modified · 1 form-level error</header>
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <PageTitle title="Edit Northwind Logistics">
-      <template #title-suffix>
-        <span class="font-mono text-base text-muted-foreground">#1024</span>
-      </template>
-      <template #button>
-        <Button size="sm" variant="ghost">View read-only</Button>
-      </template>
-    </PageTitle>
+    <ClientOnly>
+      <DemoTitleBar title="Edit Northwind Logistics">
+        <template #actions>
+          <Button size="sm" variant="ghost">View read-only</Button>
+        </template>
+      </DemoTitleBar>
+    </ClientOnly>
     <StickyBar>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
@@ -776,11 +787,13 @@ The view card takes on a destructive accent: border color is tinted toward `--de
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view destroy · 3 records selected · destructive intent</header>
   <div class="rounded-vueda-card border bg-card overflow-clip" style="border-color: color-mix(in oklab, var(--destructive) 40%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 10%, transparent);">
-    <PageTitle title="Delete 3 customers">
-      <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
+    <ClientOnly>
+      <DemoTitleBar title="Delete 3 customers">
+        <template #actions>
+          <Button size="sm" variant="ghost">Cancel</Button>
+        </template>
+      </DemoTitleBar>
+    </ClientOnly>
     <div class="flex gap-4 border-b border-destructive/20 bg-destructive/5 px-6 py-4">
       <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5 shrink-0 text-destructive" />
       <div>
@@ -848,7 +861,7 @@ Token decisions flow across all five views:
 
 The highest-value theme keys for CRUDL views:
 
-- {@api theme-key:PageTitle} — `root`, `title`, `buttons`, `divider`, `subtitleContainer`, `gradient`. Override `title` to change the heading size and weight (default: `font-bold leading-relaxed text-3xl`).
+- {@api theme-key:PageTitle} — `root`, `title`, `buttons`, `gradient`. Override `title` to change the heading size and weight (default: `text-[22px] font-semibold leading-[1.2]`).
 - {@api theme-key:StickyBar} — `root`, `inner`, `gradient`. Override `inner` to add a border, change the background, or adjust padding.
 - ObjectsGrid keys are covered on its own page: {@api theme-key:ObjectsGrid}, {@api theme-key:ObjectsGridTableHeader}, {@api theme-key:ObjectsGridBodyCell}.
 - Field and form keys are covered on the Forms page: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key:FieldContent}.
