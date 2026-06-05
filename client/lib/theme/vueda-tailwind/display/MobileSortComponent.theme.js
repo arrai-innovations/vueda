@@ -32,7 +32,7 @@ patchTheme({
         },
         /** Bordered sort-field row containing the handle, order text, and select. */
         draggableItem: {
-            class: ["flex flex-row rounded-lg border border-neutral-200 p-3"],
+            class: ["flex flex-row rounded-lg border border-border p-3"],
         },
         /** Flexible row content inside each draggable item. */
         draggableItemInner: {
@@ -44,7 +44,7 @@ patchTheme({
         },
         /** Small fixed-width sort-order label for the current field position. */
         sortOrderText: {
-            class: ["w-3 text-sm font-semibold text-neutral-500"],
+            class: ["w-3 text-sm font-semibold text-muted-foreground"],
         },
         /** Full-width select control used to choose the sorted field. */
         select: {

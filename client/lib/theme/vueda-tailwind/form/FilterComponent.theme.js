@@ -25,14 +25,14 @@ patchTheme({
         clearButton: {
             class: ({ hasFilterValue, errored }) => ({
                 "!border-dashed": !hasFilterValue,
-                "!border-red-500 !text-red-500": errored,
+                "!border-destructive !text-destructive": errored,
             }),
         },
         /** Dropdown trigger mirrors clear-button state so inactive and errored filters read consistently. */
         dropdownButton: {
             class: ({ hasFilterValue, errored }) => ({
                 "!border-dashed": !hasFilterValue,
-                "!border-red-500 !text-red-500": errored,
+                "!border-destructive !text-destructive": errored,
             }),
         },
         /** Popover body width floor for the filter form. */
