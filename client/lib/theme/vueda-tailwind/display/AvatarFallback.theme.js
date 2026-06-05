@@ -20,7 +20,7 @@ patchTheme({
     AvatarFallback: {
         /** Centered muted fallback surface for initials or placeholder content. */
         root: {
-            class: "bg-muted flex size-full items-center justify-center rounded-full",
+            class: "bg-muted text-muted-foreground flex size-full items-center justify-center rounded-full",
         },
     },
 });

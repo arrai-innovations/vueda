@@ -23,7 +23,7 @@ patchTheme({
          * The `<tfoot>` section wrapper for summary and total rows. Its muted fill and top divider separate aggregates from body rows while leaving row cells free to handle numeric alignment.
          */
         root: {
-            class: "bg-muted/50 border-t font-medium [&>tr]:last:border-b-0",
+            class: "bg-muted/50 text-muted-foreground border-t font-medium [&>tr]:last:border-b-0",
         },
     },
 });

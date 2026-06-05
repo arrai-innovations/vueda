@@ -23,7 +23,11 @@ patchTheme({
          */
         root: ({ variant, size }) => {
             const variantClass =
-                variant === "outline" ? "border-border" : variant === "muted" ? "bg-muted/50" : "bg-transparent";
+                variant === "outline"
+                    ? "border-border"
+                    : variant === "muted"
+                      ? "bg-muted/50 text-foreground"
+                      : "bg-transparent";
             const sizeClass = size === "sm" ? "py-3 px-4 gap-2.5" : "p-4 gap-4";
             return {
                 class: [

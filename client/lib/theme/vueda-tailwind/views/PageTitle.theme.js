@@ -76,7 +76,7 @@ patchTheme({
                 "w-full flex flex-wrap",
                 "items-baseline justify-between",
                 "gap-2 md:gap-4 lg:gap-7",
-                "bg-muted/25 border-t border-border px-5 py-[10px]",
+                "bg-muted/25 text-foreground border-t border-border px-5 py-[10px]",
             ],
         },
         /** Footer slot beneath the header bar. Empty by default so consumer markup owns its own layout when populated. */
