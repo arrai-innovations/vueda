@@ -39,7 +39,7 @@ patchTheme({
         /** Fixed desktop panel. Width and offcanvas transitions are driven by SidebarProvider CSS variables. */
         panel: ({ side, variant }) => ({
             class: [
-                "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+                "fixed inset-y-0 z-40 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
                 {
                     "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]": side === "left",
                     "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]":
