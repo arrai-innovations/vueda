@@ -114,13 +114,22 @@ function locOf(node, sourceFile) {
     return { file: sourceFile, line: start.line, column: start.column };
 }
 
+function warnUnsupportedClassNode(node, context = {}) {
+    const location = locOf(node, context.sourceRel || "unknown");
+    const slot = context.component && context.slot ? ` in ${context.component}.${context.slot}` : "";
+    const sourceLocation = `${location.file}:${location.line}:${location.column}`;
+    console.warn(
+        `theme-keys: unsupported class expression "${node.type}"${slot} at ${sourceLocation}. Static classes can stay as arrays; do not use .join(" "). Use a callback for dynamic class expressions.`,
+    );
+}
+
 /**
  * Flatten an `ArrayExpression` (or any class node) into a list of class strings.
  * Object expressions contribute their string keys. Callbacks contribute the
  * marker "callback". Templates without expressions contribute their cooked
  * text. Unknown nodes are skipped.
  */
-function flattenClassNode(node, sink) {
+function flattenClassNode(node, sink, context = {}) {
     if (!node) return;
     switch (node.type) {
         case "StringLiteral":
@@ -135,7 +144,7 @@ function flattenClassNode(node, sink) {
             }
             return;
         case "ArrayExpression":
-            for (const el of node.elements) flattenClassNode(el, sink);
+            for (const el of node.elements) flattenClassNode(el, sink, context);
             return;
         case "ObjectExpression":
             for (const prop of node.properties) {
@@ -152,7 +161,7 @@ function flattenClassNode(node, sink) {
             sink.push("callback");
             return;
         default:
-            console.warn(`theme-keys: skipping unknown class node type "${node.type}"`);
+            warnUnsupportedClassNode(node, context);
     }
 }
 
@@ -176,7 +185,7 @@ function extractComposes(arrayExpr) {
  * Parse a slot value (the right-hand side of a slot key like `root: ...`).
  * Returns { valueShape, staticClass, callbackSource, composes }.
  */
-function parseSlotValue(valueNode, source) {
+function parseSlotValue(valueNode, source, context = {}) {
     if (isCallbackNode(valueNode)) {
         return {
             valueShape: "callback",
@@ -210,7 +219,7 @@ function parseSlotValue(valueNode, source) {
     }
 
     const staticClass = [];
-    flattenClassNode(classNode, staticClass);
+    flattenClassNode(classNode, staticClass, context);
     return {
         valueShape: "static",
         staticClass,
@@ -315,7 +324,11 @@ function buildComponentDataMap(props, source, sourceRel) {
             if (!slotName) continue;
 
             const slotDescription = extractJsDocText(pickJsDocComment(slotProp.leadingComments || []));
-            const parsed = parseSlotValue(slotProp.value, source);
+            const parsed = parseSlotValue(slotProp.value, source, {
+                component: componentName,
+                slot: slotName,
+                sourceRel,
+            });
 
             slots.push({
                 slot: slotName,

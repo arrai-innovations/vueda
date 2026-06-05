@@ -149,7 +149,9 @@ patchTheme({
 - A callback (arrow or function expression) at the top level or as the `class:` value renders verbatim as the slot's callback source; no static class list is produced.
 - Object-expression `class:` values can mix string entries with object entries; object keys are harvested as class names (useful for conditional class objects whose keys are known at authoring time).
 
-Slot values that do not match these shapes are skipped silently, so a slot that fails to render usually means the value is neither a string/array/template/callback nor an object with a recognised `class:`/`composes:`.
+Do not join static class arrays yourself. `class: ["flex", "items-center"]` is the preferred shape; Vue class handling and VUEDA's `combineClasses` path flatten arrays at runtime. A joined array such as `class: ["flex", "items-center"].join(" ")` is unnecessary and the extractor reports it as an unsupported `CallExpression`.
+
+Slot values that do not match these shapes are skipped with a warning that includes the component, slot, and source location. If a slot fails to render, check whether the value is neither a string/array/template/callback nor an object with a recognised `class:`/`composes:`.
 
 ## CSS token annotations (`lib/theme/vueda-tailwind/base.css`)
 

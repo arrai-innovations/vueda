@@ -1,9 +1,9 @@
 import { ThemeKeysExtractor } from "../../../js/extractors/theme-keys.js";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const fixtureDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "fixtures", "theme-keys");
 const fixturePath = path.join(fixtureDir, "sample.js");
@@ -75,6 +75,40 @@ describe("ThemeKeysExtractor", () => {
         expect(toggle.valueShape).toBe("callback");
         expect(toggle.callbackSource).toContain("({ size })");
         expect(toggle.staticClass).toBeNull();
+    });
+
+    it("warns with source context when static classes use an unsupported call expression", async () => {
+        const familyDir = path.join(tempDir, "joined-family");
+        const indexPath = path.join(familyDir, "index.js");
+        await mkdir(familyDir, { recursive: true });
+        await writeFile(indexPath, "export default { Joined: {} };\n");
+        await writeFile(
+            path.join(familyDir, "Joined.theme.js"),
+            `
+import { patchTheme } from "@vueda/use/themeRegistry.js";
+
+patchTheme({
+    Joined: {
+        root: {
+            class: ["inline-flex", "items-center"].join(" "),
+        },
+    },
+});
+`,
+        );
+
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            const payload = await runExtractor([indexPath]);
+            const joined = payload.entries.find((e) => e.component === "Joined" && e.slot === "root");
+            expect(joined.staticClass).toEqual([]);
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('unsupported class expression "CallExpression"'));
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining("Joined.root"));
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining("Joined.theme.js"));
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('do not use .join(" ")'));
+        } finally {
+            warn.mockRestore();
+        }
     });
 
     it("assigns the most recent banner comment as the group for following components", async () => {
