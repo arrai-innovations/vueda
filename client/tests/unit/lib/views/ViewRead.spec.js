@@ -2,7 +2,7 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useForm } from "@vueda/use/useForm.js";
-import { defineComponent, reactive } from "vue";
+import { defineComponent, h, reactive } from "vue";
 
 vi.mock("@vueda/use/useDetailView.js", async () => {
     const actual = await vi.importActual("@vueda/use/useDetailView.js");
@@ -23,9 +23,13 @@ vi.mock("@vueda/components/FormModel.vue", () => ({
 vi.mock("@vueda/components/LinkModelView.vue", () => ({
     default: defineComponent({ name: "LinkModelView", template: "<div />" }),
 }));
-vi.mock("@vueda/components/PageTitle.vue", () => ({
-    default: defineComponent({ name: "PageTitle", template: "<div><slot name='button' /></div>" }),
-}));
+const PageActionsStub = defineComponent({
+    name: "PageActionsStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
+    },
+});
+vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({
     default: defineComponent({
         name: "StickyBar",

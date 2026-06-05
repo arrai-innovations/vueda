@@ -76,20 +76,14 @@ const ButtonStub = defineComponent({
 });
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 
-const PageTitleStub = defineComponent({
-    name: "PageTitleStub",
-    props: ["title"],
-    setup(props, { slots }) {
-        return () =>
-            h(
-                "div",
-                { "data-qa": "page-title", "data-title": props.title },
-                Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
-            );
+const PageActionsStub = defineComponent({
+    name: "PageActionsStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
     },
 });
-vi.mock("@vueda/components/PageTitle.vue", () => ({
-    default: PageTitleStub,
+vi.mock("@vueda/components/PageActions.vue", () => ({
+    default: PageActionsStub,
 }));
 
 vi.mock("vue", async () => {
@@ -128,7 +122,7 @@ scopedIt("does not call useLookupContext when lookup context exists", () => {
     expect(mockedUseLookupContext).not.toHaveBeenCalled();
 });
 
-scopedIt("passes props and attrs to ActionForm, sets title and forwards slots", () => {
+scopedIt("passes props and attrs to ActionForm, renders return button and forwards slots", () => {
     mockedInject.mockReturnValueOnce({});
     const wrapper = mount(ViewAction, {
         props: {
@@ -149,9 +143,8 @@ scopedIt("passes props and attrs to ActionForm, sets title and forwards slots", 
     expect(root.classes()).toContain("theme-root");
     expect(root.classes()).toContain("custom");
 
-    const page = wrapper.find('[data-qa="page-title"]');
-    expect(page.attributes("data-title")).toBe("EDIT PERSON");
-    expect(page.find('[data-slot="button"] [data-qa="custom-return"]').exists()).toBe(true);
+    const actions = wrapper.find('[data-qa="page-actions"]');
+    expect(actions.find('[data-qa="custom-return"]').exists()).toBe(true);
 
     const af = wrapper.find('[data-qa="model-action-form"]');
     expect(af.attributes("data-app")).toBe("myApp");

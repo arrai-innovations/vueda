@@ -51,16 +51,10 @@ const LinkModelViewStub = defineComponent({
             });
     },
 });
-const PageTitleStub = defineComponent({
-    name: "PageTitleStub",
-    props: ["loading", "title"],
-    setup(props, { slots }) {
-        return () =>
-            h(
-                "div",
-                { "data-qa": "page-title", "data-loading": String(props.loading), "data-title": props.title },
-                Object.keys(slots).map((n) => h("div", { "data-slot": n }, slots[n] ? slots[n]() : null)),
-            );
+const PageActionsStub = defineComponent({
+    name: "PageActionsStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "page-actions" }, slots.default ? slots.default() : null);
     },
 });
 const StickyBarStub = defineComponent({
@@ -101,7 +95,7 @@ const FeedbackSpinnerStub = defineComponent({
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
 vi.mock("@vueda/components/FormModel.vue", () => ({ default: FormModelStub }));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
-vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
+vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));

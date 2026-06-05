@@ -116,16 +116,10 @@ const MobileSortComponentStub = defineComponent({
         return () => h("div", { "data-qa": "mobile-sort-component", ...attrs }, slots.default ? slots.default() : null);
     },
 });
-const PageTitleStub = defineComponent({
-    name: "PageTitleStub",
-    props: ["title"],
-    setup(props, { slots, attrs }) {
-        return () =>
-            h(
-                "div",
-                { "data-qa": "page-title", "data-title": props.title, ...attrs },
-                Object.keys(slots).map((n) => h("div", { "data-slot": n }, slots[n] ? slots[n]() : null)),
-            );
+const PageActionsStub = defineComponent({
+    name: "PageActionsStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
     },
 });
 const PaginationComponentStub = defineComponent({
@@ -241,7 +235,7 @@ vi.mock("@vueda/components/FormMessage.vue", () => ({ default: FormMessageStub }
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 vi.mock("@vueda/components/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
 vi.mock("@vueda/components/MobileSortComponent.vue", () => ({ default: MobileSortComponentStub }));
-vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
+vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 vi.mock("@vueda/components/PaginationComponent.vue", () => ({ default: PaginationComponentStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));

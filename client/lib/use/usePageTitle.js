@@ -26,24 +26,28 @@ import { computed, getCurrentScope, inject, onScopeDispose, provide, ref, shallo
 /**
  * Establish the page-title context (display role) or contribute to it (view role).
  *
- * Calling with no argument establishes a fresh context, provides it to descendants, and returns it
- * for the display to render. Calling with a source getter injects the nearest context and registers
- * the getter as the active title source.
+ * Calling with no argument returns the page-title context, establishing it on the first call up the
+ * tree and reusing it thereafter (display role). The layout establishes it (so it sits above both
+ * the title display and the routed views, which are usually siblings); the display reuses it to read
+ * the title and host the action zone. Calling with a source getter injects that context and
+ * registers the getter as the active title source (view role).
  *
  * @param {() => PageTitleEntry} [source] - A getter returning the current view's title and loading state. Omit to take the display role.
  * @returns {PageTitleContext|(() => void)|undefined} The context (display role); a cleanup function (view role with a context present); or `undefined` (view role with no context above, e.g. a view rendered standalone).
  */
 export function usePageTitle(source) {
-    // View role: contribute a title source to whatever display established the context above us.
+    const existing = inject(PageTitleContextSymbol, null);
+
+    // View role: contribute a title source to the context the layout established above us.
     if (source !== undefined) {
-        const context = inject(PageTitleContextSymbol, null);
-        // No display above (standalone view, test harness): contributing is a harmless no-op.
-        return context ? context.register(source) : undefined;
+        // No context above (standalone view, test harness): contributing is a harmless no-op.
+        return existing ? existing.register(source) : undefined;
     }
 
-    // Display role: establish a fresh context, even if one exists above, so a nested display
-    // (e.g. a modal shell) gets its own title and action zone rather than leaking into the parent.
-    return createPageTitleContext();
+    // Display role: reuse the context the layout established so the display, the views, and the
+    // action zone all share one context. Establish it here only when nothing above has yet (the
+    // layout is the expected establisher, sitting above both the display and `<RouterView>`).
+    return existing ?? createPageTitleContext();
 }
 
 /**

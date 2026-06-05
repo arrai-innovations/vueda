@@ -3,10 +3,11 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { useDetailView } from "@vueda/use/useDetailView.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -179,6 +180,9 @@ const slots = useSlots();
 
 const { instanceObject, instance, actions } = useDetailView(props, formInitialValue);
 
+// Contribute the page title and loading state to the layout's PageTitle display.
+usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
+
 const stickyBarTheme = useTheme("StickyBar", {});
 const dirtyClass = computed(() => stickyBarTheme("dirty"));
 const showDirtyIndicator = computed(() => props.viewName === "update" && Boolean(formContext?.state?.anyModified));
@@ -204,32 +208,28 @@ onMounted(() => {
 <template>
     <!-- TODO: theme.hideStyle requires a single themed root; useTheme here is only a StickyBar helper, this component has no own theme entry to gate on. -->
     <div :class="props.class" :data-qa="`${viewName}-form-root`">
-        <page-title :loading="instance.pageLoading" :title="instance.titleStr">
-            <template #button>
-                <template v-for="actionName in actions.nonDetailActions" :key="actionName">
-                    <slot
+        <!-- Detail-level actions teleport into the layout's PageTitle action zone. -->
+        <page-actions>
+            <template v-for="actionName in actions.nonDetailActions" :key="actionName">
+                <slot
+                    :app="app"
+                    :label="memoizedStartCase(actionName)"
+                    :model="model"
+                    name="targetless-action-button"
+                    :view="actionName"
+                >
+                    <link-model-view
                         :app="app"
+                        class="w-full"
                         :label="memoizedStartCase(actionName)"
                         :model="model"
-                        name="targetless-action-button"
                         :view="actionName"
-                    >
-                        <link-model-view
-                            :app="app"
-                            class="w-full"
-                            :label="memoizedStartCase(actionName)"
-                            :model="model"
-                            :view="actionName"
-                        />
-                    </slot>
-                </template>
-                <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
-                <slot name="extra-buttons" />
+                    />
+                </slot>
             </template>
-            <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
-            </template>
-        </page-title>
+            <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
+            <slot name="extra-buttons" />
+        </page-actions>
         <sticky-bar class="w-full">
             <template #primary>
                 <div

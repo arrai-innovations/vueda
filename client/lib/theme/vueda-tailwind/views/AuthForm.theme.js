@@ -37,7 +37,7 @@ patchTheme({
         contentContainer: {
             class: ["min-w-min"],
         },
-        /** Title region above the form body. Uses the project prose recipe (with the dark-mode invert) so embedded `<h1>` / `<p>` markup picks up the typography scale without per-element rules; the embedded {@api theme-key:PageTitle} renders the actual header bar. */
+        /** Title region above the form body. Uses the project prose recipe (with the dark-mode invert) so the embedded `<h1>` / `<p>` header markup picks up the typography scale without per-element rules. */
         title: {
             class: ["prose dark:prose-invert mt-5"],
         },

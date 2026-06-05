@@ -58,6 +58,28 @@ describe("lib/use/usePageTitle.js", () => {
             zone.value = null;
             expect(context.actionTarget.value).toBeNull();
         });
+
+        scopedIt("reuses the context an ancestor already established", () => {
+            let layoutContext;
+            let displayContext;
+            const Display = defineComponent({
+                setup() {
+                    displayContext = usePageTitle();
+                    return () => h("div");
+                },
+            });
+            const Layout = defineComponent({
+                setup() {
+                    layoutContext = usePageTitle();
+                    return () => h(Display);
+                },
+            });
+
+            mount(Layout);
+            // the layout establishes; a descendant display shares the same context rather than
+            // forking its own (so views, display, and action zone all agree on one context)
+            expect(displayContext).toBe(layoutContext);
+        });
     });
 
     describe("view role (source arg)", () => {

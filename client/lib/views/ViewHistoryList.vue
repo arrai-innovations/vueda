@@ -1,7 +1,7 @@
 <script setup>
 import { loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
@@ -10,6 +10,7 @@ import { useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
@@ -158,6 +159,9 @@ const titleStr = computed(() => {
 });
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
 
+// Contribute the page title and loading state to the layout's PageTitle display.
+usePageTitle(() => ({ title: titleStr.value, loading: instanceList.state.loading }));
+
 const extraFieldObjects = computed(() => {
     const objects = [
         {
@@ -274,11 +278,10 @@ const slots = useSlots();
 </script>
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value">
-        <page-title :loading="instanceList.state.loading" :title="titleStr">
-            <template #button>
-                <Button variant="ghost" @click="router.back()">Back</Button>
-            </template>
-        </page-title>
+        <!-- The Back button teleports into the layout's PageTitle action zone. -->
+        <page-actions>
+            <Button variant="ghost" @click="router.back()">Back</Button>
+        </page-actions>
         <slot name="before-list" />
         <div v-if="!hasHistory" :class="theme('empty')" data-qa="view-history-empty">
             <!-- @slot empty Replaces the dedicated history empty-state body. Receives no slot props. -->

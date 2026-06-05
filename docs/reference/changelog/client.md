@@ -14,6 +14,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Page title (PageTitle, usePageTitle, PageActions)**:
+    - The page `<h1>` is no longer rendered inside each view. Views contribute their title and loading state through the new `usePageTitle` composable, and `PageTitle` is now a layout-level display that the integrator places above `<RouterView>`. Page-level action buttons are wrapped in the new `PageActions` component, which teleports them into the title bar's action zone (with an inline fallback when no zone exists).
+    - `PageTitle` no longer accepts the `title` or `loading` props, nor the `eyebrow`, `title-suffix`, `subtitle`, `under-actions`, `footer`, or `button` slots. It reads the title and loading state from `usePageTitle` and exposes a `title` slot plus the action zone. `ViewList`'s search and column controls now render in the view body instead of the title bar. `AuthForm` renders its own heading markup rather than embedding `PageTitle`.
+      _Establish the context once in your root layout: call `usePageTitle()` in `TheApp.vue`'s `<script setup>`, then render `<PageTitle />` where the page title should appear (above `<RouterView>`). The Copier client templates do this by default. A custom title display reads the same context by calling `usePageTitle()`._
 - **Theme registration and lazy loading**:
     - The built-in `vueda-tailwind` theme is now authored as per-component `*.theme.js` modules. Components can register only the theme entries they need, while the existing global `setTheme(vuedaTailwind)` path remains supported.
     - Three loading paths are supported: global eager theme registration, per-family side-effect imports, and fully lazy component-level registration.

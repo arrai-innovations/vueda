@@ -6,7 +6,7 @@ import LinkModelView from "@vueda/components/LinkModelView.vue";
 import MobileSortComponent from "@vueda/components/MobileSortComponent.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
@@ -19,6 +19,7 @@ import SelectItem from "@vueda/controls/select/SelectItem.vue";
 import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
 import SelectValue from "@vueda/controls/select/SelectValue.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewList.theme.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewList } from "@vueda/use/useViewList.js";
@@ -124,6 +125,9 @@ const props = defineProps({
 
 const { modelConfig, list, actions, search, sort, columns, pagination } = useViewList(props);
 
+// Contribute the page title and loading state to the layout's PageTitle display.
+usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loading }));
+
 const slots = useSlots();
 
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
@@ -190,68 +194,65 @@ onMounted(() => {
 </script>
 <template>
     <div :style="theme.hideStyle?.value">
-        <page-title :loading="list.instanceList.state.loading" :title="list.titleStr">
-            <template #button>
-                <slot name="targetless-action-buttons" :targetless-actions="actions.targetlessActions">
-                    <template
-                        v-for="actionName in actions.targetlessActions"
-                        :key="getCRUDName({ app: app, model: model, view: actionName })"
-                    >
-                        <!-- @slot [targetless-action-button, button] Replaces an individual targetless action button. -->
-                        <slot :name="targetlessActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
-                            <link-model-view v-bind="themedButtonSlotProps[actionName]" />
-                        </slot>
-                    </template>
+        <!-- Targetless (list-level) actions teleport into the layout's PageTitle action zone. -->
+        <page-actions>
+            <slot name="targetless-action-buttons" :targetless-actions="actions.targetlessActions">
+                <template
+                    v-for="actionName in actions.targetlessActions"
+                    :key="getCRUDName({ app: app, model: model, view: actionName })"
+                >
+                    <!-- @slot [targetless-action-button, button] Replaces an individual targetless action button. -->
+                    <slot :name="targetlessActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
+                        <link-model-view v-bind="themedButtonSlotProps[actionName]" />
+                    </slot>
+                </template>
+            </slot>
+        </page-actions>
+        <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
+            <div :class="theme('listControlBar')">
+                <slot name="search" v-bind="themedSearchSlotProps">
+                    <InputGroup>
+                        <InputGroupInput
+                            :class="theme('searchInput')"
+                            :model-value="search.searchSlotProps.listSearch"
+                            name="search"
+                            placeholder="Search"
+                            type="search"
+                            @search="search.filterList"
+                            @update:model-value="search.searchSlotProps.updateListSearch"
+                        />
+                        <InputGroupButton @click="search.filterList"> Search </InputGroupButton>
+                    </InputGroup>
                 </slot>
-            </template>
-            <template #under-actions>
-                <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
-                    <div :class="theme('listControlBar')">
-                        <slot name="search" v-bind="themedSearchSlotProps">
-                            <InputGroup>
-                                <InputGroupInput
-                                    :class="theme('searchInput')"
-                                    :model-value="search.searchSlotProps.listSearch"
-                                    name="search"
-                                    placeholder="Search"
-                                    type="search"
-                                    @search="search.filterList"
-                                    @update:model-value="search.searchSlotProps.updateListSearch"
-                                />
-                                <InputGroupButton @click="search.filterList"> Search </InputGroupButton>
-                            </InputGroup>
-                        </slot>
-                        <slot
-                            v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
-                            name="columns-select"
-                            :columns="columns.columns"
-                            :options="columns.columnOptions"
-                            :loading="list.loading"
-                        >
-                            <Select v-model="columns.columns" multiple>
-                                <SelectTrigger size="sm">
-                                    <SelectValue>
-                                        <slot name="columns-select-value-label">columns</slot>
-                                    </SelectValue>
-                                    <template v-if="slots['columns-select-dropdown-icon']" #icon>
-                                        <slot name="columns-select-dropdown-icon" />
-                                    </template>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem
-                                        v-for="option in columns.columnOptions"
-                                        :key="option.value"
-                                        :value="option.value"
-                                    >
-                                        {{ option.label }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </slot>
-                    </div>
-                </div>
-            </template>
-        </page-title>
+                <slot
+                    v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
+                    name="columns-select"
+                    :columns="columns.columns"
+                    :options="columns.columnOptions"
+                    :loading="list.loading"
+                >
+                    <Select v-model="columns.columns" multiple>
+                        <SelectTrigger size="sm">
+                            <SelectValue>
+                                <slot name="columns-select-value-label">columns</slot>
+                            </SelectValue>
+                            <template v-if="slots['columns-select-dropdown-icon']" #icon>
+                                <slot name="columns-select-dropdown-icon" />
+                            </template>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                v-for="option in columns.columnOptions"
+                                :key="option.value"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </slot>
+            </div>
+        </div>
         <div
             v-if="actions.selectedObjects.length > 0"
             :class="theme('bulkActionsBar')"

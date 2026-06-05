@@ -23,7 +23,7 @@ patchTheme({
         root: {
             class: [],
         },
-        /** Button cluster forwarded into the {@api theme-key:PageTitle.buttons} slot. Holds the single Return-to-List link; right-aligned and `w-full` so the cluster takes the full button-slot width and pushes the link to the end of the title row. */
+        /** Button cluster teleported into the PageTitle action zone via PageActions, landing in the {@api theme-key:PageTitle.buttons} slot. Holds the single Return-to-List link; right-aligned and `w-full` so the cluster takes the full button-slot width and pushes the link to the end of the title row. */
         buttons: {
             class: ["flex gap-1 w-full justify-end"],
         },

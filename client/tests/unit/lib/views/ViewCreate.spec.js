@@ -37,15 +37,10 @@ vi.mock("@vueda/utils/case.js", () => ({
     memoizedStartCase: (s) => s,
 }));
 
-const PageTitleStub = defineComponent({
-    name: "PageTitleStub",
+const PageActionsStub = defineComponent({
+    name: "PageActionsStub",
     setup(_, { slots, attrs }) {
-        return () =>
-            h(
-                "div",
-                { "data-qa": "page-title", ...attrs },
-                Object.keys(slots).map((n) => h("div", { "data-slot": n }, slots[n] ? slots[n]() : null)),
-            );
+        return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
     },
 });
 const StickyBarStub = defineComponent({
@@ -124,7 +119,7 @@ const FeedbackSpinnerStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
+vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
 vi.mock("@vueda/components/FormModel.vue", () => ({ default: FormModelStub }));
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
