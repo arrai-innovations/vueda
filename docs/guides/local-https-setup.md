@@ -109,11 +109,12 @@ The path `../server/` is relative to `client/`, where Vite runs.
 
 ## Update Server Configuration
 
-### `config.toml`
+### `config.local.toml`
 
-Change the three values that reference the client origin from `http://` to `https://`:
+Change the local values that reference the client origin from `http://` to `https://`:
 
 ```toml
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 FRONTEND_DOMAIN = "https://localhost:5173"
 CSRF_TRUSTED_ORIGINS = ["https://localhost:5173"]
 CORS_ALLOWED_ORIGINS = ["https://localhost:5173"]
@@ -123,22 +124,12 @@ Replace `5173` with your actual client port if you chose a different one during 
 
 ### `settings/local.py`
 
-The scaffolded `local.py` overrides `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` directly, so those need to change too. It also disables the secure cookie flags; remove those overrides so the production defaults apply:
+The scaffolded `local.py` leaves host and origin values to TOML. It does disable the secure cookie flags for plain HTTP local development; remove those overrides so the production defaults apply:
 
 ```python
 from config.settings.base import *
 
-DEBUG = True
-
 CSRF_COOKIE_NAME = "your-project-csrf-token"
-
-CORS_ALLOWED_ORIGINS = [
-    "https://localhost:5173",
-]
-CSRF_TRUSTED_ORIGINS = [
-    "https://localhost:5173",
-]
-CORS_ALLOW_CREDENTIALS = True
 
 # SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE are intentionally not overridden
 # here. The production defaults (True) apply, which requires HTTPS end-to-end.

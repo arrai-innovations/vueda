@@ -121,8 +121,8 @@ pnpm install
 
 VUEDA projects use a two-file TOML configuration system, both under `server/`:
 
-- **`config.toml`**: shared settings safe to commit (allowed hosts, frontend URL, app registry, CORS origins, etc.). The template ships sensible local-development defaults; you generally do not need to change this file to get started.
-- **`config.local.toml`**: local-only overrides and secrets (**do not commit**). This is where machine-specific values like database credentials belong.
+- **`config.toml`**: shared settings safe to commit (allowed hosts, frontend URL, app registry, CORS origins, etc.). The template ships placeholder public-deployment defaults; replace them with your real deployment domain before production use.
+- **`config.local.toml`**: local-only overrides and secrets (**do not commit**). This is where machine-specific values like database credentials, local frontend origins, and `DEBUG` belong.
 
 Settings in `config.local.toml` override those in `config.toml`. Both files are loaded by {@api py:class:vueda.core.config.TomlEnv} in `server/config/settings/base.py` and consumed by VUEDA's {@api py:function:vueda.core.default_settings.get_defaults}, which sets up Django settings (`INSTALLED_APPS`, `DATABASES`, `CACHES`, middleware, auth, etc.) from these keys.
 
@@ -130,10 +130,15 @@ Before starting the server, open `server/config.local.toml` and set real values:
 
 ```toml
 SECRET_KEY = "a-real-secret-key"
+DEBUG = true
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+FRONTEND_DOMAIN = "http://localhost:5173"
+CSRF_TRUSTED_ORIGINS = ["http://localhost:5173"]
+CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
 DATABASE_URL = "postgres://postgres:postgres@localhost:5432/your-project"
 ```
 
-The template pre-populates `DATABASE_URL` with a reasonable guess based on your project slug. Update it if your local Postgres connection details differ. `SECRET_KEY` should be changed from the placeholder for any non-trivial use.
+The template pre-populates the local host/origin values from the bind IP and client port you chose during scaffolding, and pre-populates `DATABASE_URL` with a reasonable guess based on your project slug. Update those values if your local network or Postgres connection details differ. `SECRET_KEY` should be changed from the placeholder for any non-trivial use.
 
 ::: tip
 The template's `config.toml` also registers the scaffolded `users` app via `LOCAL_APPS` and sets `AUTH_USER_MODEL = "users.User"`. These are required for VUEDA's user system to work. You can add your own apps to `LOCAL_APPS` or append to `INSTALLED_APPS` directly in `base.py` (the guide uses the latter approach below).
@@ -570,7 +575,7 @@ The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wire
 
 ### Connect to the Server
 
-During local development the client dev server and Django run on different ports. The scaffolded `client/.env.development` already contains `VITE_DJANGO_CONNECTION_PORT` set to the port you chose during scaffolding, so VUEDA knows where to reach the Django server. No Vite proxy is needed; the template's `config.toml` already includes the client origin in `CORS_ALLOWED_ORIGINS`.
+During local development the client dev server and Django run on different ports. The scaffolded `client/.env.development` already contains `VITE_DJANGO_CONNECTION_PORT` set to the port you chose during scaffolding, so VUEDA knows where to reach the Django server. No Vite proxy is needed; the template's `config.local.toml` already includes the local client origin in `CORS_ALLOWED_ORIGINS`.
 
 ### Set Up Tailwind CSS
 

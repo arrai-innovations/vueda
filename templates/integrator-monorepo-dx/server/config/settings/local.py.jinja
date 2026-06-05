@@ -1,17 +1,7 @@
 from config.settings.base import *
 
 
-DEBUG = True
-
 CSRF_COOKIE_NAME = "{{ csrf_cookie_name }}"
-
-CORS_ALLOWED_ORIGINS = [
-    "http://{{ bind_ip }}:{{ client_port }}",
-]
-CSRF_TRUSTED_ORIGINS = [
-    "http://{{ bind_ip }}:{{ client_port }}",
-]
-CORS_ALLOW_CREDENTIALS = True
 
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
@@ -22,4 +12,3 @@ SESSION_COOKIE_SAMESITE = "Lax"
 # PERMISSION_NAMES_MAPPING is fully resolved before the import triggers a lookup.
 # If you override PERMISSION_NAMES_MAPPING above, place this import after that override.
 from vueda.core import patch_django  # noqa: F401
-
