@@ -25,6 +25,8 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - Horizontal `Field` labels now use a shrinkable, capped column, and `FieldContent` can shrink inside flex rows. This prevents controls and helper text from overflowing narrow horizontal field containers.
 - **SidebarRail**:
     - The default theme now uses a pointer cursor for the sidebar rail because the rail toggles collapse state on click. It no longer advertises unsupported width resizing through resize cursors.
+- **SidebarUserBlock**:
+    - The default theme now fits the user block inside icon-collapsed sidebars by reducing the root to the 32 px avatar target and hiding identity text plus the kebab slot.
 
 ## Public Baseline
 

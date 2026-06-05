@@ -2,6 +2,7 @@
 import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
 import "@vueda/theme/vueda-tailwind/navigation/SidebarUserBlock.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { useSlots } from "vue";
 
 /**
  * Sidebar footer user block: 32 px avatar chip + name + role + a slot for a
@@ -26,6 +27,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("SidebarUserBlock", props);
+const slots = useSlots();
 </script>
 
 <template>
@@ -35,7 +37,9 @@ const theme = useTheme("SidebarUserBlock", props);
             <span :class="theme('name')">{{ name }}</span>
             <span v-if="role" :class="theme('role')">{{ role }}</span>
         </div>
-        <!-- @slot kebab Trigger element for the user-block account menu (typically a ghost button + ellipsis icon). -->
-        <slot name="kebab" />
+        <span v-if="slots.kebab" :class="theme('kebab')">
+            <!-- @slot kebab Trigger element for the user-block account menu (typically a ghost button + ellipsis icon). -->
+            <slot name="kebab" />
+        </span>
     </div>
 </template>

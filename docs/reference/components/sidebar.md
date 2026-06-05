@@ -190,14 +190,11 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <button type="button" class="flex w-full items-center gap-2 rounded-vueda-control p-2 text-left text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-            <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold">JR</span>
-            <span class="flex min-w-0 flex-col">
-              <span class="truncate text-sm font-medium leading-tight">Jess Rivera</span>
-              <span class="truncate text-xs leading-tight text-muted-foreground">Admin · Acme Co.</span>
-            </span>
-            <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto shrink-0 text-muted-foreground" />
-          </button>
+          <SidebarUserBlock name="Jess Rivera" role="Admin · Acme Co." class="rounded-vueda-control p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+            <template #kebab>
+              <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto shrink-0 text-muted-foreground" />
+            </template>
+          </SidebarUserBlock>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -281,7 +278,7 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
 <VuedaDemo>
   <div class="h-[360px] overflow-hidden rounded-vueda-card border border-border">
     <SidebarProvider>
-      <Sidebar collapsible="none" class="shrink-0 border-r border-border" style="--sidebar-width: var(--vueda-sidebar-width-icon);">
+      <Sidebar collapsible="none" class="group shrink-0 border-r border-border" data-collapsible="icon" style="--sidebar-width: var(--vueda-sidebar-width-icon);">
         <SidebarHeader>
           <div class="flex items-center justify-center py-1">
             <img src="/assets/logo-cube-solid.svg" alt="VUEDA" class="h-5 w-5 shrink-0" />
@@ -345,9 +342,11 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <button type="button" class="flex w-full items-center justify-center rounded-vueda-control p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" aria-label="Account menu">
-            <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold">JR</span>
-          </button>
+          <SidebarUserBlock name="Jess Rivera" role="Admin · Acme Co." class="rounded-vueda-control p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+            <template #kebab>
+              <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto shrink-0 text-muted-foreground" />
+            </template>
+          </SidebarUserBlock>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -606,7 +605,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarMenuSkeleton">
         <p class="text-xs text-muted-foreground">icon + variable-width text bar · <code>show-icon</code> prop</p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="max-w-[var(--vueda-sidebar-width)] rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarMenu>
             <SidebarMenuItem><SidebarMenuSkeleton :show-icon="true" /></SidebarMenuItem>
             <SidebarMenuItem><SidebarMenuSkeleton :show-icon="true" /></SidebarMenuItem>
@@ -615,7 +614,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
         </div>
         <template #footer>
           <span>h-8 gap-2 px-2 · icon: size-4 rounded-md</span>
-          <span>text bar width: random 50–90% per instance</span>
+          <span>text bar width: random 50 to 90% per instance</span>
         </template>
       </DemoCard>
       <DemoCard title="SidebarInput">

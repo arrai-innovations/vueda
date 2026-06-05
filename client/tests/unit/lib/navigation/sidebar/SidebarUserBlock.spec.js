@@ -48,6 +48,21 @@ describe("lib/navigation/sidebar/SidebarUserBlock.vue", () => {
             expect(wrapper.find('[data-test="kebab"]').exists()).toBe(true);
         });
 
+        scopedIt("hides identity details and the kebab slot in icon-collapsed sidebars", () => {
+            const wrapper = mount(SidebarUserBlock, {
+                props: { name: "Jess Rivera" },
+                slots: { kebab: '<button data-test="kebab">…</button>' },
+            });
+
+            expect(wrapper.classes()).toContain("group-data-[collapsible=icon]:size-8!");
+            expect(wrapper.classes()).toContain("group-data-[collapsible=icon]:p-0!");
+            expect(wrapper.find('[data-slot="user-avatar"]').exists()).toBe(true);
+            expect(wrapper.element.children[1].className).toContain("group-data-[collapsible=icon]:hidden");
+            expect(wrapper.find('[data-test="kebab"]').element.parentElement.className).toContain(
+                "group-data-[collapsible=icon]:hidden",
+            );
+        });
+
         scopedIt("merges custom class while preserving theme classes", () => {
             const wrapper = mount(SidebarUserBlock, {
                 props: { name: "Jess Rivera", class: "my-custom-class" },
