@@ -28,7 +28,7 @@ patchTheme({
                     class: [
                         base,
                         "flex-row items-start",
-                        "[&>[data-slot=field-label]]:w-48 [&>[data-slot=field-label]]:shrink-0 [&>[data-slot=field-label]]:pt-2 [&>[data-slot=field-label]]:text-right [&>[data-slot=field-label]]:justify-end",
+                        "[&>[data-slot=field-label]]:basis-48 [&>[data-slot=field-label]]:max-w-[40%] [&>[data-slot=field-label]]:min-w-0 [&>[data-slot=field-label]]:shrink [&>[data-slot=field-label]]:pt-2 [&>[data-slot=field-label]]:text-right [&>[data-slot=field-label]]:justify-end",
                         "has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
                     ],
                 };
@@ -38,7 +38,7 @@ patchTheme({
                     class: [
                         base,
                         "flex-col [&>*]:w-full [&>.sr-only]:w-auto @md/field-group:flex-row @md/field-group:items-start @md/field-group:[&>*]:w-auto",
-                        "@md/field-group:[&>[data-slot=field-label]]:w-48 @md/field-group:[&>[data-slot=field-label]]:shrink-0 @md/field-group:[&>[data-slot=field-label]]:pt-2 @md/field-group:[&>[data-slot=field-label]]:text-right @md/field-group:[&>[data-slot=field-label]]:justify-end",
+                        "@md/field-group:[&>[data-slot=field-label]]:basis-48 @md/field-group:[&>[data-slot=field-label]]:max-w-[40%] @md/field-group:[&>[data-slot=field-label]]:min-w-0 @md/field-group:[&>[data-slot=field-label]]:shrink @md/field-group:[&>[data-slot=field-label]]:pt-2 @md/field-group:[&>[data-slot=field-label]]:text-right @md/field-group:[&>[data-slot=field-label]]:justify-end",
                         "@md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
                     ],
                 };

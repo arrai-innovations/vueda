@@ -89,7 +89,7 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
     </FieldGroup>
     <template #footer>
       <span>label and content sit side by side</span>
-      <span>label grows via <code>flex-auto</code></span>
+      <span>label uses a capped flex basis so content keeps room</span>
     </template>
   </DemoCard>
   <DemoCard title="responsive — vertical then horizontal at @md">

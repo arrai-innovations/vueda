@@ -21,6 +21,8 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 - **Toast dependencies**:
     - `vue-sonner` is now a peer dependency of `@arrai-innovations/vueda`, and the Copier client templates install it directly.
       _Add `vue-sonner` to consuming applications so direct `toast` imports and VUEDA's toaster resolve the same package instance._
+- **Field shell layout**:
+    - Horizontal `Field` labels now use a shrinkable, capped column, and `FieldContent` can shrink inside flex rows. This prevents controls and helper text from overflowing narrow horizontal field containers.
 
 ## Public Baseline
 

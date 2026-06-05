@@ -34,6 +34,13 @@ describe("lib/shell/field/Field.vue", () => {
             expect(wrapper.classes()).toContain("items-start");
         });
 
+        scopedIt("uses a shrinkable label column when orientation=horizontal", () => {
+            const wrapper = mount(Field, { props: { orientation: "horizontal" } });
+            expect(wrapper.classes()).toContain("[&>[data-slot=field-label]]:basis-48");
+            expect(wrapper.classes()).toContain("[&>[data-slot=field-label]]:max-w-[40%]");
+            expect(wrapper.classes()).toContain("[&>[data-slot=field-label]]:shrink");
+        });
+
         scopedIt("reflects orientation in data-orientation attribute", () => {
             const wrapper = mount(Field, { props: { orientation: "horizontal" } });
             expect(wrapper.attributes("data-orientation")).toBe("horizontal");
@@ -86,9 +93,10 @@ describe("lib/shell/field/Field.vue", () => {
             expect(wrapper.attributes("data-slot")).toBe("field-content");
         });
 
-        scopedIt("applies flex-col and flex-1 classes", () => {
+        scopedIt("applies flex-col, min-w-0, and flex-1 classes", () => {
             const wrapper = mount(FieldContent);
             expect(wrapper.classes()).toContain("flex-col");
+            expect(wrapper.classes()).toContain("min-w-0");
             expect(wrapper.classes()).toContain("flex-1");
         });
 
