@@ -16,11 +16,6 @@
  * Composition resolves at `useTheme` lookup time, so import order does not
  * matter: a consumer only needs this module to have run by the time its own
  * slot is read.
- *
- * Prototype-phase duplication: this data mirrors the `_Button*` slice of
- * `controls/index.js`, which remains the docs-tooling source of truth until the
- * extractor learns to walk `*.theme.js`. Under the legacy `setTheme(...)` path
- * the wholesale replace overwrites this patch with identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 

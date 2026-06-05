@@ -4,12 +4,6 @@
  * Per-component theme registration for WidgetLabel. This support entry is split
  * for Phase 3 or future aggregator wiring, but is not currently imported by an
  * SFC because there is no WidgetLabel.vue in this tree.
- *
- * Prototype-phase duplication: this entry mirrors the WidgetLabel slice of
- * widgets/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
