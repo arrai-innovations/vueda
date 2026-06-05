@@ -6,12 +6,15 @@ This directory contains starter templates for integrator VUEDA monorepos.
 
 - `integrator-monorepo`: minimal setup with direct `uv`/`pnpm` workflows.
 - `integrator-monorepo-dx`: DX-focused setup with repository automation via `just`.
+  Copier prompts for the JavaScript package manager. `pnpm` is the default,
+  with `npm` and `yarn` also supported.
 
 ## Prerequisites
 
 - [Copier](https://copier.readthedocs.io/)
 - [uv](https://docs.astral.sh/uv/)
-- [pnpm](https://pnpm.io/)
+- [pnpm](https://pnpm.io/) for `integrator-monorepo`, or the JavaScript
+  package manager selected for `integrator-monorepo-dx`
 - Python 3.11+
 - Node.js 22+
 

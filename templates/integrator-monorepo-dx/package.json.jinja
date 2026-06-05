@@ -1,6 +1,9 @@
 {
   "name": "{{ project_slug }}-monorepo",
-  "private": true,
+  "private": true{% if js_package_manager != "pnpm" %},
+  "workspaces": [
+    "client"
+  ]{% endif %},
   "scripts": {
     "prepare": "lefthook install"
   },
@@ -11,4 +14,3 @@
     "lefthook": "^1.13.6"
   }
 }
-

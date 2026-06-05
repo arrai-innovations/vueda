@@ -6,11 +6,11 @@
     "dev": "vite --host {{ bind_ip }} --port {{ client_port }}",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "npx --no-install vitest",
-    "lint": "npx eslint --no-warn-ignored .",
-    "format": "npx prettier --check .",
-    "eslint": "npx eslint --fix .",
-    "prettier": "npx prettier --write ."
+    "test": "vitest",
+    "lint": "eslint --no-warn-ignored .",
+    "format": "prettier --check .",
+    "eslint": "eslint --fix .",
+    "prettier": "prettier --write ."
   },
   "dependencies": {
     "@arrai-innovations/vueda": "*",

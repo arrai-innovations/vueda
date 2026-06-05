@@ -1,7 +1,8 @@
+{% set js_exec = "pnpm exec" if js_package_manager == "pnpm" else "npx --no-install" if js_package_manager == "npm" else "yarn run" -%}
 commit-msg:
     commands:
         commitlint:
-            run: pnpm -C . exec commitlint --edit "$1"
+            run: {{ js_exec }} commitlint --edit "$1"
 
 pre-commit:
     parallel: false
@@ -17,12 +18,12 @@ pre-commit:
             stage_fixed: true
             root: "client/"
             glob: "*.{vue,js,cjs,mjs,ts,jsx,tsx}"
-            run: pnpm exec eslint --no-warn-ignored --cache --fix {staged_files}
+            run: {{ js_exec }} eslint --no-warn-ignored --cache --fix {staged_files}
         fix-client-prettier:
             stage_fixed: true
             root: "client/"
             glob: "*.{less,scss,css,vue,markdown,json,md,yml,yaml,html}"
-            run: pnpm exec prettier --write {staged_files}
+            run: {{ js_exec }} prettier --write {staged_files}
         fix-md-toc:
             stage_fixed: true
             glob: "*.md"

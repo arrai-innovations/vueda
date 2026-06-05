@@ -1,5 +1,15 @@
 _min_copier_version: "9.0.0"
 _templates_suffix: ".jinja"
+_exclude:
+    - "copier.yaml"
+    - "copier.yml"
+    - "~*"
+    - "*.py[co]"
+    - "__pycache__"
+    - ".git"
+    - ".DS_Store"
+    - ".svn"
+    - "{% if js_package_manager == 'pnpm' %}.copier-exclude-nothing{% else %}pnpm-workspace.yaml{% endif %}"
 _tasks:
     - "# VUEDA DX monorepo template is now in place."
     - "# Next: run `just bootstrap`"
@@ -23,6 +33,15 @@ client_package_name:
     type: str
     help: NPM package name for the client app.
     default: "{{ project_slug }}-client"
+
+js_package_manager:
+    type: str
+    help: JavaScript package manager to use for the generated project.
+    default: pnpm
+    choices:
+        - pnpm
+        - npm
+        - yarn
 
 bind_ip:
     type: str
