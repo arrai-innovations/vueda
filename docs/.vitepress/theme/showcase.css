@@ -13,6 +13,8 @@
  * base.css is imported through the @vueda alias; this directive is rooted at
  * showcase.css's location and walks up to the workspace's client lib. */
 @source "../../../client/lib/";
+@source "../../reference/";
+@source "./";
 
 /* ---------- Forced-state shim (docs-only) ----------
  * Paints hover / focus-visible / disabled visuals on real vueda components

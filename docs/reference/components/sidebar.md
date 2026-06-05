@@ -192,7 +192,7 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
         <SidebarFooter>
           <SidebarUserBlock name="Jess Rivera" role="Admin · Acme Co." class="rounded-vueda-control p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
             <template #kebab>
-              <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto shrink-0 text-muted-foreground" />
+              <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto size-4 shrink-0 text-muted-foreground" />
             </template>
           </SidebarUserBlock>
         </SidebarFooter>
@@ -344,7 +344,7 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
         <SidebarFooter>
           <SidebarUserBlock name="Jess Rivera" role="Admin · Acme Co." class="rounded-vueda-control p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
             <template #kebab>
-              <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto shrink-0 text-muted-foreground" />
+              <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto size-4 shrink-0 text-muted-foreground" />
             </template>
           </SidebarUserBlock>
         </SidebarFooter>
@@ -384,8 +384,8 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
 Individual pieces of the sidebar surface. All cells share a single `SidebarProvider` so `useSidebar()` resolves correctly.
 
 <VuedaDemo>
-  <SidebarProvider>
-    <div class="grid w-full gap-6 sm:grid-cols-2">
+  <SidebarProvider style="min-height: 0;">
+    <div class="grid w-full items-start gap-6 sm:grid-cols-2">
       <DemoCard title="SidebarMenuButton — states">
         <p class="text-xs text-muted-foreground">idle / hover / active / disabled · <code>isActive</code>, <code>aria-disabled</code></p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2">
@@ -605,7 +605,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarMenuSkeleton">
         <p class="text-xs text-muted-foreground">icon + variable-width text bar · <code>show-icon</code> prop</p>
-        <div class="max-w-[var(--vueda-sidebar-width)] rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="w-[var(--vueda-sidebar-width)] max-w-full rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarMenu>
             <SidebarMenuItem><SidebarMenuSkeleton :show-icon="true" /></SidebarMenuItem>
             <SidebarMenuItem><SidebarMenuSkeleton :show-icon="true" /></SidebarMenuItem>
@@ -629,11 +629,11 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarUserBlock">
         <p class="text-xs text-muted-foreground">32 px UserAvatar (sidebar tone) · name + role · #kebab slot</p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="w-[var(--vueda-sidebar-width)] max-w-full rounded-vueda-card border border-border bg-sidebar p-2">
           <SidebarFooter class="p-0">
             <SidebarUserBlock name="Jess Rivera" role="Admin · Acme Co." class="rounded-vueda-control p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
               <template #kebab>
-                <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto shrink-0 text-muted-foreground" />
+                <FontAwesomeIcon :icon="faEllipsisVertical" class="ml-auto size-4 shrink-0 text-muted-foreground" />
               </template>
             </SidebarUserBlock>
           </SidebarFooter>
