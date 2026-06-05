@@ -31,7 +31,7 @@ patchTheme({
                 "[[data-density=condensed]_&]:h-6 [[data-density=condensed]_&]:py-0.5 [[data-density=condensed]_&]:text-xs",
                 "data-[numeric]:text-right data-[numeric]:font-mono",
                 "data-[mono]:font-mono",
-            ].join(" "),
+            ],
         },
     },
 });

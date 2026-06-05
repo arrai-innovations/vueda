@@ -34,7 +34,7 @@ patchTheme({
                 "[&>[data-slot=icon]]:text-xl [&>[data-slot=icon]]:text-muted-foreground/70",
                 "data-[variant=loading]:[&>[data-slot=icon]]:animate-spin",
                 "data-[variant=error]:[&>[data-slot=icon]]:text-destructive/80",
-            ].join(" "),
+            ],
         },
     },
 });
