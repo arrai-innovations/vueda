@@ -23,6 +23,8 @@ stores, theme behavior, build integration, dependency expectations, and migratio
       _Add `vue-sonner` to consuming applications so direct `toast` imports and VUEDA's toaster resolve the same package instance._
 - **Field shell layout**:
     - Horizontal `Field` labels now use a shrinkable, capped column, and `FieldContent` can shrink inside flex rows. This prevents controls and helper text from overflowing narrow horizontal field containers.
+- **SidebarRail**:
+    - The default theme now uses a pointer cursor for the sidebar rail because the rail toggles collapse state on click. It no longer advertises unsupported width resizing through resize cursors.
 
 ## Public Baseline
 
