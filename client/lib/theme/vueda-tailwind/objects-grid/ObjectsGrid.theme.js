@@ -36,7 +36,7 @@ patchTheme({
         table: {
             class: ({ isTable }) => [
                 {
-                    "!table border-separate border-spacing-0 overflow-x-auto max-w-full": isTable,
+                    "!table border-separate border-spacing-0": isTable,
                 },
             ],
         },
