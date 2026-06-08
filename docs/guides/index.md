@@ -17,6 +17,7 @@ Guides are task-focused recipes for integrators working on real VUEDA projects. 
 - [Client Plugin Prerequisites](client-plugin-prerequisites.md): Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting.
 - [shadcn-vue and VUEDA](shadcn-vue.md): How VUEDA relates to shadcn-vue, what `shadcn-vue add` does and does not support, and how to use shadcn-vue blocks alongside VUEDA.
 - [Customize VUEDA Appearance](customize-vueda-appearance.md): Concrete recipes for the four customization scopes: instance, component, family, and brand.
+- [Place the Page Title and Page Actions](place-page-title-and-actions.md): Establish the `usePageTitle` context in your layout, contribute titles from views, render page actions, and build a custom title display.
 
 ## Resource Modeling & CRUDL
 
