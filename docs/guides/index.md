@@ -26,6 +26,7 @@ Guides are task-focused recipes for integrators working on real VUEDA projects. 
 - [Expose a Proxy Model as a Separate CRUDL Surface](proxy-models.md): Give a proxy model its own serializer, viewset, permissions, and model-info registration without a separate database table.
 - [Split Read/Write Serializers Safely](split-read-write-serializers.md): Use viewset serializer switching without breaking model-info metadata.
 - [Configure `list`/`read`/`create`/`update` Views](configure-crud-views.md): Tune model config per view, including default fields/expands/actions.
+- [Link List Rows to Read and Update Views](link-list-rows-to-detail-views.md): Add a per-row link from a `list` view to that row's `read` or `update` view.
 - [Expose Aggregates in `list` Responses](list-column-totals.md): Use server column totals and render them in `list` views.
 
 ## Fields, Forms, and Relationships
