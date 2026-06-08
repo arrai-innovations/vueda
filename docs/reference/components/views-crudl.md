@@ -76,6 +76,14 @@ const statusClasses = {
 
 const sorted = ref(["-updated"]);
 
+// Each StickyBar demo binds its scroll-root to its own bounded, scrollable
+// panel so the bar pins to and reacts to the demo viewport instead of the page
+// (otherwise it would stick to the window and ride up over the site nav).
+const stickyViewport = ref(null);
+const createViewport = ref(null);
+const readViewport = ref(null);
+const updateViewport = ref(null);
+
 // Registers a title source into the surrounding page-title context, rendering nothing itself.
 // In a real app this is what a view does via usePageTitle(() => ({ title, loading })).
 const TitleRegistrar = defineComponent({
@@ -167,70 +175,102 @@ Theme keys: {@api theme-key:PageTitle}.
 
 {@api vue:component:StickyBar} wraps the default slot in a themed container that hides when the user scrolls down past its initial position and reappears when they scroll back up. In VUEDA forms it sits directly below PageTitle and holds the primary submit action.
 
+By default the bar reacts to the window's scroll. When the bar lives inside a scrollable region rather than scrolling the whole page, pass that region's element to the `scrollRoot` prop so the bar pins to and reacts to it. The demo below does this: it binds `scrollRoot` to the bounded, scrollable panel so the bar treats the panel as its page.
+
 Theme keys: {@api theme-key:StickyBar}.
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">sticky bar · submit pattern</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <StickyBar>
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <Button variant="default">
-            <FontAwesomeIcon :icon="faCheck" />
-            Create customer
-          </Button>
-          <Button variant="outline">Save and add another</Button>
+  <ClientOnly>
+    <div ref="stickyViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[20rem]">
+      <StickyBar :scroll-root="stickyViewport">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <Button variant="default">
+              <FontAwesomeIcon :icon="faCheck" />
+              Create customer
+            </Button>
+            <Button variant="outline">Save and add another</Button>
+          </div>
+          <span class="text-xs text-muted-foreground">All required fields marked <span class="text-destructive">*</span></span>
         </div>
-        <span class="text-xs text-muted-foreground">All required fields marked <span class="text-destructive">*</span></span>
-      </div>
-    </StickyBar>
-    <div class="px-6 py-5">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field orientation="vertical">
-          <FieldLabel for="sb-name">Account name <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-          <FieldContent>
-            <Input id="sb-name" placeholder="Granger Holdings" />
-          </FieldContent>
-        </Field>
-        <Field orientation="vertical">
-          <FieldLabel for="sb-domain">Primary domain</FieldLabel>
-          <FieldContent>
-            <Input id="sb-domain" placeholder="example.com" />
-          </FieldContent>
-        </Field>
-        <Field orientation="vertical">
-          <FieldLabel for="sb-owner">Owner <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-          <FieldContent>
-            <NativeSelect id="sb-owner">
-              <NativeSelectOption value="">— select —</NativeSelectOption>
-              <NativeSelectOption value="mt">Mara Tani</NativeSelectOption>
-              <NativeSelectOption value="jr">Jordan Reyes</NativeSelectOption>
-            </NativeSelect>
-          </FieldContent>
-        </Field>
-        <Field orientation="vertical">
-          <FieldLabel for="sb-tier">Plan tier</FieldLabel>
-          <FieldContent>
-            <NativeSelect id="sb-tier">
-              <NativeSelectOption value="trial">Trial</NativeSelectOption>
-              <NativeSelectOption value="standard" selected>Standard</NativeSelectOption>
-              <NativeSelectOption value="enterprise">Enterprise</NativeSelectOption>
-            </NativeSelect>
-          </FieldContent>
-        </Field>
-        <Field orientation="vertical" class="sm:col-span-2">
-          <FieldLabel for="sb-notes">Notes</FieldLabel>
-          <FieldContent>
-            <Textarea id="sb-notes" placeholder="Internal notes visible only to staff." rows="3" />
-          </FieldContent>
-        </Field>
+      </StickyBar>
+      <div class="px-6 py-5">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field orientation="vertical">
+            <FieldLabel for="sb-name">Account name <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
+            <FieldContent>
+              <Input id="sb-name" placeholder="Granger Holdings" />
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-domain">Primary domain</FieldLabel>
+            <FieldContent>
+              <Input id="sb-domain" placeholder="example.com" />
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-owner">Owner <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
+            <FieldContent>
+              <NativeSelect id="sb-owner">
+                <NativeSelectOption value="">— select —</NativeSelectOption>
+                <NativeSelectOption value="mt">Mara Tani</NativeSelectOption>
+                <NativeSelectOption value="jr">Jordan Reyes</NativeSelectOption>
+              </NativeSelect>
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-tier">Plan tier</FieldLabel>
+            <FieldContent>
+              <NativeSelect id="sb-tier">
+                <NativeSelectOption value="trial">Trial</NativeSelectOption>
+                <NativeSelectOption value="standard" selected>Standard</NativeSelectOption>
+                <NativeSelectOption value="enterprise">Enterprise</NativeSelectOption>
+              </NativeSelect>
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-billing-email">Billing email</FieldLabel>
+            <FieldContent>
+              <Input id="sb-billing-email" type="email" placeholder="ar@example.com" />
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-currency">Currency</FieldLabel>
+            <FieldContent>
+              <NativeSelect id="sb-currency">
+                <NativeSelectOption value="usd">USD</NativeSelectOption>
+                <NativeSelectOption value="eur">EUR</NativeSelectOption>
+                <NativeSelectOption value="gbp">GBP</NativeSelectOption>
+              </NativeSelect>
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-tax">Tax ID</FieldLabel>
+            <FieldContent>
+              <Input id="sb-tax" placeholder="Optional" />
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-phone">Billing phone</FieldLabel>
+            <FieldContent>
+              <Input id="sb-phone" type="tel" placeholder="Optional" />
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical" class="sm:col-span-2">
+            <FieldLabel for="sb-notes">Notes</FieldLabel>
+            <FieldContent>
+              <Textarea id="sb-notes" placeholder="Internal notes visible only to staff." rows="3" />
+            </FieldContent>
+          </Field>
+        </div>
       </div>
     </div>
-  </div>
+  </ClientOnly>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>StickyBar default slot: free-form layout, usually a flex row of actions</span>
     <span>theme key: <code>StickyBar.inner</code> for bar chrome, <code>StickyBar.gradient</code> for the fade below</span>
-    <span>scroll the page past this bar to see it hide; scroll back up to see it reappear</span>
+    <span>the bar binds <code>scrollRoot</code> to this panel; scroll inside the panel to see it hide on the way down and reappear on the way up</span>
   </footer>
 </VuedaDemo>
 
@@ -394,7 +434,7 @@ The create view pairs PageTitle with a StickyBar immediately below it. The Stick
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view create · blank form · pristine</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div ref="createViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[34rem]">
     <ClientOnly>
       <DemoTitleBar title="Create customer">
         <template #actions>
@@ -402,7 +442,7 @@ The create view pairs PageTitle with a StickyBar immediately below it. The Stick
         </template>
       </DemoTitleBar>
     </ClientOnly>
-    <StickyBar>
+    <StickyBar :scroll-root="createViewport">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
           <Button variant="default">
@@ -531,7 +571,7 @@ The read view presents a single record in a non-editable layout. Inputs are repl
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view read · single record · Northwind Logistics</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div ref="readViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[34rem]">
     <ClientOnly>
       <DemoTitleBar title="Northwind Logistics">
         <template #actions>
@@ -539,7 +579,7 @@ The read view presents a single record in a non-editable layout. Inputs are repl
         </template>
       </DemoTitleBar>
     </ClientOnly>
-    <StickyBar>
+    <StickyBar :scroll-root="readViewport">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
           <Button variant="default">
@@ -641,7 +681,7 @@ The update view flips read mode to editable. Fields with pending changes get a m
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · 2 fields modified · 1 form-level error</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div ref="updateViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[34rem]">
     <ClientOnly>
       <DemoTitleBar title="Edit Northwind Logistics">
         <template #actions>
@@ -649,7 +689,7 @@ The update view flips read mode to editable. Fields with pending changes get a m
         </template>
       </DemoTitleBar>
     </ClientOnly>
-    <StickyBar>
+    <StickyBar :scroll-root="updateViewport">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
           <Button variant="default">

@@ -31,6 +31,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - The default theme now uses a pointer cursor for the sidebar rail because the rail toggles collapse state on click. It no longer advertises unsupported width resizing through resize cursors.
 - **SidebarUserBlock**:
     - The default theme now fits the user block inside icon-collapsed sidebars by reducing the root to the 32 px avatar target and hiding identity text plus the kebab slot.
+- **StickyBar**:
+    - Added a `scrollRoot` prop. When the bar lives inside a scrollable region rather than scrolling the whole page, pass that region's element so the bar pins to and reacts to it. The hide/reveal threshold and the scroll listener bind to `scrollRoot` instead of the window.
+      _No action is required. The prop defaults to `null`, which preserves the existing window-based behavior._
 
 ## Public Baseline
 

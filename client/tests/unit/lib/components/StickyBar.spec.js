@@ -80,6 +80,37 @@ describe("lib/components/StickyBar.vue", () => {
         expect(clearTimeoutSpy).toHaveBeenCalled();
     });
 
+    scopedIt("binds the scroll listener to scrollRoot and reacts to its scroll position", async () => {
+        const { default: StickyBar } = await importComponent();
+        const scrollRoot = {
+            scrollTop: 0,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            getBoundingClientRect: () => ({ top: 0, bottom: 0 }),
+        };
+        const wrapper = mount(StickyBar, { props: { scrollRoot } });
+        await nextTick();
+
+        // Listener binds to the container, never the window.
+        expect(scrollRoot.addEventListener).toHaveBeenCalledWith("scroll", expect.any(Function));
+        expect(mockedListeners.mockedAddEventListener).not.toHaveBeenCalledWith("scroll", expect.any(Function));
+        expect(themeCapture.context.hidden).toBe(false);
+
+        const handler = scrollRoot.addEventListener.mock.calls.find(([e]) => e === "scroll")[1];
+        scrollRoot.scrollTop = 100;
+        handler();
+        await nextTick();
+        expect(themeCapture.context.hidden).toBe(true);
+
+        scrollRoot.scrollTop = 50;
+        handler();
+        await nextTick();
+        expect(themeCapture.context.hidden).toBe(false);
+
+        wrapper.unmount();
+        expect(scrollRoot.removeEventListener).toHaveBeenCalledWith("scroll", handler);
+    });
+
     scopedIt("renders default slot when neither primary nor secondary slot is bound", async () => {
         const { default: StickyBar } = await importComponent();
         const wrapper = mount(StickyBar, {
