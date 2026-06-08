@@ -7,6 +7,7 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import { useObjectUrl } from "@vueuse/core";
 import isObject from "lodash-es/isObject.js";
 import { computed, inject, toRef, watch } from "vue";
 
@@ -57,9 +58,18 @@ const onRemove = () => {
     widgetContext.state.combinedValue = null;
 };
 
-// Persisted images arrive as {name, url}; unwrap the url for the preview. A string value (legacy or
-// a locally created object URL) is used as-is.
-const imageSrc = computed(() => widgetContext.state.combinedValue?.url ?? widgetContext.state.combinedValue);
+// A freshly picked File has no URL yet, so mint a local object URL for the preview. useObjectUrl
+// revokes it when the selection changes and on teardown. Only narrow to File values: a persisted
+// {name, url} object would otherwise reach URL.createObjectURL and throw.
+const previewUrl = useObjectUrl(() =>
+    widgetContext.state.combinedValue instanceof File ? widgetContext.state.combinedValue : undefined,
+);
+
+// Preview source precedence: local object URL for a new File, the persisted {name, url} url, then a
+// bare string (legacy or already-resolved url) as-is.
+const imageSrc = computed(
+    () => previewUrl.value ?? widgetContext.state.combinedValue?.url ?? widgetContext.state.combinedValue,
+);
 </script>
 
 <template>

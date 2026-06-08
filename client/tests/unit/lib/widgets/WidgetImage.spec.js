@@ -63,7 +63,13 @@ const mountOptions = {
     },
 };
 
+// jsdom does not implement the blob-URL APIs that useObjectUrl relies on.
+const createObjectURL = vi.fn(() => "blob:mock-url");
+const revokeObjectURL = vi.fn();
+
 beforeEach(async () => {
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL;
     WidgetImage = (await import("@vueda/widgets/WidgetImage.vue")).default;
     mockedUseWidget.mockClear();
     mockedUseWidgetTheme.mockClear();
@@ -127,5 +133,28 @@ describe("lib/widgets/WidgetImage.vue", () => {
         await nextTick();
         expect(removeIgnoreFn).toHaveBeenCalledTimes(1);
         expect(ignoreFn).not.toHaveBeenCalled();
+    });
+
+    scopedIt("previews a freshly selected File via an object URL and revokes it on clear", async () => {
+        const wrapper = mount(WidgetImage, mountOptions);
+        const file = new File(["x"], "cat.jpg", { type: "image/jpeg" });
+        widgetContext.state.combinedValue = file;
+        await nextTick();
+
+        expect(createObjectURL).toHaveBeenCalledWith(file);
+        expect(wrapper.get('[data-qa="image-preview"]').attributes("src")).toBe("blob:mock-url");
+
+        widgetContext.state.combinedValue = null;
+        await nextTick();
+        expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
+    });
+
+    scopedIt("revokes the object URL on unmount", async () => {
+        const wrapper = mount(WidgetImage, mountOptions);
+        widgetContext.state.combinedValue = new File(["x"], "cat.jpg");
+        await nextTick();
+
+        wrapper.unmount();
+        expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
     });
 });
