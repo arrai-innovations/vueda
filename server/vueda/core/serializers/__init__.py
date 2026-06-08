@@ -25,10 +25,14 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import CompositePrimaryKey
 from django.db.models import F
+from django.db.models import FileField as ModelFileField
+from django.db.models import ImageField as ModelImageField
 from rest_flex_fields import split_levels
 from rest_framework import serializers
 
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.fields.serializers import FileField as VuedaFileField
+from vueda.core.fields.serializers import ImageField as VuedaImageField
 from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
@@ -443,6 +447,11 @@ class VuedaSerializer(
     serializer_field_mapping: ClassVar[dict] = {
         **serializers.ModelSerializer.serializer_field_mapping,
         CompositePrimaryKey: CompositePrimaryKeyField,
+        # Route file and image columns through VUEDA's serializer fields so they emit the
+        # {"name": ..., "url": ...} representation the client widgets consume. ImageField is keyed
+        # explicitly (not just inherited via FileField) so ClassLookupDict resolves it before FileField.
+        ModelFileField: VuedaFileField,
+        ModelImageField: VuedaImageField,
     }
 
     class Meta:

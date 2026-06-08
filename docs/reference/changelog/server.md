@@ -17,6 +17,19 @@ permissions, metadata responses, management commands, migrations, REST behavior,
 Earlier VUEDA server versions existed for internal or private use. The v3 prerelease series is the first
 public-facing documentation baseline.
 
+## vNext (unreleased)
+
+### Breaking Changes
+
+- **File and image field representation**:
+    - `VuedaSerializer` now maps `models.FileField` and `models.ImageField` columns to VUEDA's serializer fields, which represent a stored file as `{"name": ..., "url": ...}` (with an absolute `url` when a request is in context) instead of DRF's plain URL string. This applies to any file or image column auto-built by a VUEDA serializer.
+      _Update client or integration code that read a bare URL string from these fields. The v3 client widgets (`WidgetFile`, `WidgetImage`) already consume the `{name, url}` shape. To keep the previous plain-string behavior on a specific field, declare a stock `rest_framework.serializers.FileField`/`ImageField` explicitly on your serializer._
+
+### Features
+
+- **`ImageField` serializer field**:
+    - Added `vueda.core.fields.serializers.ImageField`, the image counterpart to the existing `FileField`. It shares the `{"name", "url"}` representation and subclasses `FileField` rather than DRF's `ImageField`, so it does not require Pillow; image content validation is left to the model field and upload pipeline.
+
 ## v3.0.0a0 (2026-05-27)
 
 ### Migration Summary
