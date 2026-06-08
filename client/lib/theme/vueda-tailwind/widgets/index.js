@@ -9,6 +9,7 @@ import "./WidgetFile.theme.js";
 import "./WidgetGenericAutoComplete.theme.js";
 import "./WidgetHtml.theme.js";
 import "./WidgetImage.theme.js";
+import "./WidgetJson.theme.js";
 import "./WidgetLabel.theme.js";
 import "./WidgetPreviewableTemplate.theme.js";
 import "./WidgetReadOnly.theme.js";
@@ -26,6 +27,7 @@ export default {
     // ---------- Rich content widgets ----------
     WidgetHtml: {},
     WidgetImage: {},
+    WidgetJson: {},
     // ---------- Read-only and labels ----------
     WidgetReadOnly: {},
     WidgetLabel: {},

@@ -21,6 +21,10 @@ _Actions potentially required by implementers are marked with italics._
 
 ### Features
 
+- **WidgetJson**:
+    - Added a default CodeMirror-backed `WidgetJson` for `JSONField` values with JSON syntax highlighting, real JSON value round-tripping, invalid JSON errors through the normal field message area, and optional pretty formatting on blur.
+      _Remove custom `JSONField` widget mappings if they only existed to make plain JSON fields editable._
+
 - **Theme registration and lazy loading**:
     - The built-in `vueda-tailwind` default theme is no longer one monolithic object. Each component's default theme is authored as a co-located per-component module (`@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`) that registers itself through `patchTheme`, and every themed component side-effect-imports its own `*.theme.js`. A route that renders only a few components now registers (and bundles) only those components' theme entries instead of the entire catalog.
     - The theme registration API moved to a new `@vueda/use/themeRegistry.js` module (`setTheme`, `patchTheme`, `getTheme`, `mergeTheme`). `@vueda/use/useTheme.js` re-exports all four, so existing imports from `@vueda/use/useTheme.js` continue to work unchanged.
