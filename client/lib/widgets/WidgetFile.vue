@@ -75,7 +75,7 @@ const fileName = computed(() => {
 
 const fileURL = computed(() => {
     if (widgetContext.state.combinedValue) {
-        return widgetContext.state.combinedValue.objectURL ?? widgetContext.state.combinedValue;
+        return widgetContext.state.combinedValue.url ?? widgetContext.state.combinedValue;
     }
     return null;
 });

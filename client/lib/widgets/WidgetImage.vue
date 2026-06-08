@@ -7,8 +7,8 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import isString from "lodash-es/isString.js";
-import { inject, toRef, watch } from "vue";
+import isObject from "lodash-es/isObject.js";
+import { computed, inject, toRef, watch } from "vue";
 
 /**
  * An image upload widget that shows a file picker when no image is selected and a preview with a
@@ -33,11 +33,17 @@ if (fieldContext) {
     watch(
         toRef(fieldContext.state, "value"),
         (newValue) => {
-            if (isString(newValue)) {
+            // A persisted image arrives as a {name, url} object: ignore it so the existing URL is
+            // not re-submitted. A freshly picked File is a new upload: keep it in the submission.
+            if (isObject(newValue)) {
+                if (newValue instanceof File) {
+                    fieldContext.removeIgnore();
+                    return;
+                }
                 fieldContext.ignore();
-                return;
+            } else {
+                fieldContext.removeIgnore();
             }
-            fieldContext.removeIgnore();
         },
         { immediate: true },
     );
@@ -50,13 +56,17 @@ const onFileSelected = (file) => {
 const onRemove = () => {
     widgetContext.state.combinedValue = null;
 };
+
+// Persisted images arrive as {name, url}; unwrap the url for the preview. A string value (legacy or
+// a locally created object URL) is used as-is.
+const imageSrc = computed(() => widgetContext.state.combinedValue?.url ?? widgetContext.state.combinedValue);
 </script>
 
 <template>
     <div :class="theme('root')">
         <div :class="theme('inner')" data-qa="widget-image-inner">
             <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
-                <img alt="Image" :src="widgetContext.state.combinedValue" width="250" data-qa="image-preview" />
+                <img alt="Image" :src="imageSrc" width="250" data-qa="image-preview" />
                 <Button variant="ghost" size="icon-sm" data-qa="image-remove" @click="onRemove">
                     <component
                         :is="icon('close').component"

@@ -34,6 +34,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 - **StickyBar**:
     - Added a `scrollRoot` prop. When the bar lives inside a scrollable region rather than scrolling the whole page, pass that region's element so the bar pins to and reacts to it. The hide/reveal threshold and the scroll listener bind to `scrollRoot` instead of the window.
       _No action is required. The prop defaults to `null`, which preserves the existing window-based behavior._
+- **WidgetImage, WidgetFile**:
+    - Both widgets now consume the `{name, url}` representation produced by the server `FileField` and `ImageField` serializer fields. `WidgetImage` unwraps `url` for the preview image and distinguishes a freshly picked `File` (kept in the submission) from a persisted `{name, url}` reference (excluded from the submission, so the existing file is not re-uploaded). `WidgetFile`'s download link now reads `url` instead of the previously unpopulated `objectURL`.
+      _Ensure file and image model columns serialize to the `{name, url}` shape. VUEDA serializers do this by default once the matching server release maps `models.FileField` and `models.ImageField` to VUEDA's serializer fields._
 
 ## Public Baseline
 

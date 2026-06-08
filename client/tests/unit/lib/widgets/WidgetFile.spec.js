@@ -84,13 +84,13 @@ scopedIt("renders upload component and handles upload", async () => {
     const upload = wrapper.getComponent(ControlFileUploadStub);
     expect(upload.exists()).toBe(true);
 
-    upload.vm.$emit("update:modelValue", { name: "f.txt", objectURL: "/f" });
+    upload.vm.$emit("update:modelValue", { name: "f.txt", url: "/f" });
     await vue.nextTick();
-    expect(widgetState.combinedValue).toEqual({ name: "f.txt", objectURL: "/f" });
+    expect(widgetState.combinedValue).toEqual({ name: "f.txt", url: "/f" });
 });
 
 scopedIt("shows file info and removes file", async () => {
-    widgetState.combinedValue = { name: "doc.pdf", objectURL: "/d" };
+    widgetState.combinedValue = { name: "doc.pdf", url: "/d" };
     const wrapper = mount(WidgetFile, mountOptions);
 
     expect(wrapper.findComponent(ControlFileUploadStub).exists()).toBe(false);
