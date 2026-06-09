@@ -220,7 +220,6 @@ With the validation pipeline wired, verify these behaviors:
     - {@api js:module:@arrai-innovations/vueda/use/useForm}
     - {@api js:module:@arrai-innovations/vueda/use/useField}
     - {@api js:module:@arrai-innovations/vueda/use/useObjectForm}
-    - {@api js:module:@arrai-innovations/vueda/use/useWarnings}
     - {@api js:module:@arrai-innovations/vueda/utils/objectCrud}
     - {@api js:module:@arrai-innovations/vueda/utils/listCrud}
     - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}

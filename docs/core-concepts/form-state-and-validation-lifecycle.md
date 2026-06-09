@@ -78,9 +78,7 @@ The clearing is triggered by field blur: `FieldContext.blur()` calls `clearServe
 
 The `state.messages` collection is the client-side representation of server warnings. Warnings are non-blocking feedback; they inform the user of potential issues without preventing submission.
 
-On the server, a serializer or viewset raises `VuedaValidationError(detail, is_warning=True)`. The exception handler wraps the detail in a `{"warnings": [...]}` structure and returns it as part of an HTTP 400 response. On the client, `FormValidationError` detects the `.warnings` paths and routes them to its `.messages` map. `handleServerFormValidationError` then writes them into `state.messages[name].server`.
-
-The `useWarnings` composable provides a proactive warning pipeline that operates independently of form submission. It fetches warnings from the server's warnings endpoint when the form loads (or when the target object changes), and calls `handleServerFormValidationError` to inject them into form state. It also watches `state.initialValues` so that warnings are reapplied after a form reset; without this, a form reset would clear the warnings that were fetched before any submission occurred.
+On the server, a serializer or viewset raises `VuedaValidationError(detail, is_warning=True)`. The exception handler wraps the detail in a `{"warnings": [...]}` structure and returns it as part of an HTTP 400 response. On the client, `FormValidationError` detects the `.warnings` paths and routes them to its `.messages` map. `handleServerFormValidationError` then writes them into `state.messages[name].server`. Warnings therefore arrive on the same submission response as errors; there is no separate pre-submission warning fetch.
 
 `FormMessage` renders warnings when used with `type="message"`, switching the underlying Alert to the `warning` variant (yellow) instead of `destructive` (red). For field-scope warnings, `FormField` automatically pairs an error `FieldMessage` with a `severity="warning"` `FieldMessage` for `state.messages`, so per-field warnings appear under the control without additional markup.
 
@@ -138,7 +136,6 @@ Structured feedback objects (where a server error entry is an object rather than
 - {@api js:module:@arrai-innovations/vueda/use/useForm}
 - {@api js:module:@arrai-innovations/vueda/use/useField}
 - {@api js:module:@arrai-innovations/vueda/use/useObjectForm}
-- {@api js:module:@arrai-innovations/vueda/use/useWarnings}
 - {@api js:module:@arrai-innovations/vueda/utils/errors}
 - {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
 - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}

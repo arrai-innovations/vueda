@@ -14,6 +14,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **useWarnings (removed)**:
+    - The proactive warning fetch has been removed. The `useWarnings` composable, its `setUsingWarnings` toggle, and the `onRetrieveErrorHandler` helper are gone, along with the automatic `GET /routes/<app>/<model>/<pk>/warnings/` (and the bulk `?pks=...&action=...` variant) that update and action views issued on load. No server release ever implemented that endpoint, so the request always 404'd.
+    - Submission-time warnings are unaffected: a serializer that raises `VuedaValidationError(detail, is_warning=True)` still returns warnings in its 400 response, and `FormValidationError`, `handleServerFormValidationError`, and `FormMessage` (`type="message"`) still route and render them into `state.messages`.
+      _If you relied on the proactive fetch (no shipped server provided it, so this is unlikely), surface the advisory data yourself: include it in the model config or detail payload your view already loads, or add a project-specific route and fetch it from a custom view. Remove any `setUsingWarnings(...)` calls, which no longer exist._
 - **Page title (PageTitle, usePageTitle, PageActions)**:
     - The page `<h1>` is no longer rendered inside each view. Views contribute their title and loading state through the new `usePageTitle` composable, and `PageTitle` is now a layout-level display that the integrator places above `<RouterView>`. Page-level action buttons are wrapped in the new `PageActions` component, which teleports them into the title bar's action zone (with an inline fallback when no zone exists).
     - `PageTitle` no longer accepts the `title` or `loading` props, nor the `eyebrow`, `title-suffix`, `subtitle`, `under-actions`, `footer`, or `button` slots. It reads the title and loading state from `usePageTitle` and exposes a `title` slot plus the action zone. `ViewList`'s search and column controls now render in the view body instead of the title bar. `AuthForm` renders its own heading markup rather than embedding `PageTitle`.
