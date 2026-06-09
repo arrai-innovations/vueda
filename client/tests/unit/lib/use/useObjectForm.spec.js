@@ -1,4 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
+import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { reactive, ref } from "vue";
 
@@ -142,5 +143,94 @@ describe("lib/use/useObjectForm.js", () => {
         expect(mockLoadingError.clearLoading).toHaveBeenCalled();
         expect(state.submitErrored).toBe(false);
         expect(routerPush).toHaveBeenCalled();
+    });
+
+    const buildConfirmationScenario = () => {
+        const props = reactive({
+            app: "app",
+            model: "model",
+            verboseName: "model",
+            redirectAfter: "list",
+            firstErrorField: "name",
+        });
+        const formContext = {
+            state: reactive({
+                anyModified: true,
+                anyError: false,
+                submittingValues: { name: "test" },
+                errors: {},
+                anyIgnored: false,
+                ignored: {},
+            }),
+            setAllTouched: vi.fn(),
+            handleServerFormValidationError: vi.fn(),
+        };
+        const confirmationError = new ConfirmationRequiredError(
+            { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } },
+            {},
+        );
+        const instanceObject = {
+            state: reactive({ pkKey: "id", pk: "", object: {}, errored: false, error: null }),
+            create: vi.fn(({ acknowledgeWarnings }) => {
+                if (acknowledgeWarnings) {
+                    instanceObject.state.errored = false;
+                    instanceObject.state.error = null;
+                } else {
+                    instanceObject.state.errored = true;
+                    instanceObject.state.error = confirmationError;
+                }
+                return Promise.resolve();
+            }),
+            update: vi.fn().mockResolvedValue(),
+            clearError: vi.fn(() => {
+                instanceObject.state.errored = false;
+                instanceObject.state.error = null;
+            }),
+        };
+        return { props, formContext, instanceObject, confirmationError };
+    };
+
+    scopedIt("submit opens confirmation on 409 and retries with the digest when confirmed", async () => {
+        const { props, formContext, instanceObject } = buildConfirmationScenario();
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+
+        const submitPromise = objectForm.submit();
+        await flushPromises();
+
+        // Warnings surfaced and the dialog is open, awaiting the user.
+        expect(formContext.handleServerFormValidationError).toHaveBeenCalled();
+        expect(objectForm.confirmation.open).toBe(true);
+        expect(objectForm.confirmation.messages).toEqual({ count: ["unusual"] });
+        expect(instanceObject.create).toHaveBeenCalledTimes(1);
+
+        objectForm.confirmation.confirm();
+        await flushPromises();
+        await submitPromise;
+
+        // Retried once, acknowledging the warnings, then succeeded.
+        expect(instanceObject.create).toHaveBeenCalledTimes(2);
+        expect(instanceObject.create).toHaveBeenLastCalledWith({ object: { name: "test" }, acknowledgeWarnings: "d1" });
+        expect(objectForm.confirmation.open).toBe(false);
+        expect(objectForm.state.submitErrored).toBe(false);
+        expect(routerPush).toHaveBeenCalled();
+    });
+
+    scopedIt("submit leaves the form unsaved when confirmation is cancelled", async () => {
+        const { props, formContext, instanceObject } = buildConfirmationScenario();
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+
+        const submitPromise = objectForm.submit();
+        await flushPromises();
+        expect(objectForm.confirmation.open).toBe(true);
+
+        objectForm.confirmation.cancel();
+        await flushPromises();
+        await submitPromise;
+
+        // No retry, no success redirect, form marked as not saved.
+        expect(instanceObject.create).toHaveBeenCalledTimes(1);
+        expect(objectForm.confirmation.open).toBe(false);
+        expect(objectForm.state.submitErrored).toBe(true);
+        expect(routerPush).not.toHaveBeenCalled();
     });
 });

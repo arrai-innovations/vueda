@@ -6,7 +6,7 @@ import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
-import { FormValidationError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, FormValidationError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import { computed, nextTick, reactive } from "vue";
@@ -170,6 +170,37 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
 };
 
 /**
+ * Type for handling a submission that the server reports requires confirmation (HTTP 409): the
+ * change is valid but carries unacknowledged advisory warnings.
+ * @typedef {(options: {
+ *     error: import('@vueda/utils/errors.js').ConfirmationRequiredError,
+ *     formContext: FormContext,
+ *     confirmation: ConfirmationController,
+ *     toast: import("vue-sonner").toast,
+ *     state: ObjectFormState
+ * }) => Promise<boolean>} OnSubmissionWarningsRequireConfirmation
+ */
+
+/**
+ * Default implementation for onSubmissionWarningsRequireConfirmation hook.
+ *
+ * Renders the server warnings into the form (as messages) so they are visible behind the dialog,
+ * then opens the confirmation controller and resolves to the user's choice. Returning `true`
+ * triggers a single resubmission that acknowledges the warnings; `false` leaves the form unsaved
+ * with the warnings still displayed.
+ *
+ * @param {object} options
+ * @param {import('@vueda/utils/errors.js').ConfirmationRequiredError} options.error - The 409 error.
+ * @param {FormContext} options.formContext - The form context.
+ * @param {ConfirmationController} options.confirmation - The confirmation dialog controller.
+ * @returns {Promise<boolean>} - True if the user confirmed and the save should be retried.
+ */
+export const defaultOnSubmissionWarningsRequireConfirmation = async ({ error, formContext, confirmation }) => {
+    formContext.handleServerFormValidationError(error);
+    return await confirmation.request(error.messages);
+};
+
+/**
  * Default implementation for onSubmissionSuccess hook.
  *
  * @param {object} options
@@ -228,12 +259,28 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
 };
 
 /**
+ * Reactive controller for the submit-time warning confirmation dialog. Bind a dialog component to
+ * `open`/`messages` and wire its actions to `confirm()`/`cancel()`. `request()` is called by the
+ * confirmation hook and resolves once the user responds.
+ *
+ * @typedef {object} ConfirmationController
+ * @property {boolean} open - Whether the confirmation dialog should be shown.
+ * @property {{[path: string]: string[]}} messages - Warnings to display, keyed by field path.
+ * @property {(messages: {[path: string]: string[]}) => Promise<boolean>} request - Open the dialog and
+ *  resolve to the user's choice (true = confirm, false = cancel).
+ * @property {() => void} confirm - Resolve the pending request with `true`.
+ * @property {() => void} cancel - Resolve the pending request with `false`.
+ */
+
+/**
  * @typedef {object} ObjectFormInstance
  * @property {ObjectFormState} state - The form state.
+ * @property {ConfirmationController} confirmation - Controller for the warning confirmation dialog.
  * @property {() => Promise<void>} submit - Submit the form.
  * @property {OnSubmitNotAnyModified} onSubmitNotAnyModified - The hook to call when the form is submitted with no changes.
  * @property {OnSubmitAnyError} onSubmitAnyError - The hook to call when the form is submitted with errors.
  * @property {OnSubmissionError} onSubmissionError - The hook to call when an error occurs during submission.
+ * @property {OnSubmissionWarningsRequireConfirmation} onSubmissionWarningsRequireConfirmation - The hook to call when the server requires confirmation of warnings.
  * @property {OnSubmissionSuccess} onSubmissionSuccess - The hook to call when submission is successful
  */
 
@@ -311,8 +358,34 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         pk: computed(() => instanceObject.state.pk),
         object: computed(() => instanceObject.state.object),
     });
+    let confirmationResolve = null;
+    /** @type {ConfirmationController} */
+    const confirmation = reactive({
+        open: false,
+        messages: {},
+        request(messages) {
+            confirmation.messages = messages ?? {};
+            confirmation.open = true;
+            return new Promise((resolve) => {
+                confirmationResolve = resolve;
+            });
+        },
+        confirm() {
+            confirmation.open = false;
+            const resolve = confirmationResolve;
+            confirmationResolve = null;
+            resolve?.(true);
+        },
+        cancel() {
+            confirmation.open = false;
+            const resolve = confirmationResolve;
+            confirmationResolve = null;
+            resolve?.(false);
+        },
+    });
     const returnObject = {
         state,
+        confirmation,
         submit: () => {
             // prevent multiple submission.
             if (promises.submit) {
@@ -325,12 +398,49 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         onSubmitNotAnyModified: defaultOnSubmitNotAnyModified,
         onSubmitAnyError: defaultOnSubmitAnyError,
         onSubmissionError: defaultOnSubmissionError,
+        onSubmissionWarningsRequireConfirmation: defaultOnSubmissionWarningsRequireConfirmation,
         onSubmissionSuccess: defaultOnSubmissionSuccess,
     };
     useLeaveUnload(state);
     const router = useRouter();
     const promises = {
         submit: null,
+    };
+
+    // Performs one create/update attempt and routes the outcome. On a ConfirmationRequiredError
+    // (server 409: valid but unacknowledged warnings) it asks the confirmation hook and, if the user
+    // confirms, retries once with the warnings digest acknowledged. A changed warning set yields a
+    // new digest and re-prompts, so this terminates on either a clean save, a real error, or a cancel.
+    const performAndHandle = async (createOrUpdate, args, isUpdate) => {
+        await createOrUpdate(args);
+        if (!instanceObject.state.errored) {
+            await returnObject.onSubmissionSuccess({ formContext, toast, router, isUpdate, state });
+            return;
+        }
+        const error = instanceObject.state.error;
+        if (error instanceof ConfirmationRequiredError) {
+            // Not a failure: clear it so a later genuine error is not masked, then ask the user.
+            instanceObject.clearError();
+            const confirmed = await returnObject.onSubmissionWarningsRequireConfirmation({
+                error,
+                formContext,
+                confirmation,
+                toast,
+                state,
+            });
+            if (confirmed) {
+                await performAndHandle(createOrUpdate, { ...args, acknowledgeWarnings: error.digest }, isUpdate);
+            } else {
+                state.submitErrored = true;
+            }
+            return;
+        }
+        state.submitErrored = true;
+        const handled = await returnObject.onSubmissionError({ error, formContext, toast, isUpdate, state });
+        if (handled) {
+            instanceObject.clearError();
+        }
+        // otherwise, whatever is looking at instanceObject.state.error will handle it.
     };
 
     const doSubmit = async () => {
@@ -371,31 +481,7 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             if (isUpdate) {
                 args.id = instanceObject.state.object[instanceObject.state.pkKey];
             }
-            await createOrUpdate(args);
-            if (instanceObject.state.errored) {
-                state.submitErrored = true;
-
-                const error = instanceObject.state.error;
-                const handled = await returnObject.onSubmissionError({
-                    error,
-                    formContext,
-                    toast,
-                    isUpdate,
-                    state,
-                });
-                if (handled) {
-                    instanceObject.clearError();
-                }
-                // otherwise, whatever is looking at instanceObject.state.error will handle it.
-            } else {
-                await returnObject.onSubmissionSuccess({
-                    formContext,
-                    toast,
-                    router,
-                    isUpdate,
-                    state,
-                });
-            }
+            await performAndHandle(createOrUpdate, args, isUpdate);
         } catch (e) {
             // errors here are outside the normal course for expected errors
             loadingError.setError(e);

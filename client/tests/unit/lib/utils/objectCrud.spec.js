@@ -246,6 +246,39 @@ describe("lib/utils/objectCrud.js", () => {
         ).rejects.toBeInstanceOf(errors.FormValidationError);
     });
 
+    it("defaultObjectCreate throws ConfirmationRequiredError on 409 with parsed digest and warnings", async () => {
+        getListUrl.mockReturnValue("list-url");
+        const body = { confirmation_required: true, digest: "abc123", warnings: { count: ["unusual"] } };
+        const response = new Response(JSON.stringify(body), { status: 409 });
+        getJsonOrText.mockResolvedValue(body);
+        global.fetch = vi.fn(() => Promise.resolve(response));
+
+        const error = await objectCrud
+            .defaultObjectCreate({ target: { app: "a", model: "b" }, object: {} })
+            .catch((e) => e);
+        expect(error).toBeInstanceOf(errors.ConfirmationRequiredError);
+        expect(error.digest).toBe("abc123");
+        expect(error.messages).toEqual({ count: ["unusual"] });
+        expect(error.errors).toEqual({});
+    });
+
+    it("defaultObjectCreate sends the Acknowledge-Warnings header when acknowledgeWarnings is set", async () => {
+        getListUrl.mockReturnValue("list-url");
+        const response = new Response(JSON.stringify({ id: 1 }), { status: 201 });
+        getJsonOrText.mockResolvedValue({ id: 1 });
+        global.fetch = vi.fn(() => Promise.resolve(response));
+
+        await objectCrud.defaultObjectCreate({
+            target: { app: "a", model: "b" },
+            object: {},
+            acknowledgeWarnings: "abc123",
+        });
+        expect(global.fetch).toHaveBeenCalledWith(
+            "list-url",
+            expect.objectContaining({ headers: expect.objectContaining({ "Acknowledge-Warnings": "abc123" }) }),
+        );
+    });
+
     it("defaultObjectCreate throws FetchError on unexpected status", async () => {
         getListUrl.mockReturnValue("list-url");
         const response = new Response(JSON.stringify({}), { status: 500 });
@@ -376,6 +409,41 @@ describe("lib/utils/objectCrud.js", () => {
         await expect(
             objectCrud.defaultObjectUpdate({ target: { app: "a", model: "b" }, object }),
         ).rejects.toBeInstanceOf(errors.FormValidationError);
+    });
+
+    it("defaultObjectUpdate throws ConfirmationRequiredError on 409 with parsed digest and warnings", async () => {
+        getDetailUrl.mockReturnValue("detail-url");
+        const object = { id: 5 };
+        const body = { confirmation_required: true, digest: "def456", warnings: { count: ["unusual"] } };
+        const response = new Response(JSON.stringify(body), { status: 409 });
+        getJsonOrText.mockResolvedValue(body);
+        cancellableFetch.mockImplementation((url, opts, transform) => transform(response));
+
+        const error = await objectCrud
+            .defaultObjectUpdate({ target: { app: "a", model: "b" }, object })
+            .catch((e) => e);
+        expect(error).toBeInstanceOf(errors.ConfirmationRequiredError);
+        expect(error.digest).toBe("def456");
+        expect(error.messages).toEqual({ count: ["unusual"] });
+    });
+
+    it("defaultObjectUpdate sends the Acknowledge-Warnings header when acknowledgeWarnings is set", async () => {
+        getDetailUrl.mockReturnValue("detail-url");
+        const object = { id: 5 };
+        const response = new Response(JSON.stringify({ ok: true }), { status: 200 });
+        getJsonOrText.mockResolvedValue({ ok: true });
+        cancellableFetch.mockImplementation((url, opts, transform) => transform(response));
+
+        await objectCrud.defaultObjectUpdate({
+            target: { app: "a", model: "b" },
+            object,
+            acknowledgeWarnings: "def456",
+        });
+        expect(cancellableFetch).toHaveBeenCalledWith(
+            "detail-url",
+            expect.objectContaining({ headers: expect.objectContaining({ "Acknowledge-Warnings": "def456" }) }),
+            expect.any(Function),
+        );
     });
 
     it("defaultObjectUpdate throws FetchError on failure", async () => {
