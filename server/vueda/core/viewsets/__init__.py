@@ -66,6 +66,10 @@ class WarningConfirmationMixin:
 
     Raising before ``serializer.save()`` means nothing is written, so this does not depend on the
     request being wrapped in a transaction.
+
+    Scope: only single-object ``create``/``update`` are gated. A serializer without ``get_warnings``
+    (including a ``ListSerializer`` wrapping a Vueda serializer, i.e. bulk writes) is skipped, so
+    warnings on bulk/list saves are not surfaced. Bulk confirmation is a separate, future concern.
     """
 
     def _gate_warnings(self, serializer):
