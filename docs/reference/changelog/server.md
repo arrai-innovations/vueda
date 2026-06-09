@@ -27,6 +27,10 @@ public-facing documentation baseline.
 
 ### Features
 
+- **Submit-time warning confirmation (`get_warnings`)**:
+    - `VuedaSerializer` gained a non-raising `get_warnings()` hook. Override it to return advisory warnings as `{field: [messages], "non_field_errors": [messages]}`. It is called after validation succeeds, so `self.validated_data` and (on update) `self.instance` are available.
+    - When `get_warnings()` returns warnings, `VuedaViewSet` withholds the create/update and responds `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` instead of saving. Resubmitting with the `Acknowledge-Warnings` request header set to that `digest` lets the write proceed. A changed warning set yields a different digest and re-prompts. Blocking errors (`VuedaValidationError`) are unaffected and still return 400 before warnings are evaluated.
+      _This is the recommended way to surface non-blocking, must-confirm concerns. Raising `VuedaValidationError(..., is_warning=True)` still blocks the save (returns 400) and is discouraged for advisory cases; prefer `get_warnings()`. The `acknowledge-warnings` header is added to the default `CORS_ALLOW_HEADERS`._
 - **`ImageField` serializer field**:
     - Added `vueda.core.fields.serializers.ImageField`, the image counterpart to the existing `FileField`. It shares the `{"name", "url"}` representation and subclasses `FileField` rather than DRF's `ImageField`, so it does not require Pillow; image content validation is left to the model field and upload pipeline.
 
