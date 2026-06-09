@@ -164,6 +164,7 @@ describe("lib/use/useObjectForm.js", () => {
             }),
             setAllTouched: vi.fn(),
             handleServerFormValidationError: vi.fn(),
+            clearServerErrors: vi.fn(),
         };
         const confirmationError = new ConfirmationRequiredError(
             { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } },
@@ -232,5 +233,84 @@ describe("lib/use/useObjectForm.js", () => {
         expect(objectForm.confirmation.open).toBe(false);
         expect(objectForm.state.submitErrored).toBe(true);
         expect(routerPush).not.toHaveBeenCalled();
+    });
+
+    scopedIt("does not enter the confirmation loop when a 409 carries no digest", async () => {
+        const { props, formContext } = buildConfirmationScenario();
+        const noDigestError = new ConfirmationRequiredError(
+            { confirmation_required: true, warnings: { count: ["unusual"] } },
+            {},
+        );
+        const instanceObject = {
+            state: reactive({ pkKey: "id", pk: "", object: {}, errored: false, error: null }),
+            create: vi.fn(() => {
+                instanceObject.state.errored = true;
+                instanceObject.state.error = noDigestError;
+                return Promise.resolve();
+            }),
+            update: vi.fn().mockResolvedValue(),
+            clearError: vi.fn(),
+        };
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+
+        await objectForm.submit();
+        await flushPromises();
+
+        // Falls through to the error path instead of prompting/retrying forever.
+        expect(instanceObject.create).toHaveBeenCalledTimes(1);
+        expect(objectForm.confirmation.open).toBe(false);
+        expect(objectForm.state.submitErrored).toBe(true);
+        expect(routerPush).not.toHaveBeenCalled();
+    });
+
+    scopedIt("clears the previous round's warnings when a re-prompt carries a changed set", async () => {
+        const { props, formContext } = buildConfirmationScenario();
+        const round1 = new ConfirmationRequiredError(
+            { confirmation_required: true, digest: "d1", warnings: { count: ["round one"] } },
+            {},
+        );
+        const round2 = new ConfirmationRequiredError(
+            { confirmation_required: true, digest: "d2", warnings: { name: ["round two"] } },
+            {},
+        );
+        const instanceObject = {
+            state: reactive({ pkKey: "id", pk: "", object: {}, errored: false, error: null }),
+            create: vi.fn(({ acknowledgeWarnings }) => {
+                if (acknowledgeWarnings === "d1") {
+                    instanceObject.state.errored = true;
+                    instanceObject.state.error = round2;
+                } else if (acknowledgeWarnings === "d2") {
+                    instanceObject.state.errored = false;
+                    instanceObject.state.error = null;
+                } else {
+                    instanceObject.state.errored = true;
+                    instanceObject.state.error = round1;
+                }
+                return Promise.resolve();
+            }),
+            update: vi.fn().mockResolvedValue(),
+            clearError: vi.fn(() => {
+                instanceObject.state.errored = false;
+                instanceObject.state.error = null;
+            }),
+        };
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+
+        const submitPromise = objectForm.submit();
+        await flushPromises();
+        expect(objectForm.confirmation.messages).toEqual({ count: ["round one"] });
+
+        objectForm.confirmation.confirm();
+        await flushPromises();
+        // Re-prompted with the new set; the previous round's field was cleared first.
+        expect(formContext.clearServerErrors).toHaveBeenCalledWith("count");
+        expect(objectForm.confirmation.messages).toEqual({ name: ["round two"] });
+
+        objectForm.confirmation.confirm();
+        await flushPromises();
+        await submitPromise;
+
+        expect(instanceObject.create).toHaveBeenCalledTimes(3);
+        expect(routerPush).toHaveBeenCalled();
     });
 });

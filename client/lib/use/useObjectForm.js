@@ -196,6 +196,11 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
  * @returns {Promise<boolean>} - True if the user confirmed and the save should be retried.
  */
 export const defaultOnSubmissionWarningsRequireConfirmation = async ({ error, formContext, confirmation }) => {
+    // Clear the previous round's warnings (the controller still holds them) before rendering the new
+    // set, so a re-prompt with a changed warning set does not leave stale messages on fields that are
+    // no longer warned about. clearServerErrors only removes the server-coded entry, leaving any local
+    // validation messages intact.
+    Object.keys(confirmation.messages ?? {}).forEach((name) => formContext.clearServerErrors(name));
     formContext.handleServerFormValidationError(error);
     return await confirmation.request(error.messages);
 };
@@ -418,7 +423,10 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             return;
         }
         const error = instanceObject.state.error;
-        if (error instanceof ConfirmationRequiredError) {
+        // Only enter the confirmation flow when we have a digest to acknowledge with. A 409 without
+        // one (e.g. a project with a custom EXCEPTION_HANDLER that drops it) would otherwise retry
+        // without the header, be gated again, and loop forever; fall through to the error path instead.
+        if (error instanceof ConfirmationRequiredError && error.digest != null) {
             // Not a failure: clear it so a later genuine error is not masked, then ask the user.
             instanceObject.clearError();
             const confirmed = await returnObject.onSubmissionWarningsRequireConfirmation({
