@@ -7,11 +7,10 @@ import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { useWarnings } from "@vueda/use/useWarnings.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
-import { computed, inject, toRef, useSlots } from "vue";
+import { computed, inject, useSlots } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -86,7 +85,6 @@ const formContext = useForm({
     initialValues,
 });
 
-useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, toRef(props, "action"), toRef(props, "pk"));
 const handleReturnClick = () => {
     router.back();
 };

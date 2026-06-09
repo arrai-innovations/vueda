@@ -14,11 +14,6 @@ vi.mock("@vueda/use/useLookupContext.js", () => ({
     useLookupContext: mockedUseLookupContext,
 }));
 
-const mockedUseWarnings = vi.fn();
-vi.mock("@vueda/use/useWarnings.js", () => ({
-    useWarnings: mockedUseWarnings,
-}));
-
 const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const mockedUseTheme = makeUseThemeMock({
     slotResolver: (key) => (key === "root" ? "theme-root" : ""),
@@ -104,7 +99,6 @@ beforeEach(async () => {
     ViewAction = (await import("@vueda/views/ViewAction.vue")).default;
     mockedUseForm.mockClear();
     mockedUseLookupContext.mockClear();
-    mockedUseWarnings.mockClear();
     mockedUseTheme.mockClear();
     routerBack.mockClear();
     provideStore.clear();
