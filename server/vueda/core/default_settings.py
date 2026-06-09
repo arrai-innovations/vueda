@@ -354,6 +354,7 @@ def get_defaults(env: EnvLike):
                 "x-csrftoken",
                 "x-requested-with",
                 "dry-run",
+                "acknowledge-warnings",
             ],
             "CORS_EXPOSE_HEADERS": [
                 "content-disposition",

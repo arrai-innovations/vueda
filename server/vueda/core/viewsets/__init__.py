@@ -15,6 +15,7 @@ __all__ = (
     "VuedaHistoryViewSet",
     "VuedaReadOnlyViewSet",
     "VuedaViewSet",
+    "WarningConfirmationMixin",
 )
 
 import warnings
@@ -36,9 +37,12 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.serializers import ListSerializer
 
+from vueda.core.decorators import ACKNOWLEDGE_WARNINGS_HEADER
 from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
+from vueda.core.exceptions import ConfirmationRequired
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.exceptions import compute_warnings_digest
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.utils import sort_by_dot_count_alphabetically
@@ -46,6 +50,43 @@ from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
 
 PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
+
+
+class WarningConfirmationMixin:
+    """
+    Gate ``create`` and ``update`` behind an explicit confirmation when the serializer reports
+    advisory warnings.
+
+    After validation succeeds (so blocking errors have already produced a 400) and before the
+    instance is written, the serializer's ``get_warnings()`` is consulted. If it returns warnings and
+    the request has not acknowledged them, a :class:`~vueda.core.exceptions.ConfirmationRequired`
+    (HTTP 409) is raised, withholding the save. The client surfaces the warnings, the user confirms,
+    and the resubmission carries the warnings digest in the ``Acknowledge-Warnings`` header, which
+    matches and lets the write proceed. A changed warning set yields a different digest and re-prompts.
+
+    Raising before ``serializer.save()`` means nothing is written, so this does not depend on the
+    request being wrapped in a transaction.
+    """
+
+    def _gate_warnings(self, serializer):
+        get_warnings = getattr(serializer, "get_warnings", None)
+        if get_warnings is None:
+            return
+        warnings = get_warnings()
+        if not warnings:
+            return
+        digest = compute_warnings_digest(warnings)
+        acknowledged = self.request.headers.get(ACKNOWLEDGE_WARNINGS_HEADER, "") == digest
+        if not acknowledged:
+            raise ConfirmationRequired(warnings, digest)
+
+    def perform_create(self, serializer):
+        self._gate_warnings(serializer)
+        super().perform_create(serializer)
+
+    def perform_update(self, serializer):
+        self._gate_warnings(serializer)
+        super().perform_update(serializer)
 
 
 class AtomicCreateModelViewSetMixin(drf_viewsets.mixins.CreateModelMixin):
@@ -555,7 +596,13 @@ class DeactivateActionViewSetMixin:
         return Response({"detail": f"Successfully activated {len(pks)} objects."}, status=status.HTTP_200_OK)
 
 
-class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
+class VuedaViewSet(
+    WarningConfirmationMixin,
+    FlexFieldsMixin,
+    NoExtraFieldsForViewSetMixin,
+    ListRowLevelViewSetMixin,
+    viewsets.ModelViewSet,
+):
     """
     Full CRUD ViewSet for VUEDA models. Extends DRF's ``ModelViewSet`` with:
 
