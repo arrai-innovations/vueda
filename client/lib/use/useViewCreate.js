@@ -11,6 +11,7 @@
  * @example Basic shell setup
  * ```vue
  * <script setup>
+ * import FormConfirmDialog from "@vueda/components/FormConfirmDialog.vue";
  * import { useViewCreate } from "@vueda/use/useViewCreate.js";
  * import { memoizedStartCase } from "@vueda/utils/case.js";
  * import { onMounted, toRef } from "vue";
@@ -24,6 +25,11 @@
  *     emit("form-context", formContext);
  * });
  * </script>
+ * <template>
+ *     <!-- ...form markup (see examples below)... -->
+ *     <!-- Required: resolves submit-time warning confirmations (HTTP 409); without it the submit never settles. -->
+ *     <FormConfirmDialog :controller="objectForm.confirmation" />
+ * </template>
  * ```
  *
  * @example Wiring the page title
