@@ -17,12 +17,13 @@ patchTheme({
         /** The trigger uses the input-shell recipe for searchable pickers. */
         trigger: {
             class: [
-                "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground",
-                "focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                "aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive",
+                "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground",
+                "hover:hairline-border-strong hairline",
+                "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
                 "dark:bg-input/30 dark:hover:bg-input/50",
-                "flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-control border bg-transparent px-vueda-control-px text-sm",
-                "whitespace-nowrap shadow-vueda-control transition-colors",
+                "flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm",
+                "whitespace-nowrap shadow-vueda-control transition-shadow",
                 "disabled:cursor-not-allowed disabled:opacity-50",
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
             ],
