@@ -27,7 +27,7 @@
  * </script>
  * <template>
  *     <!-- ...form markup (see examples below)... -->
- *     <!-- Required: resolves submit-time warning confirmations (HTTP 409); without it the submit never settles. -->
+ *     <!-- Required: resolves submit-time warning confirmations (HTTP 409); without it warned saves are cancelled. -->
  *     <FormConfirmDialog :controller="objectForm.confirmation" />
  * </template>
  * ```
