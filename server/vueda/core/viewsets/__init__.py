@@ -37,12 +37,10 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.serializers import ListSerializer
 
-from vueda.core.decorators import ACKNOWLEDGE_WARNINGS_HEADER
 from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
-from vueda.core.exceptions import ConfirmationRequired
 from vueda.core.exceptions import VuedaValidationError
-from vueda.core.exceptions import compute_warnings_digest
+from vueda.core.exceptions import gate_warnings
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.utils import sort_by_dot_count_alphabetically
@@ -54,35 +52,47 @@ PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 class WarningConfirmationMixin:
     """
-    Gate ``create`` and ``update`` behind an explicit confirmation when the serializer reports
-    advisory warnings.
+    Gate writes behind an explicit confirmation when they report advisory warnings.
 
     After validation succeeds (so blocking errors have already produced a 400) and before the
-    instance is written, the serializer's ``get_warnings()`` is consulted. If it returns warnings and
-    the request has not acknowledged them, a :class:`~vueda.core.exceptions.ConfirmationRequired`
-    (HTTP 409) is raised, withholding the save. The client surfaces the warnings, the user confirms,
-    and the resubmission carries the warnings digest in the ``Acknowledge-Warnings`` header, which
-    matches and lets the write proceed. A changed warning set yields a different digest and re-prompts.
+    instance is written, the warnings source is consulted. If it returns warnings and the request
+    has not acknowledged them, a :class:`~vueda.core.exceptions.ConfirmationRequired` (HTTP 409) is
+    raised, withholding the save. The client surfaces the warnings, the user confirms, and the
+    resubmission carries the warnings digest in the ``Acknowledge-Warnings`` header, which matches
+    and lets the write proceed. A changed warning set yields a different digest and re-prompts.
+    The shared gate logic lives in :func:`~vueda.core.exceptions.gate_warnings`.
 
-    Raising before ``serializer.save()`` means nothing is written, so this does not depend on the
-    request being wrapped in a transaction.
+    Raising before the write means nothing is committed, so this does not depend on the request
+    being wrapped in a transaction.
 
-    Scope: only single-object ``create``/``update`` are gated. A serializer without ``get_warnings``
-    (including a ``ListSerializer`` wrapping a Vueda serializer, i.e. bulk writes) is skipped, so
-    warnings on bulk/list saves are not surfaced. Bulk confirmation is a separate, future concern.
+    Warnings sources:
+
+    - Single-object ``create``/``update``: the serializer's ``get_warnings()``, consulted in
+      ``perform_create``/``perform_update``. A serializer without ``get_warnings`` (including a
+      ``ListSerializer`` wrapping a Vueda serializer, i.e. bulk writes) is skipped, so warnings on
+      bulk/list saves are not surfaced.
+    - ``destroy``, ``activate``, and ``deactivate`` (single and bulk): the viewset-level
+      ``get_warnings(action, objs)`` hook, called by ``VuedaViewSet.destroy`` and
+      ``DeactivateActionViewSetMixin``.
     """
+
+    def get_warnings(self, action, objs):
+        """
+        Viewset-level warnings hook for actions that write without a per-object serializer.
+
+        ``action`` is the action name string (``"destroy"``, ``"activate"``, or ``"deactivate"``)
+        and ``objs`` is an iterable or queryset of the affected instances. Return the aggregate
+        ``{field: [messages]}`` warnings dict (the same shape the serializer-level
+        ``get_warnings()`` returns; use ``"non_field_errors"`` for warnings not tied to a field).
+        The default returns ``{}``, meaning no confirmation is required.
+        """
+        return {}
 
     def _gate_warnings(self, serializer):
         get_warnings = getattr(serializer, "get_warnings", None)
         if get_warnings is None:
             return
-        warnings = get_warnings()
-        if not warnings:
-            return
-        digest = compute_warnings_digest(warnings)
-        acknowledged = self.request.headers.get(ACKNOWLEDGE_WARNINGS_HEADER, "") == digest
-        if not acknowledged:
-            raise ConfirmationRequired(warnings, digest)
+        gate_warnings(self.request, get_warnings())
 
     def perform_create(self, serializer):
         self._gate_warnings(serializer)
@@ -504,6 +514,10 @@ class PerActionSerializerMixin:
 class DeactivateActionViewSetMixin:
     """
     A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
+
+    Both actions consult the viewset-level ``get_warnings(action, objs)`` hook (provided by
+    ``WarningConfirmationMixin``, so any ``VuedaViewSet``) after validation and before the write,
+    gating the write behind a 409 confirmation when warnings are reported.
     """
 
     @action(detail=True, bulk=True, methods=["patch"])
@@ -517,6 +531,7 @@ class DeactivateActionViewSetMixin:
                 )
             if not instance.is_active:
                 raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
+            gate_warnings(request, self.get_warnings("deactivate", (instance,)))
             instance.is_active = False
             instance.save()
             return Response(
@@ -548,6 +563,7 @@ class DeactivateActionViewSetMixin:
                 errors[pk] = [f"This {instance.__class__.__name__} is already deactivated"]
             raise VuedaValidationError(errors)
 
+        gate_warnings(request, self.get_warnings("deactivate", queryset))
         # Perform bulk deactivation in a single query
         queryset.update(is_active=False)
         return Response({"detail": f"Successfully deactivated {len(pks)} objects."}, status=status.HTTP_200_OK)
@@ -565,6 +581,7 @@ class DeactivateActionViewSetMixin:
             if instance.is_active:
                 raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already activated"]})
 
+            gate_warnings(request, self.get_warnings("activate", (instance,)))
             instance.is_active = True
             instance.save()
             return Response(
@@ -594,6 +611,7 @@ class DeactivateActionViewSetMixin:
             for pk in already_activated:
                 errors[pk] = [f"This {instance.__class__.__name__} is already activated"]
             raise VuedaValidationError(errors)
+        gate_warnings(request, self.get_warnings("activate", queryset))
         # Perform bulk deactivation in a single query
         queryset.update(is_active=True)
 
@@ -615,6 +633,9 @@ class VuedaViewSet(
     - Row-level and workflow-aware list filtering (``ListRowLevelViewSetMixin``)
     - Bulk delete with dry-run support
     - Override ``destroy_validation`` to add pre-delete business rules.
+    - Override ``get_warnings(action, objs)`` (from ``WarningConfirmationMixin``) to gate
+      single and bulk ``destroy`` (and ``activate``/``deactivate`` when
+      ``DeactivateActionViewSetMixin`` is mixed in) behind a 409 confirmation.
     """
 
     detail_args = ["pk"]
@@ -656,6 +677,7 @@ class VuedaViewSet(
         if pk:
             instance = self.get_object()
             self.destroy_validation((instance,))
+            gate_warnings(request, self.get_warnings("destroy", (instance,)))
             if dry_run:
                 return Response(status=status.HTTP_200_OK)
             self.perform_destroy(instance)
@@ -678,6 +700,7 @@ class VuedaViewSet(
             raise VuedaValidationError(errors)
 
         self.destroy_validation(queryset)
+        gate_warnings(request, self.get_warnings("destroy", queryset))
         if dry_run:
             return Response(status=status.HTTP_200_OK)
         queryset.delete()

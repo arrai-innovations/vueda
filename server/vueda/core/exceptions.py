@@ -1,11 +1,13 @@
 """Custom exception handler and validation error classes with warning support."""
 
 __all__ = (
+    "ACKNOWLEDGE_WARNINGS_HEADER",
     "BadRequestException",
     "ConfirmationRequired",
     "VuedaValidationError",
     "compute_warnings_digest",
     "debug_stack_exception_handler",
+    "gate_warnings",
     "get_error_details_as_warning",
     "page_not_found",
 )
@@ -40,6 +42,9 @@ from vueda.core.logging_filters import contains_only_warnings
 
 logger = logging.getLogger(__name__)
 django_requests_logger = logging.getLogger("django.request")
+
+ACKNOWLEDGE_WARNINGS_HEADER = "Acknowledge-Warnings"
+"""Request header carrying the warnings digest the client acknowledges."""
 
 
 def debug_stack_exception_handler(exc, context):
@@ -126,6 +131,30 @@ class ConfirmationRequired(APIException):
         super().__init__(detail=detail, code=code)
         self.warnings = warnings
         self.digest = digest
+
+
+def gate_warnings(request, warnings):
+    """
+    Withhold a write behind an explicit confirmation when ``warnings`` is non-empty.
+
+    ``warnings`` is an aggregate ``{field: [messages]}`` mapping of advisory warnings (use
+    ``"non_field_errors"`` for warnings not tied to a field). When it is falsy this returns
+    immediately. Otherwise the digest from ``compute_warnings_digest`` is compared against the
+    request's ``Acknowledge-Warnings`` header: a match means the client has already shown these
+    exact warnings to the user and they confirmed, so the caller may proceed; anything else raises
+    ``ConfirmationRequired`` (HTTP 409 with the warnings and digest), and the client re-submits
+    with the digest once the user confirms.
+
+    Call this from a custom action body after ``serializer.is_valid(raise_exception=True)`` (so
+    blocking validation errors surface as a 400 before the 409) and before any write or side
+    effect. ``WarningConfirmationMixin`` and the ``@action(confirm=True)`` mode route through this
+    same gate.
+    """
+    if not warnings:
+        return
+    digest = compute_warnings_digest(warnings)
+    if request.headers.get(ACKNOWLEDGE_WARNINGS_HEADER, "") != digest:
+        raise ConfirmationRequired(warnings, digest)
 
 
 def page_not_found(request, exception, *args, **kwargs):
