@@ -9,7 +9,7 @@ status: draft
 
 VUEDA's components carry no hardcoded styles in their templates. Every class on every rendered element comes from the active theme: a JavaScript object that maps each component's slots to class strings, resolved at render time and merged with any overrides in scope. The theme is registered at app startup via {@api js:function:@arrai-innovations/vueda/use/themeRegistry#setTheme}, and consumers customize it through a small set of mechanisms with sharply different reach.
 
-This page explains what those mechanisms are, what each one is for, and why they map to four distinct scopes. The integrator's pilot is "find the smallest scope that covers the change you actually want."
+Those mechanisms map to four scopes with sharply different reach. The guiding principle: find the smallest scope that covers the change you need.
 
 ## The four scopes
 
@@ -24,7 +24,7 @@ Customization concerns sort into four scopes, ordered from narrowest to broadest
 
 Each scope up is "broader cross-cut, less component-specific." Instance customizations are local DOM scope; component customizations are one component identity; family customizations are a visual relationship across multiple components; brand customizations are the design language itself.
 
-The progression also matches the "least surprising change" principle: a narrower scope changes the smallest part of the system that achieves the goal. Reaching for a broader mechanism than the change requires risks affecting screens the consumer never inspected.
+The progression also matches the "least surprising change" principle: a narrower scope changes the smallest part of the system that achieves the goal. Reaching for a broader mechanism than necessary risks affecting screens the consumer never inspected.
 
 ## Instance: `useThemeOverride`
 
@@ -36,7 +36,7 @@ A component wired with `THEME_OVERRIDE_PROPS` accepts a `themeOverride` prop. Th
 </Button>
 ```
 
-This is the right scope when one specific instance, in one specific surface, needs to look different. It does not affect any other Button elsewhere in the app.
+Use it when one specific instance, in one specific surface, needs to look different; it does not affect any other Button in the app.
 
 The provide/inject behavior is significant: a parent that sets an override propagates it to every descendant `useTheme` call without the intermediate components needing to know. A field that needs its inputs to render without borders can override the Input theme on the field itself; the Input components inside it pick up the override without prop-threading.
 
@@ -44,7 +44,7 @@ The provide/inject behavior is significant: a parent that sets an override propa
 
 Calling `setTheme({ Button: { root: { class: 'bg-amber-500' } } })` at app startup reshapes the default theme: every Button rendered anywhere in the app picks up the override as its baseline. Per-instance overrides still merge on top.
 
-This is the right scope when a consumer wants to change how one component renders system-wide: a different focus treatment, a different default size, a custom data attribute, anything that should be true everywhere the component appears. The change is component-specific; it does not affect anything that "looks like" a Button (calendar day cells, pagination items, dialog actions) without explicit configuration.
+Use it to change how one component renders system-wide: a different focus treatment, default size, or data attribute that should be true everywhere the component appears. The change is component-specific; it does not affect anything that merely looks like a Button (calendar day cells, pagination items, dialog actions) without explicit configuration.
 
 ## Family: meta keys
 
@@ -90,7 +90,7 @@ A consumer rebrands by overriding the tokens in their own CSS, after the `base.c
 }
 ```
 
-Every consumer of the token picks up the change instantly. No `setTheme` call is involved; no JavaScript runs. This is the right scope for skinning; the customizations adopters most often reach for fall here.
+Every consumer of the token picks up the change instantly. No `setTheme` call is involved; no JavaScript runs.
 
 The token layer is broader than the JavaScript theme system in a specific sense: it cascades through CSS, so a single override affects every class that references the token, regardless of which component rendered it. The trade-off is that token overrides cannot express composition or per-component logic; those concerns belong in the JavaScript theme.
 
@@ -119,7 +119,7 @@ Many customization stories that read like "change the theme" are really "rebrand
 
 The rule of thumb: if a customization is a value (color, dimension, duration), it is a token. If it is a composition (a different class arrangement, a different structural recipe, a new state behavior), it is the theme. Mixing the two in code is a sign the boundary is being crossed for the wrong reason; values that change between brands belong in tokens, even if the immediate use case is one component.
 
-The token layer is also where the design system ships its defaults. A consumer who never touches `setTheme` but overrides a few tokens has a re-skinned VUEDA. That is the supported, normal path for adopters customizing their brand.
+The token layer is also where the design system ships its defaults: overriding a few tokens, with no `setTheme` call, re-skins VUEDA.
 
 ## How the theme is registered
 
