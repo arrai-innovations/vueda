@@ -3,6 +3,7 @@
  * @description Bridges a generic form context with an object instance, handling submission, redirection, and unsaved-change warnings.
  */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { useConfirmationController } from "@vueda/use/useConfirmationController.js";
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
@@ -175,7 +176,7 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
  * @typedef {(options: {
  *     error: import('@vueda/utils/errors.js').ConfirmationRequiredError,
  *     formContext: FormContext,
- *     confirmation: ConfirmationController,
+ *     confirmation: import('@vueda/use/useConfirmationController.js').ConfirmationController,
  *     toast: import("vue-sonner").toast,
  *     state: ObjectFormState
  * }) => Promise<boolean>} OnSubmissionWarningsRequireConfirmation
@@ -192,7 +193,7 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
  * @param {object} options
  * @param {import('@vueda/utils/errors.js').ConfirmationRequiredError} options.error - The 409 error.
  * @param {FormContext} options.formContext - The form context.
- * @param {ConfirmationController} options.confirmation - The confirmation dialog controller.
+ * @param {import('@vueda/use/useConfirmationController.js').ConfirmationController} options.confirmation - The confirmation dialog controller.
  * @returns {Promise<boolean>} - True if the user confirmed and the save should be retried.
  */
 export const defaultOnSubmissionWarningsRequireConfirmation = async ({ error, formContext, confirmation }) => {
@@ -264,32 +265,9 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
 };
 
 /**
- * Reactive controller for the submit-time warning confirmation dialog. Bind a dialog component to
- * `open`/`messages` and wire its actions to `confirm()`/`cancel()`. `request()` is called by the
- * confirmation hook and resolves once the user responds.
- *
- * Consumers announce themselves via `register()`/`unregister()` (`FormConfirmDialog` does this on
- * mount/unmount; a custom dialog must do the same). When `request()` is called with no registered
- * consumer it fails closed: it warns on the console and resolves `false` (cancel) instead of
- * waiting on a dialog that will never render, which would leave the submit pending forever.
- *
- * @typedef {object} ConfirmationController
- * @property {boolean} open - Whether the confirmation dialog should be shown.
- * @property {{[path: string]: string[]}} messages - Warnings to display, keyed by field path.
- * @property {number} consumers - Number of registered consumers able to resolve a request.
- * @property {() => void} register - Announce a consumer that renders the dialog and will call `confirm()`/`cancel()`.
- * @property {() => void} unregister - Remove a previously registered consumer.
- * @property {(messages: {[path: string]: string[]}) => Promise<boolean>} request - Open the dialog and
- *  resolve to the user's choice (true = confirm, false = cancel). Resolves `false` immediately when
- *  no consumer is registered.
- * @property {() => void} confirm - Resolve the pending request with `true`.
- * @property {() => void} cancel - Resolve the pending request with `false`.
- */
-
-/**
  * @typedef {object} ObjectFormInstance
  * @property {ObjectFormState} state - The form state.
- * @property {ConfirmationController} confirmation - Controller for the warning confirmation dialog.
+ * @property {import('@vueda/use/useConfirmationController.js').ConfirmationController} confirmation - Controller for the warning confirmation dialog.
  * @property {() => Promise<void>} submit - Submit the form.
  * @property {OnSubmitNotAnyModified} onSubmitNotAnyModified - The hook to call when the form is submitted with no changes.
  * @property {OnSubmitAnyError} onSubmitAnyError - The hook to call when the form is submitted with errors.
@@ -376,50 +354,12 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         pk: computed(() => instanceObject.state.pk),
         object: computed(() => instanceObject.state.object),
     });
-    let confirmationResolve = null;
-    /** @type {ConfirmationController} */
-    const confirmation = reactive({
-        open: false,
-        messages: {},
-        consumers: 0,
-        register() {
-            confirmation.consumers += 1;
-        },
-        unregister() {
-            confirmation.consumers = Math.max(0, confirmation.consumers - 1);
-        },
-        request(messages) {
-            // Record the set even when failing closed below, so the next round's hook can clear it.
-            confirmation.messages = messages ?? {};
-            if (!confirmation.consumers) {
-                // Fail closed: with nothing bound to resolve the request, waiting would leave the
-                // submit pending forever (loading stuck on, the duplicate-submit guard returning the
-                // same pending promise).
-                console.warn(
-                    "useObjectForm: a save returned warnings that require confirmation, but no dialog is bound " +
-                        "to the confirmation controller; treating it as cancelled. Render " +
-                        '<FormConfirmDialog :controller="objectForm.confirmation" /> in the shell (or register a ' +
-                        "custom consumer via confirmation.register()) so the save can be confirmed.",
-                );
-                return Promise.resolve(false);
-            }
-            confirmation.open = true;
-            return new Promise((resolve) => {
-                confirmationResolve = resolve;
-            });
-        },
-        confirm() {
-            confirmation.open = false;
-            const resolve = confirmationResolve;
-            confirmationResolve = null;
-            resolve?.(true);
-        },
-        cancel() {
-            confirmation.open = false;
-            const resolve = confirmationResolve;
-            confirmationResolve = null;
-            resolve?.(false);
-        },
+    const confirmation = useConfirmationController({
+        noConsumerWarning:
+            "useObjectForm: a save returned warnings that require confirmation, but no dialog is bound " +
+            "to the confirmation controller; treating it as cancelled. Render " +
+            '<FormConfirmDialog :controller="objectForm.confirmation" /> in the shell (or register a ' +
+            "custom consumer via confirmation.register()) so the save can be confirmed.",
     });
     const returnObject = {
         state,

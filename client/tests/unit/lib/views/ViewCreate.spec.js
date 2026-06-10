@@ -120,7 +120,7 @@ const FeedbackSpinnerStub = defineComponent({
 });
 const FormConfirmDialogStub = defineComponent({
     name: "FormConfirmDialogStub",
-    props: ["controller"],
+    props: ["controller", "title", "description", "confirmLabel"],
     setup() {
         return () => h("div", { "data-qa": "form-confirm-dialog" });
     },
@@ -213,4 +213,7 @@ scopedIt("renders FormConfirmDialog bound to the objectForm confirmation control
     const dialog = wrapper.findComponent(FormConfirmDialogStub);
     expect(dialog.exists()).toBe(true);
     expect(dialog.props("controller")).toBe(objectForm.confirmation);
+    expect(dialog.props("title")).toBe("Confirm save");
+    expect(dialog.props("description")).toBe("This change has warnings. Review them before saving.");
+    expect(dialog.props("confirmLabel")).toBe("Save anyway");
 });

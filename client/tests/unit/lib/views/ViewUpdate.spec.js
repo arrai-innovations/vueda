@@ -37,6 +37,14 @@ vi.mock("@vueda/controls/button/Button.vue", () => ({
 vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({
     default: defineComponent({ name: "LoadingSpinnerInline", template: "<span />" }),
 }));
+const FormConfirmDialogStub = defineComponent({
+    name: "FormConfirmDialogStub",
+    props: ["controller", "title", "description", "confirmLabel"],
+    setup() {
+        return () => h("div", { "data-qa": "form-confirm-dialog" });
+    },
+});
+vi.mock("@vueda/components/FormConfirmDialog.vue", () => ({ default: FormConfirmDialogStub }));
 
 let mockComposableResult;
 
@@ -164,6 +172,17 @@ describe("lib/views/ViewUpdate.vue", () => {
             const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
             const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
             expect(wrapper.find('[data-qa="update-action-button"]').exists()).toBe(true);
+        });
+
+        scopedIt("renders FormConfirmDialog with save-specific copy", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            const dialog = wrapper.findComponent(FormConfirmDialogStub);
+            expect(dialog.exists()).toBe(true);
+            expect(dialog.props("controller")).toBe(mockComposableResult.objectForm.confirmation);
+            expect(dialog.props("title")).toBe("Confirm save");
+            expect(dialog.props("description")).toBe("This change has warnings. Review them before saving.");
+            expect(dialog.props("confirmLabel")).toBe("Save anyway");
         });
     });
 });

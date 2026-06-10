@@ -1,8 +1,9 @@
 import { mockLifecycle, scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
-import { defineComponent, h } from "vue";
+import { defineComponent, h, onBeforeUnmount, onMounted } from "vue";
 
 const ErrorDisplayStub = defineComponent({
     name: "ErrorDisplayStub",
@@ -85,7 +86,24 @@ const FeedbackSpinnerStub = defineComponent({
     },
 });
 
+// Mirrors the real dialog's consumer registration so the controller's fail-closed guard stays off
+// and confirm/cancel can be driven through the controller in tests.
+const FormConfirmDialogStub = defineComponent({
+    name: "FormConfirmDialogStub",
+    props: ["controller"],
+    setup(props) {
+        onMounted(() => props.controller.register?.());
+        onBeforeUnmount(() => props.controller.unregister?.());
+        return () =>
+            h("div", {
+                "data-qa": "form-confirm-dialog",
+                "data-open": String(props.controller.open),
+            });
+    },
+});
+
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
+vi.mock("@vueda/components/FormConfirmDialog.vue", () => ({ default: FormConfirmDialogStub }));
 vi.mock("@vueda/components/FormMessage.vue", () => ({ default: FormMessageStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
@@ -106,6 +124,8 @@ function createFormContext(overrides = {}) {
     return {
         state,
         setAllTouched: vi.fn(),
+        handleServerFormValidationError: vi.fn(),
+        clearServerErrors: vi.fn(),
         ...overrides.methods,
     };
 }
@@ -370,6 +390,73 @@ describe("lib/components/ActionForm.vue", () => {
             expect(formContext.setAllTouched).toHaveBeenCalled();
             expect(runAction).not.toHaveBeenCalled();
             expect(toastMock.warning).toHaveBeenCalledWith("Submission Blocked", expect.any(Object));
+        });
+    });
+
+    describe("Warning confirmation", () => {
+        scopedIt("mounts FormConfirmDialog wired to the confirmation controller", () => {
+            const { wrapper } = mountActionForm();
+            const dialog = wrapper.findComponent(FormConfirmDialogStub);
+            expect(dialog.exists()).toBe(true);
+            const controller = dialog.props("controller");
+            expect(controller.open).toBe(false);
+            // The dialog registered itself as the consumer that resolves confirmation requests.
+            expect(controller.consumers).toBe(1);
+        });
+
+        scopedIt("opens the dialog on a 409 and retries with the digest when confirmed", async () => {
+            const error = new ConfirmationRequiredError(
+                { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } },
+                {},
+            );
+            const runAction = vi.fn(({ acknowledgeWarnings }) =>
+                acknowledgeWarnings === "d1" ? Promise.resolve("ok") : Promise.reject(error),
+            );
+            const redirectTo = vi.fn();
+            const { wrapper } = mountActionForm({ runAction, redirectTo });
+            const controller = wrapper.findComponent(FormConfirmDialogStub).props("controller");
+
+            await wrapper.find("form").trigger("submit.prevent");
+            await flushPromises();
+            expect(controller.open).toBe(true);
+            expect(runAction).toHaveBeenCalledTimes(1);
+            expect(toastMock.error).not.toHaveBeenCalled();
+
+            controller.confirm();
+            await flushPromises();
+
+            expect(runAction).toHaveBeenCalledTimes(2);
+            expect(runAction).toHaveBeenLastCalledWith({
+                formValues: {},
+                dryRun: false,
+                acknowledgeWarnings: "d1",
+            });
+            expect(toastMock.success).toHaveBeenCalled();
+            expect(redirectTo).toHaveBeenCalledWith("success");
+        });
+
+        scopedIt("leaves the action unrun without an error banner when cancelled", async () => {
+            const error = new ConfirmationRequiredError(
+                { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } },
+                {},
+            );
+            const runAction = vi.fn(() => Promise.reject(error));
+            const redirectTo = vi.fn();
+            const { wrapper } = mountActionForm({ runAction, redirectTo });
+            const controller = wrapper.findComponent(FormConfirmDialogStub).props("controller");
+
+            await wrapper.find("form").trigger("submit.prevent");
+            await flushPromises();
+            expect(controller.open).toBe(true);
+
+            controller.cancel();
+            await flushPromises();
+
+            expect(runAction).toHaveBeenCalledTimes(1);
+            expect(toastMock.success).not.toHaveBeenCalled();
+            expect(toastMock.error).not.toHaveBeenCalled();
+            expect(redirectTo).not.toHaveBeenCalled();
+            expect(wrapper.get('[data-qa="error-display"]').attributes("data-errored")).toBe("false");
         });
     });
 

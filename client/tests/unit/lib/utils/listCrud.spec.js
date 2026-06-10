@@ -151,4 +151,45 @@ describe("lib/utils/listCrud.js", () => {
         await defaultObjectsDelete({ target, pks: ["1", "2"], dryRun: true });
         expect(cancellableFetch).toHaveBeenCalled();
     });
+
+    scopedIt("defaultObjectsDelete sets Acknowledge-Warnings header when a digest is acknowledged", async () => {
+        const { defaultObjectsDelete } = listCrud;
+        const target = { app: "blog", model: "post" };
+        getListUrl.mockReturnValue("/list");
+        const response = { status: 204 };
+        cancellableFetch.mockImplementation((url, options, transform) => {
+            expect(options.headers["Acknowledge-Warnings"]).toBe("d1");
+            return Promise.resolve(transform(response));
+        });
+        await defaultObjectsDelete({ target, pks: ["1", "2"], acknowledgeWarnings: "d1" });
+        expect(cancellableFetch).toHaveBeenCalled();
+    });
+
+    scopedIt("defaultObjectsDelete omits Acknowledge-Warnings header when no digest is acknowledged", async () => {
+        const { defaultObjectsDelete } = listCrud;
+        const target = { app: "blog", model: "post" };
+        getListUrl.mockReturnValue("/list");
+        const response = { status: 204 };
+        cancellableFetch.mockImplementation((url, options, transform) => {
+            expect(options.headers["Acknowledge-Warnings"]).toBeUndefined();
+            return Promise.resolve(transform(response));
+        });
+        await defaultObjectsDelete({ target, pks: ["1", "2"] });
+        expect(cancellableFetch).toHaveBeenCalled();
+    });
+
+    scopedIt("defaultObjectsDelete throws ConfirmationRequiredError on 409", async () => {
+        const { ConfirmationRequiredError } = await import("@vueda/utils/errors.js");
+        const { defaultObjectsDelete } = listCrud;
+        const target = { app: "blog", model: "post" };
+        getListUrl.mockReturnValue("/list");
+        const response = { status: 409 };
+        const responseData = { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } };
+        getJsonOrText.mockResolvedValue(responseData);
+        cancellableFetch.mockImplementation((url, options, transform) => transform(response));
+        const error = await defaultObjectsDelete({ target, pks: ["1", "2"] }).catch((e) => e);
+        expect(error).toBeInstanceOf(ConfirmationRequiredError);
+        expect(error.digest).toBe("d1");
+        expect(error.messages).toEqual({ count: ["unusual"] });
+    });
 });

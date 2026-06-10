@@ -10,25 +10,25 @@ import AlertDialogTitle from "@vueda/shell/alert-dialog/AlertDialogTitle.vue";
 import { computed, onBeforeUnmount, onMounted } from "vue";
 
 /**
- * Confirmation dialog shown when a save is valid but the server reports advisory warnings that must
- * be acknowledged (HTTP 409). Bind it to the `confirmation` controller returned by `useObjectForm`:
- * confirming retries the save with the warnings acknowledged, cancelling leaves the form unsaved with
- * the warnings still displayed.
+ * Confirmation dialog shown when a submission is valid but the server reports advisory warnings that
+ * must be acknowledged (HTTP 409). Bind it to the `confirmation` controller returned by
+ * `useObjectForm` or `useActionForm`: confirming retries the submission with the warnings
+ * acknowledged, cancelling leaves it unsaved with the warnings still displayed.
  */
 defineOptions({
     inheritAttrs: false,
 });
 
 const props = defineProps({
-    /** The confirmation controller from `useObjectForm` (`objectForm.confirmation`). */
+    /** The confirmation controller (`objectForm.confirmation` from `useObjectForm`, or `confirmation` from `useActionForm`). */
     controller: { type: Object, required: true },
     /** Dialog heading. */
-    title: { type: String, default: "Confirm save" },
+    title: { type: String, default: "Confirm action" },
     /** Explanatory text shown above the list of warnings. */
-    description: { type: String, default: "This change has warnings. Review them before saving." },
-    /** Label for the button that proceeds with the save. */
-    confirmLabel: { type: String, default: "Save anyway" },
-    /** Label for the button that abandons the save. */
+    description: { type: String, default: "This action has warnings. Review them before continuing." },
+    /** Label for the button that proceeds. */
+    confirmLabel: { type: String, default: "Continue anyway" },
+    /** Label for the button that abandons the action. */
     cancelLabel: { type: String, default: "Cancel" },
 });
 

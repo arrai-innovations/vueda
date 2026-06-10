@@ -1,7 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
-import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { defineComponent, h } from "vue";
 
@@ -329,6 +329,19 @@ describe("lib/components/ModelActionForm.vue", () => {
             await expect(runAction({})).rejects.toBeInstanceOf(FormValidationError);
         });
 
+        scopedIt("returns ConfirmationRequiredError for 409 responses", async () => {
+            fetchHelper.shouldReject = true;
+            const responseData = { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } };
+            fetchHelper.response = new Response(JSON.stringify(responseData), { status: 409 });
+            fetchHelper.responseData = responseData;
+            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
+            const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
+            const error = await runAction({}).catch((e) => e);
+            expect(error).toBeInstanceOf(ConfirmationRequiredError);
+            expect(error.digest).toBe("d1");
+            expect(error.messages).toEqual({ count: ["unusual"] });
+        });
+
         scopedIt("returns FetchError for other failures", async () => {
             fetchHelper.shouldReject = true;
             fetchHelper.response = new Response(null, { status: 500 });
@@ -345,6 +358,26 @@ describe("lib/components/ModelActionForm.vue", () => {
 
             const options = fetchHelper.mock.calls[0][1];
             expect(options.headers["Dry-Run"]).toBe("true");
+        });
+
+        scopedIt("adds Acknowledge-Warnings header when a digest is acknowledged", async () => {
+            fetchHelper.responseData = { ok: true };
+            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 11 }] } });
+
+            await wrapper.vm.defaultRunAction({ formValues: {}, acknowledgeWarnings: "d1" });
+
+            const options = fetchHelper.mock.calls[0][1];
+            expect(options.headers["Acknowledge-Warnings"]).toBe("d1");
+        });
+
+        scopedIt("omits Acknowledge-Warnings header when no digest is acknowledged", async () => {
+            fetchHelper.responseData = { ok: true };
+            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 11 }] } });
+
+            await wrapper.vm.defaultRunAction({ formValues: {} });
+
+            const options = fetchHelper.mock.calls[0][1];
+            expect(options.headers["Acknowledge-Warnings"]).toBeUndefined();
         });
     });
 

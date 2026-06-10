@@ -23,7 +23,7 @@ The client consumes both metadata layers to control routing and rendering. Route
 
 ## Server Action Declaration and Route Partitioning
 
-Action declaration extends DRF's action registration with a VUEDA-specific `bulk` marker. Every action carries three routing-relevant properties: `detail` (whether the action targets a single object via URL parameters), `bulk` (whether the action operates on a set of objects at list scope), and the HTTP methods it responds to.
+Action declaration extends DRF's action registration with VUEDA-specific `bulk` and `confirm` markers. The `confirm` marker gates execution, not routing; see [Warning Confirmation Gating](#warning-confirmation-gating) below. Every action carries three routing-relevant properties: `detail` (whether the action targets a single object via URL parameters), `bulk` (whether the action operates on a set of objects at list scope), and the HTTP methods it responds to.
 
 VUEDA's router uses these properties to partition actions into route families. `detail` actions are mounted as `detail` routes under the object URL prefix. Non-`detail` actions and bulk-flagged actions are mounted as `list` routes. This partitioning determines the URL shape and the scope at which the action is dispatched. The `bulk` flag is a declaration and routing signal only; it does not impose any automatic payload semantics. An action flagged as bulk is routed at list scope, but the request body format is entirely determined by the action's implementation.
 
@@ -92,6 +92,10 @@ For destroy operations, dry-run behaviour has specific response semantics. A dry
 Dry-run mode is intended for validation and simulation. It enables the client to preflight a mutation, checking whether the action would succeed and what validation errors would surface, without committing the change. The client should not redirect or emit success toasts after a dry-run response.
 
 For actions that directly or indirectly use a third party API or modify a third party database, make sure to use or pass `request.dry_run` through, so you can prevent changes when a dry-run is triggered.
+
+## Warning Confirmation Gating
+
+Mutation actions can be gated behind VUEDA's warning confirmation contract (a `409 Conflict` carrying warnings and a digest, retried with the `Acknowledge-Warnings` header after the user confirms). Declaring `@action(confirm=True)` makes the first unacknowledged mutating request return 409 without executing the body; the confirmation message comes from a `confirm_message` attribute on the action function, with a framework default when unset. Because this gate runs before the body, it suits input-less consequence actions. Actions that take input call `gate_warnings(request, warnings)` from {@api py:module:vueda.core.exceptions} inside the body, after `serializer.is_valid(raise_exception=True)` and before the write, so blocking 400s surface before the 409. The client's `ActionForm` handles the 409 and renders the confirmation dialog without extra markup. See [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle) for the full contract and [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) for authoring steps.
 
 ## Failure Surface and Drift Patterns
 
