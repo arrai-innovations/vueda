@@ -62,6 +62,23 @@
 /* vueda assumes `dark:` works like this */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Default border colour. Tailwind v4 preflight leaves `border-color` at
+ * `currentColor`, so a bare `border` width utility paints the element's text
+ * colour. Restore the shadcn-style baseline: an un-coloured `border` resolves
+ * to the `--border` token. Theme keys then write a plain `border` for the
+ * default hairline and add a `border-*` colour utility only for a non-default
+ * edge (status, focus, input shell, the foreground-outlined Button). Because it
+ * is a token reference, an integrator overriding `--border` retints every
+ * default border app-wide. `@layer base` keeps it below utilities, so any
+ * `border-*` utility still wins per element. */
+@layer base {
+    *,
+    ::before,
+    ::after {
+        border-color: var(--border);
+    }
+}
+
 /* during dark mode transitions, apply `!no-transition [&_*]:!no-transition` on the document element */
 @utility no-transition {
     transition: none;

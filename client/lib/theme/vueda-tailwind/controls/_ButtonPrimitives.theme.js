@@ -66,9 +66,9 @@ patchTheme({
      * FileUpload.trigger, RangeCalendarPrevButton).
      */
     _ButtonOutline: {
-        /** The neutral-chip recipe: 1px border in the `--foreground` text colour (the border sets no colour of its own and inherits `currentColor`, so it tracks the label in both light and dark and reads as a true outline against the surface), `--background` fill, `shadow-vueda-control` micro-shadow, and `--accent` hover swap. Dark mode follows the input-tint convention (`bg-input/30`, hover `bg-input/50`) so outlined chips read like inputs at rest while keeping the foreground-coloured edge. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons. */
+        /** The neutral-chip recipe: 1px `--foreground` border (set explicitly via `border-foreground` so it opts out of the default `--border` hairline and reads as a true high-contrast outline against the surface in both light and dark), `--background` fill, `shadow-vueda-control` micro-shadow, and `--accent` hover swap. Dark mode follows the input-tint convention (`bg-input/30`, hover `bg-input/50`) so outlined chips read like inputs at rest while keeping the foreground-coloured edge. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons. */
         root: {
-            class: "border bg-background text-foreground shadow-vueda-control hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:hover:bg-input/50",
+            class: "border border-foreground bg-background text-foreground shadow-vueda-control hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:hover:bg-input/50",
         },
     },
 
