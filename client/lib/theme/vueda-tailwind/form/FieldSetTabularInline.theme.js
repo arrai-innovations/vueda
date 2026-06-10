@@ -42,7 +42,7 @@ patchTheme({
             class: [
                 "cursor-pointer select-none",
                 "hover:bg-accent hover:text-accent-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                "focus-visible:focus-ring-shadow",
                 "transition-colors",
             ],
         },

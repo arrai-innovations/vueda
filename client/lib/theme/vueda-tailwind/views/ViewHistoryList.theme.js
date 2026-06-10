@@ -115,7 +115,7 @@ patchTheme({
         layoutToggle: {
             class: ["flex overflow-clip rounded-vueda-control border"],
         },
-        /** One button inside the layout toggle. Transparent / muted-foreground in the default state and tinted accent at `data-active="true"`; the leading icon is sized at 12 px so it sits with the label baseline. Focus ring uses `outline-ring` so it follows the system focus-recipe alongside the rest of the kit. */
+        /** One button inside the layout toggle. Transparent / muted-foreground in the default state and tinted accent at `data-active="true"`; the leading icon is sized at 12 px so it sits with the label baseline. Focus uses the canon `focus-ring` utility so it follows the DPR-keyed system focus recipe alongside the rest of the kit. */
         layoutButton: {
             class: [
                 "inline-flex items-center gap-1.5 px-2 py-1 text-xs",
@@ -124,7 +124,7 @@ patchTheme({
                 "hover:bg-accent hover:text-accent-foreground",
                 "data-[active=true]:bg-accent data-[active=true]:text-foreground",
                 "[&>svg]:size-3",
-                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                "focus-visible:focus-ring",
             ],
         },
         /** Optional extra class applied to the active layout button. Empty by default because {@api theme-key:ViewHistoryList.layoutButton} already routes its active state via `data-[active=true]`; consumers can opt into an additional emphasis here without duplicating the base recipe. */

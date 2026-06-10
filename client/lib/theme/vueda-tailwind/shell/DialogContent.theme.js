@@ -22,7 +22,7 @@ patchTheme({
          * The close control inside the dialog surface. It stays low-emphasis until hover or focus and uses the shared ring color for keyboard focus.
          */
         close: {
-            class: "data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none text-sm leading-none",
+            class: "data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:focus-ring disabled:pointer-events-none text-sm leading-none",
         },
     },
 });

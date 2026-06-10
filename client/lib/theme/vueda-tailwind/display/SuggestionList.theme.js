@@ -38,7 +38,7 @@ patchTheme({
                 "grid grid-cols-[24px_1fr_auto_auto] items-center gap-x-3 px-2.5 py-2.5",
                 "w-full no-underline text-inherit",
                 "hover:bg-muted/50 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                "focus-visible:focus-ring-shadow",
             ],
         },
         /** Leading icon cell for the suggestion type. */

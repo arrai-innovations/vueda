@@ -16,7 +16,7 @@ patchTheme({
          * The clickable accordion header. It uses the container typography rhythm, exposes a focus outline, and rotates direct SVG icons when the item is open.
          */
         root: {
-            class: "flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-body font-medium transition-all hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
+            class: "flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-body font-medium transition-all hover:underline focus-visible:focus-ring disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
         },
         /**
          * The text wrapper inside the trigger. It stays minimal so custom trigger content can define its own stacking or inline layout.

@@ -22,7 +22,7 @@ patchTheme({
          * The focusable viewport inside a scroll area. It inherits the parent radius and exposes a keyboard focus outline around the scrolling region.
          */
         viewport: {
-            class: "size-full rounded-[inherit] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+            class: "size-full rounded-[inherit] transition-colors focus-visible:focus-ring",
         },
     },
 });

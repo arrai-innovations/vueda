@@ -15,7 +15,7 @@ patchTheme({
         /** Compact slab badge with variant and numeric recipes. */
         root: ({ variant, numeric }) => ({
             class: [
-                "inline-flex items-center justify-center rounded-vueda-control border py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive aria-invalid:focus-ring-shadow-destructive transition-colors overflow-hidden",
+                "inline-flex items-center justify-center rounded-vueda-control border py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:focus-ring-shadow aria-invalid:border-destructive aria-invalid:focus-ring-shadow-destructive transition-colors overflow-hidden",
                 {
                     "px-2": !numeric,
                     "font-mono tabular-nums min-w-5 px-1": numeric,

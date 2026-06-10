@@ -33,7 +33,7 @@ patchTheme({
          * The close control inside a sheet. It stays visually quiet until hover or focus and uses the same keyboard focus outline as dialog close controls.
          */
         close: {
-            class: "data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none text-sm leading-none",
+            class: "data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:focus-ring disabled:pointer-events-none text-sm leading-none",
         },
     },
 });

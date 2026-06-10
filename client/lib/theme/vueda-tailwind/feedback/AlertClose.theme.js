@@ -16,7 +16,7 @@ patchTheme({
          * The positioned dismiss affordance for closable alerts. It stays visually quiet until hover or keyboard focus, then uses the shared ring color through the focus-visible outline.
          */
         root: {
-            class: "absolute top-3 right-3 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+            class: "absolute top-3 right-3 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:focus-ring",
         },
     },
 });
