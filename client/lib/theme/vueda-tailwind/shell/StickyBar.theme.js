@@ -29,7 +29,7 @@ patchTheme({
          * The visible sticky-bar surface. It uses card fill, a bottom divider, and wrapping row layout for primary and secondary controls.
          */
         inner: {
-            class: ["bg-card border-b border-border px-5 py-[10px] flex items-center flex-wrap gap-2"],
+            class: ["bg-card border-b px-5 py-[10px] flex items-center flex-wrap gap-2"],
         },
         /**
          * The primary control cluster inside the sticky bar. It wraps compact action buttons and pushes secondary content to the far side.

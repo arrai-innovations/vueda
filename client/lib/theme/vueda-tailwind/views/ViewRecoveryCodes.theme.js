@@ -19,7 +19,7 @@ patchTheme({
         },
         /** Bordered code-panel card inside the AuthForm body, rendered when the user has a TOTP device configured. Card-radius border with 16 px / 8 px padding so the unused-codes grid reads as a deliberate display surface rather than another form row; the print-hidden affordances above and below this card keep the printed output clean. BACKLOG-001 will extend {@api theme-key:ViewRecoveryCodes.listItem} with a struck-through used-code state once the server exposes used codes. */
         inner: {
-            class: ["my-4 border border-border rounded-vueda-card py-4 px-2"],
+            class: ["my-4 border rounded-vueda-card py-4 px-2"],
         },
         /** Wrapper around the "each code works once" {@api theme-key:Alert}. `print:hidden` drops the alert from printed output so the page prints as a clean list of codes; `mx-4 my-6` centres the alert inside the bordered card with breathing room above the grid. */
         messageContainer: {

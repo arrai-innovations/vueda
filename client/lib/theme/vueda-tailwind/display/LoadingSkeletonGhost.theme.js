@@ -16,7 +16,7 @@ patchTheme({
         root: {
             class: [
                 "relative overflow-hidden",
-                "rounded-vueda-card border border-border bg-background",
+                "rounded-vueda-card border bg-background",
                 "flex flex-col gap-3 p-4",
                 "before:content-[''] before:absolute before:inset-0 before:pointer-events-none",
                 "before:bg-gradient-to-r before:from-transparent before:via-foreground/[0.04] before:to-transparent",

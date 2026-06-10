@@ -32,7 +32,7 @@ patchTheme({
         /** Eyebrow title bar for tabular inline fieldsets. See also: {@api theme-key:FieldSetStackedInline.titleBar}. */
         titleBar: {
             class: [
-                "flex items-center gap-2 2xs:gap-3 px-3 py-2 border-b border-border",
+                "flex items-center gap-2 2xs:gap-3 px-3 py-2 border-b",
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none text-muted-foreground",
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
             ],
@@ -114,7 +114,7 @@ patchTheme({
         /** Fieldset-level help and validation panel below the embedded grid. */
         choresPanel: {
             class: [
-                "px-3 py-2 border-t border-border",
+                "px-3 py-2 border-t",
                 "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
                 "flex flex-col gap-1",
             ],
@@ -124,7 +124,7 @@ patchTheme({
             class: [
                 "flex flex-col items-center justify-center gap-2",
                 "m-3 py-8 px-6 text-center",
-                "rounded-vueda-card border-2 border-dashed border-border bg-muted/30",
+                "rounded-vueda-card border-2 border-dashed bg-muted/30",
             ],
         },
         /** Muted icon disc inside the tabular empty-state invitation. */

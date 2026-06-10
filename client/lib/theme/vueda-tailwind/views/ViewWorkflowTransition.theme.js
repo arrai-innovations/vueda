@@ -51,7 +51,7 @@ patchTheme({
         /** Clickable `<label>` wrapping one transition option. Borders the option with the card radius and routes `data-selected="true"` to a primary border + primary/5 background, and `data-disabled="true"` to opacity 55 + `not-allowed` cursor. `has-[:focus-visible]` hoists the inner {@api theme-key:ViewWorkflowTransition.optionRadio}'s focus ring onto the option chassis so keyboard users see a ring on the visible target rather than the visually-hidden input. The textarea / reason path parked in BACKLOG-003 lands below the list, not on the option itself. */
         option: {
             class: [
-                "relative flex flex-col gap-1 px-4 py-3 rounded-vueda-card border border-border cursor-pointer",
+                "relative flex flex-col gap-1 px-4 py-3 rounded-vueda-card border cursor-pointer",
                 "hover:border-primary/50 hover:bg-accent/30",
                 "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
                 "data-[selected=true]:border-primary data-[selected=true]:bg-primary/5",
@@ -85,7 +85,7 @@ patchTheme({
             class: [
                 "flex flex-col items-center justify-center gap-2",
                 "py-12 px-6 text-center",
-                "rounded-vueda-card border-2 border-dashed border-border bg-muted/30",
+                "rounded-vueda-card border-2 border-dashed bg-muted/30",
             ],
         },
         /** 36 px circular icon tile leading the empty card (typically a flag glyph). Muted fill on muted-foreground keeps the tile from competing with the title beneath it; sized one tier smaller than the {@api theme-key:ViewSetupDevice.doneIcon} 48 px completion tile so the surface reads as terminal-state, not celebratory. */

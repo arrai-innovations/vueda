@@ -59,7 +59,7 @@ patchTheme({
         /** Fieldset-level description and messages panel below the paired controls. */
         choresPanel: {
             class: [
-                "-mx-3 -mb-3 mt-3 px-3 py-2 border-t border-border",
+                "-mx-3 -mb-3 mt-3 px-3 py-2 border-t",
                 "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
                 "flex flex-col gap-1",
             ],

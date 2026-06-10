@@ -26,7 +26,7 @@ patchTheme({
         },
         /** Bordered sort-field row containing the handle, order text, and select. */
         draggableItem: {
-            class: ["flex flex-row rounded-lg border border-border p-3"],
+            class: ["flex flex-row rounded-lg border p-3"],
         },
         /** Flexible row content inside each draggable item. */
         draggableItemInner: {

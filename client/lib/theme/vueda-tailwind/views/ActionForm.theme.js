@@ -34,7 +34,7 @@ patchTheme({
             class: [
                 "flex flex-row flex-wrap items-center gap-2",
                 "px-4 py-3 mt-2",
-                "border-t border-border bg-muted/25",
+                "border-t bg-muted/25",
                 "rounded-b-vueda-card",
             ],
         },

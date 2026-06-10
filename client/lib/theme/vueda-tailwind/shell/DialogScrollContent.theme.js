@@ -16,7 +16,7 @@ patchTheme({
          * The scrollable dialog surface. It stays centered inside the scroll overlay while preserving the modal radius, border, and overlay shadow used by dialog surfaces.
          */
         root: {
-            class: "relative z-50 grid w-full max-w-lg my-8 gap-4 border border-border bg-background p-6 shadow-vueda-overlay duration-200 sm:rounded-vueda-modal md:w-full",
+            class: "relative z-50 grid w-full max-w-lg my-8 gap-4 border bg-background p-6 shadow-vueda-overlay duration-200 sm:rounded-vueda-modal md:w-full",
         },
         /**
          * The scrollable dialog overlay. It both paints the backdrop and provides a grid centering context with vertical overflow for tall modal content.

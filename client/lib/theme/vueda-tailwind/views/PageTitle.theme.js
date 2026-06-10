@@ -16,7 +16,7 @@ patchTheme({
         /** Outer header bar. Carries the bottom hairline that closes the header and, when `sticky` is set, pins the bar to the top of the scroll viewport at `z-30`. Consumers can merge extra classes via the `headerClass` prop without overriding the chrome. */
         root: ({ headerClass, sticky }) => ({
             class: [
-                "border-b border-border",
+                "border-b",
                 headerClass,
                 {
                     "sticky top-0 z-30": sticky,

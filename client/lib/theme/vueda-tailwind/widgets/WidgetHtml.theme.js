@@ -27,9 +27,7 @@ patchTheme({
         },
         /** The toolbar is a muted, wrapping command strip above the editing area. The bottom divider uses the DPR-keyed `border-b-hairline` width with the structural `--border` colour so the rule tracks the canon hairline scale. */
         toolbar: {
-            class: [
-                "flex flex-row flex-wrap items-center gap-0.5 border-b-hairline border-border bg-muted/50 px-1.5 py-1",
-            ],
+            class: ["flex flex-row flex-wrap items-center gap-0.5 border-b-hairline bg-muted/50 px-1.5 py-1"],
         },
         /** Toolbar buttons use compact slab control styling. */
         toolbarButton: {

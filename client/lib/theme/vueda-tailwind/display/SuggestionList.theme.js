@@ -30,7 +30,7 @@ patchTheme({
         },
         /** Bordered list container with divided suggestion rows. */
         list: {
-            class: ["rounded-vueda-card border border-border overflow-hidden divide-y divide-border list-none m-0 p-0"],
+            class: ["rounded-vueda-card border overflow-hidden divide-y divide-border list-none m-0 p-0"],
         },
         /** Full-width router-link row laid out as icon, text stack, chip, and chevron. */
         item: {
@@ -61,7 +61,7 @@ patchTheme({
         score: {
             class: [
                 "font-mono text-[10px] uppercase leading-none",
-                "border border-border rounded-sm bg-muted text-muted-foreground",
+                "border rounded-sm bg-muted text-muted-foreground",
                 "px-1.5 py-0.5 shrink-0",
             ],
         },
@@ -69,7 +69,7 @@ patchTheme({
         verb: {
             class: [
                 "font-mono text-[10px] uppercase leading-none",
-                "border border-border rounded-sm bg-muted text-muted-foreground",
+                "border rounded-sm bg-muted text-muted-foreground",
                 "px-1.5 py-0.5 shrink-0",
             ],
         },

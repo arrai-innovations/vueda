@@ -35,7 +35,7 @@ patchTheme({
         /** Header strip that separates the fieldset label from repeated rows and tints nested fieldsets. */
         header: {
             class: [
-                "flex items-center justify-between gap-2 px-3 py-2 -mx-3 -mt-3 mb-1 border-b border-border",
+                "flex items-center justify-between gap-2 px-3 py-2 -mx-3 -mt-3 mb-1 border-b",
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
             ],
         },

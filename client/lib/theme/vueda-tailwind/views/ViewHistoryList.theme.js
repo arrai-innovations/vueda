@@ -48,7 +48,7 @@ patchTheme({
             class: [
                 "flex flex-col items-center justify-center gap-2",
                 "py-12 px-6 text-center",
-                "rounded-vueda-card border border-border bg-card",
+                "rounded-vueda-card border bg-card",
             ],
         },
         /** 40 px circular icon tile leading the empty state (typically a clock or history glyph). Muted-50 fill on muted-foreground keeps the tile from competing with the title beneath it. */
@@ -97,7 +97,7 @@ patchTheme({
         },
         /** Meta strip above the grid: filter slot on the left, layout toggle on the right. Muted-10 wash and a bottom hairline so the strip reads as supporting chrome rather than its own band; lighter than the {@api theme-key:ViewList.filterGroupBar} muted-25 because the history view does not surface as many filter affordances. */
         meta: {
-            class: ["flex items-center gap-3 flex-wrap", "border-b border-border bg-muted/10", "px-4 py-2 text-sm"],
+            class: ["flex items-center gap-3 flex-wrap", "border-b bg-muted/10", "px-4 py-2 text-sm"],
         },
         /** Inline item inside the meta strip (e.g. an active filter chip). Muted-foreground colour and a 4 px gap between icon and label so the item reads as supporting metadata. */
         metaItem: {
@@ -113,14 +113,14 @@ patchTheme({
         },
         /** Outer chassis of the segmented Table / Cards button pair. `overflow-clip` lets the inner buttons render their own internal hairline (`first:border-r`) without poking past the chassis radius. */
         layoutToggle: {
-            class: ["flex overflow-clip rounded-vueda-control border border-border"],
+            class: ["flex overflow-clip rounded-vueda-control border"],
         },
         /** One button inside the layout toggle. Transparent / muted-foreground in the default state and tinted accent at `data-active="true"`; the leading icon is sized at 12 px so it sits with the label baseline. Focus ring uses `outline-ring` so it follows the system focus-recipe alongside the rest of the kit. */
         layoutButton: {
             class: [
                 "inline-flex items-center gap-1.5 px-2 py-1 text-xs",
                 "text-muted-foreground bg-transparent",
-                "first:border-r first:border-border",
+                "first:border-r",
                 "hover:bg-accent hover:text-accent-foreground",
                 "data-[active=true]:bg-accent data-[active=true]:text-foreground",
                 "[&>svg]:size-3",

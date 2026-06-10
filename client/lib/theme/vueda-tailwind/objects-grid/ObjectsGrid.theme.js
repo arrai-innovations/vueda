@@ -18,7 +18,7 @@ patchTheme({
         root: {
             class: [
                 "max-w-full overflow-x-auto",
-                "rounded-vueda-card border border-border bg-card text-foreground text-body",
+                "rounded-vueda-card border bg-card text-foreground text-body",
                 "[font-variant-numeric:tabular-nums_slashed-zero]",
                 // Flush variant: an ancestor stamps `data-flush="true"` (e.g. FieldSetTabularInline.body)
                 // to merge the grid into a parent card without doubling borders. Drop the rounded edge
@@ -104,7 +104,7 @@ patchTheme({
                     // first and last don't help us here.
                     {
                         "!table-row": isTable,
-                        "p-1 2xs:p-2 2xl:p-4 rounded-vueda-card border border-border overflow-y-auto": !isTable,
+                        "p-1 2xs:p-2 2xl:p-4 rounded-vueda-card border overflow-y-auto": !isTable,
                     },
                 ];
             },
