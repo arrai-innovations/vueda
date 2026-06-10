@@ -7,7 +7,9 @@ import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewCreate.theme.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { useViewCreate } from "@vueda/use/useViewCreate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { onMounted, toRef } from "vue";
@@ -80,6 +82,8 @@ const emit = defineEmits(["form-object", "form-context"]);
 
 const { formContext, objectForm, instance, actions } = useViewCreate(props);
 
+const theme = useTheme("ViewCreate", props);
+
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
 
@@ -92,7 +96,7 @@ onMounted(() => {
 });
 </script>
 <template>
-    <div :class="props.class">
+    <div :class="[theme('root'), props.class]" data-qa="create-form-root">
         <!-- Page-level actions teleport into the layout's PageTitle action zone. -->
         <page-actions>
             <template v-for="actionName in actions.nonDetailActions" :key="actionName">
@@ -117,7 +121,7 @@ onMounted(() => {
             <template #primary>
                 <div
                     class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
-                    data-qa="update-action-buttons"
+                    data-qa="create-action-buttons"
                 >
                     <slot
                         :form="instance.formId"
@@ -135,7 +139,7 @@ onMounted(() => {
                 </div>
             </template>
         </sticky-bar>
-        <div>
+        <div :class="theme('body')" data-qa="create-form">
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"

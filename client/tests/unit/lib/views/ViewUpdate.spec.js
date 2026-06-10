@@ -171,7 +171,7 @@ describe("lib/views/ViewUpdate.vue", () => {
         scopedIt("form action button container has data-qa attribute", async () => {
             const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
             const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
-            expect(wrapper.find('[data-qa="update-action-button"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="update-action-buttons"]').exists()).toBe(true);
         });
 
         scopedIt("renders FormConfirmDialog with save-specific copy", async () => {

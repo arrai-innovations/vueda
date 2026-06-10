@@ -4,9 +4,11 @@ import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewRead.theme.js";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
+import { useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { onMounted, reactive, readonly, toRef, useSlots } from "vue";
 
@@ -53,6 +55,8 @@ const internalOptions = reactive({
 
 const { instanceObject, instance, actions } = useDetailView(internalOptions, formContextProps.initialValues);
 
+const theme = useTheme("ViewRead", props);
+
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
 
@@ -75,7 +79,7 @@ onMounted(() => {
 });
 </script>
 <template>
-    <div data-qa="read-form-root">
+    <div :class="theme('root')" data-qa="read-form-root">
         <!-- Page-level actions teleport into the layout's PageTitle action zone. -->
         <page-actions>
             <template v-for="actionName in actions.nonDetailActions" :key="actionName">
@@ -100,7 +104,7 @@ onMounted(() => {
         </page-actions>
         <sticky-bar class="w-full">
             <template #primary>
-                <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="read-action-button">
+                <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="read-action-buttons">
                     <template v-for="actionName in actions.detailActions" :key="actionName">
                         <!-- @slot [action-button] Override an individual action link button in the sticky bar. -->
                         <slot
@@ -146,7 +150,7 @@ onMounted(() => {
                 </div>
             </template>
         </sticky-bar>
-        <div v-bind="$attrs" data-qa="read-form">
+        <div v-bind="$attrs" :class="theme('body')" data-qa="read-form">
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"

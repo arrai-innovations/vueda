@@ -188,7 +188,10 @@ onMounted(() => {
         </page-actions>
         <sticky-bar class="w-full">
             <template #primary>
-                <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="update-action-button">
+                <div
+                    class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
+                    data-qa="update-action-buttons"
+                >
                     <!-- @slot [submit-button] Override the submit button shown in the sticky action bar. -->
                     <slot
                         :form="instance.formId"

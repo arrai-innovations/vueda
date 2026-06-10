@@ -142,7 +142,7 @@ describe("lib/views/ViewRead.vue", () => {
         scopedIt("action button container has data-qa attribute", async () => {
             const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
             const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
-            expect(wrapper.find('[data-qa="read-action-button"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="read-action-buttons"]').exists()).toBe(true);
         });
 
         scopedIt("attrs are forwarded to the inner content div", async () => {
@@ -152,6 +152,23 @@ describe("lib/views/ViewRead.vue", () => {
                 attrs: { "data-test": "custom-value" },
             });
             expect(wrapper.find('[data-qa="read-form"]').attributes("data-test")).toBe("custom-value");
+        });
+
+        scopedIt("applies the default theme gutter to the body", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+            const body = wrapper.find('[data-qa="read-form"]');
+            expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5"]));
+        });
+
+        scopedIt("merges forwarded attr classes with the body theme gutter", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            const wrapper = mount(ViewRead, {
+                props: { app: "a", model: "m", pk: "1" },
+                attrs: { class: "my-attr-class" },
+            });
+            const body = wrapper.find('[data-qa="read-form"]');
+            expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5", "my-attr-class"]));
         });
     });
 });

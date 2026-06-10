@@ -12,7 +12,8 @@ const mockedUseModelConfig = vi.fn();
 const mockedUseModelInitialValues = vi.fn();
 const mockedUseObjectForm = vi.fn();
 
-vi.mock("@arrai-innovations/reactive-helpers", () => ({
+vi.mock("@arrai-innovations/reactive-helpers", async (importActual) => ({
+    ...(await importActual()),
     useObject: mockedUseObject,
 }));
 vi.mock("@vueda/use/useFilteredActions.js", () => ({
@@ -216,4 +217,11 @@ scopedIt("renders FormConfirmDialog bound to the objectForm confirmation control
     expect(dialog.props("title")).toBe("Confirm save");
     expect(dialog.props("description")).toBe("This change has warnings. Review them before saving.");
     expect(dialog.props("confirmLabel")).toBe("Save anyway");
+});
+
+scopedIt("applies the default theme gutter to the form body", () => {
+    mockedInject.mockReturnValueOnce({});
+    const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+    const body = wrapper.find('[data-qa="create-form"]');
+    expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5"]));
 });
