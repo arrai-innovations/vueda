@@ -19,6 +19,7 @@ import "./ViewNotFound.theme.js";
 import "./ViewRecoveryCodes.theme.js";
 import "./ViewSetupDevice.theme.js";
 import "./ViewTwoFactorAuth.theme.js";
+import "./ViewUpdate.theme.js";
 import "./ViewWorkflowTransition.theme.js";
 
 export default {
@@ -34,6 +35,8 @@ export default {
     // ---------- List views ----------
     ViewList: {},
     ViewHistoryList: {},
+    // ---------- CRUD views ----------
+    ViewUpdate: {},
     // ---------- System views ----------
     ViewLoading: {},
     ViewNotFound: {},

@@ -184,5 +184,21 @@ describe("lib/views/ViewUpdate.vue", () => {
             expect(dialog.props("description")).toBe("This change has warnings. Review them before saving.");
             expect(dialog.props("confirmLabel")).toBe("Save anyway");
         });
+
+        scopedIt("applies the default theme gutter to the form body", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            const body = wrapper.find('[data-qa="update-form"]');
+            expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5"]));
+        });
+
+        scopedIt("merges the outerClass prop with the form-body theme gutter", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, {
+                props: { app: "a", model: "m", pk: "1", outerClass: "my-outer-class" },
+            });
+            const body = wrapper.find('[data-qa="update-form"]');
+            expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5", "my-outer-class"]));
+        });
     });
 });

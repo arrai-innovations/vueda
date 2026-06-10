@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **ViewUpdate default theme (form body gutter)**:
+    - `ViewUpdate` now registers its own theme entry with `root` and `body` slots. The `body` slot applies a default `px-5 py-5` gutter to the form body (the wrapper around the error display and the generated form), aligning the form's left edge with the StickyBar controls and PageTitle above it. Previously the form body had no padding, so fields rendered flush against the surrounding layout.
+      _No action is required. The existing `class` and `outerClass` props still apply and merge with the theme slots; override `ViewUpdate.body` via `themeOverride` (or `setTheme`) to change the gutter._
 - **Submit-time warning confirmation (FormConfirmDialog, useObjectForm)**:
     - Create/update submissions that the server answers with `409 Conflict` (valid, but carrying advisory warnings) now prompt the user to confirm instead of failing. `useObjectForm` exposes a `confirmation` controller and a `onSubmissionWarningsRequireConfirmation` hook; on confirm it resubmits once, acknowledging the warnings, and on cancel it leaves the form unsaved with the warnings displayed. `ViewCreate` and `ViewUpdate` render the new `FormConfirmDialog` wired to that controller.
     - Added `ConfirmationRequiredError` (`@vueda/utils/errors.js`), thrown by `defaultObjectCreate`/`defaultObjectUpdate` on a 409; both adaptors also accept an `acknowledgeWarnings` digest and send it as the `Acknowledge-Warnings` header.

@@ -7,6 +7,7 @@ import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewUpdate.theme.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
@@ -136,6 +137,7 @@ const { formContext, objectForm, instanceObject, instance, actions } = useViewUp
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
 
+const theme = useTheme("ViewUpdate", props);
 const stickyBarTheme = useTheme("StickyBar", {});
 const dirtyClass = computed(() => stickyBarTheme("dirty"));
 
@@ -160,8 +162,8 @@ onMounted(() => {
 });
 </script>
 <template>
-    <!-- TODO: theme.hideStyle requires a single themed root; useTheme here is only a StickyBar helper, this component has no own theme entry to gate on. -->
-    <div :class="props.class" data-qa="update-form-root">
+    <!-- TODO: theme.hideStyle requires a single themed root -->
+    <div :class="[theme('root'), props.class]" data-qa="update-form-root">
         <!-- Page-level actions teleport into the layout's PageTitle action zone. -->
         <page-actions>
             <template v-for="actionName in actions.nonDetailActions" :key="actionName">
@@ -258,7 +260,7 @@ onMounted(() => {
                 </span>
             </template>
         </sticky-bar>
-        <div :class="props.outerClass" data-qa="update-form">
+        <div :class="[theme('body'), props.outerClass]" data-qa="update-form">
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"
