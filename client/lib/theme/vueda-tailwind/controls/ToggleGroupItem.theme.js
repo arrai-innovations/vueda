@@ -20,7 +20,7 @@ patchTheme({
                 "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:hairline-ring focus-visible:focus-ring-shadow transition-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive whitespace-nowrap",
                 {
                     "bg-transparent": !variant || variant === "default",
-                    "border border-input bg-transparent shadow-vueda-control hover:bg-accent hover:text-accent-foreground":
+                    "border border-foreground bg-transparent shadow-vueda-control hover:bg-accent hover:text-accent-foreground":
                         variant === "outline",
                 },
                 {

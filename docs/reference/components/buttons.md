@@ -391,7 +391,7 @@ all three in lockstep.
       <div><Toggle variant="outline" default-pressed disabled>B</Toggle></div>
     </div>
     <template #footer>
-      <span>border <code>--border</code></span>
+      <span>border <code>--foreground</code></span>
       <span>off bg <code>--background</code></span>
       <span>on bg <code>--accent</code></span>
       <span>on fg <code>--accent-foreground</code></span>
