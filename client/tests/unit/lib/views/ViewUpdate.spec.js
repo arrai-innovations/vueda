@@ -50,6 +50,7 @@ beforeEach(async () => {
         objectForm: {
             state: reactive({ loading: false }),
             submit: vi.fn(),
+            confirmation: reactive({ open: false, messages: {}, confirm: vi.fn(), cancel: vi.fn() }),
         },
         modelConfig: reactive({
             config: { verboseName: "widget" },

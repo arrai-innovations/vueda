@@ -17,14 +17,14 @@ Client-side normalization in this flow is centered on {@api js:class:@arrai-inno
 The objective is a form submission flow where:
 
 - HTTP 400 responses from the server are parsed into field-keyed and non-field feedback that appears in the correct form fields.
-- Server warnings (non-blocking) are visually distinguished from server errors (blocking) and do not prevent submission.
+- Server warnings (advisory) are visually distinguished from server errors (blocking) and gate the save behind a confirmation rather than failing it.
 - Blurring a field clears stale server feedback for that field and any configured dependents.
 - Local validation errors (required, custom validate) block submission, but server-only errors allow resubmission so the server can re-evaluate.
 - Non-field errors are rendered at the form level and participate in first-error scroll navigation.
 
 Before you begin, ensure the following are in place:
 
-The form uses `useForm` to create a form context and `useField` for each field (or a VUEDA field component that calls `useField` internally). The API endpoint follows VUEDA's server contract: validation failures return HTTP 400 with a payload that `VuedaValidationError` produces, and warnings use the `is_warning=True` flag. For standard CRUDL surfaces, `useObjectForm` provides the default submission pipeline described below. For custom forms, you will wire the equivalent logic manually.
+The form uses `useForm` to create a form context and `useField` for each field (or a VUEDA field component that calls `useField` internally). The API endpoint follows VUEDA's server contract: validation failures return HTTP 400 with a payload that `VuedaValidationError` produces, and advisory warnings are surfaced through the serializer's `get_warnings()` hook (see [Warnings That Require Confirmation](#warnings-that-require-confirmation)). For standard CRUDL surfaces, `useObjectForm` provides the default submission pipeline described below. For custom forms, you will wire the equivalent logic manually.
 
 ## Request-Boundary Error Normalization
 
@@ -171,13 +171,36 @@ For the validation pipeline to work correctly, the server must follow these conv
 
 **Use `VuedaValidationError` for validation failures.** This exception normalizes scalar details into `list` form, preserves dict/list structures recursively, and ensures the response is parseable by `FormValidationError` on the client. Standard DRF `ValidationError` also works for simple cases, but `VuedaValidationError` handles the warning channel and structured payloads.
 
-**Use `is_warning=True` for non-blocking feedback.** This wraps the detail in a `{"warnings": [...]}` structure that the client parser routes to `.messages` instead of `.errors`. Warning-only exceptions skip Sentry capture and database logging in production, treating them as informational rather than error-level events.
+**Use `get_warnings()` for advisory, confirm-before-save feedback.** Override `get_warnings()` on the serializer (see the next section) rather than raising `VuedaValidationError(..., is_warning=True)`. A raised warning still returns 400 and blocks the save like an error rendered in yellow; `get_warnings()` instead gates the save behind an explicit confirmation and then lets the same write proceed.
 
 **Prefer field-keyed payloads over aggregate strings.** A payload like `{"quantity": ["Must be positive"]}` maps to a specific field in the form. A payload like `{"detail": "Invalid request"}` maps to nothing and produces opaque feedback. For bulk actions, prefer `{pk: {field: [errors]}}` style maps so correction context stays per-object.
 
 **Keep `non_field_errors` for cross-field validation.** DRF's exception handler rewrites top-level list errors into `{non_field_errors: [...]}`. The client expects this key and renders it at the form level, not at any specific field.
 
 **Render structured feedback objects client-side.** Object-valued feedback entries do not have a wire-format template contract. The default renderer falls back to a `name: value` line per entry. If you emit structured objects, plan to render them with a purpose-built component that overrides `FormMessage`'s default slot and matches on the shape; see the structured feedback example above.
+
+## Warnings That Require Confirmation
+
+Use a warning when a create or update should succeed but the user ought to acknowledge something first (for example, "this will deactivate the last administrator"). Unlike a validation error, a warning does not fail the request; it pauses it for confirmation.
+
+**Server: override `get_warnings()`.** On the serializer, return advisory messages keyed by field (use `non_field_errors` for form-level):
+
+```python
+class WidgetSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = Widget
+        fields = ["id", "name", "count"] + VuedaSerializer.Meta.fields
+
+    def get_warnings(self):
+        warnings = {}
+        if self.validated_data.get("count", 0) < 0:
+            warnings["count"] = ["A negative count is unusual."]
+        return warnings
+```
+
+`get_warnings()` runs after validation succeeds, so `self.validated_data` and (on update) `self.instance` are available. It must not raise; blocking conditions belong in `validate()`. When it returns warnings that the request has not acknowledged, `VuedaViewSet` withholds the write and responds `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}`.
+
+**Client: confirm, then resubmit.** The create/update adaptor raises `ConfirmationRequiredError` on the 409. `useObjectForm` renders the warnings into `state.messages`, opens its `confirmation` controller, and (for `ViewCreate` and `ViewUpdate`) shows a `FormConfirmDialog`. Confirming resubmits once with the `Acknowledge-Warnings` header set to the response `digest`, which the server matches to let the write proceed; cancelling leaves the form unsaved with the warnings visible. A custom shell that calls `useObjectForm` directly should render a dialog bound to `objectForm.confirmation`, or override the `onSubmissionWarningsRequireConfirmation` hook. A custom dialog must call `confirmation.register()` on mount and `confirmation.unregister()` on unmount (`FormConfirmDialog` does this itself); when no dialog is registered, a warned save fails closed: it resolves as cancelled, the warnings stay rendered on the fields, and a console warning identifies the missing dialog.
 
 ## Verification Checklist
 
@@ -188,7 +211,7 @@ With the validation pipeline wired, verify these behaviors:
 - Blurring a field that had a server error clears the error message.
 - After clearing a server error by blur, resubmitting sends the request (server-only errors do not block).
 - Local validation errors (required fields left empty, custom validate failures) block submission with a "Pre-save Validation Failed" toast.
-- Server warnings (from `is_warning=True`) appear with warning severity (yellow) and do not block submission.
+- A serializer that returns `get_warnings()` produces a 409 that opens the confirmation dialog; confirming saves, cancelling does not.
 - Structured non-field error objects render through `FormMessage`'s default slot override (or, without an override, as `name: value` fallback lines).
 - The first-error scroll navigates to `non_field_errors` first, then to the first displayed field with an error.
 
@@ -202,7 +225,9 @@ With the validation pipeline wired, verify these behaviors:
 
 **Bulk action errors show as a single opaque message.** If the server returns a single aggregate error string for a bulk operation (instead of per-pk field-keyed errors), the client has no way to route the feedback to specific objects. Prefer `{pk: {field: [errors]}}` style maps from bulk action endpoints.
 
-**Warning-only response still prevents submission.** Verify that the server is using `VuedaValidationError(detail, is_warning=True)`, not just a string with "warning" in the text. The `is_warning` flag controls the wire-format wrapping (`{"warnings": [...]}`) that the client parser uses to route to `.messages` instead of `.errors`. Without it, the payload lands in `.errors` and blocks submission.
+**A warning blocks the save instead of asking for confirmation.** This happens when the warning is raised as `VuedaValidationError(detail, is_warning=True)`, which still returns 400 and blocks. For confirm-then-save behavior, move the check to the serializer's `get_warnings()` so the viewset returns a 409 the client can confirm.
+
+**The confirmation dialog never appears.** Confirm the server release implements the `get_warnings` gate (responds 409, not 200/400), that `get_warnings()` actually returns a non-empty mapping for the input, and that the view renders a `FormConfirmDialog` bound to `objectForm.confirmation` (custom shells must add this themselves). When no dialog is registered on the controller, the save resolves as cancelled and a console warning names the missing dialog; check the browser console.
 
 **Custom delete wrapper surfaces false failures.** If your endpoint uses a non-standard success status code (something other than 204 for delete), the default CRUDL wrapper may interpret the response as a failure. Adapt the wrapper to recognize the endpoint's success codes while preserving the `400 → FormValidationError` mapping.
 

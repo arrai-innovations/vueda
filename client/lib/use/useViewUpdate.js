@@ -11,6 +11,7 @@
  * @example Basic shell setup
  * ```vue
  * <script setup>
+ * import FormConfirmDialog from "@vueda/components/FormConfirmDialog.vue";
  * import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
  * import { provide } from "vue";
  * import { FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -19,6 +20,11 @@
  * const { formContext, objectForm, instance, actions } = useViewUpdate(props);
  * provide(FormContextSymbol, formContext);
  * </script>
+ * <template>
+ *     <!-- ...form markup... -->
+ *     <!-- Required: resolves submit-time warning confirmations (HTTP 409); without it warned saves are cancelled. -->
+ *     <FormConfirmDialog :controller="objectForm.confirmation" />
+ * </template>
  * ```
  */
 import { useObject } from "@arrai-innovations/reactive-helpers";

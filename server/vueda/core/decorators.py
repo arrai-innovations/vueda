@@ -1,6 +1,7 @@
 """ViewSet action decorators for dry-run support and reauthentication."""
 
 __all__ = (
+    "ACKNOWLEDGE_WARNINGS_HEADER",
     "DRY_RUN_HEADER",
     "action",
     "recent_auth_required",
@@ -18,6 +19,7 @@ from rest_framework.response import Response
 
 
 DRY_RUN_HEADER = "Dry-Run"
+ACKNOWLEDGE_WARNINGS_HEADER = "Acknowledge-Warnings"
 
 
 def action(methods=None, detail=None, bulk=False, url_path=None, url_name=None, **kwargs):

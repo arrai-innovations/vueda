@@ -6,7 +6,7 @@ import { cancellableFetch, setObjectCrud } from "@arrai-innovations/reactive-hel
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
@@ -123,7 +123,7 @@ export function defaultObjectRetrieve({ target, pk, params }) {
  * @param args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
-export function defaultObjectCreate({ target, object, params }) {
+export function defaultObjectCreate({ target, object, params, acknowledgeWarnings }) {
     const { app, model, action, pk } = target;
     const query = params ? makeSearchParamsString(params) : "";
     const controller = new AbortController();
@@ -135,6 +135,9 @@ export function defaultObjectCreate({ target, object, params }) {
     };
     if (!hasFile) {
         headers["Content-Type"] = "application/json";
+    }
+    if (acknowledgeWarnings) {
+        headers["Acknowledge-Warnings"] = acknowledgeWarnings;
     }
     const body = hasFile ? getFormData(object) : JSON.stringify(object);
 
@@ -151,6 +154,9 @@ export function defaultObjectCreate({ target, object, params }) {
         }
         if (response.status === 400) {
             throw new FormValidationError(responseData, response);
+        }
+        if (response.status === 409) {
+            throw new ConfirmationRequiredError(responseData, response);
         }
         throw new FetchError("Failed to create object", response, responseData);
     });
@@ -177,7 +183,7 @@ export function defaultObjectCreate({ target, object, params }) {
  * @param args.params {object} - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
-export function defaultObjectUpdate({ target, object, pkKey = "id", params }) {
+export function defaultObjectUpdate({ target, object, pkKey = "id", params, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const pk = object[pkKey];
@@ -190,6 +196,9 @@ export function defaultObjectUpdate({ target, object, pkKey = "id", params }) {
     };
     if (!hasFile) {
         headers["Content-Type"] = "application/json";
+    }
+    if (acknowledgeWarnings) {
+        headers["Acknowledge-Warnings"] = acknowledgeWarnings;
     }
     const body = hasFile ? getFormData(object) : JSON.stringify(object);
 
@@ -208,6 +217,9 @@ export function defaultObjectUpdate({ target, object, pkKey = "id", params }) {
             }
             if (response.status === 400) {
                 throw new FormValidationError(responseData, response);
+            }
+            if (response.status === 409) {
+                throw new ConfirmationRequiredError(responseData, response);
             }
             throw new FetchError("Failed to update object", response, responseData);
         },

@@ -437,6 +437,21 @@ class VuedaSerializer(
     available_actions = AvailableActionsField()
     formatted_name = serializers.ReadOnlyField(style={"hidden": True})
 
+    def get_warnings(self):
+        """
+        Return advisory warnings for the current create/update as a mapping of
+        ``{field_name: [messages], "non_field_errors": [messages]}``. An empty mapping means no
+        warnings.
+
+        Override to surface non-blocking concerns the user should confirm before the write commits
+        (for example, "this will deactivate the last administrator"). This is called by the viewset
+        after validation succeeds, so ``self.validated_data`` is populated and ``self.instance`` holds
+        the current (pre-save) instance on updates. It must not raise: blocking conditions belong in
+        ``validate``/``VuedaValidationError`` (which return 400), whereas warnings gate the save behind
+        an explicit client confirmation (see ``WarningConfirmationMixin``).
+        """
+        return {}
+
     def to_representation(self, instance):
         repr_data = super().to_representation(instance)
         sparse_fields, _ = split_levels(self._flex_options_all["fields"])

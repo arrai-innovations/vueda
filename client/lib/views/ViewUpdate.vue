@@ -1,5 +1,6 @@
 <script setup>
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
+import FormConfirmDialog from "@vueda/components/FormConfirmDialog.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
@@ -286,6 +287,7 @@ onMounted(() => {
                 </form-model>
             </form>
         </div>
+        <form-confirm-dialog :controller="objectForm.confirmation" />
     </div>
 </template>
 

@@ -29,6 +29,7 @@ DATABASES["db_logging"]["CONN_MAX_AGE"] = 0
 
 LOCAL_APPS = [
     "tests.apps.TestsConfig",
+    "tests.confirmation.apps.ConfirmationConfig",
     "tests.erring.apps.ErringConfig",
     "tests.logging.apps.LoggingConfig",
     "tests.store.apps.StoreConfig",

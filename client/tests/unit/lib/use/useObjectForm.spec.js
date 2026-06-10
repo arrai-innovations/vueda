@@ -1,4 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
+import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { reactive, ref } from "vue";
 
@@ -141,6 +142,216 @@ describe("lib/use/useObjectForm.js", () => {
         expect(mockLoadingError.setLoading).toHaveBeenCalled();
         expect(mockLoadingError.clearLoading).toHaveBeenCalled();
         expect(state.submitErrored).toBe(false);
+        expect(routerPush).toHaveBeenCalled();
+    });
+
+    const buildConfirmationScenario = () => {
+        const props = reactive({
+            app: "app",
+            model: "model",
+            verboseName: "model",
+            redirectAfter: "list",
+            firstErrorField: "name",
+        });
+        const formContext = {
+            state: reactive({
+                anyModified: true,
+                anyError: false,
+                submittingValues: { name: "test" },
+                errors: {},
+                anyIgnored: false,
+                ignored: {},
+            }),
+            setAllTouched: vi.fn(),
+            handleServerFormValidationError: vi.fn(),
+            clearServerErrors: vi.fn(),
+        };
+        const confirmationError = new ConfirmationRequiredError(
+            { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } },
+            {},
+        );
+        const instanceObject = {
+            state: reactive({ pkKey: "id", pk: "", object: {}, errored: false, error: null }),
+            create: vi.fn(({ acknowledgeWarnings }) => {
+                if (acknowledgeWarnings) {
+                    instanceObject.state.errored = false;
+                    instanceObject.state.error = null;
+                } else {
+                    instanceObject.state.errored = true;
+                    instanceObject.state.error = confirmationError;
+                }
+                return Promise.resolve();
+            }),
+            update: vi.fn().mockResolvedValue(),
+            clearError: vi.fn(() => {
+                instanceObject.state.errored = false;
+                instanceObject.state.error = null;
+            }),
+        };
+        return { props, formContext, instanceObject, confirmationError };
+    };
+
+    scopedIt("submit opens confirmation on 409 and retries with the digest when confirmed", async () => {
+        const { props, formContext, instanceObject } = buildConfirmationScenario();
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+        objectForm.confirmation.register();
+
+        const submitPromise = objectForm.submit();
+        await flushPromises();
+
+        // Warnings surfaced and the dialog is open, awaiting the user.
+        expect(formContext.handleServerFormValidationError).toHaveBeenCalled();
+        expect(objectForm.confirmation.open).toBe(true);
+        expect(objectForm.confirmation.messages).toEqual({ count: ["unusual"] });
+        expect(instanceObject.create).toHaveBeenCalledTimes(1);
+
+        objectForm.confirmation.confirm();
+        await flushPromises();
+        await submitPromise;
+
+        // Retried once, acknowledging the warnings, then succeeded.
+        expect(instanceObject.create).toHaveBeenCalledTimes(2);
+        expect(instanceObject.create).toHaveBeenLastCalledWith({ object: { name: "test" }, acknowledgeWarnings: "d1" });
+        expect(objectForm.confirmation.open).toBe(false);
+        expect(objectForm.state.submitErrored).toBe(false);
+        expect(routerPush).toHaveBeenCalled();
+    });
+
+    scopedIt("submit leaves the form unsaved when confirmation is cancelled", async () => {
+        const { props, formContext, instanceObject } = buildConfirmationScenario();
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+        objectForm.confirmation.register();
+
+        const submitPromise = objectForm.submit();
+        await flushPromises();
+        expect(objectForm.confirmation.open).toBe(true);
+
+        objectForm.confirmation.cancel();
+        await flushPromises();
+        await submitPromise;
+
+        // No retry, no success redirect, form marked as not saved.
+        expect(instanceObject.create).toHaveBeenCalledTimes(1);
+        expect(objectForm.confirmation.open).toBe(false);
+        expect(objectForm.state.submitErrored).toBe(true);
+        expect(routerPush).not.toHaveBeenCalled();
+    });
+
+    scopedIt("fails closed when a 409 arrives with no confirmation consumer registered", async () => {
+        const { props, formContext, instanceObject } = buildConfirmationScenario();
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+
+        // Settles instead of wedging: treated as a cancel, with a console pointer at the missing dialog.
+        await objectForm.submit();
+        await flushPromises();
+
+        expect(instanceObject.create).toHaveBeenCalledTimes(1);
+        expect(objectForm.confirmation.open).toBe(false);
+        expect(objectForm.state.submitErrored).toBe(true);
+        expect(mockLoadingError.clearLoading).toHaveBeenCalled();
+        expect(routerPush).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(warnSpy.mock.calls[0][0]).toContain("FormConfirmDialog");
+        // The warnings still render on the form, and the set is recorded for the next round's clearing.
+        expect(formContext.handleServerFormValidationError).toHaveBeenCalled();
+        expect(objectForm.confirmation.messages).toEqual({ count: ["unusual"] });
+        warnSpy.mockRestore();
+    });
+
+    scopedIt("fails closed again once the last consumer unregisters", async () => {
+        const { props, formContext, instanceObject } = buildConfirmationScenario();
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+        objectForm.confirmation.register();
+        objectForm.confirmation.unregister();
+
+        await objectForm.submit();
+        await flushPromises();
+
+        expect(objectForm.confirmation.open).toBe(false);
+        expect(objectForm.state.submitErrored).toBe(true);
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        warnSpy.mockRestore();
+    });
+
+    scopedIt("does not enter the confirmation loop when a 409 carries no digest", async () => {
+        const { props, formContext } = buildConfirmationScenario();
+        const noDigestError = new ConfirmationRequiredError(
+            { confirmation_required: true, warnings: { count: ["unusual"] } },
+            {},
+        );
+        const instanceObject = {
+            state: reactive({ pkKey: "id", pk: "", object: {}, errored: false, error: null }),
+            create: vi.fn(() => {
+                instanceObject.state.errored = true;
+                instanceObject.state.error = noDigestError;
+                return Promise.resolve();
+            }),
+            update: vi.fn().mockResolvedValue(),
+            clearError: vi.fn(),
+        };
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+
+        await objectForm.submit();
+        await flushPromises();
+
+        // Falls through to the error path instead of prompting/retrying forever.
+        expect(instanceObject.create).toHaveBeenCalledTimes(1);
+        expect(objectForm.confirmation.open).toBe(false);
+        expect(objectForm.state.submitErrored).toBe(true);
+        expect(routerPush).not.toHaveBeenCalled();
+    });
+
+    scopedIt("clears the previous round's warnings when a re-prompt carries a changed set", async () => {
+        const { props, formContext } = buildConfirmationScenario();
+        const round1 = new ConfirmationRequiredError(
+            { confirmation_required: true, digest: "d1", warnings: { count: ["round one"] } },
+            {},
+        );
+        const round2 = new ConfirmationRequiredError(
+            { confirmation_required: true, digest: "d2", warnings: { name: ["round two"] } },
+            {},
+        );
+        const instanceObject = {
+            state: reactive({ pkKey: "id", pk: "", object: {}, errored: false, error: null }),
+            create: vi.fn(({ acknowledgeWarnings }) => {
+                if (acknowledgeWarnings === "d1") {
+                    instanceObject.state.errored = true;
+                    instanceObject.state.error = round2;
+                } else if (acknowledgeWarnings === "d2") {
+                    instanceObject.state.errored = false;
+                    instanceObject.state.error = null;
+                } else {
+                    instanceObject.state.errored = true;
+                    instanceObject.state.error = round1;
+                }
+                return Promise.resolve();
+            }),
+            update: vi.fn().mockResolvedValue(),
+            clearError: vi.fn(() => {
+                instanceObject.state.errored = false;
+                instanceObject.state.error = null;
+            }),
+        };
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+        objectForm.confirmation.register();
+
+        const submitPromise = objectForm.submit();
+        await flushPromises();
+        expect(objectForm.confirmation.messages).toEqual({ count: ["round one"] });
+
+        objectForm.confirmation.confirm();
+        await flushPromises();
+        // Re-prompted with the new set; the previous round's field was cleared first.
+        expect(formContext.clearServerErrors).toHaveBeenCalledWith("count");
+        expect(objectForm.confirmation.messages).toEqual({ name: ["round two"] });
+
+        objectForm.confirmation.confirm();
+        await flushPromises();
+        await submitPromise;
+
+        expect(instanceObject.create).toHaveBeenCalledTimes(3);
         expect(routerPush).toHaveBeenCalled();
     });
 });
