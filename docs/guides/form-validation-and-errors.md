@@ -181,7 +181,7 @@ For the validation pipeline to work correctly, the server must follow these conv
 
 ## Warnings That Require Confirmation
 
-Use a warning when a create or update should succeed but the user ought to acknowledge something first ("this will deactivate the last administrator"). Unlike a validation error, a warning does not fail the request; it pauses it for confirmation.
+Use a warning when a create or update should succeed but the user ought to acknowledge something first (for example, "this will deactivate the last administrator"). Unlike a validation error, a warning does not fail the request; it pauses it for confirmation.
 
 **Server: override `get_warnings()`.** On the serializer, return advisory messages keyed by field (use `non_field_errors` for form-level):
 
@@ -200,7 +200,7 @@ class WidgetSerializer(VuedaSerializer):
 
 `get_warnings()` runs after validation succeeds, so `self.validated_data` and (on update) `self.instance` are available. It must not raise; blocking conditions belong in `validate()`. When it returns warnings that the request has not acknowledged, `VuedaViewSet` withholds the write and responds `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}`.
 
-**Client: confirm, then resubmit.** The create/update adaptor raises `ConfirmationRequiredError` on the 409. `useObjectForm` renders the warnings into `state.messages`, opens its `confirmation` controller, and (for `ViewUpdate`) shows a `FormConfirmDialog`. Confirming resubmits once with the `Acknowledge-Warnings` header set to the response `digest`, which the server matches to let the write proceed; cancelling leaves the form unsaved with the warnings visible. A custom update shell that calls `useObjectForm` directly should render a dialog bound to `objectForm.confirmation`, or override the `onSubmissionWarningsRequireConfirmation` hook.
+**Client: confirm, then resubmit.** The create/update adaptor raises `ConfirmationRequiredError` on the 409. `useObjectForm` renders the warnings into `state.messages`, opens its `confirmation` controller, and (for `ViewCreate` and `ViewUpdate`) shows a `FormConfirmDialog`. Confirming resubmits once with the `Acknowledge-Warnings` header set to the response `digest`, which the server matches to let the write proceed; cancelling leaves the form unsaved with the warnings visible. A custom shell that calls `useObjectForm` directly should render a dialog bound to `objectForm.confirmation`, or override the `onSubmissionWarningsRequireConfirmation` hook. A custom dialog must call `confirmation.register()` on mount and `confirmation.unregister()` on unmount (`FormConfirmDialog` does this itself); when no dialog is registered, a warned save fails closed: it resolves as cancelled, the warnings stay rendered on the fields, and a console warning identifies the missing dialog.
 
 ## Verification Checklist
 
@@ -227,7 +227,7 @@ With the validation pipeline wired, verify these behaviors:
 
 **A warning blocks the save instead of asking for confirmation.** This happens when the warning is raised as `VuedaValidationError(detail, is_warning=True)`, which still returns 400 and blocks. For confirm-then-save behavior, move the check to the serializer's `get_warnings()` so the viewset returns a 409 the client can confirm.
 
-**The confirmation dialog never appears.** Confirm the server release implements the `get_warnings` gate (responds 409, not 200/400), that `get_warnings()` actually returns a non-empty mapping for the input, and that the view renders a `FormConfirmDialog` bound to `objectForm.confirmation` (custom update shells must add this themselves).
+**The confirmation dialog never appears.** Confirm the server release implements the `get_warnings` gate (responds 409, not 200/400), that `get_warnings()` actually returns a non-empty mapping for the input, and that the view renders a `FormConfirmDialog` bound to `objectForm.confirmation` (custom shells must add this themselves). When no dialog is registered on the controller, the save resolves as cancelled and a console warning names the missing dialog; check the browser console.
 
 **Custom delete wrapper surfaces false failures.** If your endpoint uses a non-standard success status code (something other than 204 for delete), the default CRUDL wrapper may interpret the response as a failure. Adapt the wrapper to recognize the endpoint's success codes while preserving the `400 → FormValidationError` mapping.
 

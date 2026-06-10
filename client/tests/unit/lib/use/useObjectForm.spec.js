@@ -194,6 +194,7 @@ describe("lib/use/useObjectForm.js", () => {
     scopedIt("submit opens confirmation on 409 and retries with the digest when confirmed", async () => {
         const { props, formContext, instanceObject } = buildConfirmationScenario();
         const objectForm = useObjectForm({ props, formContext, instanceObject });
+        objectForm.confirmation.register();
 
         const submitPromise = objectForm.submit();
         await flushPromises();
@@ -219,6 +220,7 @@ describe("lib/use/useObjectForm.js", () => {
     scopedIt("submit leaves the form unsaved when confirmation is cancelled", async () => {
         const { props, formContext, instanceObject } = buildConfirmationScenario();
         const objectForm = useObjectForm({ props, formContext, instanceObject });
+        objectForm.confirmation.register();
 
         const submitPromise = objectForm.submit();
         await flushPromises();
@@ -233,6 +235,44 @@ describe("lib/use/useObjectForm.js", () => {
         expect(objectForm.confirmation.open).toBe(false);
         expect(objectForm.state.submitErrored).toBe(true);
         expect(routerPush).not.toHaveBeenCalled();
+    });
+
+    scopedIt("fails closed when a 409 arrives with no confirmation consumer registered", async () => {
+        const { props, formContext, instanceObject } = buildConfirmationScenario();
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+
+        // Settles instead of wedging: treated as a cancel, with a console pointer at the missing dialog.
+        await objectForm.submit();
+        await flushPromises();
+
+        expect(instanceObject.create).toHaveBeenCalledTimes(1);
+        expect(objectForm.confirmation.open).toBe(false);
+        expect(objectForm.state.submitErrored).toBe(true);
+        expect(mockLoadingError.clearLoading).toHaveBeenCalled();
+        expect(routerPush).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(warnSpy.mock.calls[0][0]).toContain("FormConfirmDialog");
+        // The warnings still render on the form, and the set is recorded for the next round's clearing.
+        expect(formContext.handleServerFormValidationError).toHaveBeenCalled();
+        expect(objectForm.confirmation.messages).toEqual({ count: ["unusual"] });
+        warnSpy.mockRestore();
+    });
+
+    scopedIt("fails closed again once the last consumer unregisters", async () => {
+        const { props, formContext, instanceObject } = buildConfirmationScenario();
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+        objectForm.confirmation.register();
+        objectForm.confirmation.unregister();
+
+        await objectForm.submit();
+        await flushPromises();
+
+        expect(objectForm.confirmation.open).toBe(false);
+        expect(objectForm.state.submitErrored).toBe(true);
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        warnSpy.mockRestore();
     });
 
     scopedIt("does not enter the confirmation loop when a 409 carries no digest", async () => {
@@ -295,6 +335,7 @@ describe("lib/use/useObjectForm.js", () => {
             }),
         };
         const objectForm = useObjectForm({ props, formContext, instanceObject });
+        objectForm.confirmation.register();
 
         const submitPromise = objectForm.submit();
         await flushPromises();

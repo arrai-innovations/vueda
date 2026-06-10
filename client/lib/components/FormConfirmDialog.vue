@@ -7,7 +7,7 @@ import AlertDialogDescription from "@vueda/shell/alert-dialog/AlertDialogDescrip
 import AlertDialogFooter from "@vueda/shell/alert-dialog/AlertDialogFooter.vue";
 import AlertDialogHeader from "@vueda/shell/alert-dialog/AlertDialogHeader.vue";
 import AlertDialogTitle from "@vueda/shell/alert-dialog/AlertDialogTitle.vue";
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted } from "vue";
 
 /**
  * Confirmation dialog shown when a save is valid but the server reports advisory warnings that must
@@ -43,6 +43,12 @@ const onOpenChange = (open) => {
         props.controller.cancel();
     }
 };
+
+// Announce to the controller that a dialog is bound and will resolve its requests; without a
+// registered consumer the controller fails confirmation requests closed (resolves them as
+// cancelled). Optional chaining tolerates plain-object controllers in tests or custom shells.
+onMounted(() => props.controller.register?.());
+onBeforeUnmount(() => props.controller.unregister?.());
 </script>
 
 <template>

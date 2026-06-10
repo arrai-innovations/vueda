@@ -55,4 +55,21 @@ describe("lib/components/FormConfirmDialog.vue", () => {
         expect(controller.cancel).toHaveBeenCalledTimes(1);
         expect(controller.confirm).not.toHaveBeenCalled();
     });
+
+    scopedIt("registers on mount and unregisters on unmount", () => {
+        const controller = makeController({ register: vi.fn(), unregister: vi.fn() });
+        const wrapper = mount(FormConfirmDialog, { props: { controller }, global: { stubs } });
+
+        expect(controller.register).toHaveBeenCalledTimes(1);
+        expect(controller.unregister).not.toHaveBeenCalled();
+
+        wrapper.unmount();
+        expect(controller.unregister).toHaveBeenCalledTimes(1);
+    });
+
+    scopedIt("tolerates controllers without register/unregister", () => {
+        const controller = makeController();
+        const wrapper = mount(FormConfirmDialog, { props: { controller }, global: { stubs } });
+        expect(() => wrapper.unmount()).not.toThrow();
+    });
 });
