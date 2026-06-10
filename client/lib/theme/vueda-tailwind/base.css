@@ -161,6 +161,13 @@
 @utility focus-ring-destructive {
     --vueda-focus-ring-color: var(--destructive);
 }
+/* Sidebar chrome focus colour: swaps the ring to `--sidebar-ring` (which
+ * aliases `--ring` today) so sidebar controls stay consistent if a custom skin
+ * diverges the two. Pair with `focus-ring`, e.g. `focus-visible:focus-ring
+ * focus-visible:focus-ring-sidebar`. */
+@utility focus-ring-sidebar {
+    --vueda-focus-ring-color: var(--sidebar-ring);
+}
 
 /* `focus-ring-shadow` is the box-shadow alternative to `focus-ring` (outline).
  * Use it on elements that already use `hairline` so the border and focus ring
