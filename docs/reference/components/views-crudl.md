@@ -15,16 +15,11 @@ import Button from "@vueda/controls/button/Button.vue";
 import Input from "@vueda/controls/input/Input.vue";
 import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
 import NativeSelectOption from "@vueda/controls/native-select/NativeSelectOption.vue";
-import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import Textarea from "@vueda/controls/textarea/Textarea.vue";
 import Field from "@vueda/shell/field/Field.vue";
 import FieldContent from "@vueda/shell/field/FieldContent.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
 import FieldLabel from "@vueda/shell/field/FieldLabel.vue";
-import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
-import Alert from "@vueda/feedback/alert/Alert.vue";
-import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
-import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
     faAnglesLeft,
@@ -34,7 +29,6 @@ import {
     faCheck,
     faChevronLeft,
     faChevronRight,
-    faCircleExclamation,
     faClockRotateLeft,
     faEllipsis,
     faFileImport,
@@ -83,6 +77,17 @@ const stickyViewport = ref(null);
 const createViewport = ref(null);
 const readViewport = ref(null);
 const updateViewport = ref(null);
+
+const customerCreateFields = ["account", "domain", "owner", "tier", "mrr", "currency", "taxExempt", "notes"];
+const customerUpdateFields = ["account", "domain", "owner", "tier", "mrr", "currency"];
+const customerUpdateValues = {
+    account: "Northwind Logistics",
+    domain: "northwind-logistics.example",
+    owner: "mt",
+    tier: "enterprise",
+    mrr: "14028.50",
+    currency: "usd",
+};
 
 // Registers a title source into the surrounding page-title context, rendering nothing itself.
 // In a real app this is what a view does via usePageTitle(() => ({ title, loading })).
@@ -430,7 +435,7 @@ The list view is the entry point for every {@term CRUDL} resource. PageTitle anc
 
 ## ViewCreate
 
-The create view pairs PageTitle with a StickyBar immediately below it. The StickyBar holds the primary submit action (pinned and always reachable during form entry) alongside secondary options like "Save and add another." The form body uses a section-grouped two-column grid — Profile fields, a billing FieldSet, and a Notes area — mirroring the layout patterns in [Forms](/reference/components/forms).
+The create view pairs PageTitle with a StickyBar immediately below it. The StickyBar holds the primary submit action (pinned and always reachable during form entry) alongside secondary options like "Save and add another." The form body below renders a real {@api vue:component:FormModel} against seeded model metadata, so it shows the framework's actual default field layout (a single-column stack) rather than hand-built markup. Grouping fields into sections or a multi-column grid is a customization layered on top; see [Forms](/reference/components/forms).
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view create · blank form · pristine</header>
@@ -454,114 +459,14 @@ The create view pairs PageTitle with a StickyBar immediately below it. The Stick
         <span class="text-xs text-muted-foreground">All required fields marked <span class="text-destructive">*</span></span>
       </div>
     </StickyBar>
-    <div class="px-6 py-5">
-      <div class="mb-6">
-        <div class="mb-4 flex items-baseline justify-between border-b border-border pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Profile</h3>
-          <span class="text-xs text-muted-foreground">required</span>
-        </div>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field orientation="vertical">
-            <FieldLabel for="cr-name">Account name <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-            <FieldContent>
-              <Input id="cr-name" placeholder="Granger Holdings" />
-              <FieldDescription>Shown on invoices and the customer portal.</FieldDescription>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="cr-domain">Primary domain</FieldLabel>
-            <FieldContent>
-              <Input id="cr-domain" placeholder="example.com" />
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="cr-owner">Owner <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-            <FieldContent>
-              <NativeSelect id="cr-owner">
-                <NativeSelectOption value="">— select —</NativeSelectOption>
-                <NativeSelectOption value="mt">Mara Tani</NativeSelectOption>
-                <NativeSelectOption value="jr">Jordan Reyes</NativeSelectOption>
-                <NativeSelectOption value="ps">Priya Subramanian</NativeSelectOption>
-                <NativeSelectOption value="lb">Linnea Borg</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="cr-tier">Plan tier</FieldLabel>
-            <FieldContent>
-              <NativeSelect id="cr-tier">
-                <NativeSelectOption value="trial">Trial</NativeSelectOption>
-                <NativeSelectOption value="standard" selected>Standard</NativeSelectOption>
-                <NativeSelectOption value="enterprise">Enterprise</NativeSelectOption>
-              </NativeSelect>
-              <FieldDescription>Default for new accounts is Standard.</FieldDescription>
-            </FieldContent>
-          </Field>
-        </div>
-      </div>
-      <div class="mb-6">
-        <div class="mb-4 flex items-baseline justify-between border-b border-border pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Billing</h3>
-          <span class="text-xs text-muted-foreground">optional during create</span>
-        </div>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div class="rounded-vueda-control border border-border p-4 sm:col-span-1">
-            <p class="mb-3 text-xs font-semibold text-foreground">MRR window</p>
-            <div class="flex items-end gap-3">
-              <Field orientation="vertical" class="min-w-0 flex-1">
-                <FieldLabel for="cr-mrr-lo">From</FieldLabel>
-                <FieldContent>
-                  <Input id="cr-mrr-lo" type="number" placeholder="0" />
-                </FieldContent>
-              </Field>
-              <span class="mb-2 text-muted-foreground" aria-hidden="true">→</span>
-              <Field orientation="vertical" class="min-w-0 flex-1">
-                <FieldLabel for="cr-mrr-hi">To</FieldLabel>
-                <FieldContent>
-                  <Input id="cr-mrr-hi" type="number" placeholder="No upper limit" />
-                </FieldContent>
-              </Field>
-            </div>
-            <p class="mt-2 text-xs text-muted-foreground">Inclusive on both ends. Used for tier-band reporting.</p>
-          </div>
-          <Field orientation="vertical">
-            <FieldLabel for="cr-currency">Currency</FieldLabel>
-            <FieldContent>
-              <NativeSelect id="cr-currency">
-                <NativeSelectOption value="usd">USD</NativeSelectOption>
-                <NativeSelectOption value="eur">EUR</NativeSelectOption>
-                <NativeSelectOption value="gbp">GBP</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="cr-tax">Tax-exempt</FieldLabel>
-            <FieldContent>
-              <label class="inline-flex cursor-pointer items-center gap-2">
-                <Checkbox id="cr-tax" />
-                <span class="text-sm">Yes — W-9 on file</span>
-              </label>
-            </FieldContent>
-          </Field>
-        </div>
-      </div>
-      <div>
-        <div class="mb-4 flex items-baseline border-b border-border pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Notes</h3>
-        </div>
-        <Field orientation="vertical">
-          <FieldLabel for="cr-notes">Internal note</FieldLabel>
-          <FieldContent>
-            <Textarea id="cr-notes" rows="3" placeholder="Visible to your team only." />
-          </FieldContent>
-        </Field>
-      </div>
-    </div>
+    <ClientOnly>
+      <DemoFormModel app="showcase" :fields="customerCreateFields" model="customer" view="create" view-theme="ViewCreate" />
+    </ClientOnly>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>StickyBar sits directly below PageTitle: primary submit is always reachable without scrolling to the bottom</span>
-    <span>section headers: small-caps eyebrow pattern groups fields into scannable sections</span>
-    <span>form grid: two-column layout — paired fields share a row, full-width sections span both columns</span>
+    <span>form body: a real FormModel rendered against seeded model metadata; the gutter comes from the ViewCreate body theme slot</span>
+    <span>the default field layout is a single-column stack. Section grouping and multi-column grids are customizations.</span>
   </footer>
 </VuedaDemo>
 
@@ -677,10 +582,10 @@ The read view presents a single record in a non-editable layout. Inputs are repl
 
 ## ViewUpdate
 
-The update view flips read mode to editable. Fields with pending changes get a modified indicator — a primary-tinted dot and "Modified" badge — in their label. When the form has validation errors after a save attempt, an Alert renders between the StickyBar and the form body. The StickyBar gains a "N modified" count in its secondary area.
+The update view renders the same form as create, populated from the loaded record. The body below is a real {@api vue:component:FormModel} seeded with initial values. Two update-specific behaviors are view-level and are not shown by a standalone FormModel: per-field modified indicators (a primary-tinted dot and "Modified" badge in the label) and the form-level error Alert that renders after a failed save.
 
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · 2 fields modified · 1 form-level error</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · populated form · real FormModel</header>
   <div ref="updateViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[34rem]">
     <ClientOnly>
       <DemoTitleBar title="Edit Northwind Logistics">
@@ -698,123 +603,16 @@ The update view flips read mode to editable. Fields with pending changes get a m
           </Button>
           <Button variant="outline">Discard</Button>
         </div>
-        <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-          <span class="size-1.5 rounded-full bg-current"></span>
-          2 modified
-        </span>
       </div>
     </StickyBar>
-    <div class="px-6 pt-3">
-      <Alert variant="destructive" class="mb-4">
-        <FontAwesomeIcon :icon="faCircleExclamation" />
-        <AlertTitle>Couldn't save changes</AlertTitle>
-        <AlertDescription>
-          <ul class="mt-1 list-disc pl-4">
-            <li>Renewal date can't be earlier than today.</li>
-            <li>MRR upper bound must be greater than the lower bound.</li>
-          </ul>
-        </AlertDescription>
-      </Alert>
-    </div>
-    <div class="px-6 pb-5">
-      <div class="mb-6">
-        <div class="mb-4 border-b border-border pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Profile</h3>
-        </div>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field orientation="vertical">
-            <FieldLabel for="up-name">Account name <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-            <FieldContent>
-              <Input id="up-name" model-value="Northwind Logistics" />
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="up-domain">
-              Primary domain
-              <span class="ml-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-primary" aria-label="Modified">
-                <span class="size-1.5 rounded-full bg-current"></span>
-                Modified
-              </span>
-            </FieldLabel>
-            <FieldContent>
-              <Input id="up-domain" model-value="northwind-logistics.example" />
-              <FieldDescription>Was: <code class="font-mono text-xs">northwind.example</code></FieldDescription>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="up-owner">Owner <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-            <FieldContent>
-              <NativeSelect id="up-owner">
-                <NativeSelectOption value="mt" selected>Mara Tani</NativeSelectOption>
-                <NativeSelectOption value="jr">Jordan Reyes</NativeSelectOption>
-                <NativeSelectOption value="ps">Priya Subramanian</NativeSelectOption>
-                <NativeSelectOption value="lb">Linnea Borg</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="up-tier">Plan tier</FieldLabel>
-            <FieldContent>
-              <NativeSelect id="up-tier">
-                <NativeSelectOption value="trial">Trial</NativeSelectOption>
-                <NativeSelectOption value="standard">Standard</NativeSelectOption>
-                <NativeSelectOption value="enterprise" selected>Enterprise</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-        </div>
-      </div>
-      <div>
-        <div class="mb-4 border-b border-border pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Billing</h3>
-        </div>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div class="rounded-vueda-control border border-border p-4">
-            <p class="mb-3 flex items-center gap-2 text-xs font-semibold text-foreground">
-              Renewal window
-              <span class="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-primary" aria-label="Modified">
-                <span class="size-1.5 rounded-full bg-current"></span>
-                Modified
-              </span>
-            </p>
-            <div class="flex items-end gap-3">
-              <Field orientation="vertical" class="min-w-0 flex-1">
-                <FieldLabel for="up-rn-lo">From</FieldLabel>
-                <FieldContent>
-                  <Input id="up-rn-lo" type="date" model-value="2025-08-12" aria-invalid="true" />
-                  <FieldMessage variant="destructive">
-                    <FontAwesomeIcon :icon="faCircleExclamation" aria-hidden="true" />
-                    Renewal date can't be earlier than today.
-                  </FieldMessage>
-                </FieldContent>
-              </Field>
-              <span class="mb-8 text-muted-foreground" aria-hidden="true">→</span>
-              <Field orientation="vertical" class="min-w-0 flex-1">
-                <FieldLabel for="up-rn-hi">To</FieldLabel>
-                <FieldContent>
-                  <Input id="up-rn-hi" type="date" model-value="2027-08-12" />
-                </FieldContent>
-              </Field>
-            </div>
-          </div>
-          <Field orientation="vertical">
-            <FieldLabel for="up-currency">Currency</FieldLabel>
-            <FieldContent>
-              <NativeSelect id="up-currency">
-                <NativeSelectOption value="usd" selected>USD</NativeSelectOption>
-                <NativeSelectOption value="eur">EUR</NativeSelectOption>
-                <NativeSelectOption value="gbp">GBP</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-        </div>
-      </div>
-    </div>
+    <ClientOnly>
+      <DemoFormModel app="showcase" :fields="customerUpdateFields" :initial-values="customerUpdateValues" model="customer" view="update" view-theme="ViewUpdate" />
+    </ClientOnly>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>modified indicator: primary dot + badge in FieldLabel, and count pill in StickyBar secondary area</span>
-    <span>form-level Alert: between StickyBar and form body; field-level FieldMessage for inline errors</span>
-    <span>FieldDescription: used to show previous value on modified fields</span>
+    <span>form body: a real FormModel seeded with initial values; the gutter comes from the ViewUpdate body theme slot</span>
+    <span>per-field modified indicators and the form-level error Alert are view-level behaviors, not shown by a standalone FormModel</span>
+    <span>labels, help text, required markers, and select options all come from the seeded field metadata</span>
   </footer>
 </VuedaDemo>
 
