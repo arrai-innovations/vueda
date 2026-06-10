@@ -1,10 +1,12 @@
 <script setup>
 import showcaseCss from "../showcase.css?inline";
 import faStyles from "@fortawesome/fontawesome-svg-core/styles.css?inline";
-import { onMounted, ref } from "vue";
+import { useData } from "vitepress";
+import { onMounted, ref, watch } from "vue";
 
 const host = ref(null);
 const shadowTarget = ref(null);
+const { isDark } = useData();
 
 onMounted(() => {
     const shadow = host.value.attachShadow({ mode: "open" });
@@ -28,6 +30,21 @@ onMounted(() => {
     container.style.display = "contents";
     shadow.appendChild(container);
     shadowTarget.value = container;
+
+    // VitePress toggles dark mode by adding `.dark` to <html>, which lives in
+    // the light DOM outside this shadow boundary. VUEDA's `dark:` variant is
+    // selector-scoped (`&:where(.dark, .dark *)`), so it cannot match that
+    // ancestor from inside the shadow tree, and every `dark:`-only utility
+    // (e.g. `dark:border-input` on outline buttons) silently no-ops while the
+    // inherited token values still flip. Mirror the flag onto the shadow
+    // container so those variants resolve and the demos match a real app.
+    watch(
+        isDark,
+        (dark) => {
+            container.classList.toggle("dark", dark);
+        },
+        { immediate: true },
+    );
 });
 </script>
 

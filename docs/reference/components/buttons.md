@@ -147,7 +147,7 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button size="icon-lg" variant="outline" aria-label="Settings"><FontAwesomeIcon :icon="faGear" /></Button></div>
     </div>
     <template #footer>
-      <span>border <code>--border</code></span>
+      <span>border <code>--foreground</code></span>
       <span>bg <code>--background</code></span>
       <span>hover bg <code>--accent</code></span>
       <span>hover fg <code>--accent-foreground</code></span>
