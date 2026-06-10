@@ -5,7 +5,7 @@
 import { CancellablePromise, cancellableFetch, deepUnref, setListCrud } from "@arrai-innovations/reactive-helpers";
 import { PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError, FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, FetchError, FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
@@ -222,9 +222,11 @@ export function allPagePaginatedListCrudAdaptor({
  * }} args.target - The arguments for the CRUD operation.
  * @param {string[]} args.pks - The PKs of the objects to delete.
  * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
+ * @param {string} [args.acknowledgeWarnings] - Warnings digest from a prior 409, sent as the
+ *  `Acknowledge-Warnings` header so the server lets the gated delete proceed.
  * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} - A cancellable promise.
  */
-export function defaultObjectsDelete({ target, pks, dryRun }) {
+export function defaultObjectsDelete({ target, pks, dryRun, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const url = getListUrl({ app, model, action });
@@ -234,6 +236,9 @@ export function defaultObjectsDelete({ target, pks, dryRun }) {
     };
     if (dryRun) {
         headers["Dry-Run"] = "true";
+    }
+    if (acknowledgeWarnings) {
+        headers["Acknowledge-Warnings"] = acknowledgeWarnings;
     }
     return cancellableFetch(
         url,
@@ -252,6 +257,9 @@ export function defaultObjectsDelete({ target, pks, dryRun }) {
             }
             if (response.status === 400) {
                 throw new FormValidationError(responseData, response);
+            }
+            if (response.status === 409) {
+                throw new ConfirmationRequiredError(responseData, response);
             }
             throw new FetchError("Failed to delete object", response, responseData);
         },
