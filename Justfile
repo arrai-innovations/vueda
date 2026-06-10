@@ -74,6 +74,9 @@ fix-eslint:
 fix-prettier:
   cd {{justfile_directory()}} && pnpm run fix:prettier | sed '/unchanged/d'
 
+types-client:
+  cd {{justfile_directory()}}/client && pnpm run build:types
+
 manage *args:
   cd {{justfile_directory()}}/server && uv run --no-sync python manage.py {{args}}
 
