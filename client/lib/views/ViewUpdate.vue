@@ -287,7 +287,12 @@ onMounted(() => {
                 </form-model>
             </form>
         </div>
-        <form-confirm-dialog :controller="objectForm.confirmation" />
+        <form-confirm-dialog
+            :controller="objectForm.confirmation"
+            title="Confirm save"
+            description="This change has warnings. Review them before saving."
+            confirm-label="Save anyway"
+        />
     </div>
 </template>
 

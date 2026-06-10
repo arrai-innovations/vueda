@@ -23,12 +23,12 @@ const props = defineProps({
     /** The confirmation controller (`objectForm.confirmation` from `useObjectForm`, or `confirmation` from `useActionForm`). */
     controller: { type: Object, required: true },
     /** Dialog heading. */
-    title: { type: String, default: "Confirm save" },
+    title: { type: String, default: "Confirm action" },
     /** Explanatory text shown above the list of warnings. */
-    description: { type: String, default: "This change has warnings. Review them before saving." },
-    /** Label for the button that proceeds with the save. */
-    confirmLabel: { type: String, default: "Save anyway" },
-    /** Label for the button that abandons the save. */
+    description: { type: String, default: "This action has warnings. Review them before continuing." },
+    /** Label for the button that proceeds. */
+    confirmLabel: { type: String, default: "Continue anyway" },
+    /** Label for the button that abandons the action. */
     cancelLabel: { type: String, default: "Cancel" },
 });
 

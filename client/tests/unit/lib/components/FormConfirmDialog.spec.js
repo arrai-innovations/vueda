@@ -26,6 +26,15 @@ const makeController = (overrides = {}) => ({
 });
 
 describe("lib/components/FormConfirmDialog.vue", () => {
+    scopedIt("uses action-neutral default copy", () => {
+        const controller = makeController({ messages: { count: ["unusual"] } });
+        const wrapper = mount(FormConfirmDialog, { props: { controller }, global: { stubs } });
+
+        expect(wrapper.text()).toContain("Confirm action");
+        expect(wrapper.text()).toContain("This action has warnings. Review them before continuing.");
+        expect(wrapper.text()).toContain("Continue anyway");
+    });
+
     scopedIt("renders one item per warning message", () => {
         const controller = makeController({
             messages: { count: ["A negative count is unusual."], non_field_errors: ["Heads up."] },
