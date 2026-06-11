@@ -90,7 +90,7 @@ patchTheme({
             class: ({ isTable }) => {
                 return [
                     "group/row transition-colors",
-                    "hover:bg-muted/50",
+                    "hover:bg-accent/50",
                     "data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09]",
                     "data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)]",
                     // marked-destroy: 4% destructive tint and a strikethrough on every cell whose

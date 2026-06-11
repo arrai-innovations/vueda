@@ -37,7 +37,7 @@ patchTheme({
             class: [
                 "grid grid-cols-[24px_1fr_auto_auto] items-center gap-x-3 px-2.5 py-2.5",
                 "w-full no-underline text-inherit",
-                "hover:bg-muted/50 transition-colors",
+                "hover:bg-accent/50 transition-colors",
                 "focus-visible:focus-ring-shadow",
             ],
         },
