@@ -3,7 +3,7 @@ name = "vueda-docs-tooling"
 version = "0.0.0"
 requires-python = ">=3.11"
 dependencies = [
-  "pdoc>=14.4.0",
+  "pdoc>=16.0.0",
 ]
 
 [dependency-groups]
