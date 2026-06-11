@@ -25,10 +25,10 @@ patchTheme({
             class: "fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-overlay data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         },
         /**
-         * The close control for scrollable dialog content. It is positioned inside the modal surface and uses a secondary hover fill instead of changing layout.
+         * The close control for scrollable dialog content. It is positioned inside the modal surface and uses the canonical `--accent` hover fill (the same ghost-icon-button affordance used elsewhere) instead of changing layout.
          */
         close: {
-            class: "absolute top-4 right-4 p-0.5 transition-colors rounded-md hover:bg-secondary",
+            class: "absolute top-4 right-4 p-0.5 transition-colors rounded-md hover:bg-accent hover:text-accent-foreground",
         },
     },
 });

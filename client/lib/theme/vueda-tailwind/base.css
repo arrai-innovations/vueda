@@ -358,11 +358,11 @@
     ); /* muted neutral surface — disabled control fills, subdued chips, low-emphasis backgrounds. */
     --muted-foreground: oklch(0.5 0.015 250); /* muted text — captions, supporting labels, table th. */
     --accent: oklch(
-        0.95 0.008 250
-    ); /* hover / selected surface, one step darker than --muted. Half-strength (`bg-accent/50`) is the canonical "current section" treatment. */
+        0.92 0.008 250
+    ); /* hover / selected surface, one step darker than --muted. Tuned to sit a perceptible lightness step (~0.07 L) below the --background / --popover surfaces so the menu / list highlight and row hover (`bg-accent/50`) clear the glance threshold per § 2.5; half-strength (`bg-accent/50`) stays the canonical "current section" treatment. */
     --accent-foreground: oklch(0.18 0.015 250); /* text on a --accent surface. */
     --accent-active: oklch(
-        0.88 0.01 250
+        0.85 0.01 250
     ); /* pressed neutral surface for outline / ghost buttons: one step below --accent (which serves as their hover) so press reads deeper than hover, without disturbing the --accent selection / row-hover semantics. */
 
     /* Status — desaturated tokens consumed via the `bg-<stat>/10` + `border-<stat>/50` + `text-<stat>` recipe. */
@@ -694,9 +694,11 @@
     --secondary-active: oklch(0.4 0.014 250);
     --muted: oklch(0.24 0.012 250);
     --muted-foreground: oklch(0.68 0.012 250);
-    --accent: oklch(0.28 0.014 250);
+    --accent: oklch(
+        0.31 0.014 250
+    ); /* lighter than the dark surfaces by a perceptible step (mirror of the light-mode retune); see the light --accent note. */
     --accent-foreground: oklch(0.96 0.005 250);
-    --accent-active: oklch(0.36 0.014 250);
+    --accent-active: oklch(0.39 0.014 250);
 
     --destructive: oklch(0.65 0.2 27);
     /* Lighter than the muted dark rest (the primitive keeps `dark:bg-destructive/60`
