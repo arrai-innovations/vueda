@@ -48,6 +48,15 @@ overrides:
   "yaml@>=1.0.0 <1.10.3": ">=1.10.3 <2"
   "yaml@>=2.0.0 <2.8.3": ">=2.8.3 <3"
 
+auditConfig:
+  ignoreGhsas:
+    # vite dev-server advisory (dev-only, dev-server-only). The fix is vite
+    # 6.4.2+, but it reaches us only through vitepress@1.6.4, which pins
+    # vite ^5.4.14 and has no 5.x backport. vite 6/7 support lands in
+    # vitepress 2.x, still alpha as of 2026-06. Revisit when vitepress 2 ships
+    # stable; until then this never reaches shipped code.
+    - GHSA-4w7w-66w2-5vf9
+
 peerDependencyRules:
   allowedVersions:
     glob-promise>glob: "10 || 11"
