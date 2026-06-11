@@ -68,7 +68,7 @@ dev = [
     # test/dev related
     "django_extensions ==4.0.0",
     "django-view-manager ==1.0.4",
-    "coverage >=7.3.3",
+    "coverage>=7.14.1",
     "ipdb >=0.13.13",
     "pytest >=7.4.3",
     "pytest-watcher >=0.4.3",
