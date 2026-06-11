@@ -86,7 +86,7 @@ docs-rebuild:
   cd {{justfile_directory()}}/docs && pnpm exec vitepress build
 
 docs-serve:
-  cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8081
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8081 --force
 
 docs-extract:
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js extract
