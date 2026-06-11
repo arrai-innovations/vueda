@@ -67,7 +67,7 @@ vueda = "vueda.__main__:main"
 dev = [
     # test/dev related
     "django_extensions ==4.0.0",
-    "django-view-manager ==1.0.4",
+    "django-view-manager==2.0.0",
     "coverage >=7.3.3",
     "ipdb >=0.13.13",
     "pytest >=7.4.3",
