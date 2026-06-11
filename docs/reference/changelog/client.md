@@ -58,6 +58,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 - **WidgetImage, WidgetFile**:
     - Both widgets now consume the `{name, url}` representation produced by the server `FileField` and `ImageField` serializer fields. `WidgetImage` unwraps `url` for the preview image and distinguishes a freshly picked `File` (kept in the submission) from a persisted `{name, url}` reference (excluded from the submission, so the existing file is not re-uploaded). `WidgetFile`'s download link now reads `url` instead of the previously unpopulated `objectURL`.
     - `WidgetImage` now shows a live preview of a freshly picked image before it is saved, using a local object URL that is revoked when the selection changes or the widget unmounts.
+    - `WidgetFile`'s file-name link now opens a freshly picked (unsaved) `File` in a new tab via a local object URL, revoked when the selection changes or the widget unmounts. Previously the link pointed the `File` object at its `href`, which navigated to `[object Object]`. Persisted `{name, url}` references continue to link to their `url` in the same tab.
       _Ensure file and image model columns serialize to the `{name, url}` shape. VUEDA serializers do this by default once the matching server release maps `models.FileField` and `models.ImageField` to VUEDA's serializer fields._
 
 ## Public Baseline

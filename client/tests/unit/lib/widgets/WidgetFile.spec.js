@@ -107,6 +107,44 @@ scopedIt("shows file info and removes file", async () => {
     expect(widgetState.combinedValue).toBe(null);
 });
 
+scopedIt("opens an unsaved File via an object URL in a new tab", async () => {
+    // jsdom does not implement the object-URL APIs, so define them for this test.
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    const createObjectURL = vi.fn(() => "blob:fake-url");
+    const revokeObjectURL = vi.fn();
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL;
+    try {
+        const file = new File(["x"], "unsaved.txt");
+        widgetState.combinedValue = file;
+        const wrapper = mount(WidgetFile, mountOptions);
+
+        const link = wrapper.get("a");
+        expect(link.text()).toBe("unsaved.txt");
+        expect(link.attributes("href")).toBe("blob:fake-url");
+        expect(link.attributes("target")).toBe("_blank");
+        expect(link.attributes("rel")).toBe("noopener");
+        expect(createObjectURL).toHaveBeenCalledWith(file);
+
+        // unmount revokes the object URL to avoid leaks
+        wrapper.unmount();
+        expect(revokeObjectURL).toHaveBeenCalledWith("blob:fake-url");
+    } finally {
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+    }
+});
+
+scopedIt("does not set target/rel for saved files", async () => {
+    widgetState.combinedValue = { name: "doc.pdf", url: "/d" };
+    const wrapper = mount(WidgetFile, mountOptions);
+
+    const link = wrapper.get("a");
+    expect(link.attributes("target")).toBeUndefined();
+    expect(link.attributes("rel")).toBeUndefined();
+});
+
 scopedIt("calls ignore for non-File objects and removeIgnore otherwise", async () => {
     const fieldState = reactive({ value: undefined });
     const ignoreFn = vi.fn();
