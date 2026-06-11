@@ -13,6 +13,11 @@ updates:
       open-pull-requests-limit: 10
       allow:
           - dependency-type: "all"
+      groups:
+          minor-and-patch:
+              update-types:
+                  - "minor"
+                  - "patch"
     - package-ecosystem: "uv"
       directory: "/docs-tooling"
       schedule:
@@ -26,6 +31,11 @@ updates:
       open-pull-requests-limit: 10
       allow:
           - dependency-type: "all"
+      groups:
+          minor-and-patch:
+              update-types:
+                  - "minor"
+                  - "patch"
     - package-ecosystem: "npm"
       directory: "/"
       schedule:
@@ -39,3 +49,8 @@ updates:
       open-pull-requests-limit: 10
       allow:
           - dependency-type: "all"
+      groups:
+          minor-and-patch:
+              update-types:
+                  - "minor"
+                  - "patch"
