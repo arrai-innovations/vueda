@@ -68,12 +68,14 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button variant="default">Save</Button></div>
       <div><Button size="lg" variant="default">Save</Button></div>
     </div>
-    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+    <div class="grid grid-cols-4 gap-x-3 gap-y-1">
       <StateLabel>hover</StateLabel>
       <StateLabel>focus-visible</StateLabel>
+      <StateLabel>active</StateLabel>
       <StateLabel>disabled</StateLabel>
       <div><ForceState state="hover"><Button variant="default">Save</Button></ForceState></div>
       <div><ForceState state="focus"><Button variant="default">Save</Button></ForceState></div>
+      <div><ForceState state="active"><Button variant="default">Save</Button></ForceState></div>
       <div><Button variant="default" disabled>Save</Button></div>
     </div>
     <div class="grid grid-cols-3 gap-x-3 gap-y-1">
@@ -99,12 +101,14 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button variant="secondary">Export</Button></div>
       <div><Button size="lg" variant="secondary">Export</Button></div>
     </div>
-    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+    <div class="grid grid-cols-4 gap-x-3 gap-y-1">
       <StateLabel>hover</StateLabel>
       <StateLabel>focus-visible</StateLabel>
+      <StateLabel>active</StateLabel>
       <StateLabel>disabled</StateLabel>
       <div><ForceState state="hover"><Button variant="secondary">Export</Button></ForceState></div>
       <div><ForceState state="focus"><Button variant="secondary">Export</Button></ForceState></div>
+      <div><ForceState state="active"><Button variant="secondary">Export</Button></ForceState></div>
       <div><Button variant="secondary" disabled>Export</Button></div>
     </div>
     <div class="grid grid-cols-3 gap-x-3 gap-y-1">
@@ -130,12 +134,14 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button variant="outline">Cancel</Button></div>
       <div><Button size="lg" variant="outline">Cancel</Button></div>
     </div>
-    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+    <div class="grid grid-cols-4 gap-x-3 gap-y-1">
       <StateLabel>hover</StateLabel>
       <StateLabel>focus-visible</StateLabel>
+      <StateLabel>active</StateLabel>
       <StateLabel>disabled</StateLabel>
       <div><ForceState state="hover"><Button variant="outline">Cancel</Button></ForceState></div>
       <div><ForceState state="focus"><Button variant="outline">Cancel</Button></ForceState></div>
+      <div><ForceState state="active"><Button variant="outline">Cancel</Button></ForceState></div>
       <div><Button variant="outline" disabled>Cancel</Button></div>
     </div>
     <div class="grid grid-cols-3 gap-x-3 gap-y-1">
@@ -162,12 +168,14 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button variant="ghost">More</Button></div>
       <div><Button size="lg" variant="ghost">More</Button></div>
     </div>
-    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+    <div class="grid grid-cols-4 gap-x-3 gap-y-1">
       <StateLabel>hover</StateLabel>
       <StateLabel>focus-visible</StateLabel>
+      <StateLabel>active</StateLabel>
       <StateLabel>disabled</StateLabel>
       <div><ForceState state="hover"><Button variant="ghost">More</Button></ForceState></div>
       <div><ForceState state="focus"><Button variant="ghost">More</Button></ForceState></div>
+      <div><ForceState state="active"><Button variant="ghost">More</Button></ForceState></div>
       <div><Button variant="ghost" disabled>More</Button></div>
     </div>
     <div class="grid grid-cols-3 gap-x-3 gap-y-1">
@@ -193,12 +201,14 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div><Button variant="destructive">Delete</Button></div>
       <div><Button size="lg" variant="destructive">Delete</Button></div>
     </div>
-    <div class="grid grid-cols-3 gap-x-3 gap-y-1">
+    <div class="grid grid-cols-4 gap-x-3 gap-y-1">
       <StateLabel>hover</StateLabel>
       <StateLabel>focus-visible</StateLabel>
+      <StateLabel>active</StateLabel>
       <StateLabel>disabled</StateLabel>
       <div><ForceState state="hover"><Button variant="destructive">Delete</Button></ForceState></div>
       <div><ForceState state="focus"><Button variant="destructive">Delete</Button></ForceState></div>
+      <div><ForceState state="active"><Button variant="destructive">Delete</Button></ForceState></div>
       <div><Button variant="destructive" disabled>Delete</Button></div>
     </div>
     <div class="grid grid-cols-3 gap-x-3 gap-y-1">
@@ -229,6 +239,10 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <div class="flex flex-col gap-1">
         <StateLabel>focus-visible</StateLabel>
         <ForceState state="focus"><Button variant="link">View audit history</Button></ForceState>
+      </div>
+      <div class="flex flex-col gap-1">
+        <StateLabel>active</StateLabel>
+        <ForceState state="active"><Button variant="link">View audit history</Button></ForceState>
       </div>
       <div class="flex flex-col gap-1">
         <StateLabel>disabled</StateLabel>
@@ -340,18 +354,21 @@ all three in lockstep.
       <div><Toggle default-pressed>B</Toggle></div>
       <div><Toggle size="lg" default-pressed>B</Toggle></div>
     </div>
-    <div class="grid grid-cols-[auto_repeat(3,minmax(0,1fr))] items-center gap-x-3 gap-y-1">
+    <div class="grid grid-cols-[auto_repeat(4,minmax(0,1fr))] items-center gap-x-3 gap-y-1">
       <div></div>
       <StateLabel>hover</StateLabel>
       <StateLabel>focus-visible</StateLabel>
+      <StateLabel>active</StateLabel>
       <StateLabel>disabled</StateLabel>
       <StateLabel>off</StateLabel>
       <div><ForceState state="hover"><Toggle>B</Toggle></ForceState></div>
       <div><ForceState state="focus"><Toggle>B</Toggle></ForceState></div>
+      <div><ForceState state="active"><Toggle>B</Toggle></ForceState></div>
       <div><Toggle disabled>B</Toggle></div>
       <StateLabel>on</StateLabel>
       <div><ForceState state="hover"><Toggle default-pressed>B</Toggle></ForceState></div>
       <div><ForceState state="focus"><Toggle default-pressed>B</Toggle></ForceState></div>
+      <div><ForceState state="active"><Toggle default-pressed>B</Toggle></ForceState></div>
       <div><Toggle default-pressed disabled>B</Toggle></div>
     </div>
     <template #footer>
@@ -376,18 +393,21 @@ all three in lockstep.
       <div><Toggle variant="outline" default-pressed>B</Toggle></div>
       <div><Toggle variant="outline" size="lg" default-pressed>B</Toggle></div>
     </div>
-    <div class="grid grid-cols-[auto_repeat(3,minmax(0,1fr))] items-center gap-x-3 gap-y-1">
+    <div class="grid grid-cols-[auto_repeat(4,minmax(0,1fr))] items-center gap-x-3 gap-y-1">
       <div></div>
       <StateLabel>hover</StateLabel>
       <StateLabel>focus-visible</StateLabel>
+      <StateLabel>active</StateLabel>
       <StateLabel>disabled</StateLabel>
       <StateLabel>off</StateLabel>
       <div><ForceState state="hover"><Toggle variant="outline">B</Toggle></ForceState></div>
       <div><ForceState state="focus"><Toggle variant="outline">B</Toggle></ForceState></div>
+      <div><ForceState state="active"><Toggle variant="outline">B</Toggle></ForceState></div>
       <div><Toggle variant="outline" disabled>B</Toggle></div>
       <StateLabel>on</StateLabel>
       <div><ForceState state="hover"><Toggle variant="outline" default-pressed>B</Toggle></ForceState></div>
       <div><ForceState state="focus"><Toggle variant="outline" default-pressed>B</Toggle></ForceState></div>
+      <div><ForceState state="active"><Toggle variant="outline" default-pressed>B</Toggle></ForceState></div>
       <div><Toggle variant="outline" default-pressed disabled>B</Toggle></div>
     </div>
     <template #footer>

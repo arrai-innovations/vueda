@@ -40,3 +40,5 @@
  * disabled treatment should pass the real `disabled` prop; this variant just
  * keeps the visual side consistent if the wrapper is used on non-buttons. */
 @custom-variant disabled (&:disabled, .force-state-disabled &);
+
+@custom-variant active (&:active, .force-state-active &);
