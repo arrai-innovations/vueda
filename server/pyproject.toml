@@ -52,7 +52,7 @@ dependencies = [
     "celery>=5.5.3",
     "django-phonenumber-field[phonenumberslite]>=8.1.0",
     "urllib3>=2.7.0,<3",
-    "twilio>=9.8.0",
+    "twilio>=9.10.9",
     "phonenumbers>=9.0.15",
     "starlette>=1.1.0",
 ]
