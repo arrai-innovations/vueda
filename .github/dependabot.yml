@@ -10,14 +10,9 @@ updates:
           separator: "-"
       commit-message:
           prefix: "chore"
-      open-pull-requests-limit: 10
+      open-pull-requests-limit: 0
       allow:
           - dependency-type: "all"
-      groups:
-          minor-and-patch:
-              update-types:
-                  - "minor"
-                  - "patch"
     - package-ecosystem: "uv"
       directory: "/docs-tooling"
       schedule:
@@ -28,14 +23,9 @@ updates:
           separator: "-"
       commit-message:
           prefix: "chore"
-      open-pull-requests-limit: 10
+      open-pull-requests-limit: 0
       allow:
           - dependency-type: "all"
-      groups:
-          minor-and-patch:
-              update-types:
-                  - "minor"
-                  - "patch"
     - package-ecosystem: "npm"
       directory: "/"
       schedule:
@@ -46,11 +36,6 @@ updates:
           separator: "-"
       commit-message:
           prefix: "chore"
-      open-pull-requests-limit: 10
+      open-pull-requests-limit: 0
       allow:
           - dependency-type: "all"
-      groups:
-          minor-and-patch:
-              update-types:
-                  - "minor"
-                  - "patch"
