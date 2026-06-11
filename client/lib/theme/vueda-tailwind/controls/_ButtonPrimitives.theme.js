@@ -44,8 +44,8 @@ patchTheme({
      * Composed into Button.root when `variant` is `default`.
      */
     _ButtonDefault: {
-        /** The `--primary` CTA fill: solid primary background, primary-foreground text, 10% darker on hover. Pair sparingly with neutral pressed-state recipes like {@api theme-key:Toggle.root} so a CTA and an active toggle do not compete. */
-        root: { class: "bg-primary text-primary-foreground hover:bg-primary/90" },
+        /** The `--primary` CTA fill: solid primary background, primary-foreground text. Hover and active swap the fill to the `--primary-hover` / `--primary-active` lightness steps (darker in light mode, lighter in dark) so the state change clears the glance-detection threshold rather than washing out the way the old `/90` alpha fade did. Pair sparingly with neutral pressed-state recipes like {@api theme-key:Toggle.root} so a CTA and an active toggle do not compete. */
+        root: { class: "bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-active" },
     },
 
     /**
@@ -53,9 +53,9 @@ patchTheme({
      * Composed into Button.root when `variant` is `destructive`.
      */
     _ButtonDestructive: {
-        /** The `--destructive` fill: solid destructive background in light mode, 60%-mix in dark so the chip stays legible against `--background`, destructive-foreground text, and a destructive-tinted focus outline. Reserve for actions that delete user data or are otherwise irreversible; menu / list destructive items use a colour-only recipe. */
+        /** The `--destructive` fill: solid destructive background in light mode, 60%-mix in dark so the chip stays legible against `--background` at rest, destructive-foreground text, and a destructive-tinted focus outline. Hover and active swap to the `--destructive-hover` / `--destructive-active` lightness steps (darker in light mode, lighter in dark). Reserve for actions that delete user data or are otherwise irreversible; menu / list destructive items use a colour-only recipe. */
         root: {
-            class: "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-destructive dark:bg-destructive/60",
+            class: "bg-destructive text-destructive-foreground hover:bg-destructive-hover active:bg-destructive-active focus-visible:outline-destructive dark:bg-destructive/60",
         },
     },
 
@@ -66,9 +66,9 @@ patchTheme({
      * FileUpload.trigger, RangeCalendarPrevButton).
      */
     _ButtonOutline: {
-        /** The neutral-chip recipe: 1px `--foreground` border (set explicitly via `border-foreground` so it opts out of the default `--border` hairline and reads as a true high-contrast outline against the surface in both light and dark), `--background` fill, `shadow-vueda-control` micro-shadow, and `--accent` hover swap. Dark mode follows the input-tint convention (`bg-input/30`, hover `bg-input/50`) so outlined chips read like inputs at rest while keeping the foreground-coloured edge. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons. */
+        /** The neutral-chip recipe: 1px `--foreground` border (set explicitly via `border-foreground` so it opts out of the default `--border` hairline and reads as a true high-contrast outline against the surface in both light and dark), `--background` fill, `shadow-vueda-control` micro-shadow, and an `--accent` hover swap with an `--accent-active` pressed step. Hover / active use the mode-aware `--accent` tokens in both light and dark, so the lightness step is identical in either mode; only the *rest* fill differs (dark mode keeps the input-tint convention, `bg-input/30`, so an outlined chip reads input-like at rest while keeping the foreground-coloured edge). The earlier dark-mode `bg-input/50` hover topped out near the rest lightness because `--input` is itself dark, leaving the smaller sizes with no perceptible state change. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons, so the hover and pressed steps reach those surfaces too. */
         root: {
-            class: "border border-foreground bg-background text-foreground shadow-vueda-control hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:hover:bg-input/50",
+            class: "border border-foreground bg-background text-foreground shadow-vueda-control hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:bg-input/30",
         },
     },
 
@@ -77,8 +77,8 @@ patchTheme({
      * Composed into Button.root when `variant` is `secondary`.
      */
     _ButtonSecondary: {
-        /** The `--secondary` surface fill: solid secondary background, secondary-foreground text, 20%-lighter on hover. Use for actions that sit beside a CTA without stealing it; a row of secondary buttons reads as a control cluster rather than a set of competing CTAs. */
-        root: { class: "bg-secondary text-secondary-foreground hover:bg-secondary/80" },
+        /** The `--secondary` surface fill: solid secondary background, secondary-foreground text. Hover and active swap to the `--secondary-hover` / `--secondary-active` lightness steps (darker in light mode, lighter in dark); the previous `/80` alpha hover was near-invisible because secondary sits almost on the page surface. Use for actions that sit beside a CTA without stealing it; a row of secondary buttons reads as a control cluster rather than a set of competing CTAs. */
+        root: { class: "bg-secondary text-secondary-foreground hover:bg-secondary-hover active:bg-secondary-active" },
     },
 
     /**
@@ -88,8 +88,10 @@ patchTheme({
      * RangeCalendarCellTrigger so day buttons share the same hover recipe.
      */
     _ButtonGhost: {
-        /** The transparent-at-rest recipe: no fill or border until hover, when `--accent` paints the background. Shared by {@api theme-key:CalendarCellTrigger.root} and {@api theme-key:RangeCalendarCellTrigger.root} so day buttons in a calendar grid keep one consistent hover affordance; dark-mode hover is half-strength accent so the day button does not over-saturate the popover surface. */
-        root: { class: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50" },
+        /** The transparent-at-rest recipe: no fill or border until hover, when `--accent` paints the background, with an `--accent-active` pressed step (dark mode: half-strength `accent/50` hover, full `accent` active). Shared by {@api theme-key:CalendarCellTrigger.root} and {@api theme-key:RangeCalendarCellTrigger.root} so day buttons in a calendar grid keep one consistent hover and press affordance; dark-mode hover is half-strength accent so the day button does not over-saturate the popover surface. */
+        root: {
+            class: "hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:hover:bg-accent/50 dark:active:bg-accent",
+        },
     },
 
     /**
@@ -99,7 +101,7 @@ patchTheme({
      * text rather than as a standalone control.
      */
     _ButtonLink: {
-        /** The inline-text recipe: `--primary` text with a 4px underline offset that appears on hover only. The `link` variant of {@api theme-key:Button} also drops the control height and horizontal padding so the affordance does not break surrounding line metrics. */
-        root: { class: "text-primary underline-offset-4 hover:underline" },
+        /** The inline-text recipe: `--primary` text with a 4px underline offset that appears on hover only; active deepens the text to `--primary-active`. The `link` variant of {@api theme-key:Button} also drops the control height and horizontal padding so the affordance does not break surrounding line metrics. */
+        root: { class: "text-primary underline-offset-4 hover:underline active:text-primary-active" },
     },
 });

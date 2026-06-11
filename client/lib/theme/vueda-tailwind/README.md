@@ -146,6 +146,31 @@ Status surfaces (`Alert` family) follow a single recipe: `text-{stat}` +
 The single use of strikethrough in VUEDA is on unavailable Calendar days
 in the destructive colour.
 
+### 2.5 Interactive state steps
+
+Hover and active on a _filled_ control are explicit lightness steps, not
+alpha fades over the surface. An alpha fade's delta depends on whatever
+sits behind the control and collapses when the fill already sits near the
+page surface (secondary-on-background was effectively invisible). The
+§2.3 alpha recipes stay correct for _surface_ tints (rows, skeletons);
+filled controls use dedicated step tokens.
+
+Each filled variant carries `--<token>-hover` and `--<token>-active`
+(e.g. `--primary-hover`, `--secondary-active`); outline / ghost reuse
+`--accent` for hover and `--accent-active` for press. Rules of thumb:
+
+- **Step lightness, not hue or alpha.** Lightness survives colour-vision
+  deficiency and degraded displays; hue alone does not.
+- **Target ΔL ≈ 0.10 (OKLCH L) at hover, ≈ 0.18 at active**, about the
+  "noticeable at a glance" threshold (~15 on a 0 to 100 scale).
+- **Light darkens, dark lightens.** Push the fill away from the page
+  surface; this also widens contrast against the variant's foreground.
+- **Ease chroma as lightness rises in dark mode** so the lighter step
+  stays inside the sRGB gamut.
+- **Small controls need the full step.** An alpha-on-token recipe whose
+  token is near the surface (dark `bg-input/*` on outline) caps the delta
+  below target and reads as no change at sm; reach for the step tokens.
+
 ## 3. Typography
 
 Font families (Plex Sans, JetBrains Mono, Galano Grotesque) are brand
@@ -567,6 +592,8 @@ own rotation.
 - No gradients. No textures. No decorative illustrations inside the UI.
 - No 36px control heights. No 56px row heights. No pillow radii.
 - No raised cards on hover. No elevation as a hierarchy device.
+- No alpha-fade hover / active on filled controls (`bg-primary/90`); use
+  the `--<token>-hover` / `--<token>-active` lightness steps (see § 2.5).
 - No protection / fade gradients beneath floating UI; redesign the
   layout instead.
 - No text on a destructive surface using `text-destructive` (use
