@@ -1,0 +1,5 @@
+# Code owners are automatically requested for review on pull requests,
+# including Dependabot PRs. This replaces the retired dependabot.yml
+# `reviewers` option (see https://github.blog/changelog/2025-04-29-dependabot-reviewers-configuration-option-being-replaced-by-code-owners/).
+
+* @jhillacre
