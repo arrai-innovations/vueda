@@ -25,7 +25,8 @@ patchTheme({
                 "[[data-numeric]_&]:flex-row-reverse",
                 {
                     "cursor-pointer": sortable,
-                    "hover:bg-accent hover:text-accent-foreground": sortable,
+                    "hover:bg-accent hover:text-accent-foreground active:bg-accent-active active:text-accent-foreground":
+                        sortable,
                     "hover:rounded": sortable,
                 },
             ],

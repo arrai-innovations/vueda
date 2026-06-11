@@ -90,8 +90,8 @@ patchTheme({
             class: ({ isTable }) => {
                 return [
                     "group/row transition-colors",
-                    "hover:bg-accent/50",
-                    "data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09]",
+                    "hover:bg-accent/50 active:bg-accent",
+                    "data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09] data-[state=selected]:active:bg-primary/[0.12]",
                     "data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)]",
                     // marked-destroy: 4% destructive tint and a strikethrough on every cell whose
                     // `data-field` / `data-card` / `data-card-header` is not the action column. Action
@@ -134,7 +134,7 @@ patchTheme({
                 class: [
                     "inline-flex items-center justify-center size-6 rounded-vueda-control",
                     "border border-transparent text-muted-foreground text-[11px]",
-                    "hover:bg-muted hover:text-foreground hover:border-border",
+                    "hover:bg-muted hover:text-foreground hover:border-border active:bg-accent-active",
                     "focus-visible:outline-none focus-visible:hairline-ring focus-visible:focus-ring-shadow",
                 ],
             },

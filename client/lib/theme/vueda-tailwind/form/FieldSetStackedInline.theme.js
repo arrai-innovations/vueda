@@ -41,7 +41,7 @@ patchTheme({
         titleBarToggle: {
             class: [
                 "cursor-pointer select-none",
-                "hover:bg-accent hover:text-accent-foreground",
+                "hover:bg-accent hover:text-accent-foreground active:bg-accent-active active:text-accent-foreground",
                 "focus-visible:focus-ring-shadow",
                 "transition-colors",
             ],

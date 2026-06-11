@@ -33,7 +33,7 @@ patchTheme({
         toolbarButton: {
             class: [
                 "inline-flex items-center justify-center rounded px-1.5 py-0.5 text-sm font-medium text-muted-foreground",
-                "hover:bg-accent hover:text-accent-foreground",
+                "hover:bg-accent hover:text-accent-foreground active:bg-accent-active active:text-accent-foreground",
             ],
         },
         /** The active toolbar button uses the same accent surface as selected menu actions. */

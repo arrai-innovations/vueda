@@ -28,7 +28,7 @@ patchTheme({
          * The close control for scrollable dialog content. It is positioned inside the modal surface and uses the canonical `--accent` hover fill (the same ghost-icon-button affordance used elsewhere) instead of changing layout.
          */
         close: {
-            class: "absolute top-4 right-4 p-0.5 transition-colors rounded-md hover:bg-accent hover:text-accent-foreground",
+            class: "absolute top-4 right-4 p-0.5 transition-colors rounded-md hover:bg-accent hover:text-accent-foreground active:bg-accent-active active:text-accent-foreground",
         },
     },
 });

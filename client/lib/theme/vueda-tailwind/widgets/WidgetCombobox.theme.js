@@ -21,7 +21,7 @@ patchTheme({
                 "hover:hairline-border-strong hairline",
                 "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
-                "dark:bg-input/30 dark:hover:bg-accent",
+                "dark:bg-input/30 dark:hover:bg-accent dark:active:bg-accent-active",
                 "flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm",
                 "whitespace-nowrap shadow-vueda-control transition-shadow",
                 "disabled:cursor-not-allowed disabled:opacity-50",

@@ -14,7 +14,7 @@ patchTheme({
     ContextMenuSubTrigger: {
         /** Context-menu row that opens a child surface. See also: {@api theme-key:DropdownMenuSubTrigger.root}. */
         root: {
-            class: "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+            class: "focus:bg-accent focus:text-accent-foreground active:bg-accent-active active:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         },
         /** Trailing chevron wrapper for submenu affordance space. */
         iconWrapper: { class: "ml-auto" },

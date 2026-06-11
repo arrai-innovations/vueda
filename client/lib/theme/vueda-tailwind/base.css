@@ -308,6 +308,7 @@
     --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
     --color-sidebar-accent: var(--sidebar-accent);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent-active: var(--sidebar-accent-active);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
 }
@@ -406,6 +407,9 @@
         0.93 0.008 250
     ); /* hover / selected fill inside the sidebar — a neutral tint between --sidebar and --sidebar-border. */
     --sidebar-accent-foreground: oklch(0.18 0.015 250); /* text on a --sidebar-accent surface. */
+    --sidebar-accent-active: oklch(
+        0.86 0.01 250
+    ); /* pressed sidebar fill: one step below --sidebar-accent (its hover) so a sidebar control presses deeper than it hovers, the sidebar-context analogue of --accent-active. */
     --sidebar-border: oklch(0.88 0.008 250); /* hairline colour for sidebar separators and item edges. */
     --sidebar-ring: var(
         --ring
@@ -722,6 +726,9 @@
     --sidebar-primary-foreground: oklch(0.16 0.01 250);
     --sidebar-accent: oklch(0.2 0.012 250);
     --sidebar-accent-foreground: oklch(0.96 0.005 250);
+    --sidebar-accent-active: oklch(
+        0.26 0.012 250
+    ); /* lighter than --sidebar-accent in dark (mirror of the light retune); pressed sidebar fill. */
     --sidebar-border: oklch(1 0 0 / 0.06);
     --sidebar-ring: var(--ring);
 

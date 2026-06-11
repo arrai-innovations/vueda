@@ -14,7 +14,7 @@ patchTheme({
     MenubarTrigger: {
         /** Top-level menubar trigger. Uses compact rounded corners and neutral accent open/focus states. */
         root: {
-            class: "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex items-center rounded-sm px-2 py-1 text-sm font-medium outline-hidden select-none",
+            class: "focus:bg-accent focus:text-accent-foreground active:bg-accent-active active:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex items-center rounded-sm px-2 py-1 text-sm font-medium outline-hidden select-none",
         },
     },
 });

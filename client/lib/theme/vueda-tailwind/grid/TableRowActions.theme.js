@@ -24,7 +24,7 @@ patchTheme({
          * The canonical action button class exposed to the default slot as `actionClass`. Apply it to small icon buttons so row actions share the same hover surface, border, and focus ring as other table controls.
          */
         action: {
-            class: "inline-flex items-center justify-center size-6 rounded-vueda-control border border-transparent text-muted-foreground text-[11px] hover:bg-muted hover:text-foreground hover:border-border focus-visible:outline-none focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+            class: "inline-flex items-center justify-center size-6 rounded-vueda-control border border-transparent text-muted-foreground text-[11px] hover:bg-muted hover:text-foreground hover:border-border active:bg-accent-active focus-visible:outline-none focus-visible:hairline-ring focus-visible:focus-ring-shadow",
         },
     },
 });

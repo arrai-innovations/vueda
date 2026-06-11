@@ -17,7 +17,7 @@ patchTheme({
             class: [
                 "flex size-7 items-center justify-center",
                 interactive &&
-                    "cursor-pointer rounded-vueda-control transition-colors hover:bg-accent hover:text-foreground focus-visible:focus-ring",
+                    "cursor-pointer rounded-vueda-control transition-colors hover:bg-accent hover:text-foreground active:bg-accent-active focus-visible:focus-ring",
             ],
         }),
         /** Screen-reader text for the collapsed-step marker. */

@@ -121,7 +121,7 @@ patchTheme({
                 "inline-flex items-center gap-1.5 px-2 py-1 text-xs",
                 "text-muted-foreground bg-transparent",
                 "first:border-r",
-                "hover:bg-accent hover:text-accent-foreground",
+                "hover:bg-accent hover:text-accent-foreground active:bg-accent-active active:text-accent-foreground",
                 "data-[active=true]:bg-accent data-[active=true]:text-foreground",
                 "[&>svg]:size-3",
                 "focus-visible:focus-ring",
