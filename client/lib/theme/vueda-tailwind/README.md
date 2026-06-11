@@ -110,8 +110,12 @@ Button, the `--ring`, a selected table row's chromatic edge: those use
 toggle semantics, and never tint a passive-selection surface with primary.
 
 Half-strength accent (`bg-accent/50`) is the canonical "current section"
-treatment. Full `bg-accent` is hover. The half-strength rule prevents the
-active marker from competing with the hover.
+treatment and the row-hover rung; full `bg-accent` is menu / list hover and
+the toggle-on fill. The half-strength rule prevents a persistent active
+marker from competing with hover. `--accent` (and `--sidebar-accent`) are
+tuned to sit a perceptible lightness step below the page surface so these
+neutral highlights clear the glance threshold (see § 2.5); do not retune
+them back toward the surface.
 
 ### 2.3 Mix recipes
 
@@ -170,6 +174,19 @@ Each filled variant carries `--<token>-hover` and `--<token>-active`
 - **Small controls need the full step.** An alpha-on-token recipe whose
   token is near the surface (dark `bg-input/*` on outline) caps the delta
   below target and reads as no change at sm; reach for the step tokens.
+
+Neutral surfaces (menus, list rows, ghost controls) are transparent at rest,
+so instead of step tokens they ride an accent depth-ladder:
+`bg-accent/50` (row hover) → `bg-accent` (menu / list / ghost hover, and row
+press) → `bg-accent-active` (menu / ghost / control press). Sidebar controls
+mirror it with `--sidebar-accent` → `--sidebar-accent-active`, since the
+sidebar owns its own accent. Selected rows ride the chromatic ladder instead:
+`primary/[0.06]` rest → `/[0.09]` hover → `/[0.12]` press.
+
+Every clickable control gets a press one step past its hover. The exceptions
+are interactions that are not presses: text / date / time field segments
+(focus marks the segment being edited) and Slider (drag) carry no `active:`
+fill.
 
 ## 3. Typography
 
@@ -594,6 +611,9 @@ own rotation.
 - No raised cards on hover. No elevation as a hierarchy device.
 - No alpha-fade hover / active on filled controls (`bg-primary/90`); use
   the `--<token>-hover` / `--<token>-active` lightness steps (see § 2.5).
+- No retuning `--accent` / `--sidebar-accent` toward the surface; they're
+  tuned to clear the interactive step (§ 2.5). No press fill on focus / drag
+  controls (field segments, Slider).
 - No protection / fade gradients beneath floating UI; redesign the
   layout instead.
 - No text on a destructive surface using `text-destructive` (use
