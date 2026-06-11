@@ -166,7 +166,10 @@ states, grids, action strips, menu trailing slots). The body uses
 {@api css-token:vueda-control-radius} (a 2 px slab), not a pill: pill radii
 are reserved for user-managed tag and chip objects. The outline variant uses
 {@api css-token:foreground} text on a transparent fill so it competes less
-in dense rows; linked badges fade their background by 10% on hover.
+in dense rows. A badge is a status marker by default; only a linked badge
+(`as="a"`) is interactive, and on hover it shifts its background by one
+lightness step (the same `--*-hover` tokens the buttons use), not an alpha
+fade.
 
 Theme key: {@api theme-key:Badge}. Token surface:
 {@api css-token:primary}, {@api css-token:secondary},
@@ -196,6 +199,29 @@ Theme key: {@api theme-key:Badge}. Token surface:
     <template #footer>
       <span>icon size <code>3</code></span>
       <span>gap <code>1</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="interactive (link)" description='(as="a")' class="lg:col-span-2">
+    <div class="grid grid-cols-[auto_repeat(4,minmax(0,1fr))] items-center gap-x-3 gap-y-2">
+      <div></div>
+      <StateLabel>default</StateLabel>
+      <StateLabel>secondary</StateLabel>
+      <StateLabel>destructive</StateLabel>
+      <StateLabel>outline</StateLabel>
+      <StateLabel>rest</StateLabel>
+      <div><Badge as="a" href="#">Active</Badge></div>
+      <div><Badge as="a" href="#" variant="secondary">Draft</Badge></div>
+      <div><Badge as="a" href="#" variant="destructive">Void</Badge></div>
+      <div><Badge as="a" href="#" variant="outline">Archived</Badge></div>
+      <StateLabel>hover</StateLabel>
+      <div><ForceState state="hover"><Badge as="a" href="#">Active</Badge></ForceState></div>
+      <div><ForceState state="hover"><Badge as="a" href="#" variant="secondary">Draft</Badge></ForceState></div>
+      <div><ForceState state="hover"><Badge as="a" href="#" variant="destructive">Void</Badge></ForceState></div>
+      <div><ForceState state="hover"><Badge as="a" href="#" variant="outline">Archived</Badge></ForceState></div>
+    </div>
+    <template #footer>
+      <span>only linked badges hover</span>
+      <span>bg shifts one lightness step</span>
     </template>
   </DemoCard>
   <DemoCard title="table context" class="lg:col-span-2">
