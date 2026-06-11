@@ -2165,7 +2165,7 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0,<3" },
 ]
-docs = [{ name = "pdoc", specifier = ">=14.7.0" }]
+docs = [{ name = "pdoc", specifier = ">=16.0.0" }]
 
 [[package]]
 name = "vueda-docs-tooling"

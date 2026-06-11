@@ -84,7 +84,7 @@ dev = [
     "psycopg[binary]>=3.3.3",
 ]
 docs = [
-    "pdoc >=14.7.0",
+    "pdoc >=16.0.0",
 ]
 
 [tool.uv]
