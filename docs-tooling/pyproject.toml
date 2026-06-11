@@ -10,7 +10,7 @@ dependencies = [
 dev = [
   "coverage>=7.3.3",
   "pytest>=8.0.0",
-  "pytest-cov>=4.1.0",
+  "pytest-cov>=7.1.0",
 ]
 
 [tool.pytest.ini_options]
