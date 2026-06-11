@@ -10,7 +10,7 @@ updates:
           separator: "-"
       commit-message:
           prefix: "chore"
-      open-pull-requests-limit: 0
+      open-pull-requests-limit: 10
       allow:
           - dependency-type: "all"
       assignees:
@@ -25,7 +25,7 @@ updates:
           separator: "-"
       commit-message:
           prefix: "chore"
-      open-pull-requests-limit: 0
+      open-pull-requests-limit: 10
       allow:
           - dependency-type: "all"
       assignees:
@@ -40,7 +40,7 @@ updates:
           separator: "-"
       commit-message:
           prefix: "chore"
-      open-pull-requests-limit: 0
+      open-pull-requests-limit: 10
       allow:
           - dependency-type: "all"
       assignees:
