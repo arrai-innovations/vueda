@@ -1,9 +1,9 @@
 <script setup>
 import { json } from "@codemirror/lang-json";
-import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import "@vueda/theme/vueda-tailwind/widgets/WidgetJson.theme.js";
+import { widgetJsonCmTheme, widgetJsonHighlightSpec } from "@vueda/theme/vueda-tailwind/widgets/WidgetJson.theme.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
@@ -176,7 +176,8 @@ onMounted(() => {
             doc: editorText.value,
             extensions: [
                 json(),
-                syntaxHighlighting(defaultHighlightStyle),
+                syntaxHighlighting(HighlightStyle.define(widgetJsonHighlightSpec)),
+                EditorView.theme(widgetJsonCmTheme),
                 editableCompartment.of(EditorView.editable.of(!widgetContext.state.disabled)),
                 EditorView.lineWrapping,
                 EditorView.updateListener.of((update) => {

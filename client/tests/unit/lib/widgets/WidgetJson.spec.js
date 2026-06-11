@@ -16,6 +16,8 @@ const editorViewInstances = [];
 class MockEditorView {
     static lineWrapping = { extension: "lineWrapping" };
 
+    static theme = vi.fn((spec) => ({ extension: "theme", spec }));
+
     static editable = {
         of: vi.fn((editable) => ({ editable })),
     };
@@ -72,7 +74,7 @@ vi.mock("@codemirror/lang-json", () => ({
 }));
 
 vi.mock("@codemirror/language", () => ({
-    defaultHighlightStyle: { extension: "defaultHighlightStyle" },
+    HighlightStyle: { define: vi.fn((spec) => ({ highlightStyle: spec })) },
     syntaxHighlighting: vi.fn((style) => ({ extension: "syntaxHighlighting", style })),
 }));
 
