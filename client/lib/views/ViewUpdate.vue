@@ -218,7 +218,6 @@ onMounted(() => {
                                 :label="memoizedStartCase(actionName)"
                                 :model="model"
                                 :pk="pk"
-                                severity="secondary"
                                 :view="actionName"
                             />
                         </slot>
@@ -239,7 +238,6 @@ onMounted(() => {
                                 :label="memoizedStartCase(transition)"
                                 :model="model"
                                 :pk="pk"
-                                severity="secondary"
                                 :view="transition"
                             />
                         </slot>

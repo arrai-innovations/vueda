@@ -80,6 +80,12 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 - **`verb` slot prop removed (ActionForm, FieldSetSingularStackedInline, FieldSetStackedInline, FieldSetTabularInline, FieldSetStackedInlineRow, ViewAction, ViewActivate)**:
     - The `verb` slot prop is no longer forwarded to button and icon slots. It was a lookup key for slot-level icon customization, but that role is now covered by `useIcon` and `useIconOverride`.
       _If your slot overrides read the `verb` prop to select an icon or style a button, switch to `useIconOverride` keyed on the icon name instead._
+- **`severity` slot prop removed (MobileSortComponent, FilterGroup, DetailView, ViewRead, ViewUpdate)**:
+    - `MobileSortComponent` no longer forwards a `severity` slot prop to its `toggle-drawer-button`, `remove-sort-button`, `add-sort-button`, or `clear-sort-button` slots. The default button renders in the appropriate variant without it.
+    - `FilterGroup` no longer forwards a `severity` slot prop to its `clear-filters-button` slot.
+    - `DetailView`, `ViewRead`, and `ViewUpdate` no longer pass `severity` to the action and workflow-transition button slots.
+    - `severity` was a PrimeVue-specific button styling prop that has no meaning in the current shadcn-style button model.
+      _If your slot overrides read `severity` to style a button, switch to the `variant` prop instead (`"secondary"`, `"destructive"`, `"outline"`, etc.)._
 
 ## Public Baseline
 

@@ -201,7 +201,6 @@ const theme = useTheme("FilterGroup", props);
                 :has-filters="!!addedFilters?.length"
                 label="Clear Filters"
                 name="clear-filters-button"
-                :severity="!!addedFilters?.length ? 'warn' : 'secondary'"
                 @click="clearFilters"
             >
                 <Button :variant="!!addedFilters?.length ? 'outline' : 'secondary'" @click="clearFilters">

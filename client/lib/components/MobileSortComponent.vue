@@ -108,15 +108,8 @@ const icon = useIcons("MobileSortComponent");
 </script>
 <template>
     <!-- TODO: theme.hideStyle requires a single themed root -->
-    <!-- Button that opens the sort drawer; receives `label`, `size`, `severity`, and `badge` as slot props. -->
-    <slot
-        name="toggle-drawer-button"
-        label="sort"
-        size="small"
-        severity="primary"
-        :badge="sortedCountBadge"
-        @click="internalOpen = true"
-    >
+    <!-- Button that opens the sort drawer; receives `label`, `size`, and `badge` as slot props. -->
+    <slot name="toggle-drawer-button" label="sort" size="small" :badge="sortedCountBadge" @click="internalOpen = true">
         <Button size="sm" @click="internalOpen = true">
             Sort
             <span
@@ -220,12 +213,11 @@ const icon = useIcons("MobileSortComponent");
                                         </slot>
                                     </Button>
                                 </slot>
-                                <!-- Button that removes a sort row; receives `label`, `severity`, `text`, `index`, and a click handler as slot props. -->
+                                <!-- Button that removes a sort row; receives `label`, `text`, `index`, and a click handler as slot props. -->
                                 <slot
                                     name="remove-sort-button"
                                     label="x"
                                     data-qa="sort-component-remove"
-                                    severity="danger"
                                     text
                                     :index="item.index"
                                     @click="removeSortable(item.index)"
@@ -245,12 +237,11 @@ const icon = useIcons("MobileSortComponent");
                 </div>
                 <div v-else class="text-sm text-muted-foreground">No Sorting applied. Click 'Add Sort' to begin</div>
                 <div :class="theme('actionBar')">
-                    <!-- Button that appends the first available field as a new sort criterion; receives `label`, `severity`, `disabled`, `size`, and a click handler as slot props. -->
+                    <!-- Button that appends the first available field as a new sort criterion; receives `label`, `disabled`, `size`, and a click handler as slot props. -->
                     <slot
                         name="add-sort-button"
                         data-qa="sort-component-add-button"
                         label="Add Sort"
-                        severity="secondary"
                         :disabled="!availableSortables.length"
                         size="small"
                         @click="addSortable"
@@ -264,10 +255,9 @@ const icon = useIcons("MobileSortComponent");
                             Add Sort
                         </Button>
                     </slot>
-                    <!-- Button that clears all active sort criteria; receives `severity`, `text`, `label`, `disabled`, `size`, and a click handler as slot props. -->
+                    <!-- Button that clears all active sort criteria; receives `text`, `label`, `disabled`, `size`, and a click handler as slot props. -->
                     <slot
                         name="clear-sort-button"
-                        severity="secondary"
                         text
                         label="Clear all"
                         :disabled="!props.sorted.length"
