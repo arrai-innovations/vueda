@@ -3,7 +3,6 @@ import contextlib
 import hashlib
 import importlib
 import io
-from collections import OrderedDict
 from http import HTTPStatus
 from typing import ClassVar
 
@@ -225,9 +224,9 @@ class BaseTestCommonModelViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin,
 
     @staticmethod
     def convert_response(response):
-        # the response.data nested serializers can be OrderedDicts, since tests skip JSON serialization.
+        # the response.data nested serializers can be OrderedDicts or ReturnDict, since tests skip JSON serialization
         # we need to convert them to dicts
-        return {k: dict(v) if isinstance(v, OrderedDict) else v for k, v in response.data.items()}
+        return {k: dict(v) if isinstance(v, dict) else v for k, v in response.data.items()}
 
     def get_default_response(self, arguments):
         return {key: arguments[key] for key in arguments}
