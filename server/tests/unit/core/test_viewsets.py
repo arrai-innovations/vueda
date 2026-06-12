@@ -183,9 +183,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         list_querystring["nonexistent_filter"] = "value"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "nonexistent_filter" in response.data, f"response.data: {response.data}"
         assert any("Invalid query parameter" in str(msg) for msg in response.data["nonexistent_filter"]), (
             f"nonexistent_filter data: {response.data['nonexistent_filter']}"
@@ -196,16 +194,14 @@ class TestProductViewSet(BaseTestModelViewSet):
         list_querystring["bad_two"] = "y"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "bad_one" in response.data, f"response.data: {response.data}"
         assert "bad_two" in response.data, f"response.data: {response.data}"
 
     def test_list_with_valid_filter_succeeds(self, page_data, authenticated_client, list_querystring):
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, response.data
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
         keys = {"id", "current_history_id"}.union(self.list_keys_arguments)
@@ -222,9 +218,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "supervisor"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "supervisor" in response.data, f"response.data: {response.data}"
         assert len(response.data["supervisor"]) == 1, f"supervisor data: {response.data['supervisor']}"
         assert "message" in response.data["supervisor"][0], f"supervisor data: {response.data['supervisor'][0]}"
@@ -239,7 +233,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
 
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, response.data
         assert "first_history_entry" in response.data, f"Missing first_history_entry in response.data: {response.data}"
         assert "history" in response.data, f"Missing history in response.data: {response.data}"
         # The first history record should be the same as the first_history_entry.
@@ -270,9 +264,7 @@ class TestProductViewSet(BaseTestModelViewSet):
 
         response = authenticated_client.delete(self.list_url(), data={"pks": pks}, format="json")
 
-        assert response.status_code == HTTPStatus.FORBIDDEN, (
-            f"{response.status_code} != 403, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, response.data
         assert self.model.objects.filter(pk__in=pks).count() == len(pks)
 
     def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
@@ -280,9 +272,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,second_history_entry"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "second_history_entry" in response.data, f"response.data: {response.data}"
         assert len(response.data["second_history_entry"]) == 1, (
             f"second_history_entry data: {response.data['second_history_entry']}"
@@ -318,9 +308,7 @@ class TestStoreProductViewSet:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "distributor.brands" in response.data, f"response.data: {response.data}"
         assert len(response.data["distributor.brands"]) == 1, (
             f"distributor.brands data: {response.data['distributor.brands']}"
@@ -350,9 +338,7 @@ class TestStoreProductViewSet:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "distributor.brands" in response.data, f"response.data: {response.data}"
         assert len(response.data["distributor.brands"]) == 1, (
             f"distributor.brands data: {response.data['distributor.brands']}"
@@ -468,9 +454,7 @@ class TestStoreCustomerOrderViewSet:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "non_field_errors" in response.data, f"response.data: {response.data}"
         assert len(response.data["non_field_errors"]) == 1, (
             f"non_field_errors data: {response.data['non_field_errors']}"
@@ -635,7 +619,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "employee,supervisor"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, response.data
         response_info = {x: y for x, y in response.data.items() if x == "results"}
         current_history_id = response_info["results"][0]["current_history_id"]
         assert current_history_id is not None
@@ -657,9 +641,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "employee,guardian"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "guardian" in response.data, f"response.data: {response.data}"
         assert len(response.data["guardian"]) == 1, f"guardian data: {response.data['guardian']}"
         assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
@@ -687,7 +669,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
         expected_retrieve_response["formatted_name"] = formatted_name
 
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, response.data
         assert expected_retrieve_response == response.data
 
     def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
@@ -696,9 +678,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,guardian"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "guardian" in response.data, f"response.data: {response.data}"
         assert len(response.data["guardian"]) == 1, f"guardian data: {response.data['guardian']}"
         assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
@@ -713,7 +693,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         response = authenticated_client.delete(self.detail_url(instance.id), HTTP_DRY_RUN="true")
 
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, response.data
         assert self.model.objects.filter(pk=instance.pk).exists()
 
     def test_destroy_dry_run_returns_validation_error(self, page_data, authenticated_client, monkeypatch):
@@ -725,18 +705,14 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         instance = page_data.first()
         response = authenticated_client.delete(self.detail_url(instance.id), HTTP_DRY_RUN="true")
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert self.model.objects.filter(pk=instance.pk).exists()
 
     def test_destroy_returns_no_content_for_detailed(self, page_data, authenticated_client):
         instance = page_data.first()
         response = authenticated_client.delete(self.detail_url(instance.id))
 
-        assert response.status_code == HTTPStatus.NO_CONTENT, (
-            f"{response.status_code} != 204, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.NO_CONTENT, response.data
         assert not self.model.objects.filter(pk=instance.pk).exists()
 
     def test_bulk_destroy_returns_no_content(self, page_data, authenticated_client):
@@ -745,9 +721,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         response = authenticated_client.delete(self.list_url(), data={"pks": pks}, format="json")
 
-        assert response.status_code == HTTPStatus.NO_CONTENT, (
-            f"{response.status_code} != 204, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.NO_CONTENT, response.data
         assert self.model.objects.filter(pk__in=pks).count() == 0
         assert self.model.objects.count() == initial_count - len(pks)
 
@@ -758,9 +732,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         response = authenticated_client.delete(self.list_url(), data={"pks": pks}, format="json")
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            f"{response.status_code} != 400, response.data: {response.data}"
-        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         error_key = missing_pk if missing_pk in response.data else str(missing_pk)
         assert error_key in response.data
         assert str(response.data[error_key][0]) == f"Object with pk={missing_pk} does not exist."
@@ -1202,7 +1174,7 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
 
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
 
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, response.data
         assert "first_history_entry" in response.data, f"Missing first_history_entry in response.data: {response.data}"
         assert "history" in response.data, f"Missing history in response.data: {response.data}"
         assert response.data["history"][0] == response.data["first_history_entry"]
