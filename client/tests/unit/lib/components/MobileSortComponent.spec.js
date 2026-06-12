@@ -126,7 +126,10 @@ vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
 
 const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const themeMock = makeThemeFn({ slotResolver: (key) => key });
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: makeUseThemeMock({ themeFn: themeMock }) }));
+vi.mock("@vueda/use/useTheme.js", () => ({
+    useTheme: makeUseThemeMock({ themeFn: themeMock }),
+    THEME_OVERRIDE_PROPS: {},
+}));
 
 let MobileSortComponent;
 

@@ -10,7 +10,7 @@ import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewTwoFactorAuth.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";
@@ -24,6 +24,8 @@ import { toast } from "vue-sonner";
  * recovery-code path that swaps the form body to a single mono text input.
  */
 defineOptions({});
+
+const props = defineProps({ ...THEME_OVERRIDE_PROPS });
 
 const formProps = reactive({
     initialValues: {
@@ -107,7 +109,7 @@ watch([isActive, toRef(userStore, "loggedIn")], async ([newActive, newloggedIn])
         }
     }
 });
-const theme = useTheme("ViewTwoFactorAuth");
+const theme = useTheme("ViewTwoFactorAuth", props);
 const icon = useIcons("ViewTwoFactorAuth");
 const sendCodeMethods = ["sms", "email"];
 const toggleRecovery = () => {

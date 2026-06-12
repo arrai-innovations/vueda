@@ -11,7 +11,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
@@ -30,6 +30,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
@@ -233,7 +234,7 @@ const computedCalculatedObjects = computed(() => {
 const evenColumn = (obj) => {
     return obj.parent_row % 2 === 0;
 };
-const theme = useTheme("ViewHistoryList");
+const theme = useTheme("ViewHistoryList", props);
 const icons = useIcons("ViewHistoryList");
 const formatHistoryDate = (date) => {
     return date ? DateTime.fromISO(date).toLocaleString(DateTime.DATETIME_MED) : "";

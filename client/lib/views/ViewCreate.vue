@@ -9,7 +9,7 @@ import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewCreate.theme.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewCreate } from "@vueda/use/useViewCreate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { onMounted, toRef } from "vue";
@@ -25,6 +25,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,

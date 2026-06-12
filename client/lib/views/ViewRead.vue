@@ -8,7 +8,7 @@ import "@vueda/theme/vueda-tailwind/views/ViewRead.theme.js";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { onMounted, reactive, readonly, toRef, useSlots } from "vue";
 
@@ -22,6 +22,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,

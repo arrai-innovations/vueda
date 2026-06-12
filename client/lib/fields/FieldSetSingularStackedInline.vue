@@ -8,7 +8,7 @@ import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
 import { useIcons } from "@vueda/use/useIcons.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, toRef, watch } from "vue";
 
 /**
@@ -22,6 +22,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     ...FIELD_SET_INLINE_PROPS,
     /** When true, automatically creates an empty inline object if none exists and field objects are available. */
     autoCreateWhenEmpty: {

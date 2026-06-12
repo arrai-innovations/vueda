@@ -72,6 +72,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
       _Replace `:header-class="…"` on `<PageTitle>` with `:theme-override="{ PageTitle: { root: { class: '…' } } }"`._
     - `ViewUpdate` no longer accepts an `outerClass` prop, and now accepts `themeOverride`. The form-body wrapper's classes come from the `body` theme slot; merge extra classes by overriding that slot.
       _Replace `:outer-class="…"` on `<ViewUpdate>` with `:theme-override="{ ViewUpdate: { body: { class: '…' } } }"`._
+- **`themeOverride` now accepted by all themed components**:
+    - A set of themed components did not expose the `themeOverride` prop, so per-instance overrides passed to them were ignored even though they resolve their classes through the theme system. They now accept `themeOverride` consistently with the rest of the library: `ClickToCopyText`, `FieldRenderer`, `FilterForm`, `FilterGroup`, `MobileSortComponent`, `ModelActionForm`, `FieldSetStackedInline`, `FieldSetSingularStackedInline`, `ViewCreate`, `ViewRead`, `ViewHistoryList`, `ViewSetupDevice`, `ViewRecoveryCodes`, `ViewTwoFactorAuth`, and `WidgetPreviewableTemplate`.
+      _No action is required. To restyle one of these per instance, pass `:theme-override="{ <Component>: { <slot>: { class: '…' } } }"` instead of relying on a global `setTheme`/`patchTheme`. `FieldRenderer` resolves the `FormModel` theme key._
 
 ## Public Baseline
 

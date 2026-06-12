@@ -34,6 +34,7 @@ const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStu
 const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
+    THEME_OVERRIDE_PROPS: {},
 }));
 
 const routerBack = vi.fn();

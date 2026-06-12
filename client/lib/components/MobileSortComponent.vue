@@ -11,7 +11,7 @@ import DrawerHeader from "@vueda/shell/drawer/DrawerHeader.vue";
 import DrawerTitle from "@vueda/shell/drawer/DrawerTitle.vue";
 import "@vueda/theme/vueda-tailwind/display/MobileSortComponent.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { computed } from "vue";
 import { VueDraggableNext as draggable } from "vue-draggable-next";
@@ -22,6 +22,7 @@ import { VueDraggableNext as draggable } from "vue-draggable-next";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Whether the sort drawer is open. */
     open: {
         type: Boolean,

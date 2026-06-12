@@ -2,7 +2,7 @@
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import "@vueda/theme/vueda-tailwind/form/FormModel.theme.js";
 import { useFieldRenderer } from "@vueda/use/useFieldRenderer.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, reactive, toRef, unref, useAttrs, useSlots } from "vue";
@@ -18,6 +18,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     objectGridFieldSlotProps: {
         type: Object,
         default: () => ({}),

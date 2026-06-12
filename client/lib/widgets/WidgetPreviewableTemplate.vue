@@ -1,5 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/widgets/WidgetPreviewableTemplate.theme.js";
+import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { sanitizeMessage } from "@vueda/utils/html.js";
@@ -19,6 +20,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** The editor variant to render: `"editor"` (rich HTML), `"input"` (single-line), or `"textarea"`. */
     type: {
         type: String,
@@ -69,7 +71,7 @@ const inputComponent = computed(
         })[props.type] || WidgetHtml,
 );
 
-const theme = useWidgetTheme("WidgetPreviewableTemplate");
+const theme = useWidgetTheme("WidgetPreviewableTemplate", props);
 </script>
 <template>
     <div :class="theme('root')" data-qa="widget-previewable-template-root">

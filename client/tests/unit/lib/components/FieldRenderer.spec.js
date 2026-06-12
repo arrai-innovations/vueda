@@ -13,6 +13,7 @@ const mockedUseTheme = makeUseThemeMock({ themeFn });
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: mockedUseTheme,
     mergeTheme: (...args) => Object.assign({}, ...args),
+    THEME_OVERRIDE_PROPS: {},
 }));
 
 vi.mock("@vueda/feedback/skeleton/Skeleton.vue", () => ({

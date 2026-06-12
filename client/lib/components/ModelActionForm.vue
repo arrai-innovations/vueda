@@ -7,7 +7,7 @@ import FormField from "@vueda/fields/FormField.vue";
 import "@vueda/theme/vueda-tailwind/views/ModelActionForm.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
@@ -36,6 +36,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,

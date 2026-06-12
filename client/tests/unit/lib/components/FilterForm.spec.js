@@ -27,7 +27,7 @@ const ButtonStub = defineComponent({
 const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const themeFn = makeThemeFn({ slotResolver: (k) => k });
 const mockedUseTheme = makeUseThemeMock({ themeFn });
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme }));
+vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
 const mockedUseSlotNameResolver = vi.fn(() => ({ name: "slot" }));
 vi.mock("@vueda/use/useSlotNameResolver.js", () => ({ useSlotNameResolver: mockedUseSlotNameResolver }));
 vi.mock("@vueda/components/FieldRenderer.vue", () => ({ default: FieldRendererStub }));

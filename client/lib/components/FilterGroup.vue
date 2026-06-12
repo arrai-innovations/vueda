@@ -6,7 +6,7 @@ import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/form/FilterGroup.theme.js";
 import { useFilter } from "@vueda/use/useFilter.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { ListFilterError } from "@vueda/utils/errors.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
@@ -29,6 +29,7 @@ const params = defineModel({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label used to fetch the filter configuration from the server. */
     app: {
         type: String,

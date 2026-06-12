@@ -10,7 +10,7 @@ import { storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewSetupDevice.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, reactive, ref, toRef } from "vue";
@@ -25,6 +25,7 @@ import { toast } from "vue-sonner";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label for the model that represents the 2FA device. */
     app: {
         type: String,
@@ -48,7 +49,7 @@ const formProps = reactive({
 });
 const router = useRouter();
 const userStore = storeUser();
-const theme = useTheme("ViewSetupDevice");
+const theme = useTheme("ViewSetupDevice", props);
 const icon = useIcons("ViewSetupDevice");
 
 const totpSvgDataUri = ref("");
