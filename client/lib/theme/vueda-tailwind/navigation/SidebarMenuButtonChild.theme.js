@@ -39,7 +39,7 @@ patchTheme({
                 // Active rail.
                 "data-[active=true]:before:absolute data-[active=true]:before:inset-y-0 data-[active=true]:before:left-0",
                 "data-[active=true]:before:w-(--vueda-sidebar-active-rail) data-[active=true]:before:bg-sidebar-primary data-[active=true]:before:content-['']",
-                "group-data-[collapsible=icon]:data-[active=true]:before:-left-2",
+                "group-data-[collapsible=icon]:data-[active=true]:before:hidden",
                 "data-[active=true]:[&>svg]:text-sidebar-primary",
 
                 // Variant classes. The neutral hover (bg / text) is applied
