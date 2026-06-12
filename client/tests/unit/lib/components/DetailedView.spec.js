@@ -186,3 +186,11 @@ scopedIt("sets form id and forwards attrs", () => {
     expect(form.attributes("id")).toBe("app-model-1-read");
     expect(form.attributes("foo")).toBe("bar");
 });
+
+scopedIt("applies the body gutter and merges a themeOverride body class", () => {
+    const wrapper = mountWithContext({
+        props: { themeOverride: { DetailView: { body: { class: "my-body-class" } } } },
+    });
+    const body = wrapper.find('[data-qa="read-form"]');
+    expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5", "my-body-class"]));
+});

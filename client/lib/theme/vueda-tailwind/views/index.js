@@ -5,6 +5,7 @@
 import "./ActionForm.theme.js";
 import "./AuthForm.theme.js";
 import "./AuthorizingForm.theme.js";
+import "./DetailView.theme.js";
 import "./ModelActionForm.theme.js";
 import "./PageTitle.theme.js";
 import "./ViewAction.theme.js";
@@ -38,6 +39,7 @@ export default {
     ViewList: {},
     ViewHistoryList: {},
     // ---------- CRUD views ----------
+    DetailView: {},
     ViewCreate: {},
     ViewRead: {},
     ViewUpdate: {},

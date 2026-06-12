@@ -6,9 +6,10 @@ import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/views/DetailView.theme.js";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, onMounted, readonly, toRef, useSlots } from "vue";
@@ -25,6 +26,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
@@ -54,11 +56,6 @@ const props = defineProps({
     variant: {
         type: String,
         default: "default",
-    },
-    /** CSS class(es) applied to the div wrapping the error display and form. */
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
     /** Theme variant forwarded to the inner FormModel component. */
     formModelVariant: {
@@ -163,6 +160,7 @@ const { instanceObject, instance, actions } = useDetailView(props, formInitialVa
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
 
+const theme = useTheme("DetailView", props);
 const stickyBarTheme = useTheme("StickyBar", {});
 const dirtyClass = computed(() => stickyBarTheme("dirty"));
 const showDirtyIndicator = computed(() => props.viewName === "update" && Boolean(formContext?.state?.anyModified));
@@ -186,8 +184,8 @@ onMounted(() => {
 });
 </script>
 <template>
-    <!-- TODO: theme.hideStyle requires a single themed root; useTheme here is only a StickyBar helper, this component has no own theme entry to gate on. -->
-    <div :class="props.class" :data-qa="`${viewName}-form-root`">
+    <!-- TODO: theme.hideStyle requires a single themed root -->
+    <div :class="[theme('root'), props.class]" :data-qa="`${viewName}-form-root`">
         <!-- Detail-level actions teleport into the layout's PageTitle action zone. -->
         <page-actions>
             <template v-for="actionName in actions.nonDetailActions" :key="actionName">
@@ -282,7 +280,7 @@ onMounted(() => {
                 </span>
             </template>
         </sticky-bar>
-        <div :class="props.outerClass" :data-qa="`${viewName}-form`">
+        <div :class="theme('body')" :data-qa="`${viewName}-form`">
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"

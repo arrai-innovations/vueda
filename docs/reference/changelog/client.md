@@ -67,11 +67,13 @@ stores, theme behavior, build integration, dependency expectations, and migratio
       _Remove these props from `<DetailView>` usage. Style the page title via `PageTitle`'s `themeOverride`; `DetailView`'s `class` (root) and `outerClass` (form wrapper) props are unchanged._
     - `InputOTP` no longer accepts a `containerClass` prop. It was always overridden internally by the computed container class (`theme('root')` plus the `class` prop).
       _Use the `class` prop to add classes to the OTP container, or `themeOverride` against `InputOTP.root`._
-- **`*Class` props folded into `themeOverride` (PageTitle, ViewUpdate)**:
+- **`*Class` props folded into `themeOverride` (PageTitle, ViewUpdate, DetailView)**:
     - `PageTitle` no longer accepts a `headerClass` prop. The class it added is now supplied through the theme: target the `root` slot via `themeOverride` (or `setTheme`).
       _Replace `:header-class="…"` on `<PageTitle>` with `:theme-override="{ PageTitle: { root: { class: '…' } } }"`._
     - `ViewUpdate` no longer accepts an `outerClass` prop, and now accepts `themeOverride`. The form-body wrapper's classes come from the `body` theme slot; merge extra classes by overriding that slot.
       _Replace `:outer-class="…"` on `<ViewUpdate>` with `:theme-override="{ ViewUpdate: { body: { class: '…' } } }"`._
+    - `DetailView` now registers its own theme entry with `root` and `body` slots (matching `ViewCreate`/`ViewRead`/`ViewUpdate`) and accepts `themeOverride`; its `outerClass` prop is removed. The `body` slot applies the same `px-5 py-5` content gutter as the other CRUD views, so the form region now aligns with the StickyBar controls and page title above it. Previously this region had no padding.
+      _Replace `:outer-class="…"` on `<DetailView>` with `:theme-override="{ DetailView: { body: { class: '…' } } }"`. If you relied on the previous flush (no-gutter) body, override the `body` slot to reset the padding._
 - **`themeOverride` now accepted by all themed components**:
     - A set of themed components did not expose the `themeOverride` prop, so per-instance overrides passed to them were ignored even though they resolve their classes through the theme system. They now accept `themeOverride` consistently with the rest of the library: `ClickToCopyText`, `FieldRenderer`, `FilterForm`, `FilterGroup`, `MobileSortComponent`, `ModelActionForm`, `FieldSetStackedInline`, `FieldSetSingularStackedInline`, `ViewCreate`, `ViewRead`, `ViewHistoryList`, `ViewSetupDevice`, `ViewRecoveryCodes`, `ViewTwoFactorAuth`, and `WidgetPreviewableTemplate`.
       _No action is required. To restyle one of these per instance, pass `:theme-override="{ <Component>: { <slot>: { class: '…' } } }"` instead of relying on a global `setTheme`/`patchTheme`. `FieldRenderer` resolves the `FormModel` theme key._
