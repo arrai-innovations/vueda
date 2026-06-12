@@ -213,7 +213,6 @@ const validationTitle = computed(() => {
                             label="Yes, continue"
                             :loading="combinedLoading"
                             name="confirm-button"
-                            verb="confirm"
                             type="submit"
                             :disabled="formContext.state.anyError"
                         >
@@ -227,7 +226,6 @@ const validationTitle = computed(() => {
                             label="Cancel, go back"
                             :loading="combinedLoading"
                             name="cancel-button"
-                            verb="cancel"
                             @click="handleCancelClick"
                         >
                             <Button variant="ghost" :disabled="combinedLoading" @click="handleCancelClick">

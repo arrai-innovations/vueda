@@ -140,7 +140,6 @@ const rowState = computed(() => {
                             :selected="fieldSetContextState?.selected.includes(index)"
                             :theme="theme"
                             :value="action.value"
-                            verb="destroy"
                             @click="onDelete"
                         >
                             <Button variant="ghost" @click="onDelete">Delete</Button>
@@ -158,7 +157,6 @@ const rowState = computed(() => {
                             :row-index="index"
                             :theme="theme"
                             :value="action.value"
-                            verb="destroy"
                             @update:model-value="emit('update:selected', $event)"
                         >
                             <widget-checkbox

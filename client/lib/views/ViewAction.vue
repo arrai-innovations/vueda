@@ -95,7 +95,7 @@ const theme = useTheme("ViewAction", props);
     <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-action-root">
         <!-- Page actions teleport into the layout's PageTitle action zone. -->
         <page-actions>
-            <slot label="Go Back" name="return-button" verb="return" @click="handleReturnClick">
+            <slot label="Go Back" name="return-button" @click="handleReturnClick">
                 <Button @click="handleReturnClick">Go Back</Button>
             </slot>
         </page-actions>

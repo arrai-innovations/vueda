@@ -77,6 +77,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 - **`themeOverride` now accepted by all themed components**:
     - A set of themed components did not expose the `themeOverride` prop, so per-instance overrides passed to them were ignored even though they resolve their classes through the theme system. They now accept `themeOverride` consistently with the rest of the library: `ClickToCopyText`, `FieldRenderer`, `FilterForm`, `FilterGroup`, `MobileSortComponent`, `ModelActionForm`, `FieldSetStackedInline`, `FieldSetSingularStackedInline`, `ViewCreate`, `ViewRead`, `ViewHistoryList`, `ViewSetupDevice`, `ViewRecoveryCodes`, `ViewTwoFactorAuth`, and `WidgetPreviewableTemplate`.
       _No action is required. To restyle one of these per instance, pass `:theme-override="{ <Component>: { <slot>: { class: '…' } } }"` instead of relying on a global `setTheme`/`patchTheme`. `FieldRenderer` resolves the `FormModel` theme key._
+- **`verb` slot prop removed (ActionForm, FieldSetSingularStackedInline, FieldSetStackedInline, FieldSetTabularInline, FieldSetStackedInlineRow, ViewAction, ViewActivate)**:
+    - The `verb` slot prop is no longer forwarded to button and icon slots. It was a lookup key for slot-level icon customization, but that role is now covered by `useIcon` and `useIconOverride`.
+      _If your slot overrides read the `verb` prop to select an icon or style a button, switch to `useIconOverride` keyed on the icon name instead._
 
 ## Public Baseline
 

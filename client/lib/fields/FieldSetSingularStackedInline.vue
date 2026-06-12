@@ -120,7 +120,6 @@ watch(
                         :field-props="fieldSetInline.state.computedFieldProps"
                         :label="fieldSetInline.state.internalVisible ? 'Hide' : 'Show'"
                         :name="fieldSetInline.resolvedSlotNames['toggle-button'].name"
-                        :verb="fieldSetInline.state.internalVisible ? 'collapseDown' : 'collapseUp'"
                     >
                         <component
                             :is="icon('chevronDown').component"
@@ -149,7 +148,6 @@ watch(
                         :field-props="fieldSetInline.state.computedFieldProps"
                         label="Create"
                         :name="fieldSetInline.resolvedSlotNames['create-button'].name"
-                        verb="createInline"
                         @click="addInline"
                     >
                         <Button variant="outline" size="sm" :class="theme('createButton')" @click="addInline">
