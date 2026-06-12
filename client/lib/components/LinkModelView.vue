@@ -3,7 +3,7 @@ import Button from "@vueda/controls/button/Button.vue";
 import { useLinkModelView } from "@vueda/use/useLinkModelView.js";
 
 /**
- * Renders a PrimeVue Button that navigates to a named model view (such as read, update, or a
+ * Renders a VUEDA Button control that navigates to a named model view (such as read, update, or a
  * custom action) for a given app, model, and optional pk. Renders as a link by default, or as
  * a standard button when the `button` prop is set.
  */
@@ -41,7 +41,7 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    /** CSS class applied to the underlying PrimeVue Button via its `pt` prop. */
+    /** CSS class applied to the underlying Button control. */
     buttonClass: {
         type: [String, Array, Object],
         default: () => [],
