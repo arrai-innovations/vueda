@@ -254,11 +254,27 @@ class BaseTestListModelViewSet:
             )
 
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
-        response_info = {x: y for x, y in response.data.items() if x == "results"}
-        current_history_id = response_info["results"][0]["current_history_id"]
+        assert response.status_code == HTTPStatus.OK, response.data
+        # Get the index of the record we are trying to validate, so we know it has a current_history_id.
+        # The only reason this worked before, was because there was no object
+        # with a name alphabetically before 'Distributor A'.  There is now.
+        response_info = response.json()
+        index_of_page_data_arguments_item = None
+        for index, result in enumerate(response_info["results"]):
+            if index_of_page_data_arguments_item is not None:
+                break
+            if not self.page_data_arguments:
+                index_of_page_data_arguments_item = 0
+                break
+            else:
+                for key, value in self.page_data_arguments[0].items():
+                    if result[key] == value:
+                        index_of_page_data_arguments_item = index
+                        break
+
+        current_history_id = response_info["results"][index_of_page_data_arguments_item]["current_history_id"]
         assert current_history_id is not None
-        assert keys == set(response_info["results"][0].keys())
+        assert keys == set(response_info["results"][index_of_page_data_arguments_item].keys())
         assert {x["id"] for x in response_info["results"]} == set(list_querystring["id"])
 
 
