@@ -9,7 +9,7 @@ import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewUpdate.theme.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -56,11 +56,7 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    /** CSS class(es) applied to the div wrapping the error display and form. */
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
+    ...THEME_OVERRIDE_PROPS,
     /** Theme variant forwarded to the inner FormModel component. */
     formModelVariant: {
         type: String,
@@ -263,7 +259,7 @@ onMounted(() => {
                 </span>
             </template>
         </sticky-bar>
-        <div :class="[theme('body'), props.outerClass]" data-qa="update-form">
+        <div :class="theme('body')" data-qa="update-form">
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"

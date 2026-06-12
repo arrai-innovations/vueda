@@ -18,7 +18,7 @@ patchTheme({
         root: {
             class: [],
         },
-        /** Form body region wrapping the error display and the generated form. `px-5 py-5` sets the content gutter; the horizontal `px-5` aligns the form's left edge with the {@api theme-key:StickyBar} controls and {@api theme-key:PageTitle} title above it so the page chrome reads as a continuous column. The `outerClass` prop merges here. */
+        /** Form body region wrapping the error display and the generated form. `px-5 py-5` sets the content gutter; the horizontal `px-5` aligns the form's left edge with the {@api theme-key:StickyBar} controls and {@api theme-key:PageTitle} title above it so the page chrome reads as a continuous column. Merge extra classes here via `themeOverride` (or `setTheme`). */
         body: {
             class: ["px-5 py-5"],
         },

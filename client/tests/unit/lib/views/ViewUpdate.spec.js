@@ -192,10 +192,15 @@ describe("lib/views/ViewUpdate.vue", () => {
             expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5"]));
         });
 
-        scopedIt("merges the outerClass prop with the form-body theme gutter", async () => {
+        scopedIt("merges a themeOverride body class with the form-body theme gutter", async () => {
             const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
             const wrapper = mount(ViewUpdate, {
-                props: { app: "a", model: "m", pk: "1", outerClass: "my-outer-class" },
+                props: {
+                    app: "a",
+                    model: "m",
+                    pk: "1",
+                    themeOverride: { ViewUpdate: { body: { class: "my-outer-class" } } },
+                },
             });
             const body = wrapper.find('[data-qa="update-form"]');
             expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5", "my-outer-class"]));

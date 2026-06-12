@@ -14,11 +14,6 @@ import { computed, reactive, ref, toRef } from "vue";
 defineOptions({});
 
 const props = defineProps({
-    /** Additional CSS class(es) applied to the header container element. */
-    headerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
     /** When `true`, the header is positioned sticky and a gradient overlay is rendered below it. */
     sticky: {
         type: Boolean,
@@ -30,7 +25,6 @@ const theme = useTheme(
     "PageTitle",
     props,
     reactive({
-        headerClass: toRef(props, "headerClass"),
         sticky: toRef(props, "sticky"),
     }),
 );

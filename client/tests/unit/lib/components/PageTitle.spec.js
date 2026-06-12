@@ -45,10 +45,9 @@ beforeEach(async () => {
 
 describe("lib/components/PageTitle.vue", () => {
     scopedIt("calls useTheme with props and context", () => {
-        mountWithContext(makeContext(), { props: { headerClass: "h", sticky: true } });
+        mountWithContext(makeContext(), { props: { sticky: true } });
         expect(mockedUseTheme).toHaveBeenCalledWith("PageTitle", expect.any(Object), expect.any(Object));
         const context = mockedUseTheme.mock.calls[0][2];
-        expect("headerClass" in context).toBe(true);
         expect("sticky" in context).toBe(true);
     });
 

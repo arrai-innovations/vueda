@@ -64,9 +64,14 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - `LinkModelView` no longer accepts a `buttonClass` prop. The component renders a single root (the `Button`) and inherits attributes, so a `class` set on `<LinkModelView>` already falls through to the underlying button and merges with its theme classes.
       _Replace `:button-class="…"` with `:class="…"` (or a plain `class="…"`). To restyle deeper button slots, forward `themeOverride` instead._
     - `DetailView` no longer accepts the `headerClass`, `titleClass`, `bodyClass`, or `loadingClass` props. These targeted a header/title region that `DetailView` no longer renders (the page title now lives in the layout-level `PageTitle`), so the props had no effect.
-      _Remove these props from `<DetailView>` usage. Style the page title via `PageTitle`'s `themeOverride` (or its `headerClass`); `DetailView`'s `class` (root) and `outerClass` (form wrapper) props are unchanged._
+      _Remove these props from `<DetailView>` usage. Style the page title via `PageTitle`'s `themeOverride`; `DetailView`'s `class` (root) and `outerClass` (form wrapper) props are unchanged._
     - `InputOTP` no longer accepts a `containerClass` prop. It was always overridden internally by the computed container class (`theme('root')` plus the `class` prop).
       _Use the `class` prop to add classes to the OTP container, or `themeOverride` against `InputOTP.root`._
+- **`*Class` props folded into `themeOverride` (PageTitle, ViewUpdate)**:
+    - `PageTitle` no longer accepts a `headerClass` prop. The class it added is now supplied through the theme: target the `root` slot via `themeOverride` (or `setTheme`).
+      _Replace `:header-class="…"` on `<PageTitle>` with `:theme-override="{ PageTitle: { root: { class: '…' } } }"`._
+    - `ViewUpdate` no longer accepts an `outerClass` prop, and now accepts `themeOverride`. The form-body wrapper's classes come from the `body` theme slot; merge extra classes by overriding that slot.
+      _Replace `:outer-class="…"` on `<ViewUpdate>` with `:theme-override="{ ViewUpdate: { body: { class: '…' } } }"`._
 
 ## Public Baseline
 

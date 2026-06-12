@@ -13,11 +13,10 @@ patchTheme({
      * page-action zone, and optional sticky chrome.
      */
     PageTitle: {
-        /** Outer header bar. Carries the bottom hairline that closes the header and, when `sticky` is set, pins the bar to the top of the scroll viewport at `z-30`. Consumers can merge extra classes via the `headerClass` prop without overriding the chrome. */
-        root: ({ headerClass, sticky }) => ({
+        /** Outer header bar. Carries the bottom hairline that closes the header and, when `sticky` is set, pins the bar to the top of the scroll viewport at `z-30`. Merge extra classes via `themeOverride` (or `setTheme`) on this slot without overriding the chrome. */
+        root: ({ sticky }) => ({
             class: [
                 "border-b",
-                headerClass,
                 {
                     "sticky top-0 z-30": sticky,
                 },
