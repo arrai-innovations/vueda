@@ -73,9 +73,37 @@ export const useLinkModelView = (props) => {
     const href = computed(() => {
         return toRoute.value?.href;
     });
-    const navigate = async () => {
+    /**
+     * Navigate to the resolved route via the SPA router, mirroring vue-router's
+     * RouterLink guard: a modified click (new tab/window, right click) or a
+     * `target="_blank"` link is left to the browser, everything else has its
+     * default `<a href>` navigation prevented in favour of `router.push`.
+     *
+     * @param {MouseEvent} [event] - The originating click event, when present.
+     * @returns {Promise<void>}
+     */
+    const navigate = async (event) => {
         if (!toRoute.value) {
             return;
+        }
+        // Replicates vue-router's guardEvent: bail out for clicks the browser
+        // should handle natively (modifier keys, non-left button, already
+        // prevented, or links that open in a new context).
+        if (event) {
+            if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
+                return;
+            }
+            if (event.defaultPrevented) {
+                return;
+            }
+            if (event.button !== undefined && event.button !== 0) {
+                return;
+            }
+            const target = event.currentTarget?.getAttribute?.("target");
+            if (target && /\b_blank\b/i.test(target)) {
+                return;
+            }
+            event.preventDefault();
         }
         await router.push(toRoute.value);
     };

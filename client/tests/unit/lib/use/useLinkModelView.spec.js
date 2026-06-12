@@ -128,6 +128,76 @@ describe("lib/use/useLinkModelView.js", () => {
 
         expect(push).not.toHaveBeenCalled();
     });
+
+    scopedIt("prevents default anchor navigation on a plain left click", async () => {
+        const props = vue.ref({ app: "foo", model: "bar", pk: "123", view: "detail" });
+
+        const { navigate } = useLinkModelView(props.value);
+        await flushPromises();
+
+        const event = { button: 0, defaultPrevented: false, preventDefault: vi.fn(), currentTarget: null };
+        await navigate(event);
+
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(push).toHaveBeenCalledWith({ name: "route-detail", href: "/app/model/detail" });
+    });
+
+    scopedIt("lets the browser handle modifier-key clicks", async () => {
+        const props = vue.ref({ app: "foo", model: "bar", pk: "123", view: "detail" });
+
+        const { navigate } = useLinkModelView(props.value);
+        await flushPromises();
+
+        const event = { button: 0, metaKey: true, defaultPrevented: false, preventDefault: vi.fn() };
+        await navigate(event);
+
+        expect(event.preventDefault).not.toHaveBeenCalled();
+        expect(push).not.toHaveBeenCalled();
+    });
+
+    scopedIt("lets the browser handle non-left-button clicks", async () => {
+        const props = vue.ref({ app: "foo", model: "bar", pk: "123", view: "detail" });
+
+        const { navigate } = useLinkModelView(props.value);
+        await flushPromises();
+
+        const event = { button: 1, defaultPrevented: false, preventDefault: vi.fn() };
+        await navigate(event);
+
+        expect(event.preventDefault).not.toHaveBeenCalled();
+        expect(push).not.toHaveBeenCalled();
+    });
+
+    scopedIt("ignores clicks whose default is already prevented", async () => {
+        const props = vue.ref({ app: "foo", model: "bar", pk: "123", view: "detail" });
+
+        const { navigate } = useLinkModelView(props.value);
+        await flushPromises();
+
+        const event = { button: 0, defaultPrevented: true, preventDefault: vi.fn() };
+        await navigate(event);
+
+        expect(push).not.toHaveBeenCalled();
+    });
+
+    scopedIt("lets the browser handle links that target a new context", async () => {
+        const props = vue.ref({ app: "foo", model: "bar", pk: "123", view: "detail" });
+
+        const { navigate } = useLinkModelView(props.value);
+        await flushPromises();
+
+        const event = {
+            button: 0,
+            defaultPrevented: false,
+            preventDefault: vi.fn(),
+            currentTarget: { getAttribute: () => "_blank" },
+        };
+        await navigate(event);
+
+        expect(event.preventDefault).not.toHaveBeenCalled();
+        expect(push).not.toHaveBeenCalled();
+    });
+
     scopedIt("does not require PK when actionDetails is missing and transitions don't match", async () => {
         vi.doMock("@vueda/use/useModelConfig", () => ({
             useModelConfig: vi.fn(() => ({
