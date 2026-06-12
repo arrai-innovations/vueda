@@ -29,9 +29,11 @@ patchTheme({
                 // Invalid state and wrapping.
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive whitespace-nowrap",
 
-                // Variant classes.
+                // Variant classes. Default is transparent by absence of a fill; only
+                // outline adds a border + explicit bg-transparent. (A default-variant
+                // bg-transparent key here would be cleared by the outline key anyway,
+                // since combineClasses is last-write-wins.)
                 {
-                    "bg-transparent": !variant || variant === "default",
                     "border border-foreground bg-transparent shadow-vueda-control": variant === "outline",
                 },
 

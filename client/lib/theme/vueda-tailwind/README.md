@@ -492,6 +492,35 @@ When extending the primitive layer:
   § 8 or the relevant rule section here once they ship in more than one
   family.
 
+### 9.1 Theme-key class authoring: each token appears once
+
+A theme key's `class` array is flattened by `combineClasses`, which has
+**no tailwind-merge**. When the array mixes plain strings with conditional
+objects, it builds a flat `{ token: boolean }` map with **last-write-wins
+per token**, splitting compound keys. Two consequences shape how class
+arrays must be authored:
+
+- **Same token, two branches: the loser wins.** If a single utility token
+  appears in more than one branch of a `variant` / `size` / `align` object
+  (or in an unconditional string _and_ a conditional key), an inactive
+  branch's `false` silently clears the token an active branch set. This
+  diverges from Vue's own array-class binding, which is a union (a `false`
+  key never removes a class another entry added). The rule: **a utility
+  token appears exactly once across a slot's `class` array.** A token
+  common to several branches must be hoisted to its own conditional entry,
+  or to an unconditional string, never repeated in mutually-exclusive keys.
+- **Conflicting distinct utilities: CSS source order wins, not array
+  order.** Because the result is a flat class set (not tailwind-merged),
+  two different utilities in the same group (`gap-1` vs `gap-2`,
+  `min-w-0` vs `min-w-vueda-control`) both render, and the cascade picks
+  the one defined later in the compiled stylesheet, regardless of array
+  order. Don't rely on a later array entry "overriding" an earlier one;
+  make the conditions mutually exclusive or remove the loser.
+
+The first rule is enforced by `tests/unit/lib/theme/classClobberGuard.spec.js`,
+which resolves every registered slot across a grid of prop values and fails
+if `combineClasses` drops a token the union would keep.
+
 VUEDA-original primitives (net-new, no shadcn lineage) include the
 `Field` shell, `ObjectsGrid`, `PageTitle`, `StickyBar`, the `AuthForm` /
 `AuthorizingForm` / `ActionForm` / `ModelActionForm` family, the full

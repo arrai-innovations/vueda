@@ -31,11 +31,15 @@ patchTheme({
                 {
                     "px-2": !numeric,
                     "font-mono tabular-nums min-w-5 px-1": numeric,
-                    "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary-hover [a&]:active:bg-primary-active":
+                    // Solid fills make the base `border` transparent (it only reserves
+                    // space); `outline` keeps a visible border. Hoisted to one key so a
+                    // sibling branch's `false` cannot clear it (combineClasses last-write-wins).
+                    "border-transparent": variant !== "outline",
+                    "bg-primary text-primary-foreground [a&]:hover:bg-primary-hover [a&]:active:bg-primary-active":
                         !variant || variant === "default",
-                    "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary-hover [a&]:active:bg-secondary-active":
+                    "bg-secondary text-secondary-foreground [a&]:hover:bg-secondary-hover [a&]:active:bg-secondary-active":
                         variant === "secondary",
-                    "border-transparent bg-destructive text-destructive-foreground [a&]:hover:bg-destructive-hover [a&]:active:bg-destructive-active focus-visible:outline-destructive dark:bg-destructive/60":
+                    "bg-destructive text-destructive-foreground [a&]:hover:bg-destructive-hover [a&]:active:bg-destructive-active focus-visible:outline-destructive dark:bg-destructive/60":
                         variant === "destructive",
                     "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground [a&]:active:bg-accent-active":
                         variant === "outline",

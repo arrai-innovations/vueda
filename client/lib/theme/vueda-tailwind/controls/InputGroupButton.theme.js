@@ -20,14 +20,17 @@ patchTheme({
                 // Base classes. Gap is per-size (xs/sm); icon tiers need no gap.
                 "text-sm shadow-none flex items-center",
 
-                // Size classes.
+                // Size classes. The tighter chip radius (xs + icon-xs) and zero padding
+                // (icon-xs + icon-sm) are hoisted to their own keys so a sibling branch's
+                // `false` cannot clear them (combineClasses last-write-wins).
                 {
-                    "h-6 gap-1 px-2 rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-3.5 has-[>svg]:px-2":
-                        !size || size === "xs",
+                    "h-6 gap-1 px-2 [&>svg:not([class*='size-'])]:size-3.5 has-[>svg]:px-2": !size || size === "xs",
                     "h-vueda-control-sm px-vueda-control-px-sm gap-1.5 rounded-vueda-control has-[>svg]:px-vueda-control-px-sm":
                         size === "sm",
-                    "size-6 rounded-[calc(var(--radius)-5px)] p-0": size === "icon-xs",
-                    "size-vueda-control-sm p-0": size === "icon-sm",
+                    "size-6": size === "icon-xs",
+                    "size-vueda-control-sm": size === "icon-sm",
+                    "rounded-[calc(var(--radius)-5px)]": !size || size === "xs" || size === "icon-xs",
+                    "p-0": size === "icon-xs" || size === "icon-sm",
                 },
             ],
         }),
