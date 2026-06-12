@@ -14,7 +14,16 @@ patchTheme({
     ContextMenuLabel: {
         /** Non-interactive context-menu group label. See also: {@api theme-key:DropdownMenuLabel.root}. */
         root: {
-            class: "text-muted-foreground px-2 py-1.5 font-mono text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase data-[inset]:pl-8",
+            class: [
+                // Surface and spacing.
+                "text-muted-foreground px-2 py-1.5",
+
+                // Type.
+                "font-mono text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase",
+
+                // Data attribute states.
+                "data-[inset]:pl-8",
+            ],
         },
     },
 });

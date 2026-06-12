@@ -14,7 +14,13 @@ patchTheme({
     ContextMenuShortcut: {
         /** Trailing keyboard hint for context-menu commands. See also: {@api theme-key:DropdownMenuShortcut.root}. */
         root: {
-            class: "text-muted-foreground ml-auto font-mono text-[length:var(--vueda-text-micro)] font-medium leading-none",
+            class: [
+                // Layout and color.
+                "text-muted-foreground ml-auto",
+
+                // Type.
+                "font-mono text-[length:var(--vueda-text-micro)] font-medium leading-none",
+            ],
         },
     },
 });

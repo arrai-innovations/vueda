@@ -14,7 +14,13 @@ patchTheme({
     NavigationPaginationBar: {
         /** Footer bar for table and objects-grid pagination, seated against the bottom of card-like data surfaces. */
         root: {
-            class: "flex w-full items-center justify-between gap-3 rounded-b-vueda-card border-t bg-card text-foreground px-3 py-2",
+            class: [
+                // Layout and spacing.
+                "flex w-full items-center justify-between gap-3",
+
+                // Shape and surface.
+                "rounded-b-vueda-card border-t bg-card text-foreground px-3 py-2",
+            ],
         },
     },
 });

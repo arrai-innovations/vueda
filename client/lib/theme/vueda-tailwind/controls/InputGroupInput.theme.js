@@ -15,7 +15,10 @@ patchTheme({
     InputGroupInput: {
         /** The text-input child inside an {@api theme-key:InputGroup.root}. Strips its own border, shadow, and focus ring so the surrounding group owns the chrome; flexes to fill the remaining row, and overrides the standalone {@api theme-key:Input} dark-mode tint with `dark:bg-transparent` so the group's tint is the only one painted. */
         root: {
-            class: ["flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent"],
+            class: [
+                // Chrome reset.
+                "flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent",
+            ],
         },
     },
 });

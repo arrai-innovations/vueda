@@ -25,7 +25,15 @@ patchTheme({
             const sizeClass = size === "sm" ? "py-3 px-4 gap-2.5" : "p-4 gap-4";
             return {
                 class: [
-                    "group/item flex items-center border border-transparent text-sm rounded-md transition-colors [a]:hover:bg-accent/50 [a]:active:bg-accent [a]:transition-colors duration-100 flex-wrap focus-visible:focus-ring",
+                    // Layout and base shape.
+                    "group/item flex items-center border border-transparent text-sm rounded-md",
+
+                    // Interactive states.
+                    "transition-colors [a]:hover:bg-accent/50 [a]:active:bg-accent [a]:transition-colors duration-100",
+
+                    // Wrapping and focus.
+                    "flex-wrap focus-visible:focus-ring",
+
                     variantClass,
                     sizeClass,
                 ],

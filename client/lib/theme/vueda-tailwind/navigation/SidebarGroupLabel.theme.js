@@ -15,7 +15,19 @@ patchTheme({
         /** Sidebar group heading using the page-level eyebrow recipe. */
         root: {
             class: [
-                "text-muted-foreground flex h-6 shrink-0 items-center px-2 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.08em] transition-[margin,opacity] duration-200 ease-linear focus-visible:focus-ring focus-visible:focus-ring-sidebar [&>svg]:size-4 [&>svg]:shrink-0",
+                // Layout and color.
+                "text-muted-foreground flex h-6 shrink-0 items-center px-2",
+
+                // Type.
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.08em]",
+
+                // Motion and focus.
+                "transition-[margin,opacity] duration-200 ease-linear focus-visible:focus-ring focus-visible:focus-ring-sidebar",
+
+                // Icons and child elements.
+                "[&>svg]:size-4 [&>svg]:shrink-0",
+
+                // Collapsed state.
                 "group-data-[collapsible=icon]:-mt-6 group-data-[collapsible=icon]:opacity-0",
             ],
         },

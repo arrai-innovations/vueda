@@ -30,9 +30,18 @@ patchTheme({
         /** The shared button shell: inline-flex layout, 2px control radius, sm font-medium type, default 16px icon sizing, focus-visible ring, and the system-wide disabled treatment. Height and horizontal padding are omitted; the leaf picks a tier from `base.css § Control sizing`. */
         root: {
             class: [
-                "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-vueda-control text-sm font-medium transition-all",
+                // Layout and type.
+                "inline-flex items-center justify-center gap-2 whitespace-nowrap",
+                "rounded-vueda-control text-sm font-medium transition-all",
+
+                // Disabled state.
                 "disabled:pointer-events-none disabled:opacity-50",
-                "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0",
+
+                // Icons and child elements.
+                "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+                "shrink-0 [&_svg]:shrink-0",
+
+                // Focus and invalid states.
                 "focus-visible:focus-ring",
                 "aria-invalid:border-destructive",
             ],
@@ -55,7 +64,14 @@ patchTheme({
     _ButtonDestructive: {
         /** The `--destructive` fill: solid destructive background in light mode, 60%-mix in dark so the chip stays legible against `--background` at rest, destructive-foreground text, and a destructive-tinted focus outline. Hover and active swap to the `--destructive-hover` / `--destructive-active` lightness steps (darker in light mode, lighter in dark). Reserve for actions that delete user data or are otherwise irreversible; menu / list destructive items use a colour-only recipe. */
         root: {
-            class: "bg-destructive text-destructive-foreground hover:bg-destructive-hover active:bg-destructive-active focus-visible:outline-destructive dark:bg-destructive/60",
+            class: [
+                // Surface and color.
+                "bg-destructive text-destructive-foreground",
+
+                // Interactive and focus states.
+                "hover:bg-destructive-hover active:bg-destructive-active focus-visible:outline-destructive",
+                "dark:bg-destructive/60",
+            ],
         },
     },
 
@@ -68,7 +84,13 @@ patchTheme({
     _ButtonOutline: {
         /** The neutral-chip recipe: 1px `--foreground` border (set explicitly via `border-foreground` so it opts out of the default `--border` hairline and reads as a true high-contrast outline against the surface in both light and dark), `--background` fill, `shadow-vueda-control` micro-shadow, and an `--accent` hover swap with an `--accent-active` pressed step. Hover / active use the mode-aware `--accent` tokens in both light and dark, so the lightness step is identical in either mode; only the *rest* fill differs (dark mode keeps the input-tint convention, `bg-input/30`, so an outlined chip reads input-like at rest while keeping the foreground-coloured edge). The earlier dark-mode `bg-input/50` hover topped out near the rest lightness because `--input` is itself dark, leaving the smaller sizes with no perceptible state change. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons, so the hover and pressed steps reach those surfaces too. */
         root: {
-            class: "border border-foreground bg-background text-foreground shadow-vueda-control hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:bg-input/30",
+            class: [
+                // Shape and surface.
+                "border border-foreground bg-background text-foreground shadow-vueda-control",
+
+                // Interactive states.
+                "hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:bg-input/30",
+            ],
         },
     },
 
@@ -90,7 +112,11 @@ patchTheme({
     _ButtonGhost: {
         /** The transparent-at-rest recipe: no fill or border until hover, when `--accent` paints the background, with an `--accent-active` pressed step (dark mode: half-strength `accent/50` hover, full `accent` active). Shared by {@api theme-key:CalendarCellTrigger.root} and {@api theme-key:RangeCalendarCellTrigger.root} so day buttons in a calendar grid keep one consistent hover and press affordance; dark-mode hover is half-strength accent so the day button does not over-saturate the popover surface. */
         root: {
-            class: "hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:hover:bg-accent/50 dark:active:bg-accent",
+            class: [
+                // Interactive states.
+                "hover:bg-accent hover:text-accent-foreground active:bg-accent-active",
+                "dark:hover:bg-accent/50 dark:active:bg-accent",
+            ],
         },
     },
 

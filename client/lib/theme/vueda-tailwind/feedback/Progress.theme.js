@@ -34,7 +34,8 @@ patchTheme({
          */
         indicator: ({ tone }) => ({
             class: [
-                "h-full w-full flex-1 transition-all data-[state=indeterminate]:w-2/5 data-[state=indeterminate]:animate-vueda-progress-slide",
+                "h-full w-full flex-1 transition-all",
+                "data-[state=indeterminate]:w-2/5 data-[state=indeterminate]:animate-vueda-progress-slide",
                 {
                     "bg-primary": !tone,
                     "bg-success": tone === "success",

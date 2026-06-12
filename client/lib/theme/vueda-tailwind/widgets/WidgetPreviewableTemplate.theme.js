@@ -35,7 +35,10 @@ patchTheme({
         },
         /** The preview label matches widget label color and line height for alignment. */
         label: {
-            class: ["row-start-1 row-end-2 col-start-1 leading-[2.3958125rem] text-neutral-900/60 dark:text-white/60"],
+            class: [
+                "row-start-1 row-end-2 col-start-1 leading-[2.3958125rem]",
+                "text-neutral-900/60 dark:text-white/60",
+            ],
         },
         /** The preview wrapper mirrors {@api theme-key:WidgetLabel.root} for label and preview alignment. */
         previewWrapper: {

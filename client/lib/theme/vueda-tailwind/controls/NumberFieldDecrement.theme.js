@@ -14,7 +14,10 @@ patchTheme({
     NumberFieldDecrement: {
         /** The decrement stepper anchored to the left edge of {@api theme-key:NumberFieldInput.root}. Absolutely positioned so the stepper overlays the input rather than competing for row width; `disabled:opacity-20` reads as "at the lower bound" — a stronger fade than the standard 50% control-disabled treatment so a temporarily unusable stepper does not look like a fully disabled field. */
         root: {
-            class: ["absolute top-1/2 -translate-y-1/2 left-0 p-3 disabled:cursor-not-allowed disabled:opacity-20"],
+            class: [
+                // Positioning and disabled state.
+                "absolute top-1/2 -translate-y-1/2 left-0 p-3 disabled:cursor-not-allowed disabled:opacity-20",
+            ],
         },
     },
 });

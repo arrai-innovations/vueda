@@ -17,8 +17,16 @@ patchTheme({
          */
         root: {
             class: [
-                "text-muted-foreground text-[length:var(--vueda-text-supporting)] leading-[1.4] font-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
+                // Type and color.
+                "text-muted-foreground text-[length:var(--vueda-text-supporting)] leading-[1.4] font-normal",
+
+                // Orientation state.
+                "group-has-[[data-orientation=horizontal]]/field:text-balance",
+
+                // Spacing states.
                 "last:mt-0 nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5",
+
+                // Link states.
                 "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
             ],
         },

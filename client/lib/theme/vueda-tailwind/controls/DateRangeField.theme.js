@@ -16,8 +16,14 @@ patchTheme({
         /** The input-shell variant that joins a start / end {@api theme-key:DateRangeFieldInput.root} pair into one chip. See also: {@api theme-key:DateField.root} for the shared shell recipe; delta is that the row hosts two segment runs separated by a literal separator glyph rendered by the component rather than a single run. */
         root: ({ size }) => ({
             class: [
-                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                // Shell and surface.
+                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow",
+
+                // Focus, read-only, and disabled states.
+                "focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
                 "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
+
+                // Size classes.
                 {
                     "h-vueda-control px-vueda-control-px": !size || size === "default",
                     "h-vueda-control-sm px-vueda-control-px-sm": size === "sm",

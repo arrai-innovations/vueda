@@ -31,7 +31,7 @@ patchTheme({
         },
         /** Filter strip beneath the under-actions row. Tinted-muted background with a bottom hairline so it reads as a tier between the under-actions strip and the grid; uses the same `px-5 py-[10px]` rhythm shared with {@api theme-key:PageTitle.titleContainer} so the page chrome lines up vertically. */
         filterGroupBar: {
-            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px] border-b bg-muted/25 text-foreground"],
+            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px]", "border-b bg-muted/25 text-foreground"],
         },
         /** "Filters" eyebrow label at the left of the filter strip. Uses the 11 px / 600 / `0.06em` uppercase recipe against `--muted-foreground` so it reads as a section eyebrow, not a heading. */
         filterGroupBarEyebrow: {
@@ -50,7 +50,7 @@ patchTheme({
         },
         /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with {@api theme-key:ViewList.filterGroupBar} and the title row, so the three strips read as a continuous header. */
         underActionsBar: {
-            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3 border-b bg-card text-foreground"],
+            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3", "border-b bg-card text-foreground"],
         },
         /** Bulk-actions strip that surfaces once one or more rows are selected. 6 %-mix primary fill and 12 px / 500 type so it reads as an active selection band, not a passive section; sits between the under-actions strip and the filter strip. */
         bulkActionsBar: {
@@ -73,7 +73,7 @@ patchTheme({
         },
         /** Pagination strip beneath the grid. Card-toned with a top hairline; mirrors the {@api theme-key:ViewList.underActionsBar} rhythm so the chrome above and below the grid read as a matched pair. */
         paginationWrapper: {
-            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px] border-t bg-card text-foreground"],
+            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px]", "border-t bg-card text-foreground"],
         },
     },
 });

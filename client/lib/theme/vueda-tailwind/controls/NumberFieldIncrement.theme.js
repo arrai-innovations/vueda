@@ -14,7 +14,10 @@ patchTheme({
     NumberFieldIncrement: {
         /** The increment stepper anchored to the right edge of {@api theme-key:NumberFieldInput.root}. Mirror of {@api theme-key:NumberFieldDecrement.root}; same overlay positioning and same upper-bound fade. */
         root: {
-            class: ["absolute top-1/2 -translate-y-1/2 right-0 disabled:cursor-not-allowed disabled:opacity-20 p-3"],
+            class: [
+                // Positioning and disabled state.
+                "absolute top-1/2 -translate-y-1/2 right-0 disabled:cursor-not-allowed disabled:opacity-20 p-3",
+            ],
         },
     },
 });

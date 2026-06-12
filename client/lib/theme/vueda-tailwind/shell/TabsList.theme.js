@@ -16,7 +16,13 @@ patchTheme({
          * The segmented tab-list surface. It uses muted fill, compact height, and a small internal padding so active triggers read as selected slabs.
          */
         root: {
-            class: "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
+            class: [
+                // Surface and color.
+                "bg-muted text-muted-foreground",
+
+                // Layout and shape.
+                "inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
+            ],
         },
     },
 });

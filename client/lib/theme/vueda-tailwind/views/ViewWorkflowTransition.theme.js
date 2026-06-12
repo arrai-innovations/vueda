@@ -31,7 +31,7 @@ patchTheme({
         },
         /** "Currently" strip above the transition list. Tinted-muted 40 % background with the card radius, sized to read as a context tag rather than a heading; 16 px bottom inset so the list below sits one rhythm-step beneath the current-state pill. */
         current: {
-            class: ["flex items-center gap-2 mb-4 px-4 py-2.5 rounded-vueda-card bg-muted/40 text-sm"],
+            class: ["flex items-center gap-2 mb-4 px-4 py-2.5", "rounded-vueda-card bg-muted/40 text-sm"],
         },
         /** "Currently" eyebrow inside the current-state strip. 12 px / 500 / `0.06em` uppercase against `--muted-foreground` so the label reads as a section eyebrow beside the state pill on its right. */
         currentLabel: {
@@ -51,7 +51,8 @@ patchTheme({
         /** Clickable `<label>` wrapping one transition option. Borders the option with the card radius and routes `data-selected="true"` to a primary border + primary/5 background, and `data-disabled="true"` to opacity 55 + `not-allowed` cursor. `has-[:focus-visible]` hoists the inner {@api theme-key:ViewWorkflowTransition.optionRadio}'s focus ring onto the option chassis so keyboard users see a ring on the visible target rather than the visually-hidden input. The textarea / reason path parked in BACKLOG-003 lands below the list, not on the option itself. */
         option: {
             class: [
-                "relative flex flex-col gap-1 px-4 py-3 rounded-vueda-card border cursor-pointer",
+                "relative flex flex-col gap-1 px-4 py-3",
+                "rounded-vueda-card border cursor-pointer",
                 "hover:border-primary/50 hover:bg-accent/30 active:bg-accent/50",
                 "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
                 "data-[selected=true]:border-primary data-[selected=true]:bg-primary/5",
@@ -73,7 +74,8 @@ patchTheme({
         /** Target-state badge inside the option. `data-tone` selects the tonal recipe (success / warning / destructive / neutral) so the badge previews what state the model will land in if this transition runs. Sized at the supporting type tier so the badge reads as a tag beside the option's title and description, not a co-title. */
         optionTarget: {
             class: [
-                "inline-flex items-center self-start px-2.5 py-0.5 rounded-full text-xs font-semibold mt-1",
+                "inline-flex items-center self-start px-2.5 py-0.5",
+                "rounded-full text-xs font-semibold mt-1",
                 "data-[tone=success]:bg-success/15 data-[tone=success]:text-success",
                 "data-[tone=warning]:bg-warning/15 data-[tone=warning]:text-warning",
                 "data-[tone=destructive]:bg-destructive/15 data-[tone=destructive]:text-destructive",

@@ -14,7 +14,10 @@ patchTheme({
     NavigationMenu: {
         /** Root flex context that centers the navigation menu and scopes viewport mode selectors. */
         root: {
-            class: "group/navigation-menu relative flex max-w-max flex-1 items-center justify-center",
+            class: [
+                // Layout.
+                "group/navigation-menu relative flex max-w-max flex-1 items-center justify-center",
+            ],
         },
     },
 });

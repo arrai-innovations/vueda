@@ -14,7 +14,13 @@ patchTheme({
     BreadcrumbLink: {
         /** Navigable trail step. Hover and focus move toward foreground without changing weight. */
         root: {
-            class: "hover:text-foreground transition-colors rounded-vueda-control focus-visible:focus-ring",
+            class: [
+                // Interactive states.
+                "hover:text-foreground transition-colors",
+
+                // Shape and focus.
+                "rounded-vueda-control focus-visible:focus-ring",
+            ],
         },
     },
 });

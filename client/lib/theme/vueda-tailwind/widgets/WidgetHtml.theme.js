@@ -20,20 +20,23 @@ patchTheme({
         /** The inner frame supplies the bordered control surface and clips editor content. Uses the `hairline` edge contract shared with {@api theme-key:WidgetJson.root} so the editor frame DPR-tracks like the input-shell controls beside it, with the focus-within ring and `data-[invalid=true]` destructive swap mirroring the other editor widget. */
         inner: {
             class: [
-                "flex flex-col hairline rounded-vueda-control overflow-hidden transition-shadow",
+                "flex flex-col hairline rounded-vueda-control overflow-hidden",
+                "transition-shadow",
                 "focus-within:hairline-ring focus-within:focus-ring-shadow",
                 "data-[invalid=true]:hairline-destructive data-[invalid=true]:focus-within:focus-ring-shadow-destructive",
             ],
         },
         /** The toolbar is a muted, wrapping command strip above the editing area. The bottom divider uses the DPR-keyed `border-b-hairline` width with the structural `--border` colour so the rule tracks the canon hairline scale. */
         toolbar: {
-            class: ["flex flex-row flex-wrap items-center gap-0.5 border-b-hairline bg-muted/50 px-1.5 py-1"],
+            class: ["flex flex-row flex-wrap items-center gap-0.5", "border-b-hairline bg-muted/50 px-1.5 py-1"],
         },
         /** Toolbar buttons use compact slab control styling. */
         toolbarButton: {
             class: [
-                "inline-flex items-center justify-center rounded px-1.5 py-0.5 text-sm font-medium text-muted-foreground",
-                "hover:bg-accent hover:text-accent-foreground active:bg-accent-active active:text-accent-foreground",
+                "inline-flex items-center justify-center",
+                "rounded px-1.5 py-0.5 text-sm font-medium text-muted-foreground",
+                "hover:bg-accent hover:text-accent-foreground",
+                "active:bg-accent-active active:text-accent-foreground",
             ],
         },
         /** The active toolbar button uses the same accent surface as selected menu actions. */

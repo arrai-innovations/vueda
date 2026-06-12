@@ -14,7 +14,10 @@ patchTheme({
     PaginationMeta: {
         /** Compact mono count text for page or record summaries. See also: {@api theme-key:NavigationPaginationBar.root}. */
         root: {
-            class: "font-mono text-[length:var(--vueda-text-supporting)] leading-none text-muted-foreground whitespace-nowrap",
+            class: [
+                // Type and color.
+                "font-mono text-[length:var(--vueda-text-supporting)] leading-none text-muted-foreground whitespace-nowrap",
+            ],
         },
     },
 });

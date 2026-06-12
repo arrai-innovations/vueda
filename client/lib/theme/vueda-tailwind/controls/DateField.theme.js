@@ -17,8 +17,14 @@ patchTheme({
         /** The input-shaped shell hosting the editable date segments. Same hairline + focus + `aria-invalid` recipe as {@api theme-key:Input.root}, with the row of {@api theme-key:DateFieldInput.root} segments laid out as flex items inside; sizes pick the standard `h-vueda-control*` tier from `base.css § Control sizing`. The read-only treatment swaps to `bg-muted/50` so a frozen date field reads as the same surface family as a read-only text input. */
         root: ({ size }) => ({
             class: [
-                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+                // Shell and surface.
+                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow",
+
+                // Focus, read-only, and disabled states.
+                "focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
                 "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
+
+                // Size classes.
                 {
                     "h-vueda-control px-vueda-control-px": !size || size === "default",
                     "h-vueda-control-sm px-vueda-control-px-sm": size === "sm",

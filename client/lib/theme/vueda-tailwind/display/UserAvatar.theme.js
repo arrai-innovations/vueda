@@ -17,7 +17,8 @@ patchTheme({
          */
         root: ({ tone }) => ({
             class: [
-                "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full select-none",
+                "relative inline-flex shrink-0 items-center justify-center overflow-hidden",
+                "rounded-full select-none",
                 {
                     "border border-primary bg-[color-mix(in_oklab,var(--primary)_14%,transparent)] text-primary":
                         !tone || tone === "primary",

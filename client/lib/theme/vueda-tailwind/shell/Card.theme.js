@@ -16,7 +16,16 @@ patchTheme({
          * The framed card surface. It owns the card background, border, radius, vertical rhythm, and non-raised shadow contract; padding on the horizontal axis belongs to child slots.
          */
         root: {
-            class: "bg-card text-card-foreground flex flex-col gap-6 rounded-vueda-card border py-6 shadow-vueda-card",
+            class: [
+                // Surface and color.
+                "bg-card text-card-foreground",
+
+                // Layout and spacing.
+                "flex flex-col gap-6",
+
+                // Shape and elevation.
+                "rounded-vueda-card border py-6 shadow-vueda-card",
+            ],
         },
     },
 });

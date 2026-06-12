@@ -18,7 +18,11 @@ patchTheme({
         },
         /** The optional heading row above a group's items. See also: {@api theme-key:ComboboxGroup.heading}; identical caps-mono-micro eyebrow on `--muted-foreground`. The class-order difference (no leading `font-mono`) is incidental: the rendered recipe matches because `font-mono` is restated later in the list. */
         heading: {
-            class: "px-2 py-1.5 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em] text-muted-foreground",
+            class: [
+                // Layout and type.
+                "px-2 py-1.5 text-[length:var(--vueda-text-micro)]",
+                "font-semibold uppercase tracking-[0.04em] text-muted-foreground",
+            ],
         },
     },
 });

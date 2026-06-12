@@ -69,6 +69,7 @@ patchTheme({
             class: [
                 "flex flex-col items-center justify-center gap-2.5 py-10 text-center text-muted-foreground",
                 "[&>[data-slot=icon]]:text-xl [&>[data-slot=icon]]:text-muted-foreground/70",
+                // Variant icon states.
                 "data-[variant=loading]:[&>[data-slot=icon]]:animate-spin",
                 "data-[variant=error]:[&>[data-slot=icon]]:text-destructive/80",
             ],
@@ -91,8 +92,13 @@ patchTheme({
                 return [
                     "group/row transition-colors",
                     "hover:bg-accent/50 active:bg-accent",
-                    "data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09] data-[state=selected]:active:bg-primary/[0.12]",
+
+                    // Selected row state.
+                    "data-[state=selected]:bg-primary/[0.06]",
+                    "data-[state=selected]:hover:bg-primary/[0.09]",
+                    "data-[state=selected]:active:bg-primary/[0.12]",
                     "data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)]",
+
                     // marked-destroy: 4% destructive tint and a strikethrough on every cell whose
                     // `data-field` / `data-card` / `data-card-header` is not the action column. Action
                     // controls are excluded so the user can still click "undo" on the destroy mark.
@@ -112,7 +118,9 @@ patchTheme({
         /** The card-layout field grid inside each row card. It aligns all {@api theme-key:ObjectsGridCardCell.header} and {@api theme-key:ObjectsGridCardCell.value} fragments into label and value columns. */
         cardContainer: {
             class: [
+                // Card spacing.
                 "p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4 mb-1 mt-2",
+
                 // Aligned label / value columns within a card: each ObjectsGridCardCell renders as a
                 // header + value fragment (no wrapping root), so its two children participate directly
                 // in this grid -- equivalent to a `display: contents` cell wrapper without the wrapper.

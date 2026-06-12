@@ -16,7 +16,9 @@ patchTheme({
         /** The inner wrapper that hosts {@api theme-key:NumberFieldInput.root} plus the optional stepper buttons. Reserves horizontal pad on the input (`pl-5` / `pr-5`) only when {@api theme-key:NumberFieldDecrement} / {@api theme-key:NumberFieldIncrement} are actually rendered, so a stepperless number field keeps the standard control padding and a stepper-bearing one never crashes a digit string into the glyphs. `relative` is the anchor for the absolute-positioned steppers. */
         root: {
             class: [
-                "relative [&>[data-slot=input]]:has-[[data-slot=increment]]:pr-5 [&>[data-slot=input]]:has-[[data-slot=decrement]]:pl-5",
+                // Stepper positioning and input padding hooks.
+                "relative [&>[data-slot=input]]:has-[[data-slot=increment]]:pr-5",
+                "[&>[data-slot=input]]:has-[[data-slot=decrement]]:pl-5",
             ],
         },
     },

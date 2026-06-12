@@ -16,7 +16,13 @@ patchTheme({
          * The low-emphasis metadata row above item content. It mirrors {@api theme-key:ItemFooter.root} for compact mono metadata before the title.
          */
         root: {
-            class: "flex basis-full items-center justify-between gap-2 font-mono text-[length:var(--vueda-text-supporting)] text-muted-foreground",
+            class: [
+                // Layout and spacing.
+                "flex basis-full items-center justify-between gap-2",
+
+                // Type and color.
+                "font-mono text-[length:var(--vueda-text-supporting)] text-muted-foreground",
+            ],
         },
     },
 });

@@ -17,6 +17,7 @@ patchTheme({
         /** Card shell for a repeated-value fieldset. See also: {@api theme-key:FieldSetStackedInline.root}. */
         root: {
             class: [
+                // Surface and nested fieldset treatment.
                 "bg-card border rounded-vueda-card overflow-clip",
                 "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
             ],
@@ -29,13 +30,17 @@ patchTheme({
         label: {
             class: [
                 "leading-none",
-                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "text-muted-foreground",
             ],
         },
         /** Header strip that separates the fieldset label from repeated rows and tints nested fieldsets. */
         header: {
             class: [
+                // Layout and edge merge.
                 "flex items-center justify-between gap-2 px-3 py-2 -mx-3 -mt-3 mb-1 border-b",
+
+                // Nested fieldset surface.
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
             ],
         },

@@ -18,7 +18,19 @@ patchTheme({
         },
         /** Shared animated popover surface for navigation panels. See also: {@api theme-key:NavigationMenuContent.root}. */
         root: {
-            class: "origin-top-center bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 relative mt-1.5 h-[var(--reka-navigation-menu-viewport-height)] w-full overflow-hidden rounded-vueda-control border shadow-vueda-popover md:w-[var(--reka-navigation-menu-viewport-width)] left-[var(--reka-navigation-menu-viewport-left)]",
+            class: [
+                // Surface and color.
+                "origin-top-center bg-popover text-popover-foreground",
+
+                // Motion and animation.
+                "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90",
+
+                // Layout and sizing.
+                "relative mt-1.5 h-[var(--reka-navigation-menu-viewport-height)] w-full overflow-hidden",
+
+                // Shape and responsive placement.
+                "rounded-vueda-control border shadow-vueda-popover md:w-[var(--reka-navigation-menu-viewport-width)] left-[var(--reka-navigation-menu-viewport-left)]",
+            ],
         },
     },
 });

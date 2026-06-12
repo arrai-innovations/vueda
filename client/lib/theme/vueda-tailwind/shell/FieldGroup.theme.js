@@ -16,7 +16,13 @@ patchTheme({
          * The stack for related fields and nested field groups. It establishes the field-group container query used by responsive fields and tightens spacing for checkbox and radio groups.
          */
         root: {
-            class: "group/field-group @container/field-group flex w-full flex-col gap-7 data-[slot=checkbox-group]:gap-3 [&>[data-slot=field-group]]:gap-4",
+            class: [
+                // Layout and container scope.
+                "group/field-group @container/field-group flex w-full flex-col gap-7",
+
+                // Slot spacing states.
+                "data-[slot=checkbox-group]:gap-3 [&>[data-slot=field-group]]:gap-4",
+            ],
         },
     },
 });

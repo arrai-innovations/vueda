@@ -22,7 +22,7 @@ patchTheme({
         },
         /** Uppercase suggestion heading. */
         head: {
-            class: ["text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground leading-none"],
+            class: ["text-[10px] font-semibold uppercase tracking-[0.06em]", "text-muted-foreground leading-none"],
         },
         /** Mono source label for the matching system that produced the suggestions. */
         source: {
@@ -30,7 +30,7 @@ patchTheme({
         },
         /** Bordered list container with divided suggestion rows. */
         list: {
-            class: ["rounded-vueda-card border overflow-hidden divide-y divide-border list-none m-0 p-0"],
+            class: ["rounded-vueda-card border overflow-hidden", "divide-y divide-border", "list-none m-0 p-0"],
         },
         /** Full-width router-link row laid out as icon, text stack, chip, and chevron. */
         item: {
@@ -43,7 +43,10 @@ patchTheme({
         },
         /** Leading icon cell for the suggestion type. */
         icon: {
-            class: ["flex items-center justify-center w-6 h-6 shrink-0 text-muted-foreground text-[16px] leading-none"],
+            class: [
+                "flex items-center justify-center w-6 h-6 shrink-0",
+                "text-muted-foreground text-[16px] leading-none",
+            ],
         },
         /** Text column stacking label above the route path or action description. */
         labelStack: {
@@ -75,7 +78,7 @@ patchTheme({
         },
         /** Trailing chevron affordance for rows that navigate. */
         chevron: {
-            class: ["flex items-center justify-center shrink-0 text-muted-foreground/60 text-[14px] leading-none"],
+            class: ["flex items-center justify-center shrink-0", "text-muted-foreground/60 text-[14px] leading-none"],
         },
     },
 });

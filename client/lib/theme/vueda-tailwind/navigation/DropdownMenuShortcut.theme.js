@@ -14,7 +14,13 @@ patchTheme({
     DropdownMenuShortcut: {
         /** Trailing keyboard hint with mono micro type so shortcuts scan independently from item labels. */
         root: {
-            class: "text-muted-foreground ml-auto font-mono text-[length:var(--vueda-text-micro)] font-medium leading-none",
+            class: [
+                // Layout and color.
+                "text-muted-foreground ml-auto",
+
+                // Type.
+                "font-mono text-[length:var(--vueda-text-micro)] font-medium leading-none",
+            ],
         },
     },
 });

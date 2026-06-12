@@ -16,7 +16,12 @@ patchTheme({
         /** A single character cell. Borders use `--input` at the `border-hairline` width, and every non-first slot pulls left by exactly `--vueda-hairline-width` so adjacent slots overlap one device pixel and read as one painted line rather than doubling at the seam. The active slot promotes `z-10` and swaps to `border-ring` so the run's active position outlines cleanly above its neighbours; `aria-invalid` swaps the border to `--destructive` on the same rule. First / last children round only their outer corners so the run reads as one chip. */
         root: {
             class: [
-                "dark:bg-input/30 border-hairline border-input relative flex h-vueda-control w-vueda-control items-center justify-center text-sm shadow-vueda-control transition-all first:rounded-l-md last:rounded-r-md [&:not(:first-child)]:[margin-left:calc(-1*var(--vueda-hairline-width))] data-[active=true]:z-10 data-[active=true]:border-ring aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive",
+                // Surface, sizing, and joining.
+                "dark:bg-input/30 border-hairline border-input relative flex h-vueda-control w-vueda-control items-center justify-center text-sm shadow-vueda-control transition-all",
+                "first:rounded-l-md last:rounded-r-md [&:not(:first-child)]:[margin-left:calc(-1*var(--vueda-hairline-width))]",
+
+                // Active and invalid states.
+                "data-[active=true]:z-10 data-[active=true]:border-ring aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive",
             ],
         },
     },

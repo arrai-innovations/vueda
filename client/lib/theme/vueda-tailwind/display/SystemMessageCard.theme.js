@@ -34,12 +34,16 @@ patchTheme({
                 "w-9 h-9 rounded-[4px]",
                 "text-[18px] leading-none",
                 // info + loading: primary blue soft tint
-                "group-data-[tone=info]/system-message-card:bg-primary/[0.12] group-data-[tone=info]/system-message-card:text-primary",
-                "group-data-[tone=loading]/system-message-card:bg-primary/[0.12] group-data-[tone=loading]/system-message-card:text-primary",
+                "group-data-[tone=info]/system-message-card:bg-primary/[0.12]",
+                "group-data-[tone=info]/system-message-card:text-primary",
+                "group-data-[tone=loading]/system-message-card:bg-primary/[0.12]",
+                "group-data-[tone=loading]/system-message-card:text-primary",
                 // warning: amber soft tint
-                "group-data-[tone=warning]/system-message-card:bg-warning/[0.14] group-data-[tone=warning]/system-message-card:text-warning",
+                "group-data-[tone=warning]/system-message-card:bg-warning/[0.14]",
+                "group-data-[tone=warning]/system-message-card:text-warning",
                 // danger: red soft tint
-                "group-data-[tone=danger]/system-message-card:bg-destructive/[0.12] group-data-[tone=danger]/system-message-card:text-destructive",
+                "group-data-[tone=danger]/system-message-card:bg-destructive/[0.12]",
+                "group-data-[tone=danger]/system-message-card:text-destructive",
             ],
         },
         /** Meta text column inside the crest, flexing between icon and optional code. */

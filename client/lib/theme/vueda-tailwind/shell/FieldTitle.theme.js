@@ -16,7 +16,13 @@ patchTheme({
          * The compact title text adjacent to field content. It follows field disabled opacity and uses label-weight type for local field headings.
          */
         root: {
-            class: "flex w-fit items-center gap-2 text-sm leading-snug font-medium group-data-[disabled=true]/field:opacity-50",
+            class: [
+                // Layout and type.
+                "flex w-fit items-center gap-2 text-sm leading-snug font-medium",
+
+                // Disabled state.
+                "group-data-[disabled=true]/field:opacity-50",
+            ],
         },
     },
 });

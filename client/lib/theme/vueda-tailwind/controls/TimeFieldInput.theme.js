@@ -15,7 +15,11 @@ patchTheme({
         /** An editable segment inside a {@api theme-key:TimeField.root}. See also: {@api theme-key:DateFieldInput.root}; identical recipe. */
         root: {
             class: [
-                "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
+                // Segment layout and type.
+                "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero']",
+
+                // Caret, focus, and placeholder states.
+                "caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
             ],
         },
     },

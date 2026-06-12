@@ -15,7 +15,11 @@ patchTheme({
     FormSectionTitle: {
         /** Eyebrow heading text for a form section. */
         root: {
-            class: "m-0 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none text-muted-foreground",
+            class: [
+                "m-0",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none",
+                "text-muted-foreground",
+            ],
         },
     },
 });

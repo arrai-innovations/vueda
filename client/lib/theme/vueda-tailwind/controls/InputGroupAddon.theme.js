@@ -18,7 +18,13 @@ patchTheme({
         /** The addon slot inside an {@api theme-key:InputGroup.root}. `align` picks one of four placements: `inline-start` / `inline-end` for icon, kbd, or button content flush against the input edge, and `block-start` / `block-end` for helper-text rows stacked above or below the input. Negative-margin hooks (`has-[>button]:ml-[-0.45rem]`, `has-[>kbd]:ml-[-0.35rem]`) tighten interior padding when the addon hosts a button or kbd so the addon does not visually balloon. Inherits `--muted-foreground` text so the addon reads as chrome, not as content; dimmed in lockstep with the group when the host carries `data-disabled=true`. */
         root: ({ align }) => ({
             class: [
-                "text-muted-foreground flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium select-none [&>svg:not([class*='size-'])]:size-4 [&>kbd]:rounded-[calc(var(--radius)-5px)] group-data-[disabled=true]/input-group:opacity-50",
+                // Addon layout and type.
+                "text-muted-foreground flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium select-none",
+
+                // Child elements and disabled state.
+                "[&>svg:not([class*='size-'])]:size-4 [&>kbd]:rounded-[calc(var(--radius)-5px)] group-data-[disabled=true]/input-group:opacity-50",
+
+                // Alignment classes.
                 {
                     "order-first pl-3 has-[>button]:ml-[-0.45rem] has-[>kbd]:ml-[-0.35rem]":
                         !align || align === "inline-start",

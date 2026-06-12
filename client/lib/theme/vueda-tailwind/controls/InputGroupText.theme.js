@@ -16,7 +16,11 @@ patchTheme({
         /** The inline-text addon inside an {@api theme-key:InputGroup.root}: helper labels, prefix / suffix copy, unit markers. Renders at sm size on `--muted-foreground` with 16px icons so the addon reads as chrome rather than as input content. */
         root: {
             class: [
-                "text-muted-foreground flex items-center gap-2 text-sm [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+                // Layout and type.
+                "text-muted-foreground flex items-center gap-2 text-sm",
+
+                // Icon elements.
+                "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
             ],
         },
     },

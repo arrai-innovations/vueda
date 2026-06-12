@@ -18,13 +18,21 @@ patchTheme({
          * The scroll container around the native table. It owns the card surface, horizontal overflow, and sticky-table height cap used when `Table` receives `sticky`.
          */
         container: {
-            class: "relative w-full overflow-auto rounded-vueda-card border bg-card data-[sticky]:overflow-y-auto data-[sticky]:max-h-[var(--vueda-tbl-max-h,30rem)]",
+            class: [
+                "relative w-full overflow-auto",
+                "rounded-vueda-card border bg-card",
+                "data-[sticky]:overflow-y-auto data-[sticky]:max-h-[var(--vueda-tbl-max-h,30rem)]",
+            ],
         },
         /**
          * The native `<table>` element. It carries the numeric font features, border model, and `data-density` hook that {@api theme-key:TableHead.root} and {@api theme-key:TableCell.root} read. Density tiers map default, compact, and condensed rows to progressively tighter row heights.
          */
         table: {
-            class: "w-full caption-bottom text-body border-separate border-spacing-0 [font-variant-numeric:tabular-nums_slashed-zero]",
+            class: [
+                "w-full caption-bottom text-body",
+                "border-separate border-spacing-0",
+                "[font-variant-numeric:tabular-nums_slashed-zero]",
+            ],
         },
     },
 });

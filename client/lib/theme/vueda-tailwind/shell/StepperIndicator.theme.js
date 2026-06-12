@@ -17,9 +17,16 @@ patchTheme({
          */
         root: {
             class: [
+                // Layout, shape, and default color.
                 "inline-flex items-center justify-center rounded-full text-muted-foreground/50 w-8 h-8",
+
+                // Disabled state.
                 "group-data-[disabled]:text-muted-foreground group-data-[disabled]:opacity-50",
+
+                // Active state.
                 "group-data-[state=active]:bg-primary group-data-[state=active]:text-primary-foreground",
+
+                // Completed state.
                 "group-data-[state=completed]:bg-accent group-data-[state=completed]:text-accent-foreground",
             ],
         },

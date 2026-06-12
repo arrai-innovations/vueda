@@ -14,7 +14,13 @@ patchTheme({
     SidebarInput: {
         /** Sidebar-local input chrome. It binds hairline and focus colors to sidebar tokens rather than generic input tokens. */
         root: {
-            class: "bg-background h-8 w-full shadow-none [--vueda-hairline-color:var(--sidebar-border)]! focus-visible:[--vueda-hairline-color:var(--sidebar-ring)]!",
+            class: [
+                // Surface and sizing.
+                "bg-background h-8 w-full shadow-none",
+
+                // Sidebar token bindings.
+                "[--vueda-hairline-color:var(--sidebar-border)]! focus-visible:[--vueda-hairline-color:var(--sidebar-ring)]!",
+            ],
         },
     },
 });

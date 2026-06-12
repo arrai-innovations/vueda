@@ -17,9 +17,16 @@ patchTheme({
          */
         root: {
             class: [
+                // Layout and motion.
                 "flex-1 h-0.5 min-w-6 rounded-sm mt-4 transition-colors",
+
+                // Default surface.
                 "bg-muted",
+
+                // Disabled state.
                 "group-data-[disabled]:bg-muted group-data-[disabled]:opacity-50",
+
+                // Completed state.
                 "group-data-[state=completed]:bg-accent",
             ],
         },

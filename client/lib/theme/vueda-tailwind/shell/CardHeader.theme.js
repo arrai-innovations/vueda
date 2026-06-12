@@ -16,7 +16,13 @@ patchTheme({
          * The leading card header grid. It creates title and description rows and switches to a two-column layout when {@api theme-key:CardAction.root} is present.
          */
         root: {
-            class: "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
+            class: [
+                // Layout and spacing.
+                "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6",
+
+                // Slot and border states.
+                "has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
+            ],
         },
     },
 });

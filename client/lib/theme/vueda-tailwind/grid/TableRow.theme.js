@@ -17,7 +17,13 @@ patchTheme({
          * The row slot shared by header, body, and footer sections. It provides hover feedback, selected-row tinting, the leading selected rail, and the standard divider.
          */
         root: {
-            class: "hover:bg-accent/50 active:bg-accent data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09] data-[state=selected]:active:bg-primary/[0.12] data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)] border-b transition-colors",
+            class: [
+                "hover:bg-accent/50 active:bg-accent",
+                "data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09]",
+                "data-[state=selected]:active:bg-primary/[0.12]",
+                "data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)]",
+                "border-b transition-colors",
+            ],
         },
     },
 });

@@ -16,7 +16,13 @@ patchTheme({
          * The plain horizontal or vertical dividing rule. It is a single border-token line with no label or inset variant.
          */
         root: {
-            class: "bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
+            class: [
+                // Base rule.
+                "bg-border shrink-0",
+
+                // Orientation sizing.
+                "data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
+            ],
         },
     },
 });

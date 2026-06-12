@@ -16,7 +16,11 @@ patchTheme({
          * The supporting message copy beneath the alert title. It inherits variant-specific description tint from {@api theme-key:Alert.root} while keeping nested paragraphs readable for short remediation text.
          */
         root: {
-            class: "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
+            class: [
+                "text-muted-foreground",
+                "col-start-2 grid justify-items-start gap-1",
+                "text-sm [&_p]:leading-relaxed",
+            ],
         },
     },
 });

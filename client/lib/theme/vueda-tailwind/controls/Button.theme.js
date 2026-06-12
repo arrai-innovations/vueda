@@ -35,12 +35,19 @@ patchTheme({
             if (v === "link") {
                 return {
                     composes: ["_ButtonBase.root", variantKey],
-                    class: ["h-auto px-0", ...cooldownClass],
+                    class: [
+                        // Link sizing.
+                        "h-auto px-0",
+
+                        // Cooldown state.
+                        ...cooldownClass,
+                    ],
                 };
             }
             return {
                 composes: ["_ButtonBase.root", variantKey],
                 class: [
+                    // Size classes.
                     {
                         "h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm":
                             !size || size === "default",
@@ -51,6 +58,8 @@ patchTheme({
                         "size-vueda-control-sm": size === "icon-sm",
                         "size-vueda-control-lg": size === "icon-lg",
                     },
+
+                    // Cooldown state.
                     ...cooldownClass,
                 ],
             };

@@ -28,8 +28,14 @@ patchTheme({
                 "w-[18px] h-[18px] rounded-full",
                 "text-[11px] font-semibold leading-none",
                 "border bg-background text-muted-foreground",
-                "data-[state=current]:bg-primary data-[state=current]:text-primary-foreground data-[state=current]:border-primary",
-                "data-[state=done]:bg-primary/15 data-[state=done]:text-primary data-[state=done]:border-primary/40",
+
+                // Data attribute states.
+                "data-[state=current]:bg-primary",
+                "data-[state=current]:text-primary-foreground",
+                "data-[state=current]:border-primary",
+                "data-[state=done]:bg-primary/15",
+                "data-[state=done]:text-primary",
+                "data-[state=done]:border-primary/40",
             ],
         },
         /** Step-name label beside the number badge. Uses the 11 px / 600 / `0.06em` uppercase eyebrow recipe so the rail reads as a row of section eyebrows; `data-state` promotes the colour to foreground at `current` and `done` so the active step does not lose contrast against the dimmed `upcoming` peers. */

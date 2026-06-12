@@ -15,8 +15,12 @@ patchTheme({
         /** Main content wrapper adjacent to the sidebar. Inset variant chrome exists in source but is not the admin-app default. */
         root: {
             class: [
+                // Layout and surface.
                 "bg-background text-foreground relative flex min-w-0 flex-1 flex-col",
-                "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-vueda-card md:peer-data-[variant=inset]:shadow-vueda-card md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
+
+                // Inset variant states.
+                "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-vueda-card",
+                "md:peer-data-[variant=inset]:shadow-vueda-card md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
             ],
         },
     },

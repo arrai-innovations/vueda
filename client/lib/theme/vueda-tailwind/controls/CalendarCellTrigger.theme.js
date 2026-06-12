@@ -19,9 +19,14 @@ patchTheme({
         root: {
             composes: ["_ButtonBase.root", "_ButtonGhost.root"],
             class: [
+                // Day button base.
                 "size-[var(--vueda-cal-day)] p-0 font-normal aria-selected:opacity-100 cursor-default",
+
+                // Today and selected states.
                 "[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground",
                 "data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[selected]:opacity-100 data-[selected]:hover:bg-primary data-[selected]:hover:text-primary-foreground data-[selected]:focus:bg-primary data-[selected]:focus:text-primary-foreground",
+
+                // Availability and outside-view states.
                 "data-[disabled]:text-muted-foreground data-[disabled]:opacity-50",
                 "data-[unavailable]:text-destructive data-[unavailable]:line-through",
                 "data-[outside-view]:text-muted-foreground",

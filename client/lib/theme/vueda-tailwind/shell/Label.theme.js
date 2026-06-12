@@ -16,7 +16,13 @@ patchTheme({
          * The accessible label text for controls and grouped inputs. It handles disabled states from both group and peer contexts while preserving compact inline alignment.
          */
         root: {
-            class: "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+            class: [
+                // Layout and type.
+                "flex items-center gap-2 text-sm leading-none font-medium select-none",
+
+                // Disabled states.
+                "group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+            ],
         },
     },
 });

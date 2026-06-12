@@ -24,7 +24,12 @@ patchTheme({
                       : "bg-transparent";
             return {
                 class: [
-                    "flex shrink-0 items-center justify-center gap-2 group-has-[[data-slot=item-description]]/item:self-start [&_svg]:pointer-events-none group-has-[[data-slot=item-description]]/item:translate-y-0.5",
+                    // Layout and description alignment.
+                    "flex shrink-0 items-center justify-center gap-2 group-has-[[data-slot=item-description]]/item:self-start",
+
+                    // Icons and description offset.
+                    "[&_svg]:pointer-events-none group-has-[[data-slot=item-description]]/item:translate-y-0.5",
+
                     variantClass,
                 ],
             };

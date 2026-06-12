@@ -17,6 +17,7 @@ patchTheme({
         /** Card shell for paired lower and upper range fields, including nested-fieldset inset chrome. */
         root: {
             class: [
+                // Surface and nested fieldset treatment.
                 "bg-card border rounded-vueda-card overflow-clip p-3",
                 "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
             ],
@@ -40,14 +41,16 @@ patchTheme({
         title: {
             class: [
                 "leading-none",
-                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "text-muted-foreground",
             ],
         },
         /** Compact uppercase fallback label for the range group. See also: {@api theme-key:FieldSetRange.title}. */
         label: {
             class: [
                 "leading-none",
-                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "text-muted-foreground",
             ],
         },
         /** Wrapper around each rendered range endpoint field. */

@@ -14,7 +14,10 @@ patchTheme({
     Menubar: {
         /** Horizontal menu bar surface. It keeps the popover/menu family language while the bar shadow stays flat. */
         root: {
-            class: "bg-background flex h-9 items-center gap-1 rounded-vueda-control border p-1 shadow-vueda-control",
+            class: [
+                // Surface and layout.
+                "bg-background flex h-9 items-center gap-1 rounded-vueda-control border p-1 shadow-vueda-control",
+            ],
         },
     },
 });

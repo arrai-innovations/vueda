@@ -14,7 +14,14 @@ patchTheme({
     SidebarUserBlock: {
         /** Horizontal account row for the sidebar footer. */
         root: {
-            class: "flex w-full items-center gap-2 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:p-0!",
+            class: [
+                // Layout and spacing.
+                "flex w-full items-center gap-2",
+
+                // Collapsed state.
+                "group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+                "group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:p-0!",
+            ],
         },
         /** Min-width guard for truncating name and role text beside the avatar and action button. */
         text: {
@@ -22,11 +29,17 @@ patchTheme({
         },
         /** Display-name text. Tight leading and truncation keep long names inside the dense footer row. */
         name: {
-            class: "truncate text-[length:var(--vueda-text-body)] font-medium leading-tight text-sidebar-foreground",
+            class: [
+                // Type and color.
+                "truncate text-[length:var(--vueda-text-body)] font-medium leading-tight text-sidebar-foreground",
+            ],
         },
         /** Secondary role text using the same micro scale as {@api theme-key:SidebarGroupLabel.root}. */
         role: {
-            class: "truncate text-[length:var(--vueda-text-micro)] font-normal leading-tight text-muted-foreground",
+            class: [
+                // Type and color.
+                "truncate text-[length:var(--vueda-text-micro)] font-normal leading-tight text-muted-foreground",
+            ],
         },
         /** Slot wrapper for the optional account-menu trigger. Hidden in the icon-collapsed rail. */
         kebab: {

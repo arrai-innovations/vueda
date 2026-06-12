@@ -18,6 +18,7 @@ patchTheme({
         root: {
             class: [
                 "flex items-start gap-3 border rounded-vueda-card p-2.5",
+                // Data attribute states.
                 "data-[state=dirty]:border-l-2 data-[state=dirty]:border-l-primary",
                 "data-[state=selected-for-destroy]:bg-destructive/5 data-[state=selected-for-destroy]:border-destructive/40",
             ],

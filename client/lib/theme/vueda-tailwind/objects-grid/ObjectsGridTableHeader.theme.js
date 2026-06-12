@@ -18,6 +18,7 @@ patchTheme({
         /** The interactive header content wrapper. It lays out the label, sort icon, and numeric-column reversal used when the parent header cell carries `data-numeric`. */
         root: {
             class: ({ props: { sortable } }) => [
+                // Layout and numeric alignment.
                 "flex",
                 "items-end",
                 "justify-between",

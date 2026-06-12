@@ -16,7 +16,9 @@ patchTheme({
         /** The section heading inside a {@api theme-key:SelectContent.root}. See also: {@api theme-key:ComboboxGroup.heading}; same caps-micro eyebrow on `--muted-foreground` (the rendered class list drops the leading `font-mono`, but Tailwind's default sans / mono cascade leaves the eyebrow visually identical at the micro size). */
         root: {
             class: [
-                "text-muted-foreground px-2 py-1.5 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em]",
+                // Layout and type.
+                "text-muted-foreground px-2 py-1.5",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em]",
             ],
         },
     },

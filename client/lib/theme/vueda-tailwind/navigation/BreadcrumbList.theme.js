@@ -14,7 +14,13 @@ patchTheme({
     BreadcrumbList: {
         /** Inline wrapping row for breadcrumb items. */
         root: {
-            class: "text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm break-words sm:gap-2.5",
+            class: [
+                // Layout and color.
+                "text-muted-foreground flex flex-wrap items-center gap-1.5",
+
+                // Type and responsive spacing.
+                "text-sm break-words sm:gap-2.5",
+            ],
         },
     },
 });

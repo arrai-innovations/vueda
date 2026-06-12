@@ -17,7 +17,13 @@ patchTheme({
         /** The floating popover surface that holds the {@api theme-key:SelectItem.root} options. Reads as a popover (2px radius, 1px border, `shadow-vueda-popover` elevation) capped at the viewport-available height that Reka exposes via `--reka-select-content-available-height`; the `popper`-position-only translate nudges (`translate-y-1`, etc.) sit the popover one 4px step off the trigger so the surface does not crash into the chip that opened it. The `item-aligned` legacy mode (the popover aligns itself to the selected item rather than anchoring to the trigger) skips those nudges and shares all other chrome. */
         root: ({ position }) => ({
             class: [
-                "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--reka-select-content-available-height) min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-vueda-control border shadow-vueda-popover",
+                // Surface and motion.
+                "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out",
+                "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+                "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+
+                // Positioning and shape.
+                "relative z-50 max-h-(--reka-select-content-available-height) min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-vueda-control border shadow-vueda-popover",
                 {
                     "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1":
                         position === "popper",

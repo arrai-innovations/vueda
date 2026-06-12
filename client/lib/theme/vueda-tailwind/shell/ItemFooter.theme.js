@@ -16,7 +16,13 @@ patchTheme({
          * The low-emphasis metadata row below item content. It uses compact mono supporting text so timestamps, counters, and machine-generated values read as metadata.
          */
         root: {
-            class: "flex basis-full items-center justify-between gap-2 font-mono text-[length:var(--vueda-text-supporting)] text-muted-foreground",
+            class: [
+                // Layout and spacing.
+                "flex basis-full items-center justify-between gap-2",
+
+                // Type and color.
+                "font-mono text-[length:var(--vueda-text-supporting)] text-muted-foreground",
+            ],
         },
     },
 });

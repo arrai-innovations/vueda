@@ -14,7 +14,13 @@ patchTheme({
     NavigationMenuIndicator: {
         /** Animated indicator container that lines up the arrow between the trigger and open panel. */
         root: {
-            class: "data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:fade-in top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden",
+            class: [
+                // Motion and animation.
+                "data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:fade-in",
+
+                // Positioning and layout.
+                "top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden",
+            ],
         },
         /** Rotated popover-colored arrow for navigation-menu content. */
         arrow: {

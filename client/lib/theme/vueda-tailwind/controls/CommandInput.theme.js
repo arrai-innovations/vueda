@@ -16,7 +16,11 @@ patchTheme({
         /** The free-text search field at the top of a {@api theme-key:Command.root}. Renders chrome-free at `--vueda-cmd-input-height` so the surrounding {@api theme-key:CommandInput.wrapper} owns the row's geometry and the lower hairline; the input itself just contributes placeholder, focus-clear, and the disabled treatment. */
         root: {
             class: [
-                "placeholder:text-muted-foreground flex h-[var(--vueda-cmd-input-height)] w-full rounded-vueda-control bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+                // Placeholder and input shell.
+                "placeholder:text-muted-foreground flex h-[var(--vueda-cmd-input-height)] w-full rounded-vueda-control bg-transparent py-3 text-sm outline-hidden",
+
+                // Disabled state.
+                "disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
         /** The row that wraps {@api theme-key:CommandInput.root} together with the leading search icon, sized to `--vueda-cmd-input-height` and capped by a bottom hairline (`border-b`) so the input separates cleanly from the {@api theme-key:CommandList.root} below. The wrapper, not the input, owns the divider so the seam stays continuous even when the input is empty or focused. */

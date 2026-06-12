@@ -15,12 +15,27 @@ patchTheme({
         /** Trailing menu-item action. `showOnHover` defers visibility until hover, focus-within, or open state on desktop. */
         root: ({ showOnHover }) => ({
             class: [
-                "text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent-active hover:text-sidebar-accent-foreground peer-hover/menu-button:text-sidebar-accent-foreground absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-vueda-control p-0 transition-transform focus-visible:focus-ring focus-visible:focus-ring-sidebar [&>svg]:size-4 [&>svg]:shrink-0",
+                // Surface and interactive states.
+                "text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent-active hover:text-sidebar-accent-foreground",
+                "peer-hover/menu-button:text-sidebar-accent-foreground",
+
+                // Positioning and layout.
+                "absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-vueda-control p-0",
+
+                // Motion and focus.
+                "transition-transform focus-visible:focus-ring focus-visible:focus-ring-sidebar",
+
+                // Icons and child elements.
+                "[&>svg]:size-4 [&>svg]:shrink-0",
+
+                // Hit area and size alignment.
                 "after:absolute after:-inset-2 md:after:hidden",
                 "peer-data-[size=sm]/menu-button:top-1",
                 "peer-data-[size=default]/menu-button:top-1.5",
                 "peer-data-[size=lg]/menu-button:top-2.5",
                 "group-data-[collapsible=icon]:hidden",
+
+                // Visibility states.
                 {
                     "peer-data-[active=true]/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0":
                         showOnHover,

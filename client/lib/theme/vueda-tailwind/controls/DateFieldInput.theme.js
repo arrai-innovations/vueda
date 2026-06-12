@@ -17,7 +17,11 @@ patchTheme({
         /** A single editable date segment (year / month / day). Renders in `--vueda-font-mono` at `font-medium` with `font-feature-settings: 'tnum','zero'` so digit widths stay stable as values change and `0` remains visually distinct from `O`. The focused segment paints `--accent` / `--accent-foreground` (same recipe as a menu-item-highlighted row, since a focused segment is a selection); `caret-transparent` hides the text caret because segments edit via arrow keys rather than free-form typing, and `data-[placeholder]` mutes the segment to `--muted-foreground` while empty. */
         root: {
             class: [
-                "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero'] caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
+                // Segment layout and type.
+                "inline rounded-sm px-0.5 text-center font-mono font-medium [font-feature-settings:'tnum','zero']",
+
+                // Caret, focus, and placeholder states.
+                "caret-transparent outline-none focus:bg-accent focus:text-accent-foreground data-[placeholder]:text-muted-foreground",
             ],
         },
     },

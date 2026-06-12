@@ -17,7 +17,10 @@ patchTheme({
          */
         root: {
             class: [
+                // Type and truncation.
                 "text-muted-foreground line-clamp-2 text-body leading-normal font-normal text-balance",
+
+                // Link states.
                 "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
             ],
         },
