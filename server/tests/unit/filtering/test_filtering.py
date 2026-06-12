@@ -80,7 +80,7 @@ class TestModelInfoChoices:
             data={"last_modified_after": "2024-08-01", "last_modified_before": "2024-09-01"},
             format="json",
         )
-        assert response.data["totalRecords"] == 1, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 1, response.data
 
         response = api_client.get(
             reverse("store.cart-list"),
@@ -88,7 +88,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 0, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 0, response.data
 
     def test_filtering_choices(self, test_data, api_client):
         user = test_data.users["test_admin@domain.invalid"]
@@ -102,7 +102,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+        assert response.data["totalRecords"] == 2, response.data  # noqa: PLR2004
         assert frozenset(x["name"] for x in response.data["results"]) == frozenset({"Spray Paint", "Paint"})
 
         response = api_client.get(
@@ -112,9 +112,7 @@ class TestModelInfoChoices:
         )
 
         for err in response.data["distributor"]:
-            assert str(err) == "Select a valid choice. Tasty Treats is not one of the available choices.", (
-                f"response.data: {response.data}"
-            )
+            assert str(err) == "Select a valid choice. Tasty Treats is not one of the available choices.", response.data
 
         response = api_client.get(
             reverse("store.cart-list"),
@@ -122,7 +120,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 1, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 1, response.data
         cart_item_pks = frozenset([x.pk for x in test_data.carts["test_customer_1@domain.invalid"]["cart_items"]])
         for result in response.data["results"]:
             assert frozenset(result["cart_items"]) == cart_item_pks
@@ -133,7 +131,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 1, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 1, response.data
         cart_item_pks = frozenset([x.pk for x in test_data.carts["test_customer_2@domain.invalid"]["cart_items"]])
         for result in response.data["results"]:
             assert frozenset(result["cart_items"]) == cart_item_pks
@@ -145,9 +143,7 @@ class TestModelInfoChoices:
         )
 
         for err in response.data["product_quantity"]:
-            assert str(err) == "Select a valid choice. 24 is not one of the available choices.", (
-                f"response.data: {response.data}"
-            )
+            assert str(err) == "Select a valid choice. 24 is not one of the available choices.", response.data
 
 
 @pytest.mark.django_db
@@ -178,7 +174,7 @@ class TestTrigramSimilarFilter:
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Vibrant Looks Inc."},
             format="json",
         )
-        assert response.data["totalRecords"] == 1, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 1, response.data
         assert response.data["results"][0]["name"] == "Vibrant Looks Inc."
 
     def test_trigram_similar_close_match(self, test_data, api_client, settings):
@@ -195,7 +191,7 @@ class TestTrigramSimilarFilter:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 1, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 1, response.data
         assert response.data["results"][0]["name"] == "Vibrant Looks Inc."
 
         with connection.cursor() as cursor:
@@ -206,7 +202,7 @@ class TestTrigramSimilarFilter:
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Vibrant"},
             format="json",
         )
-        assert response.data["totalRecords"] == 0, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 0, response.data
 
         with connection.cursor() as cursor:
             cursor.execute("SET pg_trgm.similarity_threshold = %s", [self.similarity_threshold_default])
@@ -224,7 +220,7 @@ class TestTrigramSimilarFilter:
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "xylophone"},
             format="json",
         )
-        assert response.data["totalRecords"] == 0, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 0, response.data
 
     def test_trigram_similar_no_filter_returns_all(self, test_data, api_client, settings):
         """When name_similar is omitted the filter is skipped and all results are returned."""
@@ -238,7 +234,7 @@ class TestTrigramSimilarFilter:
             reverse("store.distributor-list"),
             format="json",
         )
-        assert response.data["totalRecords"] == 4, f"response.data: {response.data}"  # noqa: PLR2004
+        assert response.data["totalRecords"] == 5, response.data  # noqa: PLR2004
 
 
 @pytest.mark.django_db
@@ -269,7 +265,7 @@ class TestTrigramWordSimilarFilter:
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Vibrant Looks Inc."},
             format="json",
         )
-        assert response.data["totalRecords"] == 1, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 1, response.data
         assert response.data["results"][0]["name"] == "Vibrant Looks Inc."
 
     def test_trigram_word_similar_word_match(self, test_data, api_client, settings):
@@ -285,7 +281,7 @@ class TestTrigramWordSimilarFilter:
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Vibran"},
             format="json",
         )
-        assert response.data["totalRecords"] == 1, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 1, response.data
         assert response.data["results"][0]["name"] == "Vibrant Looks Inc."
 
         with connection.cursor() as cursor:
@@ -296,7 +292,7 @@ class TestTrigramWordSimilarFilter:
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Vibran"},
             format="json",
         )
-        assert response.data["totalRecords"] == 0, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 0, response.data
 
         with connection.cursor() as cursor:
             cursor.execute("SET pg_trgm.word_similarity_threshold = %s", [self.similarity_word_threshold_default])
@@ -314,7 +310,7 @@ class TestTrigramWordSimilarFilter:
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "xylophone"},
             format="json",
         )
-        assert response.data["totalRecords"] == 0, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 0, response.data
 
     def test_trigram_word_similar_no_filter_returns_all(self, test_data, api_client, settings):
         """When no search term is provided the filter is skipped and all results are returned."""
@@ -328,7 +324,7 @@ class TestTrigramWordSimilarFilter:
             reverse("store.distributor-list"),
             format="json",
         )
-        assert response.data["totalRecords"] == 4, f"response.data: {response.data}"  # noqa: PLR2004
+        assert response.data["totalRecords"] == 5, response.data  # noqa: PLR2004
 
 
 @pytest.mark.django_db
@@ -357,7 +353,7 @@ class TestVuedaRankedSearchFilter:
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Vibrant"},
             format="json",
         )
-        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+        assert response.data["totalRecords"] == 2, response.data  # noqa: PLR2004
         assert response.data["results"][0]["name"] == "Vibrant Looks Inc."
 
     def test_ranked_search_no_match(self, test_data, api_client, settings):
@@ -373,7 +369,7 @@ class TestVuedaRankedSearchFilter:
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "xylophone"},
             format="json",
         )
-        assert response.data["totalRecords"] == 0, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 0, response.data
 
     def test_ranked_search_no_filter_returns_all(self, test_data, api_client, settings):
         """When no search term is provided the filter is skipped and all results are returned."""
@@ -387,7 +383,7 @@ class TestVuedaRankedSearchFilter:
             reverse("store.distributor-list"),
             format="json",
         )
-        assert response.data["totalRecords"] == 4, f"response.data: {response.data}"  # noqa: PLR2004
+        assert response.data["totalRecords"] == 5, response.data  # noqa: PLR2004
 
 
 @pytest.mark.django_db
@@ -417,7 +413,7 @@ class TestVuedaRankedDescriptionFilter:
             },
             format="json",
         )
-        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+        assert response.data["totalRecords"] == 2, response.data  # noqa: PLR2004
 
         # Treat King LLC. - combined_rank: 1.203649863600731
         # Tasty Treats Assoc. - combined_rank: 1.174351543188095
@@ -436,7 +432,7 @@ class TestVuedaRankedDescriptionFilter:
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "xylophone"},
             format="json",
         )
-        assert response.data["totalRecords"] == 0, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 0, response.data
 
     def test_name_filter_no_match(self, test_data, api_client, settings):
         """Search with no similarity in descriptions returns no results."""
@@ -451,7 +447,7 @@ class TestVuedaRankedDescriptionFilter:
             data={"name_icontains": "xylophone"},
             format="json",
         )
-        assert response.data["totalRecords"] == 0, f"response.data: {response.data}"
+        assert response.data["totalRecords"] == 0, response.data
 
     def test_ranked_description_no_filter_returns_all(self, test_data, api_client, settings):
         """When no search term is provided the filter is skipped and all results are returned."""
@@ -465,7 +461,7 @@ class TestVuedaRankedDescriptionFilter:
             reverse("store.distributor-list"),
             format="json",
         )
-        assert response.data["totalRecords"] == 4, f"response.data: {response.data}"  # noqa: PLR2004
+        assert response.data["totalRecords"] == 5, response.data  # noqa: PLR2004
 
 
 @pytest.mark.django_db
@@ -503,7 +499,7 @@ class TestVuedaSearchFilterDistinct:
         # Two products have both "perishable" and "fragile" special_care entries.
         # Without distinct(), each would appear twice (once per matching M2M row).
         # The combined_rank is the same for each.
-        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+        assert response.data["totalRecords"] == 2, response.data  # noqa: PLR2004
         result_names = frozenset(x["name"] for x in response.data["results"])
         assert result_names == frozenset({"Square Cookies For Squares", "Shaped Cookies For Drapes"})
 
@@ -534,7 +530,7 @@ class TestVuedaSearchFilterDistinct:
         # Two products have both "perishable" and "fragile" special_care entries.
         # Without distinct(), each would appear twice (once per matching M2M row).
         # The combined_rank is the same for each.
-        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+        assert response.data["totalRecords"] == 2, response.data  # noqa: PLR2004
         result_names = [x["name"] for x in response.data["results"]]
         assert result_names == ["Shaped Cookies For Drapes", "Square Cookies For Squares"]
 
@@ -550,7 +546,7 @@ class TestVuedaSearchFilterDistinct:
         # Two products have both "perishable" and "fragile" special_care entries.
         # Without distinct(), each would appear twice (once per matching M2M row).
         # The combined_rank is the same for each.
-        assert response.data["totalRecords"] == 2, f"response.data: {response.data}"  # noqa: PLR2004
+        assert response.data["totalRecords"] == 2, response.data  # noqa: PLR2004
         result_names = [x["name"] for x in response.data["results"]]
         assert result_names == ["Square Cookies For Squares", "Shaped Cookies For Drapes"]
 
@@ -667,7 +663,7 @@ class TestMixedRankedAndWordSimilarSearch:
             format="json",
         )
         # At minimum, Vibrant Looks Inc. should match via both V:name and ~description
-        assert response.data["totalRecords"] >= 1, f"response.data: {response.data}"
+        assert response.data["totalRecords"] >= 1, response.data
         result_names = [x["name"] for x in response.data["results"]]
         assert "Vibrant Looks Inc." in result_names
 

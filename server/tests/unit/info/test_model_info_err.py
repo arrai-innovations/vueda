@@ -1,7 +1,6 @@
 # Contains tests that we don't want to register routes/urls
 # for by default, because they are designed to have issues.
 from http import HTTPStatus
-from pprint import pformat
 from typing import ClassVar
 
 import pytest
@@ -153,7 +152,7 @@ class TestModelInfoErrs:
             },
         )
 
-        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, pformat(response.data)
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response.data
         assert (
             "Cannot resolve keyword "
             "'formatted_name' into field. Choices are: id, "
@@ -170,7 +169,7 @@ class TestModelInfoErrs:
             "/routes/vueda.info/model_info_choices/store/pets/tangible_type/",
             data={},
         )
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
         assert 'Unable to find the content type "store.pets".' == response.data["detail"]
 
     def test_invalid_filter_choices_model(self, test_data, api_client):
@@ -183,7 +182,7 @@ class TestModelInfoErrs:
             "/routes/vueda.info/model_info_filter_choices/store/pets/tangible_type/",
             data={},
         )
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
         assert 'Unable to find the content type "store.pets".' == response.data["detail"]
 
     def test_invalid_choices_field(self, test_data, api_client):
@@ -196,7 +195,7 @@ class TestModelInfoErrs:
             "/routes/vueda.info/model_info_choices/erring/relatedobjectsaremissingdata/tangible_type/",
             data={},
         )
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
         assert (
             "Invalid field 'tangible_type'. No choice fields found on erring.RelatedObjectsAreMissingData."
             == response.data["detail"]
@@ -212,7 +211,7 @@ class TestModelInfoErrs:
             "/routes/vueda.info/model_info_filter_choices/erring/relatedobjectsaremissingdata/tangible_type/",
             data={},
         )
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
         assert "Invalid filter 'tangible_type'. Valid filters are id, no_name." == response.data["detail"]
 
 
@@ -490,11 +489,11 @@ class TestModelInfoWorkflowConfigurationErrs:
 
         if will_err:
             data = response.json()
-            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, pformat(data)
+            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response.data
             assert expected_error == frozenset(response.data["detail"])
 
         else:
             data = response.json()
-            assert response.status_code == HTTPStatus.OK, pformat(data)
+            assert response.status_code == HTTPStatus.OK, response.data
             # In this case the expected error is actually the results.
             assert expected_error == frozenset(data)

@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from pprint import pformat
 from typing import ClassVar
 
 import pytest
@@ -166,13 +165,10 @@ class TestModelInfoChoices:
                 | ("store", "inventoryrecord", "order_item")
                 | ("store", "cartitem", "cart")
             ):
-                assert response.status_code == HTTPStatus.FORBIDDEN, pformat(response.data)
+                assert response.status_code == HTTPStatus.FORBIDDEN, response.data
 
             case _:
-                assert response.status_code == HTTPStatus.OK, (
-                    f"{(app_label, model_name, field_name)}\n\n{pformat(response.data)}"
-                )
-
+                assert response.status_code == HTTPStatus.OK, (f"{(app_label, model_name, field_name)}", response.data)
                 assert frozenset(result["label"] for result in response.data["results"]) == frozenset(expected_choices)
 
     @pytest.mark.parametrize(
@@ -206,9 +202,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.OK, (
-            f"{(app_label, model_name, field_name)}\n\n{pformat(response.data)}"
-        )
+        assert response.status_code == HTTPStatus.OK, (f"{(app_label, model_name, field_name)}", response.data)
 
         match (app_label, model_name, field_name):
             case ("store", "inventoryrecord", "added_inventory_record"):
@@ -239,7 +233,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
         assert (
             response.data["detail"]
             == "Invalid field 'name'. Valid fields with choices are special_care, tangible_type."
@@ -263,7 +257,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
         assert response.data["detail"] == "Invalid field 'name'. No choice fields found on store.Distributor."
 
     def test_info_choices_list_invalid_field_on_model_with_choice_fields(self, test_data, api_client):
@@ -284,7 +278,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
         assert (
             response.data["detail"]
             == "Invalid field 'named'. Valid fields with choices are special_care, tangible_type."
@@ -308,5 +302,5 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
         assert response.data["detail"] == "Invalid field 'named'. No choice fields found on store.Distributor."

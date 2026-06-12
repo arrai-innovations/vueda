@@ -1,6 +1,5 @@
 import json
 from http import HTTPStatus
-from pprint import pformat
 from typing import ClassVar
 from typing import TypedDict
 
@@ -121,7 +120,7 @@ class TestCompositeKey:
 
         data: _OrderItemCompositePKDetail = response.json()
 
-        assert response.status_code == HTTPStatus.OK, pformat(data)
+        assert response.status_code == HTTPStatus.OK, response.data
         assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
 
     def test_object_data_with_fields(self, test_data, api_client):
@@ -152,7 +151,7 @@ class TestCompositeKey:
 
         data: _OrderItemCompositePKDetailSparseFields = response.json()
 
-        assert response.status_code == HTTPStatus.OK, pformat(data)
+        assert response.status_code == HTTPStatus.OK, response.data
         assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
         assert data["formatted_name"] == product_1.name  # Verify the formatted_name is not None
         assert [tuple(x) for x in data["order"]["order_items_composite_pks"]] == [tuple(order_item_1.pk)]
@@ -180,7 +179,7 @@ class TestCompositeKey:
 
         data: _OrderCompositePKDetail = response.json()
 
-        assert response.status_code == HTTPStatus.OK, pformat(data)
+        assert response.status_code == HTTPStatus.OK, response.data
         assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])
 
     def test_object_data_with_expanded_fields(self, test_data, api_client):
@@ -211,5 +210,5 @@ class TestCompositeKey:
 
         data: _OrderCompositePKDetailSparseFields = response.json()
 
-        assert response.status_code == HTTPStatus.OK, pformat(data)
+        assert response.status_code == HTTPStatus.OK, response.data
         assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])

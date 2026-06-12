@@ -124,7 +124,7 @@ class BaseTestAssertResponseMixin:
                 print(
                     f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response.data}"
                 )
-        assert response.status_code == expected_status_code, str(response.data)
+        assert response.status_code == expected_status_code, response.data
 
 
 class BaseTestGroupMixin:
@@ -306,9 +306,7 @@ class BaseTestCreateModelViewSet:
         status_code = self.expected_create_status_code
         response = authenticated_client.post(self.list_url(detail_querystring), data=create_arguments, format="json")
         new_instance = self.model.objects.latest("pk")
-        assert response.status_code == status_code, (
-            f"{response.status_code} != {status_code}, response.data: {response.data}"
-        )
+        assert response.status_code == status_code, response.data
         assert new_instance is not None
         self.update_expected_create_response(expected_create_response, new_instance)
         if status_code == HTTPStatus.CREATED:
@@ -335,7 +333,7 @@ class BaseTestRetrieveModelViewSet:
         instance = page_data.first()
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, response.data
         assert response.data == expected_retrieve_response
 
 
@@ -344,14 +342,10 @@ class BaseTestDestroyModelViewSet:
         pk = page_data.first().id
         response = authenticated_client.delete(self.detail_url(pk))
         if self.has_delete_permission:
-            assert response.status_code == HTTPStatus.NO_CONTENT, (
-                f"{response.status_code} != 204, response.data: {response.data}"
-            )
+            assert response.status_code == HTTPStatus.NO_CONTENT, response.data
             assert not self.model.objects.filter(pk=pk).exists()
         else:
-            assert response.status_code == HTTPStatus.FORBIDDEN, (
-                f"{response.status_code} != 403, response.data: {response.data}"
-            )
+            assert response.status_code == HTTPStatus.FORBIDDEN, response.data
             assert self.model.objects.filter(pk=pk).exists()
 
 
@@ -398,9 +392,7 @@ class BaseTestUpdateModelViewSet:
             self.detail_url(page_data.first().id, detail_querystring), data=update_arguments, format="json"
         )
         updated_instance = self.model.objects.first()
-        assert response.status_code == status_code, (
-            f"{response.status_code} != {status_code}, response.data: {response.data}"
-        )
+        assert response.status_code == status_code, response.data
         assert updated_instance is not None
         self.update_expected_update_response(expected_update_response, updated_instance)
         if status_code == HTTPStatus.OK:
