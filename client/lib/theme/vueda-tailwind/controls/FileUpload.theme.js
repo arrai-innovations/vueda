@@ -21,9 +21,12 @@ patchTheme({
                 // Base layout.
                 "inline-flex flex-col items-center gap-1",
 
-                // Dropzone and disabled states.
+                // Dropzone and disabled states. The dragging branch swaps the border to
+                // primary; gate the at-rest border on !dragging so only one border-color
+                // is ever live (the two are mutually exclusive, not order-dependent).
                 {
-                    "rounded-lg border-2 border-dashed border-input p-6 transition-colors": dropzone,
+                    "rounded-lg border-2 border-dashed p-6 transition-colors": dropzone,
+                    "border-input": dropzone && !dragging,
                     "border-primary bg-primary/5": dropzone && dragging,
                     "opacity-50 cursor-not-allowed": disabled,
                 },

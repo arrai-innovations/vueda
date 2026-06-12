@@ -42,18 +42,20 @@ patchTheme({
                 "group-data-[collapsible=icon]:data-[active=true]:before:-left-2",
                 "data-[active=true]:[&>svg]:text-sidebar-primary",
 
-                // Variant classes.
+                // Variant classes. The neutral hover (bg / text) is applied
+                // unconditionally above, so only the outline-specific surface and
+                // shadow-hover need to be expressed per-variant here.
                 {
-                    "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground": !variant || variant === "default",
-                    "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]":
+                    "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]":
                         variant === "outline",
                 },
 
-                // Size classes.
+                // Size classes. Default text size (text-sm) comes from the base above;
+                // only the sm tier overrides it (text-xs).
                 {
-                    "h-8 text-sm": !size || size === "default",
+                    "h-8": !size || size === "default",
                     "h-7 text-xs": size === "sm",
-                    "h-12 text-sm group-data-[collapsible=icon]:p-0!": size === "lg",
+                    "h-12 group-data-[collapsible=icon]:p-0!": size === "lg",
                 },
             ],
         }),

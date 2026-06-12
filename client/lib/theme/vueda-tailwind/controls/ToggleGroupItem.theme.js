@@ -35,11 +35,14 @@ patchTheme({
                     "border border-foreground bg-transparent shadow-vueda-control": variant === "outline",
                 },
 
-                // Size classes.
+                // Size classes. Only height varies per size: the group-item override
+                // below sets a single px-3 / min-w-0 for every size (label-bearing items
+                // grow to content), so mirroring Toggle's per-size px / min-w here would
+                // be dead weight that competes with that override.
                 {
-                    "h-vueda-control px-2 min-w-vueda-control": !size || size === "default",
-                    "h-vueda-control-sm px-1.5 min-w-vueda-control-sm": size === "sm",
-                    "h-vueda-control-lg px-2.5 min-w-vueda-control-lg": size === "lg",
+                    "h-vueda-control": !size || size === "default",
+                    "h-vueda-control-sm": size === "sm",
+                    "h-vueda-control-lg": size === "lg",
                 },
 
                 // Group item overrides.
