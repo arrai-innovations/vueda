@@ -66,7 +66,7 @@ def test_history_list_detail_action_accepts_request_and_pk(api_client):
     response = api_client.get(reverse("tests.timesheetentry-history-list", kwargs={"pk": entry.pk}))
 
     assert response.status_code == HTTPStatus.OK, response.data
-    assert [result["history_type"] for result in response.data["results"]] == ["~", "+"]
+    assert [result["history_type"] for result in response.data["results"]] == ["~", "+"], response.data
 
 
 @pytest.mark.django_db
@@ -1027,7 +1027,7 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
         self.assert_response(response, 200)
 
         data: _OrderItemCompositePKResponse = response.json()
-        assert data["formatted_name"] == "Test Product", data
+        assert data["formatted_name"] == "Test Product"
 
     def test_invalid_field_message_includes_formatted_name_main_model(self, order_item, api_client):
         user = self.users["test_order_updater@domain.invalid"]
@@ -1063,7 +1063,7 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
         self.assert_response(response, 200)
 
         data: _OrderCompositePKWithExpandResponse = response.json()
-        assert data["order_items_composite_pks"][0]["formatted_name"] == "Test Product", data
+        assert data["order_items_composite_pks"][0]["formatted_name"] == "Test Product"
 
     def test_invalid_field_message_includes_formatted_name_expanded_model(self, order_item, api_client):
         user = self.users["test_order_updater@domain.invalid"]
