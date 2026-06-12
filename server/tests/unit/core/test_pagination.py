@@ -67,7 +67,7 @@ class TestPagination(BaseTestCommonModelViewSet):
             url = reverse("tests.product-list")
             response = authenticated_client.get(url, format="json")
             response_data = {x: y for x, y in response.data.items() if x != "results"}
-            assert response.status_code == HTTPStatus.OK
+            assert response.status_code == HTTPStatus.OK, response.data
             assert response_data["perPage"] == 5  # noqa: PLR2004
             assert response_data["totalPages"] == 3  # noqa: PLR2004
             assert response_data["totalRecords"] == len(self.page_data_arguments)
@@ -97,7 +97,7 @@ class TestPagination(BaseTestCommonModelViewSet):
             url = reverse("tests.product-list")
             response = authenticated_client.get(url, data={"our_p": 3}, format="json")
             response_data = {x: y for x, y in response.data.items() if x != "results"}
-            assert response.status_code == HTTPStatus.OK
+            assert response.status_code == HTTPStatus.OK, response.data
             assert response_data["perPage"] == 5  # noqa: PLR2004
             assert response_data["totalPages"] == 3  # noqa: PLR2004
             assert len(response.data["results"]) == 3  # noqa: PLR2004
@@ -153,5 +153,5 @@ class TestColumnTotals(BaseTestCommonModelViewSet):
     def test_column_totals(self, authenticated_client, page_data):
         url = reverse("tests.timesheetentry-list")
         response = authenticated_client.get(url, format="json")
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response.data
         assert str(response.data["columnTotals"]["hours"]) == "3.15"

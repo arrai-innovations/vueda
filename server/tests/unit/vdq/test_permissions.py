@@ -41,7 +41,7 @@ def test_resend_requires_permission_allows_user(monkeypatch, api_client, sent_it
 
     response = api_client.post(url, format="json")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response.data
     assert response.data == {"message": "Successfully Queued."}
     assert len(scheduled_items) == 1
     assert scheduled_items[0].pk != sent_item.pk
@@ -63,5 +63,5 @@ def test_resend_requires_permission_denies_without_flag(monkeypatch, api_client,
 
     response = api_client.post(url, format="json")
 
-    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.status_code == HTTPStatus.FORBIDDEN, response.data
     assert not scheduled_items

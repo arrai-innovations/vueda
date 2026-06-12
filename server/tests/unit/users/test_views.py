@@ -31,7 +31,7 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
         url = reverse("who-is")
         response = api_client.get(url, format="json")
 
-        assert response.status_code == HTTPStatus.OK
+        assert response.status_code == HTTPStatus.OK, response.data
         assert set(response.data) == {
             "id",
             "email",

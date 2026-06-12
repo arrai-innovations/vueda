@@ -46,7 +46,7 @@ class TestQueueItemWorkflowTransitions:
                 HTTP_DRY_RUN="true",
             )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response.data
         assert response.data["new_state"]["code"] == "cancelled"
         delayed_queue_item.refresh_from_db()
         assert delayed_queue_item.workflow_state.code == "delayed"
@@ -70,7 +70,7 @@ class TestQueueItemWorkflowTransitions:
                 format="json",
             )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response.data
         assert response.data["new_state"]["code"] == "cancelled"
         delayed_queue_item.refresh_from_db()
         assert delayed_queue_item.workflow_state.code == "cancelled"
@@ -93,7 +93,7 @@ class TestQueueItemWorkflowTransitions:
                 HTTP_DRY_RUN="true",
             )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response.data
         assert response.data["new_state"]["code"] == "queued"
         delayed_queue_item.refresh_from_db()
         assert delayed_queue_item.workflow_state.code == "delayed"
@@ -115,7 +115,7 @@ class TestQueueItemWorkflowTransitions:
                 format="json",
             )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response.data
         assert response.data["new_state"]["code"] == "queued"
         delayed_queue_item.refresh_from_db()
         assert delayed_queue_item.workflow_state.code == "queued"
@@ -138,7 +138,7 @@ def test_send_queue_viewset_excludes_done_states(api_client, sender, receiver):
     list_url = reverse("vueda_vdq.queueitem-list")
     response = api_client.get(list_url, format="json")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response.data
     result_ids = {item["id"] for item in response.data["results"]}
     assert active.pk in result_ids
     assert finished.pk not in result_ids
@@ -146,7 +146,7 @@ def test_send_queue_viewset_excludes_done_states(api_client, sender, receiver):
     detail_url = reverse("vueda_vdq.queueitem-detail", kwargs={"pk": finished.pk})
     detail_response = api_client.get(detail_url, format="json")
 
-    assert detail_response.status_code == HTTPStatus.OK
+    assert detail_response.status_code == HTTPStatus.OK, detail_response.data
     assert detail_response.data["id"] == finished.pk
 
 
@@ -174,7 +174,7 @@ def test_sent_item_viewset_resend_single(monkeypatch, api_client, sender, receiv
     url = reverse("sentitem-resend", kwargs={"pk": sent_item.pk})
     response = api_client.post(url, format="json")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response.data
     assert response.data == {"message": "Successfully Queued."}
     assert len(scheduled) == 1
 
@@ -209,7 +209,7 @@ def test_sent_item_viewset_resend_bulk(monkeypatch, api_client, sender, receiver
     url = reverse("sentitem-resend")
     response = api_client.post(url, {"pks": [item.pk for item in sent_items]}, format="json")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response.data
     assert len(scheduled) == len(sent_items)
     original_ids = {item.pk for item in sent_items}
     for queue_item in scheduled:
@@ -233,7 +233,7 @@ def test_send_queue_viewset_returns_items_by_pk(api_client, sender, receiver):
         format="json",
     )
 
-    assert queued_response.status_code == HTTPStatus.OK
+    assert queued_response.status_code == HTTPStatus.OK, queued_response.data
     assert queued_response.data["id"] == queued.pk
-    assert finished_response.status_code == HTTPStatus.OK
+    assert finished_response.status_code == HTTPStatus.OK, finished_response.data
     assert finished_response.data["id"] == finished.pk

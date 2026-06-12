@@ -111,13 +111,13 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                 response = api_client.get(url, format="json")
                 self.assert_response(response, 200)
                 if "lister" in email:
-                    assert len(response.data["results"]) == 1
-                    assert response.data["results"][0]["id"] == t1.pk
+                    assert len(response.data["results"]) == 1, response.data
+                    assert response.data["results"][0]["id"] == t1.pk, response.data
                 else:
-                    assert response.data["id"] == t1.pk
-                    assert response.data["employee"] == e1.pk
-                    assert response.data["period_start"] == "2024-02-15"
-                    assert response.data["period_end"] == "2024-02-29"
+                    assert response.data["id"] == t1.pk, response.data
+                    assert response.data["employee"] == e1.pk, response.data
+                    assert response.data["period_start"] == "2024-02-15", response.data
+                    assert response.data["period_end"] == "2024-02-29", response.data
             case "POST":
                 response = api_client.post(
                     list_url,
@@ -129,10 +129,10 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                     },
                 )
                 self.assert_response(response, 201)
-                assert response.data["employee"] == e1.pk
-                assert response.data["period_start"] == "2024-03-01"
-                assert response.data["period_end"] == "2024-03-15"
-                assert response.data["id"]
+                assert response.data["employee"] == e1.pk, response.data
+                assert response.data["period_start"] == "2024-03-01", response.data
+                assert response.data["period_end"] == "2024-03-15", response.data
+                assert response.data["id"], response.data
             case "PUT":
                 response = api_client.put(
                     detail_url,
@@ -144,10 +144,10 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                     },
                 )
                 self.assert_response(response, 200)
-                assert response.data["employee"] == e1.pk
-                assert response.data["period_start"] == "2024-02-16"
-                assert response.data["period_end"] == "2024-03-01"
-                assert response.data["id"] == t1.pk
+                assert response.data["employee"] == e1.pk, response.data
+                assert response.data["period_start"] == "2024-02-16", response.data
+                assert response.data["period_end"] == "2024-03-01", response.data
+                assert response.data["id"] == t1.pk, response.data
             case "PATCH":
                 response = api_client.patch(
                     detail_url,
@@ -157,15 +157,15 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                     },
                 )
                 self.assert_response(response, 200)
-                assert response.data["employee"] == e1.pk
-                assert response.data["period_start"] == "2024-02-17"
-                assert response.data["period_end"] == "2024-02-29"
-                assert response.data["id"] == t1.pk
+                assert response.data["employee"] == e1.pk, response.data
+                assert response.data["period_start"] == "2024-02-17", response.data
+                assert response.data["period_end"] == "2024-02-29", response.data
+                assert response.data["id"] == t1.pk, response.data
             case "DELETE":
                 response = api_client.delete(detail_url, format="json")
                 self.assert_response(response, 204)
                 assert not Timesheet.objects.filter(pk=t1.pk).exists()
-                assert response.data is None
+                assert response.data is None, response.data
             case _:
                 raise ValueError(f"Invalid http_method: {http_method}")
 

@@ -39,7 +39,7 @@ def test_get_queryset_limits_to_authenticated_user(api_client, user):
     )
     api_client.force_authenticate(user=user)
     response = api_client.get(reverse("vueda_user.totpdevice-list"), format="json")
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response.data
     assert len(response.data["results"]) == 1
     assert response.data["results"][0]["method"] == "totp"
 
@@ -57,7 +57,7 @@ def test_setup_totp_return_unauthenticated_when_not_recently_logged_in(api_clien
     api_client.force_authenticate(user=user)
     response = api_client.post(reverse("vueda_user.totpdevice-setup"), {"method": "totp"}, format="json")
 
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, response.data
     assert response.data["detail"] == "Reauthentication required"
 
 
@@ -84,7 +84,7 @@ def test_setup_totp_returns_secret_and_svg(api_client, user, monkeypatch):
     api_client.force_authenticate(user=user)
     response = api_client.post(reverse("vueda_user.totpdevice-setup"), {"method": "totp"}, format="json")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response.data
     session = api_client.session
     assert session[TOTPDeviceViewSet.TOTP_SESSION_KEY] == {"method": "totp"}
     assert response.data["meta"]["totp_secret"] == "dummy-secret"
@@ -103,7 +103,7 @@ def test_setup_requires_destination_for_email(api_client, user, monkeypatch):
     api_client.force_authenticate(user=user)
     response = api_client.post(reverse("vueda_user.totpdevice-setup"), {"method": "email"}, format="json")
 
-    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
     assert response.data["destination"][0] == "Email address is required for email method."
 
 
@@ -120,7 +120,7 @@ def test_setup_blocks_duplicate_method(api_client, user, monkeypatch):
         {"method": "email", "destination": "user@domain.invalid"},
         format="json",
     )
-    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
     assert response.data["method"] == ["An activated TOTP device already exists with email"]
 
 
@@ -144,7 +144,7 @@ def test_activate_creates_device(api_client, user, monkeypatch):
     api_client.force_authenticate(user=user)
     response = api_client.post(reverse("vueda_user.totpdevice-activate"), {"code": "123456"}, format="json")
 
-    assert response.status_code == HTTPStatus.CREATED
+    assert response.status_code == HTTPStatus.CREATED, response.data
     assert TOTPDevice.objects.filter(user=user, method="totp").exists()
     assert response.data == {"detail": "TOTP setup complete"}
 
@@ -162,7 +162,7 @@ def test_activate_totp_return_unauthenticated_when_not_recently_logged_in(api_cl
     api_client.force_authenticate(user=user)
     response = api_client.post(reverse("vueda_user.totpdevice-activate"), {"code": "123456"}, format="json")
 
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, response.data
     assert response.data["detail"] == "Reauthentication required"
 
 
@@ -195,7 +195,7 @@ def test_setup_sms_returns_validation_error_when_twilio_unavailable(api_client, 
         format="json",
     )
 
-    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
     assert response.data["method"][0] == '"sms" is not a valid choice.'
 
 
@@ -214,7 +214,7 @@ def test_destroy_deactivates_authenticator_when_last_device_removed(api_client, 
     api_client.force_authenticate(user=user)
     response = api_client.delete(reverse("vueda_user.totpdevice-detail", kwargs={"pk": device.pk}), format="json")
 
-    assert response.status_code == HTTPStatus.NO_CONTENT
+    assert response.status_code == HTTPStatus.NO_CONTENT, response.data
     assert not TOTPDevice.objects.filter(pk=device.pk).exists()
     assert called["authenticator"] == authenticator
 
@@ -235,7 +235,7 @@ def test_destroy_keeps_authenticator_when_other_devices_exist(api_client, user, 
     api_client.force_authenticate(user=user)
     response = api_client.delete(reverse("vueda_user.totpdevice-detail", kwargs={"pk": device.pk}), format="json")
 
-    assert response.status_code == HTTPStatus.NO_CONTENT
+    assert response.status_code == HTTPStatus.NO_CONTENT, response.data
     assert TOTPDevice.objects.filter(pk=device.pk).count() == 0
     assert called["hit"] is False
 
@@ -253,7 +253,7 @@ def test_destroy_device_return_unauthenticated_when_not_recently_logged_in(api_c
     api_client.force_authenticate(user=user)
     response = api_client.delete(reverse("vueda_user.totpdevice-detail", kwargs={"pk": 1}), format="json")
 
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, response.data
     assert response.data["detail"] == "Reauthentication required"
 
 
@@ -268,7 +268,7 @@ def test_setup_rejects_invalid_email_destination(api_client, user, monkeypatch):
         format="json",
     )
 
-    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
     assert response.data["destination"][0] == "Enter a valid email address."
 
 
@@ -284,7 +284,7 @@ def test_setup_rejects_invalid_phone_destination(api_client, user, monkeypatch):
         format="json",
     )
 
-    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
     assert response.data["destination"][0] == "Enter a valid phone number."
 
 

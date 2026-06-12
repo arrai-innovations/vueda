@@ -336,9 +336,9 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             pytest.fail(f"Serializer is not valid: {e}")
         serializer.save()
 
-        assert serializer.data["period_start"] == "2024-02-16"
-        assert serializer.data["period_end"] == "2024-02-28"
-        assert "employee" not in serializer.data
+        assert serializer.data["period_start"] == "2024-02-16", serializer.data
+        assert serializer.data["period_end"] == "2024-02-28", serializer.data
+        assert "employee" not in serializer.data, serializer.data
 
     def test_flex_fields_with_invalid_field_param(self, employee, valid_timesheet_data):
         put_data = {
@@ -366,9 +366,9 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
             assert "period_end" in e.detail
-            assert e.detail["period_end"][0].code == "invalid"
+            assert e.detail["period_end"][0].code == "invalid", e.detail
             assert "invalid_field_name" in e.detail
-            assert e.detail["invalid_field_name"][0].code == "invalid"
+            assert e.detail["invalid_field_name"][0].code == "invalid", e.detail
         else:
             pytest.fail("Serializer is valid when it should not be")
 
@@ -400,8 +400,8 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             pytest.fail(f"Serializer is not valid: {e}")
         serializer.save()
 
-        assert serializer.data["period_start"] == "2024-02-16"
-        assert serializer.data["period_end"] == "2024-02-28"
+        assert serializer.data["period_start"] == "2024-02-16", serializer.data
+        assert serializer.data["period_end"] == "2024-02-28", serializer.data
         assert "employee" in serializer.data
         assert "foo" in serializer.data
 
@@ -430,7 +430,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
             assert "employee" in e.detail
-            assert e.detail["employee"][0].code == "incorrect_type"  # not expanded, expected a pk
+            assert e.detail["employee"][0].code == "incorrect_type", e.detail  # not expanded, expected a pk
         else:
             pytest.fail("Serializer is valid when it should not be")
 
@@ -443,7 +443,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
             assert "label10" in e.detail
-            assert e.detail["label10"][0].code == "invalid"
+            assert e.detail["label10"][0].code == "invalid", e.detail
         else:
             pytest.fail("Serializer is valid when it should not be")
 
@@ -509,9 +509,9 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
             pytest.fail(f"Serializer is not valid: {e}")
         serializer.save()
 
-        assert serializer.data["period_start"] == "2024-02-16"
-        assert serializer.data["period_end"] == "2024-02-28"
-        assert (serializer.get_extra_kwargs()["employee"])["read_only"] is True
+        assert serializer.data["period_start"] == "2024-02-16", serializer.detail
+        assert serializer.data["period_end"] == "2024-02-28", serializer.detail
+        assert serializer.get_extra_kwargs()["employee"]["read_only"] is True, serializer.detail
 
     def test_exclude_create_field(self, employee):
         post_data = {
@@ -636,16 +636,16 @@ class TestPrimaryKeyListSerializer:
         serializer = PrimaryKeyListSerializer(data={"pks": [1, "abc"]})
 
         assert not serializer.is_valid()
-        assert serializer.errors["pks"][1][0] == "Primary keys must be valid integers."
+        assert serializer.errors["pks"][1][0] == "Primary keys must be valid integers.", serializer.errors
 
     def test_requires_list_input(self):
         serializer = PrimaryKeyListSerializer(data={"pks": "1"})
 
         assert not serializer.is_valid()
-        assert serializer.errors["pks"][0] == "pks must be a list of primary keys."
+        assert serializer.errors["pks"][0] == "pks must be a list of primary keys.", serializer.errors
 
     def test_requires_data(self):
         serializer = PrimaryKeyListSerializer(data={"pks": []})
 
         assert not serializer.is_valid()
-        assert serializer.errors["pks"][0] == "pks list cannot be empty."
+        assert serializer.errors["pks"][0] == "pks list cannot be empty.", serializer.errors
