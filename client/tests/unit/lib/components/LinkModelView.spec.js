@@ -23,6 +23,7 @@ const ButtonStub = defineComponent({
                     "data-disabled": String(props.disabled),
                     "data-href": props.href,
                     "data-label": typeof label === "string" ? label.trim() : undefined,
+                    class: props.class,
                     onClick: () => emit("click"),
                 },
                 Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
@@ -55,7 +56,6 @@ scopedIt("renders as link by default and forwards props", () => {
             pk: "1",
             view: "detail",
             label: "go",
-            buttonClass: { root: "cls" },
         },
         slots: { default: "<span>slot</span>" },
     });
@@ -67,6 +67,14 @@ scopedIt("renders as link by default and forwards props", () => {
     expect(btn.attributes("data-disabled")).toBe("false");
     expect(btn.attributes("data-label")).toBe("go");
     expect(btn.find('[data-slot="default"]').exists()).toBe(true);
+});
+
+scopedIt("falls through class to the underlying button", () => {
+    const wrapper = mount(LinkModelView, {
+        props: { app: "a", model: "m", pk: "1", view: "detail" },
+        attrs: { class: "cls" },
+    });
+    expect(wrapper.get('[data-qa="prime-button"]').classes()).toContain("cls");
 });
 
 scopedIt("calls navigate when clicked", async () => {
@@ -90,7 +98,7 @@ scopedIt("behaves as button when button prop true", () => {
         actionDisabled: ref(false),
     });
     const wrapper = mount(LinkModelView, {
-        props: { app: "a", model: "m", view: "v", button: true, buttonClass: ["c"] },
+        props: { app: "a", model: "m", view: "v", button: true },
     });
     const btn = wrapper.get('[data-qa="prime-button"]');
     expect(btn.attributes("data-href")).toBeUndefined();

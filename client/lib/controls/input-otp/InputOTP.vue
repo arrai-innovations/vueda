@@ -23,8 +23,6 @@ const props = defineProps({
     textAlign: { type: String, default: undefined },
     /** Input mode for the underlying input element. */
     inputmode: { type: String, default: undefined },
-    /** Additional CSS class applied to the container div (overridden internally). */
-    containerClass: { type: String, default: undefined },
     /** Strategy for handling password manager icon placement. */
     pushPasswordManagerStrategy: { type: String, default: undefined },
     /** CSS fallback string injected via noscript for browsers without JS. */

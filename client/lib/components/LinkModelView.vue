@@ -41,11 +41,6 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    /** CSS class applied to the underlying Button control. */
-    buttonClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
     /** When true, disables the button and prevents navigation. */
     disabled: {
         type: Boolean,
@@ -62,7 +57,6 @@ const linkModelView = useLinkModelView(props);
         :disabled="linkModelView.actionDisabled.value"
         :href="button ? undefined : linkModelView.href.value"
         :variant="button ? 'default' : 'link'"
-        :class="buttonClass"
         @click="linkModelView.navigate"
     >
         {{ label }}

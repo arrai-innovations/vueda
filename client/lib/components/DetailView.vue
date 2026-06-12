@@ -60,26 +60,6 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    /** CSS class(es) applied to the page title header area. */
-    headerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the page title text element. */
-    titleClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the page title body area. */
-    bodyClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the loading indicator. */
-    loadingClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
     /** Theme variant forwarded to the inner FormModel component. */
     formModelVariant: {
         type: String,

@@ -60,6 +60,13 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - `WidgetImage` now shows a live preview of a freshly picked image before it is saved, using a local object URL that is revoked when the selection changes or the widget unmounts.
     - `WidgetFile`'s file-name link now opens a freshly picked (unsaved) `File` in a new tab via a local object URL, revoked when the selection changes or the widget unmounts. Previously the link pointed the `File` object at its `href`, which navigated to `[object Object]`. Persisted `{name, url}` references continue to link to their `url` in the same tab.
       _Ensure file and image model columns serialize to the `{name, url}` shape. VUEDA serializers do this by default once the matching server release maps `models.FileField` and `models.ImageField` to VUEDA's serializer fields._
+- **Redundant `*Class` props removed (LinkModelView, DetailView, InputOTP)**:
+    - `LinkModelView` no longer accepts a `buttonClass` prop. The component renders a single root (the `Button`) and inherits attributes, so a `class` set on `<LinkModelView>` already falls through to the underlying button and merges with its theme classes.
+      _Replace `:button-class="…"` with `:class="…"` (or a plain `class="…"`). To restyle deeper button slots, forward `themeOverride` instead._
+    - `DetailView` no longer accepts the `headerClass`, `titleClass`, `bodyClass`, or `loadingClass` props. These targeted a header/title region that `DetailView` no longer renders (the page title now lives in the layout-level `PageTitle`), so the props had no effect.
+      _Remove these props from `<DetailView>` usage. Style the page title via `PageTitle`'s `themeOverride` (or its `headerClass`); `DetailView`'s `class` (root) and `outerClass` (form wrapper) props are unchanged._
+    - `InputOTP` no longer accepts a `containerClass` prop. It was always overridden internally by the computed container class (`theme('root')` plus the `class` prop).
+      _Use the `class` prop to add classes to the OTP container, or `themeOverride` against `InputOTP.root`._
 
 ## Public Baseline
 
