@@ -88,6 +88,9 @@ docs-rebuild:
 docs-serve:
   cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8081 --force
 
+docs-preview:
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress preview --host 0.0.0.0 --port 8081
+
 docs-extract:
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js extract
 
@@ -119,3 +122,8 @@ docs-validate:
 docs-build:
   just docs-api
   just docs-rebuild
+
+docs-preview-build:
+  just docs-api
+  just docs-rebuild
+  just docs-preview
