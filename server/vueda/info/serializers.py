@@ -16,6 +16,7 @@ import django_filters
 from django.conf import settings
 from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import RangeField
 from django.core import validators
@@ -480,10 +481,20 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         expands = serializer().get_expandable_fields()
         fields_param = settings.REST_FLEX_FIELDS["FIELDS_PARAM"]
+
+        generic_foreign_key_names = {
+            field.name for field in serializer.Meta.model._meta.private_fields if isinstance(field, GenericForeignKey)
+        }
+
         for expand in expands:
             if fields_param in expand:
                 for field in expand[fields_param].values():
                     field.setdefault("hidden", False)
+            if expand["name"] in generic_foreign_key_names:
+                expand["type_db"] = None
+                expand["type_model"] = "GenericForeignKey"
+                expand["type_serializer"] = "GenericForeignKeySerializer"
+
         return expands
 
     def get_model_ordering(self, instance):

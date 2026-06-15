@@ -40,6 +40,7 @@ from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.utils import sort_by_dot_count_alphabetically
 from vueda.history.viewsets import SimpleHistoryViewSetMixin
@@ -285,6 +286,10 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                         child_valid_fields,
                         child_valid_wildcard_fields,
                     ) = get_recursive_expands_and_fields(child_serializer, depth + 1, max_depth)
+
+                    if isinstance(child_serializer, GenericForeignKeySerializer):
+                        for value in WILDCARD_VALUES:
+                            child_valid_wildcard_fields.add(value)
 
                     add_valid_child_names(valid_expands, field_name, child_valid_expands)
                     add_valid_child_names(valid_wildcard_expands, field_name, child_valid_wildcard_expands)

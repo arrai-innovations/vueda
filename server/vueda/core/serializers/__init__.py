@@ -4,6 +4,7 @@ __all__ = (
     "EmailSettingsBaseSerializer",
     "ExcludeFieldsSerializerMixin",
     "FlexFieldsWriteableNestedSerializerMixin",
+    "GenericForeignKeySerializer",
     "MakeReadonly",
     "NoExtraFieldsSerializerMixin",
     "PrimaryKeyListSerializer",
@@ -16,6 +17,7 @@ __all__ = (
     "VuedaSerializer",
 )
 
+import copy
 import inspect
 from typing import ClassVar
 
@@ -34,6 +36,7 @@ from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
+from vueda.info.registration import get_serializer_for_model
 
 
 class PrimaryKeyListSerializer(serializers.Serializer):
@@ -276,7 +279,7 @@ class VuedaExpandableFieldsSerializerMixin:
             if "many" in expand_options:
                 expand_item["many"] = expand_options["many"]
 
-            if issubclass(field_serializer, VuedaReadonlySerializer):
+            if issubclass(field_serializer, (GenericForeignKeySerializer, VuedaReadonlySerializer)):
                 expand_item["read_only"] = True
             elif "read_only" in expand_options:
                 expand_item["read_only"] = expand_options["read_only"]
@@ -561,3 +564,51 @@ class EmailSettingsBaseSerializer(VuedaSerializer):
             "bcc_email",
             "preview_tag_data",
         ]
+
+
+class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, serializers.Serializer):
+    """Serializer for GenericForeignKey expand fields.
+
+    Dynamically serializes the related object's concrete fields at to_representation
+    time, since the related model is unknown until then. Supports flex field filtering
+    (fields/omit) via rest_flex_fields options passed through expandable_fields.
+
+    The instance is not available at get_fields() time — for nested serializers DRF
+    passes the related value directly to to_representation(), never setting self.instance.
+    All dynamic field logic therefore lives in to_representation().
+
+    Always includes app_label, model, and formatted_name in the output regardless of
+    field filtering.
+    """
+
+    def get_fields(self):
+        # Fields are dynamic — resolved from the related instance in to_representation.
+        return {}
+
+    def to_representation(self, instance):
+        if instance is None:
+            return None
+
+        serializer_class = get_serializer_for_model(type(instance))
+
+        # Flex options are lost when serializers are created, so we need to get the raw expandable data and process it.
+        field_options = self.parent._expandable_fields.get(self.field_name, ())
+        if isinstance(field_options, tuple):
+            serializer_settings = copy.deepcopy(field_options[1]) if len(field_options) > 1 else {}
+        else:
+            serializer_settings = {}
+
+        serializer_settings["context"] = self.context
+        serializer_settings["instance"] = instance
+
+        serializer = serializer_class(**serializer_settings)
+        results = serializer.data
+
+        # Always include GFK identity metadata regardless of field filtering.
+        meta = instance._meta
+        results["app_label"] = meta.app_label
+        results["model"] = meta.model_name
+        if "formatted_name" not in results or results["formatted_name"] is None:
+            results["formatted_name"] = instance._get_formatted_name()
+
+        return results
