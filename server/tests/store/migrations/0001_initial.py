@@ -981,6 +981,25 @@ class Migration(migrations.Migration):
             },
             bases=("store.distributor",),
         ),
+        migrations.CreateModel(
+            name="Note",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("object_id", models.PositiveIntegerField()),
+                ("text", models.TextField()),
+                (
+                    "content_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="contenttypes.contenttype",
+                    ),
+                ),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
         migrations.RunPython(make_sure_permissions_exist, reverse_code=migrations.RunPython.noop),
         migrations.RunSQL(
             sql="""

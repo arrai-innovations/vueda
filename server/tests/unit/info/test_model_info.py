@@ -52,6 +52,11 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "InventoryRecordReason", "list"),
             ("store", "InventoryRecordReason", "read"),
             ("store", "InventoryRecordReason", "update"),
+            ("store", "Note", "create"),
+            ("store", "Note", "delete"),
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
+            ("store", "Note", "update"),
             ("store", "OptionType", "create"),
             ("store", "OptionType", "delete"),
             ("store", "OptionType", "list"),
@@ -133,6 +138,8 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Distributor", "read"),
             ("store", "DistributorProxy", "list"),
             ("store", "DistributorProxy", "read"),
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
             ("store", "OptionType", "list"),
             ("store", "OptionType", "read"),
             ("store", "OrderItem", "create"),
@@ -206,6 +213,7 @@ class TestModelInfoSerializer:
         info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
         info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)
+        info.register(store_serializers.NoteSerializer, store_viewsets.NoteViewSet)
         info.register(store_serializers.OrderCompositePKSerializer, store_viewsets.OrderCompositePKViewSet)
         info.register(store_serializers.OrderItemCompositePKSerializer, store_viewsets.OrderItemCompositePKViewSet)
         info.register(
@@ -312,7 +320,7 @@ class TestModelInfoSerializer:
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
         assert response.status_code == HTTPStatus.OK, response.data
-        assert response.data["totalRecords"] == 16  # noqa: PLR2004
+        assert response.data["totalRecords"] == 17  # noqa: PLR2004
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",

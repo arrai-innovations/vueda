@@ -223,3 +223,11 @@ class DistributorProxyViewSet(VuedaHistoryViewSet):
         if "Customer" in request.user.groups.values_list("name", flat=True):
             return frozenset()
         return super().get_allowed_extra_actions(request, instance=instance)
+
+
+class NoteViewSet(VuedaViewSet):
+    queryset = my_models.Note.objects.all()
+    serializer_class = my_serializers.NoteSerializer
+    permit_list_expands = ["content_object"]
+    permit_retrieve_expands = ["content_object"]
+    ordering_fields = ["content_type", "object_id"]

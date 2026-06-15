@@ -8,6 +8,7 @@ from tests.store.viewsets import InventoryRecordReasonViewSet
 from tests.store.viewsets import InventoryRecordViewSet
 from tests.store.viewsets import InvoiceBaseViewSet
 from tests.store.viewsets import InvoiceViewSet
+from tests.store.viewsets import NoteViewSet
 from tests.store.viewsets import OptionTypeViewSet
 from tests.store.viewsets import OrderCompositePKViewSet
 from tests.store.viewsets import OrderItemAltCompositePKViewSet
@@ -28,6 +29,7 @@ store_tests_router.register("inventory_records", InventoryRecordViewSet)
 store_tests_router.register("inventory_record_reasons", InventoryRecordReasonViewSet)
 store_tests_router.register("invoices", InvoiceViewSet)
 store_tests_router.register("invoices_base", InvoiceBaseViewSet, basename="store.invoice-base")
+store_tests_router.register("notes", NoteViewSet)
 store_tests_router.register("option_types", OptionTypeViewSet)
 store_tests_router.register("order_composite_pk", OrderCompositePKViewSet)
 store_tests_router.register("order_items_alt_composite_pk", OrderItemAltCompositePKViewSet)

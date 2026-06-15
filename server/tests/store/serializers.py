@@ -7,6 +7,7 @@ from rest_framework import serializers
 from tests.fields import RangeField
 from tests.store import models
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import VuedaHistorySerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.user.serializers import UserSerializer
@@ -635,3 +636,25 @@ class DistributorProxySerializer(VuedaHistorySerializer):
             "name",
             "description",
         ] + VuedaHistorySerializer.Meta.fields
+
+
+class NoteSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "content_object": (
+                GenericForeignKeySerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        "*",
+                    ],
+                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
+                        "carrying_weight",
+                        "depth",
+                        "height",
+                        "width",
+                    ],
+                },
+            ),
+        }
