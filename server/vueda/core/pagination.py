@@ -2,8 +2,6 @@
 
 __all__ = ("VUEDAPageNumberPagination",)
 
-from collections import OrderedDict
-
 from django.conf import settings
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.pagination import _positive_int
@@ -25,15 +23,13 @@ class VUEDAPageNumberPagination(PageNumberPagination):
 
     def get_paginated_response(self, data):
         return Response(
-            OrderedDict(
-                [
-                    ("results", data),
-                    ("columnTotals", getattr(self, "column_totals", {})),
-                    ("perPage", self.get_page_size(self.request)),
-                    ("totalPages", self.page.paginator.num_pages),
-                    ("totalRecords", self.page.paginator.count),
-                ]
-            )
+            {
+                "results": data,
+                "columnTotals": getattr(self, "column_totals", {}),
+                "perPage": self.get_page_size(self.request),
+                "totalPages": self.page.paginator.num_pages,
+                "totalRecords": self.page.paginator.count,
+            }
         )
 
     def get_paginated_response_schema(self, schema):
