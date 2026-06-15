@@ -3,6 +3,7 @@ import datetime
 import time
 
 import pytest
+from django.contrib.contenttypes.models import ContentType
 from django.db.migrations.recorder import MigrationRecorder
 from django.test import override_settings
 
@@ -1365,6 +1366,10 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             1. During the creation of a workflow migration.
             2. When a workflow migration is run.
         """
+        # Because there are 2 tests that use workflow_initial_state,
+        # we need to clear the cache or the second test will fail.
+        ContentType.objects.clear_cache()
+
         with self.temporary_migration_module(app_label="workflow_initial_state") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 0
@@ -1448,6 +1453,10 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
         Some objects have been moved into different states, to verify that
         """
         from tests.workflow_initial_state.models import WorkflowInitialState
+
+        # Because there are 2 tests that use workflow_initial_state,
+        # we need to clear the cache or the second test will fail.
+        ContentType.objects.clear_cache()
 
         with self.temporary_migration_module(app_label="workflow_initial_state") as migration_dir:
             # No migrations should have run yet.
