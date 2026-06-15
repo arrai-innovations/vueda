@@ -7,7 +7,6 @@ __all__ = (
     "Command",
     "GroupChangeTypes",
     "backwards_migrate_groups",
-    "changed_data",
     "forwards_migrate_groups",
     "make_sure_permissions_exist",
     "migrate_step",
@@ -50,10 +49,6 @@ INDENT8 = "        "
 MIGRATION_MODIFIED_COMMENT = (
     f"# Modified using VUEDA makegroupmigrations command.  Please do not delete this comment.{NEWLINE}"
 )
-
-# We don't run the functions that get copied into migrations, but, so flake8 doesn't complain, define a variable here.
-# This is less work than finding all the places that use it and adding noqa comments.
-changed_data = ()
 
 
 #############################################################################
@@ -130,7 +125,7 @@ def forwards_migrate_groups(apps, schema_editor):
     permissions = apps.get_model("auth", "Permission")
 
     # Copied, so tests can migrate forwards and then backwards.
-    for changed_item in copy.deepcopy(changed_data):
+    for changed_item in copy.deepcopy(changed_data):  # noqa: F821
         group_name = changed_item["group_name"]
         group_name_old = changed_item["group_name_old"]
         change_type = changed_item["change_type"]
@@ -163,7 +158,7 @@ def backwards_migrate_groups(apps, schema_editor):
     permissions = apps.get_model("auth", "Permission")
 
     # Copied and reversed, so tests can migrate backwards and then forwards.
-    for changed_item in reversed(copy.deepcopy(changed_data)):
+    for changed_item in reversed(copy.deepcopy(changed_data)):  # noqa: F821
         group_name = changed_item["group_name"]
         group_name_old = changed_item["group_name_old"]
         change_type = changed_item["change_type"]
