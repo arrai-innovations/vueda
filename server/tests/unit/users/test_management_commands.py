@@ -1,7 +1,10 @@
 import datetime
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.migrations.recorder import MigrationRecorder
 from django.test import override_settings
 
@@ -41,7 +44,7 @@ class TestManagementCommandGroupAdded(BaseTestMigrations, BaseTestCallCommand):
             assert MigrationRecorder.Migration.objects.filter(app="group_added").count() == 2  # noqa: PLR2004
 
             # Create the generated migration 0003.
-            succeeded, results = self.call_command("makegroupmigrations")
+            succeeded, results = self.call_command("makegroupmigrations", "--import-instead")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -147,7 +150,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
             # Verify the number of GroupChange objects.
             assert GroupChange.objects.count() == 3  # noqa PLR2004
 
-            succeeded, results = self.call_command("makegroupmigrations")
+            succeeded, results = self.call_command("makegroupmigrations", "--import-instead")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -238,7 +241,7 @@ class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand)
                 content_type__model="groupdeleteduser",
             ).exists(), "'read_groupdeleteduser' should be associated before deletion test."
 
-            succeeded, results = self.call_command("makegroupmigrations")
+            succeeded, results = self.call_command("makegroupmigrations", "--import-instead")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -279,3 +282,39 @@ class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand)
                 content_type__app_label="group_deleted",
                 content_type__model="groupdeleteduser",
             ).exists(), "'read_groupdeleteduser' not restored after rolling back."
+
+
+@pytest.mark.django_db
+class TestCreateUserCommand:
+    def test_missing_single_group_raises(self):
+        with pytest.raises(CommandError, match='The Group with name "nonexistent" does not exist!'):
+            call_command(
+                "createuser",
+                interactive=False,
+                email="user@domain.invalid",
+                name="Test User",
+                groups="nonexistent",
+            )
+
+    def test_missing_multiple_groups_raises(self):
+        with pytest.raises(CommandError, match=r'The Groups with names "bar" and "foo" do not exist!'):
+            call_command(
+                "createuser",
+                interactive=False,
+                email="user@domain.invalid",
+                name="Test User",
+                groups="foo,bar",
+            )
+
+    def test_success(self):
+        Group.objects.create(name="TestGroup")
+        call_command(
+            "createuser",
+            interactive=False,
+            email="newuser@domain.invalid",
+            name="New User",
+            groups="TestGroup",
+        )
+        user = get_user_model().objects.get(email="newuser@domain.invalid")
+        assert not user.is_superuser
+        assert user.groups.filter(name="TestGroup").exists()
