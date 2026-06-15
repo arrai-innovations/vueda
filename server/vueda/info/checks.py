@@ -22,7 +22,7 @@ def check_formatted_name_configuration(app_configs, **kwargs):
         if "formatted_name" not in model.__dict__ or model.__dict__["formatted_name"] is not None:
             continue
 
-        has_lookup = isinstance(getattr(model, "formatted_name_lookup_expression", None), str)
+        has_lookup = getattr(model, "formatted_name_lookup_expression", None)
         # callable() returns False for @property, so check that separately for a targeted error.
         has_method = callable(getattr(model, "get_formatted_name", None))
         has_property = _is_property_on_model(model, "get_formatted_name")
@@ -34,6 +34,15 @@ def check_formatted_name_configuration(app_configs, **kwargs):
                     hint="Remove the @property decorator; get_formatted_name() must be a plain method.",
                     obj=model,
                     id="vueda_info.E003",
+                )
+            )
+        elif has_lookup and not isinstance(has_lookup, str):
+            errors.append(
+                Error(
+                    f"{model.__name__} defines formatted_name_lookup_expression as something other than a string.",
+                    hint=("formatted_name_lookup_expression is used by DB field lookups, so it must be a string."),
+                    obj=model,
+                    id="vueda_info.E004",
                 )
             )
         elif has_lookup and has_method:
