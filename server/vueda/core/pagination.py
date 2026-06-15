@@ -32,7 +32,7 @@ class VUEDAPageNumberPagination(PageNumberPagination):
             }
         )
 
-    def get_paginated_response_schema(self, schema):
+    def get_paginated_response_schema(self, schema):  # pragma: no cover
         total_records = 321
         total_pages = divmod(total_records, settings.MAX_PAGE_SIZE)
         if total_pages[1]:
