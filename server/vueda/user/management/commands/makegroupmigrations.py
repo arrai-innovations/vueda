@@ -8,6 +8,8 @@ __all__ = (
     "GroupChangeTypes",
     "backwards_migrate_groups",
     "forwards_migrate_groups",
+    "get_group_migration_imports",
+    "get_group_migration_sources",
     "make_sure_permissions_exist",
     "migrate_step",
 )
@@ -202,6 +204,52 @@ def make_sure_permissions_exist(apps, schema_editor):
         create_permissions(app, interactive=False)
 
 
+def get_group_migration_imports(import_instead=False):
+    """Return the import lines inserted into a group migration file."""
+    if import_instead:
+        return [
+            MIGRATION_MODIFIED_COMMENT,
+            f"{NEWLINE}import datetime",
+            f"{NEWLINE}{NEWLINE}from django.conf import settings",
+            f"{NEWLINE}{NEWLINE}import vueda.user.management.commands.makegroupmigrations as _makegroupmigrations",
+            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import backwards_migrate_groups",
+            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import forwards_migrate_groups",
+            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import GroupChangeTypes",
+            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import make_sure_permissions_exist",
+            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import migrate_step",
+            f"{NEWLINE}from vueda.user.management.commands.utils import create_group_change",
+            f"{NEWLINE}from vueda.user.management.commands.utils import get_matching_record",
+        ]
+    return [
+        MIGRATION_MODIFIED_COMMENT,
+        "import copy",
+        f"{NEWLINE}import datetime",
+        f"{NEWLINE}import enum",
+        f"{NEWLINE}{NEWLINE}from django.apps import apps as django_apps",
+        f"{NEWLINE}from django.conf import settings",
+        f"{NEWLINE}from django.contrib.auth.management import create_permissions",
+    ]
+
+
+def get_group_migration_sources(import_instead=False):
+    """Return the source-code strings inserted into a group migration file."""
+    if import_instead:
+        return [
+            f"_makegroupmigrations.changed_data = changed_data{NEWLINE}",
+            f"{NEWLINE}",
+        ]
+    return [
+        f"{NEWLINE}{NEWLINE}{inspect.getsource(create_group_change)}",
+        f"{NEWLINE}{NEWLINE}{inspect.getsource(get_matching_record)}",
+        f"{NEWLINE}{NEWLINE}{inspect.getsource(GroupChangeTypes)}",
+        f"{NEWLINE}{NEWLINE}{inspect.getsource(migrate_step)}",
+        f"{NEWLINE}{NEWLINE}{inspect.getsource(forwards_migrate_groups)}",
+        f"{NEWLINE}{NEWLINE}{inspect.getsource(backwards_migrate_groups)}",
+        f"{NEWLINE}{NEWLINE}{inspect.getsource(make_sure_permissions_exist)}",
+        f"{NEWLINE}{NEWLINE}",
+    ]
+
+
 class Command(BaseCommand):
     help = (
         "In the appropriate app, two files will get created. "
@@ -213,15 +261,18 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "args",
-            metavar="app_label",
-            nargs="*",
-            help="Specify the app label(s) to create the group migrations for.",
-        )
-        parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Just show what migrations would be made; don't actually write them.",
+        )
+        parser.add_argument(
+            "--import-instead",
+            action="store_true",
+            help=(
+                "This causes created migrations to not copy functions from the management command "
+                "into the migration.  Imports are added instead.  This is used by tests, so the "
+                "coverage report will reflect actual code usage."
+            ),
         )
 
     def _call_command(self, *args):
@@ -365,44 +416,21 @@ class Command(BaseCommand):
             lines[p_reverse_index] = lines[p_reverse_index].replace("type", "migrations.RunPython.noop")
             lines[p_forwards_index] = lines[p_forwards_index].replace("dict", "make_sure_permissions_exist")
 
-            backwards = inspect.getsource(backwards_migrate_groups)
-            create_group_chng = inspect.getsource(create_group_change)
-            forwards = inspect.getsource(forwards_migrate_groups)
-            get_matching_rec = inspect.getsource(get_matching_record)
-            group_change_types = inspect.getsource(GroupChangeTypes)
-            perms_exist = inspect.getsource(make_sure_permissions_exist)
-            step = inspect.getsource(migrate_step)
-
             # Add Dependencies
             lines[dependencies_index + 1 : dependencies_index + 1] = [
                 f"{INDENT8}migrations.swappable_dependency(settings.AUTH_USER_MODEL),{NEWLINE}",
             ] + dependencies
 
             # Changed data and forwards/reverse functions.
-            lines[class_index - 1 : class_index] = [
-                # Pretty Print is not formatted as nice as black.  At least a small width is better than nothing.
+            copied_code = [
                 f"{NEWLINE}changed_data = {pformat(changes)}{NEWLINE}",
-                f"{NEWLINE}{NEWLINE}{create_group_chng}",
-                f"{NEWLINE}{NEWLINE}{get_matching_rec}",
-                f"{NEWLINE}{NEWLINE}{group_change_types}",
-                f"{NEWLINE}{NEWLINE}{step}",
-                f"{NEWLINE}{NEWLINE}{forwards}",
-                f"{NEWLINE}{NEWLINE}{backwards}",
-                f"{NEWLINE}{NEWLINE}{perms_exist}",
-                f"{NEWLINE}{NEWLINE}",
+                *get_group_migration_sources(self.import_instead),
             ]
+            lines[class_index - 1 : class_index] = copied_code
 
             # Migration Modified Comment and Imports
             # The comment is used to find the latest migration we modified using this management command.
-            lines[generated_index + 1 : generated_index + 1] = [
-                MIGRATION_MODIFIED_COMMENT,  # This comment has a newline at the end, for when we try to find the line.
-                "import copy",  # So, we don't need a newline at the beginning of this.
-                f"{NEWLINE}import datetime",
-                f"{NEWLINE}import enum",
-                f"{NEWLINE}{NEWLINE}from django.apps import apps as django_apps",
-                f"{NEWLINE}from django.conf import settings",
-                f"{NEWLINE}from django.contrib.auth.management import create_permissions",
-            ]
+            lines[generated_index + 1 : generated_index + 1] = get_group_migration_imports(self.import_instead)
 
             f.seek(0)
             f.writelines(lines)
@@ -484,8 +512,9 @@ class Command(BaseCommand):
         return migration_data
 
     @atomic
-    def handle(self, *app_labels, **options):
+    def handle(self, **options):
         self.dry_run = options["dry_run"]
+        self.import_instead = options["import_instead"]
 
         all_migrated_data = self._get_vueda_generated_migration_data_for_auth_user_model()
         matched_group_change_pks = set()
