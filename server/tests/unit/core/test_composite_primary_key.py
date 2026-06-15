@@ -5,11 +5,14 @@ from typing import TypedDict
 
 import pytest
 from django.conf import settings
+from django.core.serializers.base import DeserializationError
+from django.core.serializers.base import SerializationError
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
+from tests.store.serializers import OrderItemCompositePKSerializer
 
 
 class VuedaCompositeKeyTestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -212,3 +215,17 @@ class TestCompositeKey:
 
         assert response.status_code == HTTPStatus.OK, response.data
         assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])
+
+
+class TestCompositePrimaryKeyFieldErrors:
+    def test_to_representation_raises_serialization_error(self):
+        field = OrderItemCompositePKSerializer().fields["pk"]
+        # None is non-iterable, so zip(self.fields, vals) raises TypeError inside value_to_string.
+        with pytest.raises(SerializationError):
+            field.to_representation(None)
+
+    def test_to_internal_value_raises_deserialization_error(self):
+        field = OrderItemCompositePKSerializer().fields["pk"]
+        # Invalid JSON causes json.loads to raise inside to_python.
+        with pytest.raises(DeserializationError):
+            field.to_internal_value("not-valid-json")
