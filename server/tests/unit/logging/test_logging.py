@@ -44,6 +44,10 @@ def log_to_db(settings):
 
     yield settings
 
+    # dictConfig with disable_existing_loggers=False leaves loggers not in the new config
+    # untouched, so the "django" logger would retain the "db" handler after cleanup and
+    # cause unrelated tests to fail when they trigger Django error logging.
+    logging.getLogger("django").handlers = []
     logging.config.dictConfig(settings.LOGGING)
 
 
