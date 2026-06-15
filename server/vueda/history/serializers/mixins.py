@@ -13,6 +13,16 @@ from vueda.history.fields import HistoricalRecordField
 from vueda.history.fields import filter_fields_for_flexlike_on_historical_records
 
 
+HISTORICAL_FIELDS = [
+    "history_id",
+    "history_date",
+    "history_change_reason",
+    "history_type",
+    "history_user",
+    "history_relation",
+]
+
+
 class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
     current_history_id = drf_serializers.IntegerField(
         read_only=True, label="Current History ID", style={"hidden": True}
@@ -285,14 +295,4 @@ class HistoricalModelSerializerMixin(drf_serializers.Serializer):
 
     @classmethod
     def get_historical_fields(cls):
-        """
-        Returns a list of historical fields added by the mixin.
-        """
-        return [
-            "history_id",
-            "history_date",
-            "history_change_reason",
-            "history_type",
-            "history_user",
-            "history_relation",
-        ]
+        return HISTORICAL_FIELDS

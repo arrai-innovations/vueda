@@ -10,18 +10,12 @@ from rest_framework.response import Response
 
 from vueda.core.decorators import action
 from vueda.history.serializers import DynamicHistoricalSerializer
+from vueda.history.serializers.mixins import HISTORICAL_FIELDS
 
 
 class SimpleHistoryViewSetMixin:
     def get_historical_fields(self):
-        return [
-            "history_id",
-            "history_date",
-            "history_change_reason",
-            "history_type",
-            "history_user",
-            "history_relation",
-        ]
+        return HISTORICAL_FIELDS
 
     def get_queryset(self):
         queryset = super().get_queryset()
