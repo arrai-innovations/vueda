@@ -1,13 +1,11 @@
 """Management command for generating workflow state and transition migrations from change history."""
 
 __all__ = (
-    "ADDED",
-    "CHANGED",
-    "DELETED",
     "INDENT8",
     "MIGRATION_MODIFIED_COMMENT",
     "NEWLINE",
     "Command",
+    "WorkflowChangeTypes",
     "add_history_to_data",
     "apply_and_save_changes",
     "backwards_migrate_workflow",
@@ -32,6 +30,7 @@ __all__ = (
 import contextlib
 import copy
 import datetime
+import enum
 import importlib
 import inspect
 import io
@@ -102,9 +101,11 @@ from vueda.workflow import models
 # The only downside here is that you may have to wait for Person A to get their stuff pushed.
 
 
-ADDED = "added"
-CHANGED = "changed"
-DELETED = "deleted"
+class WorkflowChangeTypes(enum.Enum):
+    ADDED = "added"
+    CHANGED = "changed"
+    DELETED = "deleted"
+
 
 NEWLINE = os.linesep
 INDENT8 = "        "
@@ -165,11 +166,11 @@ def backwards_migrate_workflow(apps, changed_items, change_reason):
     # Make sure we go through the changed_items in reverse order, so we undo things correctly.
     for changed_item in reversed(changed_items):
         match changed_item["history_type"]:
-            case "added":
-                changed_item["history_type"] = "deleted"
+            case WorkflowChangeTypes.ADDED.value:
+                changed_item["history_type"] = WorkflowChangeTypes.DELETED.value
 
-            case "deleted":
-                changed_item["history_type"] = "added"
+            case WorkflowChangeTypes.DELETED.value:
+                changed_item["history_type"] = WorkflowChangeTypes.ADDED.value
 
         match changed_item["model_name"]:
             case "workflow":
@@ -212,7 +213,7 @@ def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             content_type = model_content_type.objects.get(**data["content_type_id"])
             data["content_type_id"] = content_type.pk
 
@@ -229,7 +230,7 @@ def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
             )
             historical_workflow.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**get_id_values_from_dict(data["id"], reversing=reversing))
 
             del data["id"]
@@ -252,7 +253,7 @@ def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
             )
             historical_workflow.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             content_type = model_content_type.objects.get(**data["content_type_id"])
             data["content_type_id"] = content_type.pk
 
@@ -275,7 +276,7 @@ def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=F
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
             permission = model_permission.objects.get(**data["permission_id"])
@@ -290,7 +291,7 @@ def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=F
             add_history_to_data(data, workflow_permission, "+", changed_item["history_date"], change_reason)
             historical_workflow_permission.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
 
@@ -328,7 +329,7 @@ def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=F
             )
             historical_workflow_permission.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
             permission = model_permission.objects.get(**data["permission_id"])
@@ -354,7 +355,7 @@ def handle_state(apps, changed_item, change_reason, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             workflow = model_workflow.objects.get(**data["workflow_id"])
             data["workflow_id"] = workflow.pk
 
@@ -365,7 +366,7 @@ def handle_state(apps, changed_item, change_reason, *, reversing=False):
             add_history_to_data(data, state, "+", changed_item["history_date"], change_reason)
             historical_state.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**get_id_values_from_dict(data["id"], reversing=reversing))
@@ -388,7 +389,7 @@ def handle_state(apps, changed_item, change_reason, *, reversing=False):
             )
             historical_state.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
             data["workflow_id"] = workflow.pk
@@ -414,7 +415,7 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             workflow = model_workflow.objects.get(**data["state_id"]["workflow_id"])
             data["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["state_id"])
@@ -433,7 +434,7 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
             add_history_to_data(data, state_permission, "+", changed_item["history_date"], change_reason)
             historical_state_permission.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["id"]["state_id"])
@@ -483,7 +484,7 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
             )
             historical_state_permission.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
             data["state_id"]["workflow_id"] = workflow.pk
@@ -516,7 +517,7 @@ def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             workflow = model_workflow.objects.get(**data["state_id"]["workflow_id"])
             data["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["state_id"])
@@ -531,7 +532,7 @@ def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
             add_history_to_data(data, initial_state, "+", changed_item["history_date"], change_reason)
             historical_initial_state.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             data["id"]["state_id"] = get_id_values_from_item(data["id"]["state_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
@@ -569,7 +570,7 @@ def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
             )
             historical_initial_state.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
             data["state_id"]["workflow_id"] = workflow.pk
@@ -597,7 +598,7 @@ def handle_transition(apps, changed_item, change_reason, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             workflow = model_workflow.objects.get(**data["workflow_id"])
             data["workflow_id"] = workflow.pk
             data["target_id"]["workflow_id"] = workflow.pk
@@ -611,7 +612,7 @@ def handle_transition(apps, changed_item, change_reason, *, reversing=False):
             add_history_to_data(data, transition, "+", changed_item["history_date"], change_reason)
             historical_transition.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
 
@@ -647,7 +648,7 @@ def handle_transition(apps, changed_item, change_reason, *, reversing=False):
             )
             historical_transition.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
             data["workflow_id"] = workflow.pk
@@ -675,7 +676,7 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
             permission = model_permission.objects.get(**data["permission_id"])
@@ -692,7 +693,7 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
             add_history_to_data(data, transition_permission, "+", changed_item["history_date"], change_reason)
             historical_transition_permission.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
             data["id"]["transition_id"]["workflow_id"] = workflow.pk
 
@@ -744,7 +745,7 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
             )
             historical_transition_permission.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
             permission = model_permission.objects.get(**data["permission_id"])
@@ -775,7 +776,7 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             workflow = model_workflow.objects.get(**data["source_id"]["workflow_id"])
             data["source_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["source_id"])
@@ -792,7 +793,7 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
             add_history_to_data(data, transition_source, "+", changed_item["history_date"], change_reason)
             historical_transition_source.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             data["id"]["source_id"] = get_id_values_from_item(data["id"]["source_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["source_id"]["workflow_id"])
             data["id"]["source_id"]["workflow_id"] = workflow.pk
@@ -846,7 +847,7 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
             )
             historical_transition_source.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["source_id"]["workflow_id"])
             data["id"]["source_id"]["workflow_id"] = workflow.pk
             data["source_id"]["workflow_id"] = workflow.pk
@@ -1006,7 +1007,7 @@ def get_attr_names_for_workflow_models():
 def get_history_diff(old_history_record, new_history_record):
     if old_history_record is None:
         empty_record = type(new_history_record)()
-        return ADDED, new_history_record.diff_against(empty_record)
+        return WorkflowChangeTypes.ADDED.value, new_history_record.diff_against(empty_record)
 
     elif old_history_record and old_history_record.history_type == "-":
         # If we don't have an old history record, then this workflow
@@ -1015,10 +1016,10 @@ def get_history_diff(old_history_record, new_history_record):
             return None, None
 
         empty_record = type(old_history_record)()
-        return DELETED, empty_record.diff_against(old_history_record)
+        return WorkflowChangeTypes.DELETED.value, empty_record.diff_against(old_history_record)
 
     else:  # old_history_record is not None
-        return CHANGED, new_history_record.diff_against(old_history_record)
+        return WorkflowChangeTypes.CHANGED.value, new_history_record.diff_against(old_history_record)
 
 
 def apply_and_save_changes(obj, data, *, reversing=False):
@@ -1364,55 +1365,55 @@ class Command(BaseCommand):
         match model_name:
             case "initialstate":
                 query = changed_item["state_id"]["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "state":
                 query = changed_item["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "statepermission":
                 query = changed_item["state_id"]["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "transition":
                 query = changed_item["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "transitionpermission":
                 query = changed_item["transition_id"]["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "transitionsource":
                 query = changed_item["source_id"]["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "workflow":
                 query = changed_item["content_type_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 return ContentType.objects.filter(**query).first()
 
             case "workflowpermission":
                 query = changed_item["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
@@ -1512,11 +1513,11 @@ class Command(BaseCommand):
         history_type_text = changed_item["history_type"]
         history_date = changed_item["history_date"]
         match history_type_text:
-            case "added":
+            case WorkflowChangeTypes.ADDED.value:
                 history_type = "+"
-            case "changed":
+            case WorkflowChangeTypes.CHANGED.value:
                 history_type = "~"
-            case "deleted":
+            case WorkflowChangeTypes.DELETED.value:
                 history_type = "-"
         historical_queryset = historical_queryset.filter(history_type=history_type)
 
@@ -1995,17 +1996,17 @@ class Command(BaseCommand):
             )
 
             match historical_type:
-                case "added":
+                case WorkflowChangeTypes.ADDED.value:
                     current_changes[field_name] = new
 
-                case "changed":
+                case WorkflowChangeTypes.CHANGED.value:
                     current_changes[field_name] = (old, new)
 
-                case "deleted":
+                case WorkflowChangeTypes.DELETED.value:
                     current_changes[field_name] = old
 
         # Getting the additional information for 'id' will be easier if we have all the data.
-        if historical_type == "changed":
+        if historical_type == WorkflowChangeTypes.CHANGED.value:
             _, extra_data_diff = get_history_diff(None, historical_diff.new_record)
 
             for change in extra_data_diff.changes:
