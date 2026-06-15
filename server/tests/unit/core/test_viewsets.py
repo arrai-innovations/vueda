@@ -255,7 +255,7 @@ class TestProductViewSet(BaseTestModelViewSet):
                 expected_retrieve_response["current_history_id"] = first_history_entry[key]
                 first_history_entry["current_history_id"] = first_history_entry[key]
             del first_history_entry[key]
-        # Now these three dictionaries are the same.
+        # Now these dictionaries are the same.
         assert expected_retrieve_response == response.data
         assert first_history_entry == expected_retrieve_response
 
