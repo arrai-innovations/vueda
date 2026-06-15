@@ -102,6 +102,59 @@ class TestModelInfoErrs:
             )
         ]
 
+    def test_formatted_name_expression_not_string(self):
+        """FormattedNameExpressionNotString has a lookup expression that is not a string; check must flag it."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_formatted_name_configuration
+
+        info.registration.get_empty_registry()
+        info.register_serializer(err_serializers.FormattedNameExpressionNotStringSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "FormattedNameExpressionNotString defines formatted_name_lookup_expression as something other than a string.",
+                hint=("formatted_name_lookup_expression is used by DB field lookups, so it must be a string."),
+                obj=err_models.FormattedNameExpressionNotString,
+                id="vueda_info.E004",
+            )
+        ]
+
+    def test_model_without_formatted_name_override_passes_system_check(self):
+        """A model that does not override formatted_name should be skipped by the check (no errors)."""
+        from vueda.info.checks import check_formatted_name_configuration
+
+        info.registration.get_empty_registry()
+        info.register_serializer(err_serializers.NoExpandableFieldsDataSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert errors == []
+
+    def test_valid_get_formatted_name_passes_system_check(self):
+        """ValidGetFormattedName sets formatted_name=None with a plain get_formatted_name() method; check must produce no errors."""
+        from vueda.info.checks import check_formatted_name_configuration
+
+        info.registration.get_empty_registry()
+        info.register_serializer(err_serializers.ValidGetFormattedNameSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert errors == []
+
+    def test_valid_lookup_expression_passes_system_check(self):
+        """ValidLookupExpression sets formatted_name=None with a string lookup expression; check must produce no errors."""
+        from vueda.info.checks import check_formatted_name_configuration
+
+        info.registration.get_empty_registry()
+        info.register_serializer(err_serializers.ValidLookupExpressionSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert errors == []
+
     def test_no_name_field_system_check_error(self):
         """NoNameField has formatted_name = None with no lookup expression or get_formatted_name(); check must flag it."""
         from django.core.checks import Error
