@@ -22,6 +22,7 @@ import importlib
 import inspect
 import io
 import os
+import re
 import sys
 from pathlib import Path
 from pprint import pformat
@@ -238,13 +239,19 @@ def get_group_migration_sources(import_instead=False):
             f"_makegroupmigrations.changed_data = changed_data{NEWLINE}",
             f"{NEWLINE}",
         ]
+
+    noqa_removal_regex = r"\s*#\s*noqa[^\n]*"  # Removes 'noqa: F821' from these functions.
+
+    forwards_migrate_groups_source = re.sub(noqa_removal_regex, "", inspect.getsource(forwards_migrate_groups))
+    backwards_migrate_groups_source = re.sub(noqa_removal_regex, "", inspect.getsource(backwards_migrate_groups))
+
     return [
         f"{NEWLINE}{NEWLINE}{inspect.getsource(create_group_change)}",
         f"{NEWLINE}{NEWLINE}{inspect.getsource(get_matching_record)}",
         f"{NEWLINE}{NEWLINE}{inspect.getsource(GroupChangeTypes)}",
         f"{NEWLINE}{NEWLINE}{inspect.getsource(migrate_step)}",
-        f"{NEWLINE}{NEWLINE}{inspect.getsource(forwards_migrate_groups)}",
-        f"{NEWLINE}{NEWLINE}{inspect.getsource(backwards_migrate_groups)}",
+        f"{NEWLINE}{NEWLINE}{forwards_migrate_groups_source}",
+        f"{NEWLINE}{NEWLINE}{backwards_migrate_groups_source}",
         f"{NEWLINE}{NEWLINE}{inspect.getsource(make_sure_permissions_exist)}",
         f"{NEWLINE}{NEWLINE}",
     ]
