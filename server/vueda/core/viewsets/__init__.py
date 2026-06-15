@@ -242,10 +242,7 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
             if (
                 "formatted_name" not in valid_fields
                 and hasattr(serializer.Meta, "model")
-                and (
-                    isinstance(getattr(serializer.Meta.model, "formatted_name_lookup_expression", None), str)
-                    or callable(getattr(serializer.Meta.model, "get_formatted_name", None))
-                )
+                and serializer.Meta.model._has_formatted_name_field()
             ):
                 valid_fields.add("formatted_name")
 

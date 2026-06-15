@@ -28,6 +28,7 @@ from simple_history.models import HistoricalRecords
 
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.models import BaseModelMeta
+from vueda.core.models import FormattedNameBaseModel
 from vueda.core.models import VuedaModel
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.mixins import VUEDAPermissionsMixin
@@ -97,7 +98,7 @@ class AbstractVUEDAUserMeta(BaseModelMeta):
     ]
 
 
-class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, VUEDAPermissionsMixin):
+class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, FormattedNameBaseModel, VUEDAPermissionsMixin):
     """
     Default user for VUEDA
 

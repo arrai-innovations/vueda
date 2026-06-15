@@ -9,6 +9,7 @@ __all__ = (
     "VuedaModel",
 )
 
+from django.contrib.admin.utils import lookup_field
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
@@ -19,15 +20,7 @@ class BaseModelMeta:
     default_permissions = ("create", "read", "update", "delete", "list")
 
 
-class Lookup(models.Model):
-    """
-    Abstract base for code/name lookup tables. Provides ``code`` (unique identifier),
-    ``name`` (display label), and a generated ``formatted_name`` field for consistent
-    display across the API.
-    """
-
-    code = models.CharField(max_length=255, unique=True, db_index=True)
-    name = models.CharField(max_length=255)
+class FormattedNameBaseModel(models.Model):
     formatted_name = models.GeneratedField(
         expression=models.F("name"),
         output_field=models.CharField(),
@@ -37,22 +30,50 @@ class Lookup(models.Model):
     class Meta(BaseModelMeta):
         abstract = True
 
+    def _get_formatted_name(self):
+        formatted_name = self.formatted_name
+        if formatted_name is None:
+            get_formatted_name = getattr(self, "get_formatted_name", None)
+            if callable(get_formatted_name):
+                formatted_name = get_formatted_name()
+
+            else:
+                formatted_name_lookup_expression = getattr(self._meta.model, "formatted_name_lookup_expression", None)
+                _, _, formatted_name = lookup_field(formatted_name_lookup_expression, self)
+
+        return formatted_name or None
+
+    @classmethod
+    def _has_formatted_name_field(cls):
+        # The system check validates that formatted_name_lookup_expression is a string.
+        return getattr(cls, "formatted_name_lookup_expression", None) or callable(
+            getattr(cls, "get_formatted_name", None)
+        )
+
+
+class Lookup(FormattedNameBaseModel):
+    """
+    Abstract base for code/name lookup tables. Provides ``code`` (unique identifier),
+    ``name`` (display label), and a generated ``formatted_name`` field for consistent
+    display across the API.
+    """
+
+    code = models.CharField(max_length=255, unique=True, db_index=True)
+    name = models.CharField(max_length=255)
+
+    class Meta(BaseModelMeta):
+        abstract = True
+
     def __str__(self):
         return f"name: {self.name}, code:{self.code}"
 
 
-class VuedaModel(models.Model):
+class VuedaModel(FormattedNameBaseModel):
     """
     Abstract base model for all VUEDA domain models. Adds a ``formatted_name``
     generated field (defaults to ``name``) used by the API for consistent display.
     Subclasses should override ``formatted_name_lookup_expression`` to change the source field.
     """
-
-    formatted_name = models.GeneratedField(
-        expression=models.F("name"),
-        output_field=models.CharField(),
-        db_persist=True,
-    )
 
     class Meta(BaseModelMeta):
         abstract = True

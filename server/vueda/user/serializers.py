@@ -29,6 +29,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import FormattedNameSerializerMixin
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaSerializer
 from vueda.user.fields import TOTPMethodChoiceField
@@ -268,7 +269,9 @@ class TOTPSetupSerializer(serializers.Serializer):
         return data
 
 
-class TOTPDeviceSerializer(serializers.ModelSerializer, VuedaExpandableFieldsSerializerMixin):
+class TOTPDeviceSerializer(
+    serializers.ModelSerializer, VuedaExpandableFieldsSerializerMixin, FormattedNameSerializerMixin
+):
     created_at = serializers.SerializerMethodField()
     last_used_at = serializers.SerializerMethodField()
     method = TOTPMethodChoiceField()
@@ -293,6 +296,3 @@ class TOTPDeviceSerializer(serializers.ModelSerializer, VuedaExpandableFieldsSer
 
     def get_last_used_at(self, obj):
         return obj.authenticator.last_used_at
-
-    def get_formatted_name(self, obj):
-        return obj.get_formatted_name() or None

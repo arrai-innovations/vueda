@@ -71,7 +71,7 @@ class NoExtraFieldsSerializerMixin:
                 if field_name.find("[") != -1:
                     field_name = field_name.split("[")[0]
 
-                # Handle data lik cart_items.quantity
+                # Handle data like cart_items.quantity
                 if "." in field_name:
                     field_name = field_name.split(".")[0]
 
@@ -79,12 +79,8 @@ class NoExtraFieldsSerializerMixin:
 
             if (
                 "formatted_name" not in initial_fields
-                and hasattr(self, "Meta")
-                and hasattr(self.Meta, "model")
-                and (
-                    isinstance(getattr(self.Meta.model, "formatted_name_lookup_expression", None), str)
-                    or callable(getattr(self.Meta.model, "get_formatted_name", None))
-                )
+                and hasattr(getattr(self, "Meta", None), "model")
+                and self.Meta.model._has_formatted_name_field()
             ):
                 initial_fields.add("formatted_name")
 
@@ -398,6 +394,11 @@ class VuedaExpandableFieldsSerializerMixin:
         return expands_data
 
 
+class FormattedNameSerializerMixin:
+    def get_formatted_name(self, obj):
+        return obj._get_formatted_name()
+
+
 class VuedaListSerializer(serializers.ListSerializer):
     """
     List serializer for ``VuedaSerializer`` subclasses. Annotates the queryset with
@@ -411,7 +412,7 @@ class VuedaListSerializer(serializers.ListSerializer):
         child_model = getattr(getattr(self.child, "Meta", None), "model", None)
         if child_model and hasattr(data, "annotate"):
             lookup = getattr(child_model, "formatted_name_lookup_expression", None)
-            if isinstance(lookup, str):
+            if lookup is not None:
                 existing = getattr(getattr(data, "query", None), "annotations", {})
                 if "formatted_name" not in existing:
                     data = data.annotate(formatted_name=F(lookup))
@@ -422,6 +423,7 @@ class VuedaSerializer(
     NoExtraFieldsSerializerMixin,
     VuedaExpandableFieldsSerializerMixin,
     FlexFieldsWriteableNestedSerializerMixin,
+    FormattedNameSerializerMixin,
     serializers.ModelSerializer,
 ):
     """
