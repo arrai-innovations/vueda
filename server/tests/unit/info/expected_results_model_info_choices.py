@@ -75,6 +75,8 @@ EXPECTED_RESULTS = [
         "productoption",
         "product",
         (
+            "J-Pop Release",
+            "K-Pop Release",
             "Men's White T-Shirt",
             "Paint",
             "Shaped Cookies For Drapes",

@@ -56,6 +56,7 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
         "product",
         "distributor",
         (
+            {"label": "Awesome Music Co."},
             {"label": "None"},
             {"label": "Tasty Treats Assoc.", "value": "Tasty Treats Assoc."},
             {"label": "T-Shirt Corp.", "value": "T-Shirt Corp."},
@@ -81,6 +82,7 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
         "product",
         "tangible_type",
         (
+            {"label": "Digital", "value": None},
             {"label": "None"},
             {"label": "Physical", "value": None},
         ),

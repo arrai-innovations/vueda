@@ -829,6 +829,27 @@ def create_test_data(self):
                 },
             ),
         },
+        {
+            "distributor": "Awesome Music Co.",
+            "products": (
+                {
+                    "product": {
+                        "name": "K-Pop Release",
+                        "order_between": [1, 1],
+                        "tangible_type": tangible_type["digital"],
+                    },
+                    "options": (),
+                },
+                {
+                    "product": {
+                        "name": "J-Pop Release",
+                        "order_between": [1, 1],
+                        "tangible_type": tangible_type["digital"],
+                    },
+                    "options": (),
+                },
+            ),
+        },
     ):
         distributor = distributors[data["distributor"]]
         for product_data in data["products"]:
