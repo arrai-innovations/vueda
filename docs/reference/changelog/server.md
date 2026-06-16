@@ -21,6 +21,9 @@ public-facing documentation baseline.
 
 ### Breaking Changes
 
+- **Filter choice empty options**:
+    - `model_info_filter_choices` no longer prepends or returns empty-valued options. This removes the previous synthetic option driven by `empty_label`, `empty_value`, `EMPTY_CHOICE_LABEL`, and `EMPTY_CHOICE_VALUE`; it also omits blank values discovered by all-values filters. A missing filter query parameter now represents "no filter" in this endpoint's contract.
+      _Render any clear, all, or no-selection affordance in the client outside the server-provided choices list._
 - **File and image field representation**:
     - `VuedaSerializer` now maps `models.FileField` and `models.ImageField` columns to VUEDA's serializer fields, which represent a stored file as `{"name": ..., "url": ...}` (with an absolute `url` when a request is in context) instead of DRF's plain URL string. This applies to any file or image column auto-built by a VUEDA serializer.
       _Update client or integration code that read a bare URL string from these fields. The v3 client widgets (`WidgetFile`, `WidgetImage`) already consume the `{name, url}` shape. To keep the previous plain-string behavior on a specific field, declare a stock `rest_framework.serializers.FileField`/`ImageField` explicitly on your serializer._

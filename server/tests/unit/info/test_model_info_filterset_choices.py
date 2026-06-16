@@ -7,6 +7,7 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.utils import create_test_data
@@ -25,7 +26,6 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
             {"label": "4", "value": "4"},
             {"label": "6", "value": "6"},
         ),
-        None,
     ),
     (
         "store",
@@ -37,19 +37,15 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
             {"label": "Square Cookies For Squares", "value": "Square Cookies For Squares"},
             {"label": "Women's White T-Shirt", "value": "Women's White T-Shirt"},
         ),
-        None,
     ),
     (
         "store",
         "product",
         "disabled",
-        # The "None" prepend and the NullBooleanField "Unknown" placeholder (empty value)
-        # are both dropped; only the real true/false choices remain.
         (
             {"label": "Yes", "value": "true"},
             {"label": "No", "value": "false"},
         ),
-        None,
     ),
     (
         "store",
@@ -60,71 +56,61 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
             {"label": "T-Shirt Corp.", "value": "T-Shirt Corp."},
             {"label": "Vibrant Looks Inc.", "value": "Vibrant Looks Inc."},
         ),
-        None,
     ),
     (
         "store",
         "product",
         "special_care",
         (
-            {"label": "Dangerous", "value": None},
-            {"label": "Fragile", "value": None},
-            {"label": "Perishable", "value": None},
-            {"label": "Temperature Controlled", "value": None},
+            {"label": "Dangerous"},
+            {"label": "Fragile"},
+            {"label": "Perishable"},
+            {"label": "Temperature Controlled"},
         ),
-        None,
     ),
     (
         "store",
         "product",
         "tangible_type",
-        ({"label": "Physical", "value": None},),
-        None,
+        ({"label": "Physical"},),
     ),
     (
         "store",
         "productoption",
         "disabled",
         (
-            {"label": "True", "value": None},
-            {"label": "False", "value": None},
+            {"label": "True", "value": "true"},
+            {"label": "False", "value": "false"},
         ),
-        None,
     ),
     (
         "store",
         "inventoryrecord",
         "is_added",
-        # "Unknown" (empty value) is dropped along with the "None" prepend.
         (
-            {"label": "No", "value": None},
-            {"label": "Yes", "value": None},
+            {"label": "No", "value": "false"},
+            {"label": "Yes", "value": "true"},
         ),
-        None,
     ),
     (
         "store",
         "inventoryrecord",
         "reason",
         (
-            {"label": "Damaged Inventory", "value": None},
-            {"label": "Order Fulfillment", "value": None},
-            {"label": "Received Inventory", "value": None},
-            {"label": "Returned Inventory", "value": None},
+            {"label": "Damaged Inventory"},
+            {"label": "Order Fulfillment"},
+            {"label": "Received Inventory"},
+            {"label": "Returned Inventory"},
         ),
-        None,
     ),
     (
         "store",
         "customerorder",
         "shipping_method",
-        # Both the "None" prepend and the ChoiceFilter "---------" blank placeholder
-        # (empty value) are dropped; only the real choices remain.
         (
-            {"label": "Regular", "value": None},
-            {"label": "Express", "value": None},
+            {"label": "Regular", "value": "regular"},
+            {"label": "Express", "value": "express"},
         ),
-        None,
     ),
 ]
 
@@ -248,13 +234,13 @@ class TestModelInfoFiltersetChoices:
             response_value = response_values_by_label[label]
             assert isinstance(response_value, str), f"{msg} -> value should be str, got {type(response_value).__name__}"
 
-            if "value" in expected_choice and expected_choice["value"] is not None:
+            if "value" in expected_choice:
                 assert response_value == expected_choice["value"], (
                     f"{msg} -> expected value={expected_choice['value']!r}, got {response_value!r}"
                 )
 
     @pytest.mark.parametrize(
-        "app_label, model_name, field_name, expected_choices, expected_empty_value",
+        "app_label, model_name, field_name, expected_choices",
         DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
         ids=idfn,
     )
@@ -266,7 +252,6 @@ class TestModelInfoFiltersetChoices:
         model_name,
         field_name,
         expected_choices,
-        expected_empty_value,
     ):
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
@@ -300,12 +285,9 @@ class TestModelInfoFiltersetChoices:
                     result["label"] for result in expected_choices
                 ), msg
                 self.assert_choice_value_contract(response.data, expected_choices, msg)
-                if expected_empty_value is not None:
-                    msg = f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_empty_value"
-                    assert response.data["results"][0]["value"] == expected_empty_value, msg
 
     @pytest.mark.parametrize(
-        "app_label, model_name, field_name, expected_choices, expected_empty_value",
+        "app_label, model_name, field_name, expected_choices",
         DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
         ids=idfn,
     )
@@ -317,7 +299,6 @@ class TestModelInfoFiltersetChoices:
         model_name,
         field_name,
         expected_choices,
-        expected_empty_value,
     ):
         user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
@@ -344,6 +325,28 @@ class TestModelInfoFiltersetChoices:
             result["label"] for result in expected_choices
         ), msg
         self.assert_choice_value_contract(response.data, expected_choices, msg)
+
+    def test_all_values_filter_choices_drop_blank_string_values(self, test_data, api_client):
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        blank_distributor = store_models.Distributor.objects.create(name="", description="Blank distributor")
+        store_models.Product.objects.create(
+            distributor=blank_distributor,
+            name="Blank Distributor Product",
+            order_between=[1, 2],
+            tangible_type=test_data.tangible_type["physical"],
+        )
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "distributor")),
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
+        assert "" not in {result["label"] for result in response.data["results"]}
+        assert "" not in {result["value"] for result in response.data["results"]}
 
     def test_info_choices_filter_list_invalid_field(self, test_data, api_client):
         user = test_data.users["test_admin@domain.invalid"]
