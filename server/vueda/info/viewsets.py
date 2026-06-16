@@ -17,6 +17,7 @@ from http import HTTPStatus
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.validators import EMPTY_VALUES
 from django.db.models import CharField
 from django.db.models import F
 from django.db.models.functions.comparison import Cast
@@ -329,6 +330,12 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
         else:
             choices = []
             for value, label in sorted(field.choices.items(), key=operator.itemgetter(1)):
+                # Skip the blank placeholder option (e.g. ("", "---------")) a choice field
+                # carries for native <select> rendering. It is unusable as a combobox item
+                # (Reka UI rejects an empty value) and duplicates "no selection". EMPTY_VALUES
+                # is Django's canonical empty set; a non-empty sentinel value is preserved.
+                if value in EMPTY_VALUES:
+                    continue
                 choices.append(
                     {
                         "label": label,
@@ -481,9 +488,11 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
             # django-filter choice fields carry their own blank placeholder option
             # (e.g. ("", "---------")) for native <select> rendering. It is unusable as a
             # combobox item (Reka UI rejects an empty value) and duplicates "no selection",
-            # so drop blank-valued options from the choices metadata.
+            # so drop empty-valued options from the choices metadata. EMPTY_VALUES is
+            # Django's canonical empty set, matching Select._choice_has_empty_value; a
+            # deliberately-set non-empty sentinel value is preserved.
             choices = [
-                (str(value), str(label)) for value, label in filtr.field.widget.choices if value not in (None, "")
+                (str(value), str(label)) for value, label in filtr.field.widget.choices if value not in EMPTY_VALUES
             ]
 
             filter_value = self.request.query_params.get(self.choices_field)
