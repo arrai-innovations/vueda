@@ -83,12 +83,16 @@ const route = useRoute();
 const addedFilters = ref([]);
 
 // Filterables that resolved to a usable filter type; everything else is skipped.
+// Server-hidden filters (e.g. the auto-injected `id__in` deep-link filter, whose
+// widget is a HiddenInput) are excluded: they are programmatic, not user-entered,
+// and have no mapped input widget, so they must not appear in the add-filter menu
+// or render as editable chips.
 const validFilterables = computed(() => {
     const filterables = deepUnref(filterContext?.filterables) || [];
     const filterableDetails = filterContext?.filterableDetails || {};
     return filterables.filter((fieldName) => {
         const detail = filterableDetails[fieldName];
-        return detail && detail.typeFilter;
+        return detail && detail.typeFilter && !detail.hidden;
     });
 });
 

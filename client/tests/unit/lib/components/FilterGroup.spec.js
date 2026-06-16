@@ -118,6 +118,22 @@ describe("lib/components/FilterGroup.vue", () => {
         expect(menu.attributes("data-count")).toBe("1");
     });
 
+    scopedIt("excludes server-hidden filters from the menu and restoration", async () => {
+        route.query = { id: "1,2" };
+        const { wrapper } = mountGroup({
+            filterables: ["foo", "id"],
+            filterableDetails: {
+                foo: { typeFilter: "CharField" },
+                id: { typeFilter: "DecimalInField", hidden: true },
+            },
+        });
+        await vue.nextTick();
+        // The hidden id__in filter is omitted from the add-filter menu...
+        expect(wrapper.get('[data-qa="filter-menu"]').attributes("data-count")).toBe("1");
+        // ...and is not restored as an editable chip even when present in the URL.
+        expect(wrapper.vm.addedFilters.some((f) => f.field === "id")).toBe(false);
+    });
+
     scopedIt("updates params and emits filter-change on addedFilters update", async () => {
         const { wrapper, params } = mountGroup();
         wrapper.vm.addedFilters.push({ field: "foo", param: "foo", value: "bar" });
