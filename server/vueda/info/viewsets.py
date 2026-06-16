@@ -330,12 +330,11 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
         else:
             choices = []
             for value, label in sorted(field.choices.items(), key=operator.itemgetter(1)):
-                # Skip the blank placeholder option (e.g. ("", "---------")) a choice field
-                # carries for native <select> rendering. It is unusable as a combobox item
-                # (Reka UI rejects an empty value) and duplicates "no selection". EMPTY_VALUES
-                # is Django's canonical empty set; a non-empty sentinel value is preserved.
-                if value in EMPTY_VALUES:
-                    continue
+                # NOTE: field choices populate create/update form widgets, so we do NOT strip
+                # the blank placeholder here (a nullable field may legitimately offer it, and a
+                # combobox already drops empty values at render). Empty-choice stripping is
+                # intentionally limited to the filterset-choices endpoint, where "no filter" is
+                # the absence of a value rather than a selectable option.
                 choices.append(
                     {
                         "label": label,
@@ -476,11 +475,13 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
             self.choices_queryset_model = model_class
 
             # django-filter choice fields carry their own blank placeholder option
-            # (e.g. ("", "---------")) for native <select> rendering. It is unusable as a
-            # combobox item (Reka UI rejects an empty value) and duplicates "no selection",
-            # so drop empty-valued options from the choices metadata. EMPTY_VALUES is
-            # Django's canonical empty set, matching Select._choice_has_empty_value; a
-            # deliberately-set non-empty sentinel value is preserved.
+            # (e.g. ("", "---------")) for native <select> rendering. On a filter, "no
+            # filter" is the absence of a value rather than a selectable option, so drop
+            # empty-valued choices here (this also keeps them out of the combobox, which
+            # rejects an empty value). EMPTY_VALUES is Django's canonical empty set,
+            # matching Select._choice_has_empty_value; a deliberately-set non-empty
+            # sentinel value is preserved. NOTE: this strip is intentionally filter-only;
+            # the field-choices endpoint that feeds create/update forms is left untouched.
             choices = [
                 (str(value), str(label)) for value, label in filtr.field.widget.choices if value not in EMPTY_VALUES
             ]
