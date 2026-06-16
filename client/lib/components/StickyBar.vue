@@ -134,7 +134,6 @@ const theme = useTheme(
             </template>
             <slot v-else />
         </div>
-        <div :class="theme('gradient')" data-qa="sticky-bar-gradient" />
     </div>
 </template>
 

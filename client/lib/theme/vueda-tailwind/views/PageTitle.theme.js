@@ -52,9 +52,5 @@ patchTheme({
         buttons: {
             class: ["flex gap-1 flex-wrap", "justify-end", "self-center"],
         },
-        /** Sticky-mode gradient cap rendered below the bar. The 12 px band lets ObjectsGrid stripes fade under the pinned header instead of clipping abruptly. */
-        gradient: {
-            class: ["w-full h-3"],
-        },
     },
 });

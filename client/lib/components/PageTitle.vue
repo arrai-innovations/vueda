@@ -14,7 +14,7 @@ import { computed, reactive, ref, toRef } from "vue";
 defineOptions({});
 
 const props = defineProps({
-    /** When `true`, the header is positioned sticky and a gradient overlay is rendered below it. */
+    /** When `true`, the header is positioned sticky and pinned to the top of the scroll viewport. */
     sticky: {
         type: Boolean,
         default: false,
@@ -58,6 +58,5 @@ page.bindActionZone(actionZone);
                 <div ref="actionZone" :class="theme('buttons')" data-qa="page-title-actions" />
             </div>
         </div>
-        <div v-if="sticky" :class="theme('gradient')" />
     </div>
 </template>

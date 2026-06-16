@@ -14,6 +14,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Sticky chrome fade gradients removed (StickyBar, PageTitle, ViewList)**:
+    - The fade gradient beneath pinned chrome has been removed everywhere. `StickyBar` no longer renders its `gradient` element, and `PageTitle` no longer renders a `gradient` cap in `sticky` mode. The default theme treats protection/fade gradients beneath floating UI as disallowed with no exceptions.
+    - The `StickyBar.gradient` and `PageTitle.gradient` theme keys (and the `data-qa="sticky-bar-gradient"` marker) no longer exist.
+    - `ViewList`'s filter strip no longer double-wraps the bar in a second padded, bordered, tinted surface. The strip chrome (background, bottom hairline, `px-5 py-[10px]` padding) now lives once on `StickyBar.inner`; `ViewList.filterGroupBar` only retints the strip by setting the new `--vueda-sticky-bar-surface` custom property that `StickyBar.inner`'s background reads (defaulting to `--card`). This removes the extra padding and the nested box-in-a-box appearance under the filters.
+      _If you override `StickyBar.gradient` or `PageTitle.gradient` via `themeOverride`/`setTheme`, remove those overrides; they no longer resolve. To retint a `StickyBar` from a wrapper, set `--vueda-sticky-bar-surface` (e.g. via an arbitrary `[--vueda-sticky-bar-surface:...]` class on the bar root) instead of painting a competing `bg-*` class on the root._
 - **CRUD view default themes (form body gutter)**:
     - `ViewCreate`, `ViewRead`, and `ViewUpdate` now register their own theme entries, each with `root` and `body` slots. The `body` slot applies a default `px-5 py-5` gutter to the form/body region (the wrapper around the error display and the generated form), aligning its left edge with the StickyBar controls and PageTitle above it. Previously these regions had no padding, so fields rendered flush against the surrounding layout.
     - `ViewCreate`'s root and body wrappers now carry `data-qa="create-form-root"` and `data-qa="create-form"`, matching the `read-form-root`/`read-form` and `update-form-root`/`update-form` markers already present on `ViewRead` and `ViewUpdate`.

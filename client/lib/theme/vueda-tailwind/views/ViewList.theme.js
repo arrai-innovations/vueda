@@ -29,9 +29,9 @@ patchTheme({
         targetlessActionButton: {
             class: [],
         },
-        /** Filter strip beneath the under-actions row. Tinted-muted background with a bottom hairline so it reads as a tier between the under-actions strip and the grid; uses the same `px-5 py-[10px]` rhythm shared with {@api theme-key:PageTitle.titleContainer} so the page chrome lines up vertically. */
+        /** Filter strip beneath the under-actions row. Applied to the {@api vue:component:StickyBar} root, so it does not paint its own surface, padding, or border: those live once on {@api theme-key:StickyBar.inner} (which keeps the `px-5 py-[10px]` rhythm shared with {@api theme-key:PageTitle.titleContainer}). It only retints the strip a tier below the card-toned under-actions row by setting the `--vueda-sticky-bar-surface` custom property the bar's inner surface reads, avoiding a nested padded box. */
         filterGroupBar: {
-            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px]", "border-b bg-muted/25 text-foreground"],
+            class: ["[--vueda-sticky-bar-surface:color-mix(in_oklab,var(--muted)_25%,var(--card))]", "text-foreground"],
         },
         /** "Filters" eyebrow label at the left of the filter strip. Uses the 11 px / 600 / `0.06em` uppercase recipe against `--muted-foreground` so it reads as a section eyebrow, not a heading. */
         filterGroupBarEyebrow: {

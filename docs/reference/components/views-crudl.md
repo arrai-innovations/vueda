@@ -130,7 +130,7 @@ This page is the visual contract the default theme guarantees at view scale. Use
 
 ## PageTitle
 
-{@api vue:component:PageTitle} is the layout-level page header. The integrator places it once above `<RouterView>`; it reads the active view's title and loading state from `usePageTitle` (not from props) and hosts the action zone that `PageActions` teleports page-level buttons into. Setting `sticky` pins the bar and adds a gradient fade below it.
+{@api vue:component:PageTitle} is the layout-level page header. The integrator places it once above `<RouterView>`; it reads the active view's title and loading state from `usePageTitle` (not from props) and hosts the action zone that `PageActions` teleports page-level buttons into. Setting `sticky` pins the bar to the top of the scroll viewport.
 
 The demos below use a small `DemoTitleBar` wrapper that stands in for the layout: it establishes the page-title context, registers a title, and renders `PageTitle` plus a `PageActions` cluster. In an application the layout owns that wiring and each view contributes only its title and actions.
 
@@ -274,7 +274,7 @@ Theme keys: {@api theme-key:StickyBar}.
   </ClientOnly>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>StickyBar default slot: free-form layout, usually a flex row of actions</span>
-    <span>theme key: <code>StickyBar.inner</code> for bar chrome, <code>StickyBar.gradient</code> for the fade below</span>
+    <span>theme key: <code>StickyBar.inner</code> for bar chrome (background, border, padding)</span>
     <span>the bar binds <code>scrollRoot</code> to this panel; scroll inside the panel to see it hide on the way down and reappear on the way up</span>
   </footer>
 </VuedaDemo>
@@ -699,8 +699,8 @@ Token decisions flow across all five views:
 
 The highest-value theme keys for CRUDL views:
 
-- {@api theme-key:PageTitle} — `root`, `title`, `buttons`, `gradient`. Override `title` to change the heading size and weight (default: `text-[22px] font-semibold leading-[1.2]`).
-- {@api theme-key:StickyBar} — `root`, `inner`, `gradient`. Override `inner` to add a border, change the background, or adjust padding.
+- {@api theme-key:PageTitle} — `root`, `title`, `buttons`. Override `title` to change the heading size and weight (default: `text-[22px] font-semibold leading-[1.2]`).
+- {@api theme-key:StickyBar} — `root`, `inner`. Override `inner` to add a border, change the background, or adjust padding; to retint the bar from a wrapper, set the `--vueda-sticky-bar-surface` custom property instead of painting a competing background.
 - ObjectsGrid keys are covered on its own page: {@api theme-key:ObjectsGrid}, {@api theme-key:ObjectsGridTableHeader}, {@api theme-key:ObjectsGridBodyCell}.
 - Field and form keys are covered on the Forms page: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key:FieldContent}.
 - {@api theme-key:Alert} controls the form-level error banner in ViewUpdate.

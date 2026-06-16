@@ -69,7 +69,6 @@ describe("lib/components/PageTitle.vue", () => {
     scopedIt("shows the spinner when the active view reports loading", () => {
         const wrapper = mountWithContext(makeContext({ title: "T", loading: true }), { props: { sticky: true } });
         expect(wrapper.find('[data-qa="loading-spinner-inline"]').exists()).toBe(true);
-        expect(wrapper.find(".theme-gradient").exists()).toBe(true);
     });
 
     scopedIt("renders the action zone and binds it to the context", () => {
@@ -78,10 +77,5 @@ describe("lib/components/PageTitle.vue", () => {
         expect(wrapper.find('[data-qa="page-title-actions"]').classes()).toContain("theme-buttons");
         expect(context.bindActionZone).toHaveBeenCalledTimes(1);
         expect(isRef(context.bindActionZone.mock.calls[0][0])).toBe(true);
-    });
-
-    scopedIt("omits the gradient when not sticky", () => {
-        const wrapper = mountWithContext(makeContext({ title: "t" }));
-        expect(wrapper.find(".theme-gradient").exists()).toBe(false);
     });
 });

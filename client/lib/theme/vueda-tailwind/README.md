@@ -350,10 +350,9 @@ tokens`:
 | `--vueda-shadow-overlay` | heavier drop                 | dialogs, sheets, drawers                       |
 
 Cards never raise on hover. Raised surfaces are Popover, HoverCard, and
-Dialog only. Protection / fade gradients beneath floating UI are not
-used; if text would collide with content, redesign the layout. (StickyBar's
-gradient is the one exception because the bar pins; the gradient uses
-the semantic `from-card` stop, not a hardcoded neutral.)
+Dialog only. Protection / fade gradients beneath floating UI are not used,
+with no exceptions: not under the pinned PageTitle header, not under
+StickyBar. If text would collide with content, redesign the layout.
 
 ## 6. Shapes: radius scale
 

@@ -26,12 +26,18 @@ patchTheme({
             };
         },
         /**
-         * The visible sticky-bar surface. It uses card fill, a bottom divider, and wrapping row layout for primary and secondary controls.
+         * The visible sticky-bar surface. It uses a card fill (overridable per instance via the
+         * `--vueda-sticky-bar-surface` custom property), a bottom divider, and wrapping row layout
+         * for primary and secondary controls. The surface is the single strip chrome: callers that
+         * pass a `:class` to the StickyBar root (e.g. {@api theme-key:ViewList.filterGroupBar}) set
+         * the surface custom property rather than painting a competing background, so the bar never
+         * double-wraps a nested padded surface.
          */
         inner: {
             class: [
-                // Surface and spacing.
-                "bg-card border-b px-5 py-[10px]",
+                // Surface and spacing. Background defaults to `--card`; a wrapper sets
+                // `--vueda-sticky-bar-surface` to retint the strip without class clobbering.
+                "bg-[var(--vueda-sticky-bar-surface,var(--card))] border-b px-5 py-[10px]",
 
                 // Layout.
                 "flex items-center flex-wrap gap-2",
@@ -71,18 +77,6 @@ patchTheme({
 
                 // Type.
                 "text-[10px] font-semibold uppercase tracking-[0.06em] leading-none",
-            ],
-        },
-        /**
-         * The fade below the sticky bar. It protects content immediately under the fixed chrome without adding a separate card surface.
-         */
-        gradient: {
-            class: [
-                // Sizing.
-                "w-full h-3",
-
-                // Surface.
-                "bg-gradient-to-b from-card to-transparent",
             ],
         },
     },
