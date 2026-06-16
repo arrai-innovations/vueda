@@ -263,6 +263,32 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
             expect(items[0].attributes("data-text-value")).toBe("Red");
         });
 
+        scopedIt("skips options with an empty-string value (Reka rejects them)", async () => {
+            // The server prepends an empty/placeholder choice to filter choices,
+            // e.g. {label: "None", value: ""}. Reka UI's ComboboxItem throws on an
+            // empty-string value, so the widget must not render it as an item.
+            const wrapper = mount(WidgetCombobox, {
+                props: {
+                    options: [{ label: "None", value: "" }, ...STATIC_OPTIONS],
+                    optionLabel: "label",
+                },
+            });
+            const items = wrapper.findAll("[data-stub='combobox-item']");
+            expect(items).toHaveLength(3);
+            expect(items.map((i) => i.attributes("data-value"))).toEqual(["red", "green", "blue"]);
+        });
+
+        scopedIt("skips options with a nullish value", async () => {
+            const wrapper = mount(WidgetCombobox, {
+                props: {
+                    options: [{ label: "None", value: null }, ...STATIC_OPTIONS],
+                    optionLabel: "label",
+                },
+            });
+            const items = wrapper.findAll("[data-stub='combobox-item']");
+            expect(items).toHaveLength(3);
+        });
+
         scopedIt("respects custom optionLabel and optionValue keys", async () => {
             const custom = [{ name: "Alpha", code: "a" }];
             const wrapper = mount(WidgetCombobox, {

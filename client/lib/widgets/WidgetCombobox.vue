@@ -143,7 +143,15 @@ const filteredDisplayOptions = computed(() => {
     if (isApiMode.value) {
         return comboboxSearch.options;
     }
-    const opts = props.options ?? [];
+    // Reka UI's ComboboxItem rejects an empty-string value (it is the sentinel for
+    // "no selection"), so drop options that resolve to "" or null. In filter mode this
+    // is the server's empty/placeholder choice (e.g. {label: "None", value: ""}); the
+    // combobox already expresses "no selection" via its placeholder, so the option is
+    // redundant as well as unrenderable.
+    const opts = (props.options ?? []).filter((opt) => {
+        const value = opt[props.optionValue];
+        return value !== "" && value != null;
+    });
     const q = comboboxSearch.query;
     if (!q) return opts;
     return opts.filter((opt) => {
