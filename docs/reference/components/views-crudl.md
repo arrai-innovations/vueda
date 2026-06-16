@@ -462,12 +462,47 @@ This ViewList is a target mockup under active design. The add-filter menu and ch
       </div>
     </div>
   </div>
+  <div class="flex flex-col gap-2">
+    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Error state · the server rejects a filter value (HTTP 400, keyed by field) — no separate banner</header>
+    <div class="flex flex-wrap items-start gap-6">
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">errored chip · destructive tint flags which filter is invalid</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
+            <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: Status">Status: Active</button>
+            <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
+            <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: Status"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+          </span>
+          <span class="inline-flex items-center rounded-full border border-destructive/40 bg-destructive/10 text-xs font-semibold text-destructive">
+            <button type="button" class="inline-flex items-center gap-1.5 rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-destructive/15" aria-label="Edit filter: Plan tier (invalid value)"><FontAwesomeIcon :icon="faTriangleExclamation" class="size-2.5" />Plan tier: 24</button>
+            <span class="h-3.5 w-px bg-destructive/30" aria-hidden="true"></span>
+            <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-destructive/15 hover:opacity-100" aria-label="Remove filter: Plan tier"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+          </span>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">click the errored chip · same form, chip container · the server message renders inline</span>
+        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <div class="px-2 pb-1 pt-1.5">
+            <h3 class="mb-2 text-sm font-semibold">Filter by Plan tier</h3>
+            <div class="flex h-7 items-center justify-between rounded-vueda-control border border-destructive bg-background px-2 text-sm text-foreground" aria-invalid="true">24<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></div>
+            <p class="mt-1 text-xs text-destructive">Select a valid choice. 24 is not one of the available choices.</p>
+            <div class="mt-2 flex items-center justify-between">
+              <Button size="sm" variant="ghost" class="text-xs text-destructive">Remove</Button>
+              <Button size="sm" variant="default">Apply</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>under-actions: search and column controls anchored right; the Filters control sits left</span>
     <span>Filters [n]: badge counts active filters; opens the add-filter menu of not-yet-applied fields</span>
     <span>add-filter flow: pick a field, the popover slides to that field's form in place; ‹ returns to the list; one anchored surface, no modal</span>
     <span>filter chips: one per active filter — click the label to edit (reopens the same form anchored to the chip), ✕ to remove, Clear all resets every filter</span>
     <span>chips strip: tinted, present only when active filters exist</span>
+    <span>errors (HTTP 400, keyed by field): the offending chip turns destructive and its form shows the server message inline — no separate error banner</span>
     <span>bulk-actions strip: transient, appears only when rows are selected</span>
     <span>ObjectsGrid: flush inside the card — no nested border or card-in-card radius</span>
   </footer>
