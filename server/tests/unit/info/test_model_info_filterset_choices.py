@@ -44,96 +44,88 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
         "store",
         "product",
         "disabled",
+        # The "None" prepend and the NullBooleanField "Unknown" placeholder (empty value)
+        # are both dropped; only the real true/false choices remain.
         (
-            {"label": "None"},
-            {"label": "Unknown", "value": ""},
             {"label": "Yes", "value": "true"},
             {"label": "No", "value": "false"},
         ),
-        "",
+        None,
     ),
     (
         "store",
         "product",
         "distributor",
         (
-            {"label": "None"},
             {"label": "Tasty Treats Assoc.", "value": "Tasty Treats Assoc."},
             {"label": "T-Shirt Corp.", "value": "T-Shirt Corp."},
             {"label": "Vibrant Looks Inc.", "value": "Vibrant Looks Inc."},
         ),
-        "",
+        None,
     ),
     (
         "store",
         "product",
         "special_care",
         (
-            {"label": "None"},
             {"label": "Dangerous", "value": None},
             {"label": "Fragile", "value": None},
             {"label": "Perishable", "value": None},
             {"label": "Temperature Controlled", "value": None},
         ),
-        "",
+        None,
     ),
     (
         "store",
         "product",
         "tangible_type",
-        (
-            {"label": "None"},
-            {"label": "Physical", "value": None},
-        ),
-        "",
+        ({"label": "Physical", "value": None},),
+        None,
     ),
     (
         "store",
         "productoption",
         "disabled",
         (
-            {"label": "None"},
             {"label": "True", "value": None},
             {"label": "False", "value": None},
         ),
-        "",
+        None,
     ),
     (
         "store",
         "inventoryrecord",
         "is_added",
+        # "Unknown" (empty value) is dropped along with the "None" prepend.
         (
-            {"label": "None"},
-            {"label": "Unknown", "value": None},
             {"label": "No", "value": None},
             {"label": "Yes", "value": None},
         ),
-        "",
+        None,
     ),
     (
         "store",
         "inventoryrecord",
         "reason",
         (
-            {"label": "None"},
             {"label": "Damaged Inventory", "value": None},
             {"label": "Order Fulfillment", "value": None},
             {"label": "Received Inventory", "value": None},
             {"label": "Returned Inventory", "value": None},
         ),
-        "",
+        None,
     ),
     (
         "store",
         "customerorder",
         "shipping_method",
+        # Both the "None" prepend and the ChoiceFilter "---------" blank placeholder
+        # (empty value) are dropped; only the real choices remain.
         (
-            {"label": "None"},
-            {"label": "---------", "value": None},
             {"label": "Regular", "value": None},
             {"label": "Express", "value": None},
         ),
-        "",
+        None,
     ),
 ]
 
@@ -406,7 +398,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
         result_labels = frozenset(r["label"] for r in response.data["results"])
-        assert result_labels == frozenset({"None", "Tasty Treats Assoc."}), (
+        assert result_labels == frozenset({"Tasty Treats Assoc."}), (
             f"Expected distributor choices filtered to cookie-product distributor only, got: {result_labels}"
         )
 
@@ -424,7 +416,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
         result_labels = frozenset(r["label"] for r in response.data["results"])
-        assert result_labels == frozenset({"None", "T-Shirt Corp.", "Vibrant Looks Inc."}), (
+        assert result_labels == frozenset({"T-Shirt Corp.", "Vibrant Looks Inc."}), (
             f"Expected distributor choices filtered to shirt-product distributor only, got: {result_labels}"
         )
 
@@ -446,7 +438,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
         result_labels = frozenset(r["label"] for r in response.data["results"])
-        assert result_labels == frozenset({"None", "Fragile", "Perishable", "Temperature Controlled"}), (
+        assert result_labels == frozenset({"Fragile", "Perishable", "Temperature Controlled"}), (
             f"Expected special_care choices filtered to cookie-product values only, got: {result_labels}"
         )
 
@@ -467,7 +459,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
         result_labels = frozenset(r["label"] for r in response.data["results"])
-        assert result_labels == frozenset({"None", "Physical"}), (
+        assert result_labels == frozenset({"Physical"}), (
             f"Expected tangible_type choices filtered to cookie-product values only, got: {result_labels}"
         )
 
@@ -475,8 +467,8 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
         """Passing condition=ne filters static choices to those whose value contains 'ne'.
 
         'ne' is a substring of 'new' and 'like_new' but not 'refurbished' or 'used'.
-        The ChoiceFilter empty label ('---------') is excluded since '' does not contain 'ne'.
-        The paginate_queryset 'None' empty label is still prepended.
+        The ChoiceFilter blank placeholder ('---------', empty value) is dropped from the
+        choices metadata, and the empty 'None' choice is no longer prepended by default.
         """
         user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
@@ -490,6 +482,6 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
         result_labels = frozenset(r["label"] for r in response.data["results"])
-        assert result_labels == frozenset({"None", "New", "Like New"}), (
+        assert result_labels == frozenset({"New", "Like New"}), (
             f"Expected only choices containing 'ne', got: {result_labels}"
         )

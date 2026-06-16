@@ -478,7 +478,13 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
             self.choices_permissions = (f"{meta.app_label}.{permission_read_name}_{meta.model_name}",)
             self.choices_queryset_model = model_class
 
-            choices = [(str(value), str(label)) for value, label in filtr.field.widget.choices]
+            # django-filter choice fields carry their own blank placeholder option
+            # (e.g. ("", "---------")) for native <select> rendering. It is unusable as a
+            # combobox item (Reka UI rejects an empty value) and duplicates "no selection",
+            # so drop blank-valued options from the choices metadata.
+            choices = [
+                (str(value), str(label)) for value, label in filtr.field.widget.choices if value not in (None, "")
+            ]
 
             filter_value = self.request.query_params.get(self.choices_field)
             if filter_value:
