@@ -55,6 +55,11 @@ describe("renderOpenApiBundle", () => {
         expect(outputs.has("rest/schemas/Widget.md")).toBe(true);
     });
 
+    it("does not generate standalone response pages", () => {
+        const outputs = buildOutputs();
+        expect(outputs.has("rest/widgets/widgets_retrieve/responses/200.md")).toBe(false);
+    });
+
     it("endpoint page includes the operation description", () => {
         const outputs = buildOutputs();
         const page = outputs.get("rest/widgets/widgets_retrieve.md");
@@ -72,6 +77,14 @@ describe("renderOpenApiBundle", () => {
         const outputs = buildOutputs();
         const page = outputs.get("rest/widgets/widgets_retrieve.md");
         expect(page).toContain("/widgets/{id}");
+    });
+
+    it("endpoint page exposes response ids as inlined members", () => {
+        const outputs = buildOutputs();
+        const page = outputs.get("rest/widgets/widgets_retrieve.md");
+        expect(page).toContain("member_ids");
+        expect(page).toContain("rest:endpoint:GET:/widgets/{id}:response:200");
+        expect(page).toContain("### `200 OK` {#200}");
     });
 
     it("schema page includes a properties table", () => {

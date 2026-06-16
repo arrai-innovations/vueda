@@ -9,6 +9,7 @@ import {
     renderHeading,
     renderList,
     renderTable,
+    slugify,
 } from "./markdown.js";
 
 function memberRows(members) {
@@ -76,6 +77,53 @@ function renderSignatures(node, index, filePath) {
     return lines.join("\n");
 }
 
+function sectionAnchor(text, memberAnchors) {
+    if (!memberAnchors || !memberAnchors.size) {
+        return text;
+    }
+    const autoSlug = slugify(text);
+    if (memberAnchors.has(autoSlug)) {
+        return `${text} {#${autoSlug}-section}`;
+    }
+    return text;
+}
+
+function isInlineMember(node) {
+    return node.kind === "property";
+}
+
+function inlineMemberAnchors(node, index) {
+    const children = index.childrenOf.get(node.id) || [];
+    const inlineChildren = children.filter(isInlineMember);
+    if (!inlineChildren.length) {
+        return { inlineChildren, memberAnchors: undefined };
+    }
+    return {
+        inlineChildren,
+        memberAnchors: new Set(inlineChildren.map((child) => slugify(child.name))),
+    };
+}
+
+function renderPropertyDetail(node, index, filePath) {
+    const lines = [];
+    lines.push(renderHeading(3, `${node.name} {#${slugify(node.name)}}`), "");
+
+    if (node.description) {
+        lines.push(node.description, "");
+    }
+
+    if (node.propertyType?.name) {
+        lines.push(`Type: ${renderTypeRef(node.propertyType, index, filePath)}`, "");
+    }
+
+    const source = formatSource(node.source);
+    if (source) {
+        lines.push(`Source: ${renderCodeInline(source)}`, "");
+    }
+
+    return lines.join("\n");
+}
+
 function renderChildrenSections(node, index, filePath) {
     const children = index.childrenOf.get(node.id) || [];
     if (!children.length) {
@@ -88,6 +136,7 @@ function renderChildrenSections(node, index, filePath) {
         (child) => child.kind === "type" || child.kind === "enum" || child.kind === "interface",
     );
 
+    const { memberAnchors } = inlineMemberAnchors(node, index);
     const lines = [];
 
     const childLink = (child) => {
@@ -107,17 +156,19 @@ function renderChildrenSections(node, index, filePath) {
     };
 
     if (properties.length) {
-        lines.push(renderHeading(2, "Properties"), "");
-        lines.push(renderList(properties.map(childLink)), "");
+        lines.push(renderHeading(2, sectionAnchor("Properties", memberAnchors)), "");
+        for (const property of properties) {
+            lines.push(renderPropertyDetail(property, index, filePath));
+        }
     }
 
     if (methods.length) {
-        lines.push(renderHeading(2, "Methods"), "");
+        lines.push(renderHeading(2, sectionAnchor("Methods", memberAnchors)), "");
         lines.push(renderList(methods.map(childLink)), "");
     }
 
     if (types.length) {
-        lines.push(renderHeading(2, "Types"), "");
+        lines.push(renderHeading(2, sectionAnchor("Types", memberAnchors)), "");
         for (const type of types) {
             lines.push(renderHeading(3, linkToPath(type.name, index.pathMap.get(type.id), filePath)), "");
             if (type.description) {
@@ -171,20 +222,25 @@ function renderTypeMembers(node) {
     return [renderHeading(2, "Properties"), "", table, ""].join("\n");
 }
 
-function renderSource(node) {
+function renderSource(node, memberAnchors) {
     const value = formatSource(node.source);
     if (!value) {
         return "";
     }
-    return [renderHeading(2, "Source"), "", renderCodeInline(value), ""].join("\n");
+    return [renderHeading(2, sectionAnchor("Source", memberAnchors)), "", renderCodeInline(value), ""].join("\n");
 }
 
 export function renderTypeDocNode(node, index, filePath) {
-    const frontmatter = renderFrontmatter({
+    const { inlineChildren, memberAnchors } = inlineMemberAnchors(node, index);
+    const frontmatterData = {
         id: node.id,
         kind: node.kind,
         source: "typedoc",
-    });
+    };
+    if (inlineChildren.length) {
+        frontmatterData.member_ids = inlineChildren.map((child) => child.id);
+    }
+    const frontmatter = renderFrontmatter(frontmatterData);
 
     const lines = [];
     lines.push(frontmatter);
@@ -223,7 +279,7 @@ export function renderTypeDocNode(node, index, filePath) {
         lines.push(childrenBlock);
     }
 
-    const sourceBlock = renderSource(node);
+    const sourceBlock = renderSource(node, memberAnchors);
     if (sourceBlock) {
         lines.push(sourceBlock);
     }
@@ -238,6 +294,9 @@ export function renderTypeDocBundle(bundle) {
     index.pathMap = pathMap;
     for (const node of bundle.nodes) {
         const filePath = pathMap.get(node.id);
+        if (filePath.includes("#")) {
+            continue;
+        }
         const { content } = renderTypeDocNode(node, index, filePath);
         outputs.set(filePath, content);
     }

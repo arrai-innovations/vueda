@@ -59,6 +59,13 @@ const typedocPayload = {
                     signatures: [{ id: 3, name: "sum", parameters: [], type: { type: "intrinsic", name: "number" } }],
                     sources: [{ fileName: "client/lib/math.js", line: 1 }],
                 },
+                {
+                    id: 4,
+                    name: "total",
+                    kind: 1024,
+                    type: { type: "intrinsic", name: "number" },
+                    sources: [{ fileName: "client/lib/math.js", line: 2 }],
+                },
             ],
         },
     ],
@@ -183,6 +190,14 @@ describe("buildTypedocPathMap", () => {
         const fnEntry = [...pathMap.entries()].find(([, v]) => v === "js/math/functions/sum.md");
         expect(fnEntry).toBeDefined();
     });
+
+    it("maps a property id to an anchor on its parent page", () => {
+        const bundle = new TypeDocNormalizer().normalize(typedocPayload);
+        const index = buildCanonicalIndex(bundle);
+        const pathMap = buildTypedocPathMap(bundle, index);
+        const propEntry = [...pathMap.entries()].find(([, v]) => v === "js/math.md#total");
+        expect(propEntry).toBeDefined();
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -202,6 +217,15 @@ describe("buildOpenApiPathMap", () => {
         const index = buildCanonicalIndex(bundle);
         const pathMap = buildOpenApiPathMap(bundle, index);
         expect(pathMap.get("rest:schema:Widget")).toBe("rest/schemas/Widget.md");
+    });
+
+    it("maps a response id to an anchor on its endpoint page", () => {
+        const bundle = new OpenApiNormalizer().normalize(openapiPayload);
+        const index = buildCanonicalIndex(bundle);
+        const pathMap = buildOpenApiPathMap(bundle, index);
+        expect(pathMap.get("rest:endpoint:GET:/widgets/{id}:response:200")).toBe(
+            "rest/widgets/widgets_retrieve.md#200",
+        );
     });
 });
 

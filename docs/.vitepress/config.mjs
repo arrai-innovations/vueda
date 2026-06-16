@@ -113,8 +113,19 @@ const pathForFile = (filePath, root, urlPrefix) => {
 };
 
 const memberNameFromId = (memberId) => {
+    const restResponseMatch = memberId.match(/^rest:endpoint:.*:response:([^:]+)$/);
+    if (restResponseMatch) {
+        return restResponseMatch[1];
+    }
+    if (memberId.startsWith("theme-key:") && !memberId.includes(".")) {
+        return "";
+    }
     const qualName = memberId.replace(/^[^:]+:[^:]+:/, "");
-    return qualName.includes(".") ? qualName.split(".").pop() : qualName;
+    const hashName = qualName.includes("#") ? qualName.split("#").pop() : qualName;
+    if (hashName.includes(".")) {
+        return hashName.split(".").pop();
+    }
+    return hashName;
 };
 
 const buildApiIndex = () => {

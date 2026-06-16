@@ -32,11 +32,22 @@ function typedocKindSegment(kind) {
     }
 }
 
+function typedocAnchorForNode(node) {
+    return slugify(node.name);
+}
+
+function stripHash(value) {
+    return value.split("#", 1)[0];
+}
+
 export function typedocPathForNode(node, index) {
     if (node.kind === "module" || node.kind === "namespace") {
         return typedocModulePath(node);
     }
     const parent = index.parentOf.get(node.id);
+    if (node.kind === "property" && parent) {
+        return `${stripHash(typedocPathForNode(parent, index))}#${typedocAnchorForNode(node)}`;
+    }
     if (parent?.kind === "class") {
         const moduleAncestor = index.parentOf.get(parent.id) || parent;
         const moduleFile = typedocModulePath(moduleAncestor);
@@ -125,6 +136,10 @@ function responseCodeFromId(node) {
     return match ? match[1] : slugify(node.name || "response");
 }
 
+export function openapiResponseAnchorForNode(node) {
+    return slugify(responseCodeFromId(node));
+}
+
 export function openapiPathForNode(node, index) {
     if (node.kind === "schema" || node.kind === "enum") {
         return `rest/schemas/${slugify(node.name)}.md`;
@@ -135,8 +150,7 @@ export function openapiPathForNode(node, index) {
     if (node.kind === "response") {
         const parent = index.parentOf.get(node.id);
         if (parent && parent.kind === "endpoint") {
-            const base = openapiPathForNode(parent, index).replace(/\.md$/, "");
-            return `${base}/responses/${slugify(responseCodeFromId(node))}.md`;
+            return `${openapiPathForNode(parent, index)}#${openapiResponseAnchorForNode(node)}`;
         }
     }
     return `rest/${slugify(node.name)}.md`;

@@ -582,20 +582,27 @@ describe("renderTypeDocBundle with property nodes", () => {
         return renderTypeDocBundle(bundle);
     }
 
-    it("property page renders a Type section", () => {
+    it("does not emit a standalone property page", () => {
         const outputs = buildOutputsWithProperty();
-        const page = outputs.get("js/forms/properties/clearErrors.md");
-        expect(page).toBeDefined();
-        expect(page).toContain("## Type");
-        expect(page).toContain("`boolean`");
+        expect(outputs.has("js/forms/properties/clearErrors.md")).toBe(false);
     });
 
-    it("Type section appears after Overview section", () => {
+    it("module page frontmatter exposes the property id as an inlined member", () => {
         const outputs = buildOutputsWithProperty();
-        const page = outputs.get("js/forms/properties/clearErrors.md");
-        const overviewPos = page.indexOf("## Overview");
-        const typePos = page.indexOf("## Type");
-        expect(overviewPos).toBeGreaterThan(-1);
-        expect(typePos).toBeGreaterThan(overviewPos);
+        const page = outputs.get("js/forms.md");
+        expect(page).toBeDefined();
+        expect(page).toContain("member_ids");
+        expect(page).toContain("js:property:vueda/forms#clearErrors");
+    });
+
+    it("module page renders property details under a stable anchor", () => {
+        const outputs = buildOutputsWithProperty();
+        const page = outputs.get("js/forms.md");
+        expect(page).toContain("### clearErrors {#clearErrors}");
+        expect(page).toContain("Clears all form errors.");
+        expect(page).toContain("Type: `boolean`");
+        const headingPos = page.indexOf("### clearErrors");
+        const typePos = page.indexOf("Type: `boolean`");
+        expect(typePos).toBeGreaterThan(headingPos);
     });
 });
