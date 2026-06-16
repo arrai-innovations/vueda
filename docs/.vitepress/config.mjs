@@ -36,7 +36,6 @@ const docsTimingReportPath = process.env.VUEDA_DOCS_TIMING_FILE
     ? path.resolve(process.cwd(), process.env.VUEDA_DOCS_TIMING_FILE)
     : path.join(docsRoot, ".vitepress", "cache", "build-timing.json");
 const docsBuildConcurrency = Number(process.env.VUEDA_DOCS_BUILD_CONCURRENCY || "");
-const apiSidebarMode = process.env.VUEDA_DOCS_API_SIDEBAR || "full";
 const docsTiming = docsTimingEnabled
     ? {
           startedAt: new Date().toISOString(),
@@ -732,27 +731,11 @@ const buildSectionSidebar = (sectionDir, sectionTitle) => {
     ];
 };
 
-const buildApiSubItems = (dirPath) => {
-    if (!fs.existsSync(dirPath)) {
-        return [];
-    }
-    return fs
-        .readdirSync(dirPath, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && entry.name.endsWith(".md") && entry.name !== "index.md")
-        .map((entry) => {
-            const filePath = path.join(dirPath, entry.name);
-            const { title, sidebarOrder } = readDocMeta(filePath);
-            return { text: title, link: toDocRoute(filePath), sidebarOrder };
-        })
-        .sort(sortDocs)
-        .map(({ text, link }) => ({ text, link }));
-};
-
 const buildApiSidebar = () => {
     if (!fs.existsSync(apiRoot)) {
         return [];
     }
-    setTimingMetric("apiSidebar.mode", apiSidebarMode);
+    setTimingMetric("apiSidebar.mode", "compact");
 
     const languageDirs = fs
         .readdirSync(apiRoot, { withFileTypes: true })
@@ -761,84 +744,24 @@ const buildApiSidebar = () => {
         .sort((a, b) => a.localeCompare(b));
     setTimingMetric("apiSidebar.languages", languageDirs.length);
 
-    if (apiSidebarMode === "compact") {
-        return [
-            {
-                text: "Reference",
-                items: [{ text: "Overview", link: "/reference/" }],
-            },
-            {
-                text: "API",
-                collapsed: false,
-                items: languageDirs.map((languageDir) => {
-                    const languageRoot = path.join(apiRoot, languageDir);
-                    const languageIndexPath = path.join(languageRoot, "index.md");
-                    const text = fs.existsSync(languageIndexPath) ? readDocMeta(languageIndexPath).title : languageDir;
-                    return {
-                        text,
-                        link: normalizeDocRoute(`/reference/api/${languageDir}/`),
-                    };
-                }),
-            },
-        ];
-    }
-
-    const languageGroups = languageDirs.map((languageDir) => {
-        const languageRoot = path.join(apiRoot, languageDir);
-        const languageIndexPath = path.join(languageRoot, "index.md");
-        const languageTitle = fs.existsSync(languageIndexPath) ? readDocMeta(languageIndexPath).title : languageDir;
-
-        const subdirectoryItems = fs
-            .readdirSync(languageRoot, { withFileTypes: true })
-            .filter((entry) => entry.isDirectory())
-            .filter((entry) => !fs.existsSync(path.join(languageRoot, `${entry.name}.md`)))
-            .map((entry) => entry.name)
-            .sort((a, b) => a.localeCompare(b))
-            .map((subDirName) => {
-                const subDirPath = path.join(languageRoot, subDirName);
-                const subDirIndexPath = path.join(subDirPath, "index.md");
-                const text = fs.existsSync(subDirIndexPath) ? readDocMeta(subDirIndexPath).title : subDirName;
-                const link = normalizeDocRoute(`/reference/api/${languageDir}/${subDirName}/`);
-                const items = buildApiSubItems(subDirPath);
-                return items.length ? { text, link, collapsed: false, items } : { text, link };
-            });
-
-        const fileItems = fs
-            .readdirSync(languageRoot, { withFileTypes: true })
-            .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-            .filter((entry) => entry.name !== "index.md")
-            .map((entry) => {
-                const filePath = path.join(languageRoot, entry.name);
-                const stem = entry.name.slice(0, -".md".length);
-                const { title, sidebarOrder } = readDocMeta(filePath);
-                const link = toDocRoute(filePath);
-                const siblingDir = path.join(languageRoot, stem);
-                if (fs.existsSync(siblingDir) && fs.statSync(siblingDir).isDirectory()) {
-                    const items = buildApiSubItems(siblingDir);
-                    if (items.length) {
-                        return { text: title, link, collapsed: false, items, sidebarOrder };
-                    }
-                }
-                return { text: title, link, sidebarOrder };
-            })
-            .sort(sortDocs)
-            .map(({ text, link, collapsed, items }) =>
-                items !== undefined ? { text, link, collapsed, items } : { text, link },
-            );
-
-        const overviewLink = normalizeDocRoute(`/reference/api/${languageDir}/`);
-        return {
-            text: languageTitle,
-            collapsed: true,
-            items: [{ text: "Overview", link: overviewLink }, ...subdirectoryItems, ...fileItems],
-        };
-    });
     return [
         {
             text: "Reference",
             items: [{ text: "Overview", link: "/reference/" }],
         },
-        ...languageGroups,
+        {
+            text: "API",
+            collapsed: false,
+            items: languageDirs.map((languageDir) => {
+                const languageRoot = path.join(apiRoot, languageDir);
+                const languageIndexPath = path.join(languageRoot, "index.md");
+                const text = fs.existsSync(languageIndexPath) ? readDocMeta(languageIndexPath).title : languageDir;
+                return {
+                    text,
+                    link: normalizeDocRoute(`/reference/api/${languageDir}/`),
+                };
+            }),
+        },
     ];
 };
 
