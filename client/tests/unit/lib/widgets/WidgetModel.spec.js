@@ -4,7 +4,7 @@ import { defineComponent, h, reactive, ref } from "vue";
 
 const ComboboxStub = defineComponent({
     name: "combobox-stub",
-    props: ["modelValue", "options", "multiple", "optionLabel", "optionValue"],
+    props: ["modelValue", "options", "multiple", "optionLabel", "optionValue", "app", "model"],
     emits: ["update:model-value"],
     setup(props, { emit }) {
         return () =>
@@ -81,6 +81,16 @@ describe("lib/widgets/WidgetModel.vue", () => {
     scopedIt("passes multiple=true for type multiSelect", () => {
         const wrapper = mount(WidgetModel, { props: { ...BASE_PROPS, type: "multiSelect" } });
         expect(wrapper.getComponent(ComboboxStub).props("multiple")).toBe(true);
+    });
+
+    scopedIt("does not forward relation app/model attrs to the child combobox", () => {
+        const wrapper = mount(WidgetModel, {
+            props: { ...BASE_PROPS, type: "select" },
+            attrs: { app: "catalog", model: "widgetcategory" },
+        });
+        const cmp = wrapper.getComponent(ComboboxStub);
+        expect(cmp.props("app")).toBeUndefined();
+        expect(cmp.props("model")).toBeUndefined();
     });
 
     scopedIt("does not pass multiple for type select", () => {

@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Model-backed filter choices render correctly (WidgetModel)**:
+    - `WidgetModel` no longer forwards relation `app` and `model` metadata to its internal combobox when rendering fetched choice options. Forwarding those attrs accidentally switched the combobox into direct API-search mode, so model-backed filter widgets could request results successfully but render empty option labels.
+      _No action is required for default `ViewList` filters._
 - **Choice fetch URLs no longer 301-redirect (storeModelChoices)**:
     - `model_info_choices` and `model_info_filter_choices` fetches now include the trailing slash before the query string (`.../{field}/?ps=200`). Previously the missing slash made Django's `APPEND_SLASH` answer every choice and filter-choice fetch with a 301 redirect, doubling the round-trips.
       _No action is required. If you asserted on the exact request URL (for example, in a mock or proxy), add the trailing slash before `?`._
