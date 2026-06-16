@@ -4,6 +4,7 @@ import Button from "@vueda/controls/button/Button.vue";
 import Popover from "@vueda/shell/popover/Popover.vue";
 import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
+import { keepOpenOverNestedPopper } from "@vueda/shell/popover/keepOpenOverNestedPopper.js";
 import "@vueda/theme/vueda-tailwind/form/FilterMenu.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -110,7 +111,7 @@ const slots = useSlots();
                 </Button>
             </PopoverTrigger>
         </Teleport>
-        <PopoverContent size="sm" data-qa="filter-menu-content">
+        <PopoverContent size="sm" data-qa="filter-menu-content" @interact-outside="keepOpenOverNestedPopper">
             <template v-if="!pickedField">
                 <div :class="theme('eyebrow')">Add filter</div>
                 <button

@@ -3,6 +3,7 @@ import FilterFieldForm from "@vueda/components/FilterFieldForm.vue";
 import Popover from "@vueda/shell/popover/Popover.vue";
 import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
+import { keepOpenOverNestedPopper } from "@vueda/shell/popover/keepOpenOverNestedPopper.js";
 import "@vueda/theme/vueda-tailwind/form/FilterChip.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useModelChoices } from "@vueda/use/useModelChoices.js";
@@ -160,7 +161,7 @@ const slots = useSlots();
                 <span v-else aria-hidden="true">&times;</span>
             </button>
         </span>
-        <PopoverContent :class="theme('popover')" size="sm">
+        <PopoverContent :class="theme('popover')" size="sm" @interact-outside="keepOpenOverNestedPopper">
             <FilterFieldForm
                 v-model="addedFilters"
                 :filter-name="filter.field"

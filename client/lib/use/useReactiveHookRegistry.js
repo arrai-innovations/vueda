@@ -4,7 +4,7 @@
  */
 import { getFakePk, keyDiff } from "@arrai-innovations/reactive-helpers";
 import identity from "lodash-es/identity.js";
-import { computed, effectScope, nextTick, reactive } from "vue";
+import { computed, effectScope, nextTick, onScopeDispose, reactive } from "vue";
 
 /**
  * @callback BoundRegisterHook
@@ -161,13 +161,29 @@ export function useReactiveHookRegistry(aggregatorFn) {
     const effectScopes = {};
     const mainEffectScope = effectScope();
     let pendingUpdate = false;
+    // A register/unregister fired from a field's onUnmounted schedules its update
+    // on nextTick; by then the owning component (and this scope) may already be
+    // torn down. Track disposal so the deferred update does not call run() on a
+    // stopped scope (which Vue warns about as "cannot run an inactive effect scope").
+    let stopped = false;
+    mainEffectScope.run(() => {
+        onScopeDispose(() => {
+            stopped = true;
+        });
+    });
 
     const scheduleUpdate = () => {
+        if (stopped) {
+            return;
+        }
         if (!pendingUpdate) {
             pendingUpdate = true;
             // noinspection JSIgnoredPromiseFromCall
             nextTick(() => {
                 pendingUpdate = false;
+                if (stopped) {
+                    return;
+                }
                 updateAggregates(
                     groupToIds,
                     registryFns,
