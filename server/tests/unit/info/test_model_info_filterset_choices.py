@@ -20,13 +20,12 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
         "cart",
         "product_quantity",
         (
-            {"label": "Nothing"},
             {"label": "0", "value": "0"},
             {"label": "10", "value": "10"},
             {"label": "4", "value": "4"},
             {"label": "6", "value": "6"},
         ),
-        "test",
+        None,
     ),
     (
         "store",

@@ -362,19 +362,6 @@ def get_defaults(env: EnvLike):
             "CORS_PREFLIGHT_MAX_AGE": 86400,  # 24 hours
             "CORS_ALLOW_CREDENTIALS": True,
         },
-        **{  # django-filter settings
-            # These are not settings django-filter itself reads. They are the default
-            # label and value for the empty/placeholder choice the filterset-choices
-            # endpoint prepends to a filter's options. The empty choice is the native
-            # <select> "no filter" placeholder; the combobox-based filter UI expresses
-            # "no selection" with its own placeholder, so we default the label to None
-            # (do not prepend). A project rendering select-style filters opts back in
-            # per filter (set `empty_label` on the filter) or globally (set this label
-            # to a string). EMPTY_CHOICE_VALUE is the value used when a filter opts in
-            # without supplying its own `empty_value`.
-            "EMPTY_CHOICE_LABEL": None,
-            "EMPTY_CHOICE_VALUE": "",
-        },
         **{  # django-simple-history settings
             "SIMPLE_HISTORY_FILEFIELD_TO_CHARFIELD": True,
         },
