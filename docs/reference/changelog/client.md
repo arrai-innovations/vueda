@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Choice fetch URLs no longer 301-redirect (storeModelChoices)**:
+    - `model_info_choices` and `model_info_filter_choices` fetches now include the trailing slash before the query string (`.../{field}/?ps=200`). Previously the missing slash made Django's `APPEND_SLASH` answer every choice and filter-choice fetch with a 301 redirect, doubling the round-trips.
+      _No action is required. If you asserted on the exact request URL (for example, in a mock or proxy), add the trailing slash before `?`._
 - **List filters restructured: add-filter menu + chips (FilterGroup, ViewList; new FilterMenu / FilterChip / FilterFieldForm; FilterComponent removed)**:
     - The list view no longer renders one persistent dashed "+ Field" button per filterable. Instead, a single `Filters` control with an active-filter count sits in the under-actions toolbar and opens an add-filter menu listing the fields not yet applied; picking one drills the popover in place to that field's form. Active filters render as removable pill chips in a tinted strip that appears only when filters are present: click a chip to edit it (the same form, anchored to the chip), the dismiss control to remove it, or `Clear all` to reset every filter.
     - `FilterComponent` and its theme entry (`FilterComponent`) have been removed. Its per-field form controller now lives in the new `FilterFieldForm`, the active-filter pill in the new `FilterChip`, and the add-filter trigger/menu in the new `FilterMenu`. New theme entries: `FilterFieldForm`, `FilterChip`, `FilterMenu`. `FilterGroup` is now an orchestrator (it owns the active-filter list, mirrors it to the query params, restores active filters from the URL, and renders the menu + chips).
