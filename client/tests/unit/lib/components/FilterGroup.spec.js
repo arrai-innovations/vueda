@@ -2,46 +2,51 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { config, mount } from "@vue/test-utils";
 import { computed, defineComponent, h, reactive, ref, toRef } from "vue";
 
-const FilterComponentStub = defineComponent({
-    name: "FilterComponentStub",
-    props: ["filterName"],
+const FilterMenuStub = defineComponent({
+    name: "FilterMenuStub",
+    props: ["filterables", "filterableDetails", "query", "triggerTarget"],
     emits: ["hide-filter-form"],
-    setup(props, { slots }) {
+    setup(props) {
+        return () => h("div", { "data-qa": "filter-menu", "data-count": props.filterables?.length ?? 0 });
+    },
+});
+
+const FilterChipStub = defineComponent({
+    name: "FilterChipStub",
+    props: ["filter", "filterDetails", "query", "errored"],
+    emits: ["hide-filter-form"],
+    setup(props) {
         return () =>
-            h(
-                "div",
-                { "data-qa": "filter-component", "data-name": props.filterName },
-                slots.default ? slots.default() : null,
-            );
+            h("div", {
+                "data-qa": "filter-chip",
+                "data-field": props.filter?.field,
+                "data-errored": props.errored ? "true" : undefined,
+            });
     },
 });
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["variant", "name"],
+    props: ["variant"],
+    inheritAttrs: false,
     emits: ["click"],
-    setup(props, { emit, slots }) {
+    setup(props, { emit, slots, attrs }) {
         return () =>
-            h(
-                "button",
-                {
-                    "data-qa": "button",
-                    "data-variant": props.variant,
-                    onClick: () => emit("click"),
-                },
-                slots.default?.(),
-            );
+            h("button", { ...attrs, "data-variant": props.variant, onClick: () => emit("click") }, slots.default?.());
     },
 });
 
-const stopFns = [];
-const useSlotNameResolver = vi.fn(() => {
-    const stop = vi.fn();
-    stopFns.push(stop);
-    return { name: "slot", stop };
+const ErrorDisplayStub = defineComponent({
+    name: "ErrorDisplayStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "error-display" }, slots.default ? slots.default() : null);
+    },
 });
+
 const mockedUseFilter = vi.fn((props) =>
     reactive({
+        app: toRef(props, "app"),
+        model: toRef(props, "model"),
         filterables: computed(() =>
             (props.filterables ?? []).filter((f) => {
                 const detail = props.filterableDetails?.[f];
@@ -56,9 +61,10 @@ const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 
 const route = reactive({ query: {} });
 
-vi.mock("@vueda/components/FilterComponent.vue", () => ({ default: FilterComponentStub }));
+vi.mock("@vueda/components/FilterMenu.vue", () => ({ default: FilterMenuStub }));
+vi.mock("@vueda/components/FilterChip.vue", () => ({ default: FilterChipStub }));
+vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/use/useSlotNameResolver.js", () => ({ useSlotNameResolver }));
 vi.mock("@vueda/use/useFilter.js", () => ({ useFilter: mockedUseFilter }));
 vi.mock("@vueda/use/useTheme.js", async () => {
     const actual = await vi.importActual("@vueda/use/useTheme.js");
@@ -68,14 +74,29 @@ vi.mock("vue-router", () => ({ useRoute: () => route }));
 
 let FilterGroup, vue;
 
+function mountGroup(props = {}) {
+    const params = ref(props.modelValue ?? {});
+    const wrapper = mount(FilterGroup, {
+        props: {
+            app: "a",
+            model: "m",
+            view: "list",
+            filterables: ["foo"],
+            filterableDetails: { foo: { typeFilter: "CharField" } },
+            modelValue: params.value,
+            "onUpdate:modelValue": (v) => (params.value = v),
+            ...props,
+        },
+    });
+    return { wrapper, params };
+}
+
 describe("lib/components/FilterGroup.vue", () => {
     let previousStubs;
 
     beforeEach(async () => {
         vue = await import("vue");
         FilterGroup = (await import("@vueda/components/FilterGroup.vue")).default;
-        useSlotNameResolver.mockClear();
-        stopFns.length = 0;
         route.query = {};
         previousStubs = config.global.stubs;
         config.global.stubs = { ...previousStubs, "router-link": true };
@@ -87,132 +108,70 @@ describe("lib/components/FilterGroup.vue", () => {
         vi.clearAllMocks();
     });
 
-    scopedIt("renders filter components only for detailed filters", () => {
-        const params = ref({});
-        const wrapper = mount(FilterGroup, {
-            props: {
-                app: "a",
-                model: "m",
-                view: "v",
-                filterables: ["foo", "bar"],
-                filterableDetails: { foo: { typeFilter: "CharField" }, bar: undefined },
-                filterFormsValues: {},
-                modelValue: params.value,
-                "onUpdate:modelValue": (v) => (params.value = v),
-            },
+    scopedIt("renders the add-filter menu with the valid filterables", () => {
+        const { wrapper } = mountGroup({
+            filterables: ["foo", "bar"],
+            filterableDetails: { foo: { typeFilter: "CharField" }, bar: undefined },
         });
-
-        expect(useSlotNameResolver).toHaveBeenCalledTimes(1);
-        expect(useSlotNameResolver).toHaveBeenCalledWith(
-            ["filter-component(foo)", "filter-component"],
-            expect.any(Object),
-        );
-        const comps = wrapper.findAll('[data-qa="filter-component"]');
-        expect(comps).toHaveLength(1);
-        expect(comps[0].attributes("data-name")).toBe("foo");
-    });
-
-    scopedIt("emits query-change when route query changes", async () => {
-        route.query = { q: "1" };
-        const params = ref({});
-        const wrapper = mount(FilterGroup, {
-            props: {
-                app: "a",
-                model: "m",
-                view: "v",
-                filterables: [],
-                filterableDetails: {},
-                modelValue: params.value,
-                "onUpdate:modelValue": (v) => (params.value = v),
-            },
-        });
-        expect(wrapper.emitted()["query-change"][0]).toEqual([{ q: "1" }]);
-
-        route.query = { q: "2" };
-        await vue.nextTick();
-        expect(wrapper.emitted()["query-change"][1]).toEqual([{ q: "2" }]);
-
-        route.query = {};
-        await vue.nextTick();
-        expect(wrapper.emitted()["query-change"].length).toBe(2);
+        const menu = wrapper.get('[data-qa="filter-menu"]');
+        // Only foo has a typeFilter, so bar is filtered out of the valid filterables.
+        expect(menu.attributes("data-count")).toBe("1");
     });
 
     scopedIt("updates params and emits filter-change on addedFilters update", async () => {
-        const params = ref({});
-        const wrapper = mount(FilterGroup, {
-            props: {
-                app: "a",
-                model: "m",
-                view: "v",
-                filterables: ["foo"],
-                filterableDetails: { foo: {} },
-                modelValue: params.value,
-                "onUpdate:modelValue": (v) => (params.value = v),
-            },
-        });
-
-        wrapper.vm.addedFilters.push({ param: "foo", value: "bar" });
+        const { wrapper, params } = mountGroup();
+        wrapper.vm.addedFilters.push({ field: "foo", param: "foo", value: "bar" });
         await vue.nextTick();
 
         expect(params.value).toEqual({ foo: "bar" });
-        expect(wrapper.emitted()["filter-change"][0][0]).toEqual([{ param: "foo", value: "bar" }]);
+        expect(wrapper.emitted()["filter-change"][0][0]).toEqual([{ field: "foo", param: "foo", value: "bar" }]);
 
         wrapper.vm.addedFilters[0] = {
+            field: "foo",
             param: ["foo_lower", "foo_upper"],
             value: { lower: 1, upper: 2 },
             isValueRawObject: false,
         };
         await vue.nextTick();
-
         expect(params.value).toEqual({ foo_lower: 1, foo_upper: 2 });
     });
 
-    scopedIt("manages resolvers when filters list changes", async () => {
-        const params = ref({});
-        const wrapper = mount(FilterGroup, {
-            props: {
-                app: "a",
-                model: "m",
-                view: "v",
-                filterables: ["foo"],
-                filterableDetails: { foo: { typeFilter: "CharField" }, bar: { typeFilter: "IntegerField" } },
-                modelValue: params.value,
-                "onUpdate:modelValue": (v) => (params.value = v),
-            },
-        });
-
-        const stopFoo = stopFns[0];
-
-        await wrapper.setProps({ filterables: ["foo", "bar"] });
+    scopedIt("renders a chip per active filter", async () => {
+        const { wrapper } = mountGroup();
+        wrapper.vm.addedFilters.push({ field: "foo", param: "foo", value: "bar" });
         await vue.nextTick();
-        expect(useSlotNameResolver).toHaveBeenCalledTimes(2);
-
-        await wrapper.setProps({ filterables: ["bar"] });
-        await vue.nextTick();
-        expect(stopFoo).toHaveBeenCalled();
+        const chips = wrapper.findAll('[data-qa="filter-chip"]');
+        expect(chips).toHaveLength(1);
+        expect(chips[0].attributes("data-field")).toBe("foo");
     });
 
-    scopedIt("clears filters via button", async () => {
-        const params = ref({});
-        const wrapper = mount(FilterGroup, {
-            props: {
-                app: "a",
-                model: "m",
-                view: "v",
-                filterables: ["foo"],
-                filterableDetails: { foo: {} },
-                modelValue: params.value,
-                "onUpdate:modelValue": (v) => (params.value = v),
-            },
-        });
-
-        wrapper.vm.addedFilters.push({ param: "foo", value: "bar" });
+    scopedIt("restores active filters from the URL query on mount", async () => {
+        route.query = { foo: "bar" };
+        const { wrapper } = mountGroup();
         await vue.nextTick();
-        expect(wrapper.get('[data-qa="button"]').attributes("data-variant")).toBe("outline");
+        expect(wrapper.vm.addedFilters).toHaveLength(1);
+        expect(wrapper.vm.addedFilters[0]).toMatchObject({ field: "foo", param: "foo", value: "bar", range: false });
+        expect(wrapper.findAll('[data-qa="filter-chip"]')).toHaveLength(1);
+    });
 
-        await wrapper.get('[data-qa="button"]').trigger("click");
+    scopedIt("emits query-change when the route query changes", async () => {
+        route.query = { q: "1" };
+        const { wrapper } = mountGroup({ filterables: [], filterableDetails: {} });
+        expect(wrapper.emitted()["query-change"][0]).toEqual([{ q: "1" }]);
+
+        route.query = { q: "2" };
+        await vue.nextTick();
+        expect(wrapper.emitted()["query-change"][1]).toEqual([{ q: "2" }]);
+    });
+
+    scopedIt("clears all filters via the Clear all button", async () => {
+        const { wrapper } = mountGroup();
+        wrapper.vm.addedFilters.push({ field: "foo", param: "foo", value: "bar" });
+        await vue.nextTick();
+        const clear = wrapper.get('[data-qa="filter-clear"]');
+        await clear.trigger("click");
         await vue.nextTick();
         expect(wrapper.vm.addedFilters.length).toBe(0);
-        expect(wrapper.get('[data-qa="button"]').attributes("data-variant")).toBe("secondary");
+        expect(wrapper.findAll('[data-qa="filter-chip"]')).toHaveLength(0);
     });
 });

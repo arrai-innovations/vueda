@@ -29,20 +29,13 @@ patchTheme({
         targetlessActionButton: {
             class: [],
         },
-        /** Filter strip beneath the under-actions row. Applied to the {@api vue:component:StickyBar} root, so it does not paint its own surface, padding, or border: those live once on {@api theme-key:StickyBar.inner} (which keeps the `px-5 py-[10px]` rhythm shared with {@api theme-key:PageTitle.titleContainer}). It only retints the strip a tier below the card-toned under-actions row by setting the `--vueda-sticky-bar-surface` custom property the bar's inner surface reads, avoiding a nested padded box. */
-        filterGroupBar: {
-            class: ["[--vueda-sticky-bar-surface:color-mix(in_oklab,var(--muted)_25%,var(--card))]", "text-foreground"],
+        /** Left cluster of the under-actions bar: the add-filter trigger (teleported in from {@api theme-key:FilterGroup}) and the mobile sort affordance, opposite the right-aligned {@api theme-key:ViewList.listControlBar}. */
+        filterControls: {
+            class: ["flex items-center gap-2"],
         },
-        /** "Filters" eyebrow label at the left of the filter strip. Uses the 11 px / 600 / `0.06em` uppercase recipe against `--muted-foreground` so it reads as a section eyebrow, not a heading. */
-        filterGroupBarEyebrow: {
-            class: [
-                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
-                "text-muted-foreground leading-none",
-            ],
-        },
-        /** Right-aligned wrapper around the mobile sort component. Pushes the sort trigger to the end of the filter strip so it sits opposite the eyebrow on narrow viewports where the desktop column-header sort affordances are unavailable. */
-        sortComponentDiv: {
-            class: ["flex flex-row justify-end ml-auto"],
+        /** Teleport landing zone for the FilterGroup add-filter trigger. `contents` so the teleported trigger participates directly in the {@api theme-key:ViewList.filterControls} flex row rather than nesting in an extra box. */
+        filterTriggerZone: {
+            class: ["contents"],
         },
         /** Class forwarded to the embedded {@api theme-key:ObjectsGrid.root}. Suppresses the grid's own card border and radius so the ViewList strips above and below own the visible chrome; the grid renders as a flush slab between the filter strip and the pagination strip. */
         objectsGrid: {

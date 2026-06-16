@@ -11,7 +11,7 @@ import { computed, inject, useSlots } from "vue";
  * Renders the body of a filter popover for a single filterable field. It
  * displays a heading, the appropriate field widget via `FieldRenderer`, and an
  * Apply button that submits the filter value back to the parent
- * `FilterComponent`.
+ * `FilterFieldForm`.
  */
 defineOptions({});
 

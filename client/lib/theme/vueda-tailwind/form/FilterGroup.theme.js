@@ -9,21 +9,37 @@ import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * Filter toolbar for model list views. Arranges active filter controls,
-     * message content, and the wrapper that hosts each `FilterComponent`.
+     * Filter orchestrator for model list views. Renders the toolbar add-filter
+     * menu (whose trigger teleports into the under-actions bar) and, when filters
+     * are active, the chips strip plus a Clear all control. Owns the active-filter
+     * list and keeps it in sync with the URL query.
      */
     FilterGroup: {
-        /** Toolbar root. */
+        /** Root wrapper. `contents` so it adds no box of its own: the teleported menu trigger and the chips strip flow as direct children of the list layout. */
         root: {
-            class: "flex-col ",
+            class: ["contents"],
         },
-        /** Wrapping row for active filter controls. */
-        filtersWrapper: {
-            class: "flex flex-wrap gap-1 mt-1",
+        /** Active-filter chips strip. Muted tint a tier below the card-toned toolbar; only rendered when filters are active. Shares the `px-5 py-[10px]` page-chrome rhythm and carries a bottom hairline. */
+        strip: {
+            class: [
+                "w-full flex flex-wrap items-center gap-2 px-5 py-[10px]",
+                "border-b bg-[color-mix(in_oklab,var(--muted)_25%,var(--card))] text-foreground",
+            ],
         },
-        /** Message area above or near the filter controls. */
+        /** "Filters" eyebrow at the left of the chips strip. 11 px / 600 / 0.06em uppercase against `--muted-foreground`. */
+        eyebrow: {
+            class: [
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "text-muted-foreground leading-none",
+            ],
+        },
+        /** Clear-all control, pushed to the right edge of the chips strip. */
+        clear: {
+            class: ["ml-auto text-xs"],
+        },
+        /** Error message area, rendered only when a list filter error is present (so it reserves no margin when empty). */
         messageWrapper: {
-            class: "flex my-2",
+            class: ["w-full flex my-2"],
         },
     },
 });

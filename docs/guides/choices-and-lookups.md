@@ -119,7 +119,7 @@ The composable does not fetch when the component is inactive (unmounted or deact
 
 ### Filter UI lazy loading
 
-The default filter UI (`FilterComponent`) fetches filter choices lazily; either when the filter dropdown is opened or when the current query already includes a value for that filter. This means filter choices are not loaded on initial page load unless the URL contains filter parameters. Expecting eager availability of filter choices (for example, reading them synchronously after component mount) will produce empty option lists until user interaction triggers the fetch.
+The default filter UI (`FilterFieldForm`, rendered by the add-filter menu and the chip edit popover) fetches filter choices lazily; either when the filter form is opened or when the current query already includes a value for that filter. This means filter choices are not loaded on initial page load unless the URL contains filter parameters. Expecting eager availability of filter choices (for example, reading them synchronously after component mount) will produce empty option lists until user interaction triggers the fetch.
 
 ## Verification Checklist
 
@@ -167,4 +167,5 @@ With choice loading wired, verify these behaviors:
     - {@api js:module:@arrai-innovations/vueda/use/useModelChoices}
     - {@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices}
 - Vue.js Components:
-    - {@api vue:component:FilterComponent}
+    - {@api vue:component:FilterFieldForm}
+    - {@api vue:component:FilterChip}

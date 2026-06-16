@@ -285,7 +285,7 @@ Theme keys: {@api theme-key:StickyBar}.
 The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and a filter entry point — the search and column buttons stay anchored right at all times. The `Filters` control on the left carries a count of active filters and opens an add-filter menu listing the fields not yet applied; picking one slides the popover to that field's filter form in place (no modal, no second surface), and a back affordance returns to the list to add another. Active filters render as a tinted strip of chips below: click a chip to edit it (reopening the same form anchored to the chip), the ✕ to remove it, or `Clear all` to reset every filter. When rows are selected, a bulk-actions strip appears. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
 
 ::: info Mockup status
-This ViewList is a target mockup under active design. The add-filter menu and chip interactions shown here are the direction the live `FilterGroup` / `FilterComponent` are moving toward, not the current shipped UI. Sort is intentionally out of scope for this pass.
+This ViewList is a static mockup of the filter UX. The live components now implement this direction: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. Sort is intentionally out of scope for this pass.
 :::
 
 <VuedaDemo class="flex flex-col gap-3">

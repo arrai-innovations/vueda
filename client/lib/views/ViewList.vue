@@ -8,7 +8,6 @@ import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageActions from "@vueda/components/PageActions.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
-import StickyBar from "@vueda/components/StickyBar.vue";
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import InputGroup from "@vueda/controls/input-group/InputGroup.vue";
 import InputGroupButton from "@vueda/controls/input-group/InputGroupButton.vue";
@@ -25,7 +24,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewList } from "@vueda/use/useViewList.js";
 import { getCRUDName, memoizedStartCase } from "@vueda/utils/case.js";
 import omit from "lodash-es/omit.js";
-import { computed, onMounted, reactive, readonly, toRef, toRefs, useSlots } from "vue";
+import { computed, onMounted, reactive, readonly, ref, toRef, toRefs, useSlots } from "vue";
 
 /**
  * Full-page list view for a Django model. Renders a paginated, sortable, and searchable data grid with support
@@ -130,6 +129,11 @@ usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loa
 
 const slots = useSlots();
 
+// Teleport target in the under-actions bar that the FilterGroup's add-filter
+// trigger teleports into, so the trigger sits in the toolbar while its popover
+// state stays owned by FilterGroup.
+const filterTriggerZone = ref(null);
+
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
 const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
 const workflowActionButtonSlotName = useSlotNameResolver(["workflow-action-button", "button"]);
@@ -209,6 +213,23 @@ onMounted(() => {
             </slot>
         </page-actions>
         <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
+            <div :class="theme('filterControls')" data-qa="view-list-filter-controls">
+                <!-- FilterGroup's add-filter trigger teleports into this zone. -->
+                <div ref="filterTriggerZone" :class="theme('filterTriggerZone')" data-qa="view-list-filter-trigger" />
+                <mobile-sort-component
+                    v-if="sort.canShowMobileSorter"
+                    v-model:visible="sort.mobileSortDrawerVisible"
+                    :header="`Sort ${memoizedStartCase(modelConfig.config?.verboseNamePlural || 'items')}`"
+                    :field-details="modelConfig.config?.fieldDetails || {}"
+                    :sortables="sort.sortablesList"
+                    :sorted="sort.sorting.state.sorted"
+                    @update:sorted="sort.sorting.updateSorted"
+                >
+                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                        <slot :name="slot" v-bind="slotProps || {}" />
+                    </template>
+                </mobile-sort-component>
+            </div>
             <div :class="theme('listControlBar')">
                 <slot name="search" v-bind="themedSearchSlotProps">
                     <InputGroup>
@@ -281,41 +302,26 @@ onMounted(() => {
                 </template>
             </div>
         </div>
-        <sticky-bar :class="theme('filterGroupBar')">
-            <span :class="theme('filterGroupBarEyebrow')" data-qa="view-list-filter-eyebrow">Filters</span>
-            <filter-group
-                v-model="list.listState.filterArgs"
-                :app="props.app"
-                :model="props.model"
-                :view="'list'"
-                :error="list.instanceList.state.error"
-                :errored="list.instanceList.state.errored"
-                :filterable-details="props.filterableDetails"
-                :filterables="props.filterables"
-                @filter-change="emit('filter-change', $event)"
-                @hide-filter-form="emit('hide-filter-form', $event)"
-                @query-change="emit('query-change', $event)"
-            >
-                <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                    <slot :name="slot" v-bind="slotProps || {}" />
-                </template>
-            </filter-group>
-            <div :class="theme('sortComponentDiv')">
-                <mobile-sort-component
-                    v-if="sort.canShowMobileSorter"
-                    v-model:visible="sort.mobileSortDrawerVisible"
-                    :header="`Sort ${memoizedStartCase(modelConfig.config?.verboseNamePlural || 'items')}`"
-                    :field-details="modelConfig.config?.fieldDetails || {}"
-                    :sortables="sort.sortablesList"
-                    :sorted="sort.sorting.state.sorted"
-                    @update:sorted="sort.sorting.updateSorted"
-                >
-                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                        <slot :name="slot" v-bind="slotProps || {}" />
-                    </template>
-                </mobile-sort-component>
-            </div>
-        </sticky-bar>
+        <!-- FilterGroup teleports its add-filter trigger into the toolbar zone above and renders
+             the active-filter chips strip (only when filters are present) in this flow position. -->
+        <filter-group
+            v-model="list.listState.filterArgs"
+            :app="props.app"
+            :model="props.model"
+            :view="'list'"
+            :error="list.instanceList.state.error"
+            :errored="list.instanceList.state.errored"
+            :filterable-details="props.filterableDetails"
+            :filterables="props.filterables"
+            :trigger-target="filterTriggerZone"
+            @filter-change="emit('filter-change', $event)"
+            @hide-filter-form="emit('hide-filter-form', $event)"
+            @query-change="emit('query-change', $event)"
+        >
+            <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
+            </template>
+        </filter-group>
 
         <slot name="additional-errors" />
         <error-display :error="list.error" :errored="list.errored" @dismiss-error="list.dismissError" />
