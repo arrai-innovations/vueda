@@ -27,6 +27,7 @@ import {
     faArrowRight,
     faArrowUpFromBracket,
     faCheck,
+    faChevronDown,
     faChevronLeft,
     faChevronRight,
     faClockRotateLeft,
@@ -281,7 +282,11 @@ Theme keys: {@api theme-key:StickyBar}.
 
 ## ViewList
 
-The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and filter/sort toggles — the search and column buttons stay anchored right at all times. When rows are selected, a bulk-actions strip appears below. Filter chips sit in a tinted strip when active filters are present. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
+The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and a filter entry point — the search and column buttons stay anchored right at all times. The `Filters` control on the left carries a count of active filters and opens an add-filter menu listing the fields not yet applied; picking one slides the popover to that field's filter form in place (no modal, no second surface), and a back affordance returns to the list to add another. Active filters render as a tinted strip of chips below: click a chip to edit it (reopening the same form anchored to the chip), the ✕ to remove it, or `Clear all` to reset every filter. When rows are selected, a bulk-actions strip appears. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
+
+::: info Mockup status
+This ViewList is a target mockup under active design. The add-filter menu and chip interactions shown here are the direction the live `FilterGroup` / `FilterComponent` are moving toward, not the current shipped UI. Sort is intentionally out of scope for this pass.
+:::
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -309,10 +314,11 @@ The list view is the entry point for every {@term CRUDL} resource. PageTitle anc
     </ClientOnly>
     <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
       <div class="flex items-center gap-2">
-        <Button size="sm" variant="outline">
+        <Button size="sm" variant="outline" aria-haspopup="menu">
           <FontAwesomeIcon :icon="faFilter" />
           Filters
-          <span class="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">3</span>
+          <span class="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">3</span>
+          <FontAwesomeIcon :icon="faChevronDown" class="size-2.5 text-muted-foreground" />
         </Button>
         <Button size="sm" variant="ghost">
           <FontAwesomeIcon :icon="faSort" />
@@ -332,19 +338,22 @@ The list view is the entry point for every {@term CRUDL} resource. PageTitle anc
         </Button>
       </div>
     </div>
-    <div class="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-2">
+    <div class="flex flex-wrap items-center gap-2 border-b border-border bg-muted/30 px-4 py-2">
       <span class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filters</span>
-      <span class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-        Status: Active
-        <button type="button" class="inline-flex items-center text-current opacity-70 hover:opacity-100" aria-label="Remove filter"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+      <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
+        <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: Status">Status: Active</button>
+        <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
+        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: Status"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
       </span>
-      <span class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-        Owner: Mara Tani
-        <button type="button" class="inline-flex items-center text-current opacity-70 hover:opacity-100" aria-label="Remove filter"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+      <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
+        <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: Owner">Owner: Mara Tani</button>
+        <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
+        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: Owner"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
       </span>
-      <span class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-        MRR: ≥ $1,000
-        <button type="button" class="inline-flex items-center text-current opacity-70 hover:opacity-100" aria-label="Remove filter"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+      <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
+        <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: MRR">MRR: ≥ $1,000</button>
+        <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
+        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
       </span>
       <Button size="sm" variant="ghost" class="ml-auto text-xs">Clear all</Button>
     </div>
@@ -425,10 +434,41 @@ The list view is the entry point for every {@term CRUDL} resource. PageTitle anc
       </nav>
     </div>
   </div>
+  <div class="flex flex-col gap-2">
+    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filters [3] → add-filter flow · the popover swaps content in place (no modal, no second surface)</header>
+    <div class="flex flex-wrap items-start gap-6">
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">1 · pick a field (lists only the fields not yet applied)</span>
+        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <div class="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Add filter</div>
+          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Account<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
+          <button type="button" class="flex w-full items-center gap-2 rounded-sm bg-accent px-2 py-1.5 text-sm text-accent-foreground">Plan tier<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3" /></button>
+          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Created<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
+          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Renewal date<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
+          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Tax-exempt<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">2 · set the value · ‹ returns to the list to add another</span>
+        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <button type="button" class="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"><FontAwesomeIcon :icon="faChevronLeft" class="size-3" />Add filter</button>
+          <div class="bg-border -mx-1 my-1 h-px"></div>
+          <div class="px-2 pb-1 pt-0.5">
+            <h3 class="mb-2 text-sm font-semibold">Filter by Plan tier</h3>
+            <div class="flex h-7 items-center justify-between rounded-vueda-control border border-input bg-background px-2 text-sm text-foreground">Enterprise<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></div>
+            <div class="mt-2 flex justify-end"><Button size="sm" variant="default">Apply</Button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>under-actions: search and column controls always anchored right; filter/sort toggles left</span>
+    <span>under-actions: search and column controls anchored right; the Filters control sits left</span>
+    <span>Filters [n]: badge counts active filters; opens the add-filter menu of not-yet-applied fields</span>
+    <span>add-filter flow: pick a field, the popover slides to that field's form in place; ‹ returns to the list; one anchored surface, no modal</span>
+    <span>filter chips: one per active filter — click the label to edit (reopens the same form anchored to the chip), ✕ to remove, Clear all resets every filter</span>
+    <span>chips strip: tinted, present only when active filters exist</span>
     <span>bulk-actions strip: transient, appears only when rows are selected</span>
-    <span>filter chips: tinted strip below under-actions, present only when active filters exist</span>
     <span>ObjectsGrid: flush inside the card — no nested border or card-in-card radius</span>
   </footer>
 </VuedaDemo>
