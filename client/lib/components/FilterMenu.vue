@@ -137,9 +137,9 @@ const slots = useSlots();
             <template v-else>
                 <button type="button" :class="theme('back')" data-qa="filter-menu-back" @click="back">
                     <component
-                        :is="icon('back').component"
-                        v-if="icon('back')"
-                        v-bind="icon('back').props"
+                        :is="icon('chevronLeft').component"
+                        v-if="icon('chevronLeft')"
+                        v-bind="icon('chevronLeft').props"
                         aria-hidden="true"
                     />
                     Add filter
