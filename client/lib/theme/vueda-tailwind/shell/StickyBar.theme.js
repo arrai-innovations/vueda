@@ -29,9 +29,8 @@ patchTheme({
          * The visible sticky-bar surface. It uses a card fill (overridable per instance via the
          * `--vueda-sticky-bar-surface` custom property), a bottom divider, and wrapping row layout
          * for primary and secondary controls. The surface is the single strip chrome: callers that
-         * pass a `:class` to the StickyBar root (e.g. {@api theme-key:ViewList.filterGroupBar}) set
-         * the surface custom property rather than painting a competing background, so the bar never
-         * double-wraps a nested padded surface.
+         * pass a `:class` to the StickyBar root set the surface custom property rather than painting
+         * a competing background, so the bar never double-wraps a nested padded surface.
          */
         inner: {
             class: [

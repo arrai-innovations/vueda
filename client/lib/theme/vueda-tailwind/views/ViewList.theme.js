@@ -41,7 +41,7 @@ patchTheme({
         objectsGrid: {
             class: ["w-full border-0 rounded-none"],
         },
-        /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with {@api theme-key:ViewList.filterGroupBar} and the title row, so the three strips read as a continuous header. */
+        /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with the title row above and the {@api theme-key:ViewList.paginationWrapper} below, so the chrome reads as a matched frame around the grid. */
         underActionsBar: {
             class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3", "border-b bg-card text-foreground"],
         },

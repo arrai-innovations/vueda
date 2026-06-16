@@ -16,7 +16,7 @@ import { computed, inject, reactive, ref, toRef, useSlots } from "vue";
  * Renders a single active filter as a removable pill. The label segment shows
  * the field name and its current value and opens the field's edit form in a
  * popover; the trailing segment removes the filter. The chip resolves choice
- * values to their human labels via {@api use:useModelChoices}, and turns
+ * values to their human labels via {@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices}, and turns
  * destructive when the server rejected the value.
  */
 defineOptions({});
