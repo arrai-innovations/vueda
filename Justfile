@@ -85,6 +85,10 @@ docs-rebuild:
   rm -rf {{justfile_directory()}}/docs/.vitepress/.temp {{justfile_directory()}}/docs/.vitepress/cache
   cd {{justfile_directory()}}/docs && pnpm exec vitepress build
 
+docs-rebuild-timing:
+  rm -rf {{justfile_directory()}}/docs/.vitepress/.temp {{justfile_directory()}}/docs/.vitepress/cache
+  cd {{justfile_directory()}}/docs && VUEDA_DOCS_TIMING=1 pnpm exec vitepress build
+
 docs-serve:
   cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8081 --force
 
@@ -122,6 +126,10 @@ docs-validate:
 docs-build:
   just docs-api
   just docs-rebuild
+
+docs-build-timing:
+  just docs-api
+  just docs-rebuild-timing
 
 docs-preview-build:
   just docs-api
