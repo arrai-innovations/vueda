@@ -105,7 +105,7 @@ patchTheme({
                 "data-[kind=restored]:text-warning",
             ],
         },
-        /** Meta strip above the grid: filter slot on the left, layout toggle on the right. Muted-10 wash and a bottom hairline so the strip reads as supporting chrome rather than its own band; lighter than the {@api theme-key:ViewList.filterGroupBar} muted-25 because the history view does not surface as many filter affordances. */
+        /** Meta strip above the grid: filter slot on the left, layout toggle on the right. Muted-10 wash and a bottom hairline so the strip reads as supporting chrome rather than its own band; kept light because the history view surfaces only a filter slot and a layout toggle, not a full control strip. */
         meta: {
             class: ["flex items-center gap-3 flex-wrap", "border-b bg-muted/10", "px-4 py-2 text-sm"],
         },

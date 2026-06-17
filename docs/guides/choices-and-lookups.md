@@ -61,9 +61,11 @@ Choice responses are lists of `{label, value}` objects. For related-model choice
 
 The filter choices endpoint serves option lists for filterset-defined filters; the filters that appear in the `list` view's filter UI.
 
-### Empty label and empty value
+### Empty values
 
-When a filter defines `empty_label`, the endpoint prepends an empty-value entry to the choices list. The empty value comes from the filter's `empty_value` configuration or from the default settings. This entry represents the "no selection" or "all" option in the filter dropdown.
+Filter choice responses omit empty-valued options. For filters, "no selection" or "all" is represented by leaving the filter query parameter out of the request, not by selecting an empty option. If a UI needs a clear or all control, render it outside the server-provided choices list.
+
+`empty_label` and `empty_value` can still appear in `model_filtering` metadata when the underlying filter exposes them, but the filter choices endpoint does not prepend a synthetic empty option.
 
 ### Permission model
 
@@ -132,7 +134,7 @@ With choice loading wired, verify these behaviors:
 - A user without `read` permission on the source model receives 403 from choice endpoints.
 - A user without `list` permission on a related model receives 403 from related-model choice endpoints.
 - Requesting choices for an invalid field or filter name returns 404 with a helpful message.
-- Empty-label entries appear at the top of filter choice lists when `empty_label` is configured.
+- Filter choice lists do not contain empty-value options. The clear or all state is handled outside the returned choices.
 - Multiple components requesting the same field's choices do not produce duplicate network requests.
 
 ## Troubleshooting

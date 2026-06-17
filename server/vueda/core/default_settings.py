@@ -362,11 +362,6 @@ def get_defaults(env: EnvLike):
             "CORS_PREFLIGHT_MAX_AGE": 86400,  # 24 hours
             "CORS_ALLOW_CREDENTIALS": True,
         },
-        **{  # django-filter settings
-            # These are not actually settings they use.  We want them, to have a default empty choices label and value.
-            "EMPTY_CHOICE_LABEL": "None",
-            "EMPTY_CHOICE_VALUE": "",
-        },
         **{  # django-simple-history settings
             "SIMPLE_HISTORY_FILEFIELD_TO_CHARFIELD": True,
         },

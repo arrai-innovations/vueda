@@ -7,6 +7,7 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.utils import create_test_data
@@ -20,13 +21,11 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
         "cart",
         "product_quantity",
         (
-            {"label": "Nothing"},
             {"label": "0", "value": "0"},
             {"label": "10", "value": "10"},
             {"label": "4", "value": "4"},
             {"label": "6", "value": "6"},
         ),
-        "test",
     ),
     (
         "store",
@@ -38,102 +37,80 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
             {"label": "Square Cookies For Squares", "value": "Square Cookies For Squares"},
             {"label": "Women's White T-Shirt", "value": "Women's White T-Shirt"},
         ),
-        None,
     ),
     (
         "store",
         "product",
         "disabled",
         (
-            {"label": "None"},
-            {"label": "Unknown", "value": ""},
             {"label": "Yes", "value": "true"},
             {"label": "No", "value": "false"},
         ),
-        "",
     ),
     (
         "store",
         "product",
         "distributor",
         (
-            {"label": "None"},
             {"label": "Tasty Treats Assoc.", "value": "Tasty Treats Assoc."},
             {"label": "T-Shirt Corp.", "value": "T-Shirt Corp."},
             {"label": "Vibrant Looks Inc.", "value": "Vibrant Looks Inc."},
         ),
-        "",
     ),
     (
         "store",
         "product",
         "special_care",
         (
-            {"label": "None"},
-            {"label": "Dangerous", "value": None},
-            {"label": "Fragile", "value": None},
-            {"label": "Perishable", "value": None},
-            {"label": "Temperature Controlled", "value": None},
+            {"label": "Dangerous"},
+            {"label": "Fragile"},
+            {"label": "Perishable"},
+            {"label": "Temperature Controlled"},
         ),
-        "",
     ),
     (
         "store",
         "product",
         "tangible_type",
-        (
-            {"label": "None"},
-            {"label": "Physical", "value": None},
-        ),
-        "",
+        ({"label": "Physical"},),
     ),
     (
         "store",
         "productoption",
         "disabled",
         (
-            {"label": "None"},
-            {"label": "True", "value": None},
-            {"label": "False", "value": None},
+            {"label": "True", "value": "true"},
+            {"label": "False", "value": "false"},
         ),
-        "",
     ),
     (
         "store",
         "inventoryrecord",
         "is_added",
         (
-            {"label": "None"},
-            {"label": "Unknown", "value": None},
-            {"label": "No", "value": None},
-            {"label": "Yes", "value": None},
+            {"label": "No", "value": "false"},
+            {"label": "Yes", "value": "true"},
         ),
-        "",
     ),
     (
         "store",
         "inventoryrecord",
         "reason",
         (
-            {"label": "None"},
-            {"label": "Damaged Inventory", "value": None},
-            {"label": "Order Fulfillment", "value": None},
-            {"label": "Received Inventory", "value": None},
-            {"label": "Returned Inventory", "value": None},
+            {"label": "Damaged Inventory"},
+            {"label": "Order Fulfillment"},
+            {"label": "Received Inventory"},
+            {"label": "Returned Inventory"},
         ),
-        "",
     ),
     (
         "store",
         "customerorder",
         "shipping_method",
         (
-            {"label": "None"},
-            {"label": "---------", "value": None},
-            {"label": "Regular", "value": None},
-            {"label": "Express", "value": None},
+            {"label": "Regular", "value": "regular"},
+            {"label": "Express", "value": "express"},
         ),
-        "",
     ),
 ]
 
@@ -257,13 +234,13 @@ class TestModelInfoFiltersetChoices:
             response_value = response_values_by_label[label]
             assert isinstance(response_value, str), f"{msg} -> value should be str, got {type(response_value).__name__}"
 
-            if "value" in expected_choice and expected_choice["value"] is not None:
+            if "value" in expected_choice:
                 assert response_value == expected_choice["value"], (
                     f"{msg} -> expected value={expected_choice['value']!r}, got {response_value!r}"
                 )
 
     @pytest.mark.parametrize(
-        "app_label, model_name, field_name, expected_choices, expected_empty_value",
+        "app_label, model_name, field_name, expected_choices",
         DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
         ids=idfn,
     )
@@ -275,7 +252,6 @@ class TestModelInfoFiltersetChoices:
         model_name,
         field_name,
         expected_choices,
-        expected_empty_value,
     ):
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
@@ -309,12 +285,9 @@ class TestModelInfoFiltersetChoices:
                     result["label"] for result in expected_choices
                 ), msg
                 self.assert_choice_value_contract(response.data, expected_choices, msg)
-                if expected_empty_value is not None:
-                    msg = f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_empty_value"
-                    assert response.data["results"][0]["value"] == expected_empty_value, msg
 
     @pytest.mark.parametrize(
-        "app_label, model_name, field_name, expected_choices, expected_empty_value",
+        "app_label, model_name, field_name, expected_choices",
         DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
         ids=idfn,
     )
@@ -326,7 +299,6 @@ class TestModelInfoFiltersetChoices:
         model_name,
         field_name,
         expected_choices,
-        expected_empty_value,
     ):
         user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
@@ -353,6 +325,28 @@ class TestModelInfoFiltersetChoices:
             result["label"] for result in expected_choices
         ), msg
         self.assert_choice_value_contract(response.data, expected_choices, msg)
+
+    def test_all_values_filter_choices_drop_blank_string_values(self, test_data, api_client):
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        blank_distributor = store_models.Distributor.objects.create(name="", description="Blank distributor")
+        store_models.Product.objects.create(
+            distributor=blank_distributor,
+            name="Blank Distributor Product",
+            order_between=[1, 2],
+            tangible_type=test_data.tangible_type["physical"],
+        )
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "distributor")),
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
+        assert "" not in {result["label"] for result in response.data["results"]}
+        assert "" not in {result["value"] for result in response.data["results"]}
 
     def test_info_choices_filter_list_invalid_field(self, test_data, api_client):
         user = test_data.users["test_admin@domain.invalid"]
@@ -406,7 +400,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
         result_labels = frozenset(r["label"] for r in response.data["results"])
-        assert result_labels == frozenset({"None", "Tasty Treats Assoc."}), (
+        assert result_labels == frozenset({"Tasty Treats Assoc."}), (
             f"Expected distributor choices filtered to cookie-product distributor only, got: {result_labels}"
         )
 
@@ -424,7 +418,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
         result_labels = frozenset(r["label"] for r in response.data["results"])
-        assert result_labels == frozenset({"None", "T-Shirt Corp.", "Vibrant Looks Inc."}), (
+        assert result_labels == frozenset({"T-Shirt Corp.", "Vibrant Looks Inc."}), (
             f"Expected distributor choices filtered to shirt-product distributor only, got: {result_labels}"
         )
 
@@ -446,7 +440,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
         result_labels = frozenset(r["label"] for r in response.data["results"])
-        assert result_labels == frozenset({"None", "Fragile", "Perishable", "Temperature Controlled"}), (
+        assert result_labels == frozenset({"Fragile", "Perishable", "Temperature Controlled"}), (
             f"Expected special_care choices filtered to cookie-product values only, got: {result_labels}"
         )
 
@@ -467,7 +461,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
         result_labels = frozenset(r["label"] for r in response.data["results"])
-        assert result_labels == frozenset({"None", "Physical"}), (
+        assert result_labels == frozenset({"Physical"}), (
             f"Expected tangible_type choices filtered to cookie-product values only, got: {result_labels}"
         )
 
@@ -475,8 +469,8 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
         """Passing condition=ne filters static choices to those whose value contains 'ne'.
 
         'ne' is a substring of 'new' and 'like_new' but not 'refurbished' or 'used'.
-        The ChoiceFilter empty label ('---------') is excluded since '' does not contain 'ne'.
-        The paginate_queryset 'None' empty label is still prepended.
+        The ChoiceFilter blank placeholder ('---------', empty value) is dropped from the
+        choices metadata, and the empty 'None' choice is no longer prepended by default.
         """
         user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
@@ -490,6 +484,6 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
 
         assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
         result_labels = frozenset(r["label"] for r in response.data["results"])
-        assert result_labels == frozenset({"None", "New", "Like New"}), (
+        assert result_labels == frozenset({"New", "Like New"}), (
             f"Expected only choices containing 'ne', got: {result_labels}"
         )

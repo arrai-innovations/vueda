@@ -54,7 +54,7 @@ Model-info choice endpoints and filter-choice endpoints normalize identifier val
 
 **Field choices** (`ModelInfoChoicesViewSet`) resolve choice values from the serializer's field definition. For related-model choices (where the choices come from a queryset), the PK values are cast to strings via `Cast(..., CharField())` in the queryset annotation or via `str(value)` when iterating static choices. This ensures that the client receives string values regardless of the database column's native type (integer, UUID, etc.).
 
-**Filter choices** (`ModelInfoFilterSetChoicesViewSet`) follow the same pattern. Filter choice responses serialize `value` as a string across all tested filterset branches, including paths sourcing from raw widget choices and queryset-backed choices. The `empty_label` option, when set, prepends an empty-value entry to the choices list, with the empty value coming from filter config or default settings.
+**Filter choices** (`ModelInfoFilterSetChoicesViewSet`) follow the same string-normalization pattern. Filter choice responses serialize `value` as a string across all tested filterset branches, including paths sourcing from raw widget choices and queryset-backed choices. Empty-valued filter options are omitted from the choices endpoint because clearing a filter is represented by omitting that query parameter.
 
 This string normalization is deliberate. The client compares choice values using string equality, and query parameter values are inherently strings on the wire. By normalizing at the server boundary, the system avoids type-coercion mismatches where a numeric PK `42` and a string `"42"` would fail equality checks in JavaScript.
 

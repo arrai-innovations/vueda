@@ -17,6 +17,7 @@ from http import HTTPStatus
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.validators import EMPTY_VALUES
 from django.db.models import CharField
 from django.db.models import F
 from django.db.models.functions.comparison import Cast
@@ -329,6 +330,9 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
         else:
             choices = []
             for value, label in sorted(field.choices.items(), key=operator.itemgetter(1)):
+                # Keep blank choices for create/update form metadata. Filter choice
+                # metadata strips them separately because "no filter" is represented by
+                # an omitted query parameter.
                 choices.append(
                     {
                         "label": label,
@@ -372,13 +376,6 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
     serializer_class = ModelInfoFilterSetChoicesSerializer
 
-    def paginate_queryset(self, queryset):
-        # Must add the None choice here, so it runs after filter_queryset,
-        # in case we have a queryset that gets changed in filter_queryset.
-        if self.empty_label is not None:
-            queryset = (FilterChoice(self.empty_value, self.empty_label),) + tuple(queryset)
-        return super().paginate_queryset(queryset)
-
     def validate_queryset(self, filterset_instance, filter_mapping):
         if self.choices_field not in filter_mapping:
             valid_filter_names = tuple(filter_mapping)
@@ -412,9 +409,6 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         self.validate_queryset(filterset_instance, filter_mapping)
 
         filtr = filter_mapping[self.choices_field]
-
-        self.empty_label = getattr(filtr, "empty_label", settings.EMPTY_CHOICE_LABEL)
-        self.empty_value = getattr(filtr, "empty_value", settings.EMPTY_CHOICE_VALUE)
 
         permission_read_name = "read"
         if "read" in PERMISSION_NAMES_MAPPING:
@@ -470,7 +464,7 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
             self.choices_queryset_model = model_class
 
             distinct_values = narrowed_qs.values_list(filtr.field_name, flat=True).distinct().order_by(filtr.field_name)
-            choices = [(str(v), str(v)) for v in distinct_values if v is not None]
+            choices = [(str(value), str(value)) for value in distinct_values if value not in EMPTY_VALUES]
             return FilterChoicesQueryset(choices, model_class)
 
         else:
@@ -478,7 +472,12 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
             self.choices_permissions = (f"{meta.app_label}.{permission_read_name}_{meta.model_name}",)
             self.choices_queryset_model = model_class
 
-            choices = [(str(value), str(label)) for value, label in filtr.field.widget.choices]
+            # Django-filter choice fields carry blank placeholders for native select
+            # rendering. For filter metadata, "no filter" is the absence of a query
+            # parameter, so omit empty values before the client renders options.
+            choices = [
+                (str(value), str(label)) for value, label in filtr.field.widget.choices if value not in EMPTY_VALUES
+            ]
 
             filter_value = self.request.query_params.get(self.choices_field)
             if filter_value:
