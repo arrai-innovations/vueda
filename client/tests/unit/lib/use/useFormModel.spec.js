@@ -1079,7 +1079,7 @@ describe("lib/use/useFormModel.js", () => {
             };
 
             const expandField = {
-                expandDetail: { app_label: "app", model: "Model" },
+                expandDetail: { appLabel: "app", model: "Model" },
                 expandFieldName: "title",
             };
 

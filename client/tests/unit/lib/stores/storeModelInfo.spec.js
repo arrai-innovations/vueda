@@ -69,6 +69,46 @@ describe("lib/stores/storeModelInfo.js", () => {
         expect(store.promises[key]).toBeUndefined();
     });
 
+    scopedIt("camelCases expand descriptor root keys while preserving f field-name keys", async () => {
+        const args = { app: "catalog", model: "widget" };
+        const serverData = {
+            app_label: "catalog",
+            model: "widget",
+            model_fields: {
+                id: { pk: true, type_db: "AutoField" },
+            },
+            model_actions: [],
+            model_expands: [
+                {
+                    name: "category",
+                    app_label: "catalog",
+                    model: "widgetcategory",
+                    requires_permission: false,
+                    f: {
+                        created_at: { type_db: "DateTimeField", read_only: true },
+                    },
+                },
+            ],
+            model_ordering: [],
+            model_filtering: {},
+            model_permissions: [],
+        };
+        fetchHelper.mockResolvedValue(serverData);
+
+        const result = await store.fetchModelInfo(args);
+        const expand = result.expand[0];
+        // The expand root's own keys are camelCased to match field details.
+        expect(expand.appLabel).toBe("catalog");
+        expect(expand.app_label).toBeUndefined();
+        expect(expand.model).toBe("widgetcategory");
+        expect(expand.requiresPermission).toBe(false);
+        // `f` field-name keys are server lookup keys: preserved as-is, while
+        // each FieldInfo value is camelCased.
+        expect(expand.f.created_at).toBeDefined();
+        expect(expand.f.created_at.typeDb).toBe("DateTimeField");
+        expect(expand.f.created_at.readOnly).toBe(true);
+    });
+
     scopedIt("rejects when pk field missing", async () => {
         const args = { app: "a", model: "b" };
         const key = getAppModelDotName(args);

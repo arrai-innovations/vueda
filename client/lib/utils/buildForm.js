@@ -260,7 +260,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 if (detailObject.choices === true) {
                     if (isExpandedField) {
                         const { expandDetail, expandFieldName } = field;
-                        baseProps.fieldApp = expandDetail.app_label;
+                        baseProps.fieldApp = expandDetail.appLabel;
                         baseProps.fieldModel = expandDetail.model;
                         baseProps.app = detailObject.appLabel;
                         baseProps.model = detailObject.model;

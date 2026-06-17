@@ -118,6 +118,8 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} name - The name of the expand field.
  * @property {string[]} [fields] - An array of field names that can be expanded.
  * @property {{[fieldName: string]: FieldInfo}} [f] - A mapping of field names to their respective `FieldInfo` objects for the expanded model.
+ * @property {string} [appLabel] - The app label of the expanded (related) model.
+ * @property {string} [model] - The model name of the expanded (related) model.
  * @property {boolean} [requiresPermission] - Indicates whether expanding this field requires special permissions.
  * @property {string} [description] - A brief description of what the expanded field represents.
  * @property {string[]} [hidden] - Names of child fields to hide in this expansion.
@@ -328,17 +330,25 @@ export const storeModelInfo = defineStore("modelInfo", {
                                     ];
                                 }
                                 if (key === "expand") {
-                                    // `expand.f` is also a mapping of field names to FieldInfo objects
+                                    // camelCase each expand descriptor's own keys
+                                    // (e.g. app_label -> appLabel) so they match
+                                    // field details. `f` is a mapping of field
+                                    // names to FieldInfo objects: preserve its
+                                    // field-name keys (server lookup keys) while
+                                    // camelCasing each FieldInfo value.
                                     return [
                                         key,
-                                        v.map((expand) => ({
-                                            ...expand,
-                                            [FIELDS_PARAM]: expand.f
-                                                ? Object.fromEntries(
-                                                      Object.entries(expand.f).map(([k, v]) => [k, camelCaseObject(v)]),
-                                                  )
-                                                : undefined,
-                                        })),
+                                        v.map((expand) => {
+                                            const { [FIELDS_PARAM]: f, ...rest } = expand;
+                                            return {
+                                                ...camelCaseObject(rest),
+                                                [FIELDS_PARAM]: f
+                                                    ? Object.fromEntries(
+                                                          Object.entries(f).map(([k, v]) => [k, camelCaseObject(v)]),
+                                                      )
+                                                    : undefined,
+                                            };
+                                        }),
                                     ];
                                 }
                                 return [key, camelCaseObject(v)];
