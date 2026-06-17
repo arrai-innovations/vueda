@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Dependency security floor**:
+    - The client package now requires `dompurify` 3.4.9 or newer so installs resolve to versions with the published DOMPurify sanitization fixes.
+      _No action is required unless your application pins `dompurify` below 3.4.9._
 - **Model-backed filter choices render correctly (WidgetModel)**:
     - `WidgetModel` no longer forwards relation `app` and `model` metadata to its internal combobox when rendering fetched choice options. Forwarding those attrs accidentally switched the combobox into direct API-search mode, so model-backed filter widgets could request results successfully but render empty option labels.
       _No action is required for default `ViewList` filters._

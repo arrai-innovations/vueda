@@ -9,7 +9,7 @@
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@redocly/cli": "^1.20.0",
+    "@redocly/cli": "^2.33.2",
     "@types/node": "^22.10.10",
     "@vitest/coverage-istanbul": "^3.2.4",
     "acorn": "^8.15.0",

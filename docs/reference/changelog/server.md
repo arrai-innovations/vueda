@@ -42,6 +42,12 @@ public-facing documentation baseline.
 - **`ImageField` serializer field**:
     - Added `vueda.core.fields.serializers.ImageField`, the image counterpart to the existing `FileField`. It shares the `{"name", "url"}` representation and subclasses `FileField` rather than DRF's `ImageField`, so it does not require Pillow; image content validation is left to the model field and upload pipeline.
 
+### Fixes
+
+- **Dependency security floor**:
+    - The server package now requires `cryptography` 48.0.1 or newer and `starlette` 1.3.1 or newer so installs resolve to versions with the published security fixes.
+      _No action is required unless your application pins either dependency below those versions._
+
 ## v3.0.0a0 (2026-05-27)
 
 ### Migration Summary
