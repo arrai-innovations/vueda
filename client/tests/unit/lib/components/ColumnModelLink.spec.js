@@ -43,14 +43,6 @@ describe("lib/components/ColumnModelLink.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("tolerates a snake_case app_label on the field", () => {
-            const wrapper = mount(ColumnModelLink, {
-                props: { value: 7, field: { app_label: "catalog", model: "supplier" } },
-            });
-            expect(lmvProps).toMatchObject({ app: "catalog", model: "supplier", pk: 7 });
-            wrapper.unmount();
-        });
-
         scopedIt("falls back to columnProps app/model when the field omits them", () => {
             const wrapper = mount(ColumnModelLink, {
                 props: { value: 3, app: "catalog", model: "supplier", field: {} },

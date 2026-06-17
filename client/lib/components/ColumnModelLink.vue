@@ -65,9 +65,9 @@ const props = defineProps({
     },
 });
 
-// Related-model identity: prefer the field's own metadata (camelCased
-// `appLabel`, with snake-case/`app` tolerated), then the columnProps fallback.
-const targetApp = computed(() => props.field?.appLabel ?? props.field?.app_label ?? props.field?.app ?? props.app);
+// Related-model identity: the field's own metadata (model-info supplies a
+// camelCased `appLabel`/`model`), then the `columnProps` app/model fallback.
+const targetApp = computed(() => props.field?.appLabel ?? props.app);
 const targetModel = computed(() => props.field?.model ?? props.model);
 
 // FK pk: an object value carries it as `id`/`pk`; a scalar value is the pk.
