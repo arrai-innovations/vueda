@@ -85,14 +85,17 @@ describe("lib/stores/storeListPreference.js", () => {
     });
 
     scopedIt("persists sorting preferences and supports clearing them", () => {
-        const sorting = [{ field: "name", direction: "asc" }];
+        // Live sorted shape: an array of field names, leading "-" means descending.
+        const sorting = ["-updated", "mrr"];
         const setItemSpy = vi.spyOn(storagePrototype, "setItem");
         setItemSpy.mockClear();
 
         store.setSorting(args, sorting);
 
         expect(store.preferences[preferenceKey].sorting).toEqual(sorting);
-        expect(store.getSorting(args)).toEqual({ 0: sorting[0] });
+        const restored = store.getSorting(args);
+        expect(Array.isArray(restored)).toBe(true);
+        expect(restored).toEqual(sorting);
         expect(setItemSpy).toHaveBeenCalledWith(STORAGE_KEY, JSON.stringify(store.preferences));
 
         setItemSpy.mockClear();
@@ -104,13 +107,34 @@ describe("lib/stores/storeListPreference.js", () => {
         setItemSpy.mockRestore();
     });
 
+    scopedIt("returns a fresh array copy when reading sorting preferences", () => {
+        store.setSorting(args, ["-updated", "mrr"]);
+
+        const restored = store.getSorting(args);
+        restored.push("status");
+
+        expect(store.getSorting(args)).toEqual(["-updated", "mrr"]);
+    });
+
+    scopedIt("survives a read-then-write restore cycle without dropping the value", () => {
+        // Mirrors useViewList restore: getSorting() feeds straight back into
+        // setSorting(). A non-array return here would fail setSorting's
+        // Array.isArray guard and silently clear the stored preference.
+        store.setSorting(args, ["-updated", "mrr"]);
+
+        const restored = store.getSorting(args);
+        store.setSorting(args, restored);
+
+        expect(store.getSorting(args)).toEqual(["-updated", "mrr"]);
+    });
+
     scopedIt("clears specific preference groups and removes the stored entry", () => {
         const setItemSpy = vi.spyOn(storagePrototype, "setItem");
         setItemSpy.mockClear();
 
         store.setHiddenColumns(args, ["name"]);
         store.setFilters(args, { foo: "bar" });
-        store.setSorting(args, [{ field: "name", direction: "asc" }]);
+        store.setSorting(args, ["-updated"]);
 
         expect(store.preferences[preferenceKey]).toBeDefined();
 

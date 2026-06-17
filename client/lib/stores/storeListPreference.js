@@ -45,13 +45,13 @@ const saveToLocalStorage = (data) => {
  *     getFilters: (state: ListPreferenceState) =>
  *       (args: ListPreferenceArgs) => Record<string, unknown>,
  *     getSorting: (state: ListPreferenceState) =>
- *       (args: ListPreferenceArgs) => ListPreferenceSortingItem[] | null,
+ *       (args: ListPreferenceArgs) => string[] | null,
  *   },
  *   {
  *     init: () => void,
  *     setHiddenColumns: (args: ListPreferenceArgs, hiddenColumns: string[]) => void,
  *     setFilters: (args: ListPreferenceArgs, filters: Record<string, unknown>) => void,
- *     setSorting: (args: ListPreferenceArgs, sorting: ListPreferenceSortingItem[]) => void,
+ *     setSorting: (args: ListPreferenceArgs, sorting: string[]) => void,
  *     clearPreferences: (args: ListPreferenceArgs) => void,
  *     clearHiddenColumns: (args: ListPreferenceArgs) => void,
  *     clearFilters: (args: ListPreferenceArgs) => void,
@@ -89,7 +89,7 @@ export const storeListPreference = defineStore("listPreference", {
         getSorting: (state) => (args) => {
             const key = getAppModelDotName(args);
             const prefs = state.preferences[key];
-            return prefs?.sorting ? { ...prefs.sorting } : null;
+            return Array.isArray(prefs?.sorting) ? [...prefs.sorting] : null;
         },
     },
     actions: {
