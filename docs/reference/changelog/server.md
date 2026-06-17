@@ -30,6 +30,8 @@ public-facing documentation baseline.
 
 ### Features
 
+- **Read-only relation metadata (model info)**:
+    - Model-info field metadata now includes `app_label` and `model` for read-only foreign-key and many-relation serializer fields when the related model can be resolved. This lets clients build relation-aware list columns without per-column fallback configuration, while still leaving `choices` disabled for read-only relation fields.
 - **Submit-time warning confirmation (`get_warnings`)**:
     - `VuedaSerializer` gained a non-raising `get_warnings()` hook. Override it to return advisory warnings as `{field: [messages], "non_field_errors": [messages]}`. It is called after validation succeeds, so `self.validated_data` and (on update) `self.instance` are available.
     - When `get_warnings()` returns warnings, `VuedaViewSet` withholds the create/update and responds `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` instead of saving. Resubmitting with the `Acknowledge-Warnings` request header set to that `digest` lets the write proceed. A changed warning set yields a different digest and re-prompts. Blocking errors (`VuedaValidationError`) are unaffected and still return 400 before warnings are evaluated.
