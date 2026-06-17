@@ -101,6 +101,29 @@ describe("lib/utils/resolveColumnComponents.js", () => {
         });
     });
 
+    describe("foreign-key type defaults", () => {
+        scopedIt("ForeignKey resolves to ColumnModelLink with view read", () => {
+            const field = { name: "category", typeSerializer: "PrimaryKeyRelatedField", typeModel: "ForeignKey" };
+            expect(resolveColumnComponent(field)).toBe(availableColumns.ColumnModelLink);
+            expect(resolveColumnProps(field)).toEqual({ view: "read" });
+        });
+
+        scopedIt("OneToOneField resolves to ColumnModelLink with view read", () => {
+            const field = { name: "profile", typeSerializer: "PrimaryKeyRelatedField", typeModel: "OneToOneField" };
+            expect(resolveColumnComponent(field)).toBe(availableColumns.ColumnModelLink);
+            expect(resolveColumnProps(field)).toEqual({ view: "read" });
+        });
+
+        scopedIt("a columnProps override can supply app/model alongside the type default view", () => {
+            const field = { name: "category", typeSerializer: "PrimaryKeyRelatedField", typeModel: "ForeignKey" };
+            expect(resolveColumnProps(field, { category: { app: "catalog", model: "widgetcategory" } })).toEqual({
+                view: "read",
+                app: "catalog",
+                model: "widgetcategory",
+            });
+        });
+    });
+
     describe("resolveColumnProps layering", () => {
         scopedIt("returns an empty object when nothing supplies props", () => {
             expect(resolveColumnProps({ name: "a" })).toEqual({});

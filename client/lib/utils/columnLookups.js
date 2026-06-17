@@ -26,4 +26,7 @@ export const availableColumns = {
     ColumnDateTime: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/components/ColumnDateTime.vue")).default),
     ),
+    ColumnModelLink: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/components/ColumnModelLink.vue")).default),
+    ),
 };

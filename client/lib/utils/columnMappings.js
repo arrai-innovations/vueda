@@ -2,9 +2,9 @@
  * @module utils/columnMappings
  * @description Default mappings from DRF serializer field types to list column adapter components. Mirrors `fieldMappings.js` (which maps types to form widgets). Resolved via the shared `getTypeMapping` helper, keyed `typeSerializer -> typeModel`.
  *
- * Date/time/datetime types resolve to `ColumnDateTime`. Foreign-key types
- * (`ColumnModelLink`) are added in a later phase. Any unmapped type falls back
- * to `ColumnText`, reproducing the historical plain-text cell.
+ * Date/time/datetime types resolve to `ColumnDateTime`; foreign-key relations
+ * resolve to `ColumnModelLink`. Any unmapped type falls back to `ColumnText`,
+ * reproducing the historical plain-text cell.
  */
 import merge from "lodash-es/merge.js";
 
@@ -40,6 +40,22 @@ export const columnMappings = {
             column: "ColumnDateTime",
             columnProps: { format: "t", showRelative: false, showTooltip: false },
             default: true,
+        },
+    },
+    // Foreign-key / one-to-one relations. ColumnModelLink derives the target
+    // model from the field's `appLabel`/`model` (server-populated for writable
+    // relations) and degrades to label text when unavailable. Many-relations
+    // (M2M) are intentionally unmapped for now; ColumnModelLink renders an
+    // array value as plain text rather than a single link.
+    PrimaryKeyRelatedField: {
+        ForeignKey: {
+            column: "ColumnModelLink",
+            columnProps: { view: "read" },
+            default: true,
+        },
+        OneToOneField: {
+            column: "ColumnModelLink",
+            columnProps: { view: "read" },
         },
     },
 };
