@@ -99,13 +99,36 @@ const LinkModelViewStub = defineComponent({
     },
 });
 let objectsGridProps;
+// Per-field slot-prop overrides for the rendered `field(<col>)` slots, keyed by
+// field name. Lets a test control what `formatted`/`value` a column cell sees.
+let columnSlotProps = {};
 const ObjectsGridStub = defineComponent({
     name: "ObjectsGridStub",
     props: ["fields", "sorted"],
     emits: ["update:isTable", "update:sorted"],
     setup(props, { slots, attrs }) {
         objectsGridProps = props;
-        return () => h("div", { "data-qa": "objects-grid", ...attrs }, slots.default ? slots.default() : null);
+        return () =>
+            h("div", { "data-qa": "objects-grid", ...attrs }, [
+                slots.default ? slots.default() : null,
+                // Mirror the real grid: render each field's `field(<col>)` slot
+                // (table + card both map to it) so injected column adapters and
+                // consumer slot overrides are exercised.
+                ...(props.fields || []).map((field) => {
+                    const slot = slots[`field(${field.name})`];
+                    if (!slot) {
+                        return null;
+                    }
+                    const slotProps = {
+                        field,
+                        formatted: `fmt:${field.name}`,
+                        value: `val:${field.name}`,
+                        pk: 1,
+                        ...(columnSlotProps[field.name] || {}),
+                    };
+                    return h("div", { "data-column": field.name }, slot(slotProps));
+                }),
+            ]);
     },
 });
 const MobileSortComponentStub = defineComponent({
@@ -281,6 +304,7 @@ const resetListPreferenceStoreMock = () => {
 beforeEach(async () => {
     vue = await vi.importActual("vue");
     objectsGridProps = undefined;
+    columnSlotProps = {};
     selectProps = undefined;
     route.query = {};
     routerPush.mockReset();
@@ -660,4 +684,97 @@ scopedIt("does not navigate when there are no stored filters", async () => {
 
     expect(routerPush).not.toHaveBeenCalled();
     wrapper.unmount();
+});
+
+describe("type-aware column adapters", () => {
+    const CustomColumn = defineComponent({
+        name: "CustomColumn",
+        props: ["formatted", "extra"],
+        setup(props) {
+            return () =>
+                h("span", { "data-qa": "custom-column", "data-extra": props.extra }, `custom:${props.formatted}`);
+        },
+    });
+
+    scopedIt("renders a plain column through the ColumnText default", async () => {
+        mockedInject.mockReturnValueOnce({});
+        const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+        await vue.nextTick();
+        const cell = wrapper.find('[data-column="field__name"]');
+        expect(cell.exists()).toBe(true);
+        // ColumnText reproduces the historical plain-text cell: just `formatted`.
+        expect(cell.text()).toBe("fmt:field__name");
+        wrapper.unmount();
+    });
+
+    scopedIt("lets a consumer field(<col>) slot override the adapter", async () => {
+        mockedInject.mockReturnValueOnce({});
+        const wrapper = mount(ViewList, {
+            props: { app: "app", model: "model" },
+            slots: {
+                "field(field__name)": (slotProps) =>
+                    h("span", { "data-qa": "consumer-cell" }, `consumer:${slotProps.formatted}`),
+            },
+        });
+        await vue.nextTick();
+        const cell = wrapper.find('[data-column="field__name"]');
+        expect(cell.find('[data-qa="consumer-cell"]').exists()).toBe(true);
+        expect(cell.text()).toBe("consumer:fmt:field__name");
+        wrapper.unmount();
+    });
+
+    scopedIt("uses the columnComponents prop override", async () => {
+        mockedInject.mockReturnValueOnce({});
+        const wrapper = mount(ViewList, {
+            props: { app: "app", model: "model", columnComponents: { field__name: CustomColumn } },
+        });
+        await vue.nextTick();
+        const cell = wrapper.find('[data-column="field__name"]');
+        expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
+        expect(cell.text()).toBe("custom:fmt:field__name");
+        wrapper.unmount();
+    });
+
+    scopedIt("uses a modelConfig.config.columnComponents override", async () => {
+        mockedInject.mockReturnValueOnce({});
+        modelConfig.config.columnComponents = { field__name: CustomColumn };
+        const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+        await vue.nextTick();
+        const cell = wrapper.find('[data-column="field__name"]');
+        expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
+        wrapper.unmount();
+    });
+
+    scopedIt("forwards columnProps to the resolved adapter", async () => {
+        mockedInject.mockReturnValueOnce({});
+        const wrapper = mount(ViewList, {
+            props: {
+                app: "app",
+                model: "model",
+                columnComponents: { field__name: CustomColumn },
+                columnProps: { field__name: { extra: "EX" } },
+            },
+        });
+        await vue.nextTick();
+        const cell = wrapper.find('[data-column="field__name"]');
+        expect(cell.find('[data-qa="custom-column"]').attributes("data-extra")).toBe("EX");
+        wrapper.unmount();
+    });
+
+    scopedIt("prop columnComponents beats modelConfig columnComponents", async () => {
+        mockedInject.mockReturnValueOnce({});
+        const ConfigColumn = defineComponent({
+            name: "ConfigColumn",
+            setup: () => () => h("span", { "data-qa": "config-column" }),
+        });
+        modelConfig.config.columnComponents = { field__name: ConfigColumn };
+        const wrapper = mount(ViewList, {
+            props: { app: "app", model: "model", columnComponents: { field__name: CustomColumn } },
+        });
+        await vue.nextTick();
+        const cell = wrapper.find('[data-column="field__name"]');
+        expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
+        expect(cell.find('[data-qa="config-column"]').exists()).toBe(false);
+        wrapper.unmount();
+    });
 });

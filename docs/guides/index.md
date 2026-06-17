@@ -6,7 +6,7 @@ type: index
 
 # Guides
 
-Guides are task-focused recipes for integrators working on real VUEDA projects. They assume you already know your domain model and need practical steps for wiring server + client behavior.
+Guides are task-focused how-tos for integrators. They assume you know your domain model and want concrete steps for wiring server and client behavior.
 
 ## Environment & Networking
 
@@ -27,6 +27,7 @@ Guides are task-focused recipes for integrators working on real VUEDA projects. 
 - [Split Read/Write Serializers Safely](split-read-write-serializers.md): Use viewset serializer switching without breaking model-info metadata.
 - [Configure `list`/`read`/`create`/`update` Views](configure-crud-views.md): Tune model config per view, including default fields/expands/actions.
 - [Link List Rows to Read and Update Views](link-list-rows-to-detail-views.md): Add a per-row link from a `list` view to that row's `read` or `update` view.
+- [Customize List Column Rendering](customize-list-column-rendering.md): Override how `list` columns render with type-aware column adapters, model config, view props, or slots.
 - [Expose Aggregates in `list` Responses](list-column-totals.md): Use server column totals and render them in `list` views.
 
 ## Fields, Forms, and Relationships

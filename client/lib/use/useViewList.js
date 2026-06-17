@@ -136,6 +136,7 @@ import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { ListFilterError } from "@vueda/utils/errors.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -158,6 +159,8 @@ const VIEW_NAME = "list";
  * @property {import('vue').Ref<string[]> | string[]} [listFields] - Field names to fetch; uses the model config default when empty.
  * @property {import('vue').Ref<{[key: string]: object}> | {[key: string]: object}} [displayFields] - Display field overrides; uses the model config default when empty.
  * @property {import('vue').Ref<object[]> | object[]} [extraFieldObjects] - Synthetic field objects prepended to the display field list (e.g. the `selected_` checkbox column).
+ * @property {import('vue').Ref<{[name:string]: any}> | {[name:string]: any}} [columnComponents] - Per-field column adapter overrides (component, `() => component`, or a string key into `availableColumns`); highest-precedence non-slot override.
+ * @property {import('vue').Ref<{[name:string]: object}> | {[name:string]: object}} [columnProps] - Per-field prop overrides forwarded to the resolved column adapter.
  *
  * Data fetching.
  * @property {import('vue').Ref<object> | object} [relatedObjectsRules] - Rules for fetching related objects alongside each row.
@@ -175,6 +178,8 @@ const VIEW_NAME = "list";
  * @property {string} pkKey - The primary key field name (auto-unwrapped).
  * @property {object[]} computedFieldObjects - Ordered field descriptors for the grid, with column visibility applied.
  * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to exclude them from generic slot forwarding.
+ * @property {{[name:string]: import('@vueda/utils/resolveColumnComponents.js').ResolvedColumn}} columnComponents - Per-display-field resolved column adapter `{ component, props }`, applying the override precedence chain. ViewList injects these as default `field(<col>)` slot content.
+ * @property {string[]} columnSlots - `field(<col>)` slot names for resolved columns; excluded from the generic consumer-slot forward loop to avoid double-rendering.
  * @property {object} columnTotals - Map of field name to column total value.
  * @property {boolean} loading - Combined loading state (model config + instance list).
  * @property {boolean} errored - True when either model config or instance list has a non-filter error.
@@ -516,6 +521,23 @@ export function useViewList(options) {
     });
     const specialSlots = computed(() => (options.extraFieldObjects || []).map((field) => `field(${field.name})`));
 
+    // Resolve a type-aware column adapter (and its props) for each display
+    // field. ViewList injects these as default `field(<col>)` slot content so
+    // columns render through their adapter unless a consumer overrides the slot.
+    const columnComponents = computed(() =>
+        resolveColumns({
+            fields: calculatedDisplayFields.value,
+            propComponents: unref(options.columnComponents),
+            propProps: unref(options.columnProps),
+            configComponents: modelConfig.config?.columnComponents,
+            configProps: modelConfig.config?.columnProps,
+        }),
+    );
+    // Slot names ViewList injects defaults for; excluded from the generic
+    // consumer-slot forward loop so an injected default and a forwarded
+    // consumer slot never double-render the same column.
+    const columnSlots = computed(() => Object.keys(columnComponents.value).map((name) => `field(${name})`));
+
     const filteredActions = useFilteredActions({ modelConfigInstance: modelConfig });
     const targetlessActions = computed(() => {
         const actions = filteredActions.actions || [];
@@ -660,6 +682,8 @@ export function useViewList(options) {
             pkKey,
             computedFieldObjects,
             specialSlots,
+            columnComponents,
+            columnSlots,
             columnTotals,
             loading,
             errored,

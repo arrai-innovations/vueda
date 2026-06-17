@@ -372,6 +372,29 @@ describe("lib/store/storeModelConfig.js", () => {
         });
     });
 
+    scopedIt("merges columnComponents (shallow) and columnProps (deep) across configs", async () => {
+        const store = storeModelConfig();
+        store.builtConfigs = {};
+        store.initialized = {};
+
+        const customGenericConfig = {
+            columnComponents: { name: "ColumnText", category: "ColumnModelLink" },
+            columnProps: { category: { app: "catalog", view: "read" } },
+        };
+        const customSpecificConfig = {
+            columnComponents: { category: "ColumnText" },
+            columnProps: { category: { model: "widgetcategory" } },
+        };
+        store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig, { update: customSpecificConfig });
+
+        const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
+        // shallow: per-field entries from both configs are present; the
+        // view-specific value replaces the generic one for the same field.
+        expect(config.columnComponents).toEqual({ name: "ColumnText", category: "ColumnText" });
+        // deep: per-field prop objects merge key-by-key.
+        expect(config.columnProps.category).toEqual({ app: "catalog", view: "read", model: "widgetcategory" });
+    });
+
     scopedIt("flattens expansion details and applies custom overrides", async () => {
         const store = storeModelConfig();
         store.builtConfigs = {};
@@ -451,6 +474,8 @@ describe("lib/store/storeModelConfig.js", () => {
             fieldProps: {},
             widgetComponents: {},
             widgetProps: {},
+            columnComponents: {},
+            columnProps: {},
             actionRedirects: {},
             actionDetails: {},
             fieldDetails: {},
