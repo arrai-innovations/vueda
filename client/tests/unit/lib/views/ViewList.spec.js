@@ -131,12 +131,12 @@ const ObjectsGridStub = defineComponent({
             ]);
     },
 });
-const MobileSortComponentStub = defineComponent({
-    name: "MobileSortComponentStub",
-    props: ["visible", "sorted", "sortables"],
-    emits: ["update:visible", "update:sorted"],
+const SortControlStub = defineComponent({
+    name: "SortControlStub",
+    props: ["sorted", "sortables", "fieldDetails", "triggerTarget"],
+    emits: ["update:sorted"],
     setup(props, { slots, attrs }) {
-        return () => h("div", { "data-qa": "mobile-sort-component", ...attrs }, slots.default ? slots.default() : null);
+        return () => h("div", { "data-qa": "sort-control", ...attrs }, slots.default ? slots.default() : null);
     },
 });
 const PageActionsStub = defineComponent({
@@ -257,7 +257,7 @@ vi.mock("@vueda/components/FilterGroup.vue", () => ({ default: FilterGroupStub }
 vi.mock("@vueda/components/FormMessage.vue", () => ({ default: FormMessageStub }));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 vi.mock("@vueda/components/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
-vi.mock("@vueda/components/MobileSortComponent.vue", () => ({ default: MobileSortComponentStub }));
+vi.mock("@vueda/components/SortControl.vue", () => ({ default: SortControlStub }));
 vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 vi.mock("@vueda/components/PaginationComponent.vue", () => ({ default: PaginationComponentStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
@@ -397,7 +397,7 @@ scopedIt("translates expanded field names for ObjectsGrid", async () => {
     wrapper.unmount();
 });
 
-scopedIt("renders the mobile sort component when sortables exist and table view is hidden", async () => {
+scopedIt("renders the sort control when sortables exist", async () => {
     mockedInject.mockReturnValueOnce({});
     const wrapper = mount(ViewList, {
         props: {
@@ -406,15 +406,13 @@ scopedIt("renders the mobile sort component when sortables exist and table view 
         },
     });
 
-    expect(wrapper.find('[data-qa="mobile-sort-component"]').exists()).toBe(false);
+    expect(wrapper.find('[data-qa="sort-control"]').exists()).toBe(false);
 
     modelConfig.config.sortables = ["name"];
     await vue.nextTick();
 
-    await wrapper.findComponent(ObjectsGridStub).vm.$emit("update:isTable", false);
-    await vue.nextTick();
-
-    expect(wrapper.find('[data-qa="mobile-sort-component"]').exists()).toBe(true);
+    // Layout-independent: appears without toggling out of table layout.
+    expect(wrapper.find('[data-qa="sort-control"]').exists()).toBe(true);
     wrapper.unmount();
 });
 
@@ -584,16 +582,14 @@ scopedIt("applies stored sorting to ObjectsGrid on mount", async () => {
     expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(storedSorting);
     wrapper.unmount();
 });
-scopedIt("propagates mobile sorting updates to preferences and params", async () => {
+scopedIt("propagates sort control updates to preferences and params", async () => {
     mockedInject.mockReturnValueOnce({});
     modelConfig.config.sortables = ["name", "created_at"];
     const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
 
     await vue.nextTick();
-    await wrapper.findComponent(ObjectsGridStub).vm.$emit("update:isTable", false);
-    await vue.nextTick();
 
-    wrapper.findComponent(MobileSortComponentStub).vm.$emit("update:sorted", ["-name", "created_at"]);
+    wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["-name", "created_at"]);
     await vue.nextTick();
 
     expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, [
@@ -658,19 +654,18 @@ scopedIt("keeps filter parameters when clearing search input", async () => {
     wrapper.unmount();
 });
 
-scopedIt("renders the mobile sorter only when table view is off and sortables exist", async () => {
+scopedIt("renders the sort control whenever sortables exist, regardless of layout", async () => {
     mockedInject.mockReturnValueOnce({});
     modelConfig.config.sortables = ["name"];
     const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
     await vue.nextTick();
-    await wrapper.findComponent(ObjectsGridStub).vm.$emit("update:isTable", false);
-    await vue.nextTick();
 
-    expect(wrapper.find('[data-qa="mobile-sort-component"]').exists()).toBe(true);
+    // Present in the default table layout, no isTable toggle required.
+    expect(wrapper.find('[data-qa="sort-control"]').exists()).toBe(true);
     modelConfig.config.sortables = [];
     await vue.nextTick();
 
-    expect(wrapper.find('[data-qa="mobile-sort-component"]').exists()).toBe(false);
+    expect(wrapper.find('[data-qa="sort-control"]').exists()).toBe(false);
     wrapper.unmount();
 });
 

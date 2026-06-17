@@ -210,8 +210,9 @@ const VIEW_NAME = "list";
  * @property {{state: {sortables: import('vue').ComputedRef<string[]|undefined>, sorted: string[]}, updateSorted: (sorted: string[]) => void}} sorting - Sorting state and updater.
  * @property {string[]} sortablesList - Flat list of sortable field names (auto-unwrapped).
  * @property {boolean} isTable - True when the grid is in table mode (auto-unwrapped ref; can be assigned via `@update:is-table`).
- * @property {boolean} mobileSortDrawerVisible - Whether the mobile sort drawer is open (auto-unwrapped ref; v-model compatible via `v-model:visible`).
- * @property {boolean} canShowMobileSorter - True when the mobile sorter should be rendered.
+ * @property {boolean} mobileSortDrawerVisible - Whether the mobile sort drawer is open (auto-unwrapped ref; v-model compatible via `v-model:visible`). Deprecated: SortControl owns its own open state.
+ * @property {boolean} canShowSorter - True when the sort control should be rendered (whenever sortable fields exist; layout-independent).
+ * @property {boolean} canShowMobileSorter - Deprecated. True when the legacy card-layout-only mobile sorter should be rendered (`!isTable && sortables exist`). Use `canShowSorter`.
  */
 
 /**
@@ -607,6 +608,12 @@ export function useViewList(options) {
     const columnTotals = computed(() => instanceList.state.columnTotals || {});
     const mobileSortDrawerVisible = ref(false);
     const sortablesList = computed(() => unref(sorting.state.sortables) || []);
+    // Layout-independent gate for the sort control: show it whenever the model
+    // exposes sortable fields. The control picks its own surface (popover vs
+    // drawer) by viewport, so the gate no longer depends on `isTable`.
+    const canShowSorter = computed(() => sortablesList.value.length > 0);
+    // Deprecated: the card-layout-only gate for the legacy MobileSortComponent.
+    // Superseded by `canShowSorter`; retained for back-compat.
     const canShowMobileSorter = computed(() => !isTable.value && sortablesList.value.length > 0);
     watch([isTable, sortablesList], ([newIsTable, newSortables]) => {
         if (newIsTable || !newSortables.length) {
@@ -709,6 +716,7 @@ export function useViewList(options) {
             sortablesList,
             isTable,
             mobileSortDrawerVisible,
+            canShowSorter,
             canShowMobileSorter,
         }),
         columns: reactive({

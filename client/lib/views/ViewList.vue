@@ -3,11 +3,11 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterGroup from "@vueda/components/FilterGroup.vue";
 import FormMessage from "@vueda/components/FormMessage.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import MobileSortComponent from "@vueda/components/MobileSortComponent.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageActions from "@vueda/components/PageActions.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
+import SortControl from "@vueda/components/SortControl.vue";
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import InputGroup from "@vueda/controls/input-group/InputGroup.vue";
 import InputGroupButton from "@vueda/controls/input-group/InputGroupButton.vue";
@@ -22,7 +22,7 @@ import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewList } from "@vueda/use/useViewList.js";
-import { getCRUDName, memoizedStartCase } from "@vueda/utils/case.js";
+import { getCRUDName } from "@vueda/utils/case.js";
 import omit from "lodash-es/omit.js";
 import { computed, onMounted, reactive, readonly, ref, toRef, toRefs, useSlots } from "vue";
 
@@ -231,10 +231,8 @@ onMounted(() => {
             <div :class="theme('filterControls')" data-qa="view-list-filter-controls">
                 <!-- FilterGroup's add-filter trigger teleports into this zone. -->
                 <div ref="filterTriggerZone" :class="theme('filterTriggerZone')" data-qa="view-list-filter-trigger" />
-                <mobile-sort-component
-                    v-if="sort.canShowMobileSorter"
-                    v-model:visible="sort.mobileSortDrawerVisible"
-                    :header="`Sort ${memoizedStartCase(modelConfig.config?.verboseNamePlural || 'items')}`"
+                <sort-control
+                    v-if="sort.canShowSorter"
                     :field-details="modelConfig.config?.fieldDetails || {}"
                     :sortables="sort.sortablesList"
                     :sorted="sort.sorting.state.sorted"
@@ -243,7 +241,7 @@ onMounted(() => {
                     <template v-for="(_, slot) in slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
                     </template>
-                </mobile-sort-component>
+                </sort-control>
             </div>
             <div :class="theme('listControlBar')">
                 <slot name="search" v-bind="themedSearchSlotProps">

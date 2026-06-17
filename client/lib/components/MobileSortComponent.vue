@@ -14,6 +14,11 @@ import { computed } from "vue";
  * `SortEditor` body. Owns only the trigger button and the drawer open/close
  * state; add / reorder / direction / remove / clear behaviour lives in
  * `SortEditor`.
+ *
+ * @deprecated Superseded by {@api vue:component:SortControl}, which hosts the same
+ * `SortEditor` body and picks a popover (desktop) or drawer (mobile) by viewport,
+ * giving a layout-independent sort entry point. `ViewList` now renders `SortControl`.
+ * This component remains for back-compat and direct consumers.
  */
 defineOptions({});
 
