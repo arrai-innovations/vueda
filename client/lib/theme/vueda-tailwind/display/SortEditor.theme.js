@@ -1,0 +1,52 @@
+/**
+ * @module theme/vueda-tailwind/display/SortEditor.theme
+ *
+ * Per-component theme registration for SortEditor. Imported as a side effect by
+ * SortEditor.vue, so a route chunk that pulls only that SFC drags only this
+ * component's theme entry, not the entire display family.
+ */
+import { patchTheme } from "@vueda/use/themeRegistry.js";
+
+patchTheme({
+    /**
+     * SortEditor is the shell-agnostic multi-field sort editor body: drag handles, order text, per-row field selects, and the add/clear action bar. A shell (drawer or popover) hosts it.
+     */
+    SortEditor: {
+        /** Outer stack for the reorderable field list and the action bar. */
+        root: {
+            class: ["flex flex-col gap-4"],
+        },
+        /** Vertical list wrapper for reorderable sort fields. */
+        draggable: {
+            class: ["flex flex-col gap-2"],
+        },
+        /** Bordered sort-field row containing the handle, order text, and select. */
+        draggableItem: {
+            class: ["flex flex-row rounded-lg border p-3"],
+        },
+        /** Flexible row content inside each draggable item. */
+        draggableItemInner: {
+            class: ["select-none flex flex-row gap-3 items-center justify-between grow flex-1"],
+        },
+        /** Pointer target for dragging a sort field. */
+        dragHandle: {
+            class: ["drag-handle cursor-grab active:cursor-grabbing p-1"],
+        },
+        /** Small fixed-width sort-order label for the current field position. */
+        sortOrderText: {
+            class: ["w-3 text-sm font-semibold text-muted-foreground"],
+        },
+        /** Full-width select control used to choose the sorted field. */
+        select: {
+            class: ["w-full"],
+        },
+        /** Inline action alignment for per-sort-field controls. */
+        sortInlineActionBar: {
+            class: ["flex flex-row content-baseline justify-end"],
+        },
+        /** Action stack for add, clear, or cancel commands. */
+        actionBar: {
+            class: ["flex flex-col gap-2"],
+        },
+    },
+});

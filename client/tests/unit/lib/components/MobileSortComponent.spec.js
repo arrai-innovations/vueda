@@ -132,9 +132,11 @@ vi.mock("@vueda/use/useTheme.js", () => ({
 }));
 
 let MobileSortComponent;
+let SortEditor;
 
 beforeEach(async () => {
     MobileSortComponent = (await import("@vueda/components/MobileSortComponent.vue")).default;
+    SortEditor = (await import("@vueda/components/SortEditor.vue")).default;
 });
 
 afterEach(() => {
@@ -209,146 +211,56 @@ describe("lib/components/MobileSortComponent.vue", () => {
         expect(drawer().attributes("data-open")).toBe("false");
     });
 
-    scopedIt("manages the sorted list when adding, toggling, and removing entries", async () => {
-        const { wrapper } = mountComponent({
-            props: {
-                sortables: ["name", "created_at", "status"],
-                sorted: ["name"],
-                fieldDetails: { name: { label: "Name" }, created_at: {}, status: {} },
-            },
-        });
-
-        wrapper.vm.addSortable();
-        const addedSorted = wrapper.emitted()["update:sorted"][0][0];
-        expect(addedSorted).toEqual(["name", "created_at"]);
-        wrapper.setProps({ sorted: addedSorted });
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.toggleDirection(0);
-        const toggledSorted = wrapper.emitted()["update:sorted"][1][0];
-        expect(toggledSorted).toEqual(["-name", "created_at"]);
-        wrapper.setProps({ sorted: toggledSorted });
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.removeSortable(1);
-        const removedSorted = wrapper.emitted()["update:sorted"][2][0];
-        expect(removedSorted).toEqual(["-name"]);
-        wrapper.setProps({ sorted: removedSorted });
-        await wrapper.vm.$nextTick();
-        wrapper.vm.clearAll();
-        expect(wrapper.emitted()["update:sorted"][3][0]).toEqual([]);
-    });
-
-    scopedIt("does nothing when actions are invoked without available sortables", async () => {
-        const { wrapper } = mountComponent({
-            props: {
-                sortables: [],
-                sorted: [],
-            },
-        });
-
-        wrapper.vm.addSortable();
-        wrapper.vm.clearAll();
-        wrapper.vm.toggleDirection(0);
-
-        expect(wrapper.emitted()["update:sorted"]).toBeUndefined();
-    });
-
-    scopedIt("disables the Clear all button when there are no sorted fields", () => {
-        const { wrapper } = mountComponent({
-            props: {
-                sorted: [],
-            },
-        });
-
-        const clearButton = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Clear all"));
-        expect(clearButton.attributes("disabled")).toBeDefined();
-    });
-
-    scopedIt("disables the Add Sort button when no sortable options remain", () => {
-        const { wrapper } = mountComponent({
-            props: {
-                sortables: ["name"],
-                sorted: ["name"],
-            },
-        });
-
-        const addButton = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Add Sort"));
-        expect(addButton.attributes("disabled")).toBeDefined();
-    });
-
-    scopedIt("emits reordered sorting when dragging items", async () => {
-        const { wrapper } = mountComponent({
-            props: {
-                sorted: ["name", "created_at"],
-            },
-        });
-
-        wrapper.findComponent(DraggableStub).vm.$emit("update:modelValue", ["created_at", "name"]);
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["created_at", "name"]);
-    });
-
-    scopedIt("derives labels from fieldDetails and shows a badge for applied sorts", () => {
+    scopedIt("shows a badge with the applied sort count on the trigger", () => {
         const { wrapper } = mountComponent({
             props: {
                 sorted: ["name", "-created_at"],
-                fieldDetails: { name: { label: "Display Name" }, created_at: { label: "Created" } },
             },
         });
 
-        const selectDisplays = wrapper.findAll('[data-qa="select-value"]');
-
-        expect(selectDisplays[0].text()).toBe("Display Name");
-        expect(selectDisplays[1].text()).toBe("Created");
         const sortBtn = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Sort"));
         expect(sortBtn.text()).toContain("2");
     });
 
-    scopedIt("does not emit add events when all sortables are already selected", () => {
+    scopedIt("hosts SortEditor with the sort props forwarded", () => {
         const { wrapper } = mountComponent({
             props: {
-                sortables: ["name", "created_at"],
+                sortables: ["name", "created_at", "status"],
                 sorted: ["name", "-created_at"],
+                fieldDetails: { name: { label: "Name" } },
             },
         });
 
-        wrapper.vm.addSortable();
-
-        expect(wrapper.emitted()["update:sorted"]).toBeUndefined();
+        const editor = wrapper.findComponent(SortEditor);
+        expect(editor.exists()).toBe(true);
+        expect(editor.props("sortables")).toEqual(["name", "created_at", "status"]);
+        expect(editor.props("sorted")).toEqual(["name", "-created_at"]);
+        expect(editor.props("fieldDetails")).toEqual({ name: { label: "Name" } });
     });
 
-    scopedIt("emits updated sorting when a selection is changed", async () => {
+    scopedIt("re-emits update:sorted raised by the hosted SortEditor", async () => {
         const { wrapper } = mountComponent({
             props: {
-                sortables: ["name", "created_at"],
-                sorted: ["-name"],
+                sorted: ["name"],
             },
         });
 
-        await wrapper.findComponent(ControlSelectStub).vm.$emit("update:modelValue", "created_at");
+        wrapper.findComponent(SortEditor).vm.$emit("update:sorted", ["-name"]);
+        await wrapper.vm.$nextTick();
 
-        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["created_at"]);
+        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["-name"]);
     });
 
-    scopedIt("respects custom slots while preserving emissions", async () => {
+    scopedIt("forwards body slots through to SortEditor", () => {
         const { wrapper } = mountComponent({
             props: {
                 sorted: ["name"],
             },
             slots: {
-                "drag-handle": ({ onClick }) => h("button", { "data-qa": "custom-drag", onClick }, "drag"),
-                "toggle-order-button": ({ onClick, label }) =>
-                    h("button", { "data-qa": "custom-toggle", onClick }, label),
-                "remove-sort-button": ({ onClick }) => h("button", { "data-qa": "custom-remove", onClick }, "x"),
+                "drag-handle": () => h("span", { "data-qa": "custom-drag" }, "drag"),
             },
         });
 
-        await wrapper.find('[data-qa="custom-toggle"]').trigger("click");
-        await wrapper.find('[data-qa="custom-remove"]').trigger("click");
-
-        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["-name"]);
-        expect(wrapper.emitted()["update:sorted"][1][0]).toEqual([]);
+        expect(wrapper.find('[data-qa="custom-drag"]').exists()).toBe(true);
     });
 });
