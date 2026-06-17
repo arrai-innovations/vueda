@@ -73,6 +73,34 @@ describe("lib/utils/resolveColumnComponents.js", () => {
         });
     });
 
+    describe("date/time type defaults", () => {
+        scopedIt("DateField resolves to ColumnDateTime with showTime false", () => {
+            const field = { name: "d", typeSerializer: "DateField", typeModel: "DateField" };
+            expect(resolveColumnComponent(field)).toBe(availableColumns.ColumnDateTime);
+            expect(resolveColumnProps(field)).toEqual({ showTime: false });
+        });
+
+        scopedIt("DateTimeField resolves to ColumnDateTime with showTime true", () => {
+            const field = { name: "dt", typeSerializer: "DateTimeField", typeModel: "DateTimeField" };
+            expect(resolveColumnComponent(field)).toBe(availableColumns.ColumnDateTime);
+            expect(resolveColumnProps(field)).toEqual({ showTime: true });
+        });
+
+        scopedIt("TimeField resolves to ColumnDateTime with time-only formatting", () => {
+            const field = { name: "t", typeSerializer: "TimeField", typeModel: "TimeField" };
+            expect(resolveColumnComponent(field)).toBe(availableColumns.ColumnDateTime);
+            expect(resolveColumnProps(field)).toEqual({ format: "t", showRelative: false, showTooltip: false });
+        });
+
+        scopedIt("a columnProps override merges over the date type default", () => {
+            const field = { name: "d", typeSerializer: "DateField", typeModel: "DateField" };
+            expect(resolveColumnProps(field, { d: { showTime: true, format: "break" } })).toEqual({
+                showTime: true,
+                format: "break",
+            });
+        });
+    });
+
     describe("resolveColumnProps layering", () => {
         scopedIt("returns an empty object when nothing supplies props", () => {
             expect(resolveColumnProps({ name: "a" })).toEqual({});

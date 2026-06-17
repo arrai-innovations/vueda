@@ -3,7 +3,7 @@
  * @description Registry of all available list column adapter components. Mirrors `formLookups.js` (fields/widgets). String-keyed so model config and the `columnComponents` prop can reference an adapter by name without importing the component.
  */
 import ColumnText from "@vueda/components/ColumnText.vue";
-import { markRaw } from "vue";
+import { defineAsyncComponent, markRaw } from "vue";
 
 /**
  * A column adapter reference: a component, or a lazy loader resolving to one.
@@ -23,4 +23,7 @@ import { markRaw } from "vue";
  */
 export const availableColumns = {
     ColumnText: markRaw(ColumnText),
+    ColumnDateTime: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/components/ColumnDateTime.vue")).default),
+    ),
 };
