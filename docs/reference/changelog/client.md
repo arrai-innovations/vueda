@@ -23,6 +23,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 - **Expand descriptor metadata is now camelCased (storeModelInfo, ExpandInfo)**:
     - `storeModelInfo` now camelCases each expand descriptor's own keys (for example `app_label` becomes `appLabel`, `requires_permission` becomes `requiresPermission`), matching how it already camelCases field details. The field-name keys under an expand's `f` map are still preserved verbatim (they are server lookup keys), and each `FieldInfo` value under `f` is still camelCased. This removes a long-standing inconsistency where an expand root kept `snake_case` keys while field details were camelCase.
       _If you read an expand descriptor's related-model identity directly (for example `expandDetail.app_label`), switch to `expandDetail.appLabel`. The `model` key is unchanged. Default `ViewList` and `ModelForm` usage needs no change._
+- **Dependency security floor**:
+    - The client package now requires `dompurify` 3.4.9 or newer so installs resolve to versions with the published DOMPurify sanitization fixes.
+      _No action is required unless your application pins `dompurify` below 3.4.9._
 - **Model-backed filter choices render correctly (WidgetModel)**:
     - `WidgetModel` no longer forwards relation `app` and `model` metadata to its internal combobox when rendering fetched choice options. Forwarding those attrs accidentally switched the combobox into direct API-search mode, so model-backed filter widgets could request results successfully but render empty option labels.
       _No action is required for default `ViewList` filters._
