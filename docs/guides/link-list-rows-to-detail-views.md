@@ -18,10 +18,10 @@ This builds on [Configure `list`/`read`/`create`/`update` Views](./configure-cru
 Three facts combine to mean a stock list row cannot navigate to its own detail view:
 
 - **Detail actions do not render as list buttons.** `useViewList` sorts the available actions into _targetless_ actions (neither `detail` nor `bulk`) and _bulk_ actions (`bulk`). The `retrieve` and `update` actions are `detail: true, bulk: false`, so they fall into neither group and produce no button in the list. They render only inside a detail view (`ViewRead`), not the list. See [Control Action Availability in the UI](./control-action-availability) for the classification rules.
-- **Cells are plain text.** Grid cells render the field's formatted value as text. There is no automatic linking, including for foreign-key columns.
+- **A row does not link to its own detail view.** Column adapters can auto-link a _foreign-key_ column to the _related_ model's detail view (see [Customize List Column Rendering](./customize-list-column-rendering)), but the row's own primary key is not a column value, so nothing links a row to its own `read`/`update` view by default.
 - **There is no row-click handler.** `ViewList` does not make rows clickable.
 
-So a link is something you add deliberately. The sanctioned way is a field slot that renders a {@api vue:component:LinkModelView}.
+So a row self-link is something you add deliberately. The sanctioned way is a field slot that renders a {@api vue:component:LinkModelView}.
 
 ## The Layered Pattern
 
