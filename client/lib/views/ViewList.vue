@@ -57,6 +57,21 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    /**
+     * Per-field list column adapter overrides. Each value is a component, a
+     * `() => component` loader, or a string key into `availableColumns`. Takes
+     * precedence over `modelConfig.config.columnComponents` and type defaults;
+     * a consumer `#field(<col>)` slot still wins over both.
+     */
+    columnComponents: {
+        type: Object,
+        default: () => ({}),
+    },
+    /** Per-field props forwarded to the resolved list column adapter. */
+    columnProps: {
+        type: Object,
+        default: () => ({}),
+    },
     /** Rules mapping related object keys to fetch data alongside each list row. */
     relatedObjectsRules: {
         type: Object,
@@ -359,10 +374,22 @@ onMounted(() => {
             @update:is-table="sort.isTable = $event"
         >
             <template
-                v-for="slot in Object.keys(slots).filter((slot) => !list.specialSlots.includes(slot))"
+                v-for="slot in Object.keys(slots).filter(
+                    (slot) => !list.specialSlots.includes(slot) && !list.columnSlots.includes(slot),
+                )"
                 #[slot]="slotProps"
             >
                 <slot :name="slot" v-bind="slotProps || {}"></slot>
+            </template>
+            <!-- Type-aware column adapters: inject a default `field(<col>)` per
+                 display column. The inner <slot> renders the consumer's own
+                 `field(<col>)` slot when provided (highest precedence), else the
+                 resolved adapter. Covers both table and card layouts because
+                 ObjectsGrid maps `field(<col>)` into both cell types. -->
+            <template v-for="(resolved, name) in list.columnComponents" :key="name" #[`field(${name})`]="slotProps">
+                <slot :name="`field(${name})`" v-bind="slotProps">
+                    <component :is="resolved.component" v-bind="{ ...slotProps, ...resolved.props }" />
+                </slot>
             </template>
             <template v-for="field in extraFieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
                 <slot :name="`field(${field.name})`" v-bind="slotProps">
