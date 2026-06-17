@@ -34,6 +34,7 @@ import {
     faEllipsis,
     faFileImport,
     faFilter,
+    faGripVertical,
     faMagnifyingGlass,
     faPen,
     faPlus,
@@ -69,7 +70,7 @@ const statusClasses = {
     warning: "border-warning/40 bg-warning/10 text-warning",
 };
 
-const sorted = ref(["-updated"]);
+const sorted = ref(["-updated", "mrr"]);
 
 // Each StickyBar demo binds its scroll-root to its own bounded, scrollable
 // panel so the bar pins to and reacts to the demo viewport instead of the page
@@ -285,12 +286,12 @@ Theme keys: {@api theme-key:StickyBar}.
 The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and a filter entry point — the search and column buttons stay anchored right at all times. The `Filters` control on the left carries a count of active filters and opens an add-filter menu listing the fields not yet applied; picking one slides the popover to that field's filter form in place (no modal, no second surface), and a back affordance returns to the list to add another. Active filters render as a tinted strip of chips below: click a chip to edit it (reopening the same form anchored to the chip), the ✕ to remove it, or `Clear all` to reset every filter. When rows are selected, a bulk-actions strip appears. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
 
 ::: info Mockup status
-This ViewList is a static mockup of the filter UX. The live components now implement this direction: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. Sort is intentionally out of scope for this pass.
+This ViewList is a static mockup. The live components implement the filter UX: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. The toolbar `Sort` trigger and the multi-field sort popover shown below are a design proposal, not yet wired in. Live sorting today happens through `ObjectsGrid` column headers (table layout) and the `MobileSortComponent` bottom drawer (card layout); the proposal hosts that same multi-field editor body in a toolbar popover so desktop and mobile share one sort surface.
 :::
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-    <span class="font-semibold uppercase tracking-wide">view list · 4 rows · 1 selected · 3 active filters · sorted updated desc</span>
+    <span class="font-semibold uppercase tracking-wide">view list · 4 rows · 1 selected · 3 active filters · 2 sorts (updated desc, mrr asc)</span>
     <span class="font-mono">sorted: {{ sorted.join(", ") }}</span>
   </header>
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
@@ -320,9 +321,11 @@ This ViewList is a static mockup of the filter UX. The live components now imple
           <span class="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">3</span>
           <FontAwesomeIcon :icon="faChevronDown" class="size-2.5 text-muted-foreground" />
         </Button>
-        <Button size="sm" variant="ghost">
+        <Button size="sm" variant="outline" aria-haspopup="dialog">
           <FontAwesomeIcon :icon="faSort" />
           Sort
+          <span class="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">2</span>
+          <FontAwesomeIcon :icon="faChevronDown" class="size-2.5 text-muted-foreground" />
         </Button>
       </div>
       <div class="flex items-center gap-2">
@@ -463,6 +466,62 @@ This ViewList is a static mockup of the filter UX. The live components now imple
     </div>
   </div>
   <div class="flex flex-col gap-2">
+    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sort [2] → multi-field editor · the trigger opens this popover · same editor body the mobile bottom drawer hosts</header>
+    <div class="flex flex-wrap items-start gap-6">
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">active sorts · priority top-to-bottom · the field control swaps the column, the arrow flips direction, ✕ removes</span>
+        <div class="w-72 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <div class="px-2 pb-1 pt-1.5">
+            <h3 class="mb-1 text-sm font-semibold">Sort by</h3>
+            <p class="mb-2 text-xs text-muted-foreground">Drag to reorder. The first sort has the highest priority.</p>
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-1.5">
+                <span class="flex size-5 cursor-grab items-center justify-center text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-3" /></span>
+                <span class="w-4 text-center font-mono text-xs text-muted-foreground">1</span>
+                <span class="flex h-7 flex-1 items-center justify-between rounded-vueda-control border border-input bg-background px-2 text-sm text-foreground">Updated<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></span>
+                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Sort Updated ascending (currently descending)"><FontAwesomeIcon :icon="faSortDown" /></button>
+                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Remove sort: Updated"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="flex size-5 cursor-grab items-center justify-center text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-3" /></span>
+                <span class="w-4 text-center font-mono text-xs text-muted-foreground">2</span>
+                <span class="flex h-7 flex-1 items-center justify-between rounded-vueda-control border border-input bg-background px-2 text-sm text-foreground">MRR<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></span>
+                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Sort MRR descending (currently ascending)"><FontAwesomeIcon :icon="faSortDown" class="rotate-180" /></button>
+                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Remove sort: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+              </div>
+            </div>
+            <div class="mt-2 flex items-center justify-between">
+              <Button size="sm" variant="outline"><FontAwesomeIcon :icon="faPlus" />Add sort</Button>
+              <Button size="sm" variant="ghost" class="text-xs">Clear all</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">empty state · no sorts applied · Add sort opens the field-picker</span>
+        <div class="w-72 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <div class="px-2 pb-1 pt-1.5">
+            <h3 class="mb-1 text-sm font-semibold">Sort by</h3>
+            <p class="mb-3 text-xs text-muted-foreground">No sorting applied. Add a field to begin.</p>
+            <div class="flex items-center justify-between">
+              <Button size="sm" variant="outline"><FontAwesomeIcon :icon="faPlus" />Add sort</Button>
+              <Button size="sm" variant="ghost" class="text-xs" disabled>Clear all</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">Add sort menu · lists only fields not already sorted · clicking one appends a row</span>
+        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <div class="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Add sort</div>
+          <button type="button" class="flex w-full items-center rounded-sm bg-accent px-2 py-1.5 text-sm text-accent-foreground">Account</button>
+          <button type="button" class="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Owner</button>
+          <button type="button" class="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Status</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col gap-2">
     <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Error state · the server rejects a filter value (HTTP 400, keyed by field) — no separate banner</header>
     <div class="flex flex-wrap items-start gap-6">
       <div class="flex flex-col gap-1.5">
@@ -497,7 +556,10 @@ This ViewList is a static mockup of the filter UX. The live components now imple
     </div>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>under-actions: search and column controls anchored right; the Filters control sits left</span>
+    <span>under-actions: search and column controls anchored right; the Filters and Sort controls sit left</span>
+    <span>Sort [n]: badge counts active sort fields; the trigger opens the multi-field sort popover</span>
+    <span>sort popover: drag to reorder (priority), per-row field swap and direction toggle, ✕ to remove, Clear all — the same editor body the mobile bottom drawer hosts</span>
+    <span>Add sort: opens a field-picker menu of fields not already sorted (mirrors the filter add-flow); clicking one appends a new sort row</span>
     <span>Filters [n]: badge counts active filters; opens the add-filter menu of not-yet-applied fields</span>
     <span>add-filter flow: pick a field, the popover slides to that field's form in place; ‹ returns to the list; one anchored surface, no modal</span>
     <span>filter chips: one per active filter — click the label to edit (reopens the same form anchored to the chip), ✕ to remove, Clear all resets every filter</span>
