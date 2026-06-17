@@ -73,6 +73,15 @@ const DraggableStub = defineComponent({
     },
 });
 
+const PassThroughStub = (name) =>
+    defineComponent({
+        name,
+        inheritAttrs: false,
+        setup(_, { slots, attrs }) {
+            return () => h("div", { ...attrs }, slots.default ? slots.default() : null);
+        },
+    });
+
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/controls/select/Select.vue", () => ({ default: ControlSelectStub }));
 vi.mock("@vueda/controls/select/SelectContent.vue", () => ({ default: ControlSelectContentStub }));
@@ -80,6 +89,9 @@ vi.mock("@vueda/controls/select/SelectItem.vue", () => ({ default: ControlSelect
 vi.mock("@vueda/controls/select/SelectTrigger.vue", () => ({ default: ControlSelectTriggerStub }));
 vi.mock("@vueda/controls/select/SelectValue.vue", () => ({ default: ControlSelectValueStub }));
 vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
+vi.mock("@vueda/shell/popover/Popover.vue", () => ({ default: PassThroughStub("PopoverStub") }));
+vi.mock("@vueda/shell/popover/PopoverContent.vue", () => ({ default: PassThroughStub("PopoverContentStub") }));
+vi.mock("@vueda/shell/popover/PopoverTrigger.vue", () => ({ default: PassThroughStub("PopoverTriggerStub") }));
 
 const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const themeMock = makeThemeFn({ slotResolver: (key) => key });
@@ -246,6 +258,38 @@ describe("lib/components/SortEditor.vue", () => {
         await wrapper.findComponent(ControlSelectStub).vm.$emit("update:modelValue", "created_at");
 
         expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["created_at"]);
+    });
+
+    scopedIt("lists only unused fields in the add-sort menu and appends the picked field", async () => {
+        const { wrapper } = mountComponent({
+            props: {
+                sortables: ["name", "created_at", "status"],
+                sorted: ["name"],
+                fieldDetails: {
+                    name: { label: "Name" },
+                    created_at: { label: "Created" },
+                    status: { label: "Status" },
+                },
+            },
+        });
+
+        const items = wrapper.findAll('[data-qa="sort-add-menu-item"]');
+        expect(items.map((i) => i.text())).toEqual(["Created", "Status"]);
+
+        await items[1].trigger("click");
+        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["name", "status"]);
+    });
+
+    scopedIt("shows the add-menu empty state when every field is already sorted", () => {
+        const { wrapper } = mountComponent({
+            props: {
+                sortables: ["name", "created_at"],
+                sorted: ["name", "-created_at"],
+            },
+        });
+
+        expect(wrapper.findAll('[data-qa="sort-add-menu-item"]')).toHaveLength(0);
+        expect(wrapper.find('[data-qa="sort-add-menu-empty"]').exists()).toBe(true);
     });
 
     scopedIt("respects custom slots while preserving emissions", async () => {

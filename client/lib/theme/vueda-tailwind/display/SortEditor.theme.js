@@ -48,5 +48,21 @@ patchTheme({
         actionBar: {
             class: ["flex flex-col gap-2"],
         },
+        /** Eyebrow at the top of the add-sort field-picker menu. The in-popover micro-eyebrow recipe (11 px / 600 / 0.04em). */
+        addMenuEyebrow: {
+            class: [
+                "px-2 py-1.5 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em] text-muted-foreground",
+            ],
+        },
+        /** A selectable unused-field row in the add-sort menu. */
+        addMenuItem: {
+            class: [
+                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground",
+            ],
+        },
+        /** Empty-state message shown when every sortable field is already in the sort. */
+        addMenuEmpty: {
+            class: ["px-2 py-1.5 text-sm text-muted-foreground"],
+        },
     },
 });

@@ -5,11 +5,15 @@ import SelectContent from "@vueda/controls/select/SelectContent.vue";
 import SelectItem from "@vueda/controls/select/SelectItem.vue";
 import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
 import SelectValue from "@vueda/controls/select/SelectValue.vue";
+import Popover from "@vueda/shell/popover/Popover.vue";
+import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
+import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
+import { keepOpenOverNestedPopper } from "@vueda/shell/popover/keepOpenOverNestedPopper.js";
 import "@vueda/theme/vueda-tailwind/display/SortEditor.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { VueDraggableNext as draggable } from "vue-draggable-next";
 
 /**
@@ -61,12 +65,20 @@ const availableSortableOptions = computed(() => {
     }));
 });
 
-const addSortable = () => {
-    if (!availableSortables.value.length) {
+// Append a sort row. The toolbar UI passes an explicit field (picked from the
+// add menu); a bare call falls back to the first unused field for programmatic
+// callers.
+const addSortable = (field) => {
+    const target = typeof field === "string" ? field : availableSortables.value[0];
+    if (!target || !availableSortables.value.includes(target)) {
         return;
     }
-    const newSorted = [...props.sorted, availableSortables.value[0]];
-    emit("update:sorted", newSorted);
+    emit("update:sorted", [...props.sorted, target]);
+};
+const addMenuOpen = ref(false);
+const pickAddField = (field) => {
+    addSortable(field);
+    addMenuOpen.value = false;
 };
 const clearAll = () => {
     if (!props.sorted.length) {
@@ -205,21 +217,43 @@ const icon = useIcons("SortEditor");
                 </div>
             </draggable>
         </div>
-        <div v-else class="text-sm text-muted-foreground">No Sorting applied. Click 'Add Sort' to begin</div>
+        <div v-else class="text-sm text-muted-foreground">No sorting applied. Add a field to begin.</div>
         <div :class="theme('actionBar')">
-            <!-- Button that appends the first available field as a new sort criterion; receives `label`, `disabled`, `size`, and a click handler as slot props. -->
-            <slot
-                name="add-sort-button"
-                data-qa="sort-component-add-button"
-                label="Add Sort"
-                :disabled="!availableSortables.length"
-                size="small"
-                @click="addSortable"
-            >
-                <Button variant="secondary" :disabled="!availableSortables.length" size="sm" @click="addSortable">
-                    Add Sort
-                </Button>
-            </slot>
+            <!-- Add-sort trigger: opens a field-picker menu of unused fields. The slot is the trigger
+                 (wrapped as a popover trigger); receives `label`, `disabled`, and `size` as slot props. -->
+            <Popover v-model:open="addMenuOpen">
+                <PopoverTrigger as-child>
+                    <slot
+                        name="add-sort-button"
+                        data-qa="sort-component-add-button"
+                        label="Add Sort"
+                        :disabled="!availableSortables.length"
+                        size="small"
+                    >
+                        <Button variant="secondary" :disabled="!availableSortables.length" size="sm"> Add Sort </Button>
+                    </slot>
+                </PopoverTrigger>
+                <PopoverContent size="sm" data-qa="sort-add-menu" @interact-outside="keepOpenOverNestedPopper">
+                    <div :class="theme('addMenuEyebrow')">Add sort</div>
+                    <button
+                        v-for="opt in availableSortableOptions"
+                        :key="opt.value"
+                        type="button"
+                        :class="theme('addMenuItem')"
+                        data-qa="sort-add-menu-item"
+                        @click="pickAddField(opt.value)"
+                    >
+                        {{ opt.label }}
+                    </button>
+                    <div
+                        v-if="!availableSortableOptions.length"
+                        :class="theme('addMenuEmpty')"
+                        data-qa="sort-add-menu-empty"
+                    >
+                        All fields sorted.
+                    </div>
+                </PopoverContent>
+            </Popover>
             <!-- Button that clears all active sort criteria; receives `text`, `label`, `disabled`, `size`, and a click handler as slot props. -->
             <slot
                 name="clear-sort-button"

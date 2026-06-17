@@ -123,6 +123,18 @@ vi.mock("@vueda/controls/select/SelectItem.vue", () => ({ default: ControlSelect
 vi.mock("@vueda/controls/select/SelectTrigger.vue", () => ({ default: ControlSelectTriggerStub }));
 vi.mock("@vueda/controls/select/SelectValue.vue", () => ({ default: ControlSelectValueStub }));
 vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
+// SortEditor (rendered for real inside the drawer) hosts its add-sort field picker in a popover.
+const PassThroughStub = (name) =>
+    defineComponent({
+        name,
+        inheritAttrs: false,
+        setup(_, { slots, attrs }) {
+            return () => h("div", { ...attrs }, slots.default ? slots.default() : null);
+        },
+    });
+vi.mock("@vueda/shell/popover/Popover.vue", () => ({ default: PassThroughStub("PopoverStub") }));
+vi.mock("@vueda/shell/popover/PopoverContent.vue", () => ({ default: PassThroughStub("PopoverContentStub") }));
+vi.mock("@vueda/shell/popover/PopoverTrigger.vue", () => ({ default: PassThroughStub("PopoverTriggerStub") }));
 
 const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const themeMock = makeThemeFn({ slotResolver: (key) => key });
