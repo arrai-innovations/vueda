@@ -13,6 +13,7 @@ import "@vueda/theme/vueda-tailwind/display/SortEditor.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
+import { addSortField, parseSortField, toggleSortField } from "@vueda/utils/sortedFields.js";
 import { computed, ref } from "vue";
 import { VueDraggableNext as draggable } from "vue-draggable-next";
 
@@ -49,8 +50,7 @@ const emit = defineEmits([
 const fieldLabel = (field) => props.fieldDetails?.[field]?.label || memoizedStartCase(field);
 const computedSorted = computed(() =>
     props.sorted.map((field, index) => {
-        const base = field?.replace(/^-/, "") || "";
-        const descending = field?.startsWith("-");
+        const { base, descending } = parseSortField(field);
 
         return { index, field, base, descending, label: fieldLabel(base) };
     }),
@@ -73,7 +73,7 @@ const addSortable = (field) => {
     if (!target || !availableSortables.value.includes(target)) {
         return;
     }
-    emit("update:sorted", [...props.sorted, target]);
+    emit("update:sorted", addSortField(props.sorted, target));
 };
 const addMenuOpen = ref(false);
 const pickAddField = (field) => {
@@ -95,9 +95,7 @@ const toggleDirection = (index) => {
     if (!current) {
         return;
     }
-    const updated = [...props.sorted];
-    updated[index] = current.descending ? current.base : `-${current.base}`;
-    emit("update:sorted", updated);
+    emit("update:sorted", toggleSortField(props.sorted, current.base));
 };
 const theme = useTheme("SortEditor", props);
 const icon = useIcons("SortEditor");

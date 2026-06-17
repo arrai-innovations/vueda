@@ -11,6 +11,14 @@ import { useIcons } from "@vueda/use/useIcons.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
+import {
+    addSortField,
+    formatSortField,
+    indexOfSortField,
+    removeSortField,
+    sortFieldBases,
+    toggleSortField,
+} from "@vueda/utils/sortedFields.js";
 import { useBreakpoints } from "@vueuse/core";
 import { computed, effectScope, onMounted, reactive, toRef, useSlots, watch } from "vue";
 
@@ -158,27 +166,22 @@ const sortClick = (e, fieldName) => {
     if (!props.sortables.includes(fieldName)) {
         return;
     }
-    const newSorted = [...props.sorted];
-    const fieldNameDesc = `-${fieldName}`;
-    const index = newSorted.indexOf(fieldName);
-    const indexDesc = newSorted.indexOf(fieldNameDesc);
-    const notFound = index === -1 && indexDesc === -1;
-
+    const present = indexOfSortField(props.sorted, fieldName) !== -1;
+    let newSorted;
     if (e.ctrlKey) {
-        if (notFound) {
-            newSorted.push(fieldName);
-        } else if (newSorted.length === 1) {
-            newSorted[0] = newSorted[0].startsWith("-") ? fieldName : fieldNameDesc;
+        // Ctrl-click accumulates a multi-field sort: add a new field, toggle the
+        // sole field's direction, or drop a field from a multi-field sort.
+        if (!present) {
+            newSorted = addSortField(props.sorted, fieldName);
+        } else if (props.sorted.length === 1) {
+            newSorted = toggleSortField(props.sorted, fieldName);
         } else {
-            newSorted.splice(index !== -1 ? index : indexDesc, 1);
+            newSorted = removeSortField(props.sorted, fieldName);
         }
     } else {
-        if (notFound) {
-            newSorted.length = 0;
-            newSorted.push(fieldName);
-        } else {
-            newSorted[index !== -1 ? index : indexDesc] = index !== -1 ? fieldNameDesc : fieldName;
-        }
+        // Plain click replaces the sort with this field (ascending), or toggles its
+        // direction in place when it is already part of the sort.
+        newSorted = present ? toggleSortField(props.sorted, fieldName) : [formatSortField(fieldName)];
     }
     emit("update:sorted", newSorted);
 };
@@ -186,7 +189,7 @@ const sortClick = (e, fieldName) => {
 const icons = useIcons("ObjectsGrid");
 const emptyIconEntry = computed(() => icons(props.emptyVariant));
 
-const directionlessSorted = computed(() => props.sorted.map((field) => field.replace(/^-/, "")));
+const directionlessSorted = computed(() => sortFieldBases(props.sorted));
 const themeContext = reactive({
     isTable,
     tableBreakpoint: toRef(props, "tableBreakpoint"),
