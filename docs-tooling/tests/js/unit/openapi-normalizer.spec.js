@@ -63,6 +63,33 @@ describe("OpenApiNormalizer", () => {
         expect(endpoint.description).toBe("Fetch a widget.");
     });
 
+    it("maps deprecated operations to canonical lifecycle metadata", async () => {
+        const normalizer = new OpenApiNormalizer();
+        const payload = {
+            openapi: "3.0.3",
+            info: { title: "Test API", version: "0.1.0" },
+            paths: {
+                "/widgets/{id}": {
+                    get: {
+                        operationId: "widgets_retrieve",
+                        deprecated: true,
+                        responses: { 200: { description: "OK" } },
+                    },
+                },
+            },
+        };
+
+        const output = normalizer.normalize(payload);
+
+        await assertCanonical(output);
+
+        const endpoint = output.nodes.find((node) => node.kind === "endpoint");
+        expect(endpoint.lifecycle).toEqual({
+            status: "deprecated",
+            description: "this endpoint will be removed in the next major release.",
+        });
+    });
+
     it("stores summary in displayName and description separately", () => {
         const normalizer = new OpenApiNormalizer();
         const payload = {

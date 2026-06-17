@@ -7,6 +7,7 @@ import {
     renderCodeInline,
     renderFrontmatter,
     renderHeading,
+    renderLifecycle,
     renderList,
     renderTable,
     slugify,
@@ -107,6 +108,11 @@ function inlineMemberAnchors(node, index) {
 function renderPropertyDetail(node, index, filePath) {
     const lines = [];
     lines.push(renderHeading(3, `${node.name} {#${slugify(node.name)}}`), "");
+
+    const lifecycleBlock = renderLifecycle(node.lifecycle);
+    if (lifecycleBlock) {
+        lines.push(lifecycleBlock, "");
+    }
 
     if (node.description) {
         lines.push(node.description, "");
@@ -245,6 +251,11 @@ export function renderTypeDocNode(node, index, filePath) {
     const lines = [];
     lines.push(frontmatter);
     lines.push(renderHeading(1, normalizeTitle(node.name)), "");
+
+    const lifecycleBlock = renderLifecycle(node.lifecycle);
+    if (lifecycleBlock) {
+        lines.push(lifecycleBlock, "");
+    }
 
     if (node.description) {
         lines.push(renderHeading(2, "Overview"), "", node.description, "");

@@ -29,6 +29,18 @@ class Workflow(SimpleHistoryModelMixin, Lookup):
 
 For functions and methods, signatures (parameters, defaults, type annotations, return type) are extracted from the Python signature directly. Do not restate them in prose; type annotations are the contract.
 
+### Deprecation annotations
+
+Use `@deprecated <text>` in a Python docstring when the public entry remains available but should no longer be used. The extractor removes the tag from the overview and renders the text as a deprecation warning on the generated API page.
+
+```python
+def old_helper() -> None:
+    """Run the legacy helper.
+
+    @deprecated Use {@api py:function:vueda.example.new_helper} instead.
+    """
+```
+
 ### Visibility and `__all__`
 
 The rendered page set is filtered by two layers:
@@ -64,6 +76,7 @@ The REST reference is generated from the OpenAPI document that `manage.py specta
 
 - `summary` becomes the endpoint's `displayName` and the page title.
 - `description` becomes the overview paragraph on the endpoint page.
+- `deprecated=True` becomes a standard deprecation warning on the endpoint page with the stock message "this endpoint will be removed in the next major release."
 
 Use `@conditional_extend_schema_view_decorator(retrieve=..., list=..., create=...)` to set per-action summaries on a ViewSet without decorating each method individually.
 

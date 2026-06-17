@@ -3,6 +3,7 @@
  */
 import { Normalizer } from "../core.js";
 import { compact } from "../utils/compact.js";
+import { extractDeprecatedTagFromText } from "../utils/lifecycle.js";
 import { getRepoRoot, normalizeSourceFile } from "../utils/source.js";
 
 const KIND_MAP = {
@@ -73,12 +74,14 @@ export class PdocNormalizer extends Normalizer {
             if (signature) {
                 signatures.push(signature);
             }
+            const parsedDocstring = extractDeprecatedTagFromText(doc.docstring);
 
             const node = compact({
                 id,
                 kind,
                 name: doc.name,
-                description: doc.docstring || undefined,
+                description: parsedDocstring.description,
+                lifecycle: parsedDocstring.lifecycle,
                 signatures: signatures.length ? signatures : undefined,
                 source: doc.source_file
                     ? compact({

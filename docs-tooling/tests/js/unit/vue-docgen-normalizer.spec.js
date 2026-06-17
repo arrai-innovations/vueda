@@ -59,6 +59,31 @@ describe("VueDocgenNormalizer", () => {
         expect(output.nodes.some((node) => node.kind === "slot")).toBe(true);
         expect(output.nodes.some((node) => node.kind === "event")).toBe(true);
     });
+
+    it("maps @deprecated component tags to canonical lifecycle metadata", async () => {
+        const normalizer = new VueDocgenNormalizer();
+        const payload = componentPayload("client/lib/components/TestComp.vue", {
+            description: "Legacy component.",
+            tags: {
+                deprecated: [
+                    {
+                        title: "deprecated",
+                        description: "Use {@api vue:component:ReplacementComp} instead.",
+                    },
+                ],
+            },
+        });
+
+        const output = normalizer.normalize(payload);
+
+        await assertCanonical(output);
+
+        const comp = output.nodes.find((node) => node.kind === "component");
+        expect(comp.lifecycle).toEqual({
+            status: "deprecated",
+            description: "Use {@api vue:component:ReplacementComp} instead.",
+        });
+    });
 });
 
 // ---------------------------------------------------------------------------

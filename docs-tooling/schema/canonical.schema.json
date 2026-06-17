@@ -150,12 +150,22 @@
                     "type": "array",
                     "items": { "type": "string" }
                 },
+                "lifecycle": { "$ref": "#/$defs/Lifecycle" },
                 "typeDefinition": { "$ref": "#/$defs/TypeRef" },
                 "propertyType": { "$ref": "#/$defs/TypeRef" },
                 "source": { "$ref": "#/$defs/SourceLocation" },
                 "extensions": {
                     "type": "object"
                 }
+            }
+        },
+        "Lifecycle": {
+            "type": "object",
+            "required": ["status"],
+            "additionalProperties": false,
+            "properties": {
+                "status": { "type": "string", "enum": ["deprecated"] },
+                "description": { "type": "string" }
             }
         },
         "Signature": {

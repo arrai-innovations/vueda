@@ -194,6 +194,49 @@ describe("renderTypeDocBundle with returns description", () => {
     });
 });
 
+describe("renderTypeDocBundle with deprecated lifecycle metadata", () => {
+    it("function page renders the deprecation warning callout", () => {
+        const bundle = new TypeDocNormalizer().normalize({
+            name: "vueda",
+            children: [
+                {
+                    id: 1,
+                    name: "legacy",
+                    kind: 2,
+                    children: [
+                        {
+                            id: 2,
+                            name: "oldThing",
+                            kind: 64,
+                            comment: {
+                                summary: [{ kind: "text", text: "Old helper." }],
+                                blockTags: [
+                                    {
+                                        tag: "@deprecated",
+                                        content: [{ kind: "text", text: "Use newThing instead." }],
+                                    },
+                                ],
+                            },
+                            signatures: [
+                                {
+                                    id: 3,
+                                    name: "oldThing",
+                                    parameters: [],
+                                    type: { type: "intrinsic", name: "void" },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
+        const outputs = renderTypeDocBundle(bundle);
+        const page = outputs.get("js/legacy/functions/oldThing.md");
+        expect(page).toContain("::: warning Deprecated");
+        expect(page).toContain("Use newThing instead.");
+    });
+});
+
 describe("renderTypeDocBundle with examples", () => {
     function buildOutputsWithExamples() {
         const bundle = new TypeDocNormalizer().normalize(payloadWithExamples);

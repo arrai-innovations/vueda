@@ -67,6 +67,26 @@ describe("renderOpenApiBundle", () => {
         expect(page).toContain("Fetch a widget.");
     });
 
+    it("deprecated endpoint page renders the stock deprecation warning callout", () => {
+        const bundle = new OpenApiNormalizer().normalize({
+            openapi: "3.0.3",
+            info: { title: "Test API", version: "0.1.0" },
+            paths: {
+                "/widgets/{id}": {
+                    get: {
+                        operationId: "widgets_retrieve",
+                        deprecated: true,
+                        responses: { 200: { description: "OK" } },
+                    },
+                },
+            },
+        });
+        const outputs = renderOpenApiBundle(bundle);
+        const page = outputs.get("rest/widgets/widgets_retrieve.md");
+        expect(page).toContain("::: warning Deprecated");
+        expect(page).toContain("this endpoint will be removed in the next major release.");
+    });
+
     it("endpoint page includes the HTTP method in the signature block", () => {
         const outputs = buildOutputs();
         const page = outputs.get("rest/widgets/widgets_retrieve.md");

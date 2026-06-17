@@ -81,6 +81,19 @@ export function renderList(items) {
     return items.map((item) => `- ${item}`).join("\n");
 }
 
+export function renderLifecycle(lifecycle) {
+    if (lifecycle?.status !== "deprecated") {
+        return "";
+    }
+
+    const lines = ["::: warning Deprecated"];
+    if (lifecycle.description) {
+        lines.push("", escapeText(lifecycle.description));
+    }
+    lines.push(":::");
+    return lines.join("\n");
+}
+
 export function linkToId(label, id) {
     return `[${label}](./${idToFilename(id)})`;
 }

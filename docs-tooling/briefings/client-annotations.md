@@ -31,6 +31,19 @@ const props = defineProps({
 });
 ```
 
+### Deprecation annotations
+
+Use `@deprecated <text>` in the JSDoc block for a Vue SFC or exported JavaScript API when the public entry remains available but should no longer be used. The text becomes a deprecation warning in the generated API page.
+
+```js
+/**
+ * Legacy sort shell.
+ *
+ * @deprecated Use {@api vue:component:SortControl} instead.
+ */
+defineOptions({});
+```
+
 ## `@vueda-spread` on shared prop/emit constants (JS files)
 
 When a composable exports a constant that components spread into `props` or `emits`, mark it with `@vueda-spread props` or `@vueda-spread emits` in its JSDoc block. The vue-docgen normalizer injects those entries into every component that spreads the constant.

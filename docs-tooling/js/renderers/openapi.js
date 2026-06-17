@@ -10,6 +10,7 @@ import {
     renderCodeInline,
     renderFrontmatter,
     renderHeading,
+    renderLifecycle,
     renderTable,
 } from "./markdown.js";
 import path from "node:path";
@@ -108,6 +109,11 @@ export function renderOpenApiNode(node, index, pathMap, filePath) {
     const lines = [];
     lines.push(frontmatter);
     lines.push(renderHeading(1, normalizeTitle(node.displayName || node.name)), "");
+
+    const lifecycleBlock = renderLifecycle(node.lifecycle);
+    if (lifecycleBlock) {
+        lines.push(lifecycleBlock, "");
+    }
 
     if (node.kind === "endpoint") {
         lines.push(renderEndpoint(node, index, pathMap, filePath));
