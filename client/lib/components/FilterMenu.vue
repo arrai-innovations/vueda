@@ -111,7 +111,7 @@ const slots = useSlots();
                 </Button>
             </PopoverTrigger>
         </Teleport>
-        <PopoverContent size="sm" data-qa="filter-menu-content" @interact-outside="keepOpenOverNestedPopper">
+        <PopoverContent data-qa="filter-menu-content" @interact-outside="keepOpenOverNestedPopper">
             <template v-if="!pickedField">
                 <div :class="theme('eyebrow')">Add filter</div>
                 <button

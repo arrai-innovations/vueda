@@ -161,7 +161,7 @@ const slots = useSlots();
                 <span v-else aria-hidden="true">&times;</span>
             </button>
         </span>
-        <PopoverContent :class="theme('popover')" size="sm" @interact-outside="keepOpenOverNestedPopper">
+        <PopoverContent :class="theme('popover')" @interact-outside="keepOpenOverNestedPopper">
             <FilterFieldForm
                 v-model="addedFilters"
                 :filter-name="filter.field"

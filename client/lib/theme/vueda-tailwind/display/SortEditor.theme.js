@@ -36,9 +36,9 @@ patchTheme({
         sortOrderText: {
             class: ["w-3 text-sm font-semibold text-muted-foreground"],
         },
-        /** Full-width select control used to choose the sorted field. */
+        /** Select control used to choose the sorted field. No width override: the SelectTrigger's own `w-fit` applies, and the hosting `PopoverContent` (width auto) expands to fit the label. `w-full` is avoided because it causes circular sizing in a shrink-to-fit container. */
         select: {
-            class: ["w-full"],
+            class: [],
         },
         /** Inline action alignment for per-sort-field controls. */
         sortInlineActionBar: {

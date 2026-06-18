@@ -97,7 +97,7 @@ const slots = useSlots();
                 </Button>
             </PopoverTrigger>
         </Teleport>
-        <PopoverContent size="sm" data-qa="sort-control-content" @interact-outside="keepOpenOverNestedPopper">
+        <PopoverContent data-qa="sort-control-content" @interact-outside="keepOpenOverNestedPopper">
             <SortEditor
                 :sortables="props.sortables"
                 :sorted="props.sorted"

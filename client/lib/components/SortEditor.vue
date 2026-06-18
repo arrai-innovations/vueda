@@ -231,7 +231,7 @@ const icon = useIcons("SortEditor");
                         <Button variant="secondary" :disabled="!availableSortables.length" size="sm"> Add Sort </Button>
                     </slot>
                 </PopoverTrigger>
-                <PopoverContent size="sm" data-qa="sort-add-menu" @interact-outside="keepOpenOverNestedPopper">
+                <PopoverContent data-qa="sort-add-menu" @interact-outside="keepOpenOverNestedPopper">
                     <div :class="theme('addMenuEyebrow')">Add sort</div>
                     <button
                         v-for="opt in availableSortableOptions"
