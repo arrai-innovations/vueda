@@ -28,7 +28,7 @@ import { computed, onScopeDispose, ref, toValue, unref, watch } from "vue";
 
 /**
  * @typedef {object} ScrollRevealOptions
- * @property {ScrollRevealStrategy | boolean | import('vue').MaybeRefOrGetter<ScrollRevealStrategy | boolean>} [reveal] - The reveal strategy, or a boolean (revealed when `true`). May be reactive (ref or getter) so a consumer can switch behavior at runtime. Defaults to `scroll-up-or-idle`.
+ * @property {import('vue').MaybeRefOrGetter<ScrollRevealStrategy | boolean>} [reveal] - The reveal strategy, or a boolean (revealed when `true`); pass a ref or getter of either to drive it reactively. Defaults to `scroll-up-or-idle`.
  * @property {import('vue').MaybeRefOrGetter<HTMLElement|null>} [scrollRoot] - The scroll container the behavior reacts to. Pass the scrollable element (or a ref/getter to one) when the chrome lives inside a scrollable region; the hide/reveal threshold and the scroll listener bind to it. When nullish (the default) the behavior reacts to the window.
  * @property {number} [idleDelay] - Milliseconds of scroll inactivity after which the `scroll-up-or-idle` strategy reveals the chrome. Defaults to 300.
  */

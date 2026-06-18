@@ -25,7 +25,7 @@ import { computed, getCurrentScope, inject, markRaw, onScopeDispose, provide, re
  * @typedef {object} StickyStackRegistration
  * @property {StickyZoneName} [zone] - The zone the bar belongs to. Defaults to `top`.
  * @property {number} [order] - Sort order within the zone (ascending, top to bottom). Defaults to `0`.
- * @property {import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean | import('vue').MaybeRefOrGetter<import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean>} [reveal] - This bar's reveal behavior. May be reactive. When omitted, the bar stays visible (`always`).
+ * @property {import('vue').MaybeRefOrGetter<import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean>} [reveal] - This bar's reveal behavior: a strategy string or a boolean, or a ref/getter of either for a reactive reason (for example, reveal a bulk-action bar only while there is a selection). When omitted, the bar stays visible (`always`).
  */
 
 /**
