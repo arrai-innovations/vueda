@@ -224,472 +224,494 @@ describe("lib/stores/storeModelConfig.js", () => {
         vi.resetModules();
     });
 
-    scopedIt("builds a default config from modelInfo with flattened expansion details", async () => {
-        const store = storeModelConfig();
-        // Clear any caches.
-        store.builtConfigs = {};
-        store.initialized = {};
+    describe("getConfig", () => {
+        scopedIt("builds a default config from modelInfo with flattened expansion details", async () => {
+            const store = storeModelConfig();
+            // Clear any caches.
+            store.builtConfigs = {};
+            store.initialized = {};
 
-        const config = await store.getConfig({ app: "testApp", model: "testModel" });
-        const genericKey = getAppModelDotName({ app: "testApp", model: "testModel" });
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            const genericKey = getAppModelDotName({ app: "testApp", model: "testModel" });
 
-        expect(config.verboseName).toBe("timesheet");
-        expect(config.verboseNamePlural).toBe("timesheets");
-        expect(config.displayFields).toEqual(["name", "description"]);
-        expect(config.fetchFields).toEqual(["name", "description"]);
-        expect(config.submitFields).toEqual(["name", "description"]);
+            expect(config.verboseName).toBe("timesheet");
+            expect(config.verboseNamePlural).toBe("timesheets");
+            expect(config.displayFields).toEqual(["name", "description"]);
+            expect(config.fetchFields).toEqual(["name", "description"]);
+            expect(config.submitFields).toEqual(["name", "description"]);
 
-        expect(config.expand).toEqual(["employee", "timesheet_days"]);
-        expect(config.routeActions).toEqual([
-            "create",
-            "destroy",
-            "list",
-            "partialUpdate",
-            "retrieve",
-            "update",
-            "approve",
-        ]);
-        expect(config.actions).toEqual(["create", "destroy", "list", "partialUpdate", "retrieve", "update", "approve"]);
+            expect(config.expand).toEqual(["employee", "timesheet_days"]);
+            expect(config.routeActions).toEqual([
+                "create",
+                "destroy",
+                "list",
+                "partialUpdate",
+                "retrieve",
+                "update",
+                "approve",
+            ]);
+            expect(config.actions).toEqual([
+                "create",
+                "destroy",
+                "list",
+                "partialUpdate",
+                "retrieve",
+                "update",
+                "approve",
+            ]);
 
-        // Filtering and ordering
-        expect(config.filterables).toEqual(["name"]);
-        expect(config.sortables).toEqual(["week_start", "employee__last_name", "employee__first_name"]);
-        expect(config.sorted).toEqual([]);
+            // Filtering and ordering
+            expect(config.filterables).toEqual(["name"]);
+            expect(config.sortables).toEqual(["week_start", "employee__last_name", "employee__first_name"]);
+            expect(config.sorted).toEqual([]);
 
-        expect(config.fieldDetails).toHaveProperty("id");
-        expect(config.fieldDetails).toHaveProperty("name");
-        expect(config.fieldDetails).toHaveProperty("description");
+            expect(config.fieldDetails).toHaveProperty("id");
+            expect(config.fieldDetails).toHaveProperty("name");
+            expect(config.fieldDetails).toHaveProperty("description");
 
-        expect(config.fieldDetails).toHaveProperty("employee");
-        expect(config.fieldDetails).toHaveProperty("employee__id");
-        expect(config.fieldDetails).toHaveProperty("employee__username");
-        expect(config.fieldDetails).toHaveProperty("employee__email");
+            expect(config.fieldDetails).toHaveProperty("employee");
+            expect(config.fieldDetails).toHaveProperty("employee__id");
+            expect(config.fieldDetails).toHaveProperty("employee__username");
+            expect(config.fieldDetails).toHaveProperty("employee__email");
 
-        expect(config.fieldDetails).toHaveProperty("timesheet_days");
-        expect(config.fieldDetails).toHaveProperty("timesheet_days__id");
-        expect(config.fieldDetails).toHaveProperty("timesheet_days__day");
+            expect(config.fieldDetails).toHaveProperty("timesheet_days");
+            expect(config.fieldDetails).toHaveProperty("timesheet_days__id");
+            expect(config.fieldDetails).toHaveProperty("timesheet_days__day");
 
-        expect(config.expandDetails).toHaveProperty("employee");
-        expect(config.expandDetails).toHaveProperty("timesheet_days");
+            expect(config.expandDetails).toHaveProperty("employee");
+            expect(config.expandDetails).toHaveProperty("timesheet_days");
 
-        expect(Object.keys(config.actionDetails)).toEqual(
-            expect.arrayContaining(["create", "destroy", "list", "partialUpdate", "retrieve", "update", "approve"]),
-        );
+            expect(Object.keys(config.actionDetails)).toEqual(
+                expect.arrayContaining(["create", "destroy", "list", "partialUpdate", "retrieve", "update", "approve"]),
+            );
 
-        expect(config.filterableDetails).toEqual(dummyModelInfo.filtering);
-        expect(config.sortablesDetails).toEqual(dummyModelInfo.ordering);
+            expect(config.filterableDetails).toEqual(dummyModelInfo.filtering);
+            expect(config.sortablesDetails).toEqual(dummyModelInfo.ordering);
 
-        expect(config.actionRedirects.default).toBe("update");
+            expect(config.actionRedirects.default).toBe("update");
 
-        expect(config.formProps).toEqual({});
-        expect(config.fieldComponents).toEqual({});
-        expect(config.fieldProps).toEqual({});
-        expect(config.widgetComponents).toEqual({});
-        expect(config.widgetProps).toEqual({});
+            expect(config.formProps).toEqual({});
+            expect(config.fieldComponents).toEqual({});
+            expect(config.fieldProps).toEqual({});
+            expect(config.widgetComponents).toEqual({});
+            expect(config.widgetProps).toEqual({});
 
-        expect(store.builtConfigs).toHaveProperty(genericKey);
-    });
-
-    scopedIt("applies generic custom config overrides", async () => {
-        const store = storeModelConfig();
-        // Clear caches
-        store.builtConfigs = {};
-        store.initialized = {};
-
-        const genericKey = getAppModelDotName({ app: "testApp", model: "testModel" });
-        const customGenericConfig = {
-            verboseName: "Custom Timesheet",
-            displayFields: ["name"],
-            formProps: { custom: true },
-        };
-        store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig);
-
-        const config = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config.verboseName).toBe("Custom Timesheet");
-        expect(config.displayFields).toEqual(["name"]);
-        expect(config.formProps).toEqual({ custom: true });
-        expect(store.builtConfigs).toHaveProperty(genericKey);
-    });
-
-    scopedIt("applies view-specific custom config overrides", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
-
-        const customGenericConfig = {
-            submitFields: ["name", "description"],
-            widgetProps: { default: { size: "medium" } },
-        };
-        const customSpecificConfig = {
-            submitFields: ["description"],
-            widgetProps: { default: { color: "blue" } },
-        };
-        store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig, { update: customSpecificConfig });
-
-        const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
-
-        expect(config.submitFields).toEqual(["description"]);
-
-        expect(config.widgetProps.default).toEqual({ size: "medium", color: "blue" });
-    });
-
-    scopedIt("merges shallow and deep properties correctly", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
-
-        const customGenericConfig = {
-            fieldComponents: { name: { component: "GenericNameField" } },
-            fieldDetails: { name: { label: "Generic Name" } },
-        };
-        const customSpecificConfig = {
-            fieldComponents: { name: { extraProp: "specific" } },
-            fieldDetails: {
-                name: {
-                    label: "Specific Name",
-                    extra: true,
-                },
-            },
-        };
-        store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig, { update: customSpecificConfig });
-
-        const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
-        expect(config.fieldComponents.name).toEqual({
-            component: "GenericNameField",
-            extraProp: "specific",
+            expect(store.builtConfigs).toHaveProperty(genericKey);
         });
-        expect(config.fieldDetails.name).toEqual({
-            choices: false,
-            extra: true,
-            label: "Specific Name",
-            many: false,
-            max_length: 255,
-            read_only: false,
-            required: true,
-            type_db: "CharField",
-            type_model: "CharField",
-            type_serializer: "CharField",
+
+        scopedIt("throws an error if app or model is missing", async () => {
+            const store = storeModelConfig();
+            await expect(store.getConfig({ app: null, model: "testModel" })).rejects.toThrow();
+            await expect(() => store.setConfig({ app: "", model: "testModel" })).toThrow();
+        });
+
+        scopedIt("handles incomplete modelInfo data gracefully", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const incompleteModelInfo = {
+                verbose_name: "Incomplete Model",
+                verbose_name_plural: "Incomplete Models",
+            };
+
+            mockedFetchModelInfo.mockResolvedValue(incompleteModelInfo);
+
+            const config = await store.getConfig({ app: "incompleteApp", model: "incompleteModel" });
+            expect(config).toEqual({
+                formProps: {},
+                fieldComponents: {},
+                fieldProps: {},
+                widgetComponents: {},
+                widgetProps: {},
+                columnComponents: {},
+                columnProps: {},
+                actionRedirects: {},
+                actionDetails: {},
+                fieldDetails: {},
+                filterableDetails: {},
+                sortableDetails: {},
+            });
+        });
+
+        scopedIt("handles errors from fetchModelInfo", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const errorMessage = "Simulated error fetching model info";
+            mockedFetchModelInfo.mockRejectedValue(new Error(errorMessage));
+
+            await expect(store.getConfig({ app: "errorApp", model: "errorModel" })).rejects.toThrow(errorMessage);
+        });
+
+        scopedIt.for([
+            { actions: ["retrieve", "list"], expected: "read" },
+            { actions: ["list"], expected: "list" },
+            { actions: [], expected: null },
+        ])("sets default redirect based on available actions", async ({ actions, expected }) => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+            customModelInfo.actions = customModelInfo.actions.filter((a) => actions.includes(a.name));
+            mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.actionRedirects.default).toBe(expected);
+        });
+
+        scopedIt("uses empty filter and sort info when not provided", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+            delete customModelInfo.filtering;
+            delete customModelInfo.ordering;
+            mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.filterables).toEqual([]);
+            expect(config.sortables).toEqual([]);
+        });
+
+        scopedIt("exposes the primary key via fieldDetails", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+            customModelInfo.pk = "uuid";
+            customModelInfo.fields.id.pk = false;
+            customModelInfo.fields.uuid = {
+                ...customModelInfo.fields.id,
+                label: "UUID",
+                pk: true,
+            };
+            mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.fieldDetails.uuid.pk).toBe(true);
+            expect(config.displayFields).not.toContain("uuid");
+
+            const foundPk = Object.keys(config.fieldDetails).find((f) => config.fieldDetails[f].pk);
+            expect(foundPk).toBe("uuid");
         });
     });
 
-    scopedIt("merges columnComponents (shallow) and columnProps (deep) across configs", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+    describe("setConfig and config merging", () => {
+        scopedIt("applies generic custom config overrides", async () => {
+            const store = storeModelConfig();
+            // Clear caches
+            store.builtConfigs = {};
+            store.initialized = {};
 
-        const customGenericConfig = {
-            columnComponents: { name: "ColumnText", category: "ColumnModelLink" },
-            columnProps: { category: { app: "catalog", view: "read" } },
-        };
-        const customSpecificConfig = {
-            columnComponents: { category: "ColumnText" },
-            columnProps: { category: { model: "widgetcategory" } },
-        };
-        store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig, { update: customSpecificConfig });
+            const genericKey = getAppModelDotName({ app: "testApp", model: "testModel" });
+            const customGenericConfig = {
+                verboseName: "Custom Timesheet",
+                displayFields: ["name"],
+                formProps: { custom: true },
+            };
+            store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig);
 
-        const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
-        // shallow: per-field entries from both configs are present; the
-        // view-specific value replaces the generic one for the same field.
-        expect(config.columnComponents).toEqual({ name: "ColumnText", category: "ColumnText" });
-        // deep: per-field prop objects merge key-by-key.
-        expect(config.columnProps.category).toEqual({ app: "catalog", view: "read", model: "widgetcategory" });
-    });
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.verboseName).toBe("Custom Timesheet");
+            expect(config.displayFields).toEqual(["name"]);
+            expect(config.formProps).toEqual({ custom: true });
+            expect(store.builtConfigs).toHaveProperty(genericKey);
+        });
 
-    scopedIt("flattens expansion details and applies custom overrides", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+        scopedIt("applies view-specific custom config overrides", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
 
-        const customGenericConfig = {
-            expandDetails: {
-                employee: {
-                    extra: "generic",
-                    f: {
-                        username: { label: "Generic Username" },
+            const customGenericConfig = {
+                submitFields: ["name", "description"],
+                widgetProps: { default: { size: "medium" } },
+            };
+            const customSpecificConfig = {
+                submitFields: ["description"],
+                widgetProps: { default: { color: "blue" } },
+            };
+            store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig, {
+                update: customSpecificConfig,
+            });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
+
+            expect(config.submitFields).toEqual(["description"]);
+
+            expect(config.widgetProps.default).toEqual({ size: "medium", color: "blue" });
+        });
+
+        scopedIt("merges shallow and deep properties correctly", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const customGenericConfig = {
+                fieldComponents: { name: { component: "GenericNameField" } },
+                fieldDetails: { name: { label: "Generic Name" } },
+            };
+            const customSpecificConfig = {
+                fieldComponents: { name: { extraProp: "specific" } },
+                fieldDetails: {
+                    name: {
+                        label: "Specific Name",
+                        extra: true,
                     },
                 },
-            },
-            fieldDetails: {
-                employee__username: { placeholder: "Enter username" },
-            },
-        };
-        const customSpecificConfig = {
-            expandDetails: {
-                employee: {
-                    extra: "specific",
-                    f: {
-                        username: { label: "Specific Username" },
+            };
+            store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig, {
+                update: customSpecificConfig,
+            });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
+            expect(config.fieldComponents.name).toEqual({
+                component: "GenericNameField",
+                extraProp: "specific",
+            });
+            expect(config.fieldDetails.name).toEqual({
+                choices: false,
+                extra: true,
+                label: "Specific Name",
+                many: false,
+                max_length: 255,
+                read_only: false,
+                required: true,
+                type_db: "CharField",
+                type_model: "CharField",
+                type_serializer: "CharField",
+            });
+        });
+
+        scopedIt("merges columnComponents (shallow) and columnProps (deep) across configs", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const customGenericConfig = {
+                columnComponents: { name: "ColumnText", category: "ColumnModelLink" },
+                columnProps: { category: { app: "catalog", view: "read" } },
+            };
+            const customSpecificConfig = {
+                columnComponents: { category: "ColumnText" },
+                columnProps: { category: { model: "widgetcategory" } },
+            };
+            store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig, {
+                update: customSpecificConfig,
+            });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
+            // shallow: per-field entries from both configs are present; the
+            // view-specific value replaces the generic one for the same field.
+            expect(config.columnComponents).toEqual({ name: "ColumnText", category: "ColumnText" });
+            // deep: per-field prop objects merge key-by-key.
+            expect(config.columnProps.category).toEqual({ app: "catalog", view: "read", model: "widgetcategory" });
+        });
+
+        scopedIt("flattens expansion details and applies custom overrides", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const customGenericConfig = {
+                expandDetails: {
+                    employee: {
+                        extra: "generic",
+                        f: {
+                            username: { label: "Generic Username" },
+                        },
                     },
                 },
-            },
-            fieldDetails: {
-                employee__username: { placeholder: "Specific placeholder" },
-            },
-        };
+                fieldDetails: {
+                    employee__username: { placeholder: "Enter username" },
+                },
+            };
+            const customSpecificConfig = {
+                expandDetails: {
+                    employee: {
+                        extra: "specific",
+                        f: {
+                            username: { label: "Specific Username" },
+                        },
+                    },
+                },
+                fieldDetails: {
+                    employee__username: { placeholder: "Specific placeholder" },
+                },
+            };
 
-        store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig, { update: customSpecificConfig });
+            store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig, {
+                update: customSpecificConfig,
+            });
 
-        const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
 
-        expect(config.expandDetails.employee.extra).toBe("specific");
+            expect(config.expandDetails.employee.extra).toBe("specific");
 
-        expect(config.fieldDetails["employee__username"].label).toBe("Specific Username");
-        expect(config.fieldDetails["employee__username"].placeholder).toBe("Specific placeholder");
-    });
+            expect(config.fieldDetails["employee__username"].label).toBe("Specific Username");
+            expect(config.fieldDetails["employee__username"].placeholder).toBe("Specific placeholder");
+        });
 
-    scopedIt("throws an error if app or model is missing", async () => {
-        const store = storeModelConfig();
-        await expect(store.getConfig({ app: null, model: "testModel" })).rejects.toThrow();
-        await expect(() => store.setConfig({ app: "", model: "testModel" })).toThrow();
-    });
+        scopedIt("supports null specific config entries", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
 
-    scopedIt("caches the built configuration", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+            store.setConfig({ app: "testApp", model: "testModel" }, null, { update: null });
 
-        await store.getConfig({ app: "testApp", model: "testModel" });
-        const genericKey = getAppModelDotName({ app: "testApp", model: "testModel" });
-        store.builtConfigs[genericKey].customCacheTest = true;
-        const config2 = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config2.customCacheTest).toBe(true);
-    });
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
+            expect(config.verboseName).toBe("timesheet");
+        });
 
-    scopedIt("handles incomplete modelInfo data gracefully", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+        scopedIt("falls back to default field lists when overrides provide empty arrays", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
 
-        const incompleteModelInfo = {
-            verbose_name: "Incomplete Model",
-            verbose_name_plural: "Incomplete Models",
-        };
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                {
+                    displayFields: [],
+                    fetchFields: [],
+                    submitFields: [],
+                },
+            );
 
-        mockedFetchModelInfo.mockResolvedValue(incompleteModelInfo);
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.displayFields).toEqual(["name", "description"]);
+            expect(config.fetchFields).toEqual(["name", "description"]);
+            expect(config.submitFields).toEqual(["name", "description"]);
+        });
 
-        const config = await store.getConfig({ app: "incompleteApp", model: "incompleteModel" });
-        expect(config).toEqual({
-            formProps: {},
-            fieldComponents: {},
-            fieldProps: {},
-            widgetComponents: {},
-            widgetProps: {},
-            columnComponents: {},
-            columnProps: {},
-            actionRedirects: {},
-            actionDetails: {},
-            fieldDetails: {},
-            filterableDetails: {},
-            sortableDetails: {},
+        scopedIt("returns no expansion fields when expand array is empty", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { expand: [] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.expand).toEqual([]);
+            expect(config.fieldDetails).not.toHaveProperty("employee");
+            expect(config.fieldDetails).not.toHaveProperty("timesheet_days");
+        });
+
+        scopedIt("handles expansions lacking sub-field info", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+            delete customModelInfo.expand[0].f;
+            mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.fieldDetails).toHaveProperty("employee");
+            expect(config.fieldDetails).not.toHaveProperty("employee__id");
         });
     });
 
-    scopedIt("handles errors from fetchModelInfo", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+    describe("Caching and concurrency", () => {
+        scopedIt("caches the built configuration", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
 
-        const errorMessage = "Simulated error fetching model info";
-        mockedFetchModelInfo.mockRejectedValue(new Error(errorMessage));
-
-        await expect(store.getConfig({ app: "errorApp", model: "errorModel" })).rejects.toThrow(errorMessage);
-    });
-
-    scopedIt("invalidates cache after updating configuration with setConfig", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
-
-        const config1 = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config1.verboseName).toBe("timesheet");
-
-        const customGenericConfig = {
-            verboseName: "Updated Timesheet",
-        };
-        store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig);
-
-        const config2 = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config2.verboseName).toBe("Updated Timesheet");
-    });
-
-    scopedIt("returns the same promise for concurrent getConfig calls", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
-
-        const promise1 = store.getConfig({ app: "testApp", model: "testModel" });
-        const promise2 = store.getConfig({ app: "testApp", model: "testModel" });
-        const config1 = await promise1;
-        const config2 = await promise2;
-        expect(config1).toBe(config2);
-    });
-
-    scopedIt("caches fetch failures so subsequent getConfig calls return the same error", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
-
-        mockedFetchModelInfo.mockRejectedValueOnce(new Error("Fetch error"));
-
-        await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow("Fetch error");
-
-        expect(store.initialized).toHaveProperty(getAppModelDotName({ app: "testApp", model: "testModel" }));
-
-        await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow("Fetch error");
-
-        expect(mockedFetchModelInfo).toHaveBeenCalledTimes(1);
-    });
-
-    scopedIt("does not apply setConfig if a config is in flight", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
-
-        let resolveFetch;
-        const delayedPromise = new Promise((resolve) => {
-            resolveFetch = resolve;
+            await store.getConfig({ app: "testApp", model: "testModel" });
+            const genericKey = getAppModelDotName({ app: "testApp", model: "testModel" });
+            store.builtConfigs[genericKey].customCacheTest = true;
+            const config2 = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config2.customCacheTest).toBe(true);
         });
-        mockedFetchModelInfo.mockReturnValue(delayedPromise);
 
-        const inFlightPromise = store.getConfig({ app: "testApp", model: "testModel" });
+        scopedIt("invalidates cache after updating configuration with setConfig", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
 
-        store.setConfig({ app: "testApp", model: "testModel" }, { verboseName: "Updated Timesheet" });
+            const config1 = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config1.verboseName).toBe("timesheet");
 
-        resolveFetch(dummyModelInfo);
-        const config = await inFlightPromise;
-        expect(config.verboseName).toBe("timesheet");
-    });
+            const customGenericConfig = {
+                verboseName: "Updated Timesheet",
+            };
+            store.setConfig({ app: "testApp", model: "testModel" }, customGenericConfig);
 
-    scopedIt("cancels the in-flight promise when setConfig is called", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+            const config2 = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config2.verboseName).toBe("Updated Timesheet");
+        });
 
-        const cancellablePromise = new Promise(() => {});
-        const cancelMock = vi.fn();
-        cancellablePromise.cancel = cancelMock;
+        scopedIt("returns the same promise for concurrent getConfig calls", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
 
-        mockedFetchModelInfo.mockReturnValue(cancellablePromise);
+            const promise1 = store.getConfig({ app: "testApp", model: "testModel" });
+            const promise2 = store.getConfig({ app: "testApp", model: "testModel" });
+            const config1 = await promise1;
+            const config2 = await promise2;
+            expect(config1).toBe(config2);
+        });
 
-        store.getConfig({ app: "testApp", model: "testModel" });
+        scopedIt("caches fetch failures so subsequent getConfig calls return the same error", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
 
-        store.setConfig({ app: "testApp", model: "testModel" }, { verboseName: "Updated Timesheet" });
+            mockedFetchModelInfo.mockRejectedValueOnce(new Error("Fetch error"));
 
-        expect(cancelMock).toHaveBeenCalled();
+            await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow("Fetch error");
 
-        expect(store.initialized).not.toHaveProperty(getAppModelDotName({ app: "testApp", model: "testModel" }));
-    });
+            expect(store.initialized).toHaveProperty(getAppModelDotName({ app: "testApp", model: "testModel" }));
 
-    scopedIt("falls back to default field lists when overrides provide empty arrays", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+            await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow("Fetch error");
 
-        store.setConfig(
-            { app: "testApp", model: "testModel" },
-            {
-                displayFields: [],
-                fetchFields: [],
-                submitFields: [],
-            },
-        );
+            expect(mockedFetchModelInfo).toHaveBeenCalledTimes(1);
+        });
 
-        const config = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config.displayFields).toEqual(["name", "description"]);
-        expect(config.fetchFields).toEqual(["name", "description"]);
-        expect(config.submitFields).toEqual(["name", "description"]);
-    });
+        scopedIt("does not apply setConfig if a config is in flight", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
 
-    scopedIt("returns no expansion fields when expand array is empty", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+            let resolveFetch;
+            const delayedPromise = new Promise((resolve) => {
+                resolveFetch = resolve;
+            });
+            mockedFetchModelInfo.mockReturnValue(delayedPromise);
 
-        store.setConfig({ app: "testApp", model: "testModel" }, { expand: [] });
+            const inFlightPromise = store.getConfig({ app: "testApp", model: "testModel" });
 
-        const config = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config.expand).toEqual([]);
-        expect(config.fieldDetails).not.toHaveProperty("employee");
-        expect(config.fieldDetails).not.toHaveProperty("timesheet_days");
-    });
+            store.setConfig({ app: "testApp", model: "testModel" }, { verboseName: "Updated Timesheet" });
 
-    scopedIt("handles expansions lacking sub-field info", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+            resolveFetch(dummyModelInfo);
+            const config = await inFlightPromise;
+            expect(config.verboseName).toBe("timesheet");
+        });
 
-        const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
-        delete customModelInfo.expand[0].f;
-        mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+        scopedIt("cancels the in-flight promise when setConfig is called", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
 
-        const config = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config.fieldDetails).toHaveProperty("employee");
-        expect(config.fieldDetails).not.toHaveProperty("employee__id");
-    });
+            const cancellablePromise = new Promise(() => {});
+            const cancelMock = vi.fn();
+            cancellablePromise.cancel = cancelMock;
 
-    scopedIt("supports null specific config entries", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+            mockedFetchModelInfo.mockReturnValue(cancellablePromise);
 
-        store.setConfig({ app: "testApp", model: "testModel" }, null, { update: null });
+            store.getConfig({ app: "testApp", model: "testModel" });
 
-        const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
-        expect(config.verboseName).toBe("timesheet");
-    });
+            store.setConfig({ app: "testApp", model: "testModel" }, { verboseName: "Updated Timesheet" });
 
-    scopedIt.for([
-        { actions: ["retrieve", "list"], expected: "read" },
-        { actions: ["list"], expected: "list" },
-        { actions: [], expected: null },
-    ])("sets default redirect based on available actions", async ({ actions, expected }) => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
+            expect(cancelMock).toHaveBeenCalled();
 
-        const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
-        customModelInfo.actions = customModelInfo.actions.filter((a) => actions.includes(a.name));
-        mockedFetchModelInfo.mockResolvedValue(customModelInfo);
-
-        const config = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config.actionRedirects.default).toBe(expected);
-    });
-
-    scopedIt("uses empty filter and sort info when not provided", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
-
-        const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
-        delete customModelInfo.filtering;
-        delete customModelInfo.ordering;
-        mockedFetchModelInfo.mockResolvedValue(customModelInfo);
-
-        const config = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config.filterables).toEqual([]);
-        expect(config.sortables).toEqual([]);
-    });
-
-    scopedIt("exposes the primary key via fieldDetails", async () => {
-        const store = storeModelConfig();
-        store.builtConfigs = {};
-        store.initialized = {};
-
-        const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
-        customModelInfo.pk = "uuid";
-        customModelInfo.fields.id.pk = false;
-        customModelInfo.fields.uuid = {
-            ...customModelInfo.fields.id,
-            label: "UUID",
-            pk: true,
-        };
-        mockedFetchModelInfo.mockResolvedValue(customModelInfo);
-
-        const config = await store.getConfig({ app: "testApp", model: "testModel" });
-        expect(config.fieldDetails.uuid.pk).toBe(true);
-        expect(config.displayFields).not.toContain("uuid");
-
-        const foundPk = Object.keys(config.fieldDetails).find((f) => config.fieldDetails[f].pk);
-        expect(foundPk).toBe("uuid");
+            expect(store.initialized).not.toHaveProperty(getAppModelDotName({ app: "testApp", model: "testModel" }));
+        });
     });
 });
