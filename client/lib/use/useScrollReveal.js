@@ -46,21 +46,9 @@ import { computed, onScopeDispose, ref, toValue, unref, watch } from "vue";
  * @property {import('vue').Ref<boolean>} isScrollingUp - Live `isScrollingUp` signal (see {@link ScrollRevealState}).
  * @property {import('vue').ComputedRef<boolean>} isPastThreshold - Live `isPastThreshold` signal (see {@link ScrollRevealState}).
  * @property {import('vue').Ref<boolean>} isIdle - Live `isIdle` signal (see {@link ScrollRevealState}).
+ * @property {() => void} remeasure - Recompute the hide threshold from the element's current position. Call after layout changes that move the element without changing its identity (the watch only remeasures when the target or element identity changes).
  */
 
-/**
- * Derive a reactive `hidden` flag from scroll direction for hide-on-scroll page chrome.
- *
- * Binds a scroll listener to the resolved target (rebinding if `scrollRoot` changes), measures the
- * element's original bottom edge as the threshold past which it counts as scrolled away, and
- * exposes `hidden` according to the chosen `reveal` strategy. The listener and any pending idle
- * timer are torn down automatically when the surrounding effect scope is disposed (component
- * unmount, or an explicit `effectScope().stop()`), so callers do not manage cleanup.
- *
- * @param {import('vue').Ref<HTMLElement|null>} rootRef - Ref to the element whose original on-screen position defines the hide threshold (typically the chrome's own root).
- * @param {ScrollRevealOptions} [options] - Reveal strategy, scroll container, and idle timing.
- * @returns {ScrollRevealContext} The reactive `hidden` flag plus the raw scroll signals (so a multi-bar host can reuse one tracker across bars).
- */
 /**
  * Resolve whether chrome should be hidden, given a reveal strategy and the current scroll signals.
  *
@@ -87,6 +75,21 @@ export function revealHidden(strategy, { isScrollingUp, isPastThreshold, isIdle 
     return !(strategy === "scroll-up-or-idle" && isIdle);
 }
 
+/**
+ * Derive a reactive `hidden` flag from scroll direction for hide-on-scroll page chrome.
+ *
+ * Binds a scroll listener to the resolved target (rebinding if `scrollRoot` changes), measures the
+ * element's original bottom edge as the threshold past which it counts as scrolled away, and
+ * exposes `hidden` according to the chosen `reveal` strategy. The listener and any pending idle
+ * timer are torn down automatically when the surrounding effect scope is disposed (component
+ * unmount, or an explicit `effectScope().stop()`), so callers do not manage cleanup. The threshold
+ * is only auto-measured when the target or element identity changes; call the returned `remeasure`
+ * after layout shifts that move the element in place.
+ *
+ * @param {import('vue').Ref<HTMLElement|null>} rootRef - Ref to the element whose original on-screen position defines the hide threshold (typically the chrome's own root).
+ * @param {ScrollRevealOptions} [options] - Reveal strategy, scroll container, and idle timing.
+ * @returns {ScrollRevealContext} The reactive `hidden` flag plus the raw scroll signals (so a multi-bar host can reuse one tracker across bars) and a `remeasure` function.
+ */
 export function useScrollReveal(rootRef, options = {}) {
     const idleDelay = options.idleDelay ?? 300;
     const reveal = computed(() => toValue(options.reveal) ?? "scroll-up-or-idle");
@@ -143,6 +146,14 @@ export function useScrollReveal(rootRef, options = {}) {
         }, idleDelay);
     };
 
+    // Recompute the hide threshold from the element's current position. Exposed as `remeasure` so a
+    // host can call it after a layout shift that moves the element without changing its identity
+    // (the watch below only fires on target/element identity changes).
+    const remeasure = () => {
+        const target = scrollTarget.value;
+        rootThreshold.value = target ? measureThreshold(target) : 0;
+    };
+
     // Bind the scroll listener and recompute the threshold whenever the resolved target or the
     // element changes (for example, once a `scrollRoot` ref resolves after its element mounts).
     watch(
@@ -155,11 +166,9 @@ export function useScrollReveal(rootRef, options = {}) {
             if (target && target !== previousTarget) {
                 target.addEventListener("scroll", handleScroll);
             }
+            remeasure();
             if (target) {
-                rootThreshold.value = measureThreshold(target);
                 lastScrollY.value = readScrollPosition(target);
-            } else {
-                rootThreshold.value = 0;
             }
         },
         { immediate: true },
@@ -178,5 +187,5 @@ export function useScrollReveal(rootRef, options = {}) {
         }),
     );
 
-    return { hidden, isScrollingUp, isPastThreshold, isIdle };
+    return { hidden, isScrollingUp, isPastThreshold, isIdle, remeasure };
 }

@@ -4,7 +4,7 @@ import { revealHidden, useScrollReveal } from "@vueda/use/useScrollReveal.js";
 import { useStickyStack } from "@vueda/use/useStickyStack.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { resolveStickyStack } from "@vueda/utils/stickyStackLayout.js";
-import { computed, onMounted, onScopeDispose, reactive, toValue, useTemplateRef } from "vue";
+import { computed, onMounted, onScopeDispose, reactive, toValue, useTemplateRef, watch } from "vue";
 
 /**
  * Hosts the framework-owned sticky chrome stack for a layout. Place it around the scrolling region
@@ -154,6 +154,19 @@ const barStyle = (key, edge) => {
 
 // The grid-header offset: the height the visible top stack occupies at the viewport top.
 const rootStyle = computed(() => ({ "--vueda-sticky-stack-top": `${topResolved.value.visibleExtent}px` }));
+
+// Each tracker's hide threshold is anchored to a sentinel that moves when the stack's geometry
+// changes (bars added/removed/reordered or resized). Those shifts do not change the sentinel's
+// identity, so the trackers' own watches do not catch them; remeasure explicitly after the DOM
+// settles. (Reveal-driven transforms do not affect flow geometry, so hidden changes are excluded.)
+watch(
+    [heights, topRegs, bottomRegs],
+    () => {
+        topSignals.remeasure();
+        bottomSignals.remeasure();
+    },
+    { flush: "post" },
+);
 
 onMounted(() => {
     if (typeof ResizeObserver !== "undefined") {

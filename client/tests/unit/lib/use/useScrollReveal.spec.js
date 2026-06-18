@@ -240,6 +240,28 @@ describe("lib/use/useScrollReveal.js", () => {
             expect(ctx.isIdle.value).toBe(false);
         });
     });
+
+    describe("remeasure", () => {
+        scopedIt("recomputes the threshold after the element moves in place", async () => {
+            const { wrapper, context } = mountHost({ reveal: "scroll-up" });
+            await nextTick();
+
+            // Threshold was measured at mount with a zero-height element, so a scroll past 0 counts.
+            const handler = windowScrollHandler();
+            window.scrollY = 100;
+            handler();
+            await nextTick();
+            expect(context().isPastThreshold.value).toBe(true);
+
+            // The element grows so its bottom edge is now below the current scroll position. Without
+            // remeasure the stale threshold (0) still reads as "past".
+            wrapper.element.getBoundingClientRect = () => ({ bottom: 200 });
+            context().remeasure();
+            // threshold = bottom (200) + scrollY (100) = 300; lastScrollY (100) is no longer past it.
+            expect(context().isPastThreshold.value).toBe(false);
+            wrapper.unmount();
+        });
+    });
 });
 
 describe("revealHidden", () => {
