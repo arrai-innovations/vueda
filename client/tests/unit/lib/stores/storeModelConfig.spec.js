@@ -203,7 +203,7 @@ const dummyModelInfo = {
     default_ordering: ["week_start"],
 };
 
-describe("lib/store/storeModelConfig.js", () => {
+describe("lib/stores/storeModelConfig.js", () => {
     let mockedFetchModelInfo, storeModelConfigModule, storeModelConfig;
     beforeEach(async () => {
         // Reset Pinia before each test.

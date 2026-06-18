@@ -90,79 +90,87 @@ vi.mock("@vueda/use/useFieldSetInline.js", () => ({
 const logger = { warn: vi.fn() };
 vi.mock("@vueda/use/useDevLogger.js", () => ({ useDevLogger: vi.fn(() => logger) }));
 
-let FieldSetSingularStackedInline, vue;
+describe("lib/fields/FieldSetSingularStackedInline.vue", () => {
+    let FieldSetSingularStackedInline, vue;
 
-beforeEach(async () => {
-    vue = await vi.importActual("vue");
-    fieldState = vue.reactive({ name: "fs", label: "FS", value: null, help: "", errors: {}, messages: {} });
-    fieldSetContext = { state: fieldState, blur: vi.fn(), ignore: vi.fn(), removeIgnore: vi.fn(), updateInitialValue };
-    FieldSetSingularStackedInline = (await import("@vueda/fields/FieldSetSingularStackedInline.vue")).default;
-    logger.warn.mockClear();
-    fieldSetContext.blur.mockClear();
-    fieldSetContext.ignore.mockClear();
-    fieldSetContext.removeIgnore.mockClear();
-    inlineState.selected.value = [];
-});
-
-scopedIt("creates inline object when fieldObjects is ready", async () => {
-    inlineState.fieldObjects = [];
-    mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: true } });
-    await vue.nextTick();
-    expect(fieldSetContext.blur).not.toHaveBeenCalled();
-    expect(updateInitialValue).not.toHaveBeenCalled();
-    expect(fieldState.value).toBe(null);
-
-    inlineState.fieldObjects = [{ name: "test" }];
-    await vue.nextTick();
-
-    expect(fieldState.value).toEqual(emptyObject);
-    expect(fieldSetContext.blur).toHaveBeenCalled();
-    expect(updateInitialValue).toHaveBeenCalled();
-});
-
-scopedIt("clearField clears value and blurs", () => {
-    const wrapper = mount(FieldSetSingularStackedInline);
-    fieldState.value = { id: 1 };
-    wrapper.vm.clearField();
-    expect(fieldSetContext.blur).toHaveBeenCalled();
-    expect(fieldState.value).toBe(null);
-});
-
-scopedIt("handleDeleteSingle toggles ignore", () => {
-    const wrapper = mount(FieldSetSingularStackedInline);
-    wrapper.vm.handleDeleteSingle([2]);
-    expect(fieldSetContext.ignore).toHaveBeenCalled();
-    expect(inlineState.selected.value).toEqual([2]);
-    wrapper.vm.handleDeleteSingle([]);
-    expect(fieldSetContext.removeIgnore).toHaveBeenCalled();
-});
-
-scopedIt("warns when value is not object", async () => {
-    fieldState.value = 5;
-    mount(FieldSetSingularStackedInline);
-    await vue.nextTick();
-    expect(logger.warn).toHaveBeenCalled();
-    logger.warn.mockClear();
-    fieldState.value = { id: 3 };
-    await vue.nextTick();
-    expect(logger.warn).not.toHaveBeenCalled();
-});
-
-scopedIt("does not auto create when autoCreateWhenEmpty is false", async () => {
-    mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: false } });
-    await vue.nextTick();
-    expect(fieldSetContext.blur).not.toHaveBeenCalled();
-    expect(fieldState.value).toBe(null);
-});
-
-scopedIt("toggleVisibility called when slot button clicked", async () => {
-    inlineState.hidable = true;
-    const wrapper = mount(FieldSetSingularStackedInline, {
-        slots: {
-            "toggle-button": (slotProps) => h("button", { "data-qa": "toggle-slot", ...slotProps }),
-        },
+    beforeEach(async () => {
+        vue = await vi.importActual("vue");
+        fieldState = vue.reactive({ name: "fs", label: "FS", value: null, help: "", errors: {}, messages: {} });
+        fieldSetContext = {
+            state: fieldState,
+            blur: vi.fn(),
+            ignore: vi.fn(),
+            removeIgnore: vi.fn(),
+            updateInitialValue,
+        };
+        FieldSetSingularStackedInline = (await import("@vueda/fields/FieldSetSingularStackedInline.vue")).default;
+        logger.warn.mockClear();
+        fieldSetContext.blur.mockClear();
+        fieldSetContext.ignore.mockClear();
+        fieldSetContext.removeIgnore.mockClear();
+        inlineState.selected.value = [];
     });
-    await vue.nextTick();
-    await wrapper.get('[data-qa="toggle-slot"]').trigger("click");
-    expect(toggleVisibility).toHaveBeenCalled();
+
+    scopedIt("creates inline object when fieldObjects is ready", async () => {
+        inlineState.fieldObjects = [];
+        mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: true } });
+        await vue.nextTick();
+        expect(fieldSetContext.blur).not.toHaveBeenCalled();
+        expect(updateInitialValue).not.toHaveBeenCalled();
+        expect(fieldState.value).toBe(null);
+
+        inlineState.fieldObjects = [{ name: "test" }];
+        await vue.nextTick();
+
+        expect(fieldState.value).toEqual(emptyObject);
+        expect(fieldSetContext.blur).toHaveBeenCalled();
+        expect(updateInitialValue).toHaveBeenCalled();
+    });
+
+    scopedIt("clearField clears value and blurs", () => {
+        const wrapper = mount(FieldSetSingularStackedInline);
+        fieldState.value = { id: 1 };
+        wrapper.vm.clearField();
+        expect(fieldSetContext.blur).toHaveBeenCalled();
+        expect(fieldState.value).toBe(null);
+    });
+
+    scopedIt("handleDeleteSingle toggles ignore", () => {
+        const wrapper = mount(FieldSetSingularStackedInline);
+        wrapper.vm.handleDeleteSingle([2]);
+        expect(fieldSetContext.ignore).toHaveBeenCalled();
+        expect(inlineState.selected.value).toEqual([2]);
+        wrapper.vm.handleDeleteSingle([]);
+        expect(fieldSetContext.removeIgnore).toHaveBeenCalled();
+    });
+
+    scopedIt("warns when value is not object", async () => {
+        fieldState.value = 5;
+        mount(FieldSetSingularStackedInline);
+        await vue.nextTick();
+        expect(logger.warn).toHaveBeenCalled();
+        logger.warn.mockClear();
+        fieldState.value = { id: 3 };
+        await vue.nextTick();
+        expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    scopedIt("does not auto create when autoCreateWhenEmpty is false", async () => {
+        mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: false } });
+        await vue.nextTick();
+        expect(fieldSetContext.blur).not.toHaveBeenCalled();
+        expect(fieldState.value).toBe(null);
+    });
+
+    scopedIt("toggleVisibility called when slot button clicked", async () => {
+        inlineState.hidable = true;
+        const wrapper = mount(FieldSetSingularStackedInline, {
+            slots: {
+                "toggle-button": (slotProps) => h("button", { "data-qa": "toggle-slot", ...slotProps }),
+            },
+        });
+        await vue.nextTick();
+        await wrapper.get('[data-qa="toggle-slot"]').trigger("click");
+        expect(toggleVisibility).toHaveBeenCalled();
+    });
 });

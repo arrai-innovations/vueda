@@ -42,7 +42,7 @@ vi.mock("@vueda/use/useIsActive.js", () => ({
     useIsActive: vi.fn(() => ref(true)),
 }));
 
-describe("useModelChoices", () => {
+describe("lib/use/useModelChoices.js", () => {
     let useModelChoices, scope;
 
     beforeEach(async () => {

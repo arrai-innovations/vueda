@@ -5,7 +5,7 @@ import { PAGE_SIZE_PARAM } from "@vueda/utils/constants.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { createPinia, setActivePinia } from "pinia";
 
-describe("lib/store/storeModelChoices.js", () => {
+describe("lib/stores/storeModelChoices.js", () => {
     let fetchHelperMock, storeModule, store;
 
     beforeEach(async () => {

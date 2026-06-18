@@ -42,131 +42,133 @@ vi.mock("@vueda/use/useWidget.js", () => ({
     useWidget: mockedUseWidget,
 }));
 
-let WidgetFile, vue;
+describe("lib/widgets/WidgetFile.vue", () => {
+    let WidgetFile, vue;
 
-const fieldContext = {
-    state: reactive({ fieldId: "test-field-id", value: undefined }),
-    ignore: vi.fn(),
-    removeIgnore: vi.fn(),
-};
-const mountOptions = {
-    global: {
-        provide: {
-            [FieldContextSymbol]: fieldContext,
+    const fieldContext = {
+        state: reactive({ fieldId: "test-field-id", value: undefined }),
+        ignore: vi.fn(),
+        removeIgnore: vi.fn(),
+    };
+    const mountOptions = {
+        global: {
+            provide: {
+                [FieldContextSymbol]: fieldContext,
+            },
         },
-    },
-};
+    };
 
-beforeEach(async () => {
-    vue = await vi.importActual("vue");
-    widgetState = reactive({
-        combinedValue: null,
-        disabled: false,
-        validationState: reactive({ invalid: false }),
-        required: false,
-        combinedName: "name",
+    beforeEach(async () => {
+        vue = await vi.importActual("vue");
+        widgetState = reactive({
+            combinedValue: null,
+            disabled: false,
+            validationState: reactive({ invalid: false }),
+            required: false,
+            combinedName: "name",
+        });
+        mockedUseWidget.mockReturnValue({ state: widgetState });
+        WidgetFile = (await import("@vueda/widgets/WidgetFile.vue")).default;
+        mockedUseWidget.mockClear();
+        mockedUseWidgetTheme.mockClear();
+        themeFn.mockClear();
     });
-    mockedUseWidget.mockReturnValue({ state: widgetState });
-    WidgetFile = (await import("@vueda/widgets/WidgetFile.vue")).default;
-    mockedUseWidget.mockClear();
-    mockedUseWidgetTheme.mockClear();
-    themeFn.mockClear();
-});
 
-scopedIt("renders upload component and handles upload", async () => {
-    const wrapper = mount(WidgetFile, mountOptions);
-    const root = wrapper.get("div");
-    expect(root.classes()).toContain("t-root");
+    scopedIt("renders upload component and handles upload", async () => {
+        const wrapper = mount(WidgetFile, mountOptions);
+        const root = wrapper.get("div");
+        expect(root.classes()).toContain("t-root");
 
-    const inner = wrapper.get('[data-qa="widget-file-inner"]');
-    expect(inner.classes()).toContain("t-inner");
+        const inner = wrapper.get('[data-qa="widget-file-inner"]');
+        expect(inner.classes()).toContain("t-inner");
 
-    const upload = wrapper.getComponent(ControlFileUploadStub);
-    expect(upload.exists()).toBe(true);
+        const upload = wrapper.getComponent(ControlFileUploadStub);
+        expect(upload.exists()).toBe(true);
 
-    upload.vm.$emit("update:modelValue", { name: "f.txt", url: "/f" });
-    await vue.nextTick();
-    expect(widgetState.combinedValue).toEqual({ name: "f.txt", url: "/f" });
-});
+        upload.vm.$emit("update:modelValue", { name: "f.txt", url: "/f" });
+        await vue.nextTick();
+        expect(widgetState.combinedValue).toEqual({ name: "f.txt", url: "/f" });
+    });
 
-scopedIt("shows file info and removes file", async () => {
-    widgetState.combinedValue = { name: "doc.pdf", url: "/d" };
-    const wrapper = mount(WidgetFile, mountOptions);
+    scopedIt("shows file info and removes file", async () => {
+        widgetState.combinedValue = { name: "doc.pdf", url: "/d" };
+        const wrapper = mount(WidgetFile, mountOptions);
 
-    expect(wrapper.findComponent(ControlFileUploadStub).exists()).toBe(false);
-    const link = wrapper.get("a");
-    expect(link.text()).toBe("doc.pdf");
-    expect(link.attributes("href")).toBe("/d");
+        expect(wrapper.findComponent(ControlFileUploadStub).exists()).toBe(false);
+        const link = wrapper.get("a");
+        expect(link.text()).toBe("doc.pdf");
+        expect(link.attributes("href")).toBe("/d");
 
-    const removeBtn = wrapper.get('[data-qa="file-remove"]');
-    const downloadBtn = wrapper.get('[data-qa="file-download"]');
-    expect(removeBtn.exists()).toBe(true);
-    expect(downloadBtn.exists()).toBe(true);
+        const removeBtn = wrapper.get('[data-qa="file-remove"]');
+        const downloadBtn = wrapper.get('[data-qa="file-download"]');
+        expect(removeBtn.exists()).toBe(true);
+        expect(downloadBtn.exists()).toBe(true);
 
-    await removeBtn.trigger("click");
-    expect(widgetState.combinedValue).toBe(null);
-});
+        await removeBtn.trigger("click");
+        expect(widgetState.combinedValue).toBe(null);
+    });
 
-scopedIt("opens an unsaved File via an object URL in a new tab", async () => {
-    // jsdom does not implement the object-URL APIs, so define them for this test.
-    const originalCreate = URL.createObjectURL;
-    const originalRevoke = URL.revokeObjectURL;
-    const createObjectURL = vi.fn(() => "blob:fake-url");
-    const revokeObjectURL = vi.fn();
-    URL.createObjectURL = createObjectURL;
-    URL.revokeObjectURL = revokeObjectURL;
-    try {
-        const file = new File(["x"], "unsaved.txt");
-        widgetState.combinedValue = file;
+    scopedIt("opens an unsaved File via an object URL in a new tab", async () => {
+        // jsdom does not implement the object-URL APIs, so define them for this test.
+        const originalCreate = URL.createObjectURL;
+        const originalRevoke = URL.revokeObjectURL;
+        const createObjectURL = vi.fn(() => "blob:fake-url");
+        const revokeObjectURL = vi.fn();
+        URL.createObjectURL = createObjectURL;
+        URL.revokeObjectURL = revokeObjectURL;
+        try {
+            const file = new File(["x"], "unsaved.txt");
+            widgetState.combinedValue = file;
+            const wrapper = mount(WidgetFile, mountOptions);
+
+            const link = wrapper.get("a");
+            expect(link.text()).toBe("unsaved.txt");
+            expect(link.attributes("href")).toBe("blob:fake-url");
+            expect(link.attributes("target")).toBe("_blank");
+            expect(link.attributes("rel")).toBe("noopener");
+            expect(createObjectURL).toHaveBeenCalledWith(file);
+
+            // unmount revokes the object URL to avoid leaks
+            wrapper.unmount();
+            expect(revokeObjectURL).toHaveBeenCalledWith("blob:fake-url");
+        } finally {
+            URL.createObjectURL = originalCreate;
+            URL.revokeObjectURL = originalRevoke;
+        }
+    });
+
+    scopedIt("does not set target/rel for saved files", async () => {
+        widgetState.combinedValue = { name: "doc.pdf", url: "/d" };
         const wrapper = mount(WidgetFile, mountOptions);
 
         const link = wrapper.get("a");
-        expect(link.text()).toBe("unsaved.txt");
-        expect(link.attributes("href")).toBe("blob:fake-url");
-        expect(link.attributes("target")).toBe("_blank");
-        expect(link.attributes("rel")).toBe("noopener");
-        expect(createObjectURL).toHaveBeenCalledWith(file);
-
-        // unmount revokes the object URL to avoid leaks
-        wrapper.unmount();
-        expect(revokeObjectURL).toHaveBeenCalledWith("blob:fake-url");
-    } finally {
-        URL.createObjectURL = originalCreate;
-        URL.revokeObjectURL = originalRevoke;
-    }
-});
-
-scopedIt("does not set target/rel for saved files", async () => {
-    widgetState.combinedValue = { name: "doc.pdf", url: "/d" };
-    const wrapper = mount(WidgetFile, mountOptions);
-
-    const link = wrapper.get("a");
-    expect(link.attributes("target")).toBeUndefined();
-    expect(link.attributes("rel")).toBeUndefined();
-});
-
-scopedIt("calls ignore for non-File objects and removeIgnore otherwise", async () => {
-    const fieldState = reactive({ value: undefined });
-    const ignoreFn = vi.fn();
-    const removeIgnoreFn = vi.fn();
-    const fc = { state: fieldState, ignore: ignoreFn, removeIgnore: removeIgnoreFn };
-
-    mount(WidgetFile, {
-        global: { provide: { [FieldContextSymbol]: fc } },
+        expect(link.attributes("target")).toBeUndefined();
+        expect(link.attributes("rel")).toBeUndefined();
     });
 
-    // immediate watch fires with undefined value
-    expect(removeIgnoreFn).toHaveBeenCalledTimes(1);
+    scopedIt("calls ignore for non-File objects and removeIgnore otherwise", async () => {
+        const fieldState = reactive({ value: undefined });
+        const ignoreFn = vi.fn();
+        const removeIgnoreFn = vi.fn();
+        const fc = { state: fieldState, ignore: ignoreFn, removeIgnore: removeIgnoreFn };
 
-    removeIgnoreFn.mockClear();
-    fieldState.value = { a: 1 };
-    await vue.nextTick();
-    expect(ignoreFn).toHaveBeenCalledTimes(1);
-    expect(removeIgnoreFn).not.toHaveBeenCalled();
+        mount(WidgetFile, {
+            global: { provide: { [FieldContextSymbol]: fc } },
+        });
 
-    ignoreFn.mockClear();
-    fieldState.value = new File(["x"], "x.txt");
-    await vue.nextTick();
-    expect(removeIgnoreFn).toHaveBeenCalledTimes(1);
-    expect(ignoreFn).not.toHaveBeenCalled();
+        // immediate watch fires with undefined value
+        expect(removeIgnoreFn).toHaveBeenCalledTimes(1);
+
+        removeIgnoreFn.mockClear();
+        fieldState.value = { a: 1 };
+        await vue.nextTick();
+        expect(ignoreFn).toHaveBeenCalledTimes(1);
+        expect(removeIgnoreFn).not.toHaveBeenCalled();
+
+        ignoreFn.mockClear();
+        fieldState.value = new File(["x"], "x.txt");
+        await vue.nextTick();
+        expect(removeIgnoreFn).toHaveBeenCalledTimes(1);
+        expect(ignoreFn).not.toHaveBeenCalled();
+    });
 });

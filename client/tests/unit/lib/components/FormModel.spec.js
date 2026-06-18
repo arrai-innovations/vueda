@@ -41,66 +41,68 @@ vi.mock("@vueda/components/LoadingSpinnerBlock.vue", () => ({ default: LoadingSp
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
 vi.mock("@vueda/use/useFormModel.js", () => ({ useFormModel: mockedUseFormModel }));
 
-let FormModel;
+describe("lib/components/FormModel.vue", () => {
+    let FormModel;
 
-beforeEach(async () => {
-    mockedUseFormModel.mockReturnValue(
-        reactive({
-            fields: [],
-            baseFieldNames: [],
-            fieldComponents: {},
-            fieldProps: {},
-            fieldDetails: {},
-            widgetComponents: {},
-            widgetProps: {},
-        }),
-    );
-    FormModel = (await import("@vueda/components/FormModel.vue")).default;
-    themeFn.mockClear();
-    mockedUseTheme.mockClear();
-});
-
-afterEach(() => {
-    vi.clearAllMocks();
-});
-
-scopedIt("calls useTheme and useFormModel", () => {
-    mount(FormModel, { props: { app: "a", model: "m" } });
-    expect(mockedUseTheme).toHaveBeenCalledWith("FormModel", expect.any(Object));
-    expect(mockedUseFormModel).toHaveBeenCalledWith(expect.any(Object));
-});
-
-scopedIt("shows spinner when no fields", () => {
-    const wrapper = mount(FormModel, { props: { app: "a", model: "m" } });
-    expect(wrapper.get('[data-qa="loading-spinner-block"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain("Loading model information.");
-});
-
-scopedIt("renders fields and slots", () => {
-    mockedUseFormModel.mockReturnValueOnce(
-        reactive({
-            fields: ["name"],
-            baseFieldNames: ["name"],
-            fieldComponents: {},
-            fieldProps: {},
-            fieldDetails: {},
-            widgetComponents: {},
-            widgetProps: {},
-        }),
-    );
-    const wrapper = mount(FormModel, {
-        props: { app: "a", model: "m" },
-        slots: {
-            "before-fields": "<div data-qa='before-slot'>B</div>",
-            "after-fields": "<div data-qa='after-slot'>A</div>",
-            foo: "<span data-qa='foo-slot'>foo</span>",
-        },
+    beforeEach(async () => {
+        mockedUseFormModel.mockReturnValue(
+            reactive({
+                fields: [],
+                baseFieldNames: [],
+                fieldComponents: {},
+                fieldProps: {},
+                fieldDetails: {},
+                widgetComponents: {},
+                widgetProps: {},
+            }),
+        );
+        FormModel = (await import("@vueda/components/FormModel.vue")).default;
+        themeFn.mockClear();
+        mockedUseTheme.mockClear();
     });
 
-    const fields = wrapper.findAllComponents(FieldRendererStub);
-    expect(fields).toHaveLength(1);
-    expect(wrapper.find(".theme-beforeFields").exists()).toBe(true);
-    expect(wrapper.find(".theme-afterFields").exists()).toBe(true);
-    expect(fields[0].find('[data-slot="foo"] [data-qa="foo-slot"]').exists()).toBe(true);
-    expect(wrapper.classes()).toContain("theme-root");
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
+    scopedIt("calls useTheme and useFormModel", () => {
+        mount(FormModel, { props: { app: "a", model: "m" } });
+        expect(mockedUseTheme).toHaveBeenCalledWith("FormModel", expect.any(Object));
+        expect(mockedUseFormModel).toHaveBeenCalledWith(expect.any(Object));
+    });
+
+    scopedIt("shows spinner when no fields", () => {
+        const wrapper = mount(FormModel, { props: { app: "a", model: "m" } });
+        expect(wrapper.get('[data-qa="loading-spinner-block"]').exists()).toBe(true);
+        expect(wrapper.text()).toContain("Loading model information.");
+    });
+
+    scopedIt("renders fields and slots", () => {
+        mockedUseFormModel.mockReturnValueOnce(
+            reactive({
+                fields: ["name"],
+                baseFieldNames: ["name"],
+                fieldComponents: {},
+                fieldProps: {},
+                fieldDetails: {},
+                widgetComponents: {},
+                widgetProps: {},
+            }),
+        );
+        const wrapper = mount(FormModel, {
+            props: { app: "a", model: "m" },
+            slots: {
+                "before-fields": "<div data-qa='before-slot'>B</div>",
+                "after-fields": "<div data-qa='after-slot'>A</div>",
+                foo: "<span data-qa='foo-slot'>foo</span>",
+            },
+        });
+
+        const fields = wrapper.findAllComponents(FieldRendererStub);
+        expect(fields).toHaveLength(1);
+        expect(wrapper.find(".theme-beforeFields").exists()).toBe(true);
+        expect(wrapper.find(".theme-afterFields").exists()).toBe(true);
+        expect(fields[0].find('[data-slot="foo"] [data-qa="foo-slot"]').exists()).toBe(true);
+        expect(wrapper.classes()).toContain("theme-root");
+    });
 });

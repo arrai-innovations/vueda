@@ -9,52 +9,54 @@ vi.mock("@vueda/use/useTheme.js", () => ({
     THEME_OVERRIDE_PROPS: {},
 }));
 
-let DateTimeDisplay;
+describe("lib/components/DateTimeDisplay.vue", () => {
+    let DateTimeDisplay;
 
-beforeEach(async () => {
-    DateTimeDisplay = (await import("@vueda/components/DateTimeDisplay.vue")).default;
-    mockedUseTheme.mockClear();
-});
+    beforeEach(async () => {
+        DateTimeDisplay = (await import("@vueda/components/DateTimeDisplay.vue")).default;
+        mockedUseTheme.mockClear();
+    });
 
-afterEach(() => {
-    vi.useRealTimers();
-    vi.clearAllMocks();
-});
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.clearAllMocks();
+    });
 
-scopedIt("displays inline format with relative time", () => {
-    vi.useFakeTimers();
-    const iso = "2024-01-01T00:00:00Z";
-    vi.setSystemTime(new Date(Date.parse(iso) + 500));
+    scopedIt("displays inline format with relative time", () => {
+        vi.useFakeTimers();
+        const iso = "2024-01-01T00:00:00Z";
+        vi.setSystemTime(new Date(Date.parse(iso) + 500));
 
-    const wrapper = mount(DateTimeDisplay, { props: { value: iso } });
-    const abs = DateTime.fromISO(iso)
-        .setLocale("en-CA")
-        .toLocaleString({ ...DateTime.DATETIME_SHORT, timeZoneName: "short" });
+        const wrapper = mount(DateTimeDisplay, { props: { value: iso } });
+        const abs = DateTime.fromISO(iso)
+            .setLocale("en-CA")
+            .toLocaleString({ ...DateTime.DATETIME_SHORT, timeZoneName: "short" });
 
-    expect(wrapper.text()).toBe(`${abs} (just now)`);
-    expect(mockedUseTheme).toHaveBeenCalled();
-});
+        expect(wrapper.text()).toBe(`${abs} (just now)`);
+        expect(mockedUseTheme).toHaveBeenCalled();
+    });
 
-scopedIt("renders absolute format with tooltip", () => {
-    vi.useFakeTimers();
-    const value = "2024-03-05T12:30:00Z";
-    const now = "2024-03-05T12:31:00Z";
-    vi.setSystemTime(new Date(now));
+    scopedIt("renders absolute format with tooltip", () => {
+        vi.useFakeTimers();
+        const value = "2024-03-05T12:30:00Z";
+        const now = "2024-03-05T12:31:00Z";
+        vi.setSystemTime(new Date(now));
 
-    const wrapper = mount(DateTimeDisplay, { props: { value, format: "absolute" } });
-    const abs = DateTime.fromISO(value)
-        .setLocale("en-CA")
-        .toLocaleString({ ...DateTime.DATETIME_SHORT, timeZoneName: "short" });
-    const rel = DateTime.fromISO(value)
-        .setLocale("en-CA")
-        .toRelative({ base: DateTime.fromISO(now) });
+        const wrapper = mount(DateTimeDisplay, { props: { value, format: "absolute" } });
+        const abs = DateTime.fromISO(value)
+            .setLocale("en-CA")
+            .toLocaleString({ ...DateTime.DATETIME_SHORT, timeZoneName: "short" });
+        const rel = DateTime.fromISO(value)
+            .setLocale("en-CA")
+            .toRelative({ base: DateTime.fromISO(now) });
 
-    const span = wrapper.get("span");
-    expect(span.text()).toBe(abs);
-    expect(span.attributes("title")).toBe(rel);
-});
+        const span = wrapper.get("span");
+        expect(span.text()).toBe(abs);
+        expect(span.attributes("title")).toBe(rel);
+    });
 
-scopedIt("shows dash when date is invalid", () => {
-    const wrapper = mount(DateTimeDisplay, { props: { value: "bad-date" } });
-    expect(wrapper.text()).toBe("-");
+    scopedIt("shows dash when date is invalid", () => {
+        const wrapper = mount(DateTimeDisplay, { props: { value: "bad-date" } });
+        expect(wrapper.text()).toBe("-");
+    });
 });
