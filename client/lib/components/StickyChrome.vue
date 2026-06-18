@@ -18,10 +18,14 @@ const props = defineProps({
         default: "top",
         validator: (value) => ["top", "bottom"].includes(value),
     },
+    /** Sort order of this bar within its zone's stack (ascending, top to bottom). */
+    order: {
+        type: Number,
+        default: 0,
+    },
     /**
-     * Reveal behavior this chrome wants for its zone: a strategy string (`always`, `scroll-up`,
-     * `scroll-up-or-idle`) or a boolean (revealed when `true`). When omitted, the zone keeps its
-     * default. The active view's registration drives the zone while it is mounted.
+     * This bar's reveal behavior: a strategy string (`always`, `scroll-up`, `scroll-up-or-idle`) or
+     * a boolean (revealed when `true`). When omitted, the bar stays visible (`always`).
      * @type {import('vue').PropType<string|boolean>}
      */
     reveal: {
@@ -30,8 +34,8 @@ const props = defineProps({
     },
 });
 
-// Pass reveal as a getter so a zone tracks a reactive `reveal` prop without re-registering.
-const { target } = useStickyStack({ zone: props.zone, reveal: () => props.reveal });
+// Pass reveal as a getter so a bar tracks a reactive `reveal` prop without re-registering.
+const { target } = useStickyStack({ zone: props.zone, order: props.order, reveal: () => props.reveal });
 </script>
 <template>
     <!-- disabled (not v-if) so the slotted chrome keeps its state as the zone appears or disappears -->

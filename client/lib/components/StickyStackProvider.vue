@@ -1,21 +1,25 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/shell/StickyStackProvider.theme.js";
-import { useScrollReveal } from "@vueda/use/useScrollReveal.js";
+import { revealHidden, useScrollReveal } from "@vueda/use/useScrollReveal.js";
 import { useStickyStack } from "@vueda/use/useStickyStack.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed, onMounted, onScopeDispose, reactive, ref, useTemplateRef, watch } from "vue";
+import { resolveStickyStack } from "@vueda/utils/stickyStackLayout.js";
+import { computed, onMounted, onScopeDispose, reactive, toValue, useTemplateRef } from "vue";
 
 /**
- * Hosts the framework-owned sticky chrome zones for a layout. Place it around the scrolling region
+ * Hosts the framework-owned sticky chrome stack for a layout. Place it around the scrolling region
  * (inside the layout's main content area, wrapping `<RouterView>`); the window remains the scroll
- * container, so this component introduces no `overflow`. It renders a top zone pinned to the top of
- * the viewport and a bottom zone pinned to the bottom, establishes the `useStickyStack` context so
- * the active view can teleport chrome into either zone, and publishes the measured top-zone height
- * as `--vueda-sticky-stack-top` for descendants (such as a sticky grid header) to offset against.
+ * container, so this component introduces no `overflow`. It renders an ordered stack of
+ * independently-revealing sticky bars pinned to the top and bottom of the viewport, establishes the
+ * `useStickyStack` context so the active view can teleport chrome into either zone (via
+ * `StickyChrome`), and publishes the visible top-stack height as `--vueda-sticky-stack-top` for
+ * descendants (such as a sticky grid header) to offset against.
  *
- * The page title is placed by the integrator in the `top` slot (plain composition, so the title
- * stays integrator-owned and pins with the rest of the top zone). The top zone reveals according to
- * the active view's registered chrome; the bottom zone always shows by default.
+ * The page title goes in the `top` slot (plain composition); it is the always-pinned first bar of
+ * the top stack, and the view's chrome (filters, form actions) stacks below it, each revealing on
+ * its own schedule. Each bar's sticky offset is the cumulative height of the visible bars between it
+ * and the viewport edge, so hiding one bar compacts the rest with no offsets crossing the layout
+ * boundary.
  */
 defineOptions({});
 
@@ -28,46 +32,148 @@ const props = defineProps({
     class: { type: [String, Array, Object], default: undefined },
 });
 
+const TITLE_KEY = "__title__";
+const BOTTOM_KEY = "__bottom__";
+// Bars sit in the chrome z-band; the layout's relative order stacks them within it.
+const Z_BASE = 30;
+
 const stack = useStickyStack();
+const topRegs = stack.zoneRegistrations("top");
+const bottomRegs = stack.zoneRegistrations("bottom");
 
 const root = useTemplateRef("root");
-const topZone = useTemplateRef("topZone");
-const bottomZone = useTemplateRef("bottomZone");
+const topSentinel = useTemplateRef("topSentinel");
+const bottomSentinel = useTemplateRef("bottomSentinel");
 
-// Bind the teleport targets the active view's chrome lands in.
-const topTarget = ref(null);
-const bottomTarget = ref(null);
-stack.bindZone("top", topTarget);
-stack.bindZone("bottom", bottomTarget);
+// One scroll tracker per edge, anchored to a zero-height sentinel that marks where the pinned stack
+// ends, so every bar in that zone shares one set of signals and applies its own reveal strategy.
+const topSignals = useScrollReveal(topSentinel, { reveal: "always" });
+const bottomSignals = useScrollReveal(bottomSentinel, { reveal: "always" });
+const topState = computed(() => ({
+    isScrollingUp: topSignals.isScrollingUp.value,
+    isPastThreshold: topSignals.isPastThreshold.value,
+    isIdle: topSignals.isIdle.value,
+}));
+const bottomState = computed(() => ({
+    isScrollingUp: bottomSignals.isScrollingUp.value,
+    isPastThreshold: bottomSignals.isPastThreshold.value,
+    isIdle: bottomSignals.isIdle.value,
+}));
 
-// Each zone's reveal behavior comes from the active view's registered chrome (zone default
-// otherwise). The window scrolls, so no `scrollRoot` is needed.
-const { hidden: topHidden } = useScrollReveal(topZone, { reveal: stack.zoneReveal("top") });
-const { hidden: bottomHidden } = useScrollReveal(bottomZone, { reveal: stack.zoneReveal("bottom") });
-
-// Publish the effective top offset for descendants: the measured top-zone height while revealed,
-// collapsing to 0 while hidden so a sticky grid header rises to the viewport top with it.
-const topZoneHeight = ref(0);
-const measureTopZone = () => {
-    topZoneHeight.value = topZone.value ? topZone.value.getBoundingClientRect().height : 0;
-};
-const topOffset = computed(() => (topHidden.value ? 0 : topZoneHeight.value));
-
+// Measured bar heights, keyed by bar key (TITLE_KEY / BOTTOM_KEY / registration id). One
+// ResizeObserver keeps them current; the layout math reads them.
+const heights = reactive({});
+const barEls = new Map();
 /** @type {ResizeObserver | undefined} */
 let resizeObserver;
+
+const setBarEl = (key) => (el) => {
+    const previous = barEls.get(key);
+    if (previous && previous !== el) {
+        resizeObserver?.unobserve(previous);
+    }
+    if (el) {
+        el.__stickyStackKey = key;
+        barEls.set(key, el);
+        resizeObserver?.observe(el);
+        heights[key] = el.getBoundingClientRect().height;
+    } else if (previous) {
+        barEls.delete(key);
+        delete heights[key];
+    }
+};
+const titleBarEl = setBarEl(TITLE_KEY);
+const bottomBarEl = setBarEl(BOTTOM_KEY);
+
+// Stable per-registration ref binders: set the measured element and the registration's teleport
+// target together, and drop the binder when the bar unmounts.
+const regBinders = new Map();
+const bindRegEl = (reg) => {
+    let binder = regBinders.get(reg.id);
+    if (!binder) {
+        const setEl = setBarEl(reg.id);
+        binder = (el) => {
+            setEl(el);
+            reg.el.value = el ?? null;
+            if (!el) {
+                regBinders.delete(reg.id);
+            }
+        };
+        regBinders.set(reg.id, binder);
+    }
+    return binder;
+};
+
+const hiddenForReg = (reg, state) => revealHidden(toValue(reg.reveal) ?? "always", state);
+
+// Top stack: the always-pinned title first, then registered bars in order, each hiding per its own
+// reveal strategy against the shared top signals.
+const topBars = computed(() => [
+    { key: TITLE_KEY, height: heights[TITLE_KEY] || 0, hidden: false },
+    ...topRegs.value.map((reg) => ({
+        key: reg.id,
+        height: heights[reg.id] || 0,
+        hidden: hiddenForReg(reg, topState.value),
+    })),
+]);
+const topResolved = computed(() => resolveStickyStack(topBars.value, "top"));
+
+// Bottom stack: resolved from the bottom edge outward — the bottom slot bar is the anchor, then the
+// registered bars stacking upward (so their visual order is reversed for the edge-outward math).
+const bottomBars = computed(() => [
+    { key: BOTTOM_KEY, height: heights[BOTTOM_KEY] || 0, hidden: false },
+    ...[...bottomRegs.value].reverse().map((reg) => ({
+        key: reg.id,
+        height: heights[reg.id] || 0,
+        hidden: hiddenForReg(reg, bottomState.value),
+    })),
+]);
+const bottomResolved = computed(() => resolveStickyStack(bottomBars.value, "bottom"));
+
+const layoutByKey = (bars, resolved) => {
+    const map = {};
+    bars.forEach((bar, index) => {
+        map[bar.key] = resolved.bars[index];
+    });
+    return map;
+};
+const topLayout = computed(() => layoutByKey(topBars.value, topResolved.value));
+const bottomLayout = computed(() => layoutByKey(bottomBars.value, bottomResolved.value));
+
+const barStyle = (key, edge) => {
+    const layout = (edge === "top" ? topLayout.value : bottomLayout.value)[key];
+    if (!layout) {
+        return undefined;
+    }
+    return {
+        [edge]: `${layout.offset}px`,
+        transform: `translateY(${layout.translate}px)`,
+        zIndex: String(Z_BASE + layout.zIndex),
+    };
+};
+
+// The grid-header offset: the height the visible top stack occupies at the viewport top.
+const rootStyle = computed(() => ({ "--vueda-sticky-stack-top": `${topResolved.value.visibleExtent}px` }));
+
 onMounted(() => {
-    measureTopZone();
-    if (typeof ResizeObserver !== "undefined" && topZone.value) {
-        resizeObserver = new ResizeObserver(measureTopZone);
-        resizeObserver.observe(topZone.value);
+    if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const key = entry.target.__stickyStackKey;
+                if (key) {
+                    heights[key] = entry.target.getBoundingClientRect().height;
+                }
+            }
+        });
+        for (const el of barEls.values()) {
+            resizeObserver.observe(el);
+        }
     }
     if (import.meta.env?.DEV) {
         warnOnScrollBlockingAncestor(root.value);
     }
 });
 onScopeDispose(() => resizeObserver?.disconnect());
-// Re-measure on reveal/hide so the published offset tracks the zone collapsing.
-watch(topHidden, measureTopZone);
 
 /**
  * Window-relative `position: sticky` silently fails inside any ancestor with a non-visible
@@ -101,32 +207,48 @@ function warnOnScrollBlockingAncestor(el) {
     }
 }
 
-const theme = useTheme(
-    "StickyStackProvider",
-    props,
-    reactive({
-        topHidden,
-        bottomHidden,
-    }),
-);
+const theme = useTheme("StickyStackProvider", props);
 </script>
 <template>
-    <div
-        ref="root"
-        :class="[theme('root'), props.class]"
-        :style="{ '--vueda-sticky-stack-top': `${topOffset}px` }"
-        data-qa="sticky-stack-root"
-    >
-        <div ref="topZone" :class="theme('topZone')" data-qa="sticky-stack-top-zone">
-            <!-- @slot [top] Pinned top chrome placed by the integrator, typically the page title. Stacks above any chrome the active view teleports into the top zone. -->
+    <div ref="root" :class="[theme('root'), props.class]" :style="rootStyle" data-qa="sticky-stack-root">
+        <!-- Top stack: title (always pinned), then teleported view chrome below it. -->
+        <div
+            :ref="titleBarEl"
+            :class="theme('bar')"
+            :style="barStyle(TITLE_KEY, 'top')"
+            data-qa="sticky-stack-title-bar"
+        >
+            <!-- @slot [top] Pinned top chrome placed by the integrator, typically the page title. The always-visible first bar of the top stack. -->
             <slot name="top" />
-            <div ref="topTarget" data-qa="sticky-stack-top-target" />
         </div>
+        <div
+            v-for="reg in topRegs"
+            :key="reg.id"
+            :ref="bindRegEl(reg)"
+            :class="theme('bar')"
+            :style="barStyle(reg.id, 'top')"
+            data-qa="sticky-stack-top-bar"
+        />
+        <div ref="topSentinel" aria-hidden="true" class="h-0" data-qa="sticky-stack-top-sentinel" />
         <!-- @slot Scrolling page content, typically the router view. -->
         <slot />
-        <div ref="bottomZone" :class="theme('bottomZone')" data-qa="sticky-stack-bottom-zone">
-            <div ref="bottomTarget" data-qa="sticky-stack-bottom-target" />
-            <!-- @slot [bottom] Pinned bottom chrome placed by the integrator, below any chrome the active view teleports into the bottom zone. -->
+        <div ref="bottomSentinel" aria-hidden="true" class="h-0" data-qa="sticky-stack-bottom-sentinel" />
+        <!-- Bottom stack: teleported view chrome (e.g. pagination), then the bottom slot anchor. -->
+        <div
+            v-for="reg in bottomRegs"
+            :key="reg.id"
+            :ref="bindRegEl(reg)"
+            :class="theme('bar')"
+            :style="barStyle(reg.id, 'bottom')"
+            data-qa="sticky-stack-bottom-bar"
+        />
+        <div
+            :ref="bottomBarEl"
+            :class="theme('bar')"
+            :style="barStyle(BOTTOM_KEY, 'bottom')"
+            data-qa="sticky-stack-bottom-anchor"
+        >
+            <!-- @slot [bottom] Pinned bottom chrome placed by the integrator, the bottom-most bar of the bottom stack. -->
             <slot name="bottom" />
         </div>
     </div>

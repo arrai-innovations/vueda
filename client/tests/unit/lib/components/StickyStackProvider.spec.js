@@ -3,16 +3,8 @@ import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 
 const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
-const themeCapture = { context: undefined };
-const mockedUseTheme = makeUseThemeMock({
-    onCall: (componentName, props, context) => {
-        if (componentName === "StickyStackProvider") {
-            themeCapture.context = context;
-        }
-    },
-});
 vi.mock("@vueda/use/useTheme.js", () => ({
-    useTheme: mockedUseTheme,
+    useTheme: makeUseThemeMock(),
     THEME_OVERRIDE_PROPS: {},
 }));
 
@@ -21,39 +13,44 @@ const importComponent = () => import("@vueda/components/StickyStackProvider.vue"
 describe("lib/components/StickyStackProvider.vue", () => {
     afterEach(() => {
         vi.clearAllMocks();
-        themeCapture.context = undefined;
     });
 
     describe("structure", () => {
-        scopedIt("renders the root, both zones, and both teleport targets", async () => {
+        scopedIt("renders the root, the title and bottom bars, and both scroll sentinels", async () => {
             const { default: Provider } = await importComponent();
             const wrapper = mount(Provider);
             await nextTick();
 
             expect(wrapper.find('[data-qa="sticky-stack-root"]').exists()).toBe(true);
-            expect(wrapper.find('[data-qa="sticky-stack-top-zone"]').exists()).toBe(true);
-            expect(wrapper.find('[data-qa="sticky-stack-bottom-zone"]').exists()).toBe(true);
-            expect(wrapper.find('[data-qa="sticky-stack-top-target"]').exists()).toBe(true);
-            expect(wrapper.find('[data-qa="sticky-stack-bottom-target"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="sticky-stack-title-bar"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="sticky-stack-bottom-anchor"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="sticky-stack-top-sentinel"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="sticky-stack-bottom-sentinel"]').exists()).toBe(true);
             wrapper.unmount();
         });
 
-        scopedIt("renders the top slot inside the top zone and the default slot as content", async () => {
-            const { default: Provider } = await importComponent();
-            const wrapper = mount(Provider, {
-                slots: {
-                    top: "<h1 data-qa='title'>Suppliers</h1>",
-                    default: "<main data-qa='content'>rows</main>",
-                },
-            });
+        scopedIt(
+            "places the top slot in the title bar, the bottom slot in the anchor, and content between",
+            async () => {
+                const { default: Provider } = await importComponent();
+                const wrapper = mount(Provider, {
+                    slots: {
+                        top: "<h1 data-qa='title'>Suppliers</h1>",
+                        default: "<main data-qa='content'>rows</main>",
+                        bottom: "<nav data-qa='pager'>1 of 3</nav>",
+                    },
+                });
 
-            const topZone = wrapper.find('[data-qa="sticky-stack-top-zone"]');
-            expect(topZone.find('[data-qa="title"]').exists()).toBe(true);
-            expect(wrapper.find('[data-qa="content"]').exists()).toBe(true);
-            // The content is not inside the top zone.
-            expect(topZone.find('[data-qa="content"]').exists()).toBe(false);
-            wrapper.unmount();
-        });
+                expect(wrapper.find('[data-qa="sticky-stack-title-bar"]').find('[data-qa="title"]').exists()).toBe(
+                    true,
+                );
+                expect(wrapper.find('[data-qa="sticky-stack-bottom-anchor"]').find('[data-qa="pager"]').exists()).toBe(
+                    true,
+                );
+                expect(wrapper.find('[data-qa="content"]').exists()).toBe(true);
+                wrapper.unmount();
+            },
+        );
 
         scopedIt("publishes the --vueda-sticky-stack-top custom property on the root", async () => {
             const { default: Provider } = await importComponent();
@@ -61,17 +58,6 @@ describe("lib/components/StickyStackProvider.vue", () => {
             await nextTick();
             const root = wrapper.find('[data-qa="sticky-stack-root"]');
             expect(root.attributes("style") || "").toContain("--vueda-sticky-stack-top");
-            wrapper.unmount();
-        });
-    });
-
-    describe("reveal context", () => {
-        scopedIt("exposes top/bottom hidden flags, both false by default (zones default to always)", async () => {
-            const { default: Provider } = await importComponent();
-            const wrapper = mount(Provider);
-            await nextTick();
-            expect(themeCapture.context.topHidden).toBe(false);
-            expect(themeCapture.context.bottomHidden).toBe(false);
             wrapper.unmount();
         });
     });

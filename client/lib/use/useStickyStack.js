@@ -1,21 +1,21 @@
 /**
  * @module use/useStickyStack
- * @description Shares the framework-owned sticky chrome zones between the layout-level
- * `StickyStackProvider` and the active routed view. The provider calls `useStickyStack()` with no
+ * @description Shares the framework-owned sticky chrome stack between the layout-level
+ * `StickyStackProvider` and the active routed views. The provider calls `useStickyStack()` with no
  * argument to establish and read the context (provider role); a view (usually via the `StickyChrome`
- * component) calls `useStickyStack(registration)` to register chrome into a named zone and receive
- * the element to teleport it into (view role). This mirrors `usePageTitle`: the provider owns where
- * sticky chrome lives and how it reveals, while the view stays responsible for the chrome's content.
+ * component) calls `useStickyStack(registration)` to register a bar into a zone and receive the
+ * element to teleport its chrome into (view role). This mirrors `usePageTitle`: the provider owns
+ * where the chrome lives and how the stack lays out, while the view owns the chrome's content.
  *
- * Two zones exist: `top` (pinned to the top of the scroll viewport) and `bottom` (pinned to the
- * bottom). Each zone is a single sticky wrapper, so its teleported children stack in normal flow
- * with no height math. A zone's reveal behavior is taken from the most recently registered chrome
- * that specifies one, falling back to the zone default, so the active view drives the zone while it
- * is mounted and route transitions hand off cleanly (the leaving and entering views briefly
- * coexist, newest wins).
+ * Two zones exist: `top` (bars pinned to the top of the scroll viewport) and `bottom` (pinned to the
+ * bottom). Within a zone the bars form an ordered stack (by `order`); each is an independent sticky
+ * element with its own reveal behavior, so the title can stay pinned while a filter toolbar hides on
+ * scroll-down and a form-action bar reveals on idle. Registrations coexist (no winner) and the
+ * provider lays them out; route transitions briefly show both the leaving and entering views' bars,
+ * which is fine since they simply stack until the leaving view unmounts and cleans up.
  */
 import { StickyStackContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, getCurrentScope, inject, onScopeDispose, provide, ref, shallowRef, toValue, unref } from "vue";
+import { computed, getCurrentScope, inject, markRaw, onScopeDispose, provide, ref, shallowRef, unref } from "vue";
 
 /**
  * @typedef {'top' | 'bottom'} StickyZoneName
@@ -23,50 +23,50 @@ import { computed, getCurrentScope, inject, onScopeDispose, provide, ref, shallo
 
 /**
  * @typedef {object} StickyStackRegistration
- * @property {StickyZoneName} [zone] - The zone the chrome teleports into. Defaults to `top`.
- * @property {import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean | import('vue').MaybeRefOrGetter<import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean>} [reveal] - The reveal behavior this chrome wants for its zone. May be reactive. When omitted, the zone keeps its default.
+ * @property {StickyZoneName} [zone] - The zone the bar belongs to. Defaults to `top`.
+ * @property {number} [order] - Sort order within the zone (ascending, top to bottom). Defaults to `0`.
+ * @property {import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean | import('vue').MaybeRefOrGetter<import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean>} [reveal] - This bar's reveal behavior. May be reactive. When omitted, the bar stays visible (`always`).
  */
 
 /**
- * @typedef {object} StickyChromeHandle
- * @property {import('vue').ComputedRef<HTMLElement|null>} target - The zone element to teleport the chrome into, or `null` until the provider binds it (or when there is no provider above).
+ * @typedef {object} StickyStackEntry
+ * @property {string} id - Stable identifier for this registration (use as a list key).
+ * @property {number} order - The bar's sort order within its zone.
+ * @property {*} reveal - The bar's reveal behavior, as registered (possibly a ref or getter).
+ * @property {import('vue').ShallowRef<HTMLElement|null>} el - The bar element, set by the provider; the view teleports its chrome into it.
+ * @property {import('vue').ComputedRef<HTMLElement|null>} target - The teleport target, resolved from `el`; `null` until the provider binds it (or when there is no provider above).
  * @property {() => void} stop - Removes this registration. Called automatically on scope dispose when registered inside an effect scope.
  */
 
 /**
  * @typedef {object} StickyStackContext
- * @property {(zone: StickyZoneName) => import('vue').ComputedRef<HTMLElement|null>} zoneTarget - The teleport target element for a zone.
- * @property {(zone: StickyZoneName) => import('vue').ComputedRef<import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean>} zoneReveal - The active reveal behavior for a zone (newest registration wins; zone default otherwise).
- * @property {(zone: StickyZoneName, el: import('vue').Ref<HTMLElement|null>|HTMLElement|null) => void} bindZone - Bind the element (or element ref) the provider uses to host a zone's teleported chrome.
- * @property {(registration?: StickyStackRegistration) => StickyChromeHandle} register - Register chrome into a zone. Returns the teleport target and a cleanup function.
+ * @property {(zone: StickyZoneName) => import('vue').ComputedRef<StickyStackEntry[]>} zoneRegistrations - The registrations for a zone, sorted by `order` (ascending).
+ * @property {(registration?: StickyStackRegistration) => StickyStackEntry} register - Register a bar into a zone. Returns the entry (teleport target, element ref, cleanup).
  */
-
-/** @type {{ [zone in StickyZoneName]: import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy }} */
-const ZONE_DEFAULT_REVEAL = {
-    // The top zone (title + action chrome) holds context by default and only reveals on intent once
-    // a view registers an action strategy. The bottom zone (pagination footer) always shows.
-    top: "always",
-    bottom: "always",
-};
 
 /**
  * Establish the sticky-stack context (provider role) or contribute to it (view role).
  *
  * Calling with no argument returns the context, establishing it on the first call up the tree and
  * reusing it thereafter (provider role). Calling with a registration injects the context and
- * registers chrome into the requested zone, returning a {@link StickyChromeHandle} (view role). When
- * no provider sits above (a view rendered standalone, or a test harness) the view role degrades to a
- * handle whose `target` is always `null`, so `StickyChrome` renders its slot in place.
+ * registers a bar, returning a {@link StickyStackEntry} (view role). When no provider sits above (a
+ * view rendered standalone, or a test harness) the view role degrades to an entry whose `target` is
+ * always `null`, so `StickyChrome` renders its slot in place.
  *
- * @param {StickyStackRegistration} [registration] - A zone + reveal registration. Omit to take the provider role.
- * @returns {StickyStackContext|StickyChromeHandle} The context (provider role) or a chrome handle (view role).
+ * @param {StickyStackRegistration} [registration] - A zone + order + reveal registration. Omit to take the provider role.
+ * @returns {StickyStackContext|StickyStackEntry} The context (provider role) or a registration entry (view role).
  */
 export function useStickyStack(registration) {
     const existing = inject(StickyStackContextSymbol, null);
 
-    // View role: register chrome into the context the provider established above us.
+    // View role: register a bar in the context the provider established above us.
     if (registration !== undefined) {
-        return existing ? existing.register(registration) : { target: computed(() => null), stop: () => {} };
+        if (existing) {
+            return existing.register(registration);
+        }
+        // No provider above: a detached entry so StickyChrome renders its slot in place.
+        const el = shallowRef(null);
+        return { id: "sticky-detached", order: 0, reveal: undefined, el, target: computed(() => null), stop: () => {} };
     }
 
     // Provider role: reuse the context if one already exists up the tree, else establish it here.
@@ -79,62 +79,59 @@ export function useStickyStack(registration) {
  * @returns {StickyStackContext} The new context.
  */
 function createStickyStackContext() {
-    /**
-     * Per-zone state: the bound host element and the live stack of registrations. A registration is
-     * a unique object token so cleanup can splice exactly its own entry by reference.
-     * @type {{ [zone in StickyZoneName]: { el: import('vue').ShallowRef<import('vue').Ref<HTMLElement|null>|HTMLElement|null>, entries: import('vue').Ref<{ reveal: * }[]> } }}
-     */
+    /** @type {{ [zone in StickyZoneName]: import('vue').Ref<StickyStackEntry[]> }} */
     const zones = {
-        top: { el: shallowRef(null), entries: ref([]) },
-        bottom: { el: shallowRef(null), entries: ref([]) },
+        top: ref([]),
+        bottom: ref([]),
     };
+    let nextId = 0;
 
-    /** @type {StickyStackContext['zoneTarget']} */
-    const zoneTarget = (zone) => computed(() => (zones[zone] ? (unref(zones[zone].el.value) ?? null) : null));
-
-    /** @type {StickyStackContext['zoneReveal']} */
-    const zoneReveal = (zone) =>
+    /** @type {StickyStackContext['zoneRegistrations']} */
+    const zoneRegistrations = (zone) =>
         computed(() => {
-            const entries = zones[zone]?.entries.value;
-            const top = entries && entries.length ? entries[entries.length - 1] : undefined;
-            // Flatten here so consumers (the provider's useScrollReveal) get a plain string/boolean
-            // even when a registration passed a ref or getter for its reveal.
-            return toValue(top?.reveal ?? ZONE_DEFAULT_REVEAL[zone]);
+            const list = zones[zone]?.value ?? [];
+            // Stable sort by order so equal-order bars keep registration order.
+            return [...list].sort((a, b) => a.order - b.order);
         });
 
-    /** @type {StickyStackContext['bindZone']} */
-    const bindZone = (zone, el) => {
-        if (zones[zone]) {
-            zones[zone].el.value = el;
-        }
-    };
-
     /** @type {StickyStackContext['register']} */
-    const register = ({ zone = "top", reveal } = {}) => {
+    const register = ({ zone = "top", order = 0, reveal } = {}) => {
         const target = zones[zone] ? zone : "top";
-        const entry = { reveal };
-        zones[target].entries.value.push(entry);
+        const el = shallowRef(null);
+        // markRaw so the reactive zone array does not unwrap `el`/`target` (a ref read off a
+        // reactive object returns its value, not the ref); the provider needs the ref itself.
+        /** @type {StickyStackEntry} */
+        const entry = markRaw({
+            id: `sticky-${nextId++}`,
+            order,
+            reveal,
+            el,
+            target: computed(() => unref(el.value) ?? null),
+            stop: () => {},
+        });
 
         let cleaned = false;
-        const stop = () => {
+        entry.stop = () => {
             if (cleaned) {
                 return;
             }
             cleaned = true;
-            const index = zones[target].entries.value.indexOf(entry);
+            const list = zones[target].value;
+            const index = list.indexOf(entry);
             if (index !== -1) {
-                zones[target].entries.value.splice(index, 1);
+                list.splice(index, 1);
             }
         };
-        if (getCurrentScope()) {
-            onScopeDispose(stop);
-        }
 
-        return { target: zoneTarget(target), stop };
+        zones[target].value.push(entry);
+        if (getCurrentScope()) {
+            onScopeDispose(entry.stop);
+        }
+        return entry;
     };
 
     /** @type {StickyStackContext} */
-    const context = { zoneTarget, zoneReveal, bindZone, register };
+    const context = { zoneRegistrations, register };
     provide(StickyStackContextSymbol, context);
     return context;
 }

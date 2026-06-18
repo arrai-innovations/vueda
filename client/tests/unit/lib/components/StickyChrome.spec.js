@@ -25,33 +25,33 @@ describe("lib/components/StickyChrome.vue", () => {
             props: { zone: { type: String, default: "top" } },
             template: `
                 <Provider>
-                    <StickyChrome :zone="zone"><button data-qa="chrome">go</button></StickyChrome>
+                    <StickyChrome :zone="zone" reveal="scroll-up"><button data-qa="chrome">go</button></StickyChrome>
                 </Provider>
             `,
         });
         const wrapper = mount(Host, { props: { zone }, attachTo: document.body });
-        // Two ticks: one to mount the zone elements, one for the teleport target to resolve.
+        // Two ticks: one to mount the bar element, one for the teleport target to resolve.
         await nextTick();
         await nextTick();
         return wrapper;
     };
 
-    describe("teleporting into provider zones", () => {
-        scopedIt("teleports its slot into the top zone target", async () => {
+    describe("teleporting into provider bars", () => {
+        scopedIt("teleports its slot into a top-zone bar", async () => {
             const wrapper = await mountInProvider("top");
-            const topTarget = wrapper.find('[data-qa="sticky-stack-top-target"]').element;
-            const bottomTarget = wrapper.find('[data-qa="sticky-stack-bottom-target"]').element;
-            expect(topTarget.querySelector('[data-qa="chrome"]')).not.toBeNull();
-            expect(bottomTarget.querySelector('[data-qa="chrome"]')).toBeNull();
+            const topBar = wrapper.find('[data-qa="sticky-stack-top-bar"]');
+            expect(topBar.exists()).toBe(true);
+            expect(topBar.element.querySelector('[data-qa="chrome"]')).not.toBeNull();
+            expect(wrapper.find('[data-qa="sticky-stack-bottom-bar"]').exists()).toBe(false);
             wrapper.unmount();
         });
 
-        scopedIt("teleports its slot into the bottom zone target", async () => {
+        scopedIt("teleports its slot into a bottom-zone bar", async () => {
             const wrapper = await mountInProvider("bottom");
-            const topTarget = wrapper.find('[data-qa="sticky-stack-top-target"]').element;
-            const bottomTarget = wrapper.find('[data-qa="sticky-stack-bottom-target"]').element;
-            expect(bottomTarget.querySelector('[data-qa="chrome"]')).not.toBeNull();
-            expect(topTarget.querySelector('[data-qa="chrome"]')).toBeNull();
+            const bottomBar = wrapper.find('[data-qa="sticky-stack-bottom-bar"]');
+            expect(bottomBar.exists()).toBe(true);
+            expect(bottomBar.element.querySelector('[data-qa="chrome"]')).not.toBeNull();
+            expect(wrapper.find('[data-qa="sticky-stack-top-bar"]').exists()).toBe(false);
             wrapper.unmount();
         });
     });
