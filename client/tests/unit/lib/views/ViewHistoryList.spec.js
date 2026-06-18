@@ -150,128 +150,150 @@ afterEach(() => {
     vi.clearAllMocks();
 });
 
-scopedIt("calls useLookupContext if lookup context is missing", () => {
-    mockedInject.mockReturnValueOnce(null);
-    mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    expect(mockedUseLookupContext).toHaveBeenCalled();
-});
+describe("lib/views/ViewHistoryList.vue", () => {
+    describe("Lookup context", () => {
+        scopedIt("calls useLookupContext if lookup context is missing", () => {
+            mockedInject.mockReturnValueOnce(null);
+            mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            expect(mockedUseLookupContext).toHaveBeenCalled();
+        });
 
-scopedIt("does not call useLookupContext when lookup context exists", () => {
-    mockedInject.mockReturnValueOnce({});
-    mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    expect(mockedUseLookupContext).not.toHaveBeenCalled();
-});
+        scopedIt("does not call useLookupContext when lookup context exists", () => {
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            expect(mockedUseLookupContext).not.toHaveBeenCalled();
+        });
+    });
 
-scopedIt("toggles field column based on table mode", async () => {
-    mockedInject.mockReturnValueOnce({});
-    mockInstanceList.state.objectsInOrder = [{ history_id: 1, history_date: "2026-04-26T12:00:00Z", num_changes: 0 }];
-    const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    await vue.nextTick();
-    expect(objectsGridProps.fields.some((f) => f && f.name === "field")).toBe(true);
-    wrapper.vm.handleIsTableUpdate(false);
-    await vue.nextTick();
-    expect(objectsGridProps.fields.some((f) => f && f.name === "field")).toBe(false);
-    wrapper.unmount();
-});
+    describe("Layout", () => {
+        scopedIt("toggles field column based on table mode", async () => {
+            mockedInject.mockReturnValueOnce({});
+            mockInstanceList.state.objectsInOrder = [
+                { history_id: 1, history_date: "2026-04-26T12:00:00Z", num_changes: 0 },
+            ];
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            expect(objectsGridProps.fields.some((f) => f && f.name === "field")).toBe(true);
+            wrapper.vm.handleIsTableUpdate(false);
+            await vue.nextTick();
+            expect(objectsGridProps.fields.some((f) => f && f.name === "field")).toBe(false);
+            wrapper.unmount();
+        });
 
-scopedIt("renders the dedicated empty state when no history rows are present", async () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    await vue.nextTick();
-    expect(wrapper.find('[data-qa="view-history-empty"]').exists()).toBe(true);
-    expect(wrapper.find('[data-qa="objects-grid"]').exists()).toBe(false);
-    expect(wrapper.text()).toContain("No history yet");
-    wrapper.unmount();
-});
+        scopedIt("layout toggle forces tableBreakpoint to xs (table) or inf (cards)", async () => {
+            mockedInject.mockReturnValueOnce({});
+            mockInstanceList.state.objectsInOrder = [
+                { history_id: 1, history_date: "2026-04-26T12:00:00Z", num_changes: 0 },
+            ];
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            // Default: auto -> the prop's tableBreakpoint passes through.
+            expect(objectsGridProps.tableBreakpoint).toBe("lg");
+            wrapper.vm.setLayoutOverride("cards");
+            await vue.nextTick();
+            expect(objectsGridProps.tableBreakpoint).toBe("inf");
+            wrapper.vm.setLayoutOverride("table");
+            await vue.nextTick();
+            expect(objectsGridProps.tableBreakpoint).toBe("xs");
+            wrapper.vm.setLayoutOverride("auto");
+            await vue.nextTick();
+            expect(objectsGridProps.tableBreakpoint).toBe("lg");
+            wrapper.unmount();
+        });
+    });
 
-scopedIt("renders the grid (not the empty state) while history is loading", async () => {
-    mockedInject.mockReturnValueOnce({});
-    mockInstanceList.state.loading = true;
-    const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    await vue.nextTick();
-    expect(wrapper.find('[data-qa="view-history-empty"]').exists()).toBe(false);
-    expect(wrapper.find('[data-qa="objects-grid"]').exists()).toBe(true);
-    wrapper.unmount();
-});
+    describe("Empty and loading states", () => {
+        scopedIt("renders the dedicated empty state when no history rows are present", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.find('[data-qa="view-history-empty"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="objects-grid"]').exists()).toBe(false);
+            expect(wrapper.text()).toContain("No history yet");
+            wrapper.unmount();
+        });
 
-scopedIt("emits data-rev-start on the first row of a revision and data-rev-child on siblings", async () => {
-    mockedInject.mockReturnValueOnce({});
-    mockInstanceList.state.objectsInOrder = [{ history_id: 1, history_date: "2026-04-26T12:00:00Z", num_changes: 0 }];
-    mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    await vue.nextTick();
-    expect(typeof objectsGridProps.rowAttrs).toBe("function");
-    const startAttrs = objectsGridProps.rowAttrs({ parent_row: 0, history_id: 1, field: "name" });
-    const childAttrs = objectsGridProps.rowAttrs({ parent_row: 0, field: "amount" });
-    const noneAttrs = objectsGridProps.rowAttrs({ field: "name" });
-    expect(startAttrs["data-rev-start"]).toBe("true");
-    expect(startAttrs["data-rev-child"]).toBeUndefined();
-    expect(childAttrs["data-rev-child"]).toBe("true");
-    expect(childAttrs["data-rev-start"]).toBeUndefined();
-    expect(noneAttrs).toBeNull();
-});
+        scopedIt("renders the grid (not the empty state) while history is loading", async () => {
+            mockedInject.mockReturnValueOnce({});
+            mockInstanceList.state.loading = true;
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.find('[data-qa="view-history-empty"]').exists()).toBe(false);
+            expect(wrapper.find('[data-qa="objects-grid"]').exists()).toBe(true);
+            wrapper.unmount();
+        });
+    });
 
-scopedIt("renders a kind-tagged pill for known history_type values via the field slot", async () => {
-    mockedInject.mockReturnValueOnce({});
-    mockInstanceList.state.objectsInOrder = [
-        { history_id: 1, history_date: "2026-04-26T12:00:00Z", history_type: "+", num_changes: 0 },
-    ];
-    modelConfig.info.expand[0].f.history_type = { label: "Type" };
-    const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    await vue.nextTick();
-    // Map each raw code to its expected kind.
-    expect(wrapper.vm.historyTypeMeta("+")).toMatchObject({ kind: "created", label: "created" });
-    expect(wrapper.vm.historyTypeMeta("~")).toMatchObject({ kind: "updated", label: "updated" });
-    expect(wrapper.vm.historyTypeMeta("-")).toMatchObject({ kind: "deleted", label: "deleted" });
-    expect(wrapper.vm.historyTypeMeta("restored")).toMatchObject({ kind: "restored", label: "restored" });
-    expect(wrapper.vm.historyTypeMeta("unknown-code")).toBeNull();
-    wrapper.unmount();
-});
+    describe("Revision presentation", () => {
+        scopedIt("emits data-rev-start on the first row of a revision and data-rev-child on siblings", async () => {
+            mockedInject.mockReturnValueOnce({});
+            mockInstanceList.state.objectsInOrder = [
+                { history_id: 1, history_date: "2026-04-26T12:00:00Z", num_changes: 0 },
+            ];
+            mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            expect(typeof objectsGridProps.rowAttrs).toBe("function");
+            const startAttrs = objectsGridProps.rowAttrs({ parent_row: 0, history_id: 1, field: "name" });
+            const childAttrs = objectsGridProps.rowAttrs({ parent_row: 0, field: "amount" });
+            const noneAttrs = objectsGridProps.rowAttrs({ field: "name" });
+            expect(startAttrs["data-rev-start"]).toBe("true");
+            expect(startAttrs["data-rev-child"]).toBeUndefined();
+            expect(childAttrs["data-rev-child"]).toBe("true");
+            expect(childAttrs["data-rev-start"]).toBeUndefined();
+            expect(noneAttrs).toBeNull();
+        });
 
-scopedIt("layout toggle forces tableBreakpoint to xs (table) or inf (cards)", async () => {
-    mockedInject.mockReturnValueOnce({});
-    mockInstanceList.state.objectsInOrder = [{ history_id: 1, history_date: "2026-04-26T12:00:00Z", num_changes: 0 }];
-    const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    await vue.nextTick();
-    // Default: auto -> the prop's tableBreakpoint passes through.
-    expect(objectsGridProps.tableBreakpoint).toBe("lg");
-    wrapper.vm.setLayoutOverride("cards");
-    await vue.nextTick();
-    expect(objectsGridProps.tableBreakpoint).toBe("inf");
-    wrapper.vm.setLayoutOverride("table");
-    await vue.nextTick();
-    expect(objectsGridProps.tableBreakpoint).toBe("xs");
-    wrapper.vm.setLayoutOverride("auto");
-    await vue.nextTick();
-    expect(objectsGridProps.tableBreakpoint).toBe("lg");
-    wrapper.unmount();
-});
+        scopedIt("renders a kind-tagged pill for known history_type values via the field slot", async () => {
+            mockedInject.mockReturnValueOnce({});
+            mockInstanceList.state.objectsInOrder = [
+                { history_id: 1, history_date: "2026-04-26T12:00:00Z", history_type: "+", num_changes: 0 },
+            ];
+            modelConfig.info.expand[0].f.history_type = { label: "Type" };
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            // Map each raw code to its expected kind.
+            expect(wrapper.vm.historyTypeMeta("+")).toMatchObject({ kind: "created", label: "created" });
+            expect(wrapper.vm.historyTypeMeta("~")).toMatchObject({ kind: "updated", label: "updated" });
+            expect(wrapper.vm.historyTypeMeta("-")).toMatchObject({ kind: "deleted", label: "deleted" });
+            expect(wrapper.vm.historyTypeMeta("restored")).toMatchObject({ kind: "restored", label: "restored" });
+            expect(wrapper.vm.historyTypeMeta("unknown-code")).toBeNull();
+            wrapper.unmount();
+        });
+    });
 
-scopedIt("meta strip renders by default and is suppressed by hideMetaStrip", async () => {
-    mockedInject.mockReturnValueOnce({});
-    mockInstanceList.state.objectsInOrder = [{ history_id: 1, history_date: "2026-04-26T12:00:00Z", num_changes: 0 }];
-    const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    await vue.nextTick();
-    expect(wrapper.find('[data-qa="view-history-meta"]').exists()).toBe(true);
-    expect(wrapper.find('[data-qa="view-history-layout-table"]').exists()).toBe(true);
-    expect(wrapper.find('[data-qa="view-history-layout-cards"]').exists()).toBe(true);
-    await wrapper.setProps({ hideMetaStrip: true });
-    expect(wrapper.find('[data-qa="view-history-meta"]').exists()).toBe(false);
-    wrapper.unmount();
-});
+    describe("Meta strip", () => {
+        scopedIt("meta strip renders by default and is suppressed by hideMetaStrip", async () => {
+            mockedInject.mockReturnValueOnce({});
+            mockInstanceList.state.objectsInOrder = [
+                { history_id: 1, history_date: "2026-04-26T12:00:00Z", num_changes: 0 },
+            ];
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.find('[data-qa="view-history-meta"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="view-history-layout-table"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="view-history-layout-cards"]').exists()).toBe(true);
+            await wrapper.setProps({ hideMetaStrip: true });
+            expect(wrapper.find('[data-qa="view-history-meta"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
 
-scopedIt("meta strip is not rendered when the dedicated empty state is showing", async () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    await vue.nextTick();
-    expect(wrapper.find('[data-qa="view-history-empty"]').exists()).toBe(true);
-    expect(wrapper.find('[data-qa="view-history-meta"]').exists()).toBe(false);
-    wrapper.unmount();
-});
+        scopedIt("meta strip is not rendered when the dedicated empty state is showing", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.find('[data-qa="view-history-empty"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="view-history-meta"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+    });
 
-scopedIt("calls router.back when Back button clicked", async () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
-    await wrapper.find('[data-qa="prime-button"]').trigger("click");
-    expect(routerBack).toHaveBeenCalled();
-    wrapper.unmount();
+    describe("Navigation", () => {
+        scopedIt("calls router.back when Back button clicked", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await wrapper.find('[data-qa="prime-button"]').trigger("click");
+            expect(routerBack).toHaveBeenCalled();
+            wrapper.unmount();
+        });
+    });
 });
