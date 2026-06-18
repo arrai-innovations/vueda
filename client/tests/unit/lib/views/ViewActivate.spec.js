@@ -134,82 +134,94 @@ afterEach(() => {
     vi.clearAllMocks();
 });
 
-scopedIt("calls useLookupContext if lookup context is missing", () => {
-    mockedInject.mockReturnValueOnce(null);
-    mount(ViewActivate, { props: { app: "a", model: "b", pk: "1" } });
-    expect(mockedUseLookupContext).toHaveBeenCalled();
-});
+describe("lib/views/ViewActivate.vue", () => {
+    describe("Lookup context", () => {
+        scopedIt("calls useLookupContext if lookup context is missing", () => {
+            mockedInject.mockReturnValueOnce(null);
+            mount(ViewActivate, { props: { app: "a", model: "b", pk: "1" } });
+            expect(mockedUseLookupContext).toHaveBeenCalled();
+        });
 
-scopedIt("does not call useLookupContext when lookup context exists", () => {
-    mockedInject.mockReturnValueOnce({});
-    mount(ViewActivate, { props: { app: "a", model: "b", pk: "1" } });
-    expect(mockedUseLookupContext).not.toHaveBeenCalled();
-});
-
-scopedIt("renders spinner when model config info is empty", () => {
-    mockedInject.mockReturnValueOnce({});
-    modelConfig.info = {};
-    const wrapper = mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
-    expect(wrapper.find('[data-qa="loading-spinner-block"]').exists()).toBe(true);
-    expect(wrapper.find('[data-qa="model-action-form"]').exists()).toBe(false);
-});
-
-scopedIt("renders page actions even while spinner is showing", () => {
-    mockedInject.mockReturnValueOnce({});
-    modelConfig.info = {};
-    const wrapper = mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
-    expect(wrapper.find('[data-qa="page-actions"]').exists()).toBe(true);
-});
-
-scopedIt("passes props to ActionForm when loaded", () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewActivate, { props: { app: "myApp", model: "myModel", pk: "id123" } });
-    const af = wrapper.find('[data-qa="model-action-form"]');
-    expect(af.exists()).toBe(true);
-    expect(af.attributes("data-app")).toBe("myApp");
-    expect(af.attributes("data-model")).toBe("myModel");
-    expect(af.attributes("data-action")).toBe("activate");
-});
-
-scopedIt("applies theme root and registers the theme entry", () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewActivate, {
-        props: { app: "app", model: "person", pk: "1", class: "custom" },
+        scopedIt("does not call useLookupContext when lookup context exists", () => {
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewActivate, { props: { app: "a", model: "b", pk: "1" } });
+            expect(mockedUseLookupContext).not.toHaveBeenCalled();
+        });
     });
-    const root = wrapper.find('[data-qa="view-activate-root"]');
-    expect(root.classes()).toContain("theme-root");
-    expect(root.classes()).toContain("custom");
-    expect(mockedUseTheme).toHaveBeenCalledWith("ViewActivate", expect.any(Object));
-});
 
-scopedIt("forwards return-button slot and falls back to Go Back button that calls router.back", async () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewActivate, {
-        props: { app: "app", model: "model", pk: "1" },
+    describe("Loading state", () => {
+        scopedIt("renders spinner when model config info is empty", () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.info = {};
+            const wrapper = mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
+            expect(wrapper.find('[data-qa="loading-spinner-block"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="model-action-form"]').exists()).toBe(false);
+        });
+
+        scopedIt("renders page actions even while spinner is showing", () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.info = {};
+            const wrapper = mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
+            expect(wrapper.find('[data-qa="page-actions"]').exists()).toBe(true);
+        });
     });
-    await wrapper.find('[data-qa="prime-button"]').trigger("click");
-    expect(routerBack).toHaveBeenCalled();
-});
 
-scopedIt("custom return-button slot replaces fallback Go Back button", () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewActivate, {
-        props: { app: "app", model: "model", pk: "1" },
-        slots: {
-            "return-button": "<button data-qa='custom-return'>back</button>",
-        },
+    describe("Rendering", () => {
+        scopedIt("passes props to ActionForm when loaded", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewActivate, { props: { app: "myApp", model: "myModel", pk: "id123" } });
+            const af = wrapper.find('[data-qa="model-action-form"]');
+            expect(af.exists()).toBe(true);
+            expect(af.attributes("data-app")).toBe("myApp");
+            expect(af.attributes("data-model")).toBe("myModel");
+            expect(af.attributes("data-action")).toBe("activate");
+        });
+
+        scopedIt("applies theme root and registers the theme entry", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewActivate, {
+                props: { app: "app", model: "person", pk: "1", class: "custom" },
+            });
+            const root = wrapper.find('[data-qa="view-activate-root"]');
+            expect(root.classes()).toContain("theme-root");
+            expect(root.classes()).toContain("custom");
+            expect(mockedUseTheme).toHaveBeenCalledWith("ViewActivate", expect.any(Object));
+        });
     });
-    expect(wrapper.find('[data-qa="custom-return"]').exists()).toBe(true);
-    expect(wrapper.find('[data-qa="prime-button"]').exists()).toBe(false);
-});
 
-scopedIt("runAction executes list action and throws on error", async () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
-    const runAction = wrapper.findComponent(ModelActionFormStub).props("runAction");
-    await expect(runAction()).resolves.not.toThrow();
-    expect(mockInstanceList.executeAction).toHaveBeenCalled();
-    mockInstanceList.state.errored = true;
-    mockInstanceList.state.error = new Error("boom");
-    await expect(runAction()).rejects.toThrow("boom");
+    describe("Navigation", () => {
+        scopedIt("forwards return-button slot and falls back to Go Back button that calls router.back", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewActivate, {
+                props: { app: "app", model: "model", pk: "1" },
+            });
+            await wrapper.find('[data-qa="prime-button"]').trigger("click");
+            expect(routerBack).toHaveBeenCalled();
+        });
+
+        scopedIt("custom return-button slot replaces fallback Go Back button", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewActivate, {
+                props: { app: "app", model: "model", pk: "1" },
+                slots: {
+                    "return-button": "<button data-qa='custom-return'>back</button>",
+                },
+            });
+            expect(wrapper.find('[data-qa="custom-return"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="prime-button"]').exists()).toBe(false);
+        });
+    });
+
+    describe("Action execution", () => {
+        scopedIt("runAction executes list action and throws on error", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
+            const runAction = wrapper.findComponent(ModelActionFormStub).props("runAction");
+            await expect(runAction()).resolves.not.toThrow();
+            expect(mockInstanceList.executeAction).toHaveBeenCalled();
+            mockInstanceList.state.errored = true;
+            mockInstanceList.state.error = new Error("boom");
+            await expect(runAction()).rejects.toThrow("boom");
+        });
+    });
 });

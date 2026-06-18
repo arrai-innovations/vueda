@@ -46,77 +46,81 @@ describe("lib/views/ViewChangePassword.vue", () => {
         ViewChangePassword = (await import("@vueda/views/ViewChangePassword.vue")).default;
     });
 
-    scopedIt("provides field and widget slots with their slot props", () => {
-        const fieldSlotProps = {};
-        mount(ViewChangePassword, {
-            slots: {
-                "field(old_password)": (slotProps) => {
-                    fieldSlotProps.old_password = slotProps;
-                    return h("div");
+    describe("Field and widget slots", () => {
+        scopedIt("provides field and widget slots with their slot props", () => {
+            const fieldSlotProps = {};
+            mount(ViewChangePassword, {
+                slots: {
+                    "field(old_password)": (slotProps) => {
+                        fieldSlotProps.old_password = slotProps;
+                        return h("div");
+                    },
+                    "field(new_password1)": (slotProps) => {
+                        fieldSlotProps.new_password1 = slotProps;
+                        return h("div");
+                    },
+                    "field(new_password2)": (slotProps) => {
+                        fieldSlotProps.new_password2 = slotProps;
+                        return h("div");
+                    },
                 },
-                "field(new_password1)": (slotProps) => {
-                    fieldSlotProps.new_password1 = slotProps;
-                    return h("div");
-                },
-                "field(new_password2)": (slotProps) => {
-                    fieldSlotProps.new_password2 = slotProps;
-                    return h("div");
-                },
-            },
-        });
+            });
 
-        expect(fieldSlotProps.old_password).toMatchObject({ label: "Current Password" });
-        expect(fieldSlotProps.new_password1).toMatchObject({ label: "New Password" });
-        expect(fieldSlotProps.new_password2).toMatchObject({ label: "Confirm New Password" });
+            expect(fieldSlotProps.old_password).toMatchObject({ label: "Current Password" });
+            expect(fieldSlotProps.new_password1).toMatchObject({ label: "New Password" });
+            expect(fieldSlotProps.new_password2).toMatchObject({ label: "Confirm New Password" });
 
-        const widgetSlotProps = {};
-        const wrapper = mount(ViewChangePassword, {
-            slots: {
-                "widget(old_password)": (slotProps) => {
-                    widgetSlotProps.old_password = slotProps;
-                    return h("div");
+            const widgetSlotProps = {};
+            const wrapper = mount(ViewChangePassword, {
+                slots: {
+                    "widget(old_password)": (slotProps) => {
+                        widgetSlotProps.old_password = slotProps;
+                        return h("div");
+                    },
+                    "widget(new_password1)": (slotProps) => {
+                        widgetSlotProps.new_password1 = slotProps;
+                        return h("div");
+                    },
+                    "widget(new_password2)": (slotProps) => {
+                        widgetSlotProps.new_password2 = slotProps;
+                        return h("div");
+                    },
                 },
-                "widget(new_password1)": (slotProps) => {
-                    widgetSlotProps.new_password1 = slotProps;
-                    return h("div");
-                },
-                "widget(new_password2)": (slotProps) => {
-                    widgetSlotProps.new_password2 = slotProps;
-                    return h("div");
-                },
-            },
-        });
+            });
 
-        expect(widgetSlotProps.old_password).toMatchObject({
-            required: true,
-            type: "password",
-            autocomplete: "current-password",
-        });
-        expect(widgetSlotProps.new_password1).toMatchObject({
-            required: true,
-            type: "password",
-        });
-        expect(widgetSlotProps.new_password2).toMatchObject({
-            required: true,
-            type: "password",
-        });
+            expect(widgetSlotProps.old_password).toMatchObject({
+                required: true,
+                type: "password",
+                autocomplete: "current-password",
+            });
+            expect(widgetSlotProps.new_password1).toMatchObject({
+                required: true,
+                type: "password",
+            });
+            expect(widgetSlotProps.new_password2).toMatchObject({
+                required: true,
+                type: "password",
+            });
 
-        expect(wrapper.findComponent(AuthFormStub).exists()).toBe(true);
+            expect(wrapper.findComponent(AuthFormStub).exists()).toBe(true);
+        });
     });
 
-    scopedIt("calls changePassword with form values when submitted", async () => {
-        changePasswordMock.mockResolvedValue({ ok: true });
-        const wrapper = mount(ViewChangePassword);
-        const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
+    describe("Submission", () => {
+        scopedIt("calls changePassword with form values when submitted", async () => {
+            changePasswordMock.mockResolvedValue({ ok: true });
+            const wrapper = mount(ViewChangePassword);
+            const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
 
-        await expect(
-            runAction({ formValues: { old_password: "current", new_password1: "new", new_password2: "confirm" } }),
-        ).resolves.toEqual({ ok: true });
+            await expect(
+                runAction({ formValues: { old_password: "current", new_password1: "new", new_password2: "confirm" } }),
+            ).resolves.toEqual({ ok: true });
 
-        expect(changePasswordMock).toHaveBeenCalledWith({
-            old_password: "current",
-            new_password1: "new",
-            new_password2: "confirm",
+            expect(changePasswordMock).toHaveBeenCalledWith({
+                old_password: "current",
+                new_password1: "new",
+                new_password2: "confirm",
+            });
         });
     });
 });

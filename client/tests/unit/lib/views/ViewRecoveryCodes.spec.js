@@ -150,112 +150,118 @@ describe("lib/views/ViewRecoveryCodes.vue", () => {
         vi.resetModules();
     });
 
-    scopedIt("fetches recovery codes when active with totp devices", async () => {
-        const wrapper = mount(ViewRecoveryCodes);
-        userStore.loggedInUser.totp_devices = [{ id: 1 }];
-        activeRef.value = true;
-        await flushPromises();
-        expect(userStore.getRecoveryCodes).toHaveBeenCalled();
-        const items = wrapper.findAll('[data-qa="view-recovery-codes-form-list-item"]');
-        expect(items).toHaveLength(2);
-        expect(items[0].text()).toContain("one");
-        expect(items[1].text()).toContain("two");
+    describe("Code loading and display", () => {
+        scopedIt("fetches recovery codes when active with totp devices", async () => {
+            const wrapper = mount(ViewRecoveryCodes);
+            userStore.loggedInUser.totp_devices = [{ id: 1 }];
+            activeRef.value = true;
+            await flushPromises();
+            expect(userStore.getRecoveryCodes).toHaveBeenCalled();
+            const items = wrapper.findAll('[data-qa="view-recovery-codes-form-list-item"]');
+            expect(items).toHaveLength(2);
+            expect(items[0].text()).toContain("one");
+            expect(items[1].text()).toContain("two");
+        });
+
+        scopedIt("renders deterministic numeric prefix on each list item", async () => {
+            const wrapper = mount(ViewRecoveryCodes);
+            userStore.loggedInUser.totp_devices = [{ id: 1 }];
+            activeRef.value = true;
+            await flushPromises();
+            const items = wrapper.findAll('[data-qa="view-recovery-codes-form-list-item"]');
+            expect(items[0].text()).toContain("1.");
+            expect(items[1].text()).toContain("2.");
+        });
     });
 
-    scopedIt("renders deterministic numeric prefix on each list item", async () => {
-        const wrapper = mount(ViewRecoveryCodes);
-        userStore.loggedInUser.totp_devices = [{ id: 1 }];
-        activeRef.value = true;
-        await flushPromises();
-        const items = wrapper.findAll('[data-qa="view-recovery-codes-form-list-item"]');
-        expect(items[0].text()).toContain("1.");
-        expect(items[1].text()).toContain("2.");
+    describe("Missing device state", () => {
+        scopedIt("renders warning empty branch with set-up CTA when no totp devices", () => {
+            const wrapper = mount(ViewRecoveryCodes);
+            const alert = wrapper.find('[data-qa="feedback-alert"]');
+            expect(alert.attributes("data-variant")).toBe("warning");
+            expect(wrapper.find('[data-qa="feedback-alert-title"]').text()).toContain("Set up two-factor first");
+            expect(findButtonByLabel(wrapper, "Set up a device")).toBeTruthy();
+            expect(userStore.getRecoveryCodes).not.toHaveBeenCalled();
+        });
+
+        scopedIt("set-up button routes to setup-device when registered", async () => {
+            const wrapper = mount(ViewRecoveryCodes);
+            await findButtonByLabel(wrapper, "Set up a device").trigger("click");
+            expect(routerHasRoute).toHaveBeenCalledWith("setup-device");
+            expect(routerPush).toHaveBeenCalledWith({ name: "setup-device" });
+        });
+
+        scopedIt("set-up button no-ops when setup-device route is not registered", async () => {
+            routerHasRoute.mockReturnValue(false);
+            const wrapper = mount(ViewRecoveryCodes);
+            await findButtonByLabel(wrapper, "Set up a device").trigger("click");
+            expect(routerPush).not.toHaveBeenCalled();
+        });
     });
 
-    scopedIt("renders warning empty branch with set-up CTA when no totp devices", () => {
-        const wrapper = mount(ViewRecoveryCodes);
-        const alert = wrapper.find('[data-qa="feedback-alert"]');
-        expect(alert.attributes("data-variant")).toBe("warning");
-        expect(wrapper.find('[data-qa="feedback-alert-title"]').text()).toContain("Set up two-factor first");
-        expect(findButtonByLabel(wrapper, "Set up a device")).toBeTruthy();
-        expect(userStore.getRecoveryCodes).not.toHaveBeenCalled();
-    });
+    describe("Populated code actions", () => {
+        scopedIt("populated alert renders title with one-line description", async () => {
+            const wrapper = mount(ViewRecoveryCodes);
+            userStore.loggedInUser.totp_devices = [{ id: 1 }];
+            activeRef.value = true;
+            await flushPromises();
+            const title = wrapper.find('[data-qa="feedback-alert-title"]');
+            expect(title.exists()).toBe(true);
+            expect(title.text()).toContain("Each code works once");
+        });
 
-    scopedIt("set-up button routes to setup-device when registered", async () => {
-        const wrapper = mount(ViewRecoveryCodes);
-        await findButtonByLabel(wrapper, "Set up a device").trigger("click");
-        expect(routerHasRoute).toHaveBeenCalledWith("setup-device");
-        expect(routerPush).toHaveBeenCalledWith({ name: "setup-device" });
-    });
+        scopedIt("handleSuccess updates codes and shows toast", async () => {
+            const wrapper = mount(ViewRecoveryCodes);
+            userStore.loggedInUser.totp_devices = [{ id: 1 }];
+            const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
+            await handler({ data: { unused_codes: ["new1"] } });
+            await flushPromises();
+            expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("generated"));
+            const items = wrapper.findAll('[data-qa="view-recovery-codes-form-list-item"]');
+            expect(items).toHaveLength(1);
+            expect(items[0].text()).toContain("new1");
+        });
 
-    scopedIt("set-up button no-ops when setup-device route is not registered", async () => {
-        routerHasRoute.mockReturnValue(false);
-        const wrapper = mount(ViewRecoveryCodes);
-        await findButtonByLabel(wrapper, "Set up a device").trigger("click");
-        expect(routerPush).not.toHaveBeenCalled();
-    });
+        scopedIt("download, print, and copy actions operate on codes", async () => {
+            const wrapper = mount(ViewRecoveryCodes);
+            userStore.loggedInUser.totp_devices = [{ id: 1 }];
+            activeRef.value = true;
+            await flushPromises();
 
-    scopedIt("populated alert renders title with one-line description", async () => {
-        const wrapper = mount(ViewRecoveryCodes);
-        userStore.loggedInUser.totp_devices = [{ id: 1 }];
-        activeRef.value = true;
-        await flushPromises();
-        const title = wrapper.find('[data-qa="feedback-alert-title"]');
-        expect(title.exists()).toBe(true);
-        expect(title.text()).toContain("Each code works once");
-    });
+            const clickMock = vi.fn();
+            const originalCreate = document.createElement;
+            const originalAppend = document.body.appendChild;
+            const anchorRemove = vi.fn();
+            const anchor = { click: clickMock, remove: anchorRemove, href: "", download: "" };
+            document.createElement = vi.fn(() => anchor);
+            const appendSpy = vi.fn();
+            document.body.appendChild = appendSpy;
+            const revokeMock = vi.fn();
+            const originalCreateObjectURL = URL.createObjectURL;
+            const originalRevokeObjectURL = URL.revokeObjectURL;
+            URL.createObjectURL = vi.fn(() => "blob:url");
+            URL.revokeObjectURL = revokeMock;
+            const printMock = vi.fn();
+            const originalPrint = window.print;
+            window.print = printMock;
 
-    scopedIt("handleSuccess updates codes and shows toast", async () => {
-        const wrapper = mount(ViewRecoveryCodes);
-        userStore.loggedInUser.totp_devices = [{ id: 1 }];
-        const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
-        await handler({ data: { unused_codes: ["new1"] } });
-        await flushPromises();
-        expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("generated"));
-        const items = wrapper.findAll('[data-qa="view-recovery-codes-form-list-item"]');
-        expect(items).toHaveLength(1);
-        expect(items[0].text()).toContain("new1");
-    });
+            await findButtonByLabel(wrapper, "Download").trigger("click");
+            await findButtonByLabel(wrapper, "Print").trigger("click");
+            await findButtonByLabel(wrapper, "Copy All").trigger("click");
 
-    scopedIt("download, print, and copy actions operate on codes", async () => {
-        const wrapper = mount(ViewRecoveryCodes);
-        userStore.loggedInUser.totp_devices = [{ id: 1 }];
-        activeRef.value = true;
-        await flushPromises();
+            expect(document.createElement).toHaveBeenCalledWith("a");
+            expect(appendSpy).toHaveBeenCalledWith(anchor);
+            expect(clickMock).toHaveBeenCalled();
+            expect(anchorRemove).toHaveBeenCalled();
+            expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:url");
+            expect(printMock).toHaveBeenCalled();
+            expect(clipboardState.copy).toHaveBeenCalledWith("one\ntwo");
 
-        const clickMock = vi.fn();
-        const originalCreate = document.createElement;
-        const originalAppend = document.body.appendChild;
-        const anchorRemove = vi.fn();
-        const anchor = { click: clickMock, remove: anchorRemove, href: "", download: "" };
-        document.createElement = vi.fn(() => anchor);
-        const appendSpy = vi.fn();
-        document.body.appendChild = appendSpy;
-        const revokeMock = vi.fn();
-        const originalCreateObjectURL = URL.createObjectURL;
-        const originalRevokeObjectURL = URL.revokeObjectURL;
-        URL.createObjectURL = vi.fn(() => "blob:url");
-        URL.revokeObjectURL = revokeMock;
-        const printMock = vi.fn();
-        const originalPrint = window.print;
-        window.print = printMock;
-
-        await findButtonByLabel(wrapper, "Download").trigger("click");
-        await findButtonByLabel(wrapper, "Print").trigger("click");
-        await findButtonByLabel(wrapper, "Copy All").trigger("click");
-
-        expect(document.createElement).toHaveBeenCalledWith("a");
-        expect(appendSpy).toHaveBeenCalledWith(anchor);
-        expect(clickMock).toHaveBeenCalled();
-        expect(anchorRemove).toHaveBeenCalled();
-        expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:url");
-        expect(printMock).toHaveBeenCalled();
-        expect(clipboardState.copy).toHaveBeenCalledWith("one\ntwo");
-
-        document.createElement = originalCreate;
-        document.body.appendChild = originalAppend;
-        URL.createObjectURL = originalCreateObjectURL;
-        URL.revokeObjectURL = originalRevokeObjectURL;
-        window.print = originalPrint;
+            document.createElement = originalCreate;
+            document.body.appendChild = originalAppend;
+            URL.createObjectURL = originalCreateObjectURL;
+            URL.revokeObjectURL = originalRevokeObjectURL;
+            window.print = originalPrint;
+        });
     });
 });

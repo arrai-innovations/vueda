@@ -171,57 +171,67 @@ afterEach(() => {
     vi.clearAllMocks();
 });
 
-scopedIt("calls useLookupContext if lookup context is missing", () => {
-    mockedInject.mockReturnValueOnce(null);
-    mount(ViewCreate, { props: { app: "app", model: "model" } });
-    expect(mockedUseLookupContext).toHaveBeenCalled();
-});
+describe("lib/views/ViewCreate.vue", () => {
+    describe("Lookup context", () => {
+        scopedIt("calls useLookupContext if lookup context is missing", () => {
+            mockedInject.mockReturnValueOnce(null);
+            mount(ViewCreate, { props: { app: "app", model: "model" } });
+            expect(mockedUseLookupContext).toHaveBeenCalled();
+        });
 
-scopedIt("does not call useLookupContext when lookup context exists", () => {
-    mockedInject.mockReturnValueOnce({});
-    mount(ViewCreate, { props: { app: "app", model: "model" } });
-    expect(mockedUseLookupContext).not.toHaveBeenCalled();
-});
-
-scopedIt("emits form events and renders non-detail actions", async () => {
-    mockedInject.mockReturnValueOnce({});
-    mockedUseFilteredActions.mockReturnValueOnce(vue.reactive({ actions: ["create", "update", "list", "read"] }));
-    modelConfig.config.actionDetails = {
-        create: {},
-        update: {},
-        list: {},
-        read: { detail: true },
-    };
-    const wrapper = mount(ViewCreate, {
-        props: { app: "myapp", model: "mymodel" },
-        slots: { default: "<span>form content</span>" },
+        scopedIt("does not call useLookupContext when lookup context exists", () => {
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewCreate, { props: { app: "app", model: "model" } });
+            expect(mockedUseLookupContext).not.toHaveBeenCalled();
+        });
     });
-    await wrapper.vm.$nextTick();
 
-    expect(wrapper.emitted("form-object")).toBeTruthy();
-    expect(wrapper.emitted("form-context")).toBeTruthy();
-    const formArg = mockedUseForm.mock.calls[0][0];
-    expect(vue.isReactive(formArg)).toBe(true);
+    describe("Form integration", () => {
+        scopedIt("emits form events and renders non-detail actions", async () => {
+            mockedInject.mockReturnValueOnce({});
+            mockedUseFilteredActions.mockReturnValueOnce(
+                vue.reactive({ actions: ["create", "update", "list", "read"] }),
+            );
+            modelConfig.config.actionDetails = {
+                create: {},
+                update: {},
+                list: {},
+                read: { detail: true },
+            };
+            const wrapper = mount(ViewCreate, {
+                props: { app: "myapp", model: "mymodel" },
+                slots: { default: "<span>form content</span>" },
+            });
+            await wrapper.vm.$nextTick();
 
-    const links = wrapper.findAll('[data-qa="link-model-view"]');
-    const views = links.map((l) => l.attributes("data-view"));
-    expect(views).toEqual(["update", "list"]);
-});
+            expect(wrapper.emitted("form-object")).toBeTruthy();
+            expect(wrapper.emitted("form-context")).toBeTruthy();
+            const formArg = mockedUseForm.mock.calls[0][0];
+            expect(vue.isReactive(formArg)).toBe(true);
 
-scopedIt("renders FormConfirmDialog bound to the objectForm confirmation controller", () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
-    const dialog = wrapper.findComponent(FormConfirmDialogStub);
-    expect(dialog.exists()).toBe(true);
-    expect(dialog.props("controller")).toBe(objectForm.confirmation);
-    expect(dialog.props("title")).toBe("Confirm save");
-    expect(dialog.props("description")).toBe("This change has warnings. Review them before saving.");
-    expect(dialog.props("confirmLabel")).toBe("Save anyway");
-});
+            const links = wrapper.findAll('[data-qa="link-model-view"]');
+            const views = links.map((l) => l.attributes("data-view"));
+            expect(views).toEqual(["update", "list"]);
+        });
 
-scopedIt("applies the default theme gutter to the form body", () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
-    const body = wrapper.find('[data-qa="create-form"]');
-    expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5"]));
+        scopedIt("renders FormConfirmDialog bound to the objectForm confirmation controller", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+            const dialog = wrapper.findComponent(FormConfirmDialogStub);
+            expect(dialog.exists()).toBe(true);
+            expect(dialog.props("controller")).toBe(objectForm.confirmation);
+            expect(dialog.props("title")).toBe("Confirm save");
+            expect(dialog.props("description")).toBe("This change has warnings. Review them before saving.");
+            expect(dialog.props("confirmLabel")).toBe("Save anyway");
+        });
+    });
+
+    describe("Rendering", () => {
+        scopedIt("applies the default theme gutter to the form body", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+            const body = wrapper.find('[data-qa="create-form"]');
+            expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5"]));
+        });
+    });
 });

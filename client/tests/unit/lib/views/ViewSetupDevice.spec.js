@@ -153,103 +153,109 @@ describe("lib/views/ViewSetupDevice.vue", () => {
         ViewSetupDevice = (await import("@vueda/views/ViewSetupDevice.vue")).default;
     });
 
-    scopedIt("runs setup action on first step", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.form.values = { method: "sms", destination: "123" };
-        const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
-        await runAction({ formValues: { method: "sms", destination: "123" } });
-        expect(userStore.setupTOTPDevice).toHaveBeenCalledWith({ destination: "123", method: "sms" });
+    describe("Submission actions", () => {
+        scopedIt("runs setup action on first step", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.form.values = { method: "sms", destination: "123" };
+            const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
+            await runAction({ formValues: { method: "sms", destination: "123" } });
+            expect(userStore.setupTOTPDevice).toHaveBeenCalledWith({ destination: "123", method: "sms" });
+        });
+
+        scopedIt("runs activation on verify step", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+            const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
+            await runAction({ formValues: { code: "654321" } });
+            expect(userStore.activateTOTPDevice).toHaveBeenCalledWith({ code: "654321" });
+        });
     });
 
-    scopedIt("runs activation on verify step", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
-        const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
-        await runAction({ formValues: { code: "654321" } });
-        expect(userStore.activateTOTPDevice).toHaveBeenCalledWith({ code: "654321" });
+    describe("Step transitions and navigation", () => {
+        scopedIt("doAfterSuccess stores secrets and advances step", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.form.values = { method: "app" };
+            const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
+            await handler({ meta: { totp_svg_data_uri: "data:image", totp_secret: "secret" } });
+            expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.VERIFY);
+            expect(wrapper.vm.totpSvgDataUri).toBe("data:image");
+            expect(wrapper.vm.totpSecret).toBe("secret");
+        });
+
+        scopedIt("doAfterSuccess enqueues toast for email method", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.form.values = { method: "email" };
+            const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
+            await handler();
+            expect(toastMock.success).toHaveBeenCalledWith(
+                expect.stringContaining("Verification Code Sent"),
+                expect.any(Object),
+            );
+            expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.VERIFY);
+        });
+
+        scopedIt("navigates to return path after verification", async () => {
+            routeMock.query = { returnPath: "/dashboard" };
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+            const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
+            await handler();
+            expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.DONE);
+            expect(routerPush).toHaveBeenCalledWith("/dashboard");
+        });
+
+        scopedIt("renders DONE confirmation step when no return path is set", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+            const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
+            await handler();
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.DONE);
+            expect(wrapper.find("[data-qa=view-setup-device-done]").exists()).toBe(true);
+            expect(wrapper.find("[data-qa=view-setup-device-continue]").exists()).toBe(true);
+        });
+
+        scopedIt("Continue button on DONE pushes to returnPath when present", async () => {
+            routeMock.query = { returnPath: "/after" };
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.step = wrapper.vm.STEPS.DONE;
+            await wrapper.vm.$nextTick();
+            const continueBtn = wrapper.find("[data-qa=view-setup-device-continue]");
+            expect(continueBtn.exists()).toBe(true);
+            await continueBtn.trigger("click");
+            expect(routerPush).toHaveBeenCalledWith("/after");
+        });
     });
 
-    scopedIt("doAfterSuccess stores secrets and advances step", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.form.values = { method: "app" };
-        const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
-        await handler({ meta: { totp_svg_data_uri: "data:image", totp_secret: "secret" } });
-        expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.VERIFY);
-        expect(wrapper.vm.totpSvgDataUri).toBe("data:image");
-        expect(wrapper.vm.totpSecret).toBe("secret");
-    });
+    describe("Step rendering", () => {
+        scopedIt("renders InputOTP on VERIFY step", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+            await wrapper.vm.$nextTick();
+            expect(wrapper.find("[data-qa=view-setup-device-otp]").exists()).toBe(true);
+        });
 
-    scopedIt("doAfterSuccess enqueues toast for email method", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.form.values = { method: "email" };
-        const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
-        await handler();
-        expect(toastMock.success).toHaveBeenCalledWith(
-            expect.stringContaining("Verification Code Sent"),
-            expect.any(Object),
-        );
-        expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.VERIFY);
-    });
+        scopedIt("renders inline manual key when totp secret is present", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.totpSvgDataUri = "data:image";
+            wrapper.vm.totpSecret = "ABCDEFG";
+            await wrapper.vm.$nextTick();
+            const key = wrapper.find("[data-qa=view-setup-device-manual-key]");
+            expect(key.exists()).toBe(true);
+            expect(wrapper.find("[data-qa=view-setup-device-manual-key-value]").text()).toContain("ABCDEFG");
+        });
 
-    scopedIt("navigates to return path after verification", async () => {
-        routeMock.query = { returnPath: "/dashboard" };
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
-        const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
-        await handler();
-        expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.DONE);
-        expect(routerPush).toHaveBeenCalledWith("/dashboard");
-    });
-
-    scopedIt("renders DONE confirmation step when no return path is set", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
-        const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
-        await handler();
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.DONE);
-        expect(wrapper.find("[data-qa=view-setup-device-done]").exists()).toBe(true);
-        expect(wrapper.find("[data-qa=view-setup-device-continue]").exists()).toBe(true);
-    });
-
-    scopedIt("Continue button on DONE pushes to returnPath when present", async () => {
-        routeMock.query = { returnPath: "/after" };
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.step = wrapper.vm.STEPS.DONE;
-        await wrapper.vm.$nextTick();
-        const continueBtn = wrapper.find("[data-qa=view-setup-device-continue]");
-        expect(continueBtn.exists()).toBe(true);
-        await continueBtn.trigger("click");
-        expect(routerPush).toHaveBeenCalledWith("/after");
-    });
-
-    scopedIt("renders InputOTP on VERIFY step", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
-        await wrapper.vm.$nextTick();
-        expect(wrapper.find("[data-qa=view-setup-device-otp]").exists()).toBe(true);
-    });
-
-    scopedIt("renders inline manual key when totp secret is present", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.totpSvgDataUri = "data:image";
-        wrapper.vm.totpSecret = "ABCDEFG";
-        await wrapper.vm.$nextTick();
-        const key = wrapper.find("[data-qa=view-setup-device-manual-key]");
-        expect(key.exists()).toBe(true);
-        expect(wrapper.find("[data-qa=view-setup-device-manual-key-value]").text()).toContain("ABCDEFG");
-    });
-
-    scopedIt("renders the step indicator with current state", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        await wrapper.vm.$nextTick();
-        const choose = wrapper.find("[data-qa=view-setup-device-step-1]");
-        expect(choose.exists()).toBe(true);
-        expect(choose.attributes("data-state")).toBe("current");
-        expect(choose.attributes("aria-current")).toBe("step");
-        wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
-        await wrapper.vm.$nextTick();
-        expect(wrapper.find("[data-qa=view-setup-device-step-1]").attributes("data-state")).toBe("done");
-        expect(wrapper.find("[data-qa=view-setup-device-step-2]").attributes("data-state")).toBe("current");
+        scopedIt("renders the step indicator with current state", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            await wrapper.vm.$nextTick();
+            const choose = wrapper.find("[data-qa=view-setup-device-step-1]");
+            expect(choose.exists()).toBe(true);
+            expect(choose.attributes("data-state")).toBe("current");
+            expect(choose.attributes("aria-current")).toBe("step");
+            wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+            await wrapper.vm.$nextTick();
+            expect(wrapper.find("[data-qa=view-setup-device-step-1]").attributes("data-state")).toBe("done");
+            expect(wrapper.find("[data-qa=view-setup-device-step-2]").attributes("data-state")).toBe("current");
+        });
     });
 });
