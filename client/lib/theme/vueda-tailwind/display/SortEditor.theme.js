@@ -16,33 +16,35 @@ patchTheme({
         root: {
             class: ["flex flex-col gap-4"],
         },
-        /** Vertical list wrapper for reorderable sort fields. */
+        /** Shared five-column grid for reorderable sort fields. The field column absorbs any width left by a wider host, while intrinsic sizing follows the longest field label. */
         draggable: {
-            class: ["flex flex-col gap-2"],
+            class: [
+                "grid grid-cols-[max-content_max-content_minmax(max-content,1fr)_max-content_max-content] gap-x-3 gap-y-2",
+            ],
         },
-        /** Bordered sort-field row containing the handle, order text, and select. */
+        /** Bordered sort-field row that keeps its row surface while sharing the list's column tracks. */
         draggableItem: {
-            class: ["flex flex-row rounded-lg border p-3"],
+            class: ["col-span-full grid grid-cols-subgrid items-center rounded-lg border p-3"],
         },
-        /** Flexible row content inside each draggable item. */
+        /** Layout-transparent grouping for the handle, order text, and field select. */
         draggableItemInner: {
-            class: ["select-none flex flex-row gap-3 items-center justify-between grow flex-1"],
+            class: ["contents select-none"],
         },
         /** Pointer target for dragging a sort field. */
         dragHandle: {
             class: ["drag-handle cursor-grab active:cursor-grabbing p-1"],
         },
-        /** Small fixed-width sort-order label for the current field position. */
+        /** Right-aligned sort-order label for the current field position. */
         sortOrderText: {
-            class: ["w-3 text-sm font-semibold text-muted-foreground"],
+            class: ["justify-self-end text-right text-sm font-semibold tabular-nums text-muted-foreground"],
         },
-        /** Select control used to choose the sorted field. No width override: the SelectTrigger's own `w-fit` applies, and the hosting `PopoverContent` (width auto) expands to fit the label. `w-full` is avoided because it causes circular sizing in a shrink-to-fit container. */
+        /** Field select stretched across the shared field column so every row uses the same width and left edge. */
         select: {
-            class: [],
+            class: ["!w-full justify-self-stretch"],
         },
-        /** Inline action alignment for per-sort-field controls. */
+        /** Layout-transparent grouping for the direction and remove actions. */
         sortInlineActionBar: {
-            class: ["flex flex-row content-baseline justify-end"],
+            class: ["contents"],
         },
         /** Action stack for add, clear, or cancel commands. */
         actionBar: {
