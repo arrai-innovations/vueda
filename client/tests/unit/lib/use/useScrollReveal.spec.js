@@ -179,4 +179,36 @@ describe("lib/use/useScrollReveal.js", () => {
             expect(context().hidden.value).toBe(false);
         });
     });
+
+    describe("caller-controlled boolean reveal", () => {
+        scopedIt("treats a boolean reveal as direct visibility control, ignoring scroll", async () => {
+            const reveal = ref(true);
+            const { context } = mountHost({ reveal });
+            await nextTick();
+            expect(context().hidden.value).toBe(false);
+
+            // Scrolling down must not hide it while the caller says revealed.
+            const handler = windowScrollHandler();
+            window.scrollY = 200;
+            handler();
+            await nextTick();
+            expect(context().hidden.value).toBe(false);
+
+            // The caller flips it hidden directly.
+            reveal.value = false;
+            await nextTick();
+            expect(context().hidden.value).toBe(true);
+        });
+
+        scopedIt("accepts a getter returning a boolean", async () => {
+            const visible = ref(false);
+            const { context } = mountHost({ reveal: () => visible.value });
+            await nextTick();
+            expect(context().hidden.value).toBe(true);
+
+            visible.value = true;
+            await nextTick();
+            expect(context().hidden.value).toBe(false);
+        });
+    });
 });

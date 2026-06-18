@@ -19,11 +19,16 @@ import { computed, onScopeDispose, ref, toValue, unref, watch } from "vue";
  *   to read; suited to the space-reclaiming toolbar tier.
  * - `scroll-up-or-idle`: like `scroll-up`, but also reveals after scrolling pauses for `idleDelay`
  *   milliseconds. Suited to a submit / action bar the user should be able to return to quickly.
+ *
+ * A `reveal` that resolves to a boolean instead of one of these strings hands visibility control
+ * back to the caller entirely: `true` means revealed (`hidden` is `false`), `false` means hidden.
+ * Pass a boolean ref/getter (typically a `computed`) to drive show/hide from the view's own logic;
+ * in that mode scroll position is ignored.
  */
 
 /**
  * @typedef {object} ScrollRevealOptions
- * @property {ScrollRevealStrategy | import('vue').MaybeRefOrGetter<ScrollRevealStrategy>} [reveal] - The reveal strategy. May be reactive (ref or getter) so a consumer can switch behavior at runtime. Defaults to `scroll-up-or-idle`.
+ * @property {ScrollRevealStrategy | boolean | import('vue').MaybeRefOrGetter<ScrollRevealStrategy | boolean>} [reveal] - The reveal strategy, or a boolean (revealed when `true`). May be reactive (ref or getter) so a consumer can switch behavior at runtime. Defaults to `scroll-up-or-idle`.
  * @property {import('vue').MaybeRefOrGetter<HTMLElement|null>} [scrollRoot] - The scroll container the behavior reacts to. Pass the scrollable element (or a ref/getter to one) when the chrome lives inside a scrollable region; the hide/reveal threshold and the scroll listener bind to it. When nullish (the default) the behavior reacts to the window.
  * @property {number} [idleDelay] - Milliseconds of scroll inactivity after which the `scroll-up-or-idle` strategy reveals the chrome. Defaults to 300.
  */
@@ -129,7 +134,12 @@ export function useScrollReveal(rootRef, options = {}) {
     });
 
     const hidden = computed(() => {
-        if (reveal.value === "always") {
+        const strategy = reveal.value;
+        // A boolean hands visibility to the caller: `true` reveals, `false` hides.
+        if (typeof strategy === "boolean") {
+            return !strategy;
+        }
+        if (strategy === "always") {
             return false;
         }
         return isScrolledPastThreshold.value && !isScrollingUp.value;
