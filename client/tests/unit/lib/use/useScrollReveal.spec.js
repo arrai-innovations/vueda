@@ -1,6 +1,6 @@
 import { mockEventListener, scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { useScrollReveal } from "@vueda/use/useScrollReveal.js";
+import { revealHidden, useScrollReveal } from "@vueda/use/useScrollReveal.js";
 import { defineComponent, h, nextTick, ref } from "vue";
 
 const mockedListeners = mockEventListener(vi);
@@ -210,5 +210,64 @@ describe("lib/use/useScrollReveal.js", () => {
             await nextTick();
             expect(context().hidden.value).toBe(false);
         });
+    });
+
+    describe("exposed scroll signals", () => {
+        scopedIt("exposes isScrollingUp, isPastThreshold, and isIdle for a host to reuse", async () => {
+            const { context } = mountHost({ reveal: "always" });
+            await nextTick();
+            const ctx = context();
+            expect(ctx.isScrollingUp.value).toBe(false);
+            expect(ctx.isPastThreshold.value).toBe(false);
+            expect(ctx.isIdle.value).toBe(false);
+
+            const handler = windowScrollHandler();
+            window.scrollY = 100;
+            handler();
+            await nextTick();
+            expect(ctx.isPastThreshold.value).toBe(true);
+            expect(ctx.isScrollingUp.value).toBe(false);
+
+            // Settling flips isIdle, independent of the (always) strategy's own hidden flag.
+            vi.advanceTimersByTime(300);
+            await nextTick();
+            expect(ctx.isIdle.value).toBe(true);
+
+            window.scrollY = 40;
+            handler();
+            await nextTick();
+            expect(ctx.isScrollingUp.value).toBe(true);
+            expect(ctx.isIdle.value).toBe(false);
+        });
+    });
+});
+
+describe("revealHidden", () => {
+    const scrolledDown = { isScrollingUp: false, isPastThreshold: true, isIdle: false };
+
+    it("never hides for the always strategy", () => {
+        expect(revealHidden("always", scrolledDown)).toBe(false);
+    });
+
+    it("maps a boolean to direct visibility (true reveals, false hides)", () => {
+        expect(revealHidden(true, scrolledDown)).toBe(false);
+        expect(revealHidden(false, { isScrollingUp: true, isPastThreshold: false, isIdle: true })).toBe(true);
+    });
+
+    it("only hides once scrolled past the threshold", () => {
+        expect(revealHidden("scroll-up", { isScrollingUp: false, isPastThreshold: false, isIdle: false })).toBe(false);
+        expect(revealHidden("scroll-up", scrolledDown)).toBe(true);
+    });
+
+    it("reveals on scroll up for both scroll strategies", () => {
+        const scrollingUp = { isScrollingUp: true, isPastThreshold: true, isIdle: false };
+        expect(revealHidden("scroll-up", scrollingUp)).toBe(false);
+        expect(revealHidden("scroll-up-or-idle", scrollingUp)).toBe(false);
+    });
+
+    it("reveals on idle only for scroll-up-or-idle", () => {
+        const idle = { isScrollingUp: false, isPastThreshold: true, isIdle: true };
+        expect(revealHidden("scroll-up", idle)).toBe(true);
+        expect(revealHidden("scroll-up-or-idle", idle)).toBe(false);
     });
 });

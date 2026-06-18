@@ -34,8 +34,18 @@ import { computed, onScopeDispose, ref, toValue, unref, watch } from "vue";
  */
 
 /**
+ * @typedef {object} ScrollRevealState
+ * @property {boolean} isScrollingUp - Whether the most recent scroll moved toward the top.
+ * @property {boolean} isPastThreshold - Whether the scroll position is past the element's original bottom edge (the chrome's spot has left the viewport).
+ * @property {boolean} isIdle - Whether scrolling has settled for at least `idleDelay` since the last scroll.
+ */
+
+/**
  * @typedef {object} ScrollRevealContext
  * @property {import('vue').ComputedRef<boolean>} hidden - `true` while the chrome should be translated out of view.
+ * @property {import('vue').Ref<boolean>} isScrollingUp - Live `isScrollingUp` signal (see {@link ScrollRevealState}).
+ * @property {import('vue').ComputedRef<boolean>} isPastThreshold - Live `isPastThreshold` signal (see {@link ScrollRevealState}).
+ * @property {import('vue').Ref<boolean>} isIdle - Live `isIdle` signal (see {@link ScrollRevealState}).
  */
 
 /**
@@ -49,18 +59,45 @@ import { computed, onScopeDispose, ref, toValue, unref, watch } from "vue";
  *
  * @param {import('vue').Ref<HTMLElement|null>} rootRef - Ref to the element whose original on-screen position defines the hide threshold (typically the chrome's own root).
  * @param {ScrollRevealOptions} [options] - Reveal strategy, scroll container, and idle timing.
- * @returns {ScrollRevealContext} The reactive `hidden` flag.
+ * @returns {ScrollRevealContext} The reactive `hidden` flag plus the raw scroll signals (so a multi-bar host can reuse one tracker across bars).
  */
+/**
+ * Resolve whether chrome should be hidden, given a reveal strategy and the current scroll signals.
+ *
+ * Pure and synchronous so it can be reused per bar by a multi-bar host (each bar applies its own
+ * strategy against one shared set of scroll signals) as well as by {@link useScrollReveal} itself.
+ *
+ * @param {ScrollRevealStrategy | boolean} strategy - The reveal strategy, or a boolean (revealed when `true`).
+ * @param {ScrollRevealState} state - The current scroll signals.
+ * @returns {boolean} `true` when the chrome should be hidden.
+ */
+export function revealHidden(strategy, { isScrollingUp, isPastThreshold, isIdle }) {
+    // A boolean hands visibility to the caller: `true` reveals, `false` hides.
+    if (typeof strategy === "boolean") {
+        return !strategy;
+    }
+    if (strategy === "always") {
+        return false;
+    }
+    if (!isPastThreshold || isScrollingUp) {
+        return false;
+    }
+    // Scrolled down past the threshold: hidden, unless this strategy also reveals on idle and the
+    // scroll has since settled.
+    return !(strategy === "scroll-up-or-idle" && isIdle);
+}
+
 export function useScrollReveal(rootRef, options = {}) {
     const idleDelay = options.idleDelay ?? 300;
     const reveal = computed(() => toValue(options.reveal) ?? "scroll-up-or-idle");
 
     const isScrollingUp = ref(false);
+    const isIdle = ref(false);
     const rootThreshold = ref(0);
     const lastScrollY = ref(0);
     let scrollTimeout = null;
 
-    const isScrolledPastThreshold = computed(() => lastScrollY.value > rootThreshold.value);
+    const isPastThreshold = computed(() => lastScrollY.value > rootThreshold.value);
 
     // The window, or null during SSR. Resolved lazily so the module is import-safe on the server.
     const browserWindow = () => (typeof window === "undefined" ? null : window);
@@ -97,13 +134,13 @@ export function useScrollReveal(rootRef, options = {}) {
         isScrollingUp.value = currentScrollY < lastScrollY.value;
         lastScrollY.value = currentScrollY;
 
+        // `isIdle` is a shared signal (scrolling has settled); each strategy decides whether it
+        // matters. Reset it on every scroll and re-arm the timer.
+        isIdle.value = false;
         clearIdleTimer();
-        // Only the idle-reveal strategy schedules a forced reveal after the scroll settles.
-        if (reveal.value === "scroll-up-or-idle") {
-            scrollTimeout = setTimeout(() => {
-                isScrollingUp.value = true;
-            }, idleDelay);
-        }
+        scrollTimeout = setTimeout(() => {
+            isIdle.value = true;
+        }, idleDelay);
     };
 
     // Bind the scroll listener and recompute the threshold whenever the resolved target or the
@@ -133,17 +170,13 @@ export function useScrollReveal(rootRef, options = {}) {
         clearIdleTimer();
     });
 
-    const hidden = computed(() => {
-        const strategy = reveal.value;
-        // A boolean hands visibility to the caller: `true` reveals, `false` hides.
-        if (typeof strategy === "boolean") {
-            return !strategy;
-        }
-        if (strategy === "always") {
-            return false;
-        }
-        return isScrolledPastThreshold.value && !isScrollingUp.value;
-    });
+    const hidden = computed(() =>
+        revealHidden(reveal.value, {
+            isScrollingUp: isScrollingUp.value,
+            isPastThreshold: isPastThreshold.value,
+            isIdle: isIdle.value,
+        }),
+    );
 
-    return { hidden };
+    return { hidden, isScrollingUp, isPastThreshold, isIdle };
 }
