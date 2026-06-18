@@ -15,24 +15,39 @@
  * which is fine since they simply stack until the leaving view unmounts and cleans up.
  */
 import { StickyStackContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, getCurrentScope, inject, markRaw, onScopeDispose, provide, ref, shallowRef, unref } from "vue";
+import {
+    computed,
+    getCurrentScope,
+    inject,
+    markRaw,
+    onScopeDispose,
+    provide,
+    ref,
+    shallowRef,
+    toValue,
+    unref,
+} from "vue";
 
 /**
  * @typedef {'top' | 'bottom'} StickyZoneName
  */
 
 /**
+ * @typedef {import('vue').MaybeRefOrGetter<import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean>} StickyReveal
+ */
+
+/**
  * @typedef {object} StickyStackRegistration
- * @property {StickyZoneName} [zone] - The zone the bar belongs to. Defaults to `top`.
- * @property {number} [order] - Sort order within the zone (ascending, top to bottom). Defaults to `0`.
- * @property {import('vue').MaybeRefOrGetter<import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean>} [reveal] - This bar's reveal behavior: a strategy string or a boolean, or a ref/getter of either for a reactive reason (for example, reveal a bulk-action bar only while there is a selection). When omitted, the bar stays visible (`always`).
+ * @property {StickyZoneName} [zone] - The zone the bar belongs to. Fixed at registration time. Defaults to `top`.
+ * @property {import('vue').MaybeRefOrGetter<number>} [order] - Sort order within the zone (ascending, top to bottom). May be reactive to reorder bars at runtime. Defaults to `0`.
+ * @property {StickyReveal} [reveal] - This bar's reveal behavior: a strategy string or a boolean, or a ref/getter of either for a reactive reason (for example, reveal a bulk-action bar only while there is a selection). When omitted, the bar stays visible (`always`).
  */
 
 /**
  * @typedef {object} StickyStackEntry
  * @property {string} id - Stable identifier for this registration (use as a list key).
- * @property {number} order - The bar's sort order within its zone.
- * @property {*} reveal - The bar's reveal behavior, as registered (possibly a ref or getter).
+ * @property {import('vue').MaybeRefOrGetter<number>} order - The bar's sort order within its zone, as registered (possibly reactive).
+ * @property {StickyReveal} [reveal] - The bar's reveal behavior, as registered (possibly a ref or getter).
  * @property {import('vue').ShallowRef<HTMLElement|null>} el - The bar element, set by the provider; the view teleports its chrome into it.
  * @property {import('vue').ComputedRef<HTMLElement|null>} target - The teleport target, resolved from `el`; `null` until the provider binds it (or when there is no provider above).
  * @property {() => void} stop - Removes this registration. Called automatically on scope dispose when registered inside an effect scope.
@@ -44,6 +59,19 @@ import { computed, getCurrentScope, inject, markRaw, onScopeDispose, provide, re
  * @property {(registration?: StickyStackRegistration) => StickyStackEntry} register - Register a bar into a zone. Returns the entry (teleport target, element ref, cleanup).
  */
 
+/**
+ * Establish the sticky-stack context (provider role).
+ *
+ * @overload
+ * @returns {StickyStackContext}
+ */
+/**
+ * Register a bar and contribute to the context (view role).
+ *
+ * @overload
+ * @param {StickyStackRegistration} registration
+ * @returns {StickyStackEntry}
+ */
 /**
  * Establish the sticky-stack context (provider role) or contribute to it (view role).
  *
@@ -90,8 +118,9 @@ function createStickyStackContext() {
     const zoneRegistrations = (zone) =>
         computed(() => {
             const list = zones[zone]?.value ?? [];
-            // Stable sort by order so equal-order bars keep registration order.
-            return [...list].sort((a, b) => a.order - b.order);
+            // Stable sort by resolved order (so a reactive `order` re-sorts) and equal orders keep
+            // registration order.
+            return [...list].sort((a, b) => toValue(a.order) - toValue(b.order));
         });
 
     /** @type {StickyStackContext['register']} */

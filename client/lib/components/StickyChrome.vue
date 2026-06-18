@@ -12,13 +12,13 @@ defineOptions({
 });
 
 const props = defineProps({
-    /** Which provider zone to teleport into. */
+    /** Which provider zone to teleport into. Fixed at mount; changing it later does not move the bar. */
     zone: {
         type: String,
         default: "top",
         validator: (value) => ["top", "bottom"].includes(value),
     },
-    /** Sort order of this bar within its zone's stack (ascending, top to bottom). */
+    /** Sort order of this bar within its zone's stack (ascending, top to bottom). Reactive: changing it re-sorts the stack. */
     order: {
         type: Number,
         default: 0,
@@ -26,16 +26,19 @@ const props = defineProps({
     /**
      * This bar's reveal behavior: a strategy string (`always`, `scroll-up`, `scroll-up-or-idle`) or
      * a boolean (revealed when `true`). When omitted, the bar stays visible (`always`).
-     * @type {import('vue').PropType<string|boolean>}
+     * @type {import('vue').PropType<import('@vueda/use/useScrollReveal.js').ScrollRevealStrategy | boolean>}
      */
     reveal: {
         type: [String, Boolean],
         default: undefined,
+        validator: (value) =>
+            typeof value === "boolean" || ["always", "scroll-up", "scroll-up-or-idle"].includes(value),
     },
 });
 
-// Pass reveal as a getter so a bar tracks a reactive `reveal` prop without re-registering.
-const { target } = useStickyStack({ zone: props.zone, order: props.order, reveal: () => props.reveal });
+// Pass `order` and `reveal` as getters so the bar tracks those reactive props without re-registering.
+// `zone` is read once: moving a bar between zones would require tearing down and re-registering it.
+const { target } = useStickyStack({ zone: props.zone, order: () => props.order, reveal: () => props.reveal });
 </script>
 <template>
     <!-- disabled (not v-if) so the slotted chrome keeps its state as the zone appears or disappears -->

@@ -69,4 +69,25 @@ describe("lib/components/StickyChrome.vue", () => {
             wrapper.unmount();
         });
     });
+
+    describe("prop validation", () => {
+        scopedIt("warns on an unknown reveal strategy string", async () => {
+            const { default: StickyChrome } = await importChrome();
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            const wrapper = mount(StickyChrome, { props: { reveal: "scroll-sideways" } });
+            // Vue's invalid-prop warning names the prop; it may pass a component trace as a 2nd arg.
+            expect(warn.mock.calls.some((call) => String(call[0]).includes("reveal"))).toBe(true);
+            wrapper.unmount();
+            warn.mockRestore();
+        });
+
+        scopedIt("accepts a valid strategy string without warning", async () => {
+            const { default: StickyChrome } = await importChrome();
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            const wrapper = mount(StickyChrome, { props: { reveal: "scroll-up" } });
+            expect(warn).not.toHaveBeenCalled();
+            wrapper.unmount();
+            warn.mockRestore();
+        });
+    });
 });

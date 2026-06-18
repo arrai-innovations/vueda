@@ -1,7 +1,7 @@
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { useStickyStack } from "@vueda/use/useStickyStack.js";
-import { defineComponent, h } from "vue";
+import { defineComponent, h, ref } from "vue";
 
 describe("lib/use/useStickyStack.js", () => {
     describe("provider role (no registration)", () => {
@@ -57,6 +57,17 @@ describe("lib/use/useStickyStack.js", () => {
             context.register({ zone: "top", order: 20, reveal: "scroll-up-or-idle" });
 
             expect(context.zoneRegistrations("top").value.map((e) => e.order)).toEqual([10, 20, 30]);
+        });
+
+        scopedIt("re-sorts when a reactive order changes", async () => {
+            const context = await withSetup(() => useStickyStack());
+            const orderA = ref(20);
+            context.register({ zone: "top", order: () => orderA.value, reveal: "a" });
+            context.register({ zone: "top", order: 10, reveal: "b" });
+            expect(context.zoneRegistrations("top").value.map((e) => e.reveal)).toEqual(["b", "a"]);
+
+            orderA.value = 5;
+            expect(context.zoneRegistrations("top").value.map((e) => e.reveal)).toEqual(["a", "b"]);
         });
 
         scopedIt("keeps equal-order registrations in registration order", async () => {
