@@ -108,7 +108,23 @@ describe("lib/shell/dialog/Dialog.vue", () => {
 
         scopedIt("applies base positioning classes", () => {
             const wrapper = mountDialog(true);
-            expect(wrapper.find('[data-slot="dialog-content"]').classes()).toContain("fixed");
+            const content = wrapper.find('[data-slot="dialog-content"]');
+            expect(content.classes()).toContain("fixed");
+            expect(content.classes()).toContain("top-[50%]");
+            expect(content.classes()).toContain("text-foreground");
+        });
+
+        scopedIt("uses mutually exclusive full-screen geometry", () => {
+            const wrapper = mountDialog(true, { fullScreen: true });
+            const content = wrapper.find('[data-slot="dialog-content"]');
+
+            expect(content.classes()).toContain("inset-0");
+            expect(content.classes()).toContain("h-dvh");
+            expect(content.classes()).toContain("p-0");
+            expect(content.classes()).not.toContain("top-[50%]");
+            expect(content.classes()).not.toContain("translate-x-[-50%]");
+            expect(content.classes()).not.toContain("p-6");
+            expect(content.attributes("full-screen")).toBeUndefined();
         });
 
         scopedIt("merges custom class", () => {
@@ -171,7 +187,9 @@ describe("lib/shell/alert-dialog/AlertDialog.vue", () => {
 
         scopedIt("applies base positioning classes", () => {
             const wrapper = mountAlertDialog();
-            expect(wrapper.find('[data-slot="alert-dialog-content"]').classes()).toContain("fixed");
+            const content = wrapper.find('[data-slot="alert-dialog-content"]');
+            expect(content.classes()).toContain("fixed");
+            expect(content.classes()).toContain("text-foreground");
         });
     });
 

@@ -25,7 +25,7 @@ patchTheme({
             return {
                 class: [
                     // Surface and state motion.
-                    "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out",
+                    "bg-background text-foreground data-[state=open]:animate-in data-[state=closed]:animate-out",
 
                     // Positioning and layout.
                     "fixed z-50 flex flex-col gap-4",

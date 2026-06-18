@@ -40,8 +40,8 @@ const SortEditorStub = defineComponent({
     },
 });
 
-const DrawerStub = defineComponent({
-    name: "DrawerStub",
+const DialogStub = defineComponent({
+    name: "DialogStub",
     inheritAttrs: false,
     props: ["open"],
     emits: ["update:open"],
@@ -55,10 +55,11 @@ vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/shell/popover/Popover.vue", () => ({ default: PassThroughStub("PopoverStub") }));
 vi.mock("@vueda/shell/popover/PopoverContent.vue", () => ({ default: PassThroughStub("PopoverContentStub") }));
 vi.mock("@vueda/shell/popover/PopoverTrigger.vue", () => ({ default: PassThroughStub("PopoverTriggerStub") }));
-vi.mock("@vueda/shell/drawer/Drawer.vue", () => ({ default: DrawerStub }));
-vi.mock("@vueda/shell/drawer/DrawerContent.vue", () => ({ default: PassThroughStub("DrawerContentStub") }));
-vi.mock("@vueda/shell/drawer/DrawerHeader.vue", () => ({ default: PassThroughStub("DrawerHeaderStub") }));
-vi.mock("@vueda/shell/drawer/DrawerTitle.vue", () => ({ default: PassThroughStub("DrawerTitleStub") }));
+vi.mock("@vueda/shell/dialog/Dialog.vue", () => ({ default: DialogStub }));
+vi.mock("@vueda/shell/dialog/DialogContent.vue", () => ({ default: PassThroughStub("DialogContentStub") }));
+vi.mock("@vueda/shell/dialog/DialogHeader.vue", () => ({ default: PassThroughStub("DialogHeaderStub") }));
+vi.mock("@vueda/shell/dialog/DialogTitle.vue", () => ({ default: PassThroughStub("DialogTitleStub") }));
+vi.mock("@vueda/shell/dialog/DialogTrigger.vue", () => ({ default: PassThroughStub("DialogTriggerStub") }));
 vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
 
 vi.mock("@vueuse/core", async (importOriginal) => {
@@ -103,20 +104,23 @@ function mountControl(options = {}) {
 }
 
 describe("lib/components/SortControl.vue", () => {
-    scopedIt("renders the popover shell on desktop and not the drawer", () => {
+    scopedIt("renders the popover shell on desktop and not the dialog", () => {
         isMobileState.value = false;
         const { wrapper } = mountControl();
 
         expect(wrapper.findComponent({ name: "PopoverStub" }).exists()).toBe(true);
-        expect(wrapper.findComponent({ name: "DrawerStub" }).exists()).toBe(false);
+        expect(wrapper.findComponent({ name: "DialogStub" }).exists()).toBe(false);
     });
 
-    scopedIt("renders the drawer shell on mobile and not the popover", () => {
+    scopedIt("renders the full-screen dialog shell on mobile and not the popover", () => {
         isMobileState.value = true;
         const { wrapper } = mountControl();
 
-        expect(wrapper.findComponent({ name: "DrawerStub" }).exists()).toBe(true);
+        expect(wrapper.findComponent({ name: "DialogStub" }).exists()).toBe(true);
         expect(wrapper.findComponent({ name: "PopoverStub" }).exists()).toBe(false);
+        expect(wrapper.find('[data-qa="sort-control-dialog-body"]').classes()).toContain("dialogBody");
+        expect(wrapper.findComponent({ name: "DialogContentStub" }).classes()).toContain("dialog");
+        expect(wrapper.findComponent({ name: "DialogHeaderStub" }).classes()).toContain("dialogHeader");
     });
 
     scopedIt("shows the active-sort count badge only when sorts are applied", () => {
@@ -163,15 +167,15 @@ describe("lib/components/SortControl.vue", () => {
         expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["-name"]);
     });
 
-    scopedIt("opens the drawer when the mobile trigger is clicked", async () => {
+    scopedIt("opens the dialog when the mobile trigger is clicked", async () => {
         isMobileState.value = true;
         const { wrapper } = mountControl();
 
-        expect(wrapper.findComponent({ name: "DrawerStub" }).props("open")).toBe(false);
+        expect(wrapper.findComponent({ name: "DialogStub" }).props("open")).toBe(false);
 
         await wrapper.find('[data-qa="sort-control-trigger"]').trigger("click");
 
-        expect(wrapper.findComponent({ name: "DrawerStub" }).props("open")).toBe(true);
+        expect(wrapper.findComponent({ name: "DialogStub" }).props("open")).toBe(true);
     });
 
     scopedIt("forwards body slots through to SortEditor", () => {

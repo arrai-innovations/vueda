@@ -46,9 +46,9 @@ patchTheme({
         sortInlineActionBar: {
             class: ["contents"],
         },
-        /** Action stack for add, clear, or cancel commands. */
+        /** Responsive action layout. Buttons stack on narrow screens and share a row when space permits. */
         actionBar: {
-            class: ["flex flex-col gap-2"],
+            class: ["grid grid-cols-1 gap-2 sm:grid-cols-2"],
         },
         /** Eyebrow at the top of the add-sort field-picker menu. The in-popover micro-eyebrow recipe (11 px / 600 / 0.04em). */
         addMenuEyebrow: {

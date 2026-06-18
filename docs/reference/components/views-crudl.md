@@ -286,7 +286,7 @@ Theme keys: {@api theme-key:StickyBar}.
 The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and a filter entry point — the search and column buttons stay anchored right at all times. The `Filters` control on the left carries a count of active filters and opens an add-filter menu listing the fields not yet applied; picking one slides the popover to that field's filter form in place (no modal, no second surface), and a back affordance returns to the list to add another. Active filters render as a tinted strip of chips below: click a chip to edit it (reopening the same form anchored to the chip), the ✕ to remove it, or `Clear all` to reset every filter. When rows are selected, a bulk-actions strip appears. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
 
 ::: info Mockup status
-This ViewList is a static mockup. The live components implement the filter UX: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. The toolbar `Sort` trigger and the multi-field sort popover shown below are now live too: `SortControl` hosts the shared `SortEditor` body in a popover on desktop and a bottom drawer on mobile, and `ViewList` renders it next to `Filters` whenever the model has sortable fields. Sorting also still works through `ObjectsGrid` column headers (table layout); all surfaces write the same sort order. (`MobileSortComponent` is the deprecated card-only predecessor, superseded by `SortControl`.) The panels below remain static illustrations of the editor's states.
+This ViewList is a static mockup. The live components implement the filter UX: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. The toolbar `Sort` trigger and the multi-field sort popover shown below are now live too: `SortControl` hosts the shared `SortEditor` body in a popover on desktop and a full-screen dialog on mobile, and `ViewList` renders it next to `Filters` whenever the model has sortable fields. Sorting also still works through `ObjectsGrid` column headers (table layout); all surfaces write the same sort order. (`MobileSortComponent` is the deprecated card-only predecessor, superseded by `SortControl`.) The panels below remain static illustrations of the editor's states.
 :::
 
 <VuedaDemo class="flex flex-col gap-3">
@@ -466,7 +466,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
     </div>
   </div>
   <div class="flex flex-col gap-2">
-    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sort [2] → multi-field editor · the trigger opens this popover · same editor body the mobile bottom drawer hosts</header>
+    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sort [2] → multi-field editor · the trigger opens this popover · same editor body the mobile full-screen dialog hosts</header>
     <div class="flex flex-wrap items-start gap-6">
       <div class="flex flex-col gap-1.5">
         <span class="text-[11px] font-medium text-muted-foreground">active sorts · priority top-to-bottom · the field control swaps the column, the arrow flips direction, ✕ removes</span>
@@ -558,7 +558,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>under-actions: search and column controls anchored right; the Filters and Sort controls sit left</span>
     <span>Sort [n]: badge counts active sort fields; the trigger opens the multi-field sort popover</span>
-    <span>sort popover: drag to reorder (priority), per-row field swap and direction toggle, ✕ to remove, Clear all — the same editor body the mobile bottom drawer hosts</span>
+    <span>sort popover: drag to reorder (priority), per-row field swap and direction toggle, ✕ to remove, Clear all. The mobile full-screen dialog hosts the same editor body.</span>
     <span>Add sort: opens a field-picker menu of fields not already sorted (mirrors the filter add-flow); clicking one appends a new sort row</span>
     <span>Filters [n]: badge counts active filters; opens the add-filter menu of not-yet-applied fields</span>
     <span>add-filter flow: pick a field, the popover slides to that field's form in place; ‹ returns to the list; one anchored surface, no modal</span>

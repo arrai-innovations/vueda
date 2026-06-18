@@ -6,6 +6,7 @@ import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { DialogClose, DialogContent, DialogPortal } from "reka-ui";
+import { reactive, toRef } from "vue";
 
 /**
  * The content panel of a Dialog, rendered in a portal with an overlay and optional close button.
@@ -21,6 +22,8 @@ const props = defineProps({
      * @type {import('vue').HTMLAttributes['class']}
      */
     class: { type: [String, Array, Object], default: undefined },
+    /** Whether to fill the viewport instead of rendering as a centered modal panel. */
+    fullScreen: { type: Boolean, default: false },
     /** Whether to show the close button. */
     showCloseButton: { type: Boolean, default: true },
     /** Whether to trap focus inside the content. */
@@ -43,10 +46,10 @@ const emits = defineEmits({
     interactOutside: null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "class", "fullScreen", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
-const theme = useTheme("DialogContent", props);
+const theme = useTheme("DialogContent", props, reactive({ fullScreen: toRef(props, "fullScreen") }));
 const icon = useIcons("DialogContent");
 </script>
 

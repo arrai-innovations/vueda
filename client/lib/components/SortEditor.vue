@@ -20,8 +20,8 @@ import { VueDraggableNext as draggable } from "vue-draggable-next";
 /**
  * Shell-agnostic multi-field sort editor: a reorderable list of active sort
  * fields with per-row field selection and direction toggle, plus add and clear
- * actions. Hosted by a shell (the MobileSortComponent drawer today; a popover
- * shell later) that owns open/close state.
+ * actions. Hosted by a shell such as SortControl's desktop popover or mobile
+ * full-screen dialog, which owns open/close state.
  */
 defineOptions({});
 

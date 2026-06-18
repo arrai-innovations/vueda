@@ -2,6 +2,15 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, ref } from "vue";
 
+const PassThroughStub = (name) =>
+    defineComponent({
+        name,
+        inheritAttrs: false,
+        setup(_, { slots, attrs }) {
+            return () => h("div", { ...attrs }, slots.default ? slots.default() : null);
+        },
+    });
+
 const ButtonStub = defineComponent({
     name: "ButtonStub",
     emits: ["click"],
@@ -19,8 +28,8 @@ const ButtonStub = defineComponent({
     },
 });
 
-const ShellDrawerStub = defineComponent({
-    name: "ShellDrawerStub",
+const ShellDialogStub = defineComponent({
+    name: "ShellDialogStub",
     props: ["open"],
     emits: ["update:open"],
     setup(props, { slots, attrs }) {
@@ -28,7 +37,7 @@ const ShellDrawerStub = defineComponent({
             h(
                 "div",
                 {
-                    "data-qa": "drawer",
+                    "data-qa": "dialog",
                     "data-open": props.open,
                     ...attrs,
                 },
@@ -37,26 +46,10 @@ const ShellDrawerStub = defineComponent({
     },
 });
 
-const ShellDrawerContentStub = defineComponent({
-    name: "ShellDrawerContentStub",
-    setup(_, { slots }) {
-        return () => h("div", null, slots.default?.());
-    },
-});
-
-const ShellDrawerHeaderStub = defineComponent({
-    name: "ShellDrawerHeaderStub",
-    setup(_, { slots }) {
-        return () => h("div", null, slots.default?.());
-    },
-});
-
-const ShellDrawerTitleStub = defineComponent({
-    name: "ShellDrawerTitleStub",
-    setup(_, { slots }) {
-        return () => h("div", null, slots.default?.());
-    },
-});
+const ShellDialogContentStub = PassThroughStub("ShellDialogContentStub");
+const ShellDialogHeaderStub = PassThroughStub("ShellDialogHeaderStub");
+const ShellDialogTitleStub = PassThroughStub("ShellDialogTitleStub");
+const ShellDialogTriggerStub = PassThroughStub("ShellDialogTriggerStub");
 
 const ControlSelectStub = defineComponent({
     name: "ControlSelectStub",
@@ -113,25 +106,18 @@ const DraggableStub = defineComponent({
 });
 
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/shell/drawer/Drawer.vue", () => ({ default: ShellDrawerStub }));
-vi.mock("@vueda/shell/drawer/DrawerContent.vue", () => ({ default: ShellDrawerContentStub }));
-vi.mock("@vueda/shell/drawer/DrawerHeader.vue", () => ({ default: ShellDrawerHeaderStub }));
-vi.mock("@vueda/shell/drawer/DrawerTitle.vue", () => ({ default: ShellDrawerTitleStub }));
+vi.mock("@vueda/shell/dialog/Dialog.vue", () => ({ default: ShellDialogStub }));
+vi.mock("@vueda/shell/dialog/DialogContent.vue", () => ({ default: ShellDialogContentStub }));
+vi.mock("@vueda/shell/dialog/DialogHeader.vue", () => ({ default: ShellDialogHeaderStub }));
+vi.mock("@vueda/shell/dialog/DialogTitle.vue", () => ({ default: ShellDialogTitleStub }));
+vi.mock("@vueda/shell/dialog/DialogTrigger.vue", () => ({ default: ShellDialogTriggerStub }));
 vi.mock("@vueda/controls/select/Select.vue", () => ({ default: ControlSelectStub }));
 vi.mock("@vueda/controls/select/SelectContent.vue", () => ({ default: ControlSelectContentStub }));
 vi.mock("@vueda/controls/select/SelectItem.vue", () => ({ default: ControlSelectItemStub }));
 vi.mock("@vueda/controls/select/SelectTrigger.vue", () => ({ default: ControlSelectTriggerStub }));
 vi.mock("@vueda/controls/select/SelectValue.vue", () => ({ default: ControlSelectValueStub }));
 vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
-// SortEditor (rendered for real inside the drawer) hosts its add-sort field picker in a popover.
-const PassThroughStub = (name) =>
-    defineComponent({
-        name,
-        inheritAttrs: false,
-        setup(_, { slots, attrs }) {
-            return () => h("div", { ...attrs }, slots.default ? slots.default() : null);
-        },
-    });
+// SortEditor (rendered for real inside the dialog) hosts its add-sort field picker in a popover.
 vi.mock("@vueda/shell/popover/Popover.vue", () => ({ default: PassThroughStub("PopoverStub") }));
 vi.mock("@vueda/shell/popover/PopoverContent.vue", () => ({ default: PassThroughStub("PopoverContentStub") }));
 vi.mock("@vueda/shell/popover/PopoverTrigger.vue", () => ({ default: PassThroughStub("PopoverTriggerStub") }));
@@ -180,10 +166,11 @@ function mountComponent(options = {}) {
         global: {
             stubs: {
                 Button: ButtonStub,
-                Drawer: ShellDrawerStub,
-                DrawerContent: ShellDrawerContentStub,
-                DrawerHeader: ShellDrawerHeaderStub,
-                DrawerTitle: ShellDrawerTitleStub,
+                Dialog: ShellDialogStub,
+                DialogContent: ShellDialogContentStub,
+                DialogHeader: ShellDialogHeaderStub,
+                DialogTitle: ShellDialogTitleStub,
+                DialogTrigger: ShellDialogTriggerStub,
                 Select: ControlSelectStub,
                 draggable: DraggableStub,
             },
@@ -204,23 +191,23 @@ describe("lib/components/MobileSortComponent.vue", () => {
         expect(wrapper.emitted()["update:open"][1]).toEqual([false]);
     });
 
-    scopedIt("opens and closes the drawer via the toggle button interactions", async () => {
+    scopedIt("opens and closes the dialog via the toggle button interactions", async () => {
         const { wrapper } = mountComponent();
 
-        const drawer = () => wrapper.find('[data-qa="sort-component-drawer"]');
+        const dialog = () => wrapper.find('[data-qa="sort-component-dialog"]');
 
-        expect(drawer().attributes("data-open")).toBe("false");
+        expect(dialog().attributes("data-open")).toBe("false");
 
         await wrapper
             .findAll('[data-qa="button"]')
             .find((b) => b.text().includes("Sort"))
             .trigger("click");
         await wrapper.vm.$nextTick();
-        expect(drawer().attributes("data-open")).toBe("true");
+        expect(dialog().attributes("data-open")).toBe("true");
 
-        wrapper.findComponent(ShellDrawerStub).vm.$emit("update:open", false);
+        wrapper.findComponent(ShellDialogStub).vm.$emit("update:open", false);
         await wrapper.vm.$nextTick();
-        expect(drawer().attributes("data-open")).toBe("false");
+        expect(dialog().attributes("data-open")).toBe("false");
     });
 
     scopedIt("shows a badge with the applied sort count on the trigger", () => {
@@ -248,6 +235,9 @@ describe("lib/components/MobileSortComponent.vue", () => {
         expect(editor.props("sortables")).toEqual(["name", "created_at", "status"]);
         expect(editor.props("sorted")).toEqual(["name", "-created_at"]);
         expect(editor.props("fieldDetails")).toEqual({ name: { label: "Name" } });
+        expect(wrapper.find('[data-qa="sort-component-dialog-body"]').classes()).toContain("dialogBody");
+        expect(wrapper.findComponent(ShellDialogContentStub).classes()).toContain("dialog");
+        expect(wrapper.findComponent(ShellDialogHeaderStub).classes()).toContain("dialogHeader");
     });
 
     scopedIt("re-emits update:sorted raised by the hosted SortEditor", async () => {

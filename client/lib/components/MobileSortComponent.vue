@@ -1,30 +1,33 @@
 <script setup>
 import SortEditor from "@vueda/components/SortEditor.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import Drawer from "@vueda/shell/drawer/Drawer.vue";
-import DrawerContent from "@vueda/shell/drawer/DrawerContent.vue";
-import DrawerHeader from "@vueda/shell/drawer/DrawerHeader.vue";
-import DrawerTitle from "@vueda/shell/drawer/DrawerTitle.vue";
+import Dialog from "@vueda/shell/dialog/Dialog.vue";
+import DialogContent from "@vueda/shell/dialog/DialogContent.vue";
+import DialogHeader from "@vueda/shell/dialog/DialogHeader.vue";
+import DialogTitle from "@vueda/shell/dialog/DialogTitle.vue";
+import DialogTrigger from "@vueda/shell/dialog/DialogTrigger.vue";
 import "@vueda/theme/vueda-tailwind/display/MobileSortComponent.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed } from "vue";
 
 /**
- * A mobile-optimized sort control: a bottom-drawer shell hosting the shared
- * `SortEditor` body. Owns only the trigger button and the drawer open/close
+ * A mobile-optimized sort control: a full-screen dialog hosting the shared
+ * `SortEditor` body. Owns only the trigger button and the dialog open/close
  * state; add / reorder / direction / remove / clear behaviour lives in
  * `SortEditor`.
  *
  * @deprecated Superseded by {@api vue:component:SortControl}, which hosts the same
- * `SortEditor` body and picks a popover (desktop) or drawer (mobile) by viewport,
+ * `SortEditor` body and picks a popover (desktop) or full-screen dialog (mobile) by viewport,
  * giving a layout-independent sort entry point. `ViewList` now renders `SortControl`.
  * This component remains for back-compat and direct consumers.
  */
-defineOptions({});
+defineOptions({
+    inheritAttrs: false,
+});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** Whether the sort drawer is open. */
+    /** Whether the sort dialog is open. */
     open: {
         type: Boolean,
         default: false,
@@ -46,7 +49,7 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([
-    /** Emitted when the drawer open/close state changes. */
+    /** Emitted when the dialog open/close state changes. */
     "update:open",
     /** Emitted when the active sort array changes. */
     "update:sorted",
@@ -62,43 +65,46 @@ const sortedCountBadge = computed(() => (sortedCount.value ? String(sortedCount.
 const theme = useTheme("MobileSortComponent", props);
 </script>
 <template>
-    <!-- TODO: theme.hideStyle requires a single themed root -->
-    <!-- Button that opens the sort drawer; receives `label`, `size`, and `badge` as slot props. -->
-    <slot name="toggle-drawer-button" label="sort" size="small" :badge="sortedCountBadge" @click="internalOpen = true">
-        <Button size="sm" @click="internalOpen = true">
-            Sort
-            <span
-                v-if="sortedCountBadge"
-                class="ml-1 inline-flex items-center justify-center rounded-full bg-primary-foreground text-primary text-xs size-5"
+    <Dialog v-model:open="internalOpen" data-qa="sort-component-dialog" v-bind="$attrs">
+        <!-- Button that opens the sort dialog; receives `label`, `size`, and `badge` as slot props. -->
+        <DialogTrigger as-child>
+            <slot
+                name="toggle-drawer-button"
+                label="sort"
+                size="small"
+                :badge="sortedCountBadge"
+                @click="internalOpen = true"
             >
-                {{ sortedCountBadge }}
-            </span>
-        </Button>
-    </slot>
-    <Drawer
-        v-model:open="internalOpen"
-        :modal="true"
-        direction="bottom"
-        data-qa="sort-component-drawer"
-        v-bind="$attrs"
-    >
-        <DrawerContent :class="theme('drawer')">
-            <DrawerHeader class="sr-only">
-                <DrawerTitle>Sort</DrawerTitle>
-            </DrawerHeader>
-            <SortEditor
-                :sortables="props.sortables"
-                :sorted="props.sorted"
-                :field-details="props.fieldDetails"
-                @update:sorted="emit('update:sorted', $event)"
-            >
-                <!-- Forward only the body slots the consumer actually supplied, so SortEditor's own
-                     defaults still apply for the rest. `toggle-drawer-button` is this shell's own slot;
-                     SortEditor ignores it. -->
-                <template v-for="(_, name) in $slots" #[name]="slotProps">
-                    <slot :name="name" v-bind="slotProps" />
-                </template>
-            </SortEditor>
-        </DrawerContent>
-    </Drawer>
+                <Button size="sm" @click="internalOpen = true">
+                    Sort
+                    <span
+                        v-if="sortedCountBadge"
+                        class="ml-1 inline-flex items-center justify-center rounded-full bg-primary-foreground text-primary text-xs size-5"
+                    >
+                        {{ sortedCountBadge }}
+                    </span>
+                </Button>
+            </slot>
+        </DialogTrigger>
+        <DialogContent full-screen :class="theme('dialog')">
+            <DialogHeader :class="theme('dialogHeader')">
+                <DialogTitle>Sort</DialogTitle>
+            </DialogHeader>
+            <div :class="theme('dialogBody')" data-qa="sort-component-dialog-body">
+                <SortEditor
+                    :sortables="props.sortables"
+                    :sorted="props.sorted"
+                    :field-details="props.fieldDetails"
+                    @update:sorted="emit('update:sorted', $event)"
+                >
+                    <!-- Forward only the body slots the consumer actually supplied, so SortEditor's own
+                         defaults still apply for the rest. `toggle-drawer-button` is this shell's own slot;
+                         SortEditor ignores it. -->
+                    <template v-for="(_, name) in $slots" #[name]="slotProps">
+                        <slot :name="name" v-bind="slotProps" />
+                    </template>
+                </SortEditor>
+            </div>
+        </DialogContent>
+    </Dialog>
 </template>

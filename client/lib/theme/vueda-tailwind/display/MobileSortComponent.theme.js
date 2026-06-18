@@ -9,12 +9,20 @@ import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * MobileSortComponent is the bottom-drawer shell around SortEditor. It owns only the drawer chrome; the reorderable field list and action bar are themed by SortEditor.
+     * MobileSortComponent is the full-screen dialog shell around SortEditor. It owns only the dialog chrome; the reorderable field list and action bar are themed by SortEditor.
      */
     MobileSortComponent: {
-        /** Drawer height override for the mobile sorting workflow. */
-        drawer: {
-            class: ["!h-auto"],
+        /** Full-screen dialog surface with a fixed header row and a bounded body row. */
+        dialog: {
+            class: ["grid-rows-[auto_minmax(0,1fr)] overflow-hidden"],
+        },
+        /** Visible dialog header; right padding leaves room for the built-in close control. */
+        dialogHeader: {
+            class: ["border-b px-4 py-4 pr-12"],
+        },
+        /** Padded scrolling region below the fixed dialog header. */
+        dialogBody: {
+            class: ["min-h-0 overflow-y-auto overscroll-contain p-4"],
         },
     },
 });
