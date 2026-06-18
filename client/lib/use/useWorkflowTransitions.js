@@ -6,7 +6,7 @@ import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { getUsingVuedaWorkflow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
-import { reactive, readonly, ref, toRef, unref, watch } from "vue";
+import { reactive, readonly, ref, toRef, watch } from "vue";
 
 /**
  * @typedef {object} WorkflowTransitionsRawState
@@ -80,7 +80,7 @@ export function useWorkflowTransitions(app, model, isActive) {
                 loadingError.clearError();
                 loadingError.setLoading();
                 workflowStore
-                    .fetchWorkflowTransition(unref(app), unref(model))
+                    .fetchWorkflowTransition(app, model)
                     .then(() => {
                         internalState.lastFetchedKey = key;
                     })

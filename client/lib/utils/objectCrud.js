@@ -10,7 +10,6 @@ import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vue
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
-import { unref } from "vue";
 
 const makeSearchParamsString = (searchParams) => {
     const params = deepUnref(searchParams);
@@ -50,7 +49,7 @@ const getFormData = (object) => {
     for (const key in object) {
         if (object[key]) {
             if (Array.isArray(object[key])) {
-                const o = unref(object[key]);
+                const o = object[key];
                 o.forEach((value, i) => {
                     if (isObject(value) && !(value instanceof File)) {
                         for (const name in value) {
