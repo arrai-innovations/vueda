@@ -137,6 +137,7 @@ import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } 
 import { ListFilterError } from "@vueda/utils/errors.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
+import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -256,6 +257,7 @@ const VIEW_NAME = "list";
  */
 export function useViewList(options) {
     const listPreferenceStore = storeListPreference();
+    listPreferenceStore.init();
     const isInitialized = reactive({ sort: false, columns: false, filters: false });
     const listSearch = ref(null);
     const isActive = useIsActive();
@@ -277,14 +279,33 @@ export function useViewList(options) {
     const workflow = useWorkflowTransitions(appRef, modelRef, isActive);
     const router = useRouter();
     const route = useRoute();
+    const restoreStoredPreferences = isEmpty(route.query);
+    const preferenceArgs = () => ({ app: unref(appRef), model: unref(modelRef) });
+    const filterQueryFrom = (query) => omit(query, [SEARCH_PARAM, ORDERING_PARAM]);
+    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM]);
+    const queryWithCurrentSort = (query, sorted) => {
+        const nextQuery = { ...query };
+        const value = formatSortQuery(sorted);
+        if (value) {
+            nextQuery[ORDERING_PARAM] = value;
+        } else {
+            delete nextQuery[ORDERING_PARAM];
+        }
+        return nextQuery;
+    };
     const sorting = reactive({
         state: {
             sortables: computed(() => modelConfig?.config?.sortables),
             sorted: [],
         },
         updateSorted: (sorted) => {
-            listPreferenceStore.setSorting({ app: unref(appRef), model: unref(modelRef) }, sorted);
-            assignReactiveObject(sorting.state.sorted, sorted);
+            const sanitized = sanitizeSortFields(sorted, unref(sorting.state.sortables) || []);
+            listPreferenceStore.setSorting(preferenceArgs(), sanitized);
+            assignReactiveObject(sorting.state.sorted, sanitized);
+            const routeQuery = queryWithCurrentSort(route.query, sanitized);
+            if (!isEqual(routeQuery, route.query)) {
+                router.push({ query: routeQuery });
+            }
         },
     });
 
@@ -381,13 +402,13 @@ export function useViewList(options) {
         if (!newSearch) {
             delete listState.params[SEARCH_PARAM];
             const routeQuery = omit(route.query, [SEARCH_PARAM]);
-            listPreferenceStore.setFilters({ app: unref(appRef), model: unref(modelRef) }, routeQuery);
+            listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
             router.push({ query: routeQuery });
         } else {
             listState.params[SEARCH_PARAM] = newSearch;
             const routeQuery = { ...route.query, [SEARCH_PARAM]: newSearch };
             if (!isEqual(routeQuery, route.query)) {
-                listPreferenceStore.setFilters({ app: unref(appRef), model: unref(modelRef) }, routeQuery);
+                listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
                 router.push({ query: routeQuery });
             }
         }
@@ -397,10 +418,7 @@ export function useViewList(options) {
         (newQuery) => {
             if (!isInitialized.filters) {
                 isInitialized.filters = true;
-                const storedFilters = listPreferenceStore.getFilters({
-                    app: unref(appRef),
-                    model: unref(modelRef),
-                });
+                const storedFilters = listPreferenceStore.getFilters(preferenceArgs());
                 if (storedFilters && isEmpty(newQuery)) {
                     router.push({ query: storedFilters });
                 }
@@ -437,13 +455,16 @@ export function useViewList(options) {
                 ...alwaysParamsKeys,
                 SEARCH_PARAM,
             ]);
-            const filterQuery = omit(route.query, [SEARCH_PARAM]);
+            const filterQuery = filterQueryFrom(route.query);
             if (!isEqual(newFilter, filterQuery)) {
                 const routeQuery = {
                     ...(route.query[SEARCH_PARAM] ? { [SEARCH_PARAM]: route.query[SEARCH_PARAM] } : {}),
+                    ...(route.query[ORDERING_PARAM] !== undefined
+                        ? { [ORDERING_PARAM]: route.query[ORDERING_PARAM] }
+                        : {}),
                     ...newFilter,
                 };
-                listPreferenceStore.setFilters({ app: unref(appRef), model: unref(modelRef) }, routeQuery);
+                listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
                 router.push({ query: routeQuery });
             }
         },
@@ -648,14 +669,55 @@ export function useViewList(options) {
         { immediate: true, deep: true },
     );
     watch(
-        toRef(sorting.state, "sortables"),
-        (sortables) => {
-            if (sortables && !isInitialized.sort) {
+        [toRef(sorting.state, "sortables"), toRef(modelConfig, "loading"), () => route.query[ORDERING_PARAM]],
+        ([sortables, modelConfigLoading, querySorting]) => {
+            if (modelConfigLoading !== false || !Array.isArray(sortables)) {
+                return;
+            }
+            if (!isInitialized.sort) {
                 isInitialized.sort = true;
-                const storedSorting = listPreferenceStore.getSorting({ app: unref(appRef), model: unref(modelRef) });
-                if (storedSorting) {
-                    sorting.updateSorted(storedSorting);
+                const hasUrlSorting = Object.prototype.hasOwnProperty.call(route.query, ORDERING_PARAM);
+                const storedSorting =
+                    !hasUrlSorting && restoreStoredPreferences
+                        ? listPreferenceStore.getSorting(preferenceArgs())
+                        : null;
+                const restored = sanitizeSortFields(
+                    hasUrlSorting ? parseSortQuery(querySorting) : storedSorting || [],
+                    sortables,
+                );
+                assignReactiveObject(sorting.state.sorted, restored);
+
+                if (hasUrlSorting) {
+                    const canonicalQuery = queryWithCurrentSort(route.query, restored);
+                    if (!isEqual(canonicalQuery, route.query)) {
+                        router.replace({ query: canonicalQuery });
+                    }
+                } else if (storedSorting) {
+                    if (!isEqual(restored, storedSorting)) {
+                        listPreferenceStore.setSorting(preferenceArgs(), restored);
+                    }
+                    const canonicalQuery = queryWithCurrentSort(
+                        {
+                            ...listPreferenceStore.getFilters(preferenceArgs()),
+                            ...route.query,
+                        },
+                        restored,
+                    );
+                    if (!isEqual(canonicalQuery, route.query)) {
+                        router.replace({ query: canonicalQuery });
+                    }
                 }
+                return;
+            }
+            // After initialization, keep the active sort synchronized with later
+            // query-string changes, including browser navigation and removal of `o`.
+            const restored = sanitizeSortFields(parseSortQuery(querySorting), sortables);
+            if (!isEqual(restored, sorting.state.sorted)) {
+                assignReactiveObject(sorting.state.sorted, restored);
+            }
+            const canonicalQuery = queryWithCurrentSort(route.query, restored);
+            if (!isEqual(canonicalQuery, route.query)) {
+                router.replace({ query: canonicalQuery });
             }
         },
         { immediate: true, deep: true },

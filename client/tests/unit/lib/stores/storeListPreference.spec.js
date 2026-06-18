@@ -128,6 +128,18 @@ describe("lib/stores/storeListPreference.js", () => {
         expect(store.getSorting(args)).toEqual(["-updated", "mrr"]);
     });
 
+    scopedIt("restores sorting into a fresh store after a page reload", () => {
+        store.setSorting(args, ["-updated", "mrr"]);
+
+        setActivePinia(createPinia());
+        const reloadedStore = storeListPreference();
+        expect(reloadedStore.getSorting(args)).toBeNull();
+
+        reloadedStore.init();
+
+        expect(reloadedStore.getSorting(args)).toEqual(["-updated", "mrr"]);
+    });
+
     scopedIt("clears specific preference groups and removes the stored entry", () => {
         const setItemSpy = vi.spyOn(storagePrototype, "setItem");
         setItemSpy.mockClear();

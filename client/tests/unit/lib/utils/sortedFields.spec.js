@@ -1,9 +1,12 @@
 import {
     addSortField,
     formatSortField,
+    formatSortQuery,
     indexOfSortField,
     parseSortField,
+    parseSortQuery,
     removeSortField,
+    sanitizeSortFields,
     sortFieldBases,
     toggleSortField,
 } from "@vueda/utils/sortedFields.js";
@@ -37,6 +40,26 @@ describe("lib/utils/sortedFields.js", () => {
     describe("sortFieldBases", () => {
         it("strips direction from every entry", () => {
             expect(sortFieldBases(["-updated", "mrr"])).toEqual(["updated", "mrr"]);
+        });
+    });
+
+    describe("sort query helpers", () => {
+        it("parses comma-separated and repeated query values", () => {
+            expect(parseSortQuery("-updated,mrr")).toEqual(["-updated", "mrr"]);
+            expect(parseSortQuery(["-updated", "mrr,status"])).toEqual(["-updated", "mrr", "status"]);
+            expect(parseSortQuery(null)).toEqual([]);
+        });
+
+        it("formats an active query and omits an empty query", () => {
+            expect(formatSortQuery(["-updated", "mrr"])).toBe("-updated,mrr");
+            expect(formatSortQuery([])).toBeUndefined();
+        });
+
+        it("drops unknown and duplicate sort fields", () => {
+            expect(sanitizeSortFields(["-updated", "bogus", "updated", "mrr"], ["updated", "mrr"])).toEqual([
+                "-updated",
+                "mrr",
+            ]);
         });
     });
 

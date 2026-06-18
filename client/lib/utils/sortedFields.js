@@ -50,6 +50,53 @@ export function sortFieldBases(sorted) {
 }
 
 /**
+ * Parse the browser query representation of a sort order. Vue Router may
+ * provide one comma-separated string or an array when the query key repeats.
+ *
+ * @param {string|string[]|null|undefined} value - Raw `o` query value.
+ * @returns {string[]} Parsed sort entries.
+ */
+export function parseSortQuery(value) {
+    const values = Array.isArray(value) ? value : [value];
+    return values
+        .flatMap((entry) => (typeof entry === "string" ? entry.split(",") : []))
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+}
+
+/**
+ * Serialize a sort order for the browser query string.
+ *
+ * @param {string[]} sorted - The sort order.
+ * @returns {string|undefined} Comma-separated query value, or undefined when empty.
+ */
+export function formatSortQuery(sorted) {
+    return sorted.length ? sorted.join(",") : undefined;
+}
+
+/**
+ * Keep only valid sortable fields, preserving the first occurrence and direction.
+ *
+ * @param {string[]} sorted - Candidate sort entries.
+ * @param {string[]} sortables - Allowed base field names.
+ * @returns {string[]} Sanitized sort order.
+ */
+export function sanitizeSortFields(sorted, sortables) {
+    const allowed = new Set(sortables);
+    const seen = new Set();
+    const result = [];
+    for (const entry of sorted) {
+        const { base, descending } = parseSortField(entry);
+        if (!base || !allowed.has(base) || seen.has(base)) {
+            continue;
+        }
+        seen.add(base);
+        result.push(formatSortField(base, descending));
+    }
+    return result;
+}
+
+/**
  * Position of `base` within the sort order, regardless of direction; `-1` when absent.
  *
  * @param {string[]} sorted - The sort order.

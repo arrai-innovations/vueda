@@ -1,7 +1,7 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { SEARCH_PARAM } from "@vueda/utils/constants.js";
-import { defineComponent, h, ref } from "vue";
+import { ORDERING_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import { defineComponent, h, reactive, ref } from "vue";
 
 var provideStore, mockedProvide, mockedInject;
 
@@ -53,6 +53,7 @@ vi.mock("@vueda/router/getCrud.js", () => ({
 }));
 
 const createListPreferenceStoreMock = () => ({
+    init: vi.fn(),
     setSorting: vi.fn(),
     getSorting: vi.fn(),
     setFilters: vi.fn(),
@@ -272,11 +273,12 @@ vi.mock("@vueda/controls/select/SelectItem.vue", () => ({ default: SelectItemStu
 vi.mock("@vueda/controls/select/SelectTrigger.vue", () => ({ default: SelectTriggerStub }));
 vi.mock("@vueda/controls/select/SelectValue.vue", () => ({ default: SelectValueStub }));
 
-const route = { query: {} };
+let route = reactive({ params: {}, query: {} });
 const routerPush = vi.fn();
+const routerReplace = vi.fn();
 vi.mock("vue-router", () => ({
     useRoute: () => route,
-    useRouter: () => ({ push: routerPush }),
+    useRouter: () => ({ push: routerPush, replace: routerReplace }),
 }));
 
 vi.mock("vue", async () => {
@@ -290,6 +292,7 @@ let ViewList, vue, modelConfig, instanceList;
 const resetListPreferenceStoreMock = () => {
     storeListPreferenceMock.mockClear();
     storeListPreferenceMock.mockImplementation(() => listPreferenceStoreMock);
+    listPreferenceStoreMock.init.mockReset();
     listPreferenceStoreMock.setSorting.mockReset();
     listPreferenceStoreMock.getSorting.mockReset();
     listPreferenceStoreMock.setFilters.mockReset();
@@ -306,9 +309,14 @@ beforeEach(async () => {
     objectsGridProps = undefined;
     columnSlotProps = {};
     selectProps = undefined;
-    route.query = {};
+    route = reactive({ params: {}, query: {} });
     routerPush.mockReset();
+    routerReplace.mockReset();
     routerPush.mockImplementation(({ query }) => {
+        route.query = { ...(query || {}) };
+        return Promise.resolve();
+    });
+    routerReplace.mockImplementation(({ query }) => {
         route.query = { ...(query || {}) };
         return Promise.resolve();
     });
@@ -555,18 +563,25 @@ scopedIt("saves search queries to the preference store", async () => {
     wrapper.unmount();
 });
 
-scopedIt("restores stored sorting preferences", async () => {
+scopedIt("restores stored filters and sorting together from an empty route", async () => {
     mockedInject.mockReturnValueOnce({});
     modelConfig.config.sortables = ["field1", "field2"];
     const storedSorting = ["field1", "field2"];
+    listPreferenceStoreMock.getFilters.mockReturnValue({ status: "active" });
     listPreferenceStoreMock.getSorting.mockReturnValue(storedSorting);
 
     const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
     await vue.nextTick();
     await vue.nextTick();
 
+    expect(listPreferenceStoreMock.init).toHaveBeenCalledOnce();
     expect(listPreferenceStoreMock.getSorting).toHaveBeenCalledWith({ app: "app", model: "model" });
-    expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, storedSorting);
+    expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
+    expect(routerReplace).toHaveBeenCalledWith({
+        query: { status: "active", [ORDERING_PARAM]: "field1,field2" },
+    });
+    expect(route.query).toEqual({ status: "active", [ORDERING_PARAM]: "field1,field2" });
+    expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(storedSorting);
     wrapper.unmount();
 });
 scopedIt("applies stored sorting to ObjectsGrid on mount", async () => {
@@ -596,6 +611,73 @@ scopedIt("propagates sort control updates to preferences and params", async () =
         "-name",
         "created_at",
     ]);
+    expect(routerPush).toHaveBeenCalledWith({
+        query: { [ORDERING_PARAM]: "-name,created_at" },
+    });
+    wrapper.unmount();
+});
+
+scopedIt("uses URL sorting instead of the stored preference", async () => {
+    mockedInject.mockReturnValueOnce({});
+    route.query = { [ORDERING_PARAM]: "-name,created_at", status: "active" };
+    modelConfig.config.sortables = ["name", "created_at"];
+    listPreferenceStoreMock.getSorting.mockReturnValue(["created_at"]);
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(["-name", "created_at"]);
+    expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
+    expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
+    wrapper.unmount();
+});
+
+scopedIt("does not add stored sorting to a non-empty URL without sorting", async () => {
+    mockedInject.mockReturnValueOnce({});
+    route.query = { status: "active" };
+    modelConfig.config.sortables = ["name"];
+    listPreferenceStoreMock.getSorting.mockReturnValue(["-name"]);
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual([]);
+    expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
+    expect(routerReplace).not.toHaveBeenCalled();
+    wrapper.unmount();
+});
+
+scopedIt("sanitizes and canonicalizes URL sorting", async () => {
+    mockedInject.mockReturnValueOnce({});
+    route.query = { [ORDERING_PARAM]: ["-name", "bogus,name,created_at"] };
+    modelConfig.config.sortables = ["name", "created_at"];
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+    await vue.nextTick();
+
+    expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(["-name", "created_at"]);
+    expect(routerReplace).toHaveBeenCalledWith({
+        query: { [ORDERING_PARAM]: "-name,created_at" },
+    });
+    wrapper.unmount();
+});
+
+scopedIt("clears URL sorting without overwriting the saved preference", async () => {
+    mockedInject.mockReturnValueOnce({});
+    route.query = { [ORDERING_PARAM]: "-name", status: "active" };
+    modelConfig.config.sortables = ["name"];
+
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+
+    route.query = { status: "active" };
+    await vue.nextTick();
+
+    expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual([]);
+    expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
     wrapper.unmount();
 });
 
@@ -631,7 +713,8 @@ scopedIt("appends new display fields without resetting hidden preferences", asyn
 
 scopedIt("keeps filter parameters when clearing search input", async () => {
     mockedInject.mockReturnValueOnce({});
-    route.query = { [SEARCH_PARAM]: "search-term", filter: "status" };
+    route.query = { [SEARCH_PARAM]: "search-term", [ORDERING_PARAM]: "-name", filter: "status" };
+    modelConfig.config.sortables = ["name"];
     const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
     await vue.nextTick();
     await vue.nextTick();
@@ -649,8 +732,46 @@ scopedIt("keeps filter parameters when clearing search input", async () => {
         { app: "app", model: "model" },
         { filter: "status" },
     );
-    expect(routerPush).toHaveBeenCalledWith({ query: { filter: "status" } });
-    expect(objectsGridProps.sorted).toEqual([]);
+    expect(routerPush).toHaveBeenCalledWith({
+        query: { [ORDERING_PARAM]: "-name", filter: "status" },
+    });
+    expect(objectsGridProps.sorted).toEqual(["-name"]);
+    wrapper.unmount();
+});
+
+scopedIt("preserves URL sorting when filters change without storing it as a filter", async () => {
+    mockedInject.mockReturnValueOnce({});
+    route.params = { action: "list" };
+    route.query = { [ORDERING_PARAM]: "-name", status: "old" };
+    modelConfig.config.sortables = ["name"];
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+
+    wrapper.vm.list.listState.filterArgs.status = "active";
+    await vue.nextTick();
+
+    expect(listPreferenceStoreMock.setFilters).toHaveBeenCalledWith(
+        { app: "app", model: "model" },
+        { status: "active" },
+    );
+    expect(routerPush).toHaveBeenCalledWith({
+        query: { [ORDERING_PARAM]: "-name", status: "active" },
+    });
+    wrapper.unmount();
+});
+
+scopedIt("removes sorting from the URL when Clear all is used", async () => {
+    mockedInject.mockReturnValueOnce({});
+    route.query = { [ORDERING_PARAM]: "-name", status: "active" };
+    modelConfig.config.sortables = ["name"];
+    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+    await vue.nextTick();
+
+    wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", []);
+    await vue.nextTick();
+
+    expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, []);
+    expect(routerPush).toHaveBeenCalledWith({ query: { status: "active" } });
     wrapper.unmount();
 });
 
