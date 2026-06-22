@@ -6,7 +6,6 @@ import LinkModelView from "@vueda/components/LinkModelView.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageActions from "@vueda/components/PageActions.vue";
-import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import SortControl from "@vueda/components/SortControl.vue";
 import StickyChrome from "@vueda/components/StickyChrome.vue";
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
@@ -18,6 +17,7 @@ import SelectContent from "@vueda/controls/select/SelectContent.vue";
 import SelectItem from "@vueda/controls/select/SelectItem.vue";
 import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
 import SelectValue from "@vueda/controls/select/SelectValue.vue";
+import PaginationFooter from "@vueda/navigation/pagination/PaginationFooter.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewList.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
@@ -474,7 +474,7 @@ onMounted(() => {
         <!-- Pagination footer: teleports into the sticky-stack bottom zone (always shown) when a
              StickyStackProvider is present, otherwise renders inline here. -->
         <sticky-chrome v-if="pagination.paginateInfo?.totalRecords > 0" zone="bottom" reveal="always">
-            <pagination-component
+            <pagination-footer
                 v-model:current-page="list.listState.currentPage"
                 v-model:per-page="list.listState.perPage"
                 :loading="list.instanceList.state.loading"
@@ -488,7 +488,7 @@ onMounted(() => {
                 <template v-for="(_, slot) in slots" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
-            </pagination-component>
+            </pagination-footer>
         </sticky-chrome>
     </div>
 </template>

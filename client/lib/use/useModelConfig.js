@@ -109,8 +109,6 @@ export function useModelConfig(app, model, view) {
                 formProps: {},
                 allowColumnHiding: false,
                 showTotalRecordNum: true,
-                alwaysShowAllPages: false,
-                allowShowAllPages: true,
                 fieldComponents: {},
                 fieldProps: {},
                 widgetComponents: {},

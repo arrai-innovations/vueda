@@ -7,11 +7,11 @@ vi.mock("@vueda/use/useTheme.js", () => ({
     THEME_OVERRIDE_PROPS: {},
 }));
 
-describe("lib/components/PaginationComponent.vue", () => {
-    let PaginationComponent;
+describe("lib/navigation/pagination/PaginationFooter.vue", () => {
+    let PaginationFooter;
 
     beforeEach(async () => {
-        PaginationComponent = (await import("@vueda/components/PaginationComponent.vue")).default;
+        PaginationFooter = (await import("@vueda/navigation/pagination/PaginationFooter.vue")).default;
     });
 
     afterEach(() => {
@@ -20,7 +20,7 @@ describe("lib/components/PaginationComponent.vue", () => {
 
     describe("Page navigation and loading", () => {
         scopedIt("emits update:currentPage when navigating to next page", async () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 1, rows: 10 },
             });
             const nextButton = wrapper.find('[data-slot="pagination-next"]');
@@ -29,21 +29,21 @@ describe("lib/components/PaginationComponent.vue", () => {
         });
 
         scopedIt("displays correct page report text", () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 1, rows: 10 },
             });
             expect(wrapper.text()).toContain("Page 1 of 5");
         });
 
         scopedIt("displays loading page report when loading", () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 1, rows: 10, loading: true },
             });
             expect(wrapper.text()).toContain("Page 1 of ?");
         });
 
         scopedIt("disables navigation buttons when loading", () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 2, rows: 10, loading: true },
             });
             const navButtons = wrapper.findAll('[data-slot="pagination-content"] button');
@@ -56,28 +56,28 @@ describe("lib/components/PaginationComponent.vue", () => {
 
     describe("Range read-out", () => {
         scopedIt("shows the showing X to Y of N range", () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 2, rows: 10 },
             });
             expect(wrapper.text()).toContain("Showing 11 to 20 of 50");
         });
 
         scopedIt("clamps the range end to the total on the last page", () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 42, currentPage: 5, rows: 10 },
             });
             expect(wrapper.text()).toContain("Showing 41 to 42 of 42");
         });
 
         scopedIt("shows an all-results read-out when perPage is 'all'", () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 1, rows: 10, perPage: "all" },
             });
             expect(wrapper.text()).toContain("All 50 results");
         });
 
         scopedIt("hides the read-out when showTotalRecordNum is false", () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 1, rows: 10, showTotalRecordNum: false },
             });
             expect(wrapper.text()).not.toContain("Showing");
@@ -86,7 +86,7 @@ describe("lib/components/PaginationComponent.vue", () => {
 
     describe("Rows-per-page selector", () => {
         scopedIt("renders the supplied page-size options including All", () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 1, rows: 25, perPage: 25, pageSizeOptions: [25, 50, "all"] },
             });
             const optionText = wrapper.findAll("option").map((o) => o.text());
@@ -94,7 +94,7 @@ describe("lib/components/PaginationComponent.vue", () => {
         });
 
         scopedIt("emits a numeric update:perPage when a size is chosen", async () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 1, rows: 25, perPage: 25, pageSizeOptions: [25, 50, "all"] },
             });
             await wrapper.find("select").setValue("50");
@@ -102,7 +102,7 @@ describe("lib/components/PaginationComponent.vue", () => {
         });
 
         scopedIt("emits the 'all' sentinel when All is chosen", async () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 1, rows: 25, perPage: 25, pageSizeOptions: [25, 50, "all"] },
             });
             await wrapper.find("select").setValue("all");
@@ -110,7 +110,7 @@ describe("lib/components/PaginationComponent.vue", () => {
         });
 
         scopedIt("hides the paginator when perPage is 'all'", () => {
-            const wrapper = mount(PaginationComponent, {
+            const wrapper = mount(PaginationFooter, {
                 props: { totalRecords: 50, currentPage: 1, rows: 10, perPage: "all" },
             });
             expect(wrapper.find('[data-slot="pagination"]').exists()).toBe(false);

@@ -9,7 +9,7 @@ import PaginationLast from "@vueda/navigation/pagination/PaginationLast.vue";
 import PaginationMeta from "@vueda/navigation/pagination/PaginationMeta.vue";
 import PaginationNext from "@vueda/navigation/pagination/PaginationNext.vue";
 import PaginationPrevious from "@vueda/navigation/pagination/PaginationPrevious.vue";
-import "@vueda/theme/vueda-tailwind/navigation/PaginationComponent.theme.js";
+import "@vueda/theme/vueda-tailwind/navigation/PaginationFooter.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { ALL_PAGES, DEFAULT_PAGE_SIZE_OPTIONS } from "@vueda/utils/constants.js";
 import { computed } from "vue";
@@ -72,7 +72,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 
-const theme = useTheme("PaginationComponent", props);
+const theme = useTheme("PaginationFooter", props);
 
 const page = computed({
     get: () => props.currentPage,

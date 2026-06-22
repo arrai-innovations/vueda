@@ -39,9 +39,9 @@
  * />
  * ```
  *
- * @example Wiring PaginationComponent
+ * @example Wiring PaginationFooter
  * ```html
- * <pagination-component
+ * <pagination-footer
  *     v-if="pagination.paginateInfo?.totalRecords > 0"
  *     v-model:current-page="list.listState.currentPage"
  *     v-model:per-page="list.listState.perPage"

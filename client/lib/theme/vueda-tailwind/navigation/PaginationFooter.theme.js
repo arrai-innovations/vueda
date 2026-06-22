@@ -1,18 +1,18 @@
 /**
- * @module theme/vueda-tailwind/navigation/PaginationComponent.theme
+ * @module theme/vueda-tailwind/navigation/PaginationFooter.theme
  *
- * Per-component theme registration for PaginationComponent. Imported as a side effect by
- * PaginationComponent.vue, so a route chunk that pulls only that SFC drags only this
+ * Per-component theme registration for PaginationFooter. Imported as a side effect by
+ * PaginationFooter.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire navigation family.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * PaginationComponent styles the composed pagination widget used by higher-level data views.
+     * PaginationFooter styles the composed pagination widget used by higher-level data views.
      */
-    PaginationComponent: {
-        /** Class forwarded to the embedded {@api theme-key:NavigationPaginationBar} root. Empty by default: the bar supplies the footer chrome (border, surface, radius caps) and the inner {@api theme-key:PaginationComponent.layout} owns the responsive arrangement. */
+    PaginationFooter: {
+        /** Class forwarded to the embedded {@api theme-key:NavigationPaginationBar} root. Empty by default: the bar supplies the footer chrome (border, surface, radius caps) and the inner {@api theme-key:PaginationFooter.layout} owns the responsive arrangement. */
         root: {
             class: [],
         },

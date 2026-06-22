@@ -72,7 +72,7 @@ const PaginationComponentStub = defineComponent({
         return () => h("div", { "data-qa": "pagination-component", ...attrs });
     },
 });
-vi.mock("@vueda/components/PaginationComponent.vue", () => ({ default: PaginationComponentStub }));
+vi.mock("@vueda/navigation/pagination/PaginationFooter.vue", () => ({ default: PaginationComponentStub }));
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
