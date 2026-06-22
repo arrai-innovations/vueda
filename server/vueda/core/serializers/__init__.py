@@ -566,6 +566,25 @@ class EmailSettingsBaseSerializer(VuedaSerializer):
         ]
 
 
+def _parse_model_targeted_field(field_name: str) -> tuple[str, str, str] | None:
+    """Parse a model-targeted field specifier like ``_store__distributor__description``.
+
+    Returns ``(app_label, model_name, field)`` for a well-formed specifier, or ``None``
+    for regular field names or malformed specifiers.
+
+    Syntax: leading ``_`` followed by ``app_label``, ``model_name``, and ``field_name``
+    separated by ``__``.  Single underscores within any component are allowed (e.g.
+    ``_my_app__my_model__first_name``); double underscores are not, which matches
+    Django's own restriction on field names.
+    """
+    if not field_name.startswith("_") or field_name.startswith("__"):
+        return None
+    parts = field_name[1:].split("__")
+    if len(parts) != 3 or not all(parts):  # noqa: PLR2004
+        return None
+    return parts[0], parts[1], parts[2]
+
+
 class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, serializers.Serializer):
     """Serializer for GenericForeignKey expand fields.
 
@@ -579,6 +598,11 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
 
     Always includes app_label, model, and formatted_name in the output regardless of
     field filtering.
+
+    Model-targeted field specifiers (``_applabel__modelname__field``) may be used in
+    the ``FIELDS_PARAM`` and ``OMIT_PARAM`` lists inside ``expandable_fields`` to apply
+    filtering only when the related object is an instance of the named model.  Regular
+    field names and wildcards work exactly as before and apply to every related model.
     """
 
     def get_fields(self):
@@ -598,6 +622,22 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
         else:
             serializer_settings = {}
 
+        # Resolve model-targeted field specifiers for the concrete instance type.
+        # Specifiers matching the current model are replaced with their bare field name;
+        # specifiers targeting a different model are dropped.  Plain field names and
+        # wildcards pass through unchanged.
+        meta = instance._meta
+        for param in (settings.REST_FLEX_FIELDS["FIELDS_PARAM"], settings.REST_FLEX_FIELDS["OMIT_PARAM"]):
+            if param in serializer_settings:
+                resolved = []
+                for field in serializer_settings[param]:
+                    parsed = _parse_model_targeted_field(field)
+                    if parsed is None:
+                        resolved.append(field)
+                    elif parsed[0] == meta.app_label and parsed[1] == meta.model_name:
+                        resolved.append(parsed[2])
+                serializer_settings[param] = resolved
+
         serializer_settings["context"] = self.context
         serializer_settings["instance"] = instance
 
@@ -605,7 +645,6 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
         results = serializer.data
 
         # Always include GFK identity metadata regardless of field filtering.
-        meta = instance._meta
         results["app_label"] = meta.app_label
         results["model"] = meta.model_name
         if "formatted_name" not in results or results["formatted_name"] is None:
