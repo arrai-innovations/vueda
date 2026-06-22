@@ -354,6 +354,50 @@ Dialog only. Protection / fade gradients beneath floating UI are not used,
 with no exceptions: not under the pinned PageTitle header, not under
 StickyBar. If text would collide with content, redesign the layout.
 
+### 5.1 Stacking order (z-index)
+
+Elevation is borders, not shadow; depth is `z-index`, not shadow either.
+VUEDA has no z-index _tokens_ (the values are Tailwind `z-*` utilities in
+the theme files), so the scale below is the contract: a band per concern,
+ordered so the right thing wins when two surfaces overlap. New chrome
+joins an existing band rather than inventing a value between bands.
+
+| Band         | Concern                             | Members today                                                                                                    |
+| ------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **< 10**     | Component-local micro-stacking      | NavigationMenuIndicator (`z-[1]`), sticky `TableHead` cell (`z-2`)                                               |
+| **10**       | Intra-component focus promotion     | OTP active slot, ToggleGroup / ButtonGroup focus, Resizable grip                                                 |
+| **20**       | Intra-component focus-within / rail | Calendar + RangeCalendar focused day, SidebarRail                                                                |
+| **30 to 39** | Sticky page chrome (the stack)      | PageTitle (sticky), standalone StickyBar; StickyStackProvider bars                                               |
+| **40**       | Fixed shell chrome                  | Sidebar desktop panel                                                                                            |
+| **50**       | Floating overlays                   | every Reka portal surface: dialog, sheet, drawer, popover, dropdown, tooltip, menu, select, combobox, hover-card |
+| **> 50**     | Toasts                              | Sonner (set by `vue-sonner` internally, **not** by VUEDA)                                                        |
+
+Rules that keep the scale legible:
+
+- **Below 10 is local, not global.** `z-[1]` and `z-2` order siblings
+  inside a single component's own stacking context (the nav pointer behind
+  its panel, the sticky header cell above scrolling body cells). They do
+  not participate in page-level layering; ignore them when reasoning about
+  what floats over what.
+- **The sticky stack reserves 30 to 39, and it is dynamic.**
+  `StickyStackProvider` does not pin every bar at a flat `z-30`; it applies
+  `Z_BASE` (30) plus the per-bar order from `resolveStickyStack`, so a
+  stack of _N_ bars occupies `31` through `30 + N` (bars nearer the pinned
+  edge sit higher, so a hiding bar slides _behind_ the ones that stay). A
+  typical page (title + toolbar + action bar) uses `31` to `33`. The band
+  has headroom to the shell at 40 only while fewer than ~9 bars stack; treat
+  30 to 39 as owned by sticky chrome and do not place other chrome there.
+- **Shell chrome sits below overlays, above the stack.** The Sidebar
+  (`40`) outranks the sticky stack so a pinned toolbar cannot cover the
+  nav, but yields to every floating overlay (`50`) so a dialog covers the
+  nav. On mobile the Sidebar becomes a Sheet and joins the `50` band.
+- **Toasts always win.** Sonner's toaster carries `vue-sonner`'s own very
+  high z-index, which VUEDA neither sets nor overrides. An integrator who
+  raises the overlay band must remember confirmations still stack on top.
+
+The integrator-facing restatement of the reserved bands lives in
+`docs/core-concepts/theming-and-customization.md`.
+
 ## 6. Shapes: radius scale
 
 Five semantic radius tokens generate matching `rounded-vueda-*`

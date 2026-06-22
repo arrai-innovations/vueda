@@ -121,6 +121,27 @@ The rule of thumb: if a customization is a value (color, dimension, duration), i
 
 The token layer is also where the design system ships its defaults: overriding a few tokens, with no `setTheme` call, re-skins VUEDA.
 
+## Reserved z-index bands
+
+When your shell adds chrome of its own (a custom header, a banner, a sticky toolbar, an overlay), it shares one stacking axis with VUEDA's components. VUEDA does not publish z-index as tokens, but it does claim bands, and placing your chrome at the wrong value is how a custom header ends up behind a dialog, or a sticky toolbar covers the nav. The bands:
+
+| Band         | Concern                  | What sits there                                                                       |
+| ------------ | ------------------------ | ------------------------------------------------------------------------------------- |
+| `< 10`       | Component-local stacking | Internal ordering inside a single component; not page-level. Do not target this band. |
+| `10` to `20` | Focus promotion          | A focused control lifting above its neighbours so the focus ring is not clipped.      |
+| `30` to `39` | Sticky page chrome       | `PageTitle`, `StickyBar`, and every bar in a `StickyStackProvider`. Reserved.         |
+| `40`         | Fixed shell chrome       | The `Sidebar` desktop panel.                                                          |
+| `50`         | Floating overlays        | Dialogs, sheets, drawers, popovers, dropdowns, tooltips, menus, select, combobox.     |
+| `> 50`       | Toasts                   | Sonner. Set by `vue-sonner` itself; VUEDA does not control it.                        |
+
+Practical consequences for shell customization:
+
+- **Keep custom sticky chrome out of `30` to `39`.** That band belongs to the sticky stack, which sizes itself dynamically (a stack of _N_ bars spans `31` through `30 + N`). If you pin your own bar there it will interleave unpredictably with VUEDA's. Prefer placing your chrome _inside_ a `StickyStackProvider` (so it joins the stack and is ordered for you) over hand-rolling a sticky element at a competing z-index.
+- **Custom overlays go at `50`** to sit alongside VUEDA's dialogs and popovers, not above the sticky chrome but below them.
+- **Toasts always win.** Sonner stacks above everything. If you raise the overlay band for a bespoke surface, remember confirmations still appear on top.
+
+The authoritative scale, the per-component members, and the rationale for each band live in the default theme's design canon (`client/lib/theme/vueda-tailwind/README.md`, § 5.1).
+
 ## How the theme is registered
 
 The four scopes above are about reach: which rendered elements a customization affects. Registration is a separate concern: which component defaults are present in the active theme at all, and what ships in the bundle. The active theme is a registry that registration calls build up.
