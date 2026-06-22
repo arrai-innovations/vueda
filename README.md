@@ -4,7 +4,7 @@
 
 **Server:** [![code style: ruff][]][ruff] [![code style: prettier][]][prettier] ![server pytest status][] ![server coverage status][] ![ruff status][] ![server pysentry status][]
 
-**Client:** [![code style: prettier][]][prettier] ![tests][] [![client coverage status][]][client coverage] ![eslint][] ![audit][]
+**Client:** [![code style: prettier][]][prettier] ![tests][] [![client coverage status][]][client coverage] ![eslint][] ![pnpm-audit status][]
 
 Package READMEs:
 
