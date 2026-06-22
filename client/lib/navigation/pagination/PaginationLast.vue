@@ -39,6 +39,7 @@ const icon = useIcons("PaginationLast");
 <template>
     <PaginationLast
         data-slot="pagination-last"
+        data-qa="pagination-last"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
         v-bind="forwarded"

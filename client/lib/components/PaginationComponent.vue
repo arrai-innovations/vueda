@@ -105,51 +105,63 @@ const optionLabel = (option) => (option === ALL_PAGES ? "All" : String(option));
 const onPerPageChange = (value) => {
     emit("update:perPage", value === ALL_PAGES ? ALL_PAGES : Number(value));
 };
+
+// The Pagination primitive is `w-full` for standalone centered use; strip that here (combineClasses
+// treats a `false` class value as a removal) so the navigation cluster sizes to its content and sits
+// beside the read-out instead of claiming its own row.
+const paginatorThemeOverride = { Pagination: { root: { class: { "w-full": false } } } };
 </script>
 
 <template>
     <PaginationBar :class="theme('root')" :style="theme.hideStyle?.value">
-        <!-- Range read-out; receives `totalRecords`, `currentPage`, `rows`, `loading`, and the resolved `report` string. -->
-        <slot
-            name="meta"
-            :total-records="totalRecords"
-            :current-page="currentPage"
-            :rows="rows"
-            :loading="loading"
-            :report="rangeReport"
-        >
-            <PaginationMeta v-if="showTotalRecordNum">{{ rangeReport }}</PaginationMeta>
-        </slot>
-        <div :class="theme('controls')">
-            <!-- Rows-per-page selector; receives the options, the current value, and a change handler. -->
-            <slot
-                name="rows-per-page"
-                :page-size-options="pageSizeOptions"
-                :per-page="perPage"
-                :on-change="onPerPageChange"
-            >
-                <label :class="theme('rowsPerPage')">
-                    Rows per page
-                    <NativeSelect
-                        class="w-auto"
-                        :model-value="String(perPage)"
-                        aria-label="Rows per page"
-                        @update:model-value="onPerPageChange"
-                    >
-                        <NativeSelectOption
-                            v-for="option in pageSizeOptions"
-                            :key="String(option)"
-                            :value="String(option)"
+        <div :class="theme('layout')" data-qa="pagination-layout">
+            <!-- Read-out + rows-per-page group: stays left on wide viewports, centers above the
+                 navigation cluster when the footer wraps to two rows. -->
+            <div :class="theme('summary')" data-qa="pagination-summary">
+                <!-- Range read-out; receives `totalRecords`, `currentPage`, `rows`, `loading`, and the resolved `report` string. -->
+                <slot
+                    name="meta"
+                    :total-records="totalRecords"
+                    :current-page="currentPage"
+                    :rows="rows"
+                    :loading="loading"
+                    :report="rangeReport"
+                >
+                    <PaginationMeta v-if="showTotalRecordNum">{{ rangeReport }}</PaginationMeta>
+                </slot>
+                <!-- Rows-per-page selector; receives the options, the current value, and a change handler. -->
+                <slot
+                    name="rows-per-page"
+                    :page-size-options="pageSizeOptions"
+                    :per-page="perPage"
+                    :on-change="onPerPageChange"
+                >
+                    <label :class="theme('rowsPerPage')">
+                        Rows per page
+                        <NativeSelect
+                            class="w-auto"
+                            :model-value="String(perPage)"
+                            aria-label="Rows per page"
+                            @update:model-value="onPerPageChange"
                         >
-                            {{ optionLabel(option) }}
-                        </NativeSelectOption>
-                    </NativeSelect>
-                </label>
-            </slot>
+                            <NativeSelectOption
+                                v-for="option in pageSizeOptions"
+                                :key="String(option)"
+                                :value="String(option)"
+                            >
+                                {{ optionLabel(option) }}
+                            </NativeSelectOption>
+                        </NativeSelect>
+                    </label>
+                </slot>
+            </div>
+            <!-- Navigation cluster. `paginatorThemeOverride` strips the primitive's `w-full` so it
+                 sits beside the read-out instead of forcing itself onto its own row. -->
             <Pagination
                 v-if="!showingAll"
                 v-model:page="page"
                 :class="theme('paginator')"
+                :theme-override="paginatorThemeOverride"
                 :total="loading ? 0 : totalRecords"
                 :items-per-page="rows"
                 :disabled="loading"

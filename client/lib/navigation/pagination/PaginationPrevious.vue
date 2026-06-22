@@ -39,6 +39,7 @@ const icon = useIcons("PaginationPrevious");
 <template>
     <PaginationPrev
         data-slot="pagination-previous"
+        data-qa="pagination-previous"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
         v-bind="forwarded"

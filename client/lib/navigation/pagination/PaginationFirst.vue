@@ -39,6 +39,7 @@ const icon = useIcons("PaginationFirst");
 <template>
     <PaginationFirst
         data-slot="pagination-first"
+        data-qa="pagination-first"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
         v-bind="forwarded"
