@@ -45,12 +45,12 @@ const icon = useIcons("PaginationFirst");
     >
         <slot>
             <component
-                :is="icon('chevronLeft').component"
-                v-if="icon('chevronLeft')"
-                v-bind="icon('chevronLeft').props"
+                :is="icon('anglesLeft').component"
+                v-if="icon('anglesLeft')"
+                v-bind="icon('anglesLeft').props"
                 aria-hidden="true"
             />
-            <span class="hidden sm:block">First</span>
+            <span class="sr-only">First</span>
         </slot>
     </PaginationFirst>
 </template>

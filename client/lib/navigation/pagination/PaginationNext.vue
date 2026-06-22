@@ -44,7 +44,7 @@ const icon = useIcons("PaginationNext");
         v-bind="forwarded"
     >
         <slot>
-            <span class="hidden sm:block">Next</span>
+            <span class="sr-only">Next</span>
             <component
                 :is="icon('chevronRight').component"
                 v-if="icon('chevronRight')"

@@ -50,7 +50,7 @@ const icon = useIcons("PaginationPrevious");
                 v-bind="icon('chevronLeft').props"
                 aria-hidden="true"
             />
-            <span class="hidden sm:block">Previous</span>
+            <span class="sr-only">Previous</span>
         </slot>
     </PaginationPrev>
 </template>
