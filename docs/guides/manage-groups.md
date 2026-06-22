@@ -148,3 +148,35 @@ python manage.py sync_group_changes
 ```
 
 This command scans all project migrations for those created by `makegroupmigrations`, reads the `changed_data` from each, and creates any missing `GroupChange` records. This ensures `makegroupmigrations` can correctly identify which changes have already been captured when you run it next.
+
+## Updating Existing Group Migrations
+
+When the function implementations embedded in a group migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere — run `updategroupmigrations` to bring all existing group migrations in line with the current implementations from `makegroupmigrations.py`.
+
+```console
+python manage.py updategroupmigrations
+```
+
+### What the Command Updates
+
+`updategroupmigrations` scans all installed apps for migrations created by `makegroupmigrations` (identified by a comment marker near the top of each file). For each file it finds, the command:
+
+- Replaces the import block with the current imports from `makegroupmigrations.py`.
+- Replaces the embedded function implementations (`GroupChangeTypes`, `migrate_step`, `forwards_migrate_groups`, `backwards_migrate_groups`, and `make_sure_permissions_exist`) with the current versions.
+- Preserves the `changed_data` variable and the `class Migration` block unchanged.
+
+### Command Options
+
+`--dry-run`
+
+Shows which migration files would be updated without writing any changes to disk.
+
+```console
+python manage.py updategroupmigrations --dry-run
+```
+
+### When to Run It
+
+Group migrations are self-contained: they carry everything they need to run, so you do not have to update them after every VUEDA upgrade. Running `updategroupmigrations` is optional.
+
+If a bug is found in the embedded functions, the VUEDA release notes will describe the issue and state that running `updategroupmigrations` is needed to apply the fix to your existing migrations. Outside of that, running the command when nothing has changed is safe — the function bodies are rewritten with the same current implementations, so migration behavior is unchanged.
