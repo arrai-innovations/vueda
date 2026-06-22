@@ -13,6 +13,48 @@ from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from vueda import info
+from vueda.core.serializers import _parse_model_targeted_field
+
+
+class TestParseModelTargetedField:
+    def test_well_formed_specifier(self):
+        assert _parse_model_targeted_field("_store__distributor__description") == (
+            "store",
+            "distributor",
+            "description",
+        )
+
+    def test_app_label_with_underscore(self):
+        assert _parse_model_targeted_field("_my_app__mymodel__name") == ("my_app", "mymodel", "name")
+
+    def test_field_with_underscore(self):
+        assert _parse_model_targeted_field("_store__distributor__first_name") == (
+            "store",
+            "distributor",
+            "first_name",
+        )
+
+    def test_regular_field_returns_none(self):
+        assert _parse_model_targeted_field("name") is None
+        assert _parse_model_targeted_field("description") is None
+
+    def test_wildcard_returns_none(self):
+        assert _parse_model_targeted_field("*") is None
+        assert _parse_model_targeted_field("~all") is None
+
+    def test_double_underscore_prefix_returns_none(self):
+        assert _parse_model_targeted_field("__private") is None
+
+    def test_missing_separator_returns_none(self):
+        # starts with _ but only one part after stripping
+        assert _parse_model_targeted_field("_justonepart") is None
+
+    def test_too_many_parts_returns_none(self):
+        # four parts instead of three
+        assert _parse_model_targeted_field("_a__b__c__d") is None
+
+    def test_empty_component_returns_none(self):
+        assert _parse_model_targeted_field("_store____description") is None
 
 
 @pytest.mark.django_db
@@ -34,8 +76,9 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
 
     @staticmethod
     def register_viewsets():
+        info.registration.get_empty_registry()
         info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
-        info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
 
     @pytest.fixture
     def reader_client(self, api_client):
@@ -51,17 +94,19 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
         )
 
     @pytest.fixture
-    def packing_box(self):
-        return store_models.PackingBox.objects.create(
-            name="Medium Flat Box",
-            depth="5.0000",
-            height="30.0000",
-            width="40.0000",
-            carrying_weight="10.0000",
+    def product(self, distributor):
+        return store_models.Product.objects.create(
+            name="Stuffed Animal",
+            description="Soft and fluffy.",
+            quantity=10,
+            distributor=distributor,
+            order_between=[1, 3],  # Limit of 3 per order
+            tangible_type=store_models.TangibleType.objects.get(code="physical"),
+            condition="new",
         )
 
     @pytest.fixture
-    def notes(self, distributor, packing_box):
+    def notes(self, distributor, product):
         return [
             store_models.Note.objects.create(
                 content_type=ContentType.objects.get_for_model(store_models.Distributor),
@@ -69,13 +114,13 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
                 text="Note on a distributor.",
             ),
             store_models.Note.objects.create(
-                content_type=ContentType.objects.get_for_model(store_models.PackingBox),
-                object_id=packing_box.pk,
-                text="Note on a packing box.",
+                content_type=ContentType.objects.get_for_model(store_models.Product),
+                object_id=product.pk,
+                text="Note on a product.",
             ),
         ]
 
-    def test_list_expand_returns_content_object_for_each_model(self, reader_client, notes, distributor, packing_box):
+    def test_list_expand_returns_content_object_for_each_model(self, reader_client, notes, distributor, product):
         self.register_viewsets()
 
         response = reader_client.get(
@@ -91,31 +136,59 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
 
         formatted_names = frozenset(r["formatted_name"] for r in response.data["results"])
         assert "Note on a distributor." in formatted_names
-        assert "Note on a packing box." in formatted_names
+        assert "Note on a product." in formatted_names
 
         expanded_data = {
             f"{r['content_object']['app_label']}.{r['content_object']['model']}": r["content_object"]
             for r in response.data["results"]
         }
+        # description is omitted via the model-targeted specifier _store__distributor__description.
         assert expanded_data["store.distributor"] == {
             "id": distributor.pk,
             "name": distributor.name,
-            "description": distributor.description,
             "formatted_name": distributor.name,
             "app_label": "store",
             "model": "distributor",
         }
-        # The following fields should be omitted from the data:
-        #   carrying_weight, depth, height, width
-        assert expanded_data["store.packingbox"] == {
-            "id": packing_box.pk,
-            "name": packing_box.name,
-            "in_stock": False,
-            "number_in_stock": 0,
-            "formatted_name": packing_box.name,
+        # carrying_weight, depth, height, width are omitted via model-targeted specifiers
+        # _store__product__<field>.  description is not in this model so is unaffected.
+        # quantity doesn't get returned, because the ProductSerializer doesn't define it as a field.
+        assert expanded_data["store.product"] == {
+            "id": product.pk,
+            "name": product.name,
+            "description": product.description,
+            "formatted_name": product.name,
             "app_label": "store",
-            "model": "packingbox",
+            "model": "product",
         }
+
+    def test_model_targeted_omit_only_applies_to_specified_model(self, reader_client, notes, distributor, product):
+        """Model-targeted omit specifiers do not affect models they are not targeting."""
+        self.register_viewsets()
+
+        response = reader_client.get(
+            reverse("store.note-list"),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,content_object.*",
+            },
+        )
+
+        self.assert_response(response, HTTPStatus.OK)
+
+        expanded_data = {
+            f"{r['content_object']['app_label']}.{r['content_object']['model']}": r["content_object"]
+            for r in response.data["results"]
+        }
+
+        # _store__distributor__description omits description from Distributor only.
+        assert "description" not in expanded_data["store.distributor"]
+        assert "description" in expanded_data["store.product"]
+        # name is not targeted, so it is present on both models.
+        assert "name" in expanded_data["store.distributor"]
+        assert "name" in expanded_data["store.product"]
+        # Product-targeted specifiers do not touch Distributor.
+        assert "quantity" not in expanded_data["store.distributor"]  # field doesn't exist on Distributor
 
     def test_list_without_expand_omits_content_object(self, reader_client, notes):
         response = reader_client.get(reverse("store.note-list"))

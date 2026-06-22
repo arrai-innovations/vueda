@@ -647,13 +647,16 @@ class NoteSerializer(VuedaSerializer):
                 GenericForeignKeySerializer,
                 {
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
-                        "*",
+                        # Model targetted specifiers.
+                        "_store__distributor__*",
+                        "_store__product__description",
+                        "_store__product__id",
+                        "_store__product__name",
+                        # quantity isn't defined on ProductSerializer, so adding it here won't cause it to be returned.
+                        "_store__product__quantity",
                     ],
                     settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
-                        "carrying_weight",
-                        "depth",
-                        "height",
-                        "width",
+                        "_store__distributor__description",
                     ],
                 },
             ),
