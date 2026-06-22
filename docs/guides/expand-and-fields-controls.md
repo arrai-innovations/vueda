@@ -50,6 +50,88 @@ Always merge the parent's `expandable_fields` at the end of the declaration. `Vu
 
 The `expandable_fields` declaration is the canonical source for `model_expands` in the metadata response. The client reads this metadata to determine its default expand configuration.
 
+### Declaring generic foreign key expands
+
+When a model has a `GenericForeignKey` field, use `GenericForeignKeySerializer` as the nested serializer. The key in `expandable_fields` must match the `GenericForeignKey` field name on the model:
+
+```python
+from django.conf import settings
+from vueda.core.serializers import GenericForeignKeySerializer, VuedaSerializer
+
+class NoteSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+
+        expandable_fields = {
+            "content_object": (
+                GenericForeignKeySerializer,
+                {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["*"]},
+            ),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+```
+
+Passing `"*"` via `FIELDS_PARAM` returns all fields from whatever serializer is registered for the concrete related model at representation time.
+
+Generic foreign key expands are always read-only. `GenericForeignKeySerializer` resolves the canonical registered serializer for the concrete type of the related object at representation time. Every model that can appear through the `GenericForeignKey` must be registered via `register` or `register_serializer`; if a related object's type is not registered, the expand returns `null` for that object.
+
+### Model-targeted field filtering for generic foreign key expands
+
+When a `GenericForeignKey` can point to several model types that have different fields, you may want to apply different field filters to each type. Use model-targeted specifiers in `FIELDS_PARAM` or `OMIT_PARAM` to do this.
+
+**Syntax:** `_<app_label>__<model_name>__<field_name>`
+
+The leading `_` is the trigger. The three components — app label, lowercase model name, and field name — are separated by double underscores (`__`). Single underscores within any component are fine; double underscores within a component are not (Django prohibits them in field names and they are uncommon in app labels).
+
+```python
+from django.conf import settings
+from vueda.core.serializers import GenericForeignKeySerializer, VuedaSerializer
+
+class NoteSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+
+        expandable_fields = {
+            "content_object": (
+                GenericForeignKeySerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["*"],
+                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
+                        # Omit description only when the related object is a Distributor.
+                        "_store__distributor__description",
+                        # Omit these fields only when the related object is a PackingBox.
+                        "_store__packingbox__carrying_weight",
+                        "_store__packingbox__depth",
+                        "_store__packingbox__height",
+                        "_store__packingbox__width",
+                    ],
+                },
+            ),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+```
+
+Model-targeted specifiers and plain field names can be mixed in the same list. Plain names and wildcards apply to every related model; model-targeted specifiers apply only to the model they name:
+
+```python
+settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
+    "available_actions",                    # removed from every related model
+    "_store__distributor__description",     # removed only from Distributor
+]
+```
+
+At representation time, `GenericForeignKeySerializer` inspects the concrete type of the related object, resolves all model-targeted specifiers that match it, and passes only the resulting plain field names to the concrete serializer. Specifiers targeting a different model are silently dropped, so they have no effect on objects of other types.
+
+::: tip
+The app label and model name must match `instance._meta.app_label` and `instance._meta.model_name` exactly. `model_name` is the lowercase version of the Python class name (for example, `PackingBox` → `packingbox`).
+:::
+
+::: warning Registered serializer fields are the authoritative boundary
+Field selection still operates within the fields declared on the model's registered serializer. If a field exists on the Django model but is not listed in the registered serializer's `Meta.fields`, requesting it via a model-targeted `FIELDS_PARAM` specifier (or a plain field name) will not return it — the registered serializer simply does not expose that field. This applies equally to the default syntax and to model-targeted specifiers.
+:::
+
 ### Restricting expansions per action
 
 By default, all declared expandable fields are permitted on both `list` and `retrieve` actions. To restrict which expansions are allowed per action, set `permit_list_expands` and `permit_retrieve_expands` on the viewset:
@@ -153,6 +235,7 @@ With expand and field controls configured, verify the surface end-to-end:
     - {@api py:class:vueda.core.viewsets.FlexFieldsMixin}
     - {@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}
     - {@api py:class:vueda.core.serializers.VuedaSerializer}
+    - {@api py:class:vueda.core.serializers.GenericForeignKeySerializer}
     - {@api py:function:vueda.core.serializers.NoExtraFieldsSerializerMixin.validate}
     - {@api py:function:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin.get_expandable_fields}
 - REST:
