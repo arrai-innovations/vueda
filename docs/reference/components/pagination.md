@@ -7,13 +7,23 @@ type: reference
 
 <script setup>
 import Pagination from "@vueda/navigation/pagination/Pagination.vue";
+import PaginationBar from "@vueda/navigation/pagination/PaginationBar.vue";
 import PaginationContent from "@vueda/navigation/pagination/PaginationContent.vue";
 import PaginationEllipsis from "@vueda/navigation/pagination/PaginationEllipsis.vue";
 import PaginationFirst from "@vueda/navigation/pagination/PaginationFirst.vue";
 import PaginationItem from "@vueda/navigation/pagination/PaginationItem.vue";
 import PaginationLast from "@vueda/navigation/pagination/PaginationLast.vue";
+import PaginationMeta from "@vueda/navigation/pagination/PaginationMeta.vue";
 import PaginationNext from "@vueda/navigation/pagination/PaginationNext.vue";
 import PaginationPrevious from "@vueda/navigation/pagination/PaginationPrevious.vue";
+import PaginationComponent from "@vueda/components/PaginationComponent.vue";
+import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
+import NativeSelectOption from "@vueda/controls/native-select/NativeSelectOption.vue";
+import { ref } from "vue";
+
+const barPage = ref(1);
+const widgetPage = ref(3);
+const widgetShowAll = ref(false);
 </script>
 
 # Pagination
@@ -102,6 +112,87 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
     </Pagination>
     <template #footer>
       <span>disabled: pointer-events-none, opacity-50 on all items</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Footer chrome
+
+`PaginationBar` is the footer row that seats against the bottom of a data surface (a grid or
+table). It supplies the `border-t`, card surface, bottom card-radius caps, and a `justify-between`
+flex row, then exposes a default slot. `PaginationMeta` is the mono supporting-text label for the
+count or page summary that sits at one end. Consumers compose the meta label, an optional
+rows-per-page selector, and a `Pagination` control inside the bar.
+
+Theme keys: {@api theme-key:NavigationPaginationBar}, {@api theme-key:PaginationMeta}.
+
+<VuedaDemo class="grid gap-6">
+  <DemoCard title="PaginationMeta" description="(mono supporting-text summary)">
+    <div class="flex flex-col gap-2">
+      <PaginationMeta>142 invoices</PaginationMeta>
+      <PaginationMeta>1–25 of 142 · page 1 of 6</PaginationMeta>
+    </div>
+    <template #footer>
+      <span>mono, <code>--vueda-text-supporting</code>, <code>--muted-foreground</code></span>
+      <span>positional read-outs are mono per the type rules</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="PaginationBar" description="(footer substrate seated against a data surface)">
+    <div class="rounded-vueda-card border bg-card overflow-clip">
+      <div class="px-3 py-6 text-center text-sm text-muted-foreground">grid / table body</div>
+      <PaginationBar>
+        <PaginationMeta>1–25 of 142 · page 1 of 6</PaginationMeta>
+        <div class="flex items-center gap-3">
+          <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            Rows
+            <NativeSelect class="w-auto">
+              <NativeSelectOption value="10">10</NativeSelectOption>
+              <NativeSelectOption value="25">25</NativeSelectOption>
+              <NativeSelectOption value="50">50</NativeSelectOption>
+              <NativeSelectOption value="100">100</NativeSelectOption>
+            </NativeSelect>
+          </span>
+          <Pagination v-model:page="barPage" :total="142" :items-per-page="25">
+            <PaginationContent>
+              <PaginationFirst />
+              <PaginationPrevious />
+              <PaginationNext />
+              <PaginationLast />
+            </PaginationContent>
+          </Pagination>
+        </div>
+      </PaginationBar>
+    </div>
+    <template #footer>
+      <span>bar: border-t, bg-card, rounded-b-vueda-card, justify-between</span>
+      <span>meta sits left; rows-per-page selector + Pagination sit right</span>
+      <span>the bar is a slot container — consumers compose its contents</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Composed widget
+
+{@api vue:component:PaginationComponent} is the higher-level widget that data views (`ViewList`,
+`ViewHistoryList`) render today. It pairs a total-records read-out, a `Pagination` control
+(first/previous, a mono "N of M" page report, next/last), and a "Show All Pages" affordance. The
+headless `PaginationBar` / `PaginationMeta` pieces above cover the same footer as composable
+primitives.
+
+Theme keys: {@api theme-key:PaginationComponent}.
+
+<VuedaDemo class="grid gap-6">
+  <DemoCard title="PaginationComponent" description="(total=142, rows=25)">
+    <PaginationComponent
+      v-model:current-page="widgetPage"
+      v-model:showing-all-pages="widgetShowAll"
+      :total-records="142"
+      :rows="25"
+    />
+    <template #footer>
+      <span>left: total-records read-out</span>
+      <span>center: first/previous + mono "N of M" + next/last</span>
+      <span>right: Show All Pages (ghost) while totalRecords &gt; rows</span>
     </template>
   </DemoCard>
 </VuedaDemo>
