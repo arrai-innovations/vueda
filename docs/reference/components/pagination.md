@@ -16,7 +16,7 @@ import PaginationLast from "@vueda/navigation/pagination/PaginationLast.vue";
 import PaginationMeta from "@vueda/navigation/pagination/PaginationMeta.vue";
 import PaginationNext from "@vueda/navigation/pagination/PaginationNext.vue";
 import PaginationPrevious from "@vueda/navigation/pagination/PaginationPrevious.vue";
-import PaginationComponent from "@vueda/components/PaginationComponent.vue";
+import PaginationFooter from "@vueda/navigation/pagination/PaginationFooter.vue";
 import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
 import NativeSelectOption from "@vueda/controls/native-select/NativeSelectOption.vue";
 import { ref } from "vue";
@@ -31,7 +31,7 @@ const widgetPerPage = ref(25);
 The pagination family covers everything that moves a user through a paged result set: the
 headless Reka-based primitives (`Pagination`, `PaginationContent`, the First/Previous/Next/Last
 nav buttons, numbered `PaginationItem`s, and `PaginationEllipsis`), the VUEDA-original footer
-pieces (`PaginationBar`, `PaginationMeta`), and the composed {@api vue:component:PaginationComponent}
+pieces (`PaginationBar`, `PaginationMeta`), and the composed {@api vue:component:PaginationFooter}
 widget that data views render. All share the same 32px control sizing baseline
 ({@api css-token:vueda-control-height}) and focus treatment as the rest of the navigation family.
 
@@ -174,17 +174,17 @@ Theme keys: {@api theme-key:NavigationPaginationBar}, {@api theme-key:Pagination
 
 ## Composed widget
 
-{@api vue:component:PaginationComponent} is the higher-level widget that data views (`ViewList`,
+{@api vue:component:PaginationFooter} is the higher-level widget that data views (`ViewList`,
 `ViewHistoryList`) render. It composes the `PaginationBar` substrate into a complete footer: a
 "Showing X to Y of N" range read-out (`PaginationMeta`) at the start, then a rows-per-page selector
 and the navigation cluster (first/previous, a mono "Page N of M" indicator, next/last) at the end.
 The selector's final **All** entry loads every page at once and hides the navigation cluster.
 
-Theme keys: {@api theme-key:PaginationComponent}.
+Theme keys: {@api theme-key:PaginationFooter}.
 
 <VuedaDemo class="grid gap-6">
-  <DemoCard title="PaginationComponent" description="(total=142, rows=25)">
-    <PaginationComponent
+  <DemoCard title="PaginationFooter" description="(total=142, rows=25)">
+    <PaginationFooter
       v-model:current-page="widgetPage"
       v-model:per-page="widgetPerPage"
       :total-records="142"
