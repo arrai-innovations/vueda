@@ -25,6 +25,7 @@ designer can move from the visual to the override surface in one click.
 ## Navigation
 
 - [Navigation](/reference/components/navigation)
+- [Pagination](/reference/components/pagination)
 
 ## Shell
 
