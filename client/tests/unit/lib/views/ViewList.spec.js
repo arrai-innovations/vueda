@@ -60,6 +60,8 @@ const createListPreferenceStoreMock = () => ({
     getFilters: vi.fn(),
     setHiddenColumns: vi.fn(),
     getHiddenColumns: vi.fn(),
+    setPerPage: vi.fn(),
+    getPerPage: vi.fn(),
 });
 const listPreferenceStoreMock = createListPreferenceStoreMock();
 const storeListPreferenceMock = vi.fn(() => listPreferenceStoreMock);
@@ -148,7 +150,7 @@ const PageActionsStub = defineComponent({
 });
 const PaginationComponentStub = defineComponent({
     name: "PaginationComponentStub",
-    emits: ["update:showing-all-pages"],
+    emits: ["update:currentPage", "update:perPage"],
     setup(_, { attrs }) {
         return () => h("div", { "data-qa": "pagination-component", ...attrs });
     },
@@ -299,9 +301,12 @@ const resetListPreferenceStoreMock = () => {
     listPreferenceStoreMock.getFilters.mockReset();
     listPreferenceStoreMock.setHiddenColumns.mockReset();
     listPreferenceStoreMock.getHiddenColumns.mockReset();
+    listPreferenceStoreMock.setPerPage.mockReset();
+    listPreferenceStoreMock.getPerPage.mockReset();
     listPreferenceStoreMock.getHiddenColumns.mockReturnValue([]);
     listPreferenceStoreMock.getFilters.mockReturnValue(undefined);
     listPreferenceStoreMock.getSorting.mockReturnValue(null);
+    listPreferenceStoreMock.getPerPage.mockReturnValue(null);
 };
 
 beforeEach(async () => {
@@ -409,18 +414,17 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("allows toggling show all pages", async () => {
+        scopedIt("reloads via the all-pages path when perPage is set to all", async () => {
             mockedInject.mockReturnValueOnce({});
-            modelConfig.config.allowShowAllPages = true;
             instanceList.state.paginateInfo.totalRecords = 5;
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
-            const pagination = wrapper.get('[data-qa="pagination-component"]');
-            expect(pagination.attributes("allow-show-all-pages")).toBe("true");
+            const pagination = wrapper.get('[data-qa="view-list-pagination"]');
+            expect(pagination.attributes("per-page")).toBe("25");
 
             const initialClearListCalls = instanceList.clearList.mock.calls.length;
             const initialListCalls = instanceList.list.mock.calls.length;
-            wrapper.findComponent(PaginationComponentStub).vm.$emit("update:showing-all-pages", true);
+            wrapper.findComponent(PaginationComponentStub).vm.$emit("update:perPage", "all");
             await vue.nextTick();
 
             expect(instanceList.clearList.mock.calls.length).toBe(initialClearListCalls + 1);
@@ -441,15 +445,15 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("wraps pagination in a footer-strip when records exist", async () => {
+        scopedIt("renders the pagination footer when records exist", async () => {
             mockedInject.mockReturnValueOnce({});
             instanceList.state.paginateInfo.totalRecords = 5;
 
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
 
-            const footer = wrapper.get('[data-qa="view-list-pagination"]');
-            expect(footer.find('[data-qa="pagination-component"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="view-list-pagination"]').exists()).toBe(true);
+            expect(wrapper.findComponent(PaginationComponentStub).exists()).toBe(true);
 
             wrapper.unmount();
         });
@@ -460,7 +464,7 @@ describe("lib/views/ViewList.vue", () => {
             instanceList.state.paginateInfo.totalRecords = 42;
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
-            const pagination = wrapper.get('[data-qa="pagination-component"]');
+            const pagination = wrapper.get('[data-qa="view-list-pagination"]');
             expect(pagination.attributes("show-total-record-num")).toBe("true");
             expect(pagination.attributes("total-records")).toBe("42");
             wrapper.unmount();

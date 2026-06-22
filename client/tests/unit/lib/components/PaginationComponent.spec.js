@@ -32,14 +32,14 @@ describe("lib/components/PaginationComponent.vue", () => {
             const wrapper = mount(PaginationComponent, {
                 props: { totalRecords: 50, currentPage: 1, rows: 10 },
             });
-            expect(wrapper.text()).toContain("1 of 5");
+            expect(wrapper.text()).toContain("Page 1 of 5");
         });
 
         scopedIt("displays loading page report when loading", () => {
             const wrapper = mount(PaginationComponent, {
                 props: { totalRecords: 50, currentPage: 1, rows: 10, loading: true },
             });
-            expect(wrapper.text()).toContain("1 of ?");
+            expect(wrapper.text()).toContain("Page 1 of ?");
         });
 
         scopedIt("disables navigation buttons when loading", () => {
@@ -54,35 +54,66 @@ describe("lib/components/PaginationComponent.vue", () => {
         });
     });
 
-    describe("Show All Pages and display options", () => {
-        scopedIt("hides paginator when showingAllPages is true", () => {
+    describe("Range read-out", () => {
+        scopedIt("shows the showing X to Y of N range", () => {
             const wrapper = mount(PaginationComponent, {
-                props: { totalRecords: 50, currentPage: 1, rows: 10, showingAllPages: true },
+                props: { totalRecords: 50, currentPage: 2, rows: 10 },
             });
-            expect(wrapper.find('[data-slot="pagination"]').exists()).toBe(false);
+            expect(wrapper.text()).toContain("Showing 11 to 20 of 50");
         });
 
-        scopedIt("shows 'Show All Pages' button when there are multiple pages", () => {
+        scopedIt("clamps the range end to the total on the last page", () => {
             const wrapper = mount(PaginationComponent, {
-                props: { totalRecords: 50, currentPage: 1, rows: 10 },
+                props: { totalRecords: 42, currentPage: 5, rows: 10 },
             });
-            expect(wrapper.text()).toContain("Show All Pages");
+            expect(wrapper.text()).toContain("Showing 41 to 42 of 42");
         });
 
-        scopedIt("emits update:showingAllPages when 'Show All Pages' is clicked", async () => {
+        scopedIt("shows an all-results read-out when perPage is 'all'", () => {
             const wrapper = mount(PaginationComponent, {
-                props: { totalRecords: 50, currentPage: 1, rows: 10 },
+                props: { totalRecords: 50, currentPage: 1, rows: 10, perPage: "all" },
             });
-            const showAllButton = wrapper.findAll("button").find((b) => b.text().includes("Show All Pages"));
-            await showAllButton.trigger("click");
-            expect(wrapper.emitted()["update:showingAllPages"][0]).toEqual([true]);
+            expect(wrapper.text()).toContain("All 50 results");
         });
 
-        scopedIt("hides total record count when showTotalRecordNum is false", () => {
+        scopedIt("hides the read-out when showTotalRecordNum is false", () => {
             const wrapper = mount(PaginationComponent, {
                 props: { totalRecords: 50, currentPage: 1, rows: 10, showTotalRecordNum: false },
             });
-            expect(wrapper.text()).not.toContain("total results");
+            expect(wrapper.text()).not.toContain("Showing");
+        });
+    });
+
+    describe("Rows-per-page selector", () => {
+        scopedIt("renders the supplied page-size options including All", () => {
+            const wrapper = mount(PaginationComponent, {
+                props: { totalRecords: 50, currentPage: 1, rows: 25, perPage: 25, pageSizeOptions: [25, 50, "all"] },
+            });
+            const optionText = wrapper.findAll("option").map((o) => o.text());
+            expect(optionText).toEqual(["25", "50", "All"]);
+        });
+
+        scopedIt("emits a numeric update:perPage when a size is chosen", async () => {
+            const wrapper = mount(PaginationComponent, {
+                props: { totalRecords: 50, currentPage: 1, rows: 25, perPage: 25, pageSizeOptions: [25, 50, "all"] },
+            });
+            await wrapper.find("select").setValue("50");
+            expect(wrapper.emitted()["update:perPage"][0]).toEqual([50]);
+        });
+
+        scopedIt("emits the 'all' sentinel when All is chosen", async () => {
+            const wrapper = mount(PaginationComponent, {
+                props: { totalRecords: 50, currentPage: 1, rows: 25, perPage: 25, pageSizeOptions: [25, 50, "all"] },
+            });
+            await wrapper.find("select").setValue("all");
+            expect(wrapper.emitted()["update:perPage"][0]).toEqual(["all"]);
+        });
+
+        scopedIt("hides the paginator when perPage is 'all'", () => {
+            const wrapper = mount(PaginationComponent, {
+                props: { totalRecords: 50, currentPage: 1, rows: 10, perPage: "all" },
+            });
+            expect(wrapper.find('[data-slot="pagination"]').exists()).toBe(false);
         });
     });
 });

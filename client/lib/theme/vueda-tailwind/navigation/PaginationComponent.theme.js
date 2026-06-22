@@ -12,21 +12,25 @@ patchTheme({
      * PaginationComponent styles the composed pagination widget used by higher-level data views.
      */
     PaginationComponent: {
-        /** Responsive wrapper for the composed pagination widget used by higher-level views. */
+        /** Class forwarded to the embedded {@api theme-key:NavigationPaginationBar} root. Empty by default: the bar supplies the footer chrome (border, surface, radius caps, and the `justify-between` row) so the read-out sits at the start and the controls cluster at the end. Wraps to two rows on the narrowest viewports via the bar's own layout. */
         root: {
-            class: "flex flex-col sm:flex-row justify-between sm:justify-between items-center gap-2",
+            class: ["flex-wrap"],
         },
-        /** Centered pagination control region within the composed widget. */
+        /** Right-hand controls cluster: the rows-per-page selector and the navigation paginator, grouped at the end of the bar opposite the {@api theme-key:PaginationMeta} read-out. */
+        controls: {
+            class: ["flex flex-wrap items-center gap-3"],
+        },
+        /** Rows-per-page label wrapping the `NativeSelect`. Supporting-size muted label so the selector reads as secondary chrome next to the paginator. */
+        rowsPerPage: {
+            class: ["flex items-center gap-1.5 text-[length:var(--vueda-text-supporting)] text-muted-foreground"],
+        },
+        /** Navigation paginator region (first / previous / page-report / next / last). */
         paginator: {
-            class: ["py-2 flex-1 flex justify-center"],
+            class: ["flex items-center"],
         },
-        /** Tabular page-report text for stable numeric alignment. */
+        /** Mono "Page N of M" indicator between the previous and next controls; tabular for stable numeric width. */
         pageReport: {
-            class: ["text-sm tabular-nums"],
-        },
-        /** Padding wrapper for total-records copy when the composed widget renders it separately. */
-        totalRecords: {
-            class: ["p-2"],
+            class: ["px-2 font-mono text-[length:var(--vueda-text-supporting)] tabular-nums text-foreground"],
         },
     },
 });

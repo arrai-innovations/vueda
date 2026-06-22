@@ -25,6 +25,7 @@ import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewList } from "@vueda/use/useViewList.js";
 import { getCRUDName } from "@vueda/utils/case.js";
+import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS } from "@vueda/utils/constants.js";
 import omit from "lodash-es/omit.js";
 import { computed, onMounted, reactive, readonly, ref, toRef, toRefs, useSlots } from "vue";
 
@@ -116,15 +117,15 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
-    /** When true, shows a control that lets the user load all pages at once. */
-    allowShowAllPages: {
-        type: Boolean,
-        default: true,
+    /** Rows-per-page options offered by the pagination footer; the final `"all"` entry loads every page at once. */
+    pageSizeOptions: {
+        type: Array,
+        default: () => [...DEFAULT_PAGE_SIZE_OPTIONS],
     },
-    /** When true, always fetches and displays all pages without requiring user interaction. */
-    alwaysShowAllPages: {
-        type: Boolean,
-        default: false,
+    /** Initial rows-per-page when no preference is stored (a number, or `"all"`). A stored preference overrides it. */
+    defaultPageSize: {
+        type: [Number, String],
+        default: DEFAULT_PAGE_SIZE,
     },
     /** When true, displays the total record count in the pagination bar. */
     showTotalRecordNum: {
@@ -473,23 +474,21 @@ onMounted(() => {
         <!-- Pagination footer: teleports into the sticky-stack bottom zone (always shown) when a
              StickyStackProvider is present, otherwise renders inline here. -->
         <sticky-chrome v-if="pagination.paginateInfo?.totalRecords > 0" zone="bottom" reveal="always">
-            <div :class="theme('paginationWrapper')" data-qa="view-list-pagination">
-                <pagination-component
-                    v-model:current-page="list.listState.currentPage"
-                    :loading="list.instanceList.state.loading"
-                    :rows="pagination.paginateInfo?.perPage"
-                    :total-records="pagination.paginateInfo?.totalRecords"
-                    :is-table="sort.isTable"
-                    :showing-all-pages="pagination.computedShowAllPages"
-                    :allow-show-all-pages="modelConfig.config?.allowShowAllPages && allowShowAllPages"
-                    :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
-                    @update:showing-all-pages="pagination.showingAllPages = $event"
-                >
-                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                        <slot :name="slot" v-bind="slotProps || {}" />
-                    </template>
-                </pagination-component>
-            </div>
+            <pagination-component
+                v-model:current-page="list.listState.currentPage"
+                v-model:per-page="list.listState.perPage"
+                :loading="list.instanceList.state.loading"
+                :rows="pagination.paginateInfo?.perPage"
+                :total-records="pagination.paginateInfo?.totalRecords"
+                :is-table="sort.isTable"
+                :page-size-options="pageSizeOptions"
+                :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
+                data-qa="view-list-pagination"
+            >
+                <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                    <slot :name="slot" v-bind="slotProps || {}" />
+                </template>
+            </pagination-component>
         </sticky-chrome>
     </div>
 </template>

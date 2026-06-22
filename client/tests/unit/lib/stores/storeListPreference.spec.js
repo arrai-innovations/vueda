@@ -140,6 +140,37 @@ describe("lib/stores/storeListPreference.js", () => {
         expect(reloadedStore.getSorting(args)).toEqual(["-updated", "mrr"]);
     });
 
+    scopedIt("persists a numeric rows-per-page preference and clears it", () => {
+        store.setPerPage(args, 50);
+        expect(store.preferences[preferenceKey].perPage).toBe(50);
+        expect(store.getPerPage(args)).toBe(50);
+
+        store.clearPerPage(args);
+        expect(store.getPerPage(args)).toBeNull();
+        expect(store.preferences[preferenceKey]).toBeUndefined();
+    });
+
+    scopedIt("persists the all-pages sentinel as rows-per-page", () => {
+        store.setPerPage(args, "all");
+        expect(store.getPerPage(args)).toBe("all");
+    });
+
+    scopedIt("returns null for rows-per-page when nothing is stored", () => {
+        expect(store.getPerPage(args)).toBeNull();
+    });
+
+    scopedIt("restores rows-per-page into a fresh store after a page reload", () => {
+        store.setPerPage(args, 100);
+
+        setActivePinia(createPinia());
+        const reloadedStore = storeListPreference();
+        expect(reloadedStore.getPerPage(args)).toBeNull();
+
+        reloadedStore.init();
+
+        expect(reloadedStore.getPerPage(args)).toBe(100);
+    });
+
     scopedIt("clears specific preference groups and removes the stored entry", () => {
         const setItemSpy = vi.spyOn(storagePrototype, "setItem");
         setItemSpy.mockClear();

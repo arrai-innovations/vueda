@@ -76,9 +76,5 @@ patchTheme({
         columnTotalCell: {
             class: "border-t-2",
         },
-        /** Pagination strip beneath the grid. Card-toned with a top hairline; mirrors the {@api theme-key:ViewList.underActionsBar} rhythm so the chrome above and below the grid read as a matched pair. */
-        paginationWrapper: {
-            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px]", "border-t bg-card text-foreground"],
-        },
     },
 });
