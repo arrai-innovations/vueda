@@ -188,7 +188,7 @@ The bar primitive, the stack model, reveal strategies, and the integration contr
 The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and a filter entry point — the search and column buttons stay anchored right at all times. The `Filters` control on the left carries a count of active filters and opens an add-filter menu listing the fields not yet applied; picking one slides the popover to that field's filter form in place (no modal, no second surface), and a back affordance returns to the list to add another. Active filters render as a tinted strip of chips below: click a chip to edit it (reopening the same form anchored to the chip), the ✕ to remove it, or `Clear all` to reset every filter. When rows are selected, a bulk-actions strip appears. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
 
 ::: info Mockup status
-This ViewList is a static mockup. The live components implement the filter UX: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. The toolbar `Sort` trigger and the multi-field sort popover shown below are now live too: `SortControl` hosts the shared `SortEditor` body in a popover on desktop and a full-screen dialog on mobile, and `ViewList` renders it next to `Filters` whenever the model has sortable fields. Sorting also still works through `ObjectsGrid` column headers (table layout); all surfaces write the same sort order. (`MobileSortComponent` is the deprecated card-only predecessor, superseded by `SortControl`.) The panels below remain static illustrations of the editor's states.
+This ViewList is a static mockup. The live components implement the filter UX: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. The toolbar `Sort` trigger and the multi-field sort popover shown below are now live too: `SortControl` hosts the shared `SortEditor` body in a popover on desktop and a full-screen dialog on mobile, and `ViewList` renders it next to `Filters` whenever the model has sortable fields. Sorting also still works through `ObjectsGrid` column headers (table layout); all surfaces write the same sort order. (`MobileSortComponent` is the deprecated card-only predecessor, superseded by `SortControl`.) The pagination footer is live too: `PaginationComponent` renders the range read-out, the rows-per-page selector (its `All` entry loads every page), and the navigation cluster; the selected page size persists per model. The panels below remain static illustrations of the editor's states. See [Pagination](./pagination.md) for the footer's own reference.
 :::
 
 <VuedaDemo class="flex flex-col gap-3">
@@ -312,13 +312,15 @@ This ViewList is a static mockup. The live components implement the filter UX: `
     </ClientOnly>
     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-2 text-xs text-muted-foreground">
       <div class="flex items-center gap-4">
-        <span class="font-mono tabular-nums">Showing <strong class="text-foreground">1–4</strong> of <strong class="text-foreground">142</strong></span>
+        <span class="font-mono tabular-nums">Showing <strong class="text-foreground">1 to 4</strong> of <strong class="text-foreground">142</strong></span>
         <span class="flex items-center gap-1.5">
           Rows per page:
           <NativeSelect class="w-auto">
-            <NativeSelectOption value="8">8</NativeSelectOption>
             <NativeSelectOption value="25">25</NativeSelectOption>
             <NativeSelectOption value="50">50</NativeSelectOption>
+            <NativeSelectOption value="100">100</NativeSelectOption>
+            <NativeSelectOption value="200">200</NativeSelectOption>
+            <NativeSelectOption value="all">All</NativeSelectOption>
           </NativeSelect>
         </span>
       </div>
@@ -469,6 +471,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
     <span>errors (HTTP 400, keyed by field): the offending chip turns destructive and its form shows the server message inline — no separate error banner</span>
     <span>bulk-actions strip: transient, appears only when rows are selected</span>
     <span>ObjectsGrid: flush inside the card — no nested border or card-in-card radius</span>
+    <span>pagination footer: range read-out (Showing X to Y of N), rows-per-page selector (All loads every page), Page N of M; the selected page size persists per model</span>
   </footer>
 </VuedaDemo>
 

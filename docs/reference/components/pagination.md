@@ -23,7 +23,7 @@ import { ref } from "vue";
 
 const barPage = ref(1);
 const widgetPage = ref(3);
-const widgetShowAll = ref(false);
+const widgetPerPage = ref(25);
 </script>
 
 # Pagination
@@ -175,10 +175,10 @@ Theme keys: {@api theme-key:NavigationPaginationBar}, {@api theme-key:Pagination
 ## Composed widget
 
 {@api vue:component:PaginationComponent} is the higher-level widget that data views (`ViewList`,
-`ViewHistoryList`) render today. It pairs a total-records read-out, a `Pagination` control
-(first/previous, a mono "N of M" page report, next/last), and a "Show All Pages" affordance. The
-headless `PaginationBar` / `PaginationMeta` pieces above cover the same footer as composable
-primitives.
+`ViewHistoryList`) render. It composes the `PaginationBar` substrate into a complete footer: a
+"Showing X to Y of N" range read-out (`PaginationMeta`) at the start, then a rows-per-page selector
+and the navigation cluster (first/previous, a mono "Page N of M" indicator, next/last) at the end.
+The selector's final **All** entry loads every page at once and hides the navigation cluster.
 
 Theme keys: {@api theme-key:PaginationComponent}.
 
@@ -186,14 +186,14 @@ Theme keys: {@api theme-key:PaginationComponent}.
   <DemoCard title="PaginationComponent" description="(total=142, rows=25)">
     <PaginationComponent
       v-model:current-page="widgetPage"
-      v-model:showing-all-pages="widgetShowAll"
+      v-model:per-page="widgetPerPage"
       :total-records="142"
       :rows="25"
     />
     <template #footer>
-      <span>left: total-records read-out</span>
-      <span>center: first/previous + mono "N of M" + next/last</span>
-      <span>right: Show All Pages (ghost) while totalRecords &gt; rows</span>
+      <span>start: "Showing X to Y of N" range read-out (mono)</span>
+      <span>end: rows-per-page selector (All loads every page) + first/previous + "Page N of M" + next/last</span>
+      <span>selecting All hides the navigation cluster</span>
     </template>
   </DemoCard>
 </VuedaDemo>
