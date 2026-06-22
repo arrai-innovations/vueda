@@ -156,8 +156,6 @@ const getDefaultFromModelInfo = (modelInfo) => {
             formProps: {},
             allowColumnHiding: false,
             showTotalRecordNum: true,
-            alwaysShowAllPages: false,
-            allowShowAllPages: true,
             fieldComponents: {},
             fieldProps: {},
             widgetComponents: {},

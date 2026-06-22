@@ -66,13 +66,15 @@ const PageActionsStub = defineComponent({
 });
 vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 
-const PaginationComponentStub = defineComponent({
-    name: "PaginationComponentStub",
+const PaginationFooterStub = defineComponent({
+    name: "PaginationFooterStub",
+    props: ["currentPage", "perPage", "rows", "totalRecords", "pageSizeOptions", "showTotalRecordNum"],
+    emits: ["update:currentPage", "update:perPage"],
     setup(_, { attrs }) {
-        return () => h("div", { "data-qa": "pagination-component", ...attrs });
+        return () => h("div", { "data-qa": "pagination-footer", ...attrs });
     },
 });
-vi.mock("@vueda/navigation/pagination/PaginationFooter.vue", () => ({ default: PaginationComponentStub }));
+vi.mock("@vueda/navigation/pagination/PaginationFooter.vue", () => ({ default: PaginationFooterStub }));
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
@@ -138,6 +140,8 @@ beforeEach(async () => {
             totalRecords: 0,
         }),
         clearError: vi.fn(),
+        clearList: vi.fn(),
+        list: vi.fn(),
     };
     mockedUseList.mockReturnValue(mockInstanceList);
     mockedUseFormModel.mockReturnValue({ fieldComponents: {}, fieldProps: {}, widgetProps: {} });
@@ -283,6 +287,68 @@ describe("lib/views/ViewHistoryList.vue", () => {
             await vue.nextTick();
             expect(wrapper.find('[data-qa="view-history-empty"]').exists()).toBe(true);
             expect(wrapper.find('[data-qa="view-history-meta"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+    });
+
+    describe("Pagination", () => {
+        scopedIt("updates the numeric page size and resets the current page", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            const pagination = wrapper.findComponent(PaginationFooterStub);
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+
+            pagination.vm.$emit("update:currentPage", 3);
+            await vue.nextTick();
+            expect(listProps.params.p).toBe(3);
+
+            pagination.vm.$emit("update:perPage", 50);
+            await vue.nextTick();
+            expect(listProps.params.p).toBe(1);
+            expect(listProps.params.ps).toBe(50);
+            expect(pagination.props("perPage")).toBe(50);
+            wrapper.unmount();
+        });
+
+        scopedIt("removes the page-size parameter and reloads through the all-pages path", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            const pagination = wrapper.findComponent(PaginationFooterStub);
+            const listOptions = mockedUseList.mock.calls.at(-1)[0];
+
+            mockInstanceList.clearList.mockClear();
+            mockInstanceList.list.mockClear();
+            pagination.vm.$emit("update:perPage", "all");
+            await vue.nextTick();
+
+            expect(listOptions.props.params).not.toHaveProperty("ps");
+            expect(pagination.props("perPage")).toBe("all");
+            expect(mockInstanceList.clearList).toHaveBeenCalled();
+            expect(mockInstanceList.list).toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("uses a custom page-size query key", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewHistoryList, {
+                props: {
+                    app: "a",
+                    model: "b",
+                    pk: "1",
+                    pageSizeKey: "page_size",
+                    pageSizeOptions: [25, 50, "all"],
+                    defaultPageSize: 50,
+                },
+            });
+            const pagination = wrapper.findComponent(PaginationFooterStub);
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+
+            expect(listProps.params.page_size).toBe(50);
+            expect(listProps.params).not.toHaveProperty("ps");
+
+            pagination.vm.$emit("update:perPage", 25);
+            await vue.nextTick();
+            expect(listProps.params.page_size).toBe(25);
             wrapper.unmount();
         });
     });

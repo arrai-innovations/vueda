@@ -235,7 +235,7 @@ const VIEW_NAME = "list";
 /**
  * @typedef {object} ViewListPaginationGroup
  * @property {boolean} computedShowAllPages - True when all pages should be loaded at once.
- * @property {boolean} showingAllPages - Whether the user has toggled "show all" on (auto-unwrapped ref; can be assigned via `@update:showing-all-pages`).
+ * @property {boolean} showingAllPages - Whether the `"all"` page-size option is active (auto-unwrapped ref; driven by `list.listState.perPage`).
  * @property {object|undefined} paginateInfo - Shortcut to `instanceList.state.paginateInfo`; exposes `.totalRecords`, `.perPage`, `.totalPages`.
  */
 
