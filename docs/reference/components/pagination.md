@@ -50,8 +50,9 @@ The other navigation primitives (Breadcrumb, NavigationMenu, Menubar) live on th
 
 Pagination renders a `<nav>` landmark with Previous/Next navigation buttons and numbered page
 items. Page items compose from `_ButtonGhost` (inactive) or `_ButtonOutline` (active).
-Navigation buttons compose from `_ButtonGhost` and show a text label (`Previous` / `Next`)
-visible at the `sm` breakpoint and above.
+Navigation buttons compose from `_ButtonOutline` and render icon-only as compact (sm) squares.
+First and Last use double-angle glyphs to set them apart from the single-chevron Previous and
+Next; each carries an `sr-only` label so the control keeps an accessible name.
 
 Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
 {@api theme-key:PaginationItem}, {@api theme-key:NavigationPaginationNavButton},
@@ -74,7 +75,7 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
     <template #footer>
       <span>active item composes <code>_ButtonOutline</code></span>
       <span>inactive items compose <code>_ButtonGhost</code></span>
-      <span>nav buttons: gap-1, px-2.5, show label at sm+</span>
+      <span>nav buttons: icon-only, outline, sm square</span>
     </template>
   </DemoCard>
   <DemoCard title="show-edges" description="(first/last buttons + edge page numbers)">

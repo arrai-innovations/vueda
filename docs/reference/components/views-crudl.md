@@ -312,7 +312,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
     </ClientOnly>
     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-2 text-xs text-muted-foreground">
       <div class="flex items-center gap-4">
-        <span>Showing <strong class="text-foreground">1–4</strong> of <strong class="text-foreground">142</strong></span>
+        <span class="font-mono tabular-nums">Showing <strong class="text-foreground">1–4</strong> of <strong class="text-foreground">142</strong></span>
         <span class="flex items-center gap-1.5">
           Rows per page:
           <NativeSelect class="w-auto">
@@ -329,7 +329,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         <Button size="icon-sm" variant="outline" aria-label="Previous page" disabled>
           <FontAwesomeIcon :icon="faChevronLeft" />
         </Button>
-        <span class="px-2 text-xs font-medium text-foreground">Page 1 of 36</span>
+        <span class="px-2 font-mono text-xs font-medium tabular-nums text-foreground">Page 1 of 36</span>
         <Button size="icon-sm" variant="outline" aria-label="Next page">
           <FontAwesomeIcon :icon="faChevronRight" />
         </Button>
