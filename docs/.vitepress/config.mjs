@@ -1,3 +1,4 @@
+import { formatApiMemberTitle, memberNameFromId } from "../../docs-tooling/js/utils/reference-index.js";
 import {
     normalizeTerm,
     parseApiRef,
@@ -280,22 +281,6 @@ const pathForFile = (filePath, root, urlPrefix) => {
     return `${urlPrefix}${rel}`;
 };
 
-const memberNameFromId = (memberId) => {
-    const restResponseMatch = memberId.match(/^rest:endpoint:.*:response:([^:]+)$/);
-    if (restResponseMatch) {
-        return restResponseMatch[1];
-    }
-    if (memberId.startsWith("theme-key:") && !memberId.includes(".")) {
-        return "";
-    }
-    const qualName = memberId.replace(/^[^:]+:[^:]+:/, "");
-    const hashName = qualName.includes("#") ? qualName.split("#").pop() : qualName;
-    if (hashName.includes(".")) {
-        return hashName.split(".").pop();
-    }
-    return hashName;
-};
-
 const buildApiIndex = () => {
     const index = new Map();
     let fileCount = 0;
@@ -330,7 +315,7 @@ const buildApiIndex = () => {
                     const anchor = slugify(memberName);
                     index.set(memberId, {
                         href: anchor ? `${pageHref}#${anchor}` : pageHref,
-                        title: `${title}.${memberName}`,
+                        title: formatApiMemberTitle(title, memberName),
                         filePath,
                     });
                 }
