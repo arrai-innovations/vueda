@@ -1,11 +1,15 @@
 <script setup>
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
+import FormConfirmDialog from "@vueda/components/FormConfirmDialog.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewCreate.theme.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewCreate } from "@vueda/use/useViewCreate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { onMounted, toRef } from "vue";
@@ -14,7 +18,6 @@ import { onMounted, toRef } from "vue";
  * Form view for creating a new model instance, including a page title, a sticky submit button
  * bar, and a FormModel that renders the configured fields.
  *
- * @vueda-slot-forward PageTitle
  * @vueda-slot-forward FormModel
  */
 defineOptions({
@@ -22,6 +25,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
@@ -79,6 +83,11 @@ const emit = defineEmits(["form-object", "form-context"]);
 
 const { formContext, objectForm, instance, actions } = useViewCreate(props);
 
+const theme = useTheme("ViewCreate", props);
+
+// Contribute the page title and loading state to the layout's PageTitle display.
+usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
+
 onMounted(() => {
     emit(
         "form-object",
@@ -88,36 +97,32 @@ onMounted(() => {
 });
 </script>
 <template>
-    <div :class="props.class">
-        <page-title :loading="instance.pageLoading" :title="instance.titleStr">
-            <template #button>
-                <template v-for="actionName in actions.nonDetailActions" :key="actionName">
-                    <slot
+    <div :class="[theme('root'), props.class]" data-qa="create-form-root">
+        <!-- Page-level actions teleport into the layout's PageTitle action zone. -->
+        <page-actions>
+            <template v-for="actionName in actions.nonDetailActions" :key="actionName">
+                <slot
+                    :app="app"
+                    :label="memoizedStartCase(actionName)"
+                    :model="model"
+                    name="targetless-action-button"
+                    :view="actionName"
+                >
+                    <link-model-view
                         :app="app"
+                        class="w-full"
                         :label="memoizedStartCase(actionName)"
                         :model="model"
-                        name="targetless-action-button"
                         :view="actionName"
-                    >
-                        <link-model-view
-                            :app="app"
-                            class="w-full"
-                            :label="memoizedStartCase(actionName)"
-                            :model="model"
-                            :view="actionName"
-                        />
-                    </slot>
-                </template>
+                    />
+                </slot>
             </template>
-            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
-            </template>
-        </page-title>
+        </page-actions>
         <sticky-bar class="w-full">
             <template #primary>
                 <div
                     class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
-                    data-qa="update-action-buttons"
+                    data-qa="create-action-buttons"
                 >
                     <slot
                         :form="instance.formId"
@@ -135,7 +140,7 @@ onMounted(() => {
                 </div>
             </template>
         </sticky-bar>
-        <div>
+        <div :class="theme('body')" data-qa="create-form">
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"
@@ -158,6 +163,12 @@ onMounted(() => {
                 </form-model>
             </form>
         </div>
+        <form-confirm-dialog
+            :controller="objectForm.confirmation"
+            title="Confirm save"
+            description="This change has warnings. Review them before saving."
+            confirm-label="Save anyway"
+        />
     </div>
 </template>
 

@@ -4,12 +4,6 @@
  * Per-component theme registration for FieldDescription. Imported as a side effect by
  * FieldDescription.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire shell family.
- *
- * Prototype-phase duplication: this entry mirrors the FieldDescription slice of
- * shell/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -23,8 +17,16 @@ patchTheme({
          */
         root: {
             class: [
-                "text-muted-foreground text-[length:var(--vueda-text-supporting)] leading-[1.4] font-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
+                // Type and color.
+                "text-muted-foreground text-[length:var(--vueda-text-supporting)] leading-[1.4] font-normal",
+
+                // Orientation state.
+                "group-has-[[data-orientation=horizontal]]/field:text-balance",
+
+                // Spacing states.
                 "last:mt-0 nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5",
+
+                // Link states.
                 "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
             ],
         },

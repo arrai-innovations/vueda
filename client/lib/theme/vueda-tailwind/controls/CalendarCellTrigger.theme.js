@@ -4,12 +4,6 @@
  * Per-component theme registration for CalendarCellTrigger. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
- *
- * Prototype-phase duplication: this entry mirrors the CalendarCellTrigger slice of
- * controls/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import "./_ButtonPrimitives.theme.js";
 import { patchTheme } from "@vueda/use/themeRegistry.js";
@@ -25,9 +19,14 @@ patchTheme({
         root: {
             composes: ["_ButtonBase.root", "_ButtonGhost.root"],
             class: [
+                // Day button base.
                 "size-[var(--vueda-cal-day)] p-0 font-normal aria-selected:opacity-100 cursor-default",
+
+                // Today and selected states.
                 "[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground",
                 "data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[selected]:opacity-100 data-[selected]:hover:bg-primary data-[selected]:hover:text-primary-foreground data-[selected]:focus:bg-primary data-[selected]:focus:text-primary-foreground",
+
+                // Availability and outside-view states.
                 "data-[disabled]:text-muted-foreground data-[disabled]:opacity-50",
                 "data-[unavailable]:text-destructive data-[unavailable]:line-through",
                 "data-[outside-view]:text-muted-foreground",

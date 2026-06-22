@@ -10,7 +10,7 @@
 defineOptions({});
 
 defineProps({
-    /** @type {'hover' | 'focus' | 'disabled'} */
+    /** @type {'hover' | 'focus' | 'disabled' | 'active'} */
     state: { type: String, required: true },
     /** @type {'inline-flex' | 'flex' | 'grid' | 'block'} */
     as: { type: String, default: "inline-flex" },

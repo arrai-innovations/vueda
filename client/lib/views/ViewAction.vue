@@ -1,16 +1,16 @@
 <script setup>
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewAction.theme.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { useWarnings } from "@vueda/use/useWarnings.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
-import { computed, inject, toRef, useSlots } from "vue";
+import { computed, inject, useSlots } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -64,6 +64,8 @@ const actionTitleText = computed(() => {
         ? props.title
         : `${memoizedStartCase(props.action)} ${memoizedStartCase(props.model)}`;
 });
+// Contribute the page title to the layout's PageTitle display.
+usePageTitle(() => ({ title: actionTitleText.value }));
 const router = useRouter();
 const initialValues = computed(() => {
     if (props.initialFormValues) {
@@ -83,7 +85,6 @@ const formContext = useForm({
     initialValues,
 });
 
-useWarnings(toRef(props, "app"), toRef(props, "model"), formContext, toRef(props, "action"), toRef(props, "pk"));
 const handleReturnClick = () => {
     router.back();
 };
@@ -92,16 +93,12 @@ const theme = useTheme("ViewAction", props);
 
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-action-root">
-        <PageTitle :title="actionTitleText">
-            <template #button>
-                <slot label="Go Back" name="return-button" verb="return" @click="handleReturnClick">
-                    <Button @click="handleReturnClick">Go Back</Button>
-                </slot>
-            </template>
-            <template v-for="(_, slot) in omit(slots, ['before-list', 'default'])" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
-            </template>
-        </PageTitle>
+        <!-- Page actions teleport into the layout's PageTitle action zone. -->
+        <page-actions>
+            <slot label="Go Back" name="return-button" @click="handleReturnClick">
+                <Button @click="handleReturnClick">Go Back</Button>
+            </slot>
+        </page-actions>
         <slot :action="action" :app="app" :form-context="formContext" :model="model" :pk="pk">
             <model-action-form :action="action" :app="app" :model="model" v-bind="omit($attrs, ['class'])">
                 <template v-for="(_, slot) in omit(slots, ['before-list'])" #[slot]="slotProps">

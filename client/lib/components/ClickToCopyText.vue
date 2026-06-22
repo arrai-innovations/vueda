@@ -1,7 +1,7 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/display/ClickToCopyText.theme.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
 import { toast as sonnerToast } from "vue-sonner";
 
@@ -11,6 +11,7 @@ import { toast as sonnerToast } from "vue-sonner";
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** The text value to display and copy to the clipboard. */
     text: {
         type: String,
@@ -48,7 +49,7 @@ const theme = useTheme("ClickToCopyText", props);
         <slot name="text" :text="text">
             {{ text }}
         </slot>
-        <!-- Renders the copy button; receives `onClick`, `label`, `severity`, `rounded`, `variant`, `size`, `text`, and `copied` as slot props. -->
+        <!-- Renders the copy button; receives `onClick`, `label`, `variant`, `size`, `text`, and `copied` as slot props. -->
         <slot name="copy-button" v-bind="slotProps">
             <Button :variant="slotProps.variant" :size="slotProps.size" @click="slotProps.onClick">
                 {{ slotProps.label }}

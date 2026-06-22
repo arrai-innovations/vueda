@@ -168,139 +168,149 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         ViewTwoFactorAuth = (await import("@vueda/views/ViewTwoFactorAuth.vue")).default;
     });
 
-    scopedIt("fetches 2fa methods when activated", async () => {
-        userStore.getTwoFactorAuthMethod.mockResolvedValue({ methods: ["sms"] });
-        const wrapper = mount(ViewTwoFactorAuth);
-        activeRef.value = true;
-        await flushPromises();
-        expect(userStore.getTwoFactorAuthMethod).toHaveBeenCalled();
-        expect(wrapper.vm.methods).toEqual(["sms"]);
-        expect(wrapper.vm.computedOptions).toEqual([{ label: "SMS", value: "sms" }]);
+    describe("Method discovery and selection", () => {
+        scopedIt("fetches 2fa methods when activated", async () => {
+            userStore.getTwoFactorAuthMethod.mockResolvedValue({ methods: ["sms"] });
+            const wrapper = mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(userStore.getTwoFactorAuthMethod).toHaveBeenCalled();
+            expect(wrapper.vm.methods).toEqual(["sms"]);
+            expect(wrapper.vm.computedOptions).toEqual([{ label: "SMS", value: "sms" }]);
+        });
+
+        scopedIt("toggleRecovery flips the recovery flag and clears method", async () => {
+            const wrapper = mount(ViewTwoFactorAuth);
+            wrapper.vm.form.values = { method: "sms" };
+            wrapper.vm.toggleRecovery();
+            expect(wrapper.vm.useRecoveryCode).toBe(true);
+            expect(wrapper.vm.form.values.method).toBe("recovery");
+            wrapper.vm.toggleRecovery();
+            expect(wrapper.vm.useRecoveryCode).toBe(false);
+            expect(wrapper.vm.form.values.method).toBeUndefined();
+        });
+
+        scopedIt("redirects when methods fetch returns unauthorized", async () => {
+            userStore.getTwoFactorAuthMethod.mockRejectedValue(new UnauthorizedErrorClass("Unauthorized"));
+            const wrapper = mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(toastMock.warning).toHaveBeenCalled();
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
+            expect(wrapper.vm.methods).toEqual([]);
+        });
+
+        scopedIt("shows toast on generic fetch error", async () => {
+            userStore.getTwoFactorAuthMethod.mockRejectedValue(new Error("boom"));
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(toastMock.error).toHaveBeenCalledWith("Error fetching 2FA methods for the user", expect.any(Object));
+        });
     });
 
-    scopedIt("toggleRecovery flips the recovery flag and clears method", async () => {
-        const wrapper = mount(ViewTwoFactorAuth);
-        wrapper.vm.form.values = { method: "sms" };
-        wrapper.vm.toggleRecovery();
-        expect(wrapper.vm.useRecoveryCode).toBe(true);
-        expect(wrapper.vm.form.values.method).toBe("recovery");
-        wrapper.vm.toggleRecovery();
-        expect(wrapper.vm.useRecoveryCode).toBe(false);
-        expect(wrapper.vm.form.values.method).toBeUndefined();
+    describe("Code delivery", () => {
+        scopedIt("handleSendCode triggers cooldown and toast", async () => {
+            const wrapper = mount(ViewTwoFactorAuth);
+            wrapper.vm.form.values = { method: "sms" };
+            vi.useFakeTimers();
+            await wrapper.vm.handleSendCode();
+            expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledWith({ method: "sms" });
+            expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("SMS"), expect.any(Object));
+            expect(wrapper.vm.timer).not.toBeNull();
+            expect(wrapper.vm.cooldownSeconds).toBe(60);
+            vi.advanceTimersByTime(1000);
+            expect(wrapper.vm.cooldownSeconds).toBe(59);
+            vi.clearAllTimers();
+            vi.useRealTimers();
+        });
+
+        scopedIt("handleSendCode reports errors", async () => {
+            const wrapper = mount(ViewTwoFactorAuth);
+            wrapper.vm.form.values = { method: "email" };
+            userStore.sendTwoFactorAuthenticationCode.mockRejectedValue(new Error("fail"));
+            await wrapper.vm.handleSendCode();
+            expect(toastMock.error).toHaveBeenCalledWith("Failed to send 2FA code", expect.any(Object));
+            expect(wrapper.vm.timer).toBeNull();
+        });
     });
 
-    scopedIt("redirects when methods fetch returns unauthorized", async () => {
-        userStore.getTwoFactorAuthMethod.mockRejectedValue(new UnauthorizedErrorClass("Unauthorized"));
-        const wrapper = mount(ViewTwoFactorAuth);
-        activeRef.value = true;
-        await flushPromises();
-        expect(toastMock.warning).toHaveBeenCalled();
-        expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
-        expect(wrapper.vm.methods).toEqual([]);
+    describe("Authentication submission", () => {
+        scopedIt("handleSubmit delegates to store", async () => {
+            const wrapper = mount(ViewTwoFactorAuth);
+            await wrapper.vm.handleSubmit({ formValues: { code: "000000" } });
+            expect(userStore.twoFactorAuthenticate).toHaveBeenCalledWith({ code: "000000" });
+        });
     });
 
-    scopedIt("shows toast on generic fetch error", async () => {
-        userStore.getTwoFactorAuthMethod.mockRejectedValue(new Error("boom"));
-        mount(ViewTwoFactorAuth);
-        activeRef.value = true;
-        await flushPromises();
-        expect(toastMock.error).toHaveBeenCalledWith("Error fetching 2FA methods for the user", expect.any(Object));
+    describe("Activation guards", () => {
+        scopedIt("does not fetch methods when inactive", async () => {
+            mount(ViewTwoFactorAuth);
+            activeRef.value = false;
+            userStore.loggedIn = false;
+            userStore.getTwoFactorAuthMethod.mockClear();
+            await flushPromises();
+            expect(userStore.getTwoFactorAuthMethod).not.toHaveBeenCalled();
+        });
+
+        scopedIt("does not fetch methods when not logged in", async () => {
+            mount(ViewTwoFactorAuth);
+            userStore.loggedIn = true;
+            activeRef.value = true;
+            userStore.getTwoFactorAuthMethod.mockClear();
+            await flushPromises();
+            expect(userStore.getTwoFactorAuthMethod).not.toHaveBeenCalled();
+        });
     });
 
-    scopedIt("handleSendCode triggers cooldown and toast", async () => {
-        const wrapper = mount(ViewTwoFactorAuth);
-        wrapper.vm.form.values = { method: "sms" };
-        vi.useFakeTimers();
-        await wrapper.vm.handleSendCode();
-        expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledWith({ method: "sms" });
-        expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("SMS"), expect.any(Object));
-        expect(wrapper.vm.timer).not.toBeNull();
-        expect(wrapper.vm.cooldownSeconds).toBe(60);
-        vi.advanceTimersByTime(1000);
-        expect(wrapper.vm.cooldownSeconds).toBe(59);
-        vi.clearAllTimers();
-        vi.useRealTimers();
-    });
+    describe("Cooldown behavior", () => {
+        scopedIt("handleSendCode sends email and resets cooldown", async () => {
+            const wrapper = mount(ViewTwoFactorAuth);
+            wrapper.vm.form.values = { method: "email" };
+            wrapper.vm.cooldownSeconds = 12;
+            vi.useFakeTimers();
+            await wrapper.vm.handleSendCode();
+            expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledWith({ method: "email" });
+            expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("email"), expect.any(Object));
+            expect(wrapper.vm.cooldownSeconds).toBe(60);
+            expect(wrapper.vm.timer).not.toBeNull();
+            vi.clearAllTimers();
+            vi.useRealTimers();
+        });
 
-    scopedIt("handleSendCode reports errors", async () => {
-        const wrapper = mount(ViewTwoFactorAuth);
-        wrapper.vm.form.values = { method: "email" };
-        userStore.sendTwoFactorAuthenticationCode.mockRejectedValue(new Error("fail"));
-        await wrapper.vm.handleSendCode();
-        expect(toastMock.error).toHaveBeenCalledWith("Failed to send 2FA code", expect.any(Object));
-        expect(wrapper.vm.timer).toBeNull();
-    });
+        scopedIt("successfully called sendTwoFactorAuthenticationCode for recovery method", async () => {
+            const wrapper = mount(ViewTwoFactorAuth);
+            wrapper.vm.form.values = { method: "recovery" };
+            vi.useFakeTimers();
+            await wrapper.vm.handleSendCode();
+            expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledWith({ method: "recovery" });
+            expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("recovery"), expect.any(Object));
+            vi.clearAllTimers();
+            vi.useRealTimers();
+        });
 
-    scopedIt("handleSubmit delegates to store", async () => {
-        const wrapper = mount(ViewTwoFactorAuth);
-        await wrapper.vm.handleSubmit({ formValues: { code: "000000" } });
-        expect(userStore.twoFactorAuthenticate).toHaveBeenCalledWith({ code: "000000" });
-    });
+        scopedIt("ignores handleSendCode while cooldown active", async () => {
+            const wrapper = mount(ViewTwoFactorAuth);
+            wrapper.vm.form.values = { method: "sms" };
+            vi.useFakeTimers();
+            await wrapper.vm.handleSendCode();
+            await wrapper.vm.handleSendCode();
+            expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledTimes(1);
+            expect(wrapper.vm.cooldownSeconds).toBe(60);
+            expect(vi.getTimerCount()).toBe(1);
+            vi.clearAllTimers();
+            vi.useRealTimers();
+        });
 
-    scopedIt("does not fetch methods when inactive", async () => {
-        mount(ViewTwoFactorAuth);
-        activeRef.value = false;
-        userStore.loggedIn = false;
-        userStore.getTwoFactorAuthMethod.mockClear();
-        await flushPromises();
-        expect(userStore.getTwoFactorAuthMethod).not.toHaveBeenCalled();
-    });
-
-    scopedIt("does not fetch methods when not logged in", async () => {
-        mount(ViewTwoFactorAuth);
-        userStore.loggedIn = true;
-        activeRef.value = true;
-        userStore.getTwoFactorAuthMethod.mockClear();
-        await flushPromises();
-        expect(userStore.getTwoFactorAuthMethod).not.toHaveBeenCalled();
-    });
-
-    scopedIt("handleSendCode sends email and resets cooldown", async () => {
-        const wrapper = mount(ViewTwoFactorAuth);
-        wrapper.vm.form.values = { method: "email" };
-        wrapper.vm.cooldownSeconds = 12;
-        vi.useFakeTimers();
-        await wrapper.vm.handleSendCode();
-        expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledWith({ method: "email" });
-        expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("email"), expect.any(Object));
-        expect(wrapper.vm.cooldownSeconds).toBe(60);
-        expect(wrapper.vm.timer).not.toBeNull();
-        vi.clearAllTimers();
-        vi.useRealTimers();
-    });
-
-    scopedIt("successfully called sendTwoFactorAuthenticationCode for recovery method", async () => {
-        const wrapper = mount(ViewTwoFactorAuth);
-        wrapper.vm.form.values = { method: "recovery" };
-        vi.useFakeTimers();
-        await wrapper.vm.handleSendCode();
-        expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledWith({ method: "recovery" });
-        expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("recovery"), expect.any(Object));
-        vi.clearAllTimers();
-        vi.useRealTimers();
-    });
-
-    scopedIt("ignores handleSendCode while cooldown active", async () => {
-        const wrapper = mount(ViewTwoFactorAuth);
-        wrapper.vm.form.values = { method: "sms" };
-        vi.useFakeTimers();
-        await wrapper.vm.handleSendCode();
-        await wrapper.vm.handleSendCode();
-        expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenCalledTimes(1);
-        expect(wrapper.vm.cooldownSeconds).toBe(60);
-        expect(vi.getTimerCount()).toBe(1);
-        vi.clearAllTimers();
-        vi.useRealTimers();
-    });
-
-    scopedIt("clears cooldown timer on unmount", async () => {
-        const wrapper = mount(ViewTwoFactorAuth);
-        wrapper.vm.form.values = { method: "sms" };
-        vi.useFakeTimers();
-        await wrapper.vm.handleSendCode();
-        expect(vi.getTimerCount()).toBe(1);
-        wrapper.unmount();
-        expect(vi.getTimerCount()).toBe(0);
-        vi.useRealTimers();
+        scopedIt("clears cooldown timer on unmount", async () => {
+            const wrapper = mount(ViewTwoFactorAuth);
+            wrapper.vm.form.values = { method: "sms" };
+            vi.useFakeTimers();
+            await wrapper.vm.handleSendCode();
+            expect(vi.getTimerCount()).toBe(1);
+            wrapper.unmount();
+            expect(vi.getTimerCount()).toBe(0);
+            vi.useRealTimers();
+        });
     });
 });

@@ -4,12 +4,6 @@
  * Per-component theme registration for FieldSetStackedInlineRow. Imported as a side effect by
  * FieldSetStackedInlineRow.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire form family.
- *
- * Prototype-phase duplication: this entry mirrors the FieldSetStackedInlineRow slice of
- * form/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -24,6 +18,7 @@ patchTheme({
         root: {
             class: [
                 "flex items-start gap-3 border rounded-vueda-card p-2.5",
+                // Data attribute states.
                 "data-[state=dirty]:border-l-2 data-[state=dirty]:border-l-primary",
                 "data-[state=selected-for-destroy]:bg-destructive/5 data-[state=selected-for-destroy]:border-destructive/40",
             ],

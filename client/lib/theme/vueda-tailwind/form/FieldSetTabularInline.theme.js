@@ -4,12 +4,6 @@
  * Per-component theme registration for FieldSetTabularInline. Imported as a side effect by
  * FieldSetTabularInline.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire form family.
- *
- * Prototype-phase duplication: this entry mirrors the FieldSetTabularInline slice of
- * form/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -23,6 +17,7 @@ patchTheme({
         /** Card shell for tabular inline editing, including nested-fieldset inset chrome. */
         root: {
             class: [
+                // Surface and nested fieldset treatment.
                 "bg-card border rounded-vueda-card overflow-clip",
                 "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
             ],
@@ -38,8 +33,9 @@ patchTheme({
         /** Eyebrow title bar for tabular inline fieldsets. See also: {@api theme-key:FieldSetStackedInline.titleBar}. */
         titleBar: {
             class: [
-                "flex items-center gap-2 2xs:gap-3 px-3 py-2 border-b border-border",
-                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none text-muted-foreground",
+                "flex items-center gap-2 2xs:gap-3 px-3 py-2 border-b",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none",
+                "text-muted-foreground",
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
             ],
         },
@@ -47,8 +43,8 @@ patchTheme({
         titleBarToggle: {
             class: [
                 "cursor-pointer select-none",
-                "hover:bg-accent hover:text-accent-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                "hover:bg-accent hover:text-accent-foreground active:bg-accent-active active:text-accent-foreground",
+                "focus-visible:focus-ring-shadow",
                 "transition-colors",
             ],
         },
@@ -62,11 +58,11 @@ patchTheme({
         },
         /** Trailing action group in the title bar. */
         actionBar: {
-            class: "grow-0 flex gap-1 2xs:gap-2 2xl:gap-4 ml-auto",
+            class: ["grow-0 flex gap-1 2xs:gap-2 2xl:gap-4", "ml-auto"],
         },
         /** Row action group used by the embedded grid action column. */
         itemActionBar: {
-            class: "flex gap-1 2xs:gap-2 2xl:gap-4 items-baseline",
+            class: ["flex gap-1 2xs:gap-2 2xl:gap-4", "items-baseline"],
         },
         /** Grid body wrapper that stamps `data-flush` so {@api theme-key:ObjectsGrid.root} drops duplicate chrome. */
         body: {
@@ -120,7 +116,7 @@ patchTheme({
         /** Fieldset-level help and validation panel below the embedded grid. */
         choresPanel: {
             class: [
-                "px-3 py-2 border-t border-border",
+                "px-3 py-2 border-t",
                 "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
                 "flex flex-col gap-1",
             ],
@@ -130,7 +126,7 @@ patchTheme({
             class: [
                 "flex flex-col items-center justify-center gap-2",
                 "m-3 py-8 px-6 text-center",
-                "rounded-vueda-card border-2 border-dashed border-border bg-muted/30",
+                "rounded-vueda-card border-2 border-dashed bg-muted/30",
             ],
         },
         /** Muted icon disc inside the tabular empty-state invitation. */
@@ -148,7 +144,8 @@ patchTheme({
         /** Supporting empty-state hint copy for tabular inline rows. */
         emptyStateDesc: {
             class: [
-                "text-[length:var(--vueda-text-supporting)] font-normal leading-normal text-muted-foreground max-w-[44ch]",
+                "text-[length:var(--vueda-text-supporting)] font-normal leading-normal",
+                "text-muted-foreground max-w-[44ch]",
             ],
         },
         /** Component-local override that gives embedded grid cells enough minimum width inside fieldsets. */

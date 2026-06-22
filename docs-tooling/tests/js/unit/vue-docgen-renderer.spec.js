@@ -151,6 +151,33 @@ describe("renderVueDocgenBundle — conditional sub-pages", () => {
         expect(page).toContain("### `close`");
         expect(page).not.toContain("events.md");
     });
+
+    it("component page renders deprecated lifecycle metadata as a warning callout", () => {
+        const outputs = buildOutputs({
+            sourceDir: "client/lib",
+            files: [
+                {
+                    filePath: "client/lib/components/DeprecatedThing.vue",
+                    components: [
+                        {
+                            displayName: "DeprecatedThing",
+                            description: "Legacy component.",
+                            props: [],
+                            slots: [],
+                            events: [],
+                            tags: {
+                                deprecated: [{ title: "deprecated", description: "Use ReplacementThing instead." }],
+                            },
+                            sourceFiles: [],
+                        },
+                    ],
+                },
+            ],
+        });
+        const page = outputs.get("vue/DeprecatedThing.md");
+        expect(page).toContain("::: warning Deprecated");
+        expect(page).toContain("Use ReplacementThing instead.");
+    });
 });
 
 describe("renderVueDocgenBundle — component page content", () => {

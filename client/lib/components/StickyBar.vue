@@ -1,20 +1,32 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/shell/StickyBar.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed, onBeforeUnmount, onMounted, reactive, ref, useSlots, useTemplateRef, watch } from "vue";
+import { computed, onBeforeUnmount, reactive, ref, unref, useSlots, useTemplateRef, watch } from "vue";
 
 /**
  * Renders a sticky toolbar that hides when the user scrolls down past its
- * initial position and reappears when they scroll back up. Exposes named
- * `primary` (submit / primary actions, pushed to the start) and `secondary`
- * (read-only actions, contextual info) slots; falls back to the default slot
- * when neither named slot is bound.
+ * initial position and reappears when they scroll back up. By default it reacts
+ * to the window's scroll; pass `scrollRoot` when the bar lives inside a
+ * scrollable region so it pins to and reacts to that region instead. Exposes
+ * named `primary` (submit / primary actions, pushed to the start) and
+ * `secondary` (read-only actions, contextual info) slots; falls back to the
+ * default slot when neither named slot is bound.
  */
 defineOptions({});
 
 const root = useTemplateRef("root");
 const slots = useSlots();
 const props = defineProps({
+    /**
+     * Scroll container the bar reacts to. Pass the scrollable element (or a ref
+     * to one) when the bar lives inside a scrollable region rather than the
+     * page; the hide/reveal threshold and the scroll listener bind to it. When
+     * `null` (the default) the bar reacts to the window.
+     */
+    scrollRoot: {
+        type: Object,
+        default: null,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 
@@ -30,8 +42,33 @@ const delay = 300;
 
 const isScrolledPastThreshold = computed(() => lastScrollY.value > rootThreshold.value);
 
+// The window, or null during SSR. Resolved lazily so the module is import-safe
+// on the server.
+const browserWindow = () => (typeof window === "undefined" ? null : window);
+
+// The element (or window) whose scroll drives the hide/reveal behavior. `unref`
+// keeps it tolerant of either a raw element or a ref passed to `scrollRoot`.
+const scrollTarget = computed(() => unref(props.scrollRoot) ?? browserWindow());
+
+const isWindow = (target) => target === browserWindow();
+
+const readScrollPosition = (target) => (isWindow(target) ? target.scrollY : target.scrollTop);
+
+// The bar's bottom edge expressed in the scroll target's coordinate space: the
+// scroll position past which the bar's original spot has left the viewport.
+const measureThreshold = (target) => {
+    const el = root.value;
+    if (!el) {
+        return 0;
+    }
+    if (isWindow(target)) {
+        return el.getBoundingClientRect().bottom + target.scrollY;
+    }
+    return el.getBoundingClientRect().bottom - target.getBoundingClientRect().top + target.scrollTop;
+};
+
 const handleScroll = () => {
-    const currentScrollY = window.scrollY;
+    const currentScrollY = readScrollPosition(scrollTarget.value);
     isScrollingUp.value = currentScrollY < lastScrollY.value;
     lastScrollY.value = currentScrollY;
 
@@ -44,11 +81,22 @@ const handleScroll = () => {
     }, delay);
 };
 
+// Bind the scroll listener and recompute the threshold whenever the resolved
+// target or the bar element changes (for example, once a `scrollRoot` ref
+// resolves after its element mounts).
 watch(
-    root,
-    (el) => {
-        if (el) {
-            rootThreshold.value = el.getBoundingClientRect().bottom + window.scrollY;
+    [scrollTarget, root],
+    ([target], previous) => {
+        const previousTarget = previous ? previous[0] : undefined;
+        if (previousTarget && previousTarget !== target) {
+            previousTarget.removeEventListener("scroll", handleScroll);
+        }
+        if (target && target !== previousTarget) {
+            target.addEventListener("scroll", handleScroll);
+        }
+        if (target) {
+            rootThreshold.value = measureThreshold(target);
+            lastScrollY.value = readScrollPosition(target);
         } else {
             rootThreshold.value = 0;
         }
@@ -56,12 +104,8 @@ watch(
     { immediate: true },
 );
 
-onMounted(() => {
-    window.addEventListener("scroll", handleScroll);
-});
-
 onBeforeUnmount(() => {
-    window.removeEventListener("scroll", handleScroll);
+    scrollTarget.value?.removeEventListener?.("scroll", handleScroll);
     if (scrollTimeout.value) {
         clearTimeout(scrollTimeout.value);
     }
@@ -90,7 +134,6 @@ const theme = useTheme(
             </template>
             <slot v-else />
         </div>
-        <div :class="theme('gradient')" data-qa="sticky-bar-gradient" />
     </div>
 </template>
 

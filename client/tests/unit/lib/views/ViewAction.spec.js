@@ -14,11 +14,6 @@ vi.mock("@vueda/use/useLookupContext.js", () => ({
     useLookupContext: mockedUseLookupContext,
 }));
 
-const mockedUseWarnings = vi.fn();
-vi.mock("@vueda/use/useWarnings.js", () => ({
-    useWarnings: mockedUseWarnings,
-}));
-
 const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const mockedUseTheme = makeUseThemeMock({
     slotResolver: (key) => (key === "root" ? "theme-root" : ""),
@@ -76,20 +71,14 @@ const ButtonStub = defineComponent({
 });
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 
-const PageTitleStub = defineComponent({
-    name: "PageTitleStub",
-    props: ["title"],
-    setup(props, { slots }) {
-        return () =>
-            h(
-                "div",
-                { "data-qa": "page-title", "data-title": props.title },
-                Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
-            );
+const PageActionsStub = defineComponent({
+    name: "PageActionsStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
     },
 });
-vi.mock("@vueda/components/PageTitle.vue", () => ({
-    default: PageTitleStub,
+vi.mock("@vueda/components/PageActions.vue", () => ({
+    default: PageActionsStub,
 }));
 
 vi.mock("vue", async () => {
@@ -110,86 +99,94 @@ beforeEach(async () => {
     ViewAction = (await import("@vueda/views/ViewAction.vue")).default;
     mockedUseForm.mockClear();
     mockedUseLookupContext.mockClear();
-    mockedUseWarnings.mockClear();
     mockedUseTheme.mockClear();
     routerBack.mockClear();
     provideStore.clear();
 });
 
-scopedIt("calls useLookupContext if lookup context is missing", () => {
-    mockedInject.mockReturnValueOnce(null);
-    mount(ViewAction, { props: { app: "app", model: "model", action: "do" } });
-    expect(mockedUseLookupContext).toHaveBeenCalled();
-});
+describe("lib/views/ViewAction.vue", () => {
+    describe("Lookup context", () => {
+        scopedIt("calls useLookupContext if lookup context is missing", () => {
+            mockedInject.mockReturnValueOnce(null);
+            mount(ViewAction, { props: { app: "app", model: "model", action: "do" } });
+            expect(mockedUseLookupContext).toHaveBeenCalled();
+        });
 
-scopedIt("does not call useLookupContext when lookup context exists", () => {
-    mockedInject.mockReturnValueOnce({});
-    mount(ViewAction, { props: { app: "app", model: "model", action: "do" } });
-    expect(mockedUseLookupContext).not.toHaveBeenCalled();
-});
-
-scopedIt("passes props and attrs to ActionForm, sets title and forwards slots", () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewAction, {
-        props: {
-            app: "myApp",
-            model: "person",
-            action: "edit",
-            pk: ["id1", "id2"],
-            class: "custom",
-        },
-        attrs: { foo: "bar" },
-        slots: {
-            extra: "<span>extra</span>",
-            "return-button": "<button data-qa='custom-return'>custom</button>",
-        },
+        scopedIt("does not call useLookupContext when lookup context exists", () => {
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewAction, { props: { app: "app", model: "model", action: "do" } });
+            expect(mockedUseLookupContext).not.toHaveBeenCalled();
+        });
     });
 
-    const root = wrapper.find('[data-qa="view-action-root"]');
-    expect(root.classes()).toContain("theme-root");
-    expect(root.classes()).toContain("custom");
+    describe("Rendering and slot forwarding", () => {
+        scopedIt("passes props and attrs to ActionForm, renders return button and forwards slots", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewAction, {
+                props: {
+                    app: "myApp",
+                    model: "person",
+                    action: "edit",
+                    pk: ["id1", "id2"],
+                    class: "custom",
+                },
+                attrs: { foo: "bar" },
+                slots: {
+                    extra: "<span>extra</span>",
+                    "return-button": "<button data-qa='custom-return'>custom</button>",
+                },
+            });
 
-    const page = wrapper.find('[data-qa="page-title"]');
-    expect(page.attributes("data-title")).toBe("EDIT PERSON");
-    expect(page.find('[data-slot="button"] [data-qa="custom-return"]').exists()).toBe(true);
+            const root = wrapper.find('[data-qa="view-action-root"]');
+            expect(root.classes()).toContain("theme-root");
+            expect(root.classes()).toContain("custom");
 
-    const af = wrapper.find('[data-qa="model-action-form"]');
-    expect(af.attributes("data-app")).toBe("myApp");
-    expect(af.attributes("data-model")).toBe("person");
-    expect(af.attributes("data-action")).toBe("edit");
-    expect(af.attributes("foo")).toBe("bar");
-    expect(af.find('[data-slot="extra"]').text()).toBe("extra");
+            const actions = wrapper.find('[data-qa="page-actions"]');
+            expect(actions.find('[data-qa="custom-return"]').exists()).toBe(true);
 
-    const formArg = mockedUseForm.mock.calls[0][0];
-    expect(vue.isReactive(formArg)).toBe(false);
-    expect(vue.isRef(formArg.initialValues)).toBe(true);
-    expect(formArg.initialValues.value).toEqual({ id1: null, id2: null });
-    expect(mockedUseTheme).toHaveBeenCalledWith("ViewAction", expect.any(Object));
-});
+            const af = wrapper.find('[data-qa="model-action-form"]');
+            expect(af.attributes("data-app")).toBe("myApp");
+            expect(af.attributes("data-model")).toBe("person");
+            expect(af.attributes("data-action")).toBe("edit");
+            expect(af.attributes("foo")).toBe("bar");
+            expect(af.find('[data-slot="extra"]').text()).toBe("extra");
 
-scopedIt("calls router.back when return button clicked", async () => {
-    mockedInject.mockReturnValueOnce({});
-    const wrapper = mount(ViewAction, {
-        props: { app: "a", model: "b", action: "c" },
+            const formArg = mockedUseForm.mock.calls[0][0];
+            expect(vue.isReactive(formArg)).toBe(false);
+            expect(vue.isRef(formArg.initialValues)).toBe(true);
+            expect(formArg.initialValues.value).toEqual({ id1: null, id2: null });
+            expect(mockedUseTheme).toHaveBeenCalledWith("ViewAction", expect.any(Object));
+        });
     });
 
-    await wrapper.find('[data-qa="prime-button"]').trigger("click");
-    expect(routerBack).toHaveBeenCalled();
-});
+    describe("Navigation", () => {
+        scopedIt("calls router.back when return button clicked", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewAction, {
+                props: { app: "a", model: "b", action: "c" },
+            });
 
-scopedIt("initialValues uses pk string when provided", () => {
-    mockedInject.mockReturnValueOnce({});
-    mount(ViewAction, { props: { app: "app", model: "model", action: "do", pk: "identifier" } });
-    const formArg = mockedUseForm.mock.calls[0][0];
-    expect(formArg.initialValues.value).toEqual({ identifier: null });
-});
-
-scopedIt("initialFormValues override computed initial values", () => {
-    mockedInject.mockReturnValueOnce({});
-    const initialFormValues = { custom: "value" };
-    mount(ViewAction, {
-        props: { app: "app", model: "model", action: "do", initialFormValues },
+            await wrapper.find('[data-qa="prime-button"]').trigger("click");
+            expect(routerBack).toHaveBeenCalled();
+        });
     });
-    const formArg = mockedUseForm.mock.calls[0][0];
-    expect(formArg.initialValues.value).toStrictEqual(initialFormValues);
+
+    describe("Initial form values", () => {
+        scopedIt("initialValues uses pk string when provided", () => {
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewAction, { props: { app: "app", model: "model", action: "do", pk: "identifier" } });
+            const formArg = mockedUseForm.mock.calls[0][0];
+            expect(formArg.initialValues.value).toEqual({ identifier: null });
+        });
+
+        scopedIt("initialFormValues override computed initial values", () => {
+            mockedInject.mockReturnValueOnce({});
+            const initialFormValues = { custom: "value" };
+            mount(ViewAction, {
+                props: { app: "app", model: "model", action: "do", initialFormValues },
+            });
+            const formArg = mockedUseForm.mock.calls[0][0];
+            expect(formArg.initialValues.value).toStrictEqual(initialFormValues);
+        });
+    });
 });

@@ -64,6 +64,8 @@ import { defineStore } from "pinia";
  * @property {object} fieldProps - extra props to pass a field component in a form model
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} widgetComponents - overriding components for individual widgets
  * @property {object} widgetProps - extra props to pass a widget component in a form model
+ * @property {{[fieldName:string]: import('@vueda/utils/columnLookups.js').ColumnComponent | string}} columnComponents - overriding list column adapter for individual fields, by field name (a component, `() => component`, or a string key into `availableColumns`)
+ * @property {{[fieldName:string]: object}} columnProps - extra props to pass a field's list column adapter, by field name
  * @property {object} actionRedirects - mapping of action name to destination view
  *  when cancelling or after successful completion. The `default` key is used
  *  when no action-specific redirect exists. Values can be strings or functions
@@ -98,6 +100,8 @@ import { defineStore } from "pinia";
  * @property {object} [fieldProps] - extra props to pass a field component in a form model
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} [widgetComponents] - overriding components for individual widgets
  * @property {object} [widgetProps] - extra props to pass a widget component in a form model
+ * @property {{[fieldName:string]: import('@vueda/utils/columnLookups.js').ColumnComponent | string}} [columnComponents] - overriding list column adapter for individual fields, by field name (a component, `() => component`, or a string key into `availableColumns`)
+ * @property {{[fieldName:string]: object}} [columnProps] - extra props to pass a field's list column adapter, by field name
  * @property {object} [actionRedirects] - action-specific redirect mapping to merge with defaults.
  */
 
@@ -116,6 +120,8 @@ const getDefaultFromModelInfo = (modelInfo) => {
                 fieldProps: {},
                 widgetComponents: {},
                 widgetProps: {},
+                columnComponents: {},
+                columnProps: {},
                 actionDetails: {},
                 fieldDetails: {},
                 filterableDetails: {},
@@ -160,6 +166,8 @@ const getDefaultFromModelInfo = (modelInfo) => {
             fieldProps: {},
             widgetComponents: {},
             widgetProps: {},
+            columnComponents: {},
+            columnProps: {},
             actionRedirects: {
                 default: canUpdate ? "update" : canRetrieve ? "read" : canList ? "list" : null,
             },
@@ -168,7 +176,13 @@ const getDefaultFromModelInfo = (modelInfo) => {
     ];
 };
 
-const shallowObjectProperties = ["formProps", "fieldComponents", "widgetComponents", "actionRedirects"];
+const shallowObjectProperties = [
+    "formProps",
+    "fieldComponents",
+    "widgetComponents",
+    "columnComponents",
+    "actionRedirects",
+];
 const deepObjectProperties = [
     "fieldDetails",
     "actionDetails",
@@ -176,6 +190,7 @@ const deepObjectProperties = [
     "sortableDetails",
     "fieldProps",
     "widgetProps",
+    "columnProps",
 ];
 const nonSimpleProperties = [...shallowObjectProperties, "expandDetails", ...deepObjectProperties];
 

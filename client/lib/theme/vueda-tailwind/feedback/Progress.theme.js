@@ -4,12 +4,6 @@
  * Per-component theme registration for Progress. Imported as a side effect by
  * Progress.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire feedback family.
- *
- * Prototype-phase duplication: this entry mirrors the Progress slice of
- * feedback/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -40,7 +34,8 @@ patchTheme({
          */
         indicator: ({ tone }) => ({
             class: [
-                "h-full w-full flex-1 transition-all data-[state=indeterminate]:w-2/5 data-[state=indeterminate]:animate-vueda-progress-slide",
+                "h-full w-full flex-1 transition-all",
+                "data-[state=indeterminate]:w-2/5 data-[state=indeterminate]:animate-vueda-progress-slide",
                 {
                     "bg-primary": !tone,
                     "bg-success": tone === "success",

@@ -63,6 +63,51 @@ describe("TypeDocNormalizer", () => {
         expect(output.nodes.some((node) => node.kind === "function")).toBe(true);
     });
 
+    it("maps @deprecated block tags to canonical lifecycle metadata", async () => {
+        const normalizer = new TypeDocNormalizer();
+        const payload = {
+            name: "vueda",
+            children: [
+                {
+                    id: 1,
+                    name: "legacy",
+                    kind: 2,
+                    children: [
+                        {
+                            id: 2,
+                            name: "oldThing",
+                            kind: 64,
+                            comment: {
+                                summary: [{ kind: "text", text: "Old helper." }],
+                                blockTags: [
+                                    {
+                                        tag: "@deprecated",
+                                        content: [{ kind: "text", text: "Use newThing instead." }],
+                                    },
+                                ],
+                            },
+                            signatures: [
+                                {
+                                    id: 3,
+                                    name: "oldThing",
+                                    parameters: [],
+                                    type: { type: "intrinsic", name: "void" },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+
+        await assertCanonical(output);
+
+        const fnNode = output.nodes.find((node) => node.name === "oldThing");
+        expect(fnNode.lifecycle).toEqual({ status: "deprecated", description: "Use newThing instead." });
+    });
+
     it("extracts @example from signature blockTags onto the node", async () => {
         const normalizer = new TypeDocNormalizer();
         const payload = {

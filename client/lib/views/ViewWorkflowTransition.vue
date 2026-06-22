@@ -1,12 +1,13 @@
 <script setup>
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import "@vueda/theme/vueda-tailwind/views/ViewWorkflowTransition.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getAppModelDotName, memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
@@ -59,6 +60,10 @@ const appModelKey = computed(() => getAppModelDotName({ app: props.app, model: p
 const titleStr = computed(() => {
     return `Transitions for ${memoizedStartCase(modelConfig.info?.verbose_name)}`;
 });
+
+// Contribute the page title and loading state to the layout's PageTitle display.
+usePageTitle(() => ({ title: titleStr.value, loading: workflow.loading }));
+
 const selectedAction = ref(null);
 
 const transitionsForPk = (pk) => {
@@ -132,19 +137,18 @@ const handleSubmit = async () => {
 
 <template>
     <div :class="props.class" :style="theme.hideStyle?.value">
-        <page-title :loading="workflow.loading" :title="titleStr">
-            <template #button>
-                <div :class="theme('buttons')">
-                    <link-model-view
-                        :app="app"
-                        :class="theme('returnLink')"
-                        label="Return to List"
-                        :model="model"
-                        view="list"
-                    />
-                </div>
-            </template>
-        </page-title>
+        <!-- The Return-to-List link teleports into the layout's PageTitle action zone. -->
+        <page-actions>
+            <div :class="theme('buttons')">
+                <link-model-view
+                    :app="app"
+                    :class="theme('returnLink')"
+                    label="Return to List"
+                    :model="model"
+                    view="list"
+                />
+            </div>
+        </page-actions>
         <div :class="theme('inner')">
             <div v-if="availableTransitions.length">
                 <div v-if="currentStateName" :class="theme('current')">

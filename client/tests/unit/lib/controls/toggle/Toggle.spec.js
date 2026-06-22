@@ -17,7 +17,7 @@ describe("lib/controls/toggle/Toggle.vue", () => {
 
         scopedIt("applies outline variant classes", () => {
             const wrapper = mount(Toggle, { props: { variant: "outline" } });
-            expect(wrapper.classes()).toContain("border-input");
+            expect(wrapper.classes()).toContain("border-foreground");
         });
 
         scopedIt("applies sm size classes", () => {

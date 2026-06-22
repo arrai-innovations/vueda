@@ -79,7 +79,7 @@ Seven additional keys cover the inner elements:
 {@api theme-key:TableHeader} (`[&_tr]:border-b`),
 {@api theme-key:TableBody} (`[&_tr:last-child]:border-0`),
 {@api theme-key:TableFooter} (`bg-muted/50 border-t font-medium`),
-{@api theme-key:TableRow} (`hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors`),
+{@api theme-key:TableRow} (`hover:bg-accent/50 data-[state=selected]:bg-primary/[0.06] border-b transition-colors`),
 {@api theme-key:TableHead} (`h-10 px-2 text-left align-middle font-medium whitespace-nowrap`),
 {@api theme-key:TableCell} (`p-2 align-middle whitespace-nowrap`),
 {@api theme-key:TableCaption} (`text-muted-foreground mt-4 text-sm`).

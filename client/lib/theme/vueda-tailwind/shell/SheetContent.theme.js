@@ -4,12 +4,6 @@
  * Per-component theme registration for SheetContent. Imported as a side effect by
  * SheetContent.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire shell family.
- *
- * Prototype-phase duplication: this entry mirrors the SheetContent slice of
- * shell/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -30,7 +24,15 @@ patchTheme({
             };
             return {
                 class: [
-                    "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-vueda-overlay transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+                    // Surface and state motion.
+                    "bg-background text-foreground data-[state=open]:animate-in data-[state=closed]:animate-out",
+
+                    // Positioning and layout.
+                    "fixed z-50 flex flex-col gap-4",
+
+                    // Elevation and duration.
+                    "shadow-vueda-overlay transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+
                     sideClasses[side] || sideClasses.right,
                 ],
             };
@@ -39,7 +41,16 @@ patchTheme({
          * The close control inside a sheet. It stays visually quiet until hover or focus and uses the same keyboard focus outline as dialog close controls.
          */
         close: {
-            class: "data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none text-sm leading-none",
+            class: [
+                // Open state and positioning.
+                "data-[state=open]:bg-secondary absolute top-4 right-4",
+
+                // Shape, motion, and states.
+                "rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:focus-ring disabled:pointer-events-none",
+
+                // Type.
+                "text-sm leading-none",
+            ],
         },
     },
 });

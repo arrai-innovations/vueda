@@ -4,59 +4,25 @@
  * Per-component theme registration for MobileSortComponent. Imported as a side effect by
  * MobileSortComponent.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire display family.
- *
- * Prototype-phase duplication: this entry mirrors the MobileSortComponent slice of
- * display/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * MobileSortComponent lays out mobile sorting controls inside a drawer workflow. It covers drag handles, order text, select controls, and action bars for reorderable sort fields.
+     * MobileSortComponent is the full-screen dialog shell around SortEditor. It owns only the dialog chrome; the reorderable field list and action bar are themed by SortEditor.
      */
     MobileSortComponent: {
-        /** Drawer height override for the mobile sorting workflow. */
-        drawer: {
-            class: ["!h-auto"],
+        /** Full-screen dialog surface with a fixed header row and a bounded body row. */
+        dialog: {
+            class: ["grid-rows-[auto_minmax(0,1fr)] overflow-hidden"],
         },
-        /** Inner drawer stack for draggable fields and actions. */
-        drawerInner: {
-            class: ["flex flex-col gap-4"],
+        /** Visible dialog header; right padding leaves room for the built-in close control. */
+        dialogHeader: {
+            class: ["border-b px-4 py-4 pr-12"],
         },
-        /** Vertical list wrapper for reorderable sort fields. */
-        draggable: {
-            class: ["flex flex-col gap-2"],
-        },
-        /** Bordered sort-field row containing the handle, order text, and select. */
-        draggableItem: {
-            class: ["flex flex-row rounded-lg border border-border p-3"],
-        },
-        /** Flexible row content inside each draggable item. */
-        draggableItemInner: {
-            class: ["select-none flex flex-row gap-3 items-center justify-between grow flex-1"],
-        },
-        /** Pointer target for dragging a sort field. */
-        dragHandle: {
-            class: ["drag-handle cursor-grab active:cursor-grabbing p-1"],
-        },
-        /** Small fixed-width sort-order label for the current field position. */
-        sortOrderText: {
-            class: ["w-3 text-sm font-semibold text-muted-foreground"],
-        },
-        /** Full-width select control used to choose the sorted field. */
-        select: {
-            class: ["w-full"],
-        },
-        /** Inline action alignment for per-sort-field controls. */
-        sortInlineActionBar: {
-            class: ["flex flex-row content-baseline justify-end"],
-        },
-        /** Mobile drawer action stack for apply, clear, or cancel commands. */
-        actionBar: {
-            class: ["flex flex-col gap-2"],
+        /** Padded scrolling region below the fixed dialog header. */
+        dialogBody: {
+            class: ["min-h-0 overflow-y-auto overscroll-contain p-4"],
         },
     },
 });

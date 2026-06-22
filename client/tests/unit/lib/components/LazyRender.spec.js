@@ -9,33 +9,35 @@ const useIntersectionObserver = vi.fn((target, cb) => {
 
 vi.mock("@vueuse/core", () => ({ useIntersectionObserver }));
 
-let LazyRender;
+describe("lib/components/LazyRender.vue", () => {
+    let LazyRender;
 
-beforeEach(async () => {
-    LazyRender = (await import("@vueda/components/LazyRender.vue")).default;
-    useIntersectionObserver.mockClear();
-    intersectionCb = undefined;
-});
-
-scopedIt("renders placeholder until intersecting", async () => {
-    const wrapper = mount(LazyRender, {
-        slots: {
-            default: "<div data-qa='default'>default</div>",
-            placeholder: "<div data-qa='placeholder'>placeholder</div>",
-        },
+    beforeEach(async () => {
+        LazyRender = (await import("@vueda/components/LazyRender.vue")).default;
+        useIntersectionObserver.mockClear();
+        intersectionCb = undefined;
     });
 
-    expect(wrapper.find('[data-qa="placeholder"]').exists()).toBe(true);
-    expect(wrapper.find('[data-qa="default"]').exists()).toBe(false);
+    scopedIt("renders placeholder until intersecting", async () => {
+        const wrapper = mount(LazyRender, {
+            slots: {
+                default: "<div data-qa='default'>default</div>",
+                placeholder: "<div data-qa='placeholder'>placeholder</div>",
+            },
+        });
 
-    expect(useIntersectionObserver).toHaveBeenCalledWith(expect.any(Object), expect.any(Function), { once: true });
-    const target = useIntersectionObserver.mock.calls[0][0];
-    expect(target.value).toBe(wrapper.find('div[style*="visibility: hidden"]').element);
+        expect(wrapper.find('[data-qa="placeholder"]').exists()).toBe(true);
+        expect(wrapper.find('[data-qa="default"]').exists()).toBe(false);
 
-    intersectionCb([{ isIntersecting: true }]);
-    await wrapper.vm.$nextTick();
+        expect(useIntersectionObserver).toHaveBeenCalledWith(expect.any(Object), expect.any(Function), { once: true });
+        const target = useIntersectionObserver.mock.calls[0][0];
+        expect(target.value).toBe(wrapper.find('div[style*="visibility: hidden"]').element);
 
-    expect(wrapper.find('[data-qa="default"]').exists()).toBe(true);
-    expect(wrapper.find('[data-qa="placeholder"]').exists()).toBe(false);
-    expect(wrapper.find('div[style*="visibility: hidden"]').exists()).toBe(false);
+        intersectionCb([{ isIntersecting: true }]);
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.find('[data-qa="default"]').exists()).toBe(true);
+        expect(wrapper.find('[data-qa="placeholder"]').exists()).toBe(false);
+        expect(wrapper.find('div[style*="visibility: hidden"]').exists()).toBe(false);
+    });
 });

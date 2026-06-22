@@ -58,19 +58,13 @@ const LinkModelViewStub = defineComponent({
 });
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 
-const PageTitleStub = defineComponent({
-    name: "PageTitleStub",
-    props: ["loading", "title"],
-    setup(props, { slots }) {
-        return () =>
-            h(
-                "div",
-                { "data-qa": "page-title", "data-loading": String(props.loading), "data-title": props.title },
-                Object.keys(slots).map((n) => h("div", { "data-slot": n }, slots[n] ? slots[n]() : null)),
-            );
+const PageActionsStub = defineComponent({
+    name: "PageActionsStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
     },
 });
-vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
+vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 
 const fetchWorkflowTransition = vi.fn();
 const fetchObjectTransitions = vi.fn();

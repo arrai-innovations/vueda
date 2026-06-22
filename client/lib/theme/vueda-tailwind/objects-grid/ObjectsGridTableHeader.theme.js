@@ -5,12 +5,6 @@
  * side effect by ObjectsGridTableHeader.vue, so a route chunk that pulls only
  * that SFC drags only this component's theme entry, not the entire objects-grid
  * family.
- *
- * Prototype-phase duplication: this entry mirrors the ObjectsGridTableHeader
- * slice of objects-grid/index.js, which remains the docs-tooling source of
- * truth until the extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -24,6 +18,7 @@ patchTheme({
         /** The interactive header content wrapper. It lays out the label, sort icon, and numeric-column reversal used when the parent header cell carries `data-numeric`. */
         root: {
             class: ({ props: { sortable } }) => [
+                // Layout and numeric alignment.
                 "flex",
                 "items-end",
                 "justify-between",
@@ -31,7 +26,8 @@ patchTheme({
                 "[[data-numeric]_&]:flex-row-reverse",
                 {
                     "cursor-pointer": sortable,
-                    "hover:bg-accent hover:text-accent-foreground": sortable,
+                    "hover:bg-accent hover:text-accent-foreground active:bg-accent-active active:text-accent-foreground":
+                        sortable,
                     "hover:rounded": sortable,
                 },
             ],

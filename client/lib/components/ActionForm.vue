@@ -1,5 +1,6 @@
 <script setup>
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
+import FormConfirmDialog from "@vueda/components/FormConfirmDialog.vue";
 import FormMessage from "@vueda/components/FormMessage.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
@@ -16,7 +17,9 @@ import { computed, inject } from "vue";
  *
  * Renders a pinned actions strip (confirm + cancel + optional hint) and, when
  * the form has unresolved per-field errors, a structured validation alert
- * sourced from `formContext.state.errors`.
+ * sourced from `formContext.state.errors`. Also mounts a `FormConfirmDialog`
+ * bound to the action's confirmation controller, so actions the server gates
+ * behind warning acknowledgement (HTTP 409) can be confirmed and retried.
  */
 defineOptions({
     inheritAttrs: false,
@@ -78,6 +81,11 @@ const props = defineProps({
         type: Function,
         default: undefined,
     },
+    /** Custom handler called when the server requires confirmation of warnings (HTTP 409) in place of the default render-warnings-and-prompt behaviour. */
+    onSubmissionWarningsRequireConfirmation: {
+        type: Function,
+        default: undefined,
+    },
     /** When set to `true`, triggers a dry-run validation pass without submitting the form. */
     readyToDryRun: {
         type: Boolean,
@@ -91,10 +99,8 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 const formContext = inject(FormContextSymbol);
-const { combinedError, combinedErrored, combinedLoading, handleConfirm, handleCancelClick } = useActionForm(
-    formContext,
-    props,
-);
+const { combinedError, combinedErrored, combinedLoading, confirmation, handleConfirm, handleCancelClick } =
+    useActionForm(formContext, props);
 const theme = useTheme("ActionForm", props);
 const icon = useIcons("ActionForm");
 
@@ -207,7 +213,6 @@ const validationTitle = computed(() => {
                             label="Yes, continue"
                             :loading="combinedLoading"
                             name="confirm-button"
-                            verb="confirm"
                             type="submit"
                             :disabled="formContext.state.anyError"
                         >
@@ -221,7 +226,6 @@ const validationTitle = computed(() => {
                             label="Cancel, go back"
                             :loading="combinedLoading"
                             name="cancel-button"
-                            verb="cancel"
                             @click="handleCancelClick"
                         >
                             <Button variant="ghost" :disabled="combinedLoading" @click="handleCancelClick">
@@ -246,5 +250,7 @@ const validationTitle = computed(() => {
                 </slot>
             </form>
         </div>
+        <!-- Resolves submit-time warning confirmations (HTTP 409); without it warned actions would be cancelled. -->
+        <form-confirm-dialog :controller="confirmation" />
     </div>
 </template>

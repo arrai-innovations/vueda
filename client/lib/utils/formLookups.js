@@ -50,6 +50,7 @@ export const availableWidgets = {
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetGenericAutoComplete.vue")).default),
     ),
     WidgetHtml: markRaw(defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetHtml.vue")).default)),
+    WidgetJson: markRaw(defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetJson.vue")).default)),
     WidgetPreviewableTemplate: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetPreviewableTemplate.vue")).default),
     ),

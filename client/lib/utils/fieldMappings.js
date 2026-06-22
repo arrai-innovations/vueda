@@ -158,7 +158,7 @@ export const defaultFieldMappings = {
     },
     JSONField: {
         JSONField: {
-            widget: availableWidgets.WidgetUnmapped,
+            widget: availableWidgets.WidgetJson,
             default: true,
         },
     },
@@ -527,7 +527,7 @@ export const manyFieldMappings = {
     },
     JSONField: {
         JSONField: {
-            widget: availableWidgets.WidgetUnmapped,
+            widget: availableWidgets.WidgetJson,
             fieldProps: { manyComponent: availableFields.FormField },
             default: true,
         },

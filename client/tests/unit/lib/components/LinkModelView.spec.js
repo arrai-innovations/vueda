@@ -23,6 +23,7 @@ const ButtonStub = defineComponent({
                     "data-disabled": String(props.disabled),
                     "data-href": props.href,
                     "data-label": typeof label === "string" ? label.trim() : undefined,
+                    class: props.class,
                     onClick: () => emit("click"),
                 },
                 Object.keys(slots).map((name) => h("div", { "data-slot": name }, slots[name] ? slots[name]() : null)),
@@ -32,79 +33,88 @@ const ButtonStub = defineComponent({
 });
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 
-let LinkModelView;
+describe("lib/components/LinkModelView.vue", () => {
+    let LinkModelView;
 
-beforeEach(async () => {
-    mockedUseLinkModelView.mockReturnValue({
-        href: ref("/path"),
-        navigate: vi.fn(),
-        actionDisabled: ref(false),
+    beforeEach(async () => {
+        mockedUseLinkModelView.mockReturnValue({
+            href: ref("/path"),
+            navigate: vi.fn(),
+            actionDisabled: ref(false),
+        });
+        LinkModelView = (await import("@vueda/components/LinkModelView.vue")).default;
     });
-    LinkModelView = (await import("@vueda/components/LinkModelView.vue")).default;
-});
 
-afterEach(() => {
-    vi.clearAllMocks();
-});
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
 
-scopedIt("renders as link by default and forwards props", () => {
-    const wrapper = mount(LinkModelView, {
-        props: {
-            app: "a",
-            model: "m",
-            pk: "1",
-            view: "detail",
-            label: "go",
-            buttonClass: { root: "cls" },
-        },
-        slots: { default: "<span>slot</span>" },
+    scopedIt("renders as link by default and forwards props", () => {
+        const wrapper = mount(LinkModelView, {
+            props: {
+                app: "a",
+                model: "m",
+                pk: "1",
+                view: "detail",
+                label: "go",
+            },
+            slots: { default: "<span>slot</span>" },
+        });
+        expect(mockedUseLinkModelView).toHaveBeenCalledWith(
+            expect.objectContaining({ app: "a", model: "m", pk: "1", view: "detail" }),
+        );
+        const btn = wrapper.get('[data-qa="prime-button"]');
+        expect(btn.attributes("data-href")).toBe("/path");
+        expect(btn.attributes("data-disabled")).toBe("false");
+        expect(btn.attributes("data-label")).toBe("go");
+        expect(btn.find('[data-slot="default"]').exists()).toBe(true);
     });
-    expect(mockedUseLinkModelView).toHaveBeenCalledWith(
-        expect.objectContaining({ app: "a", model: "m", pk: "1", view: "detail" }),
-    );
-    const btn = wrapper.get('[data-qa="prime-button"]');
-    expect(btn.attributes("data-href")).toBe("/path");
-    expect(btn.attributes("data-disabled")).toBe("false");
-    expect(btn.attributes("data-label")).toBe("go");
-    expect(btn.find('[data-slot="default"]').exists()).toBe(true);
-});
 
-scopedIt("calls navigate when clicked", async () => {
-    const navigate = vi.fn();
-    mockedUseLinkModelView.mockReturnValueOnce({
-        href: ref("/path"),
-        navigate,
-        actionDisabled: ref(false),
+    scopedIt("falls through class to the underlying button", () => {
+        const wrapper = mount(LinkModelView, {
+            props: { app: "a", model: "m", pk: "1", view: "detail" },
+            attrs: { class: "cls" },
+        });
+        expect(wrapper.get('[data-qa="prime-button"]').classes()).toContain("cls");
     });
-    const wrapper = mount(LinkModelView, {
-        props: { app: "a", model: "m", pk: "1", view: "detail" },
-    });
-    await wrapper.get('[data-qa="prime-button"]').trigger("click");
-    expect(navigate).toHaveBeenCalled();
-});
 
-scopedIt("behaves as button when button prop true", () => {
-    mockedUseLinkModelView.mockReturnValueOnce({
-        href: ref("/path"),
-        navigate: vi.fn(),
-        actionDisabled: ref(false),
+    scopedIt("calls navigate when clicked", async () => {
+        const navigate = vi.fn();
+        mockedUseLinkModelView.mockReturnValueOnce({
+            href: ref("/path"),
+            navigate,
+            actionDisabled: ref(false),
+        });
+        const wrapper = mount(LinkModelView, {
+            props: { app: "a", model: "m", pk: "1", view: "detail" },
+        });
+        await wrapper.get('[data-qa="prime-button"]').trigger("click");
+        expect(navigate).toHaveBeenCalled();
     });
-    const wrapper = mount(LinkModelView, {
-        props: { app: "a", model: "m", view: "v", button: true, buttonClass: ["c"] },
-    });
-    const btn = wrapper.get('[data-qa="prime-button"]');
-    expect(btn.attributes("data-href")).toBeUndefined();
-    expect(btn.attributes("data-disabled")).toBe("false");
-});
 
-scopedIt("sets disabled when actionDisabled is true", () => {
-    mockedUseLinkModelView.mockReturnValueOnce({
-        href: ref("/path"),
-        navigate: vi.fn(),
-        actionDisabled: ref(true),
+    scopedIt("behaves as button when button prop true", () => {
+        mockedUseLinkModelView.mockReturnValueOnce({
+            href: ref("/path"),
+            navigate: vi.fn(),
+            actionDisabled: ref(false),
+        });
+        const wrapper = mount(LinkModelView, {
+            props: { app: "a", model: "m", view: "v", button: true },
+        });
+        const btn = wrapper.get('[data-qa="prime-button"]');
+        expect(btn.attributes("data-href")).toBeUndefined();
+        expect(btn.attributes("data-disabled")).toBe("false");
     });
-    const wrapper = mount(LinkModelView, {
-        props: { app: "a", model: "m", view: "v" },
+
+    scopedIt("sets disabled when actionDisabled is true", () => {
+        mockedUseLinkModelView.mockReturnValueOnce({
+            href: ref("/path"),
+            navigate: vi.fn(),
+            actionDisabled: ref(true),
+        });
+        const wrapper = mount(LinkModelView, {
+            props: { app: "a", model: "m", view: "v" },
+        });
+        expect(wrapper.get('[data-qa="prime-button"]').attributes("data-disabled")).toBe("true");
     });
-    expect(wrapper.get('[data-qa="prime-button"]').attributes("data-disabled")).toBe("true");
 });

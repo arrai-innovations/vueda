@@ -31,6 +31,172 @@ const httpsConfig = useHttps
 const hmrProtocol = process.env.HMR_PROTOCOL || (useHttps ? "wss" : "ws");
 const hmrHost = process.env.HMR_HOST || undefined;
 const hmrPort = Number(process.env.HMR_PORT || 5173);
+const docsTimingEnabled = /^(1|true|yes|on)$/i.test(process.env.VUEDA_DOCS_TIMING || "");
+const docsTimingReportPath = process.env.VUEDA_DOCS_TIMING_FILE
+    ? path.resolve(process.cwd(), process.env.VUEDA_DOCS_TIMING_FILE)
+    : path.join(docsRoot, ".vitepress", "cache", "build-timing.json");
+const docsBuildConcurrency = Number(process.env.VUEDA_DOCS_BUILD_CONCURRENCY || "");
+const docsTiming = docsTimingEnabled
+    ? {
+          startedAt: new Date().toISOString(),
+          startedAtMs: performance.now(),
+          phases: [],
+          metrics: {},
+          markdown: {
+              pages: [],
+              bySection: new Map(),
+          },
+          html: {
+              pages: [],
+              bySection: new Map(),
+          },
+          vite: {
+              bundles: [],
+          },
+      }
+    : null;
+
+const formatTimingMs = (value) => Number(value.toFixed(2));
+
+const timeSync = (name, callback) => {
+    if (!docsTiming) {
+        return callback();
+    }
+    const startedAtMs = performance.now();
+    try {
+        return callback();
+    } finally {
+        docsTiming.phases.push({
+            name,
+            ms: formatTimingMs(performance.now() - startedAtMs),
+        });
+    }
+};
+
+const setTimingMetric = (name, value) => {
+    if (docsTiming) {
+        docsTiming.metrics[name] = value;
+    }
+};
+
+const posixPath = (value) => value.split(path.sep).join("/");
+
+const relativeTimingPath = (value) => {
+    if (!value) {
+        return "unknown";
+    }
+    const normalized = posixPath(String(value));
+    const normalizedDocsRoot = posixPath(docsRoot);
+    if (normalized.startsWith(`${normalizedDocsRoot}/`)) {
+        return normalized.slice(normalizedDocsRoot.length + 1);
+    }
+    return normalized.replace(/^\//, "");
+};
+
+const timingSectionForPath = (value) => {
+    const rel = relativeTimingPath(value).replace(/\.html$/, ".md");
+    if (rel.startsWith("reference/api/js/")) return "reference/api/js";
+    if (rel.startsWith("reference/api/vue/")) return "reference/api/vue";
+    if (rel.startsWith("reference/api/py/")) return "reference/api/py";
+    if (rel.startsWith("reference/api/rest/")) return "reference/api/rest";
+    if (rel.startsWith("reference/theming/")) return "reference/theming";
+    if (rel.startsWith("reference/")) return "reference/authored";
+    if (rel.startsWith("guides/")) return "guides";
+    if (rel.startsWith("tutorials/")) return "tutorials";
+    if (rel.startsWith("core-concepts/")) return "core-concepts";
+    return "other";
+};
+
+const addTimingAggregate = (map, section, elapsedMs, bytes = 0) => {
+    const current = map.get(section) || {
+        count: 0,
+        totalMs: 0,
+        maxMs: 0,
+        totalBytes: 0,
+    };
+    current.count += 1;
+    current.totalMs += elapsedMs;
+    current.maxMs = Math.max(current.maxMs, elapsedMs);
+    current.totalBytes += bytes;
+    map.set(section, current);
+};
+
+const summarizeTimingMap = (map) =>
+    Object.fromEntries(
+        [...map.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([section, item]) => [
+                section,
+                {
+                    count: item.count,
+                    totalMs: formatTimingMs(item.totalMs),
+                    avgMs: formatTimingMs(item.totalMs / Math.max(item.count, 1)),
+                    maxMs: formatTimingMs(item.maxMs),
+                    totalBytes: item.totalBytes,
+                },
+            ]),
+    );
+
+const topTimingPages = (pages, key, limit = 20) =>
+    [...pages]
+        .sort((a, b) => b[key] - a[key])
+        .slice(0, limit)
+        .map((page) => ({
+            ...page,
+            [key]: formatTimingMs(page[key]),
+        }));
+
+const buildTimingReport = () => {
+    if (!docsTiming) {
+        return null;
+    }
+    const wallMs = performance.now() - docsTiming.startedAtMs;
+    return {
+        startedAt: docsTiming.startedAt,
+        finishedAt: new Date().toISOString(),
+        wallMs: formatTimingMs(wallMs),
+        metrics: docsTiming.metrics,
+        phases: docsTiming.phases,
+        markdown: {
+            bySection: summarizeTimingMap(docsTiming.markdown.bySection),
+            slowestPages: topTimingPages(docsTiming.markdown.pages, "renderMs"),
+        },
+        html: {
+            bySection: summarizeTimingMap(docsTiming.html.bySection),
+            largestPages: topTimingPages(docsTiming.html.pages, "bytes"),
+        },
+        vite: docsTiming.vite,
+    };
+};
+
+const writeTimingReport = (siteConfig) => {
+    const report = buildTimingReport();
+    if (!report) {
+        return;
+    }
+
+    fs.mkdirSync(path.dirname(docsTimingReportPath), { recursive: true });
+    fs.writeFileSync(docsTimingReportPath, JSON.stringify(report, null, 2));
+
+    const logger = siteConfig?.logger || console;
+    logger.info(`[docs timing] wall: ${(report.wallMs / 1000).toFixed(2)}s`);
+    logger.info(
+        `[docs timing] config phases: ${report.phases
+            .map((phase) => `${phase.name} ${phase.ms.toFixed(2)}ms`)
+            .join(", ")}`,
+    );
+    logger.info("[docs timing] markdown by section:");
+    for (const [section, item] of Object.entries(report.markdown.bySection)) {
+        logger.info(
+            `  ${section}: ${item.count} page(s), total ${item.totalMs.toFixed(2)}ms, avg ${item.avgMs.toFixed(2)}ms`,
+        );
+    }
+    logger.info("[docs timing] html by section:");
+    for (const [section, item] of Object.entries(report.html.bySection)) {
+        logger.info(`  ${section}: ${item.count} page(s), ${item.totalBytes} bytes`);
+    }
+    logger.info(`[docs timing] report: ${docsTimingReportPath}`);
+};
 
 const walkFiles = (dir) => {
     if (!fs.existsSync(dir)) {
@@ -62,6 +228,7 @@ const slugifyHeading = (value) =>
 const buildGlossaryIndex = () => {
     const index = new Map();
     if (!fs.existsSync(glossaryFile)) {
+        setTimingMetric("glossary.terms", 0);
         return index;
     }
 
@@ -93,6 +260,7 @@ const buildGlossaryIndex = () => {
         });
     }
 
+    setTimingMetric("glossary.terms", index.size);
     return index;
 };
 
@@ -113,17 +281,30 @@ const pathForFile = (filePath, root, urlPrefix) => {
 };
 
 const memberNameFromId = (memberId) => {
+    const restResponseMatch = memberId.match(/^rest:endpoint:.*:response:([^:]+)$/);
+    if (restResponseMatch) {
+        return restResponseMatch[1];
+    }
+    if (memberId.startsWith("theme-key:") && !memberId.includes(".")) {
+        return "";
+    }
     const qualName = memberId.replace(/^[^:]+:[^:]+:/, "");
-    return qualName.includes(".") ? qualName.split(".").pop() : qualName;
+    const hashName = qualName.includes("#") ? qualName.split("#").pop() : qualName;
+    if (hashName.includes(".")) {
+        return hashName.split(".").pop();
+    }
+    return hashName;
 };
 
 const buildApiIndex = () => {
     const index = new Map();
+    let fileCount = 0;
     for (const { root, urlPrefix } of referenceRoots) {
         if (!fs.existsSync(root)) {
             continue;
         }
         const files = walkFiles(root).filter((file) => file.endsWith(".md"));
+        fileCount += files.length;
         for (const filePath of files) {
             const raw = fs.readFileSync(filePath, "utf-8");
             const { frontmatter, body } = parseFrontmatter(raw);
@@ -156,11 +337,13 @@ const buildApiIndex = () => {
             }
         }
     }
+    setTimingMetric("apiIndex.files", fileCount);
+    setTimingMetric("apiIndex.ids", index.size);
     return index;
 };
 
-const apiIndex = buildApiIndex();
-const glossaryIndex = buildGlossaryIndex();
+const apiIndex = timeSync("config:api-index", buildApiIndex);
+const glossaryIndex = timeSync("config:glossary-index", buildGlossaryIndex);
 
 const apiLinkPlugin = (md, options = {}) => {
     const resolve = options.resolve;
@@ -268,6 +451,32 @@ const glossaryTermPlugin = (md, options = {}) => {
     });
 };
 
+const instrumentMarkdownTiming = (md) => {
+    if (!docsTiming) {
+        return;
+    }
+
+    const originalRender = md.render.bind(md);
+    md.render = (src, env = {}) => {
+        const startedAtMs = performance.now();
+        try {
+            return originalRender(src, env);
+        } finally {
+            const renderMs = performance.now() - startedAtMs;
+            const rel = relativeTimingPath(env.relativePath || env.path || env.filePath || "unknown");
+            const section = timingSectionForPath(rel);
+            const bytes = Buffer.byteLength(src || "", "utf-8");
+            docsTiming.markdown.pages.push({
+                path: rel,
+                section,
+                renderMs,
+                bytes,
+            });
+            addTimingAggregate(docsTiming.markdown.bySection, section, renderMs, bytes);
+        }
+    };
+};
+
 const generatedAssetsPlugin = () => ({
     name: "vueda-generated-assets",
     configureServer(server) {
@@ -285,18 +494,88 @@ const generatedAssetsPlugin = () => ({
         if (!fs.existsSync(generatedRoot)) {
             return;
         }
+        const startedAtMs = performance.now();
+        let count = 0;
+        let bytes = 0;
         for (const filePath of walkFiles(generatedRoot)) {
+            const source = fs.readFileSync(filePath);
             const relPath = path.relative(generatedRoot, filePath).split(path.sep).join("/");
+            count += 1;
+            bytes += source.byteLength;
             this.emitFile({
                 type: "asset",
                 fileName: relPath,
-                source: fs.readFileSync(filePath),
+                source,
+            });
+        }
+        if (docsTiming) {
+            docsTiming.phases.push({
+                name: "vite:generated-assets",
+                ms: formatTimingMs(performance.now() - startedAtMs),
+                count,
+                bytes,
             });
         }
     },
 });
 
-const posixPath = (value) => value.split(path.sep).join("/");
+const docsTimingPlugin = () => {
+    if (!docsTiming) {
+        return null;
+    }
+
+    let buildNumber = 0;
+    let buildStartedAtMs = 0;
+
+    return {
+        name: "vueda-docs-timing",
+        apply: "build",
+        buildStart() {
+            buildNumber += 1;
+            buildStartedAtMs = performance.now();
+        },
+        generateBundle(_options, bundle) {
+            const outputs = Object.values(bundle);
+            docsTiming.vite.bundles.push({
+                build: buildNumber,
+                phase: "generateBundle",
+                outputCount: outputs.length,
+                bytes: outputs.reduce((total, output) => {
+                    if (output.type === "asset") {
+                        if (typeof output.source === "string") {
+                            return total + Buffer.byteLength(output.source, "utf-8");
+                        }
+                        return total + output.source.byteLength;
+                    }
+                    return total + Buffer.byteLength(output.code || "", "utf-8");
+                }, 0),
+                elapsedMs: formatTimingMs(performance.now() - buildStartedAtMs),
+            });
+        },
+        closeBundle() {
+            docsTiming.vite.bundles.push({
+                build: buildNumber,
+                phase: "closeBundle",
+                elapsedMs: formatTimingMs(performance.now() - buildStartedAtMs),
+            });
+        },
+    };
+};
+
+const recordHtmlTiming = (code, id, ctx) => {
+    if (!docsTiming) {
+        return;
+    }
+    const rel = relativeTimingPath(ctx?.page || id);
+    const section = timingSectionForPath(rel);
+    const bytes = Buffer.byteLength(code || "", "utf-8");
+    docsTiming.html.pages.push({
+        path: rel,
+        section,
+        bytes,
+    });
+    addTimingAggregate(docsTiming.html.bySection, section, 0, bytes);
+};
 
 const toDocRoute = (filePath) => {
     const rel = posixPath(path.relative(docsRoot, filePath));
@@ -452,93 +731,41 @@ const buildSectionSidebar = (sectionDir, sectionTitle) => {
     ];
 };
 
-const buildApiSubItems = (dirPath) => {
-    if (!fs.existsSync(dirPath)) {
-        return [];
-    }
-    return fs
-        .readdirSync(dirPath, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && entry.name.endsWith(".md") && entry.name !== "index.md")
-        .map((entry) => {
-            const filePath = path.join(dirPath, entry.name);
-            const { title, sidebarOrder } = readDocMeta(filePath);
-            return { text: title, link: toDocRoute(filePath), sidebarOrder };
-        })
-        .sort(sortDocs)
-        .map(({ text, link }) => ({ text, link }));
-};
-
 const buildApiSidebar = () => {
     if (!fs.existsSync(apiRoot)) {
         return [];
     }
+    setTimingMetric("apiSidebar.mode", "compact");
 
     const languageDirs = fs
         .readdirSync(apiRoot, { withFileTypes: true })
         .filter((entry) => entry.isDirectory())
         .map((entry) => entry.name)
         .sort((a, b) => a.localeCompare(b));
+    setTimingMetric("apiSidebar.languages", languageDirs.length);
 
-    const languageGroups = languageDirs.map((languageDir) => {
-        const languageRoot = path.join(apiRoot, languageDir);
-        const languageIndexPath = path.join(languageRoot, "index.md");
-        const languageTitle = fs.existsSync(languageIndexPath) ? readDocMeta(languageIndexPath).title : languageDir;
-
-        const subdirectoryItems = fs
-            .readdirSync(languageRoot, { withFileTypes: true })
-            .filter((entry) => entry.isDirectory())
-            .filter((entry) => !fs.existsSync(path.join(languageRoot, `${entry.name}.md`)))
-            .map((entry) => entry.name)
-            .sort((a, b) => a.localeCompare(b))
-            .map((subDirName) => {
-                const subDirPath = path.join(languageRoot, subDirName);
-                const subDirIndexPath = path.join(subDirPath, "index.md");
-                const text = fs.existsSync(subDirIndexPath) ? readDocMeta(subDirIndexPath).title : subDirName;
-                const link = normalizeDocRoute(`/reference/api/${languageDir}/${subDirName}/`);
-                const items = buildApiSubItems(subDirPath);
-                return items.length ? { text, link, collapsed: false, items } : { text, link };
-            });
-
-        const fileItems = fs
-            .readdirSync(languageRoot, { withFileTypes: true })
-            .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-            .filter((entry) => entry.name !== "index.md")
-            .map((entry) => {
-                const filePath = path.join(languageRoot, entry.name);
-                const stem = entry.name.slice(0, -".md".length);
-                const { title, sidebarOrder } = readDocMeta(filePath);
-                const link = toDocRoute(filePath);
-                const siblingDir = path.join(languageRoot, stem);
-                if (fs.existsSync(siblingDir) && fs.statSync(siblingDir).isDirectory()) {
-                    const items = buildApiSubItems(siblingDir);
-                    if (items.length) {
-                        return { text: title, link, collapsed: false, items, sidebarOrder };
-                    }
-                }
-                return { text: title, link, sidebarOrder };
-            })
-            .sort(sortDocs)
-            .map(({ text, link, collapsed, items }) =>
-                items !== undefined ? { text, link, collapsed, items } : { text, link },
-            );
-
-        const overviewLink = normalizeDocRoute(`/reference/api/${languageDir}/`);
-        return {
-            text: languageTitle,
-            collapsed: true,
-            items: [{ text: "Overview", link: overviewLink }, ...subdirectoryItems, ...fileItems],
-        };
-    });
     return [
         {
             text: "Reference",
             items: [{ text: "Overview", link: "/reference/" }],
         },
-        ...languageGroups,
+        {
+            text: "API",
+            collapsed: false,
+            items: languageDirs.map((languageDir) => {
+                const languageRoot = path.join(apiRoot, languageDir);
+                const languageIndexPath = path.join(languageRoot, "index.md");
+                const text = fs.existsSync(languageIndexPath) ? readDocMeta(languageIndexPath).title : languageDir;
+                return {
+                    text,
+                    link: normalizeDocRoute(`/reference/api/${languageDir}/`),
+                };
+            }),
+        },
     ];
 };
 
-const docsSidebar = {
+const docsSidebar = timeSync("config:sidebar", () => ({
     "/tutorials/": buildSectionSidebar("tutorials", "Tutorials"),
     "/guides/": buildSectionSidebar("guides", "Guides"),
     "/core-concepts/": buildSectionSidebar("core-concepts", "Core Concepts"),
@@ -546,7 +773,7 @@ const docsSidebar = {
     "/reference/changelog/": buildSectionSidebar("reference/changelog", "Changelog"),
     "/reference/": buildSectionSidebar("reference", "Reference"),
     "/reference/api/": buildApiSidebar(),
-};
+}));
 
 const breadcrumbContentDirs = ["tutorials", "guides", "core-concepts", "reference"];
 const isExcludedFromBreadcrumbs = (rel) => {
@@ -582,7 +809,7 @@ const buildRouteTitleIndex = () => {
     return titles;
 };
 
-const routeTitles = buildRouteTitleIndex();
+const routeTitles = timeSync("config:route-titles", buildRouteTitleIndex);
 
 // Stamp the docs with the client and server versions present at the tagged
 // commit. Read from source so this works in local dev and CI without needing
@@ -620,6 +847,9 @@ export default defineConfig({
     lastUpdated: true,
     base,
     outDir: "../site",
+    metaChunk: true,
+    buildConcurrency:
+        Number.isFinite(docsBuildConcurrency) && docsBuildConcurrency > 0 ? docsBuildConcurrency : undefined,
     srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md", "**/README.md", "temp/**"],
     head: [
         ["link", { rel: "icon", href: `${base}assets/logo-cube-solid.svg` }],
@@ -672,8 +902,15 @@ export default defineConfig({
                 resolve: (term) => glossaryIndex.get(normalizeTerm(stripInlineMarkdown(term))),
                 strict: process.env.NODE_ENV === "production",
             });
+            instrumentMarkdownTiming(md);
         },
     },
+    transformHtml: docsTiming
+        ? (code, id, ctx) => {
+              recordHtmlTiming(code, id, ctx);
+          }
+        : undefined,
+    buildEnd: docsTiming ? writeTimingReport : undefined,
     vite: {
         resolve: {
             alias: {
@@ -700,6 +937,6 @@ export default defineConfig({
             host: true,
             https: httpsConfig,
         },
-        plugins: [tailwindcss(), generatedAssetsPlugin()],
+        plugins: [tailwindcss(), generatedAssetsPlugin(), docsTimingPlugin()].filter(Boolean),
     },
 });

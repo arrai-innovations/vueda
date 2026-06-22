@@ -55,11 +55,36 @@ describe("renderOpenApiBundle", () => {
         expect(outputs.has("rest/schemas/Widget.md")).toBe(true);
     });
 
+    it("does not generate standalone response pages", () => {
+        const outputs = buildOutputs();
+        expect(outputs.has("rest/widgets/widgets_retrieve/responses/200.md")).toBe(false);
+    });
+
     it("endpoint page includes the operation description", () => {
         const outputs = buildOutputs();
         const page = outputs.get("rest/widgets/widgets_retrieve.md");
         expect(page).toBeDefined();
         expect(page).toContain("Fetch a widget.");
+    });
+
+    it("deprecated endpoint page renders the stock deprecation warning callout", () => {
+        const bundle = new OpenApiNormalizer().normalize({
+            openapi: "3.0.3",
+            info: { title: "Test API", version: "0.1.0" },
+            paths: {
+                "/widgets/{id}": {
+                    get: {
+                        operationId: "widgets_retrieve",
+                        deprecated: true,
+                        responses: { 200: { description: "OK" } },
+                    },
+                },
+            },
+        });
+        const outputs = renderOpenApiBundle(bundle);
+        const page = outputs.get("rest/widgets/widgets_retrieve.md");
+        expect(page).toContain("::: warning Deprecated");
+        expect(page).toContain("this endpoint will be removed in the next major release.");
     });
 
     it("endpoint page includes the HTTP method in the signature block", () => {
@@ -72,6 +97,14 @@ describe("renderOpenApiBundle", () => {
         const outputs = buildOutputs();
         const page = outputs.get("rest/widgets/widgets_retrieve.md");
         expect(page).toContain("/widgets/{id}");
+    });
+
+    it("endpoint page exposes response ids as inlined members", () => {
+        const outputs = buildOutputs();
+        const page = outputs.get("rest/widgets/widgets_retrieve.md");
+        expect(page).toContain("member_ids");
+        expect(page).toContain("rest:endpoint:GET:/widgets/{id}:response:200");
+        expect(page).toContain("### `200 OK` {#200}");
     });
 
     it("schema page includes a properties table", () => {

@@ -1,11 +1,13 @@
 import Layout from "./Layout.vue";
 import "./brand.css";
 import DemoCard from "./components/DemoCard.vue";
+import DemoFormModel from "./components/DemoFormModel.vue";
 import ForceState from "./components/ForceState.vue";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
 import StateLabel from "./components/StateLabel.vue";
 import VersionFooter from "./components/VersionFooter.vue";
 import VuedaDemo from "./components/VuedaDemo.vue";
+import { seedShowcaseModels } from "./fixtures/showcaseCustomer.js";
 import "./showcase-portals.css";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -36,6 +38,8 @@ import {
     faPlus,
     faPrint,
     faShieldHalved,
+    faSort,
+    faSortDown,
     faTable,
     faTrash,
     faTriangleExclamation,
@@ -46,6 +50,7 @@ import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { setIcons } from "@vueda/use/useIcons.js";
 import { setTheme } from "@vueda/use/useTheme.js";
 import throttle from "lodash-es/throttle.js";
+import { createPinia } from "pinia";
 import { useData } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 import { defineComponent, h, watch } from "vue";
@@ -86,6 +91,8 @@ setIcons({
         plus: { component: FontAwesomeIcon, props: { icon: faPlus } },
         print: { component: FontAwesomeIcon, props: { icon: faPrint } },
         shieldHalved: { component: FontAwesomeIcon, props: { icon: faShieldHalved } },
+        sort: { component: FontAwesomeIcon, props: { icon: faSort } },
+        sortDown: { component: FontAwesomeIcon, props: { icon: faSortDown } },
         table: { component: FontAwesomeIcon, props: { icon: faTable } },
         triangleExclamation: { component: FontAwesomeIcon, props: { icon: faTriangleExclamation } },
         typeCreated: { component: FontAwesomeIcon, props: { icon: faPlus } },
@@ -128,7 +135,14 @@ const theme = {
             DefaultTheme.enhanceApp(ctx);
         }
 
+        // Pinia backs the model-info/config stores the CRUDL demos render against.
+        // Seeding the demo model lets <FormModel> resolve its config offline.
+        const pinia = createPinia();
+        app.use(pinia);
+        seedShowcaseModels(pinia);
+
         app.component("DemoCard", DemoCard);
+        app.component("DemoFormModel", DemoFormModel);
         app.component("GlossaryTerm", GlossaryTerm);
         app.component("ForceState", ForceState);
         app.component("StateLabel", StateLabel);

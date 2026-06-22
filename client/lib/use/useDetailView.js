@@ -57,6 +57,8 @@
  *         v-bind="instance.combinedFormProps"
  *     />
  * </form>
+ * <!-- Required: resolves submit-time warning confirmations (HTTP 409); without it warned saves are cancelled. -->
+ * <form-confirm-dialog :controller="objectForm.confirmation" />
  * ```
  */
 import { assignReactiveObject, loadingCombine, useObject } from "@arrai-innovations/reactive-helpers";

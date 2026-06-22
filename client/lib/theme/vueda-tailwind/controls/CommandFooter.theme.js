@@ -4,12 +4,6 @@
  * Per-component theme registration for CommandFooter. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
- *
- * Prototype-phase duplication: this entry mirrors the CommandFooter slice of
- * controls/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -24,8 +18,12 @@ patchTheme({
         /** The optional chin below {@api theme-key:CommandList.root}. Sits at `--vueda-cmd-footer-height` (32px) on `--muted` with a top hairline, holding keyboard-navigation hints on the leading edge and custom action labels on the trailing edge; supporting-size copy on `--muted-foreground` reads as status rather than primary chrome. Inline `<kbd>` elements inside the footer are restyled to 18x18 / mono 10px / 2px radius (a deliberate departure from the body {@api theme-key:Kbd} primitive) so a `↑↓` chord fits in the chin without breaking the row baseline. */
         root: {
             class: [
+                // Footer shell.
                 "flex h-[var(--vueda-cmd-footer-height)] items-center justify-between gap-3 border-t bg-muted px-[var(--vueda-control-px-md)] text-[length:var(--vueda-text-supporting)] text-muted-foreground",
-                "[&_kbd]:inline-flex [&_kbd]:h-[18px] [&_kbd]:min-w-[18px] [&_kbd]:items-center [&_kbd]:justify-center [&_kbd]:rounded-[2px] [&_kbd]:border [&_kbd]:bg-background [&_kbd]:px-1 [&_kbd]:font-mono [&_kbd]:text-[10px] [&_kbd]:font-medium [&_kbd]:text-foreground",
+
+                // Inline kbd elements.
+                "[&_kbd]:inline-flex [&_kbd]:h-[18px] [&_kbd]:min-w-[18px] [&_kbd]:items-center [&_kbd]:justify-center",
+                "[&_kbd]:rounded-[2px] [&_kbd]:border [&_kbd]:bg-background [&_kbd]:px-1 [&_kbd]:font-mono [&_kbd]:text-[10px] [&_kbd]:font-medium [&_kbd]:text-foreground",
             ],
         },
         /** The hints cluster inside a {@api theme-key:CommandFooter.root}. Inline-flex row with a 12px gap so consecutive kbd-plus-label pairs (`↑↓ navigate`, `↵ select`, `Esc close`) sit as one readable strip rather than collapsing into a run-on glyph soup. */

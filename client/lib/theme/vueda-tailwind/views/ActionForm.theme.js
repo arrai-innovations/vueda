@@ -4,12 +4,6 @@
  * Per-component theme registration for ActionForm. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire views family.
- *
- * Prototype-phase duplication: this entry mirrors the ActionForm slice of
- * views/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -40,7 +34,7 @@ patchTheme({
             class: [
                 "flex flex-row flex-wrap items-center gap-2",
                 "px-4 py-3 mt-2",
-                "border-t border-border bg-muted/25",
+                "border-t bg-muted/25",
                 "rounded-b-vueda-card",
             ],
         },

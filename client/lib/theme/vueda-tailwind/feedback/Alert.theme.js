@@ -4,12 +4,6 @@
  * Per-component theme registration for Alert. Imported as a side effect by
  * Alert.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire feedback family.
- *
- * Prototype-phase duplication: this entry mirrors the Alert slice of
- * feedback/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -23,7 +17,14 @@ patchTheme({
          */
         root: ({ variant }) => ({
             class: [
-                "relative w-full rounded-vueda-card border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:row-span-2 [&>svg]:translate-y-0.5 [&>svg]:text-current",
+                // Layout and spacing.
+                "relative w-full",
+                "rounded-vueda-card border px-4 py-3 text-sm",
+                "grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr]",
+                "has-[>svg]:gap-x-3 gap-y-0.5 items-start",
+
+                // Icon placement.
+                "[&>svg]:size-4 [&>svg]:row-span-2 [&>svg]:translate-y-0.5 [&>svg]:text-current",
                 {
                     "bg-card text-card-foreground": !variant || variant === "default",
                     "border-destructive/50 text-destructive bg-destructive/10 *:data-[slot=alert-description]:text-destructive/90":

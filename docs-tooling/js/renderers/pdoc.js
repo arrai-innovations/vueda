@@ -9,6 +9,7 @@ import {
     renderCodeInline,
     renderFrontmatter,
     renderHeading,
+    renderLifecycle,
     renderList,
     renderTable,
     slugify,
@@ -98,6 +99,11 @@ function renderInlineMember(member) {
     const anchor = slugify(member.name);
     const lines = [];
     lines.push(renderHeading(2, `${member.name} {#${anchor}}`), "");
+
+    const lifecycleBlock = renderLifecycle(member.lifecycle);
+    if (lifecycleBlock) {
+        lines.push(lifecycleBlock, "");
+    }
 
     if (member.description) {
         lines.push(escapeText(member.description), "");
@@ -209,6 +215,11 @@ export function renderPdocNode(node, index, filePath) {
     const lines = [];
     lines.push(frontmatter);
     lines.push(renderHeading(1, title), "");
+
+    const lifecycleBlock = renderLifecycle(node.lifecycle);
+    if (lifecycleBlock) {
+        lines.push(lifecycleBlock, "");
+    }
 
     if (node.description) {
         lines.push(renderHeading(2, sectionAnchor("Overview", memberAnchors)), "", escapeText(node.description), "");

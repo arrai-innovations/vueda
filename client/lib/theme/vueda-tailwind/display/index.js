@@ -18,6 +18,8 @@ import "./KbdGroup.theme.js";
 import "./LoadingHeartbeatStrip.theme.js";
 import "./LoadingSkeletonGhost.theme.js";
 import "./MobileSortComponent.theme.js";
+import "./SortControl.theme.js";
+import "./SortEditor.theme.js";
 import "./SuggestionList.theme.js";
 import "./SystemMessageCard.theme.js";
 import "./TriedUrlCallout.theme.js";
@@ -51,4 +53,6 @@ export default {
     TriedUrlCallout: {},
     // ---------- Sorting ----------
     MobileSortComponent: {},
+    SortControl: {},
+    SortEditor: {},
 };

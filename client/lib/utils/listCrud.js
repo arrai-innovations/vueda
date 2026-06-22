@@ -5,7 +5,7 @@
 import { CancellablePromise, cancellableFetch, deepUnref, setListCrud } from "@arrai-innovations/reactive-helpers";
 import { PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError, FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, FetchError, FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
@@ -48,8 +48,10 @@ export const makeSearchParamsString = (searchParams) => {
  *     model: string,
  *     pk?: string,
  *     action?: string,
+ *     resultsKey?: string,
  * }} args.target - The arguments for the CRUD operation. If `pk` and `action` are provided, the detail action url will be used.
- *  Otherwise, the non-detail list url will be used.
+ *  Otherwise, the non-detail list url will be used. `resultsKey` is the response key holding the array of objects
+ *  (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
  * @param {object} args.params - The arguments for the list operation.
  * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
  * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
@@ -68,7 +70,7 @@ export function singlePagePaginatedListCrudAdaptor({
     setColumnTotals,
 }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
-    const { app, model, pk, action } = target;
+    const { app, model, pk, action, resultsKey = "results" } = target;
     const query = makeSearchParamsString(params);
     const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
     if (!params?.[PAGE_PARAM] || params?.[PAGE_PARAM] === 1) {
@@ -98,7 +100,7 @@ export function singlePagePaginatedListCrudAdaptor({
             page: params?.[PAGE_PARAM] || 1,
         });
         setColumnTotals(responseData.columnTotals);
-        pushObjects(responseData[target.resultsKey]);
+        pushObjects(responseData[resultsKey]);
     });
 }
 
@@ -111,7 +113,9 @@ export function singlePagePaginatedListCrudAdaptor({
  *     model: string,
  *     pk?: string,
  *     action?: string,
- * }} - VUEDA specific arguments for the CRUD operation.
+ *     resultsKey?: string,
+ * }} - VUEDA specific arguments for the CRUD operation. `resultsKey` is the response key holding the array of
+ *  objects (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
  * @param args.params {{ [p]: number }} - The querystring parameters for the list operation.
  * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
  * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
@@ -129,7 +133,7 @@ export function allPagePaginatedListCrudAdaptor({
     setPaginateInfo,
     setColumnTotals,
 }) {
-    const { app, model, pk, action } = target;
+    const { app, model, pk, action, resultsKey = "results" } = target;
     const baseUrl = pk ? getDetailUrl({ app, model, pk, action }) : getListUrl({ app, model, action });
     if (params.page === 1) {
         clearObjects();
@@ -162,7 +166,7 @@ export function allPagePaginatedListCrudAdaptor({
             return;
         }
         clearObjects();
-        pushObjects(firstData[target.resultsKey]);
+        pushObjects(firstData[resultsKey]);
 
         const totalPages = firstData.totalPages ?? 1;
         setPaginateInfo({
@@ -189,7 +193,7 @@ export function allPagePaginatedListCrudAdaptor({
                             throw new FetchError("Failed to fetch additional page", resp, data);
                         }
                         if (!isCancelled.value) {
-                            pushObjects(data[target.resultsKey]);
+                            pushObjects(data[resultsKey]);
                             setPaginateInfo({
                                 totalRecords: data.totalRecords,
                                 totalPages: data.totalPages,
@@ -222,9 +226,11 @@ export function allPagePaginatedListCrudAdaptor({
  * }} args.target - The arguments for the CRUD operation.
  * @param {string[]} args.pks - The PKs of the objects to delete.
  * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
+ * @param {string} [args.acknowledgeWarnings] - Warnings digest from a prior 409, sent as the
+ *  `Acknowledge-Warnings` header so the server lets the gated delete proceed.
  * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} - A cancellable promise.
  */
-export function defaultObjectsDelete({ target, pks, dryRun }) {
+export function defaultObjectsDelete({ target, pks, dryRun, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const url = getListUrl({ app, model, action });
@@ -234,6 +240,9 @@ export function defaultObjectsDelete({ target, pks, dryRun }) {
     };
     if (dryRun) {
         headers["Dry-Run"] = "true";
+    }
+    if (acknowledgeWarnings) {
+        headers["Acknowledge-Warnings"] = acknowledgeWarnings;
     }
     return cancellableFetch(
         url,
@@ -252,6 +261,9 @@ export function defaultObjectsDelete({ target, pks, dryRun }) {
             }
             if (response.status === 400) {
                 throw new FormValidationError(responseData, response);
+            }
+            if (response.status === 409) {
+                throw new ConfirmationRequiredError(responseData, response);
             }
             throw new FetchError("Failed to delete object", response, responseData);
         },

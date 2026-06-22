@@ -4,12 +4,6 @@
  * Per-component theme registration for WidgetPreviewableTemplate. Imported as a side effect by
  * WidgetPreviewableTemplate.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire widgets family.
- *
- * Prototype-phase duplication: this entry mirrors the WidgetPreviewableTemplate slice of
- * widgets/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -41,7 +35,10 @@ patchTheme({
         },
         /** The preview label matches widget label color and line height for alignment. */
         label: {
-            class: ["row-start-1 row-end-2 col-start-1 leading-[2.3958125rem] text-neutral-900/60 dark:text-white/60"],
+            class: [
+                "row-start-1 row-end-2 col-start-1 leading-[2.3958125rem]",
+                "text-neutral-900/60 dark:text-white/60",
+            ],
         },
         /** The preview wrapper mirrors {@api theme-key:WidgetLabel.root} for label and preview alignment. */
         previewWrapper: {

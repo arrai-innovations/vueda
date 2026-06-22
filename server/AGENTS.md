@@ -44,18 +44,14 @@
 
 The docs-tooling pipeline reads several annotation conventions from `server/vueda/` source files (Python docstrings for pdoc, and DRF Spectacular schema decorators for the OpenAPI surface). The authoritative contract lives in the docs-tooling package next to the extractors that enforce it:
 
-[Server annotation contract](../docs-tooling/briefings/server-annotations.md)
-
-@../docs-tooling/briefings/server-annotations.md
+When editing source annotations that affect generated API docs, consult
+`../docs-tooling/briefings/server-annotations.md`.
 
 ## Changelog
 
 Public server changelog entries belong in `docs/reference/changelog/server.md`.
-Use the shared convention before adding entries:
-
-[Changelog authoring convention](../docs/reference/changelog/README.md)
-
-@../docs/reference/changelog/README.md
+Before adding or editing entries, consult
+`../docs/reference/changelog/README.md` for the shared authoring convention.
 
 Add entries for changes that affect integrators: Django apps, settings,
 serializers, viewsets, permissions, metadata responses, management commands,

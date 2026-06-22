@@ -5,7 +5,7 @@ import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
 import WidgetCombobox from "@vueda/widgets/WidgetCombobox.vue";
 import WidgetRadioGroup from "@vueda/widgets/WidgetRadioGroup.vue";
 import omit from "lodash-es/omit.js";
-import { computed, ref, toRef } from "vue";
+import { computed, ref, toRef, useAttrs } from "vue";
 
 /**
  * Renders a select, multi-select, or radio widget populated with choices fetched from a Django model.
@@ -49,6 +49,7 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
+const attrs = useAttrs();
 const widgetContext = useWidget(props, emit);
 const isActive = useIsActive();
 const hasBeenFocused = ref(false);
@@ -76,6 +77,7 @@ const onFocus = () => {
     hasBeenFocused.value = true;
 };
 const widgetComponent = computed(() => widgetComponents[props.type]);
+const childWidgetAttrs = computed(() => omit(attrs, ["value", "app", "model"]));
 </script>
 <template>
     <div class="contents" @focusin.once="onFocus">
@@ -86,7 +88,7 @@ const widgetComponent = computed(() => widgetComponents[props.type]);
             option-label="label"
             option-value="value"
             :options="modelChoices.choices?.[props.fieldName]?.results ?? []"
-            v-bind="omit($attrs, 'value')"
+            v-bind="childWidgetAttrs"
             @update:model-value="emit('update:modelValue', $event)"
         >
             <template v-for="(_, slot) in $slots" #[slot]="slotProps">

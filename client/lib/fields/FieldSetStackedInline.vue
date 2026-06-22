@@ -8,7 +8,7 @@ import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
 import { useIcons } from "@vueda/use/useIcons.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, watch } from "vue";
 
 /**
@@ -20,7 +20,7 @@ import { computed, watch } from "vue";
 defineOptions({
     inheritAttrs: false,
 });
-const props = defineProps(FIELD_SET_INLINE_PROPS);
+const props = defineProps({ ...FIELD_SET_INLINE_PROPS, ...THEME_OVERRIDE_PROPS });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
 const fieldSetInline = useFieldSetInline({
@@ -86,7 +86,6 @@ watch(
                         :field-props="fieldSetInline.state.computedFieldProps"
                         :label="fieldSetInline.state.internalVisible ? 'Hide' : 'Show'"
                         :name="fieldSetInline.resolvedSlotNames['toggle-button'].name"
-                        :verb="fieldSetInline.state.internalVisible ? 'collapseDown' : 'collapseUp'"
                     >
                         <component
                             :is="icon('chevronDown').component"
@@ -115,7 +114,6 @@ watch(
                         :field-props="fieldSetInline.state.computedFieldProps"
                         label="Create"
                         :name="fieldSetInline.resolvedSlotNames['create-button'].name"
-                        verb="createInline"
                         @click="fieldSetInline.doCreate"
                     >
                         <Button

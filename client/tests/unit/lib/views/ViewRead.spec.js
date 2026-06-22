@@ -2,7 +2,7 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useForm } from "@vueda/use/useForm.js";
-import { defineComponent, reactive } from "vue";
+import { defineComponent, h, reactive } from "vue";
 
 vi.mock("@vueda/use/useDetailView.js", async () => {
     const actual = await vi.importActual("@vueda/use/useDetailView.js");
@@ -23,9 +23,13 @@ vi.mock("@vueda/components/FormModel.vue", () => ({
 vi.mock("@vueda/components/LinkModelView.vue", () => ({
     default: defineComponent({ name: "LinkModelView", template: "<div />" }),
 }));
-vi.mock("@vueda/components/PageTitle.vue", () => ({
-    default: defineComponent({ name: "PageTitle", template: "<div><slot name='button' /></div>" }),
-}));
+const PageActionsStub = defineComponent({
+    name: "PageActionsStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
+    },
+});
+vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({
     default: defineComponent({
         name: "StickyBar",
@@ -138,7 +142,7 @@ describe("lib/views/ViewRead.vue", () => {
         scopedIt("action button container has data-qa attribute", async () => {
             const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
             const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
-            expect(wrapper.find('[data-qa="read-action-button"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="read-action-buttons"]').exists()).toBe(true);
         });
 
         scopedIt("attrs are forwarded to the inner content div", async () => {
@@ -148,6 +152,23 @@ describe("lib/views/ViewRead.vue", () => {
                 attrs: { "data-test": "custom-value" },
             });
             expect(wrapper.find('[data-qa="read-form"]').attributes("data-test")).toBe("custom-value");
+        });
+
+        scopedIt("applies the default theme gutter to the body", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+            const body = wrapper.find('[data-qa="read-form"]');
+            expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5"]));
+        });
+
+        scopedIt("merges forwarded attr classes with the body theme gutter", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            const wrapper = mount(ViewRead, {
+                props: { app: "a", model: "m", pk: "1" },
+                attrs: { class: "my-attr-class" },
+            });
+            const body = wrapper.find('[data-qa="read-form"]');
+            expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5", "my-attr-class"]));
         });
     });
 });

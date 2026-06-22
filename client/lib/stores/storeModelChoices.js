@@ -27,11 +27,14 @@ export class ModelChoicesError extends FetchError {
     }
 }
 
+// The server routes carry a trailing slash; omitting it before the query string
+// makes Django's APPEND_SLASH answer with a 301 redirect (an extra round-trip per
+// fetch), so build the canonical slash-terminated path directly.
 const modelChoicesUrl = (app, model, field) =>
-    `${httpOrHttpsHostname}${getUrl("infoModelInfoChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${memoizedSnakeCase(field)}?${PAGE_SIZE_PARAM}=200`;
+    `${httpOrHttpsHostname}${getUrl("infoModelInfoChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${memoizedSnakeCase(field)}/?${PAGE_SIZE_PARAM}=200`;
 
 const modelFilterChoicesUrl = (app, model, field) =>
-    `${httpOrHttpsHostname}${getUrl("infoModelInfoFilterChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${field}?${PAGE_SIZE_PARAM}=200`;
+    `${httpOrHttpsHostname}${getUrl("infoModelInfoFilterChoices")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/${field}/?${PAGE_SIZE_PARAM}=200`;
 
 /**
  * A store for lookup choices for a particular model field.

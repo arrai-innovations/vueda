@@ -4,12 +4,6 @@
  * Per-component theme registration for ComboboxGroup. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
- *
- * Prototype-phase duplication: this entry mirrors the ComboboxGroup slice of
- * controls/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -25,7 +19,11 @@ patchTheme({
         },
         /** The optional heading row above a group's items. Renders the caps-mono-micro eyebrow recipe (mono, weight 600, micro size, uppercase, 0.04em tracking) on `--muted-foreground` so the label reads as a section eyebrow rather than as a result row. Same recipe as {@api theme-key:SelectLabel.root} and {@api theme-key:CommandGroup.heading} so all three pickers share one eyebrow voice. */
         heading: {
-            class: "text-muted-foreground px-2 py-1.5 font-mono text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase",
+            class: [
+                // Layout and type.
+                "text-muted-foreground px-2 py-1.5 font-mono",
+                "text-[length:var(--vueda-text-micro)] font-semibold leading-none tracking-[0.04em] uppercase",
+            ],
         },
     },
 });

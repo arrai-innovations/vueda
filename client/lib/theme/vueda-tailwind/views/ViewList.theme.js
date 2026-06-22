@@ -4,12 +4,6 @@
  * Per-component theme registration for ViewList. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire views family.
- *
- * Prototype-phase duplication: this entry mirrors the ViewList slice of
- * views/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -35,38 +29,27 @@ patchTheme({
         targetlessActionButton: {
             class: [],
         },
-        /** Filter strip beneath the under-actions row. Tinted-muted background with a bottom hairline so it reads as a tier between the under-actions strip and the grid; uses the same `px-5 py-[10px]` rhythm shared with {@api theme-key:PageTitle.titleContainer} so the page chrome lines up vertically. */
-        filterGroupBar: {
-            class: [
-                "w-full flex items-center flex-wrap gap-3 px-5 py-[10px] border-b border-border bg-muted/25 text-foreground",
-            ],
+        /** Left cluster of the under-actions bar: the add-filter trigger (teleported in from {@api theme-key:FilterGroup}) and the mobile sort affordance, opposite the right-aligned {@api theme-key:ViewList.listControlBar}. */
+        filterControls: {
+            class: ["flex items-center gap-2"],
         },
-        /** "Filters" eyebrow label at the left of the filter strip. Uses the 11 px / 600 / `0.06em` uppercase recipe against `--muted-foreground` so it reads as a section eyebrow, not a heading. */
-        filterGroupBarEyebrow: {
-            class: [
-                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
-                "text-muted-foreground leading-none",
-            ],
-        },
-        /** Right-aligned wrapper around the mobile sort component. Pushes the sort trigger to the end of the filter strip so it sits opposite the eyebrow on narrow viewports where the desktop column-header sort affordances are unavailable. */
-        sortComponentDiv: {
-            class: ["flex flex-row justify-end ml-auto"],
+        /** Teleport landing zone for the FilterGroup add-filter trigger. `contents` so the teleported trigger participates directly in the {@api theme-key:ViewList.filterControls} flex row rather than nesting in an extra box. */
+        filterTriggerZone: {
+            class: ["contents"],
         },
         /** Class forwarded to the embedded {@api theme-key:ObjectsGrid.root}. Suppresses the grid's own card border and radius so the ViewList strips above and below own the visible chrome; the grid renders as a flush slab between the filter strip and the pagination strip. */
         objectsGrid: {
             class: ["w-full border-0 rounded-none"],
         },
-        /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with {@api theme-key:ViewList.filterGroupBar} and the title row, so the three strips read as a continuous header. */
+        /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with the title row above and the {@api theme-key:ViewList.paginationWrapper} below, so the chrome reads as a matched frame around the grid. */
         underActionsBar: {
-            class: [
-                "w-full flex items-center flex-wrap gap-3 px-5 py-3 border-b border-border bg-card text-foreground",
-            ],
+            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3", "border-b bg-card text-foreground"],
         },
         /** Bulk-actions strip that surfaces once one or more rows are selected. 6 %-mix primary fill and 12 px / 500 type so it reads as an active selection band, not a passive section; sits between the under-actions strip and the filter strip. */
         bulkActionsBar: {
             class: [
                 "w-full flex items-center flex-wrap gap-[10px] px-5 py-[10px]",
-                "border-b border-border bg-primary/[0.06] text-foreground text-[12px] font-medium",
+                "border-b bg-primary/[0.06] text-foreground text-[12px] font-medium",
             ],
         },
         /** Button cluster inside the bulk-actions strip. Wraps so a large action menu folds across rows rather than overflowing the strip; `sm:w-fit sm:max-w-max` snaps the cluster to its content width once the viewport can hold all buttons inline. */
@@ -83,9 +66,7 @@ patchTheme({
         },
         /** Pagination strip beneath the grid. Card-toned with a top hairline; mirrors the {@api theme-key:ViewList.underActionsBar} rhythm so the chrome above and below the grid read as a matched pair. */
         paginationWrapper: {
-            class: [
-                "w-full flex items-center flex-wrap gap-3 px-5 py-[10px] border-t border-border bg-card text-foreground",
-            ],
+            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px]", "border-t bg-card text-foreground"],
         },
     },
 });

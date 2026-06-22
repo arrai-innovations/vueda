@@ -4,12 +4,6 @@
  * Per-component theme registration for TableCell. Imported as a side effect by
  * TableCell.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire grid family.
- *
- * Prototype-phase duplication: this entry mirrors the TableCell slice of
- * grid/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -25,10 +19,16 @@ patchTheme({
          */
         root: {
             class: [
-                "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+                // Layout and child offsets.
+                "p-2 align-middle whitespace-nowrap",
+                "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+
+                // Density tiers.
                 "[[data-density=default]_&]:h-8 [[data-density=default]_&]:py-1.5",
                 "[[data-density=compact]_&]:h-7 [[data-density=compact]_&]:py-1",
                 "[[data-density=condensed]_&]:h-6 [[data-density=condensed]_&]:py-0.5 [[data-density=condensed]_&]:text-xs",
+
+                // Numeric and mono alignment.
                 "data-[numeric]:text-right data-[numeric]:font-mono",
                 "data-[mono]:font-mono",
             ],

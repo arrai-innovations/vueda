@@ -4,12 +4,6 @@
  * Per-component theme registration for RangeCalendarCellTrigger. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
- *
- * Prototype-phase duplication: this entry mirrors the RangeCalendarCellTrigger slice of
- * controls/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import "./_ButtonPrimitives.theme.js";
 import { patchTheme } from "@vueda/use/themeRegistry.js";
@@ -26,10 +20,15 @@ patchTheme({
         root: {
             composes: ["_ButtonBase.root", "_ButtonGhost.root"],
             class: [
+                // Day button base.
                 "h-[var(--vueda-cal-day)] w-[var(--vueda-cal-day)] p-0 font-normal data-[selected]:opacity-100",
+
+                // Today and range endpoint states.
                 "[&[data-today]:not([data-selected])]:bg-accent [&[data-today]:not([data-selected])]:text-accent-foreground",
                 "data-[selection-start]:bg-primary data-[selection-start]:text-primary-foreground data-[selection-start]:hover:bg-primary data-[selection-start]:hover:text-primary-foreground data-[selection-start]:focus:bg-primary data-[selection-start]:focus:text-primary-foreground",
                 "data-[selection-end]:bg-primary data-[selection-end]:text-primary-foreground data-[selection-end]:hover:bg-primary data-[selection-end]:hover:text-primary-foreground data-[selection-end]:focus:bg-primary data-[selection-end]:focus:text-primary-foreground",
+
+                // Availability and outside-view states.
                 "data-[outside-view]:text-muted-foreground",
                 "data-[disabled]:text-muted-foreground data-[disabled]:opacity-50",
                 "data-[unavailable]:text-destructive data-[unavailable]:line-through",

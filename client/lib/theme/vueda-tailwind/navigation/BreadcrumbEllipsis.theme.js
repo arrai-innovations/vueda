@@ -4,12 +4,6 @@
  * Per-component theme registration for BreadcrumbEllipsis. Imported as a side effect by
  * BreadcrumbEllipsis.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire navigation family.
- *
- * Prototype-phase duplication: this entry mirrors the BreadcrumbEllipsis slice of
- * navigation/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -23,7 +17,7 @@ patchTheme({
             class: [
                 "flex size-7 items-center justify-center",
                 interactive &&
-                    "cursor-pointer rounded-vueda-control transition-colors hover:bg-accent hover:text-foreground focus-visible:focus-ring",
+                    "cursor-pointer rounded-vueda-control transition-colors hover:bg-accent hover:text-foreground active:bg-accent-active focus-visible:focus-ring",
             ],
         }),
         /** Screen-reader text for the collapsed-step marker. */

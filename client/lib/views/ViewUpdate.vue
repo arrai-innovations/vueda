@@ -1,12 +1,15 @@
 <script setup>
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
+import FormConfirmDialog from "@vueda/components/FormConfirmDialog.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import { useTheme } from "@vueda/use/useTheme.js";
+import "@vueda/theme/vueda-tailwind/views/ViewUpdate.theme.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -53,11 +56,7 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    /** CSS class(es) applied to the div wrapping the error display and form. */
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
+    ...THEME_OVERRIDE_PROPS,
     /** Theme variant forwarded to the inner FormModel component. */
     formModelVariant: {
         type: String,
@@ -131,6 +130,10 @@ const slots = useSlots();
 
 const { formContext, objectForm, instanceObject, instance, actions } = useViewUpdate(props);
 
+// Contribute the page title and loading state to the layout's PageTitle display.
+usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
+
+const theme = useTheme("ViewUpdate", props);
 const stickyBarTheme = useTheme("StickyBar", {});
 const dirtyClass = computed(() => stickyBarTheme("dirty"));
 
@@ -155,37 +158,36 @@ onMounted(() => {
 });
 </script>
 <template>
-    <!-- TODO: theme.hideStyle requires a single themed root; useTheme here is only a StickyBar helper, this component has no own theme entry to gate on. -->
-    <div :class="props.class" data-qa="update-form-root">
-        <page-title :loading="instance.pageLoading" :title="instance.titleStr">
-            <template #button>
-                <template v-for="actionName in actions.nonDetailActions" :key="actionName">
-                    <slot
+    <!-- TODO: theme.hideStyle requires a single themed root -->
+    <div :class="[theme('root'), props.class]" data-qa="update-form-root">
+        <!-- Page-level actions teleport into the layout's PageTitle action zone. -->
+        <page-actions>
+            <template v-for="actionName in actions.nonDetailActions" :key="actionName">
+                <slot
+                    :app="app"
+                    :label="memoizedStartCase(actionName)"
+                    :model="model"
+                    name="targetless-action-button"
+                    :view="actionName"
+                >
+                    <link-model-view
                         :app="app"
+                        class="w-full"
                         :label="memoizedStartCase(actionName)"
                         :model="model"
-                        name="targetless-action-button"
                         :view="actionName"
-                    >
-                        <link-model-view
-                            :app="app"
-                            class="w-full"
-                            :label="memoizedStartCase(actionName)"
-                            :model="model"
-                            :view="actionName"
-                        />
-                    </slot>
-                </template>
-                <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
-                <slot name="extra-buttons" />
+                    />
+                </slot>
             </template>
-            <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
-            </template>
-        </page-title>
+            <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
+            <slot name="extra-buttons" />
+        </page-actions>
         <sticky-bar class="w-full">
             <template #primary>
-                <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="update-action-button">
+                <div
+                    class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
+                    data-qa="update-action-buttons"
+                >
                     <!-- @slot [submit-button] Override the submit button shown in the sticky action bar. -->
                     <slot
                         :form="instance.formId"
@@ -216,7 +218,6 @@ onMounted(() => {
                                 :label="memoizedStartCase(actionName)"
                                 :model="model"
                                 :pk="pk"
-                                severity="secondary"
                                 :view="actionName"
                             />
                         </slot>
@@ -237,7 +238,6 @@ onMounted(() => {
                                 :label="memoizedStartCase(transition)"
                                 :model="model"
                                 :pk="pk"
-                                severity="secondary"
                                 :view="transition"
                             />
                         </slot>
@@ -257,7 +257,7 @@ onMounted(() => {
                 </span>
             </template>
         </sticky-bar>
-        <div :class="props.outerClass" data-qa="update-form">
+        <div :class="theme('body')" data-qa="update-form">
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"
@@ -286,6 +286,12 @@ onMounted(() => {
                 </form-model>
             </form>
         </div>
+        <form-confirm-dialog
+            :controller="objectForm.confirmation"
+            title="Confirm save"
+            description="This change has warnings. Review them before saving."
+            confirm-label="Save anyway"
+        />
     </div>
 </template>
 

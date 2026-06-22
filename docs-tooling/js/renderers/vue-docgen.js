@@ -10,6 +10,7 @@ import {
     renderCodeInline,
     renderFrontmatter,
     renderHeading,
+    renderLifecycle,
     renderTable,
 } from "./markdown.js";
 
@@ -107,6 +108,11 @@ export function renderVueDocgenNode(node, index, filePath, options = {}) {
     const lines = [];
     lines.push(frontmatter);
     lines.push(renderHeading(1, normalizeTitle(node.name)), "");
+
+    const lifecycleBlock = renderLifecycle(node.lifecycle);
+    if (lifecycleBlock) {
+        lines.push(lifecycleBlock, "");
+    }
 
     if (node.description) {
         lines.push(renderHeading(2, "Overview"), "", escapeText(node.description), "");

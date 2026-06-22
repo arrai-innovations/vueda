@@ -140,7 +140,6 @@ watch(
                         :field-props="fieldSetTabularInline.state.computedFieldProps"
                         :label="fieldSetTabularInline.state.internalVisible ? 'Hide' : 'Show'"
                         :name="fieldSetTabularInline.resolvedSlotNames['toggle-button'].name"
-                        :verb="fieldSetTabularInline.state.internalVisible ? 'collapseDown' : 'collapseUp'"
                     >
                         <component
                             :is="icon('chevronDown').component"
@@ -173,7 +172,6 @@ watch(
                         :field-props="fieldSetTabularInline.state.computedFieldProps"
                         label="Create"
                         :name="fieldSetTabularInline.resolvedSlotNames['create-button'].name"
-                        verb="createInline"
                         @click="fieldSetTabularInline.doCreate"
                     >
                         <Button
@@ -247,7 +245,6 @@ watch(
                                             "
                                             :theme="fieldSetTabularInline.theme"
                                             :value="action.value"
-                                            verb="destroy"
                                             @click="
                                                 fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)
                                             "
@@ -280,7 +277,6 @@ watch(
                                             :row-index="objectGridFieldSlotProps.rowIndex"
                                             :theme="fieldSetTabularInline.theme"
                                             :value="action.value"
-                                            verb="destroy"
                                             @update:model-value="
                                                 (isSelected) =>
                                                     fieldSetTabularInline.handleSelected(
@@ -407,7 +403,6 @@ watch(
                                 :field-props="fieldSetTabularInline.state.computedFieldProps"
                                 label="Create"
                                 :name="fieldSetTabularInline.resolvedSlotNames['create-button-inline'].name"
-                                verb="createInline"
                                 @click="fieldSetTabularInline.doCreate"
                             >
                                 <Button

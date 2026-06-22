@@ -7,22 +7,19 @@ type: reference
 
 <script setup>
 import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Input from "@vueda/controls/input/Input.vue";
 import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
 import NativeSelectOption from "@vueda/controls/native-select/NativeSelectOption.vue";
-import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import Textarea from "@vueda/controls/textarea/Textarea.vue";
 import Field from "@vueda/shell/field/Field.vue";
 import FieldContent from "@vueda/shell/field/FieldContent.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
 import FieldLabel from "@vueda/shell/field/FieldLabel.vue";
-import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
-import Alert from "@vueda/feedback/alert/Alert.vue";
-import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
-import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
     faAnglesLeft,
@@ -30,13 +27,14 @@ import {
     faArrowRight,
     faArrowUpFromBracket,
     faCheck,
+    faChevronDown,
     faChevronLeft,
     faChevronRight,
-    faCircleExclamation,
     faClockRotateLeft,
     faEllipsis,
     faFileImport,
     faFilter,
+    faGripVertical,
     faMagnifyingGlass,
     faPen,
     faPlus,
@@ -49,7 +47,7 @@ import {
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { faBuilding, faEnvelope } from "@fortawesome/free-regular-svg-icons";
-import { ref } from "vue";
+import { defineComponent, h, ref } from "vue";
 
 const fields = [
     { name: "account", label: "Account" },
@@ -72,12 +70,61 @@ const statusClasses = {
     warning: "border-warning/40 bg-warning/10 text-warning",
 };
 
-const sorted = ref(["-updated"]);
+const sorted = ref(["-updated", "mrr"]);
+
+// Each StickyBar demo binds its scroll-root to its own bounded, scrollable
+// panel so the bar pins to and reacts to the demo viewport instead of the page
+// (otherwise it would stick to the window and ride up over the site nav).
+const stickyViewport = ref(null);
+const createViewport = ref(null);
+const readViewport = ref(null);
+const updateViewport = ref(null);
+
+const customerCreateFields = ["account", "domain", "owner", "tier", "mrr", "currency", "taxExempt", "notes"];
+const customerUpdateFields = ["account", "domain", "owner", "tier", "mrr", "currency"];
+const customerUpdateValues = {
+    account: "Northwind Logistics",
+    domain: "northwind-logistics.example",
+    owner: "mt",
+    tier: "enterprise",
+    mrr: "14028.50",
+    currency: "usd",
+};
+
+// Registers a title source into the surrounding page-title context, rendering nothing itself.
+// In a real app this is what a view does via usePageTitle(() => ({ title, loading })).
+const TitleRegistrar = defineComponent({
+    name: "TitleRegistrar",
+    props: { title: { type: String, default: undefined }, loading: { type: Boolean, default: undefined } },
+    setup(props) {
+        usePageTitle(() => ({ title: props.title, loading: props.loading }));
+        return () => null;
+    },
+});
+
+// Demo-only wrapper. Each example needs its own title, so this establishes an isolated page-title
+// context (usePageTitle with no args), registers the title, and renders the real PageTitle display
+// plus a PageActions cluster from the #actions slot. In a real app the layout calls usePageTitle()
+// once above <RouterView> and each view registers its own title; here we collapse that into one
+// component so every demo is self-contained. Client-only because PageActions teleports into the
+// title bar's action zone, which only exists after the display mounts.
+const DemoTitleBar = defineComponent({
+    name: "DemoTitleBar",
+    props: { title: { type: String, default: undefined }, loading: { type: Boolean, default: undefined } },
+    setup(props, { slots }) {
+        usePageTitle();
+        return () => [
+            h(TitleRegistrar, { title: props.title, loading: props.loading }),
+            h(PageTitle),
+            slots.actions ? h(PageActions, null, { default: slots.actions }) : null,
+        ];
+    },
+});
 </script>
 
 # CRUDL Views
 
-Five view-scale layouts that form the backbone of every VUEDA application: list, create, read, update, and destroy. The two new components introduced here are {@api vue:component:PageTitle}, the header bar that anchors every view, and {@api vue:component:StickyBar}, a scroll-aware action zone that keeps submit controls reachable on long forms. All other chrome — fields, field sets, alerts, ObjectsGrid, badges — is composed from earlier families.
+Five view-scale layouts that form the backbone of every VUEDA application: list, create, read, update, and destroy. The two new components introduced here are {@api vue:component:PageTitle}, the layout-level header that displays each view's title and page actions, and {@api vue:component:StickyBar}, a scroll-aware action zone that keeps submit controls reachable on long forms. All other chrome — fields, field sets, alerts, ObjectsGrid, badges — is composed from earlier families.
 
 Token surface: {@api css-token:background}, {@api css-token:card}, {@api css-token:border}, {@api css-token:primary}, {@api css-token:destructive}, {@api css-token:muted}, {@api css-token:muted-foreground}.
 
@@ -85,64 +132,48 @@ This page is the visual contract the default theme guarantees at view scale. Use
 
 ## PageTitle
 
-{@api vue:component:PageTitle} is the standard top-of-view header. It provides a title row with action buttons, an optional subtitle row, and optional footer slot. Setting `sticky` pins the bar and adds a gradient fade below it.
+{@api vue:component:PageTitle} is the layout-level page header. The integrator places it once above `<RouterView>`; it reads the active view's title and loading state from `usePageTitle` (not from props) and hosts the action zone that `PageActions` teleports page-level buttons into. Setting `sticky` pins the bar to the top of the scroll viewport.
+
+The demos below use a small `DemoTitleBar` wrapper that stands in for the layout: it establishes the page-title context, registers a title, and renders `PageTitle` plus a `PageActions` cluster. In an application the layout owns that wiring and each view contributes only its title and actions.
 
 Theme keys: {@api theme-key:PageTitle}.
 
 <VuedaDemo class="flex flex-col gap-6">
   <DemoCard title="title + actions">
     <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-      <PageTitle title="Customers">
-        <template #button>
-          <Button size="sm" variant="outline">
-            <FontAwesomeIcon :icon="faArrowUpFromBracket" />
-            Export
-          </Button>
-          <Button size="sm" variant="default">
-            <FontAwesomeIcon :icon="faPlus" />
-            New customer
-          </Button>
-        </template>
-      </PageTitle>
+      <ClientOnly>
+        <DemoTitleBar title="Customers">
+          <template #actions>
+            <Button size="sm" variant="outline">
+              <FontAwesomeIcon :icon="faArrowUpFromBracket" />
+              Export
+            </Button>
+            <Button size="sm" variant="default">
+              <FontAwesomeIcon :icon="faPlus" />
+              New customer
+            </Button>
+          </template>
+        </DemoTitleBar>
+      </ClientOnly>
     </div>
     <template #footer>
-      <span>title prop + button slot</span>
+      <span>title via usePageTitle; actions via PageActions</span>
       <span>theme key: <code>PageTitle.title</code>, <code>PageTitle.buttons</code></span>
     </template>
   </DemoCard>
-  <DemoCard title="with subtitle">
+  <DemoCard title="loading">
     <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-      <PageTitle title="Customers">
-        <template #button>
-          <Button size="sm" variant="default">
-            <FontAwesomeIcon :icon="faPlus" />
-            New
-          </Button>
-        </template>
-        <template #subtitle>
-          <span class="text-sm text-muted-foreground"><strong class="text-foreground font-semibold">142</strong> customers · last sync 2 minutes ago</span>
-        </template>
-      </PageTitle>
+      <ClientOnly>
+        <DemoTitleBar title="Northwind Logistics" :loading="true">
+          <template #actions>
+            <Button size="sm" variant="default" disabled>Edit</Button>
+          </template>
+        </DemoTitleBar>
+      </ClientOnly>
     </div>
     <template #footer>
-      <span>subtitle slot rendered below the divider</span>
-      <span>theme key: <code>PageTitle.subtitleContainer</code></span>
-    </template>
-  </DemoCard>
-  <DemoCard title="title suffix + loading">
-    <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-      <PageTitle title="Northwind Logistics" :loading="true">
-        <template #title-suffix>
-          <span class="font-mono text-base text-muted-foreground">#1024</span>
-        </template>
-        <template #button>
-          <Button size="sm" variant="default" disabled>Edit</Button>
-        </template>
-      </PageTitle>
-    </div>
-    <template #footer>
-      <span>title-suffix slot: PK badge right of title text</span>
-      <span>loading prop: inline spinner after title</span>
+      <span>loading state via usePageTitle: inline spinner after the title</span>
+      <span>theme key: <code>PageTitle.title</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -151,113 +182,150 @@ Theme keys: {@api theme-key:PageTitle}.
 
 {@api vue:component:StickyBar} wraps the default slot in a themed container that hides when the user scrolls down past its initial position and reappears when they scroll back up. In VUEDA forms it sits directly below PageTitle and holds the primary submit action.
 
+By default the bar reacts to the window's scroll. When the bar lives inside a scrollable region rather than scrolling the whole page, pass that region's element to the `scrollRoot` prop so the bar pins to and reacts to it. The demo below does this: it binds `scrollRoot` to the bounded, scrollable panel so the bar treats the panel as its page.
+
 Theme keys: {@api theme-key:StickyBar}.
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">sticky bar · submit pattern</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <StickyBar>
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <Button variant="default">
-            <FontAwesomeIcon :icon="faCheck" />
-            Create customer
-          </Button>
-          <Button variant="outline">Save and add another</Button>
+  <ClientOnly>
+    <div ref="stickyViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[20rem]">
+      <StickyBar :scroll-root="stickyViewport">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <Button variant="default">
+              <FontAwesomeIcon :icon="faCheck" />
+              Create customer
+            </Button>
+            <Button variant="outline">Save and add another</Button>
+          </div>
+          <span class="text-xs text-muted-foreground">All required fields marked <span class="text-destructive">*</span></span>
         </div>
-        <span class="text-xs text-muted-foreground">All required fields marked <span class="text-destructive">*</span></span>
-      </div>
-    </StickyBar>
-    <div class="px-6 py-5">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field orientation="vertical">
-          <FieldLabel for="sb-name">Account name <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-          <FieldContent>
-            <Input id="sb-name" placeholder="Granger Holdings" />
-          </FieldContent>
-        </Field>
-        <Field orientation="vertical">
-          <FieldLabel for="sb-domain">Primary domain</FieldLabel>
-          <FieldContent>
-            <Input id="sb-domain" placeholder="example.com" />
-          </FieldContent>
-        </Field>
-        <Field orientation="vertical">
-          <FieldLabel for="sb-owner">Owner <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-          <FieldContent>
-            <NativeSelect id="sb-owner">
-              <NativeSelectOption value="">— select —</NativeSelectOption>
-              <NativeSelectOption value="mt">Mara Tani</NativeSelectOption>
-              <NativeSelectOption value="jr">Jordan Reyes</NativeSelectOption>
-            </NativeSelect>
-          </FieldContent>
-        </Field>
-        <Field orientation="vertical">
-          <FieldLabel for="sb-tier">Plan tier</FieldLabel>
-          <FieldContent>
-            <NativeSelect id="sb-tier">
-              <NativeSelectOption value="trial">Trial</NativeSelectOption>
-              <NativeSelectOption value="standard" selected>Standard</NativeSelectOption>
-              <NativeSelectOption value="enterprise">Enterprise</NativeSelectOption>
-            </NativeSelect>
-          </FieldContent>
-        </Field>
-        <Field orientation="vertical" class="sm:col-span-2">
-          <FieldLabel for="sb-notes">Notes</FieldLabel>
-          <FieldContent>
-            <Textarea id="sb-notes" placeholder="Internal notes visible only to staff." rows="3" />
-          </FieldContent>
-        </Field>
+      </StickyBar>
+      <div class="px-6 py-5">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field orientation="vertical">
+            <FieldLabel for="sb-name">Account name <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
+            <FieldContent>
+              <Input id="sb-name" placeholder="Granger Holdings" />
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-domain">Primary domain</FieldLabel>
+            <FieldContent>
+              <Input id="sb-domain" placeholder="example.com" />
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-owner">Owner <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
+            <FieldContent>
+              <NativeSelect id="sb-owner">
+                <NativeSelectOption value="">— select —</NativeSelectOption>
+                <NativeSelectOption value="mt">Mara Tani</NativeSelectOption>
+                <NativeSelectOption value="jr">Jordan Reyes</NativeSelectOption>
+              </NativeSelect>
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-tier">Plan tier</FieldLabel>
+            <FieldContent>
+              <NativeSelect id="sb-tier">
+                <NativeSelectOption value="trial">Trial</NativeSelectOption>
+                <NativeSelectOption value="standard" selected>Standard</NativeSelectOption>
+                <NativeSelectOption value="enterprise">Enterprise</NativeSelectOption>
+              </NativeSelect>
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-billing-email">Billing email</FieldLabel>
+            <FieldContent>
+              <Input id="sb-billing-email" type="email" placeholder="ar@example.com" />
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-currency">Currency</FieldLabel>
+            <FieldContent>
+              <NativeSelect id="sb-currency">
+                <NativeSelectOption value="usd">USD</NativeSelectOption>
+                <NativeSelectOption value="eur">EUR</NativeSelectOption>
+                <NativeSelectOption value="gbp">GBP</NativeSelectOption>
+              </NativeSelect>
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-tax">Tax ID</FieldLabel>
+            <FieldContent>
+              <Input id="sb-tax" placeholder="Optional" />
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical">
+            <FieldLabel for="sb-phone">Billing phone</FieldLabel>
+            <FieldContent>
+              <Input id="sb-phone" type="tel" placeholder="Optional" />
+            </FieldContent>
+          </Field>
+          <Field orientation="vertical" class="sm:col-span-2">
+            <FieldLabel for="sb-notes">Notes</FieldLabel>
+            <FieldContent>
+              <Textarea id="sb-notes" placeholder="Internal notes visible only to staff." rows="3" />
+            </FieldContent>
+          </Field>
+        </div>
       </div>
     </div>
-  </div>
+  </ClientOnly>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>StickyBar default slot: free-form layout, usually a flex row of actions</span>
-    <span>theme key: <code>StickyBar.inner</code> for bar chrome, <code>StickyBar.gradient</code> for the fade below</span>
-    <span>scroll the page past this bar to see it hide; scroll back up to see it reappear</span>
+    <span>theme key: <code>StickyBar.inner</code> for bar chrome (background, border, padding)</span>
+    <span>the bar binds <code>scrollRoot</code> to this panel; scroll inside the panel to see it hide on the way down and reappear on the way up</span>
   </footer>
 </VuedaDemo>
 
 ## ViewList
 
-The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and filter/sort toggles — the search and column buttons stay anchored right at all times. When rows are selected, a bulk-actions strip appears below. Filter chips sit in a tinted strip when active filters are present. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
+The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and a filter entry point — the search and column buttons stay anchored right at all times. The `Filters` control on the left carries a count of active filters and opens an add-filter menu listing the fields not yet applied; picking one slides the popover to that field's filter form in place (no modal, no second surface), and a back affordance returns to the list to add another. Active filters render as a tinted strip of chips below: click a chip to edit it (reopening the same form anchored to the chip), the ✕ to remove it, or `Clear all` to reset every filter. When rows are selected, a bulk-actions strip appears. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
+
+::: info Mockup status
+This ViewList is a static mockup. The live components implement the filter UX: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. The toolbar `Sort` trigger and the multi-field sort popover shown below are now live too: `SortControl` hosts the shared `SortEditor` body in a popover on desktop and a full-screen dialog on mobile, and `ViewList` renders it next to `Filters` whenever the model has sortable fields. Sorting also still works through `ObjectsGrid` column headers (table layout); all surfaces write the same sort order. (`MobileSortComponent` is the deprecated card-only predecessor, superseded by `SortControl`.) The panels below remain static illustrations of the editor's states.
+:::
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-    <span class="font-semibold uppercase tracking-wide">view list · 4 rows · 1 selected · 3 active filters · sorted updated desc</span>
+    <span class="font-semibold uppercase tracking-wide">view list · 4 rows · 1 selected · 3 active filters · 2 sorts (updated desc, mrr asc)</span>
     <span class="font-mono">sorted: {{ sorted.join(", ") }}</span>
   </header>
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <PageTitle title="Customers">
-      <template #button>
-        <Button size="sm" variant="outline">
-          <FontAwesomeIcon :icon="faArrowUpFromBracket" />
-          Export
-        </Button>
-        <Button size="sm" variant="outline">
-          <FontAwesomeIcon :icon="faFileImport" />
-          Import
-        </Button>
-        <Button size="sm" variant="default">
-          <FontAwesomeIcon :icon="faPlus" />
-          New customer
-        </Button>
-      </template>
-      <template #subtitle>
-        <span class="text-sm text-muted-foreground"><strong class="text-foreground font-semibold">142</strong> customers · last sync 2 minutes ago</span>
-        <span class="text-sm text-muted-foreground">View <strong class="text-foreground font-semibold">All customers</strong></span>
-      </template>
-    </PageTitle>
+    <ClientOnly>
+      <DemoTitleBar title="Customers">
+        <template #actions>
+          <Button size="sm" variant="outline">
+            <FontAwesomeIcon :icon="faArrowUpFromBracket" />
+            Export
+          </Button>
+          <Button size="sm" variant="outline">
+            <FontAwesomeIcon :icon="faFileImport" />
+            Import
+          </Button>
+          <Button size="sm" variant="default">
+            <FontAwesomeIcon :icon="faPlus" />
+            New customer
+          </Button>
+        </template>
+      </DemoTitleBar>
+    </ClientOnly>
     <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
       <div class="flex items-center gap-2">
-        <Button size="sm" variant="outline">
+        <Button size="sm" variant="outline" aria-haspopup="menu">
           <FontAwesomeIcon :icon="faFilter" />
           Filters
-          <span class="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">3</span>
+          <span class="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">3</span>
+          <FontAwesomeIcon :icon="faChevronDown" class="size-2.5 text-muted-foreground" />
         </Button>
-        <Button size="sm" variant="ghost">
+        <Button size="sm" variant="outline" aria-haspopup="dialog">
           <FontAwesomeIcon :icon="faSort" />
           Sort
+          <span class="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">2</span>
+          <FontAwesomeIcon :icon="faChevronDown" class="size-2.5 text-muted-foreground" />
         </Button>
       </div>
       <div class="flex items-center gap-2">
@@ -273,19 +341,22 @@ The list view is the entry point for every {@term CRUDL} resource. PageTitle anc
         </Button>
       </div>
     </div>
-    <div class="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-2">
+    <div class="flex flex-wrap items-center gap-2 border-b border-border bg-muted/30 px-4 py-2">
       <span class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filters</span>
-      <span class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-        Status: Active
-        <button type="button" class="inline-flex items-center text-current opacity-70 hover:opacity-100" aria-label="Remove filter"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+      <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
+        <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: Status">Status: Active</button>
+        <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
+        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: Status"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
       </span>
-      <span class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-        Owner: Mara Tani
-        <button type="button" class="inline-flex items-center text-current opacity-70 hover:opacity-100" aria-label="Remove filter"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+      <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
+        <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: Owner">Owner: Mara Tani</button>
+        <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
+        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: Owner"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
       </span>
-      <span class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-        MRR: ≥ $1,000
-        <button type="button" class="inline-flex items-center text-current opacity-70 hover:opacity-100" aria-label="Remove filter"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+      <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
+        <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: MRR">MRR: ≥ $1,000</button>
+        <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
+        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
       </span>
       <Button size="sm" variant="ghost" class="ml-auto text-xs">Clear all</Button>
     </div>
@@ -366,27 +437,154 @@ The list view is the entry point for every {@term CRUDL} resource. PageTitle anc
       </nav>
     </div>
   </div>
+  <div class="flex flex-col gap-2">
+    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filters [3] → add-filter flow · the popover swaps content in place (no modal, no second surface)</header>
+    <div class="flex flex-wrap items-start gap-6">
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">1 · pick a field (lists only the fields not yet applied)</span>
+        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <div class="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Add filter</div>
+          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Account<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
+          <button type="button" class="flex w-full items-center gap-2 rounded-sm bg-accent px-2 py-1.5 text-sm text-accent-foreground">Plan tier<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3" /></button>
+          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Created<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
+          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Renewal date<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
+          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Tax-exempt<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">2 · set the value · ‹ returns to the list to add another</span>
+        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <button type="button" class="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"><FontAwesomeIcon :icon="faChevronLeft" class="size-3" />Add filter</button>
+          <div class="bg-border -mx-1 my-1 h-px"></div>
+          <div class="px-2 pb-1 pt-0.5">
+            <h3 class="mb-2 text-sm font-semibold">Filter by Plan tier</h3>
+            <div class="flex h-7 items-center justify-between rounded-vueda-control border border-input bg-background px-2 text-sm text-foreground">Enterprise<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></div>
+            <div class="mt-2 flex justify-end"><Button size="sm" variant="default">Apply</Button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col gap-2">
+    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sort [2] → multi-field editor · the trigger opens this popover · same editor body the mobile full-screen dialog hosts</header>
+    <div class="flex flex-wrap items-start gap-6">
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">active sorts · priority top-to-bottom · the field control swaps the column, the arrow flips direction, ✕ removes</span>
+        <div class="w-72 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <div class="px-2 pb-1 pt-1.5">
+            <h3 class="mb-1 text-sm font-semibold">Sort by</h3>
+            <p class="mb-2 text-xs text-muted-foreground">Drag to reorder. The first sort has the highest priority.</p>
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-1.5">
+                <span class="flex size-5 cursor-grab items-center justify-center text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-3" /></span>
+                <span class="w-4 text-center font-mono text-xs text-muted-foreground">1</span>
+                <span class="flex h-7 flex-1 items-center justify-between rounded-vueda-control border border-input bg-background px-2 text-sm text-foreground">Updated<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></span>
+                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Sort Updated ascending (currently descending)"><FontAwesomeIcon :icon="faSortDown" /></button>
+                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Remove sort: Updated"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="flex size-5 cursor-grab items-center justify-center text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-3" /></span>
+                <span class="w-4 text-center font-mono text-xs text-muted-foreground">2</span>
+                <span class="flex h-7 flex-1 items-center justify-between rounded-vueda-control border border-input bg-background px-2 text-sm text-foreground">MRR<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></span>
+                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Sort MRR descending (currently ascending)"><FontAwesomeIcon :icon="faSortDown" class="rotate-180" /></button>
+                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Remove sort: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+              </div>
+            </div>
+            <div class="mt-2 flex items-center justify-between">
+              <Button size="sm" variant="outline"><FontAwesomeIcon :icon="faPlus" />Add sort</Button>
+              <Button size="sm" variant="ghost" class="text-xs">Clear all</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">empty state · no sorts applied · Add sort opens the field-picker</span>
+        <div class="w-72 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <div class="px-2 pb-1 pt-1.5">
+            <h3 class="mb-1 text-sm font-semibold">Sort by</h3>
+            <p class="mb-3 text-xs text-muted-foreground">No sorting applied. Add a field to begin.</p>
+            <div class="flex items-center justify-between">
+              <Button size="sm" variant="outline"><FontAwesomeIcon :icon="faPlus" />Add sort</Button>
+              <Button size="sm" variant="ghost" class="text-xs" disabled>Clear all</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">Add sort menu · lists only fields not already sorted · clicking one appends a row</span>
+        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <div class="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Add sort</div>
+          <button type="button" class="flex w-full items-center rounded-sm bg-accent px-2 py-1.5 text-sm text-accent-foreground">Account</button>
+          <button type="button" class="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Owner</button>
+          <button type="button" class="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Status</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="flex flex-col gap-2">
+    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Error state · the server rejects a filter value (HTTP 400, keyed by field) — no separate banner</header>
+    <div class="flex flex-wrap items-start gap-6">
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">errored chip · destructive tint flags which filter is invalid</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
+            <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: Status">Status: Active</button>
+            <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
+            <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: Status"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+          </span>
+          <span class="inline-flex items-center rounded-full border border-destructive/40 bg-destructive/10 text-xs font-semibold text-destructive">
+            <button type="button" class="inline-flex items-center gap-1.5 rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-destructive/15" aria-label="Edit filter: Plan tier (invalid value)"><FontAwesomeIcon :icon="faTriangleExclamation" class="size-2.5" />Plan tier: 24</button>
+            <span class="h-3.5 w-px bg-destructive/30" aria-hidden="true"></span>
+            <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-destructive/15 hover:opacity-100" aria-label="Remove filter: Plan tier"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+          </span>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[11px] font-medium text-muted-foreground">click the errored chip · same form, chip container · the server message renders inline</span>
+        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+          <div class="px-2 pb-1 pt-1.5">
+            <h3 class="mb-2 text-sm font-semibold">Filter by Plan tier</h3>
+            <div class="flex h-7 items-center justify-between rounded-vueda-control border border-destructive bg-background px-2 text-sm text-foreground" aria-invalid="true">24<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></div>
+            <p class="mt-1 text-xs text-destructive">Select a valid choice. 24 is not one of the available choices.</p>
+            <div class="mt-2 flex items-center justify-between">
+              <Button size="sm" variant="ghost" class="text-xs text-destructive">Remove</Button>
+              <Button size="sm" variant="default">Apply</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>under-actions: search and column controls always anchored right; filter/sort toggles left</span>
+    <span>under-actions: search and column controls anchored right; the Filters and Sort controls sit left</span>
+    <span>Sort [n]: badge counts active sort fields; the trigger opens the multi-field sort popover</span>
+    <span>sort popover: drag to reorder (priority), per-row field swap and direction toggle, ✕ to remove, Clear all. The mobile full-screen dialog hosts the same editor body.</span>
+    <span>Add sort: opens a field-picker menu of fields not already sorted (mirrors the filter add-flow); clicking one appends a new sort row</span>
+    <span>Filters [n]: badge counts active filters; opens the add-filter menu of not-yet-applied fields</span>
+    <span>add-filter flow: pick a field, the popover slides to that field's form in place; ‹ returns to the list; one anchored surface, no modal</span>
+    <span>filter chips: one per active filter — click the label to edit (reopens the same form anchored to the chip), ✕ to remove, Clear all resets every filter</span>
+    <span>chips strip: tinted, present only when active filters exist</span>
+    <span>errors (HTTP 400, keyed by field): the offending chip turns destructive and its form shows the server message inline — no separate error banner</span>
     <span>bulk-actions strip: transient, appears only when rows are selected</span>
-    <span>filter chips: tinted strip below under-actions, present only when active filters exist</span>
     <span>ObjectsGrid: flush inside the card — no nested border or card-in-card radius</span>
   </footer>
 </VuedaDemo>
 
 ## ViewCreate
 
-The create view pairs PageTitle with a StickyBar immediately below it. The StickyBar holds the primary submit action (pinned and always reachable during form entry) alongside secondary options like "Save and add another." The form body uses a section-grouped two-column grid — Profile fields, a billing FieldSet, and a Notes area — mirroring the layout patterns in [Forms](/reference/components/forms).
+The create view pairs PageTitle with a StickyBar immediately below it. The StickyBar holds the primary submit action (pinned and always reachable during form entry) alongside secondary options like "Save and add another." The form body below renders a real {@api vue:component:FormModel} against seeded model metadata, so it shows the framework's actual default field layout (a single-column stack) rather than hand-built markup. Grouping fields into sections or a multi-column grid is a customization layered on top; see [Forms](/reference/components/forms).
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view create · blank form · pristine</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <PageTitle title="Create customer">
-      <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
-    <StickyBar>
+  <div ref="createViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[34rem]">
+    <ClientOnly>
+      <DemoTitleBar title="Create customer">
+        <template #actions>
+          <Button size="sm" variant="ghost">Cancel</Button>
+        </template>
+      </DemoTitleBar>
+    </ClientOnly>
+    <StickyBar :scroll-root="createViewport">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
           <Button variant="default">
@@ -398,114 +596,14 @@ The create view pairs PageTitle with a StickyBar immediately below it. The Stick
         <span class="text-xs text-muted-foreground">All required fields marked <span class="text-destructive">*</span></span>
       </div>
     </StickyBar>
-    <div class="px-6 py-5">
-      <div class="mb-6">
-        <div class="mb-4 flex items-baseline justify-between border-b border-border pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Profile</h3>
-          <span class="text-xs text-muted-foreground">required</span>
-        </div>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field orientation="vertical">
-            <FieldLabel for="cr-name">Account name <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-            <FieldContent>
-              <Input id="cr-name" placeholder="Granger Holdings" />
-              <FieldDescription>Shown on invoices and the customer portal.</FieldDescription>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="cr-domain">Primary domain</FieldLabel>
-            <FieldContent>
-              <Input id="cr-domain" placeholder="example.com" />
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="cr-owner">Owner <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-            <FieldContent>
-              <NativeSelect id="cr-owner">
-                <NativeSelectOption value="">— select —</NativeSelectOption>
-                <NativeSelectOption value="mt">Mara Tani</NativeSelectOption>
-                <NativeSelectOption value="jr">Jordan Reyes</NativeSelectOption>
-                <NativeSelectOption value="ps">Priya Subramanian</NativeSelectOption>
-                <NativeSelectOption value="lb">Linnea Borg</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="cr-tier">Plan tier</FieldLabel>
-            <FieldContent>
-              <NativeSelect id="cr-tier">
-                <NativeSelectOption value="trial">Trial</NativeSelectOption>
-                <NativeSelectOption value="standard" selected>Standard</NativeSelectOption>
-                <NativeSelectOption value="enterprise">Enterprise</NativeSelectOption>
-              </NativeSelect>
-              <FieldDescription>Default for new accounts is Standard.</FieldDescription>
-            </FieldContent>
-          </Field>
-        </div>
-      </div>
-      <div class="mb-6">
-        <div class="mb-4 flex items-baseline justify-between border-b border-border pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Billing</h3>
-          <span class="text-xs text-muted-foreground">optional during create</span>
-        </div>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div class="rounded-vueda-control border border-border p-4 sm:col-span-1">
-            <p class="mb-3 text-xs font-semibold text-foreground">MRR window</p>
-            <div class="flex items-end gap-3">
-              <Field orientation="vertical" class="min-w-0 flex-1">
-                <FieldLabel for="cr-mrr-lo">From</FieldLabel>
-                <FieldContent>
-                  <Input id="cr-mrr-lo" type="number" placeholder="0" />
-                </FieldContent>
-              </Field>
-              <span class="mb-2 text-muted-foreground" aria-hidden="true">→</span>
-              <Field orientation="vertical" class="min-w-0 flex-1">
-                <FieldLabel for="cr-mrr-hi">To</FieldLabel>
-                <FieldContent>
-                  <Input id="cr-mrr-hi" type="number" placeholder="No upper limit" />
-                </FieldContent>
-              </Field>
-            </div>
-            <p class="mt-2 text-xs text-muted-foreground">Inclusive on both ends. Used for tier-band reporting.</p>
-          </div>
-          <Field orientation="vertical">
-            <FieldLabel for="cr-currency">Currency</FieldLabel>
-            <FieldContent>
-              <NativeSelect id="cr-currency">
-                <NativeSelectOption value="usd">USD</NativeSelectOption>
-                <NativeSelectOption value="eur">EUR</NativeSelectOption>
-                <NativeSelectOption value="gbp">GBP</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="cr-tax">Tax-exempt</FieldLabel>
-            <FieldContent>
-              <label class="inline-flex cursor-pointer items-center gap-2">
-                <Checkbox id="cr-tax" />
-                <span class="text-sm">Yes — W-9 on file</span>
-              </label>
-            </FieldContent>
-          </Field>
-        </div>
-      </div>
-      <div>
-        <div class="mb-4 flex items-baseline border-b border-border pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Notes</h3>
-        </div>
-        <Field orientation="vertical">
-          <FieldLabel for="cr-notes">Internal note</FieldLabel>
-          <FieldContent>
-            <Textarea id="cr-notes" rows="3" placeholder="Visible to your team only." />
-          </FieldContent>
-        </Field>
-      </div>
-    </div>
+    <ClientOnly>
+      <DemoFormModel app="showcase" :fields="customerCreateFields" model="customer" view="create" view-theme="ViewCreate" />
+    </ClientOnly>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>StickyBar sits directly below PageTitle: primary submit is always reachable without scrolling to the bottom</span>
-    <span>section headers: small-caps eyebrow pattern groups fields into scannable sections</span>
-    <span>form grid: two-column layout — paired fields share a row, full-width sections span both columns</span>
+    <span>form body: a real FormModel rendered against seeded model metadata; the gutter comes from the ViewCreate body theme slot</span>
+    <span>the default field layout is a single-column stack. Section grouping and multi-column grids are customizations.</span>
   </footer>
 </VuedaDemo>
 
@@ -515,19 +613,15 @@ The read view presents a single record in a non-editable layout. Inputs are repl
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view read · single record · Northwind Logistics</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <PageTitle title="Northwind Logistics">
-      <template #title-suffix>
-        <span class="font-mono text-base text-muted-foreground">#1024</span>
-      </template>
-      <template #button>
-        <span class="inline-flex items-center rounded border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">Active</span>
-      </template>
-      <template #subtitle>
-        <span class="text-sm text-muted-foreground">Owner <strong class="text-foreground font-semibold">Mara Tani</strong> · Updated 2 minutes ago by Mara Tani</span>
-      </template>
-    </PageTitle>
-    <StickyBar>
+  <div ref="readViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[34rem]">
+    <ClientOnly>
+      <DemoTitleBar title="Northwind Logistics">
+        <template #actions>
+          <span class="inline-flex items-center rounded border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">Active</span>
+        </template>
+      </DemoTitleBar>
+    </ClientOnly>
+    <StickyBar :scroll-root="readViewport">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
           <Button variant="default">
@@ -619,26 +713,25 @@ The read view presents a single record in a non-editable layout. Inputs are repl
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>read-only rows: fixed-width label column (160 px) + 1fr value; border-bottom separators</span>
     <span>StickyBar: Edit is the primary action; secondary actions are context-specific transitions and history</span>
-    <span>status badge: lives in the button slot, right-aligned in the title row</span>
+    <span>status badge: rendered through PageActions, right-aligned in the title row</span>
   </footer>
 </VuedaDemo>
 
 ## ViewUpdate
 
-The update view flips read mode to editable. Fields with pending changes get a modified indicator — a primary-tinted dot and "Modified" badge — in their label. When the form has validation errors after a save attempt, an Alert renders between the StickyBar and the form body. The StickyBar gains a "N modified" count in its secondary area.
+The update view renders the same form as create, populated from the loaded record. The body below is a real {@api vue:component:FormModel} seeded with initial values. Two update-specific behaviors are view-level and are not shown by a standalone FormModel: per-field modified indicators (a primary-tinted dot and "Modified" badge in the label) and the form-level error Alert that renders after a failed save.
 
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · 2 fields modified · 1 form-level error</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <PageTitle title="Edit Northwind Logistics">
-      <template #title-suffix>
-        <span class="font-mono text-base text-muted-foreground">#1024</span>
-      </template>
-      <template #button>
-        <Button size="sm" variant="ghost">View read-only</Button>
-      </template>
-    </PageTitle>
-    <StickyBar>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · populated form · real FormModel</header>
+  <div ref="updateViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[34rem]">
+    <ClientOnly>
+      <DemoTitleBar title="Edit Northwind Logistics">
+        <template #actions>
+          <Button size="sm" variant="ghost">View read-only</Button>
+        </template>
+      </DemoTitleBar>
+    </ClientOnly>
+    <StickyBar :scroll-root="updateViewport">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
           <Button variant="default">
@@ -647,123 +740,16 @@ The update view flips read mode to editable. Fields with pending changes get a m
           </Button>
           <Button variant="outline">Discard</Button>
         </div>
-        <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-          <span class="size-1.5 rounded-full bg-current"></span>
-          2 modified
-        </span>
       </div>
     </StickyBar>
-    <div class="px-6 pt-3">
-      <Alert variant="destructive" class="mb-4">
-        <FontAwesomeIcon :icon="faCircleExclamation" />
-        <AlertTitle>Couldn't save changes</AlertTitle>
-        <AlertDescription>
-          <ul class="mt-1 list-disc pl-4">
-            <li>Renewal date can't be earlier than today.</li>
-            <li>MRR upper bound must be greater than the lower bound.</li>
-          </ul>
-        </AlertDescription>
-      </Alert>
-    </div>
-    <div class="px-6 pb-5">
-      <div class="mb-6">
-        <div class="mb-4 border-b border-border pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Profile</h3>
-        </div>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field orientation="vertical">
-            <FieldLabel for="up-name">Account name <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-            <FieldContent>
-              <Input id="up-name" model-value="Northwind Logistics" />
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="up-domain">
-              Primary domain
-              <span class="ml-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-primary" aria-label="Modified">
-                <span class="size-1.5 rounded-full bg-current"></span>
-                Modified
-              </span>
-            </FieldLabel>
-            <FieldContent>
-              <Input id="up-domain" model-value="northwind-logistics.example" />
-              <FieldDescription>Was: <code class="font-mono text-xs">northwind.example</code></FieldDescription>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="up-owner">Owner <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-            <FieldContent>
-              <NativeSelect id="up-owner">
-                <NativeSelectOption value="mt" selected>Mara Tani</NativeSelectOption>
-                <NativeSelectOption value="jr">Jordan Reyes</NativeSelectOption>
-                <NativeSelectOption value="ps">Priya Subramanian</NativeSelectOption>
-                <NativeSelectOption value="lb">Linnea Borg</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="up-tier">Plan tier</FieldLabel>
-            <FieldContent>
-              <NativeSelect id="up-tier">
-                <NativeSelectOption value="trial">Trial</NativeSelectOption>
-                <NativeSelectOption value="standard">Standard</NativeSelectOption>
-                <NativeSelectOption value="enterprise" selected>Enterprise</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-        </div>
-      </div>
-      <div>
-        <div class="mb-4 border-b border-border pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Billing</h3>
-        </div>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div class="rounded-vueda-control border border-border p-4">
-            <p class="mb-3 flex items-center gap-2 text-xs font-semibold text-foreground">
-              Renewal window
-              <span class="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-primary" aria-label="Modified">
-                <span class="size-1.5 rounded-full bg-current"></span>
-                Modified
-              </span>
-            </p>
-            <div class="flex items-end gap-3">
-              <Field orientation="vertical" class="min-w-0 flex-1">
-                <FieldLabel for="up-rn-lo">From</FieldLabel>
-                <FieldContent>
-                  <Input id="up-rn-lo" type="date" model-value="2025-08-12" aria-invalid="true" />
-                  <FieldMessage variant="destructive">
-                    <FontAwesomeIcon :icon="faCircleExclamation" aria-hidden="true" />
-                    Renewal date can't be earlier than today.
-                  </FieldMessage>
-                </FieldContent>
-              </Field>
-              <span class="mb-8 text-muted-foreground" aria-hidden="true">→</span>
-              <Field orientation="vertical" class="min-w-0 flex-1">
-                <FieldLabel for="up-rn-hi">To</FieldLabel>
-                <FieldContent>
-                  <Input id="up-rn-hi" type="date" model-value="2027-08-12" />
-                </FieldContent>
-              </Field>
-            </div>
-          </div>
-          <Field orientation="vertical">
-            <FieldLabel for="up-currency">Currency</FieldLabel>
-            <FieldContent>
-              <NativeSelect id="up-currency">
-                <NativeSelectOption value="usd" selected>USD</NativeSelectOption>
-                <NativeSelectOption value="eur">EUR</NativeSelectOption>
-                <NativeSelectOption value="gbp">GBP</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-        </div>
-      </div>
-    </div>
+    <ClientOnly>
+      <DemoFormModel app="showcase" :fields="customerUpdateFields" :initial-values="customerUpdateValues" model="customer" view="update" view-theme="ViewUpdate" />
+    </ClientOnly>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>modified indicator: primary dot + badge in FieldLabel, and count pill in StickyBar secondary area</span>
-    <span>form-level Alert: between StickyBar and form body; field-level FieldMessage for inline errors</span>
-    <span>FieldDescription: used to show previous value on modified fields</span>
+    <span>form body: a real FormModel seeded with initial values; the gutter comes from the ViewUpdate body theme slot</span>
+    <span>per-field modified indicators and the form-level error Alert are view-level behaviors, not shown by a standalone FormModel</span>
+    <span>labels, help text, required markers, and select options all come from the seeded field metadata</span>
   </footer>
 </VuedaDemo>
 
@@ -776,11 +762,13 @@ The view card takes on a destructive accent: border color is tinted toward `--de
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view destroy · 3 records selected · destructive intent</header>
   <div class="rounded-vueda-card border bg-card overflow-clip" style="border-color: color-mix(in oklab, var(--destructive) 40%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 10%, transparent);">
-    <PageTitle title="Delete 3 customers">
-      <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
+    <ClientOnly>
+      <DemoTitleBar title="Delete 3 customers">
+        <template #actions>
+          <Button size="sm" variant="ghost">Cancel</Button>
+        </template>
+      </DemoTitleBar>
+    </ClientOnly>
     <div class="flex gap-4 border-b border-destructive/20 bg-destructive/5 px-6 py-4">
       <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5 shrink-0 text-destructive" />
       <div>
@@ -848,8 +836,8 @@ Token decisions flow across all five views:
 
 The highest-value theme keys for CRUDL views:
 
-- {@api theme-key:PageTitle} — `root`, `title`, `buttons`, `divider`, `subtitleContainer`, `gradient`. Override `title` to change the heading size and weight (default: `font-bold leading-relaxed text-3xl`).
-- {@api theme-key:StickyBar} — `root`, `inner`, `gradient`. Override `inner` to add a border, change the background, or adjust padding.
+- {@api theme-key:PageTitle} — `root`, `title`, `buttons`. Override `title` to change the heading size and weight (default: `text-[22px] font-semibold leading-[1.2]`).
+- {@api theme-key:StickyBar} — `root`, `inner`. Override `inner` to add a border, change the background, or adjust padding; to retint the bar from a wrapper, set the `--vueda-sticky-bar-surface` custom property instead of painting a competing background.
 - ObjectsGrid keys are covered on its own page: {@api theme-key:ObjectsGrid}, {@api theme-key:ObjectsGridTableHeader}, {@api theme-key:ObjectsGridBodyCell}.
 - Field and form keys are covered on the Forms page: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key:FieldContent}.
 - {@api theme-key:Alert} controls the form-level error banner in ViewUpdate.

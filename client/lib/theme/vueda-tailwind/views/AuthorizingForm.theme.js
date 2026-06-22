@@ -4,12 +4,6 @@
  * Per-component theme registration for AuthorizingForm. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire views family.
- *
- * Prototype-phase duplication: this entry mirrors the AuthorizingForm slice of
- * views/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -30,7 +24,9 @@ patchTheme({
         /** Framed card surrounding the consent form. Mirrors {@api theme-key:AuthForm.inner} so sign-in and authorize flows share the same surface shape; 32 px padding, soft radius, capped at 35 rem on `sm+`. */
         inner: {
             class: [
-                "p-8 rounded border bg-background flex flex-col items-stretch gap-3 overflow-y-auto max-w-full sm:w-[35rem]",
+                "p-8 rounded border bg-background",
+                "flex flex-col items-stretch gap-3 overflow-y-auto",
+                "max-w-full sm:w-[35rem]",
             ],
         },
         /** Inner content column inside the card. `min-w-min` keeps the column from collapsing below its longest unbreakable word. */

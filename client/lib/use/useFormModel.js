@@ -6,32 +6,9 @@ import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { buildForm } from "@vueda/utils/buildForm.js";
 import { choiceFieldMappings, defaultFieldMappings, manyFieldMappings } from "@vueda/utils/fieldMappings.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
+import { getTypeMapping } from "@vueda/utils/getTypeMapping.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
-import isNil from "lodash-es/isNil.js";
 import { provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
-
-/**
- * Resolve the mapping for a typeSerializer, falling back to the default mapping when typeModel is unknown.
- *
- * @template T
- * @param {{[key:string]: {[typeModel:string]: T}}} mapping - The mapping object keyed by typeSerializer and typeModel.
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - Field info containing the typeSerializer/typeModel.
- * @returns {T|undefined} The matched mapping or the default entry for the serializer.
- */
-const getTypeMapping = (mapping, field) => {
-    const serializerMapping = mapping[field.typeSerializer];
-    if (!serializerMapping) {
-        return undefined;
-    }
-    const hasTypeModel = !isNil(field.typeModel) && field.typeModel !== "";
-    if (hasTypeModel && serializerMapping[field.typeModel]) {
-        return serializerMapping[field.typeModel];
-    }
-    if (!hasTypeModel) {
-        return Object.values(serializerMapping).find((entry) => entry?.default) || undefined;
-    }
-    return undefined;
-};
 
 /**
  * Get the field component for a given Django field type.

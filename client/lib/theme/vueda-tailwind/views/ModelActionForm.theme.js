@@ -4,12 +4,6 @@
  * Per-component theme registration for ModelActionForm. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire views family.
- *
- * Prototype-phase duplication: this entry mirrors the ModelActionForm slice of
- * views/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -32,15 +26,19 @@ patchTheme({
             class: [
                 "group/model-action-form",
                 "rounded-vueda-card border bg-card overflow-hidden",
+
                 // info (default)
                 "data-[tone=info]:border-border",
                 "data-[tone=info]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--ring)_8%,transparent)]",
+
                 // success
                 "data-[tone=success]:border-success/50",
                 "data-[tone=success]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--success)_8%,transparent)]",
+
                 // warning
                 "data-[tone=warning]:border-warning/50",
                 "data-[tone=warning]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--warning)_8%,transparent)]",
+
                 // danger
                 "data-[tone=danger]:border-destructive/50",
                 "data-[tone=danger]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--destructive)_8%,transparent)]",
@@ -71,14 +69,22 @@ patchTheme({
                 "flex items-center justify-center shrink-0",
                 "w-9 h-9 rounded-full",
                 "text-[18px] font-semibold leading-none",
+
                 // info
-                "group-data-[tone=info]/model-action-form:bg-info group-data-[tone=info]/model-action-form:text-info-foreground",
+                "group-data-[tone=info]/model-action-form:bg-info",
+                "group-data-[tone=info]/model-action-form:text-info-foreground",
+
                 // success
-                "group-data-[tone=success]/model-action-form:bg-success group-data-[tone=success]/model-action-form:text-success-foreground",
+                "group-data-[tone=success]/model-action-form:bg-success",
+                "group-data-[tone=success]/model-action-form:text-success-foreground",
+
                 // warning
-                "group-data-[tone=warning]/model-action-form:bg-warning group-data-[tone=warning]/model-action-form:text-warning-foreground",
+                "group-data-[tone=warning]/model-action-form:bg-warning",
+                "group-data-[tone=warning]/model-action-form:text-warning-foreground",
+
                 // danger
-                "group-data-[tone=danger]/model-action-form:bg-destructive group-data-[tone=danger]/model-action-form:text-destructive-foreground",
+                "group-data-[tone=danger]/model-action-form:bg-destructive",
+                "group-data-[tone=danger]/model-action-form:text-destructive-foreground",
             ],
         },
         /** Inner column beside the icon: title, description, optional meta strip. `min-w-0` lets a long title ellipsize instead of pushing the banner wider. */
@@ -108,12 +114,16 @@ patchTheme({
         /** Selected-objects panel: tinted-muted background, hairline, card radius. Tone routing tints the panel destructive when nested in either the {@api theme-key:ViewDestroy.card} `group/view-destroy` scope or this form's own `group/model-action-form` scope at `tone="danger"`; neutral otherwise. */
         selectedObjects: {
             class: [
-                "rounded-vueda-card bg-muted/25 border border-border p-3",
+                "rounded-vueda-card bg-muted/25 border p-3",
                 "flex flex-col gap-2",
+
                 // Tint when surrounding ViewDestroy card is in danger tone.
-                "group-data-[tone=danger]/view-destroy:bg-destructive/[0.06] group-data-[tone=danger]/view-destroy:border-destructive/40",
+                "group-data-[tone=danger]/view-destroy:bg-destructive/[0.06]",
+                "group-data-[tone=danger]/view-destroy:border-destructive/40",
+
                 // Same when the ModelActionForm card itself is in danger tone.
-                "group-data-[tone=danger]/model-action-form:bg-destructive/[0.06] group-data-[tone=danger]/model-action-form:border-destructive/40",
+                "group-data-[tone=danger]/model-action-form:bg-destructive/[0.06]",
+                "group-data-[tone=danger]/model-action-form:border-destructive/40",
             ],
         },
         /** Eyebrow head row above the chip strip: label on the left, mono count on the right. Wraps when the count grows long so the label never overflows the panel. */
@@ -160,10 +170,12 @@ patchTheme({
         listItem: {
             class: [
                 "inline-flex items-center gap-2 px-2 py-1 rounded-vueda-control",
-                "border border-border bg-card",
+                "border bg-card",
                 "text-[12px] font-medium text-foreground leading-none",
-                "group-data-[tone=danger]/view-destroy:border-destructive/40 group-data-[tone=danger]/view-destroy:bg-card",
-                "group-data-[tone=danger]/model-action-form:border-destructive/40 group-data-[tone=danger]/model-action-form:bg-card",
+                "group-data-[tone=danger]/view-destroy:border-destructive/40",
+                "group-data-[tone=danger]/view-destroy:bg-card",
+                "group-data-[tone=danger]/model-action-form:border-destructive/40",
+                "group-data-[tone=danger]/model-action-form:bg-card",
             ],
         },
         /** Human-readable label fragment of a chip. 12 px / 500 / foreground so the label reads as the primary token in the chip. */

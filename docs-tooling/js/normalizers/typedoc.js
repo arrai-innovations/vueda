@@ -3,6 +3,7 @@
  */
 import { Normalizer } from "../core.js";
 import { compact } from "../utils/compact.js";
+import { deprecatedLifecycle } from "../utils/lifecycle.js";
 import { getRepoRoot, normalizeSourceFile } from "../utils/source.js";
 
 const KIND_MAP = new Map([
@@ -215,6 +216,14 @@ function examplesFromBlockTags(blockTags) {
     });
 }
 
+function lifecycleFromComment(comment) {
+    const deprecatedTag = comment?.blockTags?.find((tag) => tag.tag === "@deprecated");
+    if (!deprecatedTag) {
+        return undefined;
+    }
+    return deprecatedLifecycle(contentText(deprecatedTag.content));
+}
+
 function signatureFromNode(signature, typeRefFn = typeRef) {
     const parameters = (signature.parameters || []).map((param) =>
         compact({
@@ -299,6 +308,7 @@ export class TypeDocNormalizer extends Normalizer {
             const kind = resolveKind(node);
             const id = docId(node, kind, contextPath);
             const description = textFromComment(node.comment) || textFromComment(node.signatures?.[0]?.comment);
+            const lifecycle = lifecycleFromComment(node.comment) || lifecycleFromComment(node.signatures?.[0]?.comment);
             const source = sourceLocation(node.sources);
 
             const nodeExamples = examplesFromBlockTags(node.comment?.blockTags) || [];
@@ -337,6 +347,7 @@ export class TypeDocNormalizer extends Normalizer {
                 kind,
                 name: node.name,
                 description,
+                lifecycle,
                 children: [],
                 signatures: Array.isArray(node.signatures)
                     ? node.signatures.map((sig) => signatureFromNode(sig, resolveTypeRef))

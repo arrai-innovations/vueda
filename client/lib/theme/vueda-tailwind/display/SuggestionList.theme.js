@@ -4,12 +4,6 @@
  * Per-component theme registration for SuggestionList. Imported as a side effect by
  * SuggestionList.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire display family.
- *
- * Prototype-phase duplication: this entry mirrors the SuggestionList slice of
- * display/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -28,7 +22,7 @@ patchTheme({
         },
         /** Uppercase suggestion heading. */
         head: {
-            class: ["text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground leading-none"],
+            class: ["text-[10px] font-semibold uppercase tracking-[0.06em]", "text-muted-foreground leading-none"],
         },
         /** Mono source label for the matching system that produced the suggestions. */
         source: {
@@ -36,20 +30,23 @@ patchTheme({
         },
         /** Bordered list container with divided suggestion rows. */
         list: {
-            class: ["rounded-vueda-card border border-border overflow-hidden divide-y divide-border list-none m-0 p-0"],
+            class: ["rounded-vueda-card border overflow-hidden", "divide-y divide-border", "list-none m-0 p-0"],
         },
         /** Full-width router-link row laid out as icon, text stack, chip, and chevron. */
         item: {
             class: [
                 "grid grid-cols-[24px_1fr_auto_auto] items-center gap-x-3 px-2.5 py-2.5",
                 "w-full no-underline text-inherit",
-                "hover:bg-muted/50 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                "hover:bg-accent/50 active:bg-accent transition-colors",
+                "focus-visible:focus-ring-shadow",
             ],
         },
         /** Leading icon cell for the suggestion type. */
         icon: {
-            class: ["flex items-center justify-center w-6 h-6 shrink-0 text-muted-foreground text-[16px] leading-none"],
+            class: [
+                "flex items-center justify-center w-6 h-6 shrink-0",
+                "text-muted-foreground text-[16px] leading-none",
+            ],
         },
         /** Text column stacking label above the route path or action description. */
         labelStack: {
@@ -67,7 +64,7 @@ patchTheme({
         score: {
             class: [
                 "font-mono text-[10px] uppercase leading-none",
-                "border border-border rounded-sm bg-muted text-muted-foreground",
+                "border rounded-sm bg-muted text-muted-foreground",
                 "px-1.5 py-0.5 shrink-0",
             ],
         },
@@ -75,13 +72,13 @@ patchTheme({
         verb: {
             class: [
                 "font-mono text-[10px] uppercase leading-none",
-                "border border-border rounded-sm bg-muted text-muted-foreground",
+                "border rounded-sm bg-muted text-muted-foreground",
                 "px-1.5 py-0.5 shrink-0",
             ],
         },
         /** Trailing chevron affordance for rows that navigate. */
         chevron: {
-            class: ["flex items-center justify-center shrink-0 text-muted-foreground/60 text-[14px] leading-none"],
+            class: ["flex items-center justify-center shrink-0", "text-muted-foreground/60 text-[14px] leading-none"],
         },
     },
 });

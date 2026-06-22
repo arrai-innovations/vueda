@@ -150,7 +150,7 @@ describe("lib/components/TypedConfirmField.vue", () => {
                 props: { expectedValue: "x", class: "my-custom-class" },
             });
             expect(wrapper.classes()).toContain("my-custom-class");
-            expect(wrapper.classes()).toContain("border-border");
+            expect(wrapper.classes()).toContain("border");
         });
     });
 });

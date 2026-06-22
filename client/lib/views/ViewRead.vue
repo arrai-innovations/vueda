@@ -2,10 +2,13 @@
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
+import "@vueda/theme/vueda-tailwind/views/ViewRead.theme.js";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useForm } from "@vueda/use/useForm.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { onMounted, reactive, readonly, toRef, useSlots } from "vue";
 
@@ -19,6 +22,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
@@ -52,6 +56,11 @@ const internalOptions = reactive({
 
 const { instanceObject, instance, actions } = useDetailView(internalOptions, formContextProps.initialValues);
 
+const theme = useTheme("ViewRead", props);
+
+// Contribute the page title and loading state to the layout's PageTitle display.
+usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
+
 onMounted(() => {
     emit(
         "object",
@@ -71,36 +80,32 @@ onMounted(() => {
 });
 </script>
 <template>
-    <div data-qa="read-form-root">
-        <page-title :loading="instance.pageLoading" :title="instance.titleStr">
-            <template #button>
-                <template v-for="actionName in actions.nonDetailActions" :key="actionName">
-                    <slot
+    <div :class="theme('root')" data-qa="read-form-root">
+        <!-- Page-level actions teleport into the layout's PageTitle action zone. -->
+        <page-actions>
+            <template v-for="actionName in actions.nonDetailActions" :key="actionName">
+                <slot
+                    :app="app"
+                    :label="memoizedStartCase(actionName)"
+                    :model="model"
+                    name="targetless-action-button"
+                    :view="actionName"
+                >
+                    <link-model-view
                         :app="app"
+                        class="w-full"
                         :label="memoizedStartCase(actionName)"
                         :model="model"
-                        name="targetless-action-button"
                         :view="actionName"
-                    >
-                        <link-model-view
-                            :app="app"
-                            class="w-full"
-                            :label="memoizedStartCase(actionName)"
-                            :model="model"
-                            :view="actionName"
-                        />
-                    </slot>
-                </template>
-                <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
-                <slot name="extra-buttons" />
+                    />
+                </slot>
             </template>
-            <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
-            </template>
-        </page-title>
+            <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
+            <slot name="extra-buttons" />
+        </page-actions>
         <sticky-bar class="w-full">
             <template #primary>
-                <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="read-action-button">
+                <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="read-action-buttons">
                     <template v-for="actionName in actions.detailActions" :key="actionName">
                         <!-- @slot [action-button] Override an individual action link button in the sticky bar. -->
                         <slot
@@ -117,7 +122,6 @@ onMounted(() => {
                                 :label="memoizedStartCase(actionName)"
                                 :model="model"
                                 :pk="pk"
-                                severity="secondary"
                                 :view="actionName"
                             />
                         </slot>
@@ -138,7 +142,6 @@ onMounted(() => {
                                 :label="memoizedStartCase(transition)"
                                 :model="model"
                                 :pk="pk"
-                                severity="secondary"
                                 :view="transition"
                             />
                         </slot>
@@ -146,7 +149,7 @@ onMounted(() => {
                 </div>
             </template>
         </sticky-bar>
-        <div v-bind="$attrs" data-qa="read-form">
+        <div v-bind="$attrs" :class="theme('body')" data-qa="read-form">
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"

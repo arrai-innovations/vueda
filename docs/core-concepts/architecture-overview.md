@@ -53,7 +53,7 @@ Composables and builders translate metadata into reactive form models. Field typ
 
 ### Rendering.
 
-View components (`ViewList`, `ViewCreate`, `ViewRead`, `ViewUpdate`) and the `ViewActionRouter` consume the generated form models and render them using PrimeVue-based widgets. Custom action views are loaded dynamically by naming convention. The derivation pipeline from metadata to rendered UI is covered in [Contract-First Dynamic UI](./contract-first-dynamic-ui).
+View components (`ViewList`, `ViewCreate`, `ViewRead`, `ViewUpdate`) and the `ViewActionRouter` consume the generated form models and render them using VUEDA's own control and widget components (built on Reka UI). Custom action views are loaded dynamically by naming convention. The derivation pipeline from metadata to rendered UI is covered in [Contract-First Dynamic UI](./contract-first-dynamic-ui).
 
 ## Runtime Topology
 

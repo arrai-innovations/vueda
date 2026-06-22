@@ -74,6 +74,9 @@ fix-eslint:
 fix-prettier:
   cd {{justfile_directory()}} && pnpm run fix:prettier | sed '/unchanged/d'
 
+types-client:
+  cd {{justfile_directory()}}/client && pnpm run build:types
+
 manage *args:
   cd {{justfile_directory()}}/server && uv run --no-sync python manage.py {{args}}
 
@@ -82,8 +85,15 @@ docs-rebuild:
   rm -rf {{justfile_directory()}}/docs/.vitepress/.temp {{justfile_directory()}}/docs/.vitepress/cache
   cd {{justfile_directory()}}/docs && pnpm exec vitepress build
 
+docs-rebuild-timing:
+  rm -rf {{justfile_directory()}}/docs/.vitepress/.temp {{justfile_directory()}}/docs/.vitepress/cache
+  cd {{justfile_directory()}}/docs && VUEDA_DOCS_TIMING=1 pnpm exec vitepress build
+
 docs-serve:
-  cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8081
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress dev --host 0.0.0.0 --port 8081 --force
+
+docs-preview:
+  cd {{justfile_directory()}}/docs && pnpm exec vitepress preview --host 0.0.0.0 --port 8081
 
 docs-extract:
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js extract
@@ -116,3 +126,12 @@ docs-validate:
 docs-build:
   just docs-api
   just docs-rebuild
+
+docs-build-timing:
+  just docs-api
+  just docs-rebuild-timing
+
+docs-preview-build:
+  just docs-api
+  just docs-rebuild
+  just docs-preview

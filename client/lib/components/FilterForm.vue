@@ -3,7 +3,7 @@ import FieldRenderer from "@vueda/components/FieldRenderer.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/form/FilterForm.theme.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FilterModelSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, useSlots } from "vue";
 
@@ -11,11 +11,12 @@ import { computed, inject, useSlots } from "vue";
  * Renders the body of a filter popover for a single filterable field. It
  * displays a heading, the appropriate field widget via `FieldRenderer`, and an
  * Apply button that submits the filter value back to the parent
- * `FilterComponent`.
+ * `FilterFieldForm`.
  */
 defineOptions({});
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Field name this form filters on, used to look up the field renderer and slot names. */
     filterName: {
         type: String,

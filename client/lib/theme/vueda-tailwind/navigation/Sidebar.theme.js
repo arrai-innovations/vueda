@@ -4,12 +4,6 @@
  * Per-component theme registration for Sidebar. Imported as a side effect by
  * Sidebar.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire navigation family.
- *
- * Prototype-phase duplication: this entry mirrors the Sidebar slice of
- * navigation/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -25,7 +19,10 @@ patchTheme({
         /** Layout spacer that preserves desktop content offset while the fixed panel transitions. */
         spacer: ({ variant }) => ({
             class: [
+                // Layout and motion.
                 "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
+
+                // Data attribute states.
                 "group-data-[collapsible=offcanvas]:w-0",
                 "group-data-[side=right]:rotate-180",
                 {
@@ -39,12 +36,20 @@ patchTheme({
         /** Fixed desktop panel. Width and offcanvas transitions are driven by SidebarProvider CSS variables. */
         panel: ({ side, variant }) => ({
             class: [
-                "fixed inset-y-0 z-40 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+                // Positioning and sizing.
+                "fixed inset-y-0 z-40 hidden h-svh w-(--sidebar-width)",
+
+                // Motion and responsive layout.
+                "transition-[left,right,width] duration-200 ease-linear md:flex",
+
+                // Side states.
                 {
                     "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]": side === "left",
                     "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]":
                         side === "right",
                 },
+
+                // Variant classes.
                 {
                     "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]":
                         variant === "floating" || variant === "inset",

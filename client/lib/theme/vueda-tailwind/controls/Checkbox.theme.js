@@ -4,12 +4,6 @@
  * Per-component theme registration for Checkbox. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
- *
- * Prototype-phase duplication: this entry mirrors the Checkbox slice of
- * controls/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -26,8 +20,16 @@ patchTheme({
         /** The boolean-chit shell. 24px square at a 4px corner (one step softer than the 2px control radius) so it reads as a chit rather than a miniature slab control. Default state paints a `hairline` edge on the input-tinted surface and carries the standard focus + `aria-invalid` ring contract. Checked and indeterminate states fill with `--primary` and drop the hairline (the `--vueda-hairline-color:transparent` override on the same selectors) so the surface reads as a single solid swatch; `aria-invalid` swaps both the fill and the painted edge to `--destructive`. */
         root: {
             class: [
-                "peer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground hairline size-6 shrink-0 rounded-vueda-checkbox shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+                // Checked and indeterminate states.
+                "peer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground",
+
+                // Shape, disabled state, and icon elements.
+                "hairline size-6 shrink-0 rounded-vueda-checkbox shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+
+                // State-specific hairline color.
                 "data-[state=checked]:[--vueda-hairline-color:transparent] data-[state=indeterminate]:[--vueda-hairline-color:transparent]",
+
+                // Focus and invalid states.
                 "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive aria-invalid:data-[state=checked]:bg-destructive aria-invalid:data-[state=checked]:text-destructive-foreground aria-invalid:data-[state=indeterminate]:bg-destructive aria-invalid:data-[state=indeterminate]:text-destructive-foreground",
             ],

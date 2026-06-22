@@ -4,12 +4,6 @@
  * Per-component theme registration for TableRow. Imported as a side effect by
  * TableRow.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire grid family.
- *
- * Prototype-phase duplication: this entry mirrors the TableRow slice of
- * grid/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -23,7 +17,13 @@ patchTheme({
          * The row slot shared by header, body, and footer sections. It provides hover feedback, selected-row tinting, the leading selected rail, and the standard divider.
          */
         root: {
-            class: "hover:bg-muted/50 data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09] data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)] border-b transition-colors",
+            class: [
+                "hover:bg-accent/50 active:bg-accent",
+                "data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09]",
+                "data-[state=selected]:active:bg-primary/[0.12]",
+                "data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)]",
+                "border-b transition-colors",
+            ],
         },
     },
 });

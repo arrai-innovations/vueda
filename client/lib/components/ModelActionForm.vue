@@ -7,11 +7,11 @@ import FormField from "@vueda/fields/FormField.vue";
 import "@vueda/theme/vueda-tailwind/views/ModelActionForm.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
@@ -36,6 +36,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
@@ -225,7 +226,7 @@ const redirectTo = async (result) => {
         });
     }
 };
-const defaultRunAction = ({ formValues, dryRun }) => {
+const defaultRunAction = ({ formValues, dryRun, acknowledgeWarnings }) => {
     const isDestroy = props.action === "destroy";
     const headers = {
         "X-CSRFToken": getCSRFValue(),
@@ -233,6 +234,9 @@ const defaultRunAction = ({ formValues, dryRun }) => {
     };
     if (dryRun) {
         headers["Dry-Run"] = "true";
+    }
+    if (acknowledgeWarnings) {
+        headers["Acknowledge-Warnings"] = acknowledgeWarnings;
     }
     return fetchHelper(
         unref(bulk)
@@ -255,6 +259,9 @@ const defaultRunAction = ({ formValues, dryRun }) => {
         (message, response, data) => {
             if (response.status === 400) {
                 return new FormValidationError(data, response);
+            }
+            if (response.status === 409) {
+                return new ConfirmationRequiredError(data, response);
             }
             return new FetchError(message, response, data);
         },

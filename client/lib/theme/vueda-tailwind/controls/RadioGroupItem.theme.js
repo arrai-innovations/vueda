@@ -4,12 +4,6 @@
  * Per-component theme registration for RadioGroupItem. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
- *
- * Prototype-phase duplication: this entry mirrors the RadioGroupItem slice of
- * controls/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -22,7 +16,11 @@ patchTheme({
         /** The individual radio chit inside a {@api theme-key:RadioGroup.root}. 24px circle, paired with the 24px {@api theme-key:Checkbox.root} square so the two single-select families share a row height. `hairline` edge on an input-tinted surface (`dark:bg-input/30`) with the standard focus + `aria-invalid` ring contract. Selected state is carried by the inner {@api theme-key:RadioGroupItem.dot} via `text-primary` on the root (the dot inherits the colour through `bg-current`); `aria-invalid` recolours the dot to `--destructive` the same way. */
         root: {
             class: [
-                "text-primary dark:bg-input/30 hairline aspect-square size-6 shrink-0 rounded-full shadow-vueda-control transition-shadow disabled:cursor-not-allowed disabled:opacity-50",
+                // Surface and shape.
+                "text-primary dark:bg-input/30 hairline aspect-square size-6 shrink-0 rounded-full shadow-vueda-control transition-shadow",
+
+                // Disabled, focus, and invalid states.
+                "disabled:cursor-not-allowed disabled:opacity-50",
                 "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive aria-invalid:text-destructive",
             ],

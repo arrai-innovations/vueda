@@ -9,6 +9,7 @@ __all__ = (
     "ContentTypeField",
     "DurationSecondsField",
     "FileField",
+    "ImageField",
     "RangeField",
 )
 
@@ -92,3 +93,12 @@ class FileField(drf_serializers.FileField):
         if request is not None:
             url = request.build_absolute_uri(url)
         return {"name": value.name, "url": url}
+
+
+class ImageField(FileField):
+    """Image counterpart to :class:`FileField`.
+
+    Shares the ``{"name": ..., "url": ...}`` representation. Subclasses the file field rather than
+    ``rest_framework.serializers.ImageField`` so it does not pull in Pillow; image content validation is
+    left to the model field and upload pipeline.
+    """

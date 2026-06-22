@@ -3,6 +3,7 @@
  */
 import { Normalizer } from "../core.js";
 import { compact } from "../utils/compact.js";
+import { OPENAPI_DEPRECATED_ENDPOINT_MESSAGE, deprecatedLifecycle } from "../utils/lifecycle.js";
 
 function typeName(schema) {
     if (!schema) {
@@ -190,6 +191,9 @@ export class OpenApiNormalizer extends Normalizer {
                     name: operation.operationId || `${method.toUpperCase()} ${pathKey}`,
                     displayName: summary,
                     description,
+                    lifecycle: operation.deprecated
+                        ? deprecatedLifecycle(OPENAPI_DEPRECATED_ENDPOINT_MESSAGE)
+                        : undefined,
                     signatures: [
                         compact({
                             label: method.toUpperCase(),

@@ -2,6 +2,15 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, ref } from "vue";
 
+const PassThroughStub = (name) =>
+    defineComponent({
+        name,
+        inheritAttrs: false,
+        setup(_, { slots, attrs }) {
+            return () => h("div", { ...attrs }, slots.default ? slots.default() : null);
+        },
+    });
+
 const ButtonStub = defineComponent({
     name: "ButtonStub",
     emits: ["click"],
@@ -19,8 +28,8 @@ const ButtonStub = defineComponent({
     },
 });
 
-const ShellDrawerStub = defineComponent({
-    name: "ShellDrawerStub",
+const ShellDialogStub = defineComponent({
+    name: "ShellDialogStub",
     props: ["open"],
     emits: ["update:open"],
     setup(props, { slots, attrs }) {
@@ -28,7 +37,7 @@ const ShellDrawerStub = defineComponent({
             h(
                 "div",
                 {
-                    "data-qa": "drawer",
+                    "data-qa": "dialog",
                     "data-open": props.open,
                     ...attrs,
                 },
@@ -37,26 +46,10 @@ const ShellDrawerStub = defineComponent({
     },
 });
 
-const ShellDrawerContentStub = defineComponent({
-    name: "ShellDrawerContentStub",
-    setup(_, { slots }) {
-        return () => h("div", null, slots.default?.());
-    },
-});
-
-const ShellDrawerHeaderStub = defineComponent({
-    name: "ShellDrawerHeaderStub",
-    setup(_, { slots }) {
-        return () => h("div", null, slots.default?.());
-    },
-});
-
-const ShellDrawerTitleStub = defineComponent({
-    name: "ShellDrawerTitleStub",
-    setup(_, { slots }) {
-        return () => h("div", null, slots.default?.());
-    },
-});
+const ShellDialogContentStub = PassThroughStub("ShellDialogContentStub");
+const ShellDialogHeaderStub = PassThroughStub("ShellDialogHeaderStub");
+const ShellDialogTitleStub = PassThroughStub("ShellDialogTitleStub");
+const ShellDialogTriggerStub = PassThroughStub("ShellDialogTriggerStub");
 
 const ControlSelectStub = defineComponent({
     name: "ControlSelectStub",
@@ -113,25 +106,35 @@ const DraggableStub = defineComponent({
 });
 
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/shell/drawer/Drawer.vue", () => ({ default: ShellDrawerStub }));
-vi.mock("@vueda/shell/drawer/DrawerContent.vue", () => ({ default: ShellDrawerContentStub }));
-vi.mock("@vueda/shell/drawer/DrawerHeader.vue", () => ({ default: ShellDrawerHeaderStub }));
-vi.mock("@vueda/shell/drawer/DrawerTitle.vue", () => ({ default: ShellDrawerTitleStub }));
+vi.mock("@vueda/shell/dialog/Dialog.vue", () => ({ default: ShellDialogStub }));
+vi.mock("@vueda/shell/dialog/DialogContent.vue", () => ({ default: ShellDialogContentStub }));
+vi.mock("@vueda/shell/dialog/DialogHeader.vue", () => ({ default: ShellDialogHeaderStub }));
+vi.mock("@vueda/shell/dialog/DialogTitle.vue", () => ({ default: ShellDialogTitleStub }));
+vi.mock("@vueda/shell/dialog/DialogTrigger.vue", () => ({ default: ShellDialogTriggerStub }));
 vi.mock("@vueda/controls/select/Select.vue", () => ({ default: ControlSelectStub }));
 vi.mock("@vueda/controls/select/SelectContent.vue", () => ({ default: ControlSelectContentStub }));
 vi.mock("@vueda/controls/select/SelectItem.vue", () => ({ default: ControlSelectItemStub }));
 vi.mock("@vueda/controls/select/SelectTrigger.vue", () => ({ default: ControlSelectTriggerStub }));
 vi.mock("@vueda/controls/select/SelectValue.vue", () => ({ default: ControlSelectValueStub }));
 vi.mock("vue-draggable-next", () => ({ VueDraggableNext: DraggableStub }));
+// SortEditor (rendered for real inside the dialog) hosts its add-sort field picker in a popover.
+vi.mock("@vueda/shell/popover/Popover.vue", () => ({ default: PassThroughStub("PopoverStub") }));
+vi.mock("@vueda/shell/popover/PopoverContent.vue", () => ({ default: PassThroughStub("PopoverContentStub") }));
+vi.mock("@vueda/shell/popover/PopoverTrigger.vue", () => ({ default: PassThroughStub("PopoverTriggerStub") }));
 
 const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const themeMock = makeThemeFn({ slotResolver: (key) => key });
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: makeUseThemeMock({ themeFn: themeMock }) }));
+vi.mock("@vueda/use/useTheme.js", () => ({
+    useTheme: makeUseThemeMock({ themeFn: themeMock }),
+    THEME_OVERRIDE_PROPS: {},
+}));
 
 let MobileSortComponent;
+let SortEditor;
 
 beforeEach(async () => {
     MobileSortComponent = (await import("@vueda/components/MobileSortComponent.vue")).default;
+    SortEditor = (await import("@vueda/components/SortEditor.vue")).default;
 });
 
 afterEach(() => {
@@ -163,10 +166,11 @@ function mountComponent(options = {}) {
         global: {
             stubs: {
                 Button: ButtonStub,
-                Drawer: ShellDrawerStub,
-                DrawerContent: ShellDrawerContentStub,
-                DrawerHeader: ShellDrawerHeaderStub,
-                DrawerTitle: ShellDrawerTitleStub,
+                Dialog: ShellDialogStub,
+                DialogContent: ShellDialogContentStub,
+                DialogHeader: ShellDialogHeaderStub,
+                DialogTitle: ShellDialogTitleStub,
+                DialogTrigger: ShellDialogTriggerStub,
                 Select: ControlSelectStub,
                 draggable: DraggableStub,
             },
@@ -187,165 +191,78 @@ describe("lib/components/MobileSortComponent.vue", () => {
         expect(wrapper.emitted()["update:open"][1]).toEqual([false]);
     });
 
-    scopedIt("opens and closes the drawer via the toggle button interactions", async () => {
+    scopedIt("opens and closes the dialog via the toggle button interactions", async () => {
         const { wrapper } = mountComponent();
 
-        const drawer = () => wrapper.find('[data-qa="sort-component-drawer"]');
+        const dialog = () => wrapper.find('[data-qa="sort-component-dialog"]');
 
-        expect(drawer().attributes("data-open")).toBe("false");
+        expect(dialog().attributes("data-open")).toBe("false");
 
         await wrapper
             .findAll('[data-qa="button"]')
             .find((b) => b.text().includes("Sort"))
             .trigger("click");
         await wrapper.vm.$nextTick();
-        expect(drawer().attributes("data-open")).toBe("true");
+        expect(dialog().attributes("data-open")).toBe("true");
 
-        wrapper.findComponent(ShellDrawerStub).vm.$emit("update:open", false);
+        wrapper.findComponent(ShellDialogStub).vm.$emit("update:open", false);
         await wrapper.vm.$nextTick();
-        expect(drawer().attributes("data-open")).toBe("false");
+        expect(dialog().attributes("data-open")).toBe("false");
     });
 
-    scopedIt("manages the sorted list when adding, toggling, and removing entries", async () => {
-        const { wrapper } = mountComponent({
-            props: {
-                sortables: ["name", "created_at", "status"],
-                sorted: ["name"],
-                fieldDetails: { name: { label: "Name" }, created_at: {}, status: {} },
-            },
-        });
-
-        wrapper.vm.addSortable();
-        const addedSorted = wrapper.emitted()["update:sorted"][0][0];
-        expect(addedSorted).toEqual(["name", "created_at"]);
-        wrapper.setProps({ sorted: addedSorted });
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.toggleDirection(0);
-        const toggledSorted = wrapper.emitted()["update:sorted"][1][0];
-        expect(toggledSorted).toEqual(["-name", "created_at"]);
-        wrapper.setProps({ sorted: toggledSorted });
-        await wrapper.vm.$nextTick();
-
-        wrapper.vm.removeSortable(1);
-        const removedSorted = wrapper.emitted()["update:sorted"][2][0];
-        expect(removedSorted).toEqual(["-name"]);
-        wrapper.setProps({ sorted: removedSorted });
-        await wrapper.vm.$nextTick();
-        wrapper.vm.clearAll();
-        expect(wrapper.emitted()["update:sorted"][3][0]).toEqual([]);
-    });
-
-    scopedIt("does nothing when actions are invoked without available sortables", async () => {
-        const { wrapper } = mountComponent({
-            props: {
-                sortables: [],
-                sorted: [],
-            },
-        });
-
-        wrapper.vm.addSortable();
-        wrapper.vm.clearAll();
-        wrapper.vm.toggleDirection(0);
-
-        expect(wrapper.emitted()["update:sorted"]).toBeUndefined();
-    });
-
-    scopedIt("disables the Clear all button when there are no sorted fields", () => {
-        const { wrapper } = mountComponent({
-            props: {
-                sorted: [],
-            },
-        });
-
-        const clearButton = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Clear all"));
-        expect(clearButton.attributes("disabled")).toBeDefined();
-    });
-
-    scopedIt("disables the Add Sort button when no sortable options remain", () => {
-        const { wrapper } = mountComponent({
-            props: {
-                sortables: ["name"],
-                sorted: ["name"],
-            },
-        });
-
-        const addButton = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Add Sort"));
-        expect(addButton.attributes("disabled")).toBeDefined();
-    });
-
-    scopedIt("emits reordered sorting when dragging items", async () => {
-        const { wrapper } = mountComponent({
-            props: {
-                sorted: ["name", "created_at"],
-            },
-        });
-
-        wrapper.findComponent(DraggableStub).vm.$emit("update:modelValue", ["created_at", "name"]);
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["created_at", "name"]);
-    });
-
-    scopedIt("derives labels from fieldDetails and shows a badge for applied sorts", () => {
+    scopedIt("shows a badge with the applied sort count on the trigger", () => {
         const { wrapper } = mountComponent({
             props: {
                 sorted: ["name", "-created_at"],
-                fieldDetails: { name: { label: "Display Name" }, created_at: { label: "Created" } },
             },
         });
 
-        const selectDisplays = wrapper.findAll('[data-qa="select-value"]');
-
-        expect(selectDisplays[0].text()).toBe("Display Name");
-        expect(selectDisplays[1].text()).toBe("Created");
         const sortBtn = wrapper.findAll('[data-qa="button"]').find((b) => b.text().includes("Sort"));
         expect(sortBtn.text()).toContain("2");
     });
 
-    scopedIt("does not emit add events when all sortables are already selected", () => {
+    scopedIt("hosts SortEditor with the sort props forwarded", () => {
         const { wrapper } = mountComponent({
             props: {
-                sortables: ["name", "created_at"],
+                sortables: ["name", "created_at", "status"],
                 sorted: ["name", "-created_at"],
+                fieldDetails: { name: { label: "Name" } },
             },
         });
 
-        wrapper.vm.addSortable();
-
-        expect(wrapper.emitted()["update:sorted"]).toBeUndefined();
+        const editor = wrapper.findComponent(SortEditor);
+        expect(editor.exists()).toBe(true);
+        expect(editor.props("sortables")).toEqual(["name", "created_at", "status"]);
+        expect(editor.props("sorted")).toEqual(["name", "-created_at"]);
+        expect(editor.props("fieldDetails")).toEqual({ name: { label: "Name" } });
+        expect(wrapper.find('[data-qa="sort-component-dialog-body"]').classes()).toContain("dialogBody");
+        expect(wrapper.findComponent(ShellDialogContentStub).classes()).toContain("dialog");
+        expect(wrapper.findComponent(ShellDialogHeaderStub).classes()).toContain("dialogHeader");
     });
 
-    scopedIt("emits updated sorting when a selection is changed", async () => {
+    scopedIt("re-emits update:sorted raised by the hosted SortEditor", async () => {
         const { wrapper } = mountComponent({
             props: {
-                sortables: ["name", "created_at"],
-                sorted: ["-name"],
+                sorted: ["name"],
             },
         });
 
-        await wrapper.findComponent(ControlSelectStub).vm.$emit("update:modelValue", "created_at");
+        wrapper.findComponent(SortEditor).vm.$emit("update:sorted", ["-name"]);
+        await wrapper.vm.$nextTick();
 
-        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["created_at"]);
+        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["-name"]);
     });
 
-    scopedIt("respects custom slots while preserving emissions", async () => {
+    scopedIt("forwards body slots through to SortEditor", () => {
         const { wrapper } = mountComponent({
             props: {
                 sorted: ["name"],
             },
             slots: {
-                "drag-handle": ({ onClick }) => h("button", { "data-qa": "custom-drag", onClick }, "drag"),
-                "toggle-order-button": ({ onClick, label }) =>
-                    h("button", { "data-qa": "custom-toggle", onClick }, label),
-                "remove-sort-button": ({ onClick }) => h("button", { "data-qa": "custom-remove", onClick }, "x"),
+                "drag-handle": () => h("span", { "data-qa": "custom-drag" }, "drag"),
             },
         });
 
-        await wrapper.find('[data-qa="custom-toggle"]').trigger("click");
-        await wrapper.find('[data-qa="custom-remove"]').trigger("click");
-
-        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["-name"]);
-        expect(wrapper.emitted()["update:sorted"][1][0]).toEqual([]);
+        expect(wrapper.find('[data-qa="custom-drag"]').exists()).toBe(true);
     });
 });

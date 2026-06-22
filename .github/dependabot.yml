@@ -13,8 +13,6 @@ updates:
       open-pull-requests-limit: 0
       allow:
           - dependency-type: "all"
-      assignees:
-          - "arrai-innovations/developers"
     - package-ecosystem: "uv"
       directory: "/docs-tooling"
       schedule:
@@ -28,8 +26,6 @@ updates:
       open-pull-requests-limit: 0
       allow:
           - dependency-type: "all"
-      assignees:
-          - "arrai-innovations/developers"
     - package-ecosystem: "npm"
       directory: "/"
       schedule:
@@ -43,5 +39,3 @@ updates:
       open-pull-requests-limit: 0
       allow:
           - dependency-type: "all"
-      assignees:
-          - "arrai-innovations/developers"

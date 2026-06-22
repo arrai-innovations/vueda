@@ -2,12 +2,13 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewActivate.theme.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
@@ -22,9 +23,10 @@ import { useRouter } from "vue-router";
 
 /**
  * View that renders a confirmation form for the activate action via ModelActionForm, then sends
- * a PATCH request to the activate endpoint when the user confirms. Wraps the form in a PageTitle
- * for breadcrumb parity with sibling action-router views (ViewAction, ViewWorkflowTransition,
- * ViewHistoryList).
+ * a PATCH request to the activate endpoint when the user confirms. Contributes its title to the
+ * layout's PageTitle display via usePageTitle and teleports its "Go Back" action into the title
+ * action zone via PageActions, matching sibling action-router views (ViewAction,
+ * ViewWorkflowTransition, ViewHistoryList).
  */
 defineOptions({
     inheritAttrs: false,
@@ -117,6 +119,10 @@ const handleActivate = async () => {
 const activateTitleText = computed(() => {
     return props.title?.length > 0 ? props.title : `Activate ${memoizedStartCase(props.model)}`;
 });
+
+// Contribute the page title to the layout's PageTitle display.
+usePageTitle(() => ({ title: activateTitleText.value }));
+
 const router = useRouter();
 const handleReturnClick = () => {
     router.back();
@@ -126,16 +132,12 @@ const theme = useTheme("ViewActivate", props);
 
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-activate-root">
-        <PageTitle :title="activateTitleText">
-            <template #button>
-                <slot label="Go Back" name="return-button" verb="return" @click="handleReturnClick">
-                    <Button @click="handleReturnClick">Go Back</Button>
-                </slot>
-            </template>
-            <template v-for="(_, slot) in omit(slots, ['default'])" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
-            </template>
-        </PageTitle>
+        <!-- The "Go Back" action teleports into the layout's PageTitle action zone. -->
+        <page-actions>
+            <slot label="Go Back" name="return-button" @click="handleReturnClick">
+                <Button @click="handleReturnClick">Go Back</Button>
+            </slot>
+        </page-actions>
         <div v-if="!isEmpty(modelConfig.info)">
             <model-action-form
                 action="activate"

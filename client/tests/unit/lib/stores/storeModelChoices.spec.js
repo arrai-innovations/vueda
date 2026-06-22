@@ -5,7 +5,7 @@ import { PAGE_SIZE_PARAM } from "@vueda/utils/constants.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { createPinia, setActivePinia } from "pinia";
 
-describe("lib/store/storeModelChoices.js", () => {
+describe("lib/stores/storeModelChoices.js", () => {
     let fetchHelperMock, storeModule, store;
 
     beforeEach(async () => {
@@ -48,7 +48,7 @@ describe("lib/store/storeModelChoices.js", () => {
         fetchHelperMock.mockResolvedValue(data);
         const result = await store.fetchChoices("app", "model", "field");
         const key = getAppModelDotName({ app: "app", model: "model" });
-        const expectedUrl = `${httpOrHttpsHostname}${getUrl("infoModelInfoChoices")}${memoizedSnakeCase("app")}/${memoizedSnakeCase("model")}/${memoizedSnakeCase("field")}?${PAGE_SIZE_PARAM}=200`;
+        const expectedUrl = `${httpOrHttpsHostname}${getUrl("infoModelInfoChoices")}${memoizedSnakeCase("app")}/${memoizedSnakeCase("model")}/${memoizedSnakeCase("field")}/?${PAGE_SIZE_PARAM}=200`;
         expect(fetchHelperMock).toHaveBeenCalledWith(
             expectedUrl,
             { method: "GET" },
@@ -85,7 +85,7 @@ describe("lib/store/storeModelChoices.js", () => {
         fetchHelperMock.mockResolvedValue(data);
         const result = await store.fetchFilterChoices("app", "model", "field");
         const key = getAppModelDotName({ app: "app", model: "model" });
-        const expectedUrl = `${httpOrHttpsHostname}${getUrl("infoModelInfoFilterChoices")}${memoizedSnakeCase("app")}/${memoizedSnakeCase("model")}/field?${PAGE_SIZE_PARAM}=200`;
+        const expectedUrl = `${httpOrHttpsHostname}${getUrl("infoModelInfoFilterChoices")}${memoizedSnakeCase("app")}/${memoizedSnakeCase("model")}/field/?${PAGE_SIZE_PARAM}=200`;
         expect(fetchHelperMock).toHaveBeenCalledWith(
             expectedUrl,
             { method: "GET" },

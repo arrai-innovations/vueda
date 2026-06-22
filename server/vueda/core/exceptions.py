@@ -1,13 +1,19 @@
 """Custom exception handler and validation error classes with warning support."""
 
 __all__ = (
+    "ACKNOWLEDGE_WARNINGS_HEADER",
     "BadRequestException",
+    "ConfirmationRequired",
     "VuedaValidationError",
+    "compute_warnings_digest",
     "debug_stack_exception_handler",
+    "gate_warnings",
     "get_error_details_as_warning",
     "page_not_found",
 )
 
+import hashlib
+import json
 import logging
 from http import HTTPStatus
 from traceback import format_exception
@@ -26,6 +32,7 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.status import HTTP_404_NOT_FOUND
+from rest_framework.status import HTTP_409_CONFLICT
 from rest_framework.utils.serializer_helpers import ReturnDict
 from rest_framework.utils.serializer_helpers import ReturnList
 from rest_framework.views import exception_handler
@@ -36,11 +43,23 @@ from vueda.core.logging_filters import contains_only_warnings
 logger = logging.getLogger(__name__)
 django_requests_logger = logging.getLogger("django.request")
 
+ACKNOWLEDGE_WARNINGS_HEADER = "Acknowledge-Warnings"
+"""Request header carrying the warnings digest the client acknowledges."""
+
 
 def debug_stack_exception_handler(exc, context):
     """
     Custom exception handler which adds the exception class name to the response.
     """
+    if isinstance(exc, ConfirmationRequired):
+        # An expected control-flow response, not an error: the request is valid but carries
+        # unacknowledged advisory warnings. Return it directly so it skips the error logging,
+        # Sentry capture, and serverStack augmentation below.
+        return Response(
+            {"confirmation_required": True, "digest": exc.digest, "warnings": exc.warnings},
+            status=exc.status_code,
+        )
+
     # switched to ValidationError, because rest flex fields raises ValidationError("Expansion depth exceeded")
     if isinstance(exc, ValidationError) and isinstance(exc.detail, list):
         # VuedaValidationErrors raise as a list are non-field errors
@@ -83,6 +102,59 @@ class BadRequestException(APIException):
     status_code = HTTP_400_BAD_REQUEST
     default_detail = "There was a problem with your request."
     default_code = "bad_request"
+
+
+def compute_warnings_digest(warnings):
+    """
+    Return a short, stable digest of a warnings mapping.
+
+    The digest is order-independent (keys are sorted) so that the same set of warnings always hashes
+    to the same value. The client echoes this digest back in the acknowledgement header; the gate is
+    only bypassed on an exact match, so a changed warning set produces a different digest and the
+    user is re-prompted instead of silently committing past warnings they never saw.
+    """
+    canonical = json.dumps(warnings, sort_keys=True, default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+
+
+class ConfirmationRequired(APIException):
+    """
+    Raised when a create/update is valid but produced advisory warnings that have not yet been
+    acknowledged. Withholds the write and asks the client to confirm. See ``WarningConfirmationMixin``.
+    """
+
+    status_code = HTTP_409_CONFLICT
+    default_detail = "This change has warnings that require confirmation."
+    default_code = "confirmation_required"
+
+    def __init__(self, warnings, digest, detail=None, code=None):
+        super().__init__(detail=detail, code=code)
+        self.warnings = warnings
+        self.digest = digest
+
+
+def gate_warnings(request, warnings):
+    """
+    Withhold a write behind an explicit confirmation when ``warnings`` is non-empty.
+
+    ``warnings`` is an aggregate ``{field: [messages]}`` mapping of advisory warnings (use
+    ``"non_field_errors"`` for warnings not tied to a field). When it is falsy this returns
+    immediately. Otherwise the digest from ``compute_warnings_digest`` is compared against the
+    request's ``Acknowledge-Warnings`` header: a match means the client has already shown these
+    exact warnings to the user and they confirmed, so the caller may proceed; anything else raises
+    ``ConfirmationRequired`` (HTTP 409 with the warnings and digest), and the client re-submits
+    with the digest once the user confirms.
+
+    Call this from a custom action body after ``serializer.is_valid(raise_exception=True)`` (so
+    blocking validation errors surface as a 400 before the 409) and before any write or side
+    effect. ``WarningConfirmationMixin`` and the ``@action(confirm=True)`` mode route through this
+    same gate.
+    """
+    if not warnings:
+        return
+    digest = compute_warnings_digest(warnings)
+    if request.headers.get(ACKNOWLEDGE_WARNINGS_HEADER, "") != digest:
+        raise ConfirmationRequired(warnings, digest)
 
 
 def page_not_found(request, exception, *args, **kwargs):

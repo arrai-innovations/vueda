@@ -27,10 +27,14 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import CompositePrimaryKey
 from django.db.models import F
+from django.db.models import FileField as ModelFileField
+from django.db.models import ImageField as ModelImageField
 from rest_flex_fields import split_levels
 from rest_framework import serializers
 
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.fields.serializers import FileField as VuedaFileField
+from vueda.core.fields.serializers import ImageField as VuedaImageField
 from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
@@ -438,6 +442,21 @@ class VuedaSerializer(
     available_actions = AvailableActionsField()
     formatted_name = serializers.ReadOnlyField(style={"hidden": True})
 
+    def get_warnings(self):
+        """
+        Return advisory warnings for the current create/update as a mapping of
+        ``{field_name: [messages], "non_field_errors": [messages]}``. An empty mapping means no
+        warnings.
+
+        Override to surface non-blocking concerns the user should confirm before the write commits
+        (for example, "this will deactivate the last administrator"). This is called by the viewset
+        after validation succeeds, so ``self.validated_data`` is populated and ``self.instance`` holds
+        the current (pre-save) instance on updates. It must not raise: blocking conditions belong in
+        ``validate``/``VuedaValidationError`` (which return 400), whereas warnings gate the save behind
+        an explicit client confirmation (see ``WarningConfirmationMixin``).
+        """
+        return {}
+
     def to_representation(self, instance):
         repr_data = super().to_representation(instance)
         sparse_fields, _ = split_levels(self._flex_options_all["fields"])
@@ -448,6 +467,11 @@ class VuedaSerializer(
     serializer_field_mapping: ClassVar[dict] = {
         **serializers.ModelSerializer.serializer_field_mapping,
         CompositePrimaryKey: CompositePrimaryKeyField,
+        # Route file and image columns through VUEDA's serializer fields so they emit the
+        # {"name": ..., "url": ...} representation the client widgets consume. ImageField is keyed
+        # explicitly (not just inherited via FileField) so ClassLookupDict resolves it before FileField.
+        ModelFileField: VuedaFileField,
+        ModelImageField: VuedaImageField,
     }
 
     class Meta:

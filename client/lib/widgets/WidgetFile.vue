@@ -7,6 +7,7 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import { useObjectUrl } from "@vueuse/core";
 import isObject from "lodash-es/isObject.js";
 import { computed, inject, toRef, watch } from "vue";
 
@@ -73,9 +74,20 @@ const fileName = computed(() => {
     return null;
 });
 
+/** True while the current value is an unsaved `File` selected in the browser. */
+const isUnsavedFile = computed(() => widgetContext.state.combinedValue instanceof File);
+
+// A freshly picked File has no URL yet, so mint a local object URL to link to. useObjectUrl revokes
+// it when the selection changes and on teardown. Only narrow to File values: a persisted
+// {name, url} object would otherwise reach URL.createObjectURL and throw.
+const objectURL = useObjectUrl(() => (isUnsavedFile.value ? widgetContext.state.combinedValue : undefined));
+
 const fileURL = computed(() => {
+    if (isUnsavedFile.value) {
+        return objectURL.value;
+    }
     if (widgetContext.state.combinedValue) {
-        return widgetContext.state.combinedValue.objectURL ?? widgetContext.state.combinedValue;
+        return widgetContext.state.combinedValue.url ?? widgetContext.state.combinedValue;
     }
     return null;
 });
@@ -89,7 +101,13 @@ const fileURL = computed(() => {
                 :aria-labelledby="fieldContext?.state.fieldId"
                 :class="theme('file')"
             >
-                <a :class="theme('link')" :href="fileURL">{{ fileName }}</a>
+                <a
+                    :class="theme('link')"
+                    :href="fileURL"
+                    :rel="isUnsavedFile ? 'noopener' : undefined"
+                    :target="isUnsavedFile ? '_blank' : undefined"
+                    >{{ fileName }}</a
+                >
                 <div :class="theme('buttonGroup')">
                     <Button variant="ghost" size="icon-sm" data-qa="file-remove" @click="onRemoveFile">
                         <component

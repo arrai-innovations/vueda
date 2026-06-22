@@ -110,8 +110,12 @@ Button, the `--ring`, a selected table row's chromatic edge: those use
 toggle semantics, and never tint a passive-selection surface with primary.
 
 Half-strength accent (`bg-accent/50`) is the canonical "current section"
-treatment. Full `bg-accent` is hover. The half-strength rule prevents the
-active marker from competing with the hover.
+treatment and the row-hover rung; full `bg-accent` is menu / list hover and
+the toggle-on fill. The half-strength rule prevents a persistent active
+marker from competing with hover. `--accent` (and `--sidebar-accent`) are
+tuned to sit a perceptible lightness step below the page surface so these
+neutral highlights clear the glance threshold (see § 2.5); do not retune
+them back toward the surface.
 
 ### 2.3 Mix recipes
 
@@ -145,6 +149,44 @@ Status surfaces (`Alert` family) follow a single recipe: `text-{stat}` +
 
 The single use of strikethrough in VUEDA is on unavailable Calendar days
 in the destructive colour.
+
+### 2.5 Interactive state steps
+
+Hover and active on a _filled_ control are explicit lightness steps, not
+alpha fades over the surface. An alpha fade's delta depends on whatever
+sits behind the control and collapses when the fill already sits near the
+page surface (secondary-on-background was effectively invisible). The
+§2.3 alpha recipes stay correct for _surface_ tints (rows, skeletons);
+filled controls use dedicated step tokens.
+
+Each filled variant carries `--<token>-hover` and `--<token>-active`
+(e.g. `--primary-hover`, `--secondary-active`); outline / ghost reuse
+`--accent` for hover and `--accent-active` for press. Rules of thumb:
+
+- **Step lightness, not hue or alpha.** Lightness survives colour-vision
+  deficiency and degraded displays; hue alone does not.
+- **Target ΔL ≈ 0.10 (OKLCH L) at hover, ≈ 0.18 at active**, about the
+  "noticeable at a glance" threshold (~15 on a 0 to 100 scale).
+- **Light darkens, dark lightens.** Push the fill away from the page
+  surface; this also widens contrast against the variant's foreground.
+- **Ease chroma as lightness rises in dark mode** so the lighter step
+  stays inside the sRGB gamut.
+- **Small controls need the full step.** An alpha-on-token recipe whose
+  token is near the surface (dark `bg-input/*` on outline) caps the delta
+  below target and reads as no change at sm; reach for the step tokens.
+
+Neutral surfaces (menus, list rows, ghost controls) are transparent at rest,
+so instead of step tokens they ride an accent depth-ladder:
+`bg-accent/50` (row hover) → `bg-accent` (menu / list / ghost hover, and row
+press) → `bg-accent-active` (menu / ghost / control press). Sidebar controls
+mirror it with `--sidebar-accent` → `--sidebar-accent-active`, since the
+sidebar owns its own accent. Selected rows ride the chromatic ladder instead:
+`primary/[0.06]` rest → `/[0.09]` hover → `/[0.12]` press.
+
+Every clickable control gets a press one step past its hover. The exceptions
+are interactions that are not presses: text / date / time field segments
+(focus marks the segment being edited) and Slider (drag) carry no `active:`
+fill.
 
 ## 3. Typography
 
@@ -308,10 +350,9 @@ tokens`:
 | `--vueda-shadow-overlay` | heavier drop                 | dialogs, sheets, drawers                       |
 
 Cards never raise on hover. Raised surfaces are Popover, HoverCard, and
-Dialog only. Protection / fade gradients beneath floating UI are not
-used; if text would collide with content, redesign the layout. (StickyBar's
-gradient is the one exception because the bar pins; the gradient uses
-the semantic `from-card` stop, not a hardcoded neutral.)
+Dialog only. Protection / fade gradients beneath floating UI are not used,
+with no exceptions: not under the pinned PageTitle header, not under
+StickyBar. If text would collide with content, redesign the layout.
 
 ## 6. Shapes: radius scale
 
@@ -450,6 +491,35 @@ When extending the primitive layer:
   § 8 or the relevant rule section here once they ship in more than one
   family.
 
+### 9.1 Theme-key class authoring: each token appears once
+
+A theme key's `class` array is flattened by `combineClasses`, which has
+**no tailwind-merge**. When the array mixes plain strings with conditional
+objects, it builds a flat `{ token: boolean }` map with **last-write-wins
+per token**, splitting compound keys. Two consequences shape how class
+arrays must be authored:
+
+- **Same token, two branches: the loser wins.** If a single utility token
+  appears in more than one branch of a `variant` / `size` / `align` object
+  (or in an unconditional string _and_ a conditional key), an inactive
+  branch's `false` silently clears the token an active branch set. This
+  diverges from Vue's own array-class binding, which is a union (a `false`
+  key never removes a class another entry added). The rule: **a utility
+  token appears exactly once across a slot's `class` array.** A token
+  common to several branches must be hoisted to its own conditional entry,
+  or to an unconditional string, never repeated in mutually-exclusive keys.
+- **Conflicting distinct utilities: CSS source order wins, not array
+  order.** Because the result is a flat class set (not tailwind-merged),
+  two different utilities in the same group (`gap-1` vs `gap-2`,
+  `min-w-0` vs `min-w-vueda-control`) both render, and the cascade picks
+  the one defined later in the compiled stylesheet, regardless of array
+  order. Don't rely on a later array entry "overriding" an earlier one;
+  make the conditions mutually exclusive or remove the loser.
+
+The first rule is enforced by `tests/unit/lib/theme/classClobberGuard.spec.js`,
+which resolves every registered slot across a grid of prop values and fails
+if `combineClasses` drops a token the union would keep.
+
 VUEDA-original primitives (net-new, no shadcn lineage) include the
 `Field` shell, `ObjectsGrid`, `PageTitle`, `StickyBar`, the `AuthForm` /
 `AuthorizingForm` / `ActionForm` / `ModelActionForm` family, the full
@@ -567,6 +637,11 @@ own rotation.
 - No gradients. No textures. No decorative illustrations inside the UI.
 - No 36px control heights. No 56px row heights. No pillow radii.
 - No raised cards on hover. No elevation as a hierarchy device.
+- No alpha-fade hover / active on filled controls (`bg-primary/90`); use
+  the `--<token>-hover` / `--<token>-active` lightness steps (see § 2.5).
+- No retuning `--accent` / `--sidebar-accent` toward the surface; they're
+  tuned to clear the interactive step (§ 2.5). No press fill on focus / drag
+  controls (field segments, Slider).
 - No protection / fade gradients beneath floating UI; redesign the
   layout instead.
 - No text on a destructive surface using `text-destructive` (use

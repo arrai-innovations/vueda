@@ -134,6 +134,31 @@ describe("renderPdocBundle with submodules", () => {
     });
 });
 
+describe("renderPdocBundle with deprecated lifecycle metadata", () => {
+    it("module page renders the deprecation warning callout", () => {
+        const normalizer = new PdocNormalizer();
+        const bundle = normalizer.normalize({
+            module_names: ["vueda.example"],
+            docs: [
+                {
+                    kind: "module",
+                    name: "example",
+                    fullname: "vueda.example",
+                    modulename: "vueda.example",
+                    qualname: "",
+                    docstring: "Example module.\n\n@deprecated Use vueda.new_example instead.",
+                    members: [],
+                    submodules: [],
+                },
+            ],
+        });
+        const outputs = renderPdocBundle(bundle);
+        const page = outputs.get("py/vueda.example.md");
+        expect(page).toContain("::: warning Deprecated");
+        expect(page).toContain("Use vueda.new_example instead.");
+    });
+});
+
 describe("renderPdocBundle with class members", () => {
     it("class member anchor paths are not emitted as separate output files", () => {
         const outputs = buildOutputs();

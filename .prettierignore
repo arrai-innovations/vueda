@@ -20,6 +20,9 @@ client/package.json
 docs/package.json
 docs-tooling/package.json
 
+# generated TypeScript declaration outputs
+client/types
+
 # generated docs outputs
 docs/reference/api
 docs/public/api

@@ -4,7 +4,6 @@ import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
-import { useWarnings } from "@vueda/use/useWarnings.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { nextTick, reactive } from "vue";
 
@@ -23,10 +22,6 @@ vi.mock("@vueda/use/useForm.js", async () => {
 vi.mock("@vueda/use/useObjectForm.js", async () => {
     const actual = await vi.importActual("@vueda/use/useObjectForm.js");
     return { ...actual, useObjectForm: vi.fn() };
-});
-vi.mock("@vueda/use/useWarnings.js", async () => {
-    const actual = await vi.importActual("@vueda/use/useWarnings.js");
-    return { ...actual, useWarnings: vi.fn() };
 });
 
 describe("lib/use/useViewUpdate.js", () => {
@@ -110,7 +105,6 @@ describe("lib/use/useViewUpdate.js", () => {
         });
         useForm.mockReturnValue(mockFormContext);
         useObjectForm.mockReturnValue(mockObjectForm);
-        useWarnings.mockReturnValue(undefined);
     });
 
     afterEach(() => {
@@ -266,20 +260,6 @@ describe("lib/use/useViewUpdate.js", () => {
             const expand = objectCall.props.params[EXPAND_PARAM];
             expect(expand).toContain("details");
             expect(expand).not.toContain("tags");
-        });
-    });
-
-    describe("useWarnings", () => {
-        scopedIt("calls useWarnings with app, model, formContext, 'update', pk, and objectForm state", () => {
-            useViewUpdate(props);
-            expect(useWarnings).toHaveBeenCalledWith(
-                expect.anything(),
-                expect.anything(),
-                mockFormContext,
-                "update",
-                expect.anything(),
-                mockObjectForm.state,
-            );
         });
     });
 

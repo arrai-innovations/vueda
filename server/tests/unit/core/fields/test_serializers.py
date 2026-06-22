@@ -114,6 +114,28 @@ class TestFileField:
         assert result is None
 
 
+class TestImageField:
+    def setup_method(self):
+        self.field = core_fields_serializers.ImageField()
+
+    def test_is_file_field_subclass(self):
+        # Shares FileField's {"name", "url"} representation rather than DRF's plain-URL ImageField.
+        assert issubclass(core_fields_serializers.ImageField, core_fields_serializers.FileField)
+
+    def test_to_representation(self):
+        mock_file = MagicMock()
+        mock_file.name = "test_image.png"
+        mock_file.url = "/media/test_image.png"
+
+        result = self.field.to_representation(mock_file)
+        expected_output = {"name": "test_image.png", "url": "/media/test_image.png"}
+        assert result == expected_output
+
+    def test_to_representation_no_file(self):
+        result = self.field.to_representation(None)
+        assert result is None
+
+
 class TestCompositePrimaryKeyField:
     def test_to_representation(self):
         serializer = OrderItemCompositePKSerializer()

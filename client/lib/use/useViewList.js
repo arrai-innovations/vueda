@@ -136,6 +136,8 @@ import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { ListFilterError } from "@vueda/utils/errors.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
+import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -158,6 +160,8 @@ const VIEW_NAME = "list";
  * @property {import('vue').Ref<string[]> | string[]} [listFields] - Field names to fetch; uses the model config default when empty.
  * @property {import('vue').Ref<{[key: string]: object}> | {[key: string]: object}} [displayFields] - Display field overrides; uses the model config default when empty.
  * @property {import('vue').Ref<object[]> | object[]} [extraFieldObjects] - Synthetic field objects prepended to the display field list (e.g. the `selected_` checkbox column).
+ * @property {import('vue').Ref<{[name:string]: any}> | {[name:string]: any}} [columnComponents] - Per-field column adapter overrides (component, `() => component`, or a string key into `availableColumns`); highest-precedence non-slot override.
+ * @property {import('vue').Ref<{[name:string]: object}> | {[name:string]: object}} [columnProps] - Per-field prop overrides forwarded to the resolved column adapter.
  *
  * Data fetching.
  * @property {import('vue').Ref<object> | object} [relatedObjectsRules] - Rules for fetching related objects alongside each row.
@@ -175,6 +179,8 @@ const VIEW_NAME = "list";
  * @property {string} pkKey - The primary key field name (auto-unwrapped).
  * @property {object[]} computedFieldObjects - Ordered field descriptors for the grid, with column visibility applied.
  * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to exclude them from generic slot forwarding.
+ * @property {{[name:string]: import('@vueda/utils/resolveColumnComponents.js').ResolvedColumn}} columnComponents - Per-display-field resolved column adapter `{ component, props }`, applying the override precedence chain. ViewList injects these as default `field(<col>)` slot content.
+ * @property {string[]} columnSlots - `field(<col>)` slot names for resolved columns; excluded from the generic consumer-slot forward loop to avoid double-rendering.
  * @property {object} columnTotals - Map of field name to column total value.
  * @property {boolean} loading - Combined loading state (model config + instance list).
  * @property {boolean} errored - True when either model config or instance list has a non-filter error.
@@ -205,8 +211,9 @@ const VIEW_NAME = "list";
  * @property {{state: {sortables: import('vue').ComputedRef<string[]|undefined>, sorted: string[]}, updateSorted: (sorted: string[]) => void}} sorting - Sorting state and updater.
  * @property {string[]} sortablesList - Flat list of sortable field names (auto-unwrapped).
  * @property {boolean} isTable - True when the grid is in table mode (auto-unwrapped ref; can be assigned via `@update:is-table`).
- * @property {boolean} mobileSortDrawerVisible - Whether the mobile sort drawer is open (auto-unwrapped ref; v-model compatible via `v-model:visible`).
- * @property {boolean} canShowMobileSorter - True when the mobile sorter should be rendered.
+ * @property {boolean} mobileSortDrawerVisible - Whether the deprecated mobile sort shell is open (auto-unwrapped ref; v-model compatible via `v-model:visible`). Deprecated: SortControl owns its own open state.
+ * @property {boolean} canShowSorter - True when the sort control should be rendered (whenever sortable fields exist; layout-independent).
+ * @property {boolean} canShowMobileSorter - Deprecated. True when the legacy card-layout-only mobile sorter should be rendered (`!isTable && sortables exist`). Use `canShowSorter`.
  */
 
 /**
@@ -228,7 +235,7 @@ const VIEW_NAME = "list";
  * @property {import('vue').UnwrapNestedRefs<ViewListListGroup>} list - Core list state and computed field data.
  * @property {import('vue').UnwrapNestedRefs<ViewListActionsGroup>} actions - Action buttons and row selection.
  * @property {import('vue').UnwrapNestedRefs<ViewListSearchGroup>} search - Search bar state and helpers.
- * @property {import('vue').UnwrapNestedRefs<ViewListSortGroup>} sort - Sorting and mobile sort drawer state.
+ * @property {import('vue').UnwrapNestedRefs<ViewListSortGroup>} sort - Sorting and legacy mobile sort shell state.
  * @property {import('vue').UnwrapNestedRefs<ViewListColumnsGroup>} columns - Column visibility state.
  * @property {import('vue').UnwrapNestedRefs<ViewListPaginationGroup>} pagination - Pagination display state.
  */
@@ -250,6 +257,7 @@ const VIEW_NAME = "list";
  */
 export function useViewList(options) {
     const listPreferenceStore = storeListPreference();
+    listPreferenceStore.init();
     const isInitialized = reactive({ sort: false, columns: false, filters: false });
     const listSearch = ref(null);
     const isActive = useIsActive();
@@ -271,14 +279,33 @@ export function useViewList(options) {
     const workflow = useWorkflowTransitions(appRef, modelRef, isActive);
     const router = useRouter();
     const route = useRoute();
+    const restoreStoredPreferences = isEmpty(route.query);
+    const preferenceArgs = () => ({ app: unref(appRef), model: unref(modelRef) });
+    const filterQueryFrom = (query) => omit(query, [SEARCH_PARAM, ORDERING_PARAM]);
+    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM]);
+    const queryWithCurrentSort = (query, sorted) => {
+        const nextQuery = { ...query };
+        const value = formatSortQuery(sorted);
+        if (value) {
+            nextQuery[ORDERING_PARAM] = value;
+        } else {
+            delete nextQuery[ORDERING_PARAM];
+        }
+        return nextQuery;
+    };
     const sorting = reactive({
         state: {
             sortables: computed(() => modelConfig?.config?.sortables),
             sorted: [],
         },
         updateSorted: (sorted) => {
-            listPreferenceStore.setSorting({ app: unref(appRef), model: unref(modelRef) }, sorted);
-            assignReactiveObject(sorting.state.sorted, sorted);
+            const sanitized = sanitizeSortFields(sorted, unref(sorting.state.sortables) || []);
+            listPreferenceStore.setSorting(preferenceArgs(), sanitized);
+            assignReactiveObject(sorting.state.sorted, sanitized);
+            const routeQuery = queryWithCurrentSort(route.query, sanitized);
+            if (!isEqual(routeQuery, route.query)) {
+                router.push({ query: routeQuery });
+            }
         },
     });
 
@@ -375,13 +402,13 @@ export function useViewList(options) {
         if (!newSearch) {
             delete listState.params[SEARCH_PARAM];
             const routeQuery = omit(route.query, [SEARCH_PARAM]);
-            listPreferenceStore.setFilters({ app: unref(appRef), model: unref(modelRef) }, routeQuery);
+            listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
             router.push({ query: routeQuery });
         } else {
             listState.params[SEARCH_PARAM] = newSearch;
             const routeQuery = { ...route.query, [SEARCH_PARAM]: newSearch };
             if (!isEqual(routeQuery, route.query)) {
-                listPreferenceStore.setFilters({ app: unref(appRef), model: unref(modelRef) }, routeQuery);
+                listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
                 router.push({ query: routeQuery });
             }
         }
@@ -391,10 +418,7 @@ export function useViewList(options) {
         (newQuery) => {
             if (!isInitialized.filters) {
                 isInitialized.filters = true;
-                const storedFilters = listPreferenceStore.getFilters({
-                    app: unref(appRef),
-                    model: unref(modelRef),
-                });
+                const storedFilters = listPreferenceStore.getFilters(preferenceArgs());
                 if (storedFilters && isEmpty(newQuery)) {
                     router.push({ query: storedFilters });
                 }
@@ -431,13 +455,16 @@ export function useViewList(options) {
                 ...alwaysParamsKeys,
                 SEARCH_PARAM,
             ]);
-            const filterQuery = omit(route.query, [SEARCH_PARAM]);
+            const filterQuery = filterQueryFrom(route.query);
             if (!isEqual(newFilter, filterQuery)) {
                 const routeQuery = {
                     ...(route.query[SEARCH_PARAM] ? { [SEARCH_PARAM]: route.query[SEARCH_PARAM] } : {}),
+                    ...(route.query[ORDERING_PARAM] !== undefined
+                        ? { [ORDERING_PARAM]: route.query[ORDERING_PARAM] }
+                        : {}),
                     ...newFilter,
                 };
-                listPreferenceStore.setFilters({ app: unref(appRef), model: unref(modelRef) }, routeQuery);
+                listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
                 router.push({ query: routeQuery });
             }
         },
@@ -516,6 +543,23 @@ export function useViewList(options) {
     });
     const specialSlots = computed(() => (options.extraFieldObjects || []).map((field) => `field(${field.name})`));
 
+    // Resolve a type-aware column adapter (and its props) for each display
+    // field. ViewList injects these as default `field(<col>)` slot content so
+    // columns render through their adapter unless a consumer overrides the slot.
+    const columnComponents = computed(() =>
+        resolveColumns({
+            fields: calculatedDisplayFields.value,
+            propComponents: unref(options.columnComponents),
+            propProps: unref(options.columnProps),
+            configComponents: modelConfig.config?.columnComponents,
+            configProps: modelConfig.config?.columnProps,
+        }),
+    );
+    // Slot names ViewList injects defaults for; excluded from the generic
+    // consumer-slot forward loop so an injected default and a forwarded
+    // consumer slot never double-render the same column.
+    const columnSlots = computed(() => Object.keys(columnComponents.value).map((name) => `field(${name})`));
+
     const filteredActions = useFilteredActions({ modelConfigInstance: modelConfig });
     const targetlessActions = computed(() => {
         const actions = filteredActions.actions || [];
@@ -585,6 +629,12 @@ export function useViewList(options) {
     const columnTotals = computed(() => instanceList.state.columnTotals || {});
     const mobileSortDrawerVisible = ref(false);
     const sortablesList = computed(() => unref(sorting.state.sortables) || []);
+    // Layout-independent gate for the sort control: show it whenever the model
+    // exposes sortable fields. The control picks its own surface (popover vs
+    // drawer) by viewport, so the gate no longer depends on `isTable`.
+    const canShowSorter = computed(() => sortablesList.value.length > 0);
+    // Deprecated: the card-layout-only gate for the legacy MobileSortComponent.
+    // Superseded by `canShowSorter`; retained for back-compat.
     const canShowMobileSorter = computed(() => !isTable.value && sortablesList.value.length > 0);
     watch([isTable, sortablesList], ([newIsTable, newSortables]) => {
         if (newIsTable || !newSortables.length) {
@@ -619,14 +669,55 @@ export function useViewList(options) {
         { immediate: true, deep: true },
     );
     watch(
-        toRef(sorting.state, "sortables"),
-        (sortables) => {
-            if (sortables && !isInitialized.sort) {
+        [toRef(sorting.state, "sortables"), toRef(modelConfig, "loading"), () => route.query[ORDERING_PARAM]],
+        ([sortables, modelConfigLoading, querySorting]) => {
+            if (modelConfigLoading !== false || !Array.isArray(sortables)) {
+                return;
+            }
+            if (!isInitialized.sort) {
                 isInitialized.sort = true;
-                const storedSorting = listPreferenceStore.getSorting({ app: unref(appRef), model: unref(modelRef) });
-                if (storedSorting) {
-                    sorting.updateSorted(storedSorting);
+                const hasUrlSorting = Object.prototype.hasOwnProperty.call(route.query, ORDERING_PARAM);
+                const storedSorting =
+                    !hasUrlSorting && restoreStoredPreferences
+                        ? listPreferenceStore.getSorting(preferenceArgs())
+                        : null;
+                const restored = sanitizeSortFields(
+                    hasUrlSorting ? parseSortQuery(querySorting) : storedSorting || [],
+                    sortables,
+                );
+                assignReactiveObject(sorting.state.sorted, restored);
+
+                if (hasUrlSorting) {
+                    const canonicalQuery = queryWithCurrentSort(route.query, restored);
+                    if (!isEqual(canonicalQuery, route.query)) {
+                        router.replace({ query: canonicalQuery });
+                    }
+                } else if (storedSorting) {
+                    if (!isEqual(restored, storedSorting)) {
+                        listPreferenceStore.setSorting(preferenceArgs(), restored);
+                    }
+                    const canonicalQuery = queryWithCurrentSort(
+                        {
+                            ...listPreferenceStore.getFilters(preferenceArgs()),
+                            ...route.query,
+                        },
+                        restored,
+                    );
+                    if (!isEqual(canonicalQuery, route.query)) {
+                        router.replace({ query: canonicalQuery });
+                    }
                 }
+                return;
+            }
+            // After initialization, keep the active sort synchronized with later
+            // query-string changes, including browser navigation and removal of `o`.
+            const restored = sanitizeSortFields(parseSortQuery(querySorting), sortables);
+            if (!isEqual(restored, sorting.state.sorted)) {
+                assignReactiveObject(sorting.state.sorted, restored);
+            }
+            const canonicalQuery = queryWithCurrentSort(route.query, restored);
+            if (!isEqual(canonicalQuery, route.query)) {
+                router.replace({ query: canonicalQuery });
             }
         },
         { immediate: true, deep: true },
@@ -660,6 +751,8 @@ export function useViewList(options) {
             pkKey,
             computedFieldObjects,
             specialSlots,
+            columnComponents,
+            columnSlots,
             columnTotals,
             loading,
             errored,
@@ -685,6 +778,7 @@ export function useViewList(options) {
             sortablesList,
             isTable,
             mobileSortDrawerVisible,
+            canShowSorter,
             canShowMobileSorter,
         }),
         columns: reactive({

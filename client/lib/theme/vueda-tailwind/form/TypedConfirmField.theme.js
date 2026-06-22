@@ -4,12 +4,6 @@
  * Per-component theme registration for TypedConfirmField. Imported as a side effect by
  * TypedConfirmField.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire form family.
- *
- * Prototype-phase duplication: this entry mirrors the TypedConfirmField slice of
- * form/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -22,7 +16,7 @@ patchTheme({
         /** Muted confirmation box that groups the label and input before a destructive action. */
         root: {
             class: [
-                "flex flex-col gap-1.5 px-3.5 py-3 rounded-vueda-card border border-border",
+                "flex flex-col gap-1.5 px-3.5 py-3 rounded-vueda-card border",
                 "bg-[color-mix(in_oklab,var(--muted)_40%,var(--background))]",
             ],
         },
@@ -34,7 +28,7 @@ patchTheme({
         expectedChip: {
             class: [
                 "inline-flex items-center px-1.5 py-0.5 mx-0.5",
-                "rounded-[3px] border border-border bg-background",
+                "rounded-[3px] border bg-background",
                 "font-mono text-[12px] font-semibold leading-none text-foreground",
             ],
         },

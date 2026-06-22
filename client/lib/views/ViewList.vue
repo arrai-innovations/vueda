@@ -3,12 +3,11 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterGroup from "@vueda/components/FilterGroup.vue";
 import FormMessage from "@vueda/components/FormMessage.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
-import MobileSortComponent from "@vueda/components/MobileSortComponent.vue";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
-import StickyBar from "@vueda/components/StickyBar.vue";
+import SortControl from "@vueda/components/SortControl.vue";
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import InputGroup from "@vueda/controls/input-group/InputGroup.vue";
 import InputGroupButton from "@vueda/controls/input-group/InputGroupButton.vue";
@@ -19,12 +18,13 @@ import SelectItem from "@vueda/controls/select/SelectItem.vue";
 import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
 import SelectValue from "@vueda/controls/select/SelectValue.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewList.theme.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewList } from "@vueda/use/useViewList.js";
-import { getCRUDName, memoizedStartCase } from "@vueda/utils/case.js";
+import { getCRUDName } from "@vueda/utils/case.js";
 import omit from "lodash-es/omit.js";
-import { computed, onMounted, reactive, readonly, toRef, toRefs, useSlots } from "vue";
+import { computed, onMounted, reactive, readonly, ref, toRef, toRefs, useSlots } from "vue";
 
 /**
  * Full-page list view for a Django model. Renders a paginated, sortable, and searchable data grid with support
@@ -54,6 +54,21 @@ const props = defineProps({
     },
     /** Map of field names to display configuration overrides (label, component, etc.). */
     displayFields: {
+        type: Object,
+        default: () => ({}),
+    },
+    /**
+     * Per-field list column adapter overrides. Each value is a component, a
+     * `() => component` loader, or a string key into `availableColumns`. Takes
+     * precedence over `modelConfig.config.columnComponents` and type defaults;
+     * a consumer `#field(<col>)` slot still wins over both.
+     */
+    columnComponents: {
+        type: Object,
+        default: () => ({}),
+    },
+    /** Per-field props forwarded to the resolved list column adapter. */
+    columnProps: {
         type: Object,
         default: () => ({}),
     },
@@ -124,7 +139,15 @@ const props = defineProps({
 
 const { modelConfig, list, actions, search, sort, columns, pagination } = useViewList(props);
 
+// Contribute the page title and loading state to the layout's PageTitle display.
+usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loading }));
+
 const slots = useSlots();
+
+// Teleport target in the under-actions bar that the FilterGroup's add-filter
+// trigger teleports into, so the trigger sits in the toolbar while its popover
+// state stays owned by FilterGroup.
+const filterTriggerZone = ref(null);
 
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
 const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
@@ -190,68 +213,80 @@ onMounted(() => {
 </script>
 <template>
     <div :style="theme.hideStyle?.value">
-        <page-title :loading="list.instanceList.state.loading" :title="list.titleStr">
-            <template #button>
-                <slot name="targetless-action-buttons" :targetless-actions="actions.targetlessActions">
-                    <template
-                        v-for="actionName in actions.targetlessActions"
-                        :key="getCRUDName({ app: app, model: model, view: actionName })"
-                    >
-                        <!-- @slot [targetless-action-button, button] Replaces an individual targetless action button. -->
-                        <slot :name="targetlessActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
-                            <link-model-view v-bind="themedButtonSlotProps[actionName]" />
-                        </slot>
+        <!-- Targetless (list-level) actions teleport into the layout's PageTitle action zone. -->
+        <page-actions>
+            <slot name="targetless-action-buttons" :targetless-actions="actions.targetlessActions">
+                <template
+                    v-for="actionName in actions.targetlessActions"
+                    :key="getCRUDName({ app: app, model: model, view: actionName })"
+                >
+                    <!-- @slot [targetless-action-button, button] Replaces an individual targetless action button. -->
+                    <slot :name="targetlessActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
+                        <link-model-view v-bind="themedButtonSlotProps[actionName]" />
+                    </slot>
+                </template>
+            </slot>
+        </page-actions>
+        <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
+            <div :class="theme('filterControls')" data-qa="view-list-filter-controls">
+                <!-- FilterGroup's add-filter trigger teleports into this zone. -->
+                <div ref="filterTriggerZone" :class="theme('filterTriggerZone')" data-qa="view-list-filter-trigger" />
+                <sort-control
+                    v-if="sort.canShowSorter"
+                    :field-details="modelConfig.config?.fieldDetails || {}"
+                    :sortables="sort.sortablesList"
+                    :sorted="sort.sorting.state.sorted"
+                    @update:sorted="sort.sorting.updateSorted"
+                >
+                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                        <slot :name="slot" v-bind="slotProps || {}" />
                     </template>
+                </sort-control>
+            </div>
+            <div :class="theme('listControlBar')">
+                <slot name="search" v-bind="themedSearchSlotProps">
+                    <InputGroup>
+                        <InputGroupInput
+                            :class="theme('searchInput')"
+                            :model-value="search.searchSlotProps.listSearch"
+                            name="search"
+                            placeholder="Search"
+                            type="search"
+                            @search="search.filterList"
+                            @update:model-value="search.searchSlotProps.updateListSearch"
+                        />
+                        <InputGroupButton @click="search.filterList"> Search </InputGroupButton>
+                    </InputGroup>
                 </slot>
-            </template>
-            <template #under-actions>
-                <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
-                    <div :class="theme('listControlBar')">
-                        <slot name="search" v-bind="themedSearchSlotProps">
-                            <InputGroup>
-                                <InputGroupInput
-                                    :class="theme('searchInput')"
-                                    :model-value="search.searchSlotProps.listSearch"
-                                    name="search"
-                                    placeholder="Search"
-                                    type="search"
-                                    @search="search.filterList"
-                                    @update:model-value="search.searchSlotProps.updateListSearch"
-                                />
-                                <InputGroupButton @click="search.filterList"> Search </InputGroupButton>
-                            </InputGroup>
-                        </slot>
-                        <slot
-                            v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
-                            name="columns-select"
-                            :columns="columns.columns"
-                            :options="columns.columnOptions"
-                            :loading="list.loading"
-                        >
-                            <Select v-model="columns.columns" multiple>
-                                <SelectTrigger size="sm">
-                                    <SelectValue>
-                                        <slot name="columns-select-value-label">columns</slot>
-                                    </SelectValue>
-                                    <template v-if="slots['columns-select-dropdown-icon']" #icon>
-                                        <slot name="columns-select-dropdown-icon" />
-                                    </template>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem
-                                        v-for="option in columns.columnOptions"
-                                        :key="option.value"
-                                        :value="option.value"
-                                    >
-                                        {{ option.label }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </slot>
-                    </div>
-                </div>
-            </template>
-        </page-title>
+                <slot
+                    v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
+                    name="columns-select"
+                    :columns="columns.columns"
+                    :options="columns.columnOptions"
+                    :loading="list.loading"
+                >
+                    <Select v-model="columns.columns" multiple>
+                        <SelectTrigger size="sm">
+                            <SelectValue>
+                                <slot name="columns-select-value-label">columns</slot>
+                            </SelectValue>
+                            <template v-if="slots['columns-select-dropdown-icon']" #icon>
+                                <slot name="columns-select-dropdown-icon" />
+                            </template>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                v-for="option in columns.columnOptions"
+                                :key="option.value"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </slot>
+            </div>
+        </div>
         <div
             v-if="actions.selectedObjects.length > 0"
             :class="theme('bulkActionsBar')"
@@ -280,41 +315,26 @@ onMounted(() => {
                 </template>
             </div>
         </div>
-        <sticky-bar :class="theme('filterGroupBar')">
-            <span :class="theme('filterGroupBarEyebrow')" data-qa="view-list-filter-eyebrow">Filters</span>
-            <filter-group
-                v-model="list.listState.filterArgs"
-                :app="props.app"
-                :model="props.model"
-                :view="'list'"
-                :error="list.instanceList.state.error"
-                :errored="list.instanceList.state.errored"
-                :filterable-details="props.filterableDetails"
-                :filterables="props.filterables"
-                @filter-change="emit('filter-change', $event)"
-                @hide-filter-form="emit('hide-filter-form', $event)"
-                @query-change="emit('query-change', $event)"
-            >
-                <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                    <slot :name="slot" v-bind="slotProps || {}" />
-                </template>
-            </filter-group>
-            <div :class="theme('sortComponentDiv')">
-                <mobile-sort-component
-                    v-if="sort.canShowMobileSorter"
-                    v-model:visible="sort.mobileSortDrawerVisible"
-                    :header="`Sort ${memoizedStartCase(modelConfig.config?.verboseNamePlural || 'items')}`"
-                    :field-details="modelConfig.config?.fieldDetails || {}"
-                    :sortables="sort.sortablesList"
-                    :sorted="sort.sorting.state.sorted"
-                    @update:sorted="sort.sorting.updateSorted"
-                >
-                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                        <slot :name="slot" v-bind="slotProps || {}" />
-                    </template>
-                </mobile-sort-component>
-            </div>
-        </sticky-bar>
+        <!-- FilterGroup teleports its add-filter trigger into the toolbar zone above and renders
+             the active-filter chips strip (only when filters are present) in this flow position. -->
+        <filter-group
+            v-model="list.listState.filterArgs"
+            :app="props.app"
+            :model="props.model"
+            :view="'list'"
+            :error="list.instanceList.state.error"
+            :errored="list.instanceList.state.errored"
+            :filterable-details="props.filterableDetails"
+            :filterables="props.filterables"
+            :trigger-target="filterTriggerZone"
+            @filter-change="emit('filter-change', $event)"
+            @hide-filter-form="emit('hide-filter-form', $event)"
+            @query-change="emit('query-change', $event)"
+        >
+            <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
+            </template>
+        </filter-group>
 
         <slot name="additional-errors" />
         <error-display :error="list.error" :errored="list.errored" @dismiss-error="list.dismissError" />
@@ -352,10 +372,22 @@ onMounted(() => {
             @update:is-table="sort.isTable = $event"
         >
             <template
-                v-for="slot in Object.keys(slots).filter((slot) => !list.specialSlots.includes(slot))"
+                v-for="slot in Object.keys(slots).filter(
+                    (slot) => !list.specialSlots.includes(slot) && !list.columnSlots.includes(slot),
+                )"
                 #[slot]="slotProps"
             >
                 <slot :name="slot" v-bind="slotProps || {}"></slot>
+            </template>
+            <!-- Type-aware column adapters: inject a default `field(<col>)` per
+                 display column. The inner <slot> renders the consumer's own
+                 `field(<col>)` slot when provided (highest precedence), else the
+                 resolved adapter. Covers both table and card layouts because
+                 ObjectsGrid maps `field(<col>)` into both cell types. -->
+            <template v-for="(resolved, name) in list.columnComponents" :key="name" #[`field(${name})`]="slotProps">
+                <slot :name="`field(${name})`" v-bind="slotProps">
+                    <component :is="resolved.component" v-bind="{ ...slotProps, ...resolved.props }" />
+                </slot>
             </template>
             <template v-for="field in extraFieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
                 <slot :name="`field(${field.name})`" v-bind="slotProps">

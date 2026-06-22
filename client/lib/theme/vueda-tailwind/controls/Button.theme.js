@@ -9,17 +9,6 @@
  * `_ButtonPrimitives.theme.js` (a single owning module, since components in
  * other families compose them too). This file imports that module for its side
  * effect, then registers the `Button` entry itself.
- *
- * Prototype-phase duplication: the `Button` entry here mirrors the `Button`
- * slice of `controls/index.js`, which remains the docs-tooling source of truth
- * until the extractor learns to walk `*.theme.js`. Under the legacy
- * `setTheme(vuedaTailwind)` path the wholesale replace overwrites this patch
- * with identical data; when an integrator drops `setTheme`, this file (plus the
- * primitives module it imports) is the only place Button gets registered, and
- * only routes that import Button.vue pay for it.
- *
- * End-state migration: move source-of-truth here, update docs-tooling to walk
- * `*.theme.js`, and remove the Button slice from `controls/index.js`.
  */
 import "./_ButtonPrimitives.theme.js";
 import { patchTheme } from "@vueda/use/themeRegistry.js";
@@ -46,22 +35,30 @@ patchTheme({
             if (v === "link") {
                 return {
                     composes: ["_ButtonBase.root", variantKey],
-                    class: ["h-auto px-0", ...cooldownClass],
+                    class: [
+                        // Link sizing.
+                        "h-auto px-0",
+
+                        // Cooldown state.
+                        ...cooldownClass,
+                    ],
                 };
             }
             return {
                 composes: ["_ButtonBase.root", variantKey],
                 class: [
+                    // Size classes.
                     {
                         "h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm":
                             !size || size === "default",
-                        "h-vueda-control-sm gap-1.5 px-vueda-control-px-sm has-[>svg]:px-vueda-control-px-sm":
-                            size === "sm",
+                        "h-vueda-control-sm gap-1.5 px-vueda-control-px-sm": size === "sm",
                         "h-vueda-control-lg px-vueda-control-px-lg has-[>svg]:px-vueda-control-px": size === "lg",
                         "size-vueda-control": size === "icon",
                         "size-vueda-control-sm": size === "icon-sm",
                         "size-vueda-control-lg": size === "icon-lg",
                     },
+
+                    // Cooldown state.
                     ...cooldownClass,
                 ],
             };

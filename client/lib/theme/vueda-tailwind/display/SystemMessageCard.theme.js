@@ -4,12 +4,6 @@
  * Per-component theme registration for SystemMessageCard. Imported as a side effect by
  * SystemMessageCard.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire display family.
- *
- * Prototype-phase duplication: this entry mirrors the SystemMessageCard slice of
- * display/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -24,14 +18,14 @@ patchTheme({
                 "group/system-message-card",
                 "max-w-[460px] w-full",
                 "flex flex-col gap-5",
-                "rounded-vueda-card border border-border bg-card",
+                "rounded-vueda-card border bg-card",
                 "px-8 pt-8 pb-7",
                 "shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_4%,transparent)]",
             ],
         },
         /** Header row containing the icon tile, meta column, and optional status code, separated from the body by a bottom rule. */
         crest: {
-            class: ["flex items-start gap-3 pb-4 border-b border-border"],
+            class: ["flex items-start gap-3 pb-4 border-b"],
         },
         /** Tone-tinted icon tile routed through the system-message group scope. */
         crestIcon: {
@@ -40,12 +34,16 @@ patchTheme({
                 "w-9 h-9 rounded-[4px]",
                 "text-[18px] leading-none",
                 // info + loading: primary blue soft tint
-                "group-data-[tone=info]/system-message-card:bg-primary/[0.12] group-data-[tone=info]/system-message-card:text-primary",
-                "group-data-[tone=loading]/system-message-card:bg-primary/[0.12] group-data-[tone=loading]/system-message-card:text-primary",
+                "group-data-[tone=info]/system-message-card:bg-primary/[0.12]",
+                "group-data-[tone=info]/system-message-card:text-primary",
+                "group-data-[tone=loading]/system-message-card:bg-primary/[0.12]",
+                "group-data-[tone=loading]/system-message-card:text-primary",
                 // warning: amber soft tint
-                "group-data-[tone=warning]/system-message-card:bg-warning/[0.14] group-data-[tone=warning]/system-message-card:text-warning",
+                "group-data-[tone=warning]/system-message-card:bg-warning/[0.14]",
+                "group-data-[tone=warning]/system-message-card:text-warning",
                 // danger: red soft tint
-                "group-data-[tone=danger]/system-message-card:bg-destructive/[0.12] group-data-[tone=danger]/system-message-card:text-destructive",
+                "group-data-[tone=danger]/system-message-card:bg-destructive/[0.12]",
+                "group-data-[tone=danger]/system-message-card:text-destructive",
             ],
         },
         /** Meta text column inside the crest, flexing between icon and optional code. */

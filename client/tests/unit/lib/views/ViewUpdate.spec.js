@@ -1,7 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
-import { defineComponent, reactive } from "vue";
+import { defineComponent, h, reactive } from "vue";
 
 vi.mock("@vueda/use/useViewUpdate.js", async () => {
     const actual = await vi.importActual("@vueda/use/useViewUpdate.js");
@@ -18,9 +18,13 @@ vi.mock("@vueda/components/FormModel.vue", () => ({
 vi.mock("@vueda/components/LinkModelView.vue", () => ({
     default: defineComponent({ name: "LinkModelView", template: "<div />" }),
 }));
-vi.mock("@vueda/components/PageTitle.vue", () => ({
-    default: defineComponent({ name: "PageTitle", template: "<div><slot name='button' /></div>" }),
-}));
+const PageActionsStub = defineComponent({
+    name: "PageActionsStub",
+    setup(_, { slots, attrs }) {
+        return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
+    },
+});
+vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({
     default: defineComponent({
         name: "StickyBar",
@@ -33,6 +37,14 @@ vi.mock("@vueda/controls/button/Button.vue", () => ({
 vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({
     default: defineComponent({ name: "LoadingSpinnerInline", template: "<span />" }),
 }));
+const FormConfirmDialogStub = defineComponent({
+    name: "FormConfirmDialogStub",
+    props: ["controller", "title", "description", "confirmLabel"],
+    setup() {
+        return () => h("div", { "data-qa": "form-confirm-dialog" });
+    },
+});
+vi.mock("@vueda/components/FormConfirmDialog.vue", () => ({ default: FormConfirmDialogStub }));
 
 let mockComposableResult;
 
@@ -46,6 +58,7 @@ beforeEach(async () => {
         objectForm: {
             state: reactive({ loading: false }),
             submit: vi.fn(),
+            confirmation: reactive({ open: false, messages: {}, confirm: vi.fn(), cancel: vi.fn() }),
         },
         modelConfig: reactive({
             config: { verboseName: "widget" },
@@ -158,7 +171,39 @@ describe("lib/views/ViewUpdate.vue", () => {
         scopedIt("form action button container has data-qa attribute", async () => {
             const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
             const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
-            expect(wrapper.find('[data-qa="update-action-button"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="update-action-buttons"]').exists()).toBe(true);
+        });
+
+        scopedIt("renders FormConfirmDialog with save-specific copy", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            const dialog = wrapper.findComponent(FormConfirmDialogStub);
+            expect(dialog.exists()).toBe(true);
+            expect(dialog.props("controller")).toBe(mockComposableResult.objectForm.confirmation);
+            expect(dialog.props("title")).toBe("Confirm save");
+            expect(dialog.props("description")).toBe("This change has warnings. Review them before saving.");
+            expect(dialog.props("confirmLabel")).toBe("Save anyway");
+        });
+
+        scopedIt("applies the default theme gutter to the form body", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            const body = wrapper.find('[data-qa="update-form"]');
+            expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5"]));
+        });
+
+        scopedIt("merges a themeOverride body class with the form-body theme gutter", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, {
+                props: {
+                    app: "a",
+                    model: "m",
+                    pk: "1",
+                    themeOverride: { ViewUpdate: { body: { class: "my-outer-class" } } },
+                },
+            });
+            const body = wrapper.find('[data-qa="update-form"]');
+            expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5", "my-outer-class"]));
         });
     });
 });

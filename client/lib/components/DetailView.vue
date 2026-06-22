@@ -3,11 +3,13 @@ import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FormModel from "@vueda/components/FormModel.vue";
 import LinkModelView from "@vueda/components/LinkModelView.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageActions from "@vueda/components/PageActions.vue";
 import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/views/DetailView.theme.js";
 import { useDetailView } from "@vueda/use/useDetailView.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, onMounted, readonly, toRef, useSlots } from "vue";
@@ -24,6 +26,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
@@ -53,31 +56,6 @@ const props = defineProps({
     variant: {
         type: String,
         default: "default",
-    },
-    /** CSS class(es) applied to the div wrapping the error display and form. */
-    outerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the page title header area. */
-    headerClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the page title text element. */
-    titleClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the page title body area. */
-    bodyClass: {
-        type: [String, Array, Object],
-        default: () => [],
-    },
-    /** CSS class(es) applied to the loading indicator. */
-    loadingClass: {
-        type: [String, Array, Object],
-        default: () => [],
     },
     /** Theme variant forwarded to the inner FormModel component. */
     formModelVariant: {
@@ -179,6 +157,10 @@ const slots = useSlots();
 
 const { instanceObject, instance, actions } = useDetailView(props, formInitialValue);
 
+// Contribute the page title and loading state to the layout's PageTitle display.
+usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
+
+const theme = useTheme("DetailView", props);
 const stickyBarTheme = useTheme("StickyBar", {});
 const dirtyClass = computed(() => stickyBarTheme("dirty"));
 const showDirtyIndicator = computed(() => props.viewName === "update" && Boolean(formContext?.state?.anyModified));
@@ -202,34 +184,30 @@ onMounted(() => {
 });
 </script>
 <template>
-    <!-- TODO: theme.hideStyle requires a single themed root; useTheme here is only a StickyBar helper, this component has no own theme entry to gate on. -->
-    <div :class="props.class" :data-qa="`${viewName}-form-root`">
-        <page-title :loading="instance.pageLoading" :title="instance.titleStr">
-            <template #button>
-                <template v-for="actionName in actions.nonDetailActions" :key="actionName">
-                    <slot
+    <!-- TODO: theme.hideStyle requires a single themed root -->
+    <div :class="[theme('root'), props.class]" :data-qa="`${viewName}-form-root`">
+        <!-- Detail-level actions teleport into the layout's PageTitle action zone. -->
+        <page-actions>
+            <template v-for="actionName in actions.nonDetailActions" :key="actionName">
+                <slot
+                    :app="app"
+                    :label="memoizedStartCase(actionName)"
+                    :model="model"
+                    name="targetless-action-button"
+                    :view="actionName"
+                >
+                    <link-model-view
                         :app="app"
+                        class="w-full"
                         :label="memoizedStartCase(actionName)"
                         :model="model"
-                        name="targetless-action-button"
                         :view="actionName"
-                    >
-                        <link-model-view
-                            :app="app"
-                            class="w-full"
-                            :label="memoizedStartCase(actionName)"
-                            :model="model"
-                            :view="actionName"
-                        />
-                    </slot>
-                </template>
-                <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
-                <slot name="extra-buttons" />
+                    />
+                </slot>
             </template>
-            <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
-            </template>
-        </page-title>
+            <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
+            <slot name="extra-buttons" />
+        </page-actions>
         <sticky-bar class="w-full">
             <template #primary>
                 <div
@@ -267,7 +245,6 @@ onMounted(() => {
                                 :label="memoizedStartCase(actionName)"
                                 :model="model"
                                 :pk="pk"
-                                severity="secondary"
                                 :view="actionName"
                             />
                         </slot>
@@ -288,7 +265,6 @@ onMounted(() => {
                                 :label="memoizedStartCase(transition)"
                                 :model="model"
                                 :pk="pk"
-                                severity="secondary"
                                 :view="transition"
                             />
                         </slot>
@@ -302,7 +278,7 @@ onMounted(() => {
                 </span>
             </template>
         </sticky-bar>
-        <div :class="props.outerClass" :data-qa="`${viewName}-form`">
+        <div :class="theme('body')" :data-qa="`${viewName}-form`">
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"

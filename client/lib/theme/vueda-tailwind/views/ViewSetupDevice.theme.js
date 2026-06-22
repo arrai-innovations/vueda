@@ -4,12 +4,6 @@
  * Per-component theme registration for ViewSetupDevice. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire views family.
- *
- * Prototype-phase duplication: this entry mirrors the ViewSetupDevice slice of
- * views/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -33,9 +27,15 @@ patchTheme({
                 "flex items-center justify-center shrink-0",
                 "w-[18px] h-[18px] rounded-full",
                 "text-[11px] font-semibold leading-none",
-                "border border-border bg-background text-muted-foreground",
-                "data-[state=current]:bg-primary data-[state=current]:text-primary-foreground data-[state=current]:border-primary",
-                "data-[state=done]:bg-primary/15 data-[state=done]:text-primary data-[state=done]:border-primary/40",
+                "border bg-background text-muted-foreground",
+
+                // Data attribute states.
+                "data-[state=current]:bg-primary",
+                "data-[state=current]:text-primary-foreground",
+                "data-[state=current]:border-primary",
+                "data-[state=done]:bg-primary/15",
+                "data-[state=done]:text-primary",
+                "data-[state=done]:border-primary/40",
             ],
         },
         /** Step-name label beside the number badge. Uses the 11 px / 600 / `0.06em` uppercase eyebrow recipe so the rail reads as a row of section eyebrows; `data-state` promotes the colour to foreground at `current` and `done` so the active step does not lose contrast against the dimmed `upcoming` peers. */
@@ -53,10 +53,7 @@ patchTheme({
         },
         /** Manual-key strip rendered beneath the TOTP QR code so the operator can transcribe the secret when scanning is not an option. Card-toned with a hairline border and 10 px vertical padding; sits one row below the QR with a 8 px top inset so the two read as a pair. */
         manualKey: {
-            class: [
-                "flex items-center gap-2 px-3 py-[10px] mt-2",
-                "rounded-vueda-control border border-border bg-background",
-            ],
+            class: ["flex items-center gap-2 px-3 py-[10px] mt-2", "rounded-vueda-control border bg-background"],
         },
         /** "Manual key" eyebrow inside the strip. 10 px / 600 / `0.06em` uppercase, one tier smaller than the page-level eyebrows so it reads as a strip-local label; `shrink-0` keeps the eyebrow from collapsing when the secret pushes wider than the row. */
         manualKeyLabel: {

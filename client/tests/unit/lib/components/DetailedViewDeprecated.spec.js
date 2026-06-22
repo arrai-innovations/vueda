@@ -2,8 +2,6 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
 
-const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
 const DetailViewStub = defineComponent({
     name: "DetailViewStub",
     setup(_, { attrs, slots }) {
@@ -23,34 +21,38 @@ vi.mock("@vueda/components/DetailView.vue", () => ({
     default: DetailViewStub,
 }));
 
-let DetailedView;
+describe("lib/components/DetailedView.vue", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-beforeEach(async () => {
-    delete globalThis.__VUEDA_DETAILED_VIEW_DEPRECATION_WARNED__;
-    warnSpy.mockClear();
-    DetailedView = (await import("@vueda/components/DetailedView.vue")).default;
-});
+    let DetailedView;
 
-afterAll(() => {
-    warnSpy.mockRestore();
-});
-
-scopedIt("warns once in development and forwards attrs and slots", () => {
-    const wrapperOne = mount(DetailedView, {
-        attrs: { app: "myApp", model: "myModel", pk: "123", viewName: "read", foo: "bar" },
-        slots: { header: "<span>header</span>" },
-    });
-    const wrapperTwo = mount(DetailedView, {
-        attrs: { app: "myApp", model: "myModel", pk: "123", viewName: "read" },
+    beforeEach(async () => {
+        delete globalThis.__VUEDA_DETAILED_VIEW_DEPRECATION_WARNED__;
+        warnSpy.mockClear();
+        DetailedView = (await import("@vueda/components/DetailedView.vue")).default;
     });
 
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy.mock.calls[0][0]).toContain("DetailedView is deprecated");
-    expect(warnSpy.mock.calls[0][0]).toContain("@vueda/components/DetailView.vue");
+    afterAll(() => {
+        warnSpy.mockRestore();
+    });
 
-    const dvOne = wrapperOne.get('[data-qa="detail-view"]');
-    const dvTwo = wrapperTwo.get('[data-qa="detail-view"]');
-    expect(dvOne.attributes("foo")).toBe("bar");
-    expect(dvTwo.attributes("viewname")).toBe("read");
-    expect(dvOne.find('[data-slot="header"]').text()).toBe("header");
+    scopedIt("warns once in development and forwards attrs and slots", () => {
+        const wrapperOne = mount(DetailedView, {
+            attrs: { app: "myApp", model: "myModel", pk: "123", viewName: "read", foo: "bar" },
+            slots: { header: "<span>header</span>" },
+        });
+        const wrapperTwo = mount(DetailedView, {
+            attrs: { app: "myApp", model: "myModel", pk: "123", viewName: "read" },
+        });
+
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(warnSpy.mock.calls[0][0]).toContain("DetailedView is deprecated");
+        expect(warnSpy.mock.calls[0][0]).toContain("@vueda/components/DetailView.vue");
+
+        const dvOne = wrapperOne.get('[data-qa="detail-view"]');
+        const dvTwo = wrapperTwo.get('[data-qa="detail-view"]');
+        expect(dvOne.attributes("foo")).toBe("bar");
+        expect(dvTwo.attributes("viewname")).toBe("read");
+        expect(dvOne.find('[data-slot="header"]').text()).toBe("header");
+    });
 });

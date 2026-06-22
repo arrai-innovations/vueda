@@ -73,11 +73,8 @@ The scope should reference the affected filename (sans extension), module, or co
 ## Changelog
 
 Public client changelog entries belong in `docs/reference/changelog/client.md`.
-Use the shared convention before adding entries:
-
-[Changelog authoring convention](../docs/reference/changelog/README.md)
-
-@../docs/reference/changelog/README.md
+Before adding or editing entries, consult
+`../docs/reference/changelog/README.md` for the shared authoring convention.
 
 Add entries for changes that affect integrators: public components, composables,
 routes, stores, theme behavior, build integration, dependency expectations,
@@ -125,9 +122,8 @@ applications or public components.
 
 The docs-tooling pipeline reads several annotation conventions from `client/lib/` source files. The authoritative contract lives in the docs-tooling package next to the extractors that enforce it:
 
-[Client annotation contract](../docs-tooling/briefings/client-annotations.md)
-
-@../docs-tooling/briefings/client-annotations.md
+When editing source annotations that affect generated API docs, consult
+`../docs-tooling/briefings/client-annotations.md`.
 
 ---
 

@@ -8,11 +8,10 @@
 @import "tailwindcss";
 @import "@vueda/theme/vueda-tailwind/base.css";
 
-/* Explicitly scan the vueda client library for class names. The @source in
- * base.css is relative to its on-disk location and may not resolve when
- * base.css is imported through the @vueda alias; this directive is rooted at
- * showcase.css's location and walks up to the workspace's client lib. */
-@source "../../../client/lib/";
+/* Scan docs-only content for class names. base.css already registers
+ * `@source "../../"` for the vueda client lib (resolved via the package
+ * realpath), so the client lib does not need re-scanning here. These two
+ * cover what base.css does not: authored reference markdown and this dir. */
 @source "../../reference/";
 @source "./";
 
@@ -40,3 +39,5 @@
  * disabled treatment should pass the real `disabled` prop; this variant just
  * keeps the visual side consistent if the wrapper is used on non-buttons. */
 @custom-variant disabled (&:disabled, .force-state-disabled &);
+
+@custom-variant active (&:active, .force-state-active &);

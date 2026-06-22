@@ -4,12 +4,6 @@
  * Per-component theme registration for SidebarMenuBadge. Imported as a side effect by
  * SidebarMenuBadge.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire navigation family.
- *
- * Prototype-phase duplication: this entry mirrors the SidebarMenuBadge slice of
- * navigation/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -21,10 +15,18 @@ patchTheme({
         /** Count or status badge anchored to a menu button. Tone handling stays local to sidebar tokens and hides in icon-collapsed mode. */
         root: ({ tone }) => ({
             class: [
-                "pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-vueda-control px-1 font-mono text-[length:var(--vueda-text-micro)] font-semibold tabular-nums select-none",
+                // Positioning and layout.
+                "pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-vueda-control px-1",
+
+                // Type.
+                "font-mono text-[length:var(--vueda-text-micro)] font-semibold tabular-nums select-none",
+
+                // Size alignment.
                 "peer-data-[size=sm]/menu-button:top-1",
                 "peer-data-[size=default]/menu-button:top-1.5",
                 "peer-data-[size=lg]/menu-button:top-2.5",
+
+                // Tone classes.
                 {
                     "bg-sidebar-accent text-sidebar-foreground peer-data-[active=true]/menu-button:bg-[color-mix(in_oklab,var(--sidebar-primary)_14%,transparent)] peer-data-[active=true]/menu-button:text-sidebar-primary":
                         !tone || tone === "neutral",
@@ -33,6 +35,8 @@ patchTheme({
                     "bg-[color-mix(in_oklab,var(--destructive)_14%,transparent)] text-destructive":
                         tone === "destructive",
                 },
+
+                // Collapsed state.
                 "group-data-[collapsible=icon]:hidden",
             ],
         }),

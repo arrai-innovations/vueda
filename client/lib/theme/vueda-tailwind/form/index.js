@@ -7,9 +7,11 @@ import "./FieldSetRange.theme.js";
 import "./FieldSetStackedInline.theme.js";
 import "./FieldSetStackedInlineRow.theme.js";
 import "./FieldSetTabularInline.theme.js";
-import "./FilterComponent.theme.js";
+import "./FilterChip.theme.js";
+import "./FilterFieldForm.theme.js";
 import "./FilterForm.theme.js";
 import "./FilterGroup.theme.js";
+import "./FilterMenu.theme.js";
 import "./FormActions.theme.js";
 import "./FormGrid.theme.js";
 import "./FormHiddenFeedback.theme.js";
@@ -27,9 +29,11 @@ export default {
     FieldSetStackedInlineRow: {},
     FieldSetTabularInline: {},
     // ---------- Filters ----------
-    FilterComponent: {},
+    FilterChip: {},
+    FilterFieldForm: {},
     FilterForm: {},
     FilterGroup: {},
+    FilterMenu: {},
     // ---------- Form feedback ----------
     FormMessage: {},
     FormModel: {},

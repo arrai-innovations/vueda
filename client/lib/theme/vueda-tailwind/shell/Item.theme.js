@@ -4,12 +4,6 @@
  * Per-component theme registration for Item. Imported as a side effect by
  * Item.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire shell family.
- *
- * Prototype-phase duplication: this entry mirrors the Item slice of
- * shell/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -31,7 +25,15 @@ patchTheme({
             const sizeClass = size === "sm" ? "py-3 px-4 gap-2.5" : "p-4 gap-4";
             return {
                 class: [
-                    "group/item flex items-center border border-transparent text-sm rounded-md transition-colors [a]:hover:bg-accent/50 [a]:transition-colors duration-100 flex-wrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                    // Layout and base shape.
+                    "group/item flex items-center border border-transparent text-sm rounded-md",
+
+                    // Interactive states.
+                    "transition-colors [a]:hover:bg-accent/50 [a]:active:bg-accent [a]:transition-colors duration-100",
+
+                    // Wrapping and focus.
+                    "flex-wrap focus-visible:focus-ring",
+
                     variantClass,
                     sizeClass,
                 ],

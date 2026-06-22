@@ -4,12 +4,6 @@
  * Per-component theme registration for NavigationMenuTrigger. Imported as a side effect by
  * NavigationMenuTrigger.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire navigation family.
- *
- * Prototype-phase duplication: this entry mirrors the NavigationMenuTrigger slice of
- * navigation/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -20,7 +14,19 @@ patchTheme({
     NavigationMenuTrigger: {
         /** Header-scale trigger. It intentionally uses a 36px height and half-strength active fill. */
         root: {
-            class: "group inline-flex h-9 w-max items-center justify-center rounded-vueda-control bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=open]:hover:bg-accent data-[state=open]:text-accent-foreground data-[state=open]:focus:bg-accent data-[state=open]:bg-accent/50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+            class: [
+                // Layout and spacing.
+                "group inline-flex h-9 w-max items-center justify-center rounded-vueda-control bg-background px-4 py-2 text-sm font-medium",
+
+                // Interactive states.
+                "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground active:bg-accent-active active:text-accent-foreground",
+
+                // Disabled and open states.
+                "disabled:pointer-events-none disabled:opacity-50 data-[state=open]:hover:bg-accent data-[state=open]:text-accent-foreground data-[state=open]:focus:bg-accent data-[state=open]:bg-accent/50",
+
+                // Motion and focus.
+                "transition-colors focus-visible:focus-ring",
+            ],
         },
     },
 });

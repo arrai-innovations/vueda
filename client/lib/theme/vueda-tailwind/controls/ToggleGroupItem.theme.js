@@ -4,12 +4,6 @@
  * Per-component theme registration for ToggleGroupItem. Imported as a side effect by
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
- *
- * Prototype-phase duplication: this entry mirrors the ToggleGroupItem slice of
- * controls/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -23,17 +17,37 @@ patchTheme({
         /** The individual item inside a {@api theme-key:ToggleGroup}. Mirrors the {@api theme-key:Toggle.root} recipe (same variants, sizes, and accent-pressed treatment) and adds segmented behaviour: when the host group sets `data-spacing=0`, items drop their per-item radius and shadow and re-add them on the first and last child so the cluster reads as one slab. `min-w-0 shrink-0 px-3` overrides the Toggle minimum width so a label-bearing item grows to its content rather than staying square. */
         root: ({ variant, size }) => ({
             class: [
-                "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:hairline-ring focus-visible:focus-ring-shadow transition-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive whitespace-nowrap",
+                // Layout and type.
+                "inline-flex items-center justify-center gap-2 rounded-vueda-control text-sm font-medium",
+
+                // Interactive and active states.
+                "hover:bg-muted hover:text-muted-foreground active:bg-accent-active disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground",
+
+                // Icons and focus states.
+                "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:hairline-ring focus-visible:focus-ring-shadow transition-shadow",
+
+                // Invalid state and wrapping.
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive whitespace-nowrap",
+
+                // Variant classes. Default is transparent by absence of a fill; only
+                // outline adds a border + explicit bg-transparent. (A default-variant
+                // bg-transparent key here would be cleared by the outline key anyway,
+                // since combineClasses is last-write-wins.)
                 {
-                    "bg-transparent": !variant || variant === "default",
-                    "border border-input bg-transparent shadow-vueda-control hover:bg-accent hover:text-accent-foreground":
-                        variant === "outline",
+                    "border border-foreground bg-transparent shadow-vueda-control": variant === "outline",
                 },
+
+                // Size classes. Only height varies per size: the group-item override
+                // below sets a single px-3 / min-w-0 for every size (label-bearing items
+                // grow to content), so mirroring Toggle's per-size px / min-w here would
+                // be dead weight that competes with that override.
                 {
-                    "h-vueda-control px-2 min-w-vueda-control": !size || size === "default",
-                    "h-vueda-control-sm px-1.5 min-w-vueda-control-sm": size === "sm",
-                    "h-vueda-control-lg px-2.5 min-w-vueda-control-lg": size === "lg",
+                    "h-vueda-control": !size || size === "default",
+                    "h-vueda-control-sm": size === "sm",
+                    "h-vueda-control-lg": size === "lg",
                 },
+
+                // Group item overrides.
                 "w-auto min-w-0 shrink-0 px-3 focus:z-10 focus-visible:z-10",
                 "data-[spacing=0]:rounded-none data-[spacing=0]:shadow-none data-[spacing=0]:first:rounded-l-md data-[spacing=0]:last:rounded-r-md data-[spacing=0]:data-[variant=outline]:border-l-0 data-[spacing=0]:data-[variant=outline]:first:border-l",
             ],

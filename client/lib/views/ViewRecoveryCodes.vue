@@ -9,7 +9,7 @@ import { storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewRecoveryCodes.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
-import { useTheme } from "@vueda/use/useTheme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
 import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
@@ -21,6 +21,8 @@ import { toast } from "vue-sonner";
  * provides a button to generate a fresh set of codes.
  */
 defineOptions({});
+
+const props = defineProps({ ...THEME_OVERRIDE_PROPS });
 
 const userStore = storeUser();
 const isActive = useIsActive();
@@ -71,7 +73,7 @@ const goToSetupDevice = async () => {
 };
 
 const { copied, copy } = useClipboard();
-const theme = useTheme("ViewRecoveryCodes");
+const theme = useTheme("ViewRecoveryCodes", props);
 const icon = useIcons("ViewRecoveryCodes");
 </script>
 

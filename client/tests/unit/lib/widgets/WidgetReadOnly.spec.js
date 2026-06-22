@@ -42,59 +42,61 @@ vi.mock("@vueda/use/useSlotNameResolver.js", () => ({ useSlotNameResolver }));
 
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 
-let WidgetReadOnly;
+describe("lib/widgets/WidgetReadOnly.vue", () => {
+    let WidgetReadOnly;
 
-const fieldContext = { state: { fieldId: "test-field-id" } };
-const mountOptions = {
-    global: {
-        provide: {
-            [FieldContextSymbol]: fieldContext,
+    const fieldContext = { state: { fieldId: "test-field-id" } };
+    const mountOptions = {
+        global: {
+            provide: {
+                [FieldContextSymbol]: fieldContext,
+            },
         },
-    },
-};
+    };
 
-beforeEach(async () => {
-    WidgetReadOnly = (await import("@vueda/widgets/WidgetReadOnly.vue")).default;
-    vi.clearAllMocks();
-});
-
-afterEach(() => {
-    vi.clearAllMocks();
-});
-
-scopedIt("renders text item when not in lookup mode", () => {
-    const wrapper = mount(WidgetReadOnly, {
-        props: { prefix: "P", suffix: "S" },
-        ...mountOptions,
+    beforeEach(async () => {
+        WidgetReadOnly = (await import("@vueda/widgets/WidgetReadOnly.vue")).default;
+        vi.clearAllMocks();
     });
-    const value = wrapper.get('[data-qa="widget-read-only-value"]');
-    expect(value.text()).toContain("P");
-    expect(value.text()).toContain("val");
-    expect(value.text()).toContain("S");
-    expect(wrapper.find('[data-qa="link-model-view"]').exists()).toBe(false);
-});
 
-scopedIt("renders link when lookup mode and value available", () => {
-    const lookup = reactive({
-        object: { id: 1, formatted_name: "One" },
-        loading: false,
-        error: null,
-        errored: false,
-        effectScope: { stop: vi.fn() },
+    afterEach(() => {
+        vi.clearAllMocks();
     });
-    useModelConfig.mockReturnValue({ info: { pk: "id" }, config: { fetchFields: [], expand: [] } });
-    useResolvedLookupObject.mockReturnValue(lookup);
-    const wrapper = mount(WidgetReadOnly, {
-        props: { app: "a", model: "m", prefix: "<", suffix: ">" },
-        ...mountOptions,
+
+    scopedIt("renders text item when not in lookup mode", () => {
+        const wrapper = mount(WidgetReadOnly, {
+            props: { prefix: "P", suffix: "S" },
+            ...mountOptions,
+        });
+        const value = wrapper.get('[data-qa="widget-read-only-value"]');
+        expect(value.text()).toContain("P");
+        expect(value.text()).toContain("val");
+        expect(value.text()).toContain("S");
+        expect(wrapper.find('[data-qa="link-model-view"]').exists()).toBe(false);
     });
-    const link = wrapper.get('[data-qa="link-model-view"]');
-    expect(link.attributes("data-app")).toBe("a");
-    expect(link.attributes("data-model")).toBe("m");
-    expect(link.attributes("data-pk")).toBe("1");
-    expect(link.attributes("data-label")).toBe("One");
-    expect(link.text()).toBe("One");
-    const value = wrapper.get('[data-qa="widget-read-only-value"]');
-    expect(value.text()).toContain("<");
-    expect(value.text()).toContain(">");
+
+    scopedIt("renders link when lookup mode and value available", () => {
+        const lookup = reactive({
+            object: { id: 1, formatted_name: "One" },
+            loading: false,
+            error: null,
+            errored: false,
+            effectScope: { stop: vi.fn() },
+        });
+        useModelConfig.mockReturnValue({ info: { pk: "id" }, config: { fetchFields: [], expand: [] } });
+        useResolvedLookupObject.mockReturnValue(lookup);
+        const wrapper = mount(WidgetReadOnly, {
+            props: { app: "a", model: "m", prefix: "<", suffix: ">" },
+            ...mountOptions,
+        });
+        const link = wrapper.get('[data-qa="link-model-view"]');
+        expect(link.attributes("data-app")).toBe("a");
+        expect(link.attributes("data-model")).toBe("m");
+        expect(link.attributes("data-pk")).toBe("1");
+        expect(link.attributes("data-label")).toBe("One");
+        expect(link.text()).toBe("One");
+        const value = wrapper.get('[data-qa="widget-read-only-value"]');
+        expect(value.text()).toContain("<");
+        expect(value.text()).toContain(">");
+    });
 });

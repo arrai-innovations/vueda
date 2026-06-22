@@ -1,6 +1,5 @@
 <script setup>
 import ActionForm from "@vueda/components/ActionForm.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/AuthForm.theme.js";
 import { useAuthFlow } from "@vueda/use/useAuthFlow.js";
@@ -68,11 +67,8 @@ onMounted(() => {
             <div :class="theme('inner')" data-qa="auth-form-inner">
                 <div :class="theme('contentContainer')" data-qa="auth-form-content-container">
                     <div :class="theme('title')" data-qa="auth-form-title">
-                        <PageTitle :title="header">
-                            <template #subtitle>
-                                {{ subTitle }}
-                            </template>
-                        </PageTitle>
+                        <h1>{{ header }}</h1>
+                        <p v-if="subTitle">{{ subTitle }}</p>
                     </div>
                     <!-- @slot [form-content] Override the entire form content area; receives run-action, on-submission-error-handler, and redirect-to bindings. -->
                     <slot

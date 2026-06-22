@@ -119,4 +119,7 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 - {@api js:property:@arrai-innovations/vueda/utils/constants#ORDERING_PARAM}
 - {@api js:property:@arrai-innovations/vueda/utils/constants#SEARCH_PARAM}
 - {@api vue:component:ViewList}
-- {@api vue:component:FilterComponent}
+- {@api vue:component:FilterGroup}
+- {@api vue:component:FilterMenu}
+- {@api vue:component:FilterChip}
+- {@api vue:component:FilterFieldForm}

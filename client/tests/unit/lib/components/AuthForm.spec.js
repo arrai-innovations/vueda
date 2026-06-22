@@ -12,15 +12,6 @@ const ActionFormStub = defineComponent({
     },
 });
 
-const PageTitleStub = defineComponent({
-    name: "PageTitleStub",
-    props: ["title"],
-    setup(props, { slots }) {
-        return () =>
-            h("div", { "data-qa": "page-title", "data-title": props.title }, slots.subtitle ? slots.subtitle() : null);
-    },
-});
-
 const formContext = { state: { values: { email: "" } } };
 const useAuthFlow = vi.fn(() => ({
     formContext,
@@ -38,7 +29,6 @@ const useTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme, THEME_OVERRIDE_PROPS: {} }));
 
 vi.mock("@vueda/components/ActionForm.vue", () => ({ default: ActionFormStub }));
-vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
 
 let AuthForm;
 
@@ -67,7 +57,9 @@ describe("lib/components/AuthForm.vue", () => {
         const emitArg = wrapper.emitted("form-object")[0][0];
         expect(emitArg.value).toBe(formContext.state.values);
         expect(wrapper.find('[data-qa="action-form"]').exists()).toBe(true);
-        expect(wrapper.find('[data-qa="page-title"]').attributes("data-title")).toBe("Sign In");
+        const title = wrapper.find('[data-qa="auth-form-title"]');
+        expect(title.find("h1").text()).toBe("Sign In");
+        expect(title.find("p").text()).toBe("Welcome");
     });
 
     scopedIt("wires onSubmissionErrorHandler and redirectTo from useAuthFlow to ActionForm", () => {

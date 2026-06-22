@@ -7,7 +7,7 @@ status: draft
 
 # Customize VUEDA Appearance
 
-This guide shows the concrete recipes for each customization scope: a single instance, all instances of one component, a visual family of components, and brand-level skinning. Pick the section that matches the scope of the change you actually want; reaching for a broader mechanism than the change requires is the most common cause of customizations leaking into screens you did not intend to touch.
+This guide shows the concrete recipes for each customization scope: a single instance, all instances of one component, a visual family of components, and brand-level skinning. Pick the section that matches the scope of your change. Reaching for a broader mechanism than you need is the most common way customizations leak into screens you did not mean to touch.
 
 For the conceptual model behind these mechanisms (what each scope means and how the layers interact), see [Theming and Customization](../core-concepts/theming-and-customization).
 
@@ -61,8 +61,6 @@ const borderlessInputs = {
 </script>
 ```
 
-This is the right scope when you want a specific surface to render differently without changing the global default.
-
 ## Restyle one component system-wide
 
 Use {@api js:function:@arrai-innovations/vueda/use/themeRegistry#patchTheme} at app startup to merge an override into the default theme. Every instance of the component picks up the override as its baseline.
@@ -83,7 +81,7 @@ patchTheme({
 
 `patchTheme` merges the override; existing Button classes are preserved. To replace the entry entirely, use `setTheme` with a complete theme object.
 
-This is the right scope when you want the change everywhere the component appears, but it should not affect components that merely "look like" the component (calendar day cells, pagination items, etc.). Per-instance overrides still merge on top, so consumers can still customize specific instances.
+Per-instance overrides still merge on top, so specific instances stay customizable. Patching a leaf entry does not reach components that merely look like it (calendar day cells, pagination items); restyle the family for those.
 
 ## Restyle a visual family
 
@@ -116,7 +114,7 @@ patchTheme({
 });
 ```
 
-This is the right scope when the change is conceptually about a visual relationship across components, not one component identity. Available family meta keys are documented in the API reference for the component theme entries that compose from them.
+Override a meta key when the change is about a visual relationship shared across components rather than one component's identity. Available family meta keys are documented in the API reference for the component theme entries that compose from them.
 
 ## Re-skin via tokens
 
@@ -150,8 +148,6 @@ Some tokens to know:
 - **Motion**: `--vueda-duration-interaction`, `--vueda-ease-interaction`.
 
 The full set with default values lives in `base.css` itself, with section comments explaining what each token controls.
-
-This is the right scope for skinning. Most adopters customizing for their brand never touch `setTheme`; the customizations they reach for fall here.
 
 ## Common pitfalls
 

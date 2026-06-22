@@ -12,7 +12,8 @@ const mockedUseModelConfig = vi.fn();
 const mockedUseModelInitialValues = vi.fn();
 const mockedUseObjectForm = vi.fn();
 
-vi.mock("@arrai-innovations/reactive-helpers", () => ({
+vi.mock("@arrai-innovations/reactive-helpers", async (importActual) => ({
+    ...(await importActual()),
     useObject: mockedUseObject,
 }));
 vi.mock("@vueda/use/useFilteredActions.js", () => ({
@@ -37,15 +38,10 @@ vi.mock("@vueda/utils/case.js", () => ({
     memoizedStartCase: (s) => s,
 }));
 
-const PageTitleStub = defineComponent({
-    name: "PageTitleStub",
+const PageActionsStub = defineComponent({
+    name: "PageActionsStub",
     setup(_, { slots, attrs }) {
-        return () =>
-            h(
-                "div",
-                { "data-qa": "page-title", ...attrs },
-                Object.keys(slots).map((n) => h("div", { "data-slot": n }, slots[n] ? slots[n]() : null)),
-            );
+        return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
     },
 });
 const StickyBarStub = defineComponent({
@@ -123,14 +119,22 @@ const FeedbackSpinnerStub = defineComponent({
         return () => h("div", { "data-qa": "feedback-spinner" });
     },
 });
+const FormConfirmDialogStub = defineComponent({
+    name: "FormConfirmDialogStub",
+    props: ["controller", "title", "description", "confirmLabel"],
+    setup() {
+        return () => h("div", { "data-qa": "form-confirm-dialog" });
+    },
+});
 
-vi.mock("@vueda/components/PageTitle.vue", () => ({ default: PageTitleStub }));
+vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
 vi.mock("@vueda/components/FormModel.vue", () => ({ default: FormModelStub }));
 vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
 vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("@vueda/components/FormConfirmDialog.vue", () => ({ default: FormConfirmDialogStub }));
 
 vi.mock("vue", async () => {
     const actual = await vi.importActual("vue");
@@ -138,7 +142,7 @@ vi.mock("vue", async () => {
     return { __esModule: true, ...actual, inject: mockedInject, provide: mockedProvide };
 });
 
-let ViewCreate, vue, modelConfig;
+let ViewCreate, vue, modelConfig, objectForm;
 
 beforeEach(async () => {
     vue = await vi.importActual("vue");
@@ -152,7 +156,12 @@ beforeEach(async () => {
     mockedUseModelInitialValues.mockReturnValue(vue.reactive({}));
     mockedUseForm.mockReturnValue({ state: vue.reactive({ values: {}, anyModified: false }) });
     mockedUseObject.mockReturnValue({ state: vue.reactive({ error: null }) });
-    mockedUseObjectForm.mockReturnValue({ state: vue.reactive({ loading: false, error: null }), submit: vi.fn() });
+    objectForm = {
+        state: vue.reactive({ loading: false, error: null }),
+        submit: vi.fn(),
+        confirmation: vue.reactive({ open: false, messages: {}, confirm: vi.fn(), cancel: vi.fn() }),
+    };
+    mockedUseObjectForm.mockReturnValue(objectForm);
     mockedUseFilteredActions.mockReturnValue(vue.reactive({ actions: [] }));
     ViewCreate = (await import("@vueda/views/ViewCreate.vue")).default;
     provideStore.clear();
@@ -162,39 +171,67 @@ afterEach(() => {
     vi.clearAllMocks();
 });
 
-scopedIt("calls useLookupContext if lookup context is missing", () => {
-    mockedInject.mockReturnValueOnce(null);
-    mount(ViewCreate, { props: { app: "app", model: "model" } });
-    expect(mockedUseLookupContext).toHaveBeenCalled();
-});
+describe("lib/views/ViewCreate.vue", () => {
+    describe("Lookup context", () => {
+        scopedIt("calls useLookupContext if lookup context is missing", () => {
+            mockedInject.mockReturnValueOnce(null);
+            mount(ViewCreate, { props: { app: "app", model: "model" } });
+            expect(mockedUseLookupContext).toHaveBeenCalled();
+        });
 
-scopedIt("does not call useLookupContext when lookup context exists", () => {
-    mockedInject.mockReturnValueOnce({});
-    mount(ViewCreate, { props: { app: "app", model: "model" } });
-    expect(mockedUseLookupContext).not.toHaveBeenCalled();
-});
-
-scopedIt("emits form events and renders non-detail actions", async () => {
-    mockedInject.mockReturnValueOnce({});
-    mockedUseFilteredActions.mockReturnValueOnce(vue.reactive({ actions: ["create", "update", "list", "read"] }));
-    modelConfig.config.actionDetails = {
-        create: {},
-        update: {},
-        list: {},
-        read: { detail: true },
-    };
-    const wrapper = mount(ViewCreate, {
-        props: { app: "myapp", model: "mymodel" },
-        slots: { default: "<span>form content</span>" },
+        scopedIt("does not call useLookupContext when lookup context exists", () => {
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewCreate, { props: { app: "app", model: "model" } });
+            expect(mockedUseLookupContext).not.toHaveBeenCalled();
+        });
     });
-    await wrapper.vm.$nextTick();
 
-    expect(wrapper.emitted("form-object")).toBeTruthy();
-    expect(wrapper.emitted("form-context")).toBeTruthy();
-    const formArg = mockedUseForm.mock.calls[0][0];
-    expect(vue.isReactive(formArg)).toBe(true);
+    describe("Form integration", () => {
+        scopedIt("emits form events and renders non-detail actions", async () => {
+            mockedInject.mockReturnValueOnce({});
+            mockedUseFilteredActions.mockReturnValueOnce(
+                vue.reactive({ actions: ["create", "update", "list", "read"] }),
+            );
+            modelConfig.config.actionDetails = {
+                create: {},
+                update: {},
+                list: {},
+                read: { detail: true },
+            };
+            const wrapper = mount(ViewCreate, {
+                props: { app: "myapp", model: "mymodel" },
+                slots: { default: "<span>form content</span>" },
+            });
+            await wrapper.vm.$nextTick();
 
-    const links = wrapper.findAll('[data-qa="link-model-view"]');
-    const views = links.map((l) => l.attributes("data-view"));
-    expect(views).toEqual(["update", "list"]);
+            expect(wrapper.emitted("form-object")).toBeTruthy();
+            expect(wrapper.emitted("form-context")).toBeTruthy();
+            const formArg = mockedUseForm.mock.calls[0][0];
+            expect(vue.isReactive(formArg)).toBe(true);
+
+            const links = wrapper.findAll('[data-qa="link-model-view"]');
+            const views = links.map((l) => l.attributes("data-view"));
+            expect(views).toEqual(["update", "list"]);
+        });
+
+        scopedIt("renders FormConfirmDialog bound to the objectForm confirmation controller", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+            const dialog = wrapper.findComponent(FormConfirmDialogStub);
+            expect(dialog.exists()).toBe(true);
+            expect(dialog.props("controller")).toBe(objectForm.confirmation);
+            expect(dialog.props("title")).toBe("Confirm save");
+            expect(dialog.props("description")).toBe("This change has warnings. Review them before saving.");
+            expect(dialog.props("confirmLabel")).toBe("Save anyway");
+        });
+    });
+
+    describe("Rendering", () => {
+        scopedIt("applies the default theme gutter to the form body", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+            const body = wrapper.find('[data-qa="create-form"]');
+            expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5"]));
+        });
+    });
 });

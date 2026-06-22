@@ -649,3 +649,29 @@ class TestPrimaryKeyListSerializer:
 
         assert not serializer.is_valid()
         assert serializer.errors["pks"][0] == "pks list cannot be empty.", serializer.errors
+
+
+class TestVuedaSerializerFieldMapping:
+    """The serializer field mapping routes file and image columns through VUEDA's serializer fields."""
+
+    def _lookup(self, model_field_class):
+        from rest_framework.utils.field_mapping import ClassLookupDict
+
+        from vueda.core.serializers import VuedaSerializer
+
+        return ClassLookupDict(VuedaSerializer.serializer_field_mapping)[model_field_class()]
+
+    def test_file_field_maps_to_vueda_file_field(self):
+        from django.db import models
+
+        from vueda.core.fields.serializers import FileField as VuedaFileField
+
+        assert self._lookup(models.FileField) is VuedaFileField
+
+    def test_image_field_maps_to_vueda_image_field(self):
+        # ImageField subclasses FileField, so the mapping must key it explicitly to win the MRO walk.
+        from django.db import models
+
+        from vueda.core.fields.serializers import ImageField as VuedaImageField
+
+        assert self._lookup(models.ImageField) is VuedaImageField

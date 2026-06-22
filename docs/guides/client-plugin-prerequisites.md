@@ -9,7 +9,7 @@ type: how-to
 
 This guide covers the Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting a VUEDA client application. It explains what each dependency provides, which built-in components rely on it, and what fails when it is missing. The registration sequence depends on `setTheme` to provide component styling classes and on {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} to activate the shared {@term CRUDL} data path used by built-in views.
 
-The guide assumes familiarity with Vue 3 application setup (`createApp`, `app.use`, `app.directive`). For the tutorial-style walkthrough that shows the full `main.js` in context, see [Start Building](../tutorials/start-building). For theme customization beyond the base preset, consult the PrimeVue documentation.
+The guide assumes familiarity with Vue 3 application setup (`createApp`, `app.use`). For the tutorial-style walkthrough that shows the full `main.js` in context, see [Start Building](../tutorials/start-building). For theme customization beyond the base tokens, see [Customize VUEDA Appearance](customize-vueda-appearance).
 
 ## Goal and Preconditions
 
@@ -17,7 +17,7 @@ The objective is a `main.js` that registers all required plugins and setup funct
 
 Before you begin:
 
-The project must have `primevue`, `@primeuix/themes`, and `vue-sonner` installed as dependencies. These are peer dependencies of `@arrai-innovations/vueda`. Pinia and Vue Router must also be installed; they are assumed throughout but are not VUEDA-specific.
+The project must have `vue-sonner` installed as a dependency; it is a peer dependency of `@arrai-innovations/vueda` and backs the toast surface. VUEDA's control and widget components are first-party (built on Reka UI, which VUEDA bundles), so there is no third-party component-library peer dependency to install. Pinia and Vue Router must also be installed; they are assumed throughout but are not VUEDA-specific.
 
 If you are using the built-in `vueda-tailwind` theme (recommended), you also need `tailwindcss` and `@tailwindcss/vite` installed as dev dependencies, and the Vite plugin registered in `vite.config.js`. Tailwindcss is a build tool, not a runtime peer dependency of VUEDA.
 
@@ -28,15 +28,11 @@ Plugin registration follows a specific order. Some steps have dependencies on ea
 ```javascript
 import TheApp from "./TheApp.vue";
 import { getRouter } from "./router/index.js";
-import Aura from "@primeuix/themes/aura";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { setTheme } from "@vueda/use/useTheme.js";
 import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
 import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { createPinia } from "pinia";
-import PrimeVue from "primevue/config";
-import ConfirmationService from "primevue/confirmationservice";
-import Tooltip from "primevue/tooltip";
 import { createApp } from "vue";
 
 // 1. Theme and CRUDL adapters (before app creation)
@@ -52,18 +48,11 @@ const router = getRouter(app, pinia);
 app.use(pinia);
 app.use(router);
 
-// 3. PrimeVue and services
-app.use(PrimeVue, {
-    theme: {
-        preset: Aura,
-    },
-});
-app.use(ConfirmationService);
-app.directive("tooltip", Tooltip);
-
-// 4. Mount
+// 3. Mount
 app.mount("#the-app");
 ```
+
+VUEDA's controls, widgets, tooltips, and confirmation dialogs are first-party components, so there are no third-party UI plugins, services, or directives to register here. The toast surface is mounted as a component in your root template rather than registered as a plugin; see [Toast Notifications](#toast-notifications) below.
 
 The sections below explain each registration step.
 
@@ -111,30 +100,24 @@ These must be called **before** any VUEDA store or composable attempts a data fe
 
 **What fails without them:** Data operations silently return no results. Lists appear empty, forms do not load data, and save operations have no effect. There is no runtime error; the CRUDL layer has no adapter to call, so it produces no output.
 
-## PrimeVue
+## Controls and Widgets
 
-`app.use(PrimeVue, { theme: { preset } })` registers PrimeVue's configuration system on the Vue application. The `preset` option sets the design token foundation (colors, spacing, typography, border radii) that all PrimeVue components consume through CSS custom properties.
+VUEDA's controls and widgets (`Button`, `WidgetSelect`, `WidgetDatePicker`, `WidgetInput`, `WidgetMultiSelect`, `WidgetCheckbox`, `WidgetRadio`, `WidgetSlider`, and others) are first-party components built on Reka UI, which VUEDA bundles. There is no third-party component-library plugin to register: once `setTheme` has run, these components resolve their classes from the registered theme and render styled output. The remaining setup steps cover the toaster surface, which is mounted as a component rather than registered as a plugin.
 
-VUEDA uses the Aura preset by default. Any PrimeVue preset is compatible; the choice affects visual appearance but not functionality.
+## Toast Notifications
 
-**What depends on it:** Every VUEDA widget component (`WidgetSelect`, `WidgetDatePicker`, `WidgetInput`, `WidgetAutoComplete`, `WidgetMultiSelect`, `WidgetCheckbox`, `WidgetRadio`, `WidgetSlider`, and others) renders a PrimeVue component internally. Layout components such as `Button` (used by `ActionForm` and toolbar controls) also depend on PrimeVue.
+Toast notifications are backed by `vue-sonner`. Install it as a direct application dependency so VUEDA's toaster and any application code that imports `toast` share the same module instance. No plugin registration is needed; `toast` is a plain module import that works anywhere (components, composables, stores, route guards).
 
-**What fails without it:** PrimeVue components render without styling. Inputs, buttons, and dropdowns appear as unstyled HTML elements. CSS custom properties for the design tokens are undefined, so any component that reads them produces visual inconsistencies.
-
-## Toast Notifications (FeedbackToaster)
-
-Toast notifications use `vue-sonner` instead of PrimeVue's ToastService. Install it as a direct application dependency so VUEDA's toaster and any application code that imports `toast` share the same module instance. No plugin registration is needed; `toast` is a plain module import that works anywhere (components, composables, stores, route guards).
-
-**Setup:** Render `<FeedbackToaster />` once in your root component (e.g. `TheApp.vue`):
+**Setup:** Mount the `Sonner` toaster once in your root component (e.g. `TheApp.vue`):
 
 ```vue
 <script setup>
-import { FeedbackToaster } from "@vueda/feedback/toast";
+import Sonner from "@vueda/feedback/toast/Sonner.vue";
 </script>
 
 <template>
-    <FeedbackToaster />
     <RouterView />
+    <Sonner />
 </template>
 ```
 
@@ -151,23 +134,23 @@ toast.info("No changes detected");
 
 **What depends on it:** `ActionForm` displays success, error, and warning toasts after form submissions. `AuthorizingForm` shows a redirect confirmation toast. `useObjectForm` default handlers show toasts for "No Changes Detected", "Pre-save Validation Failed", and "Save Validation Failed" scenarios. `ClickToCopyText`, `ViewWorkflowTransition`, and the MFA setup views also use toast notifications.
 
-**What fails without it:** If `<FeedbackToaster />` is not mounted, `toast(...)` calls silently do nothing (no error is thrown, but no notification appears).
+**What fails without it:** If the `Sonner` toaster is not mounted, `toast(...)` calls silently do nothing (no error is thrown, but no notification appears).
 
-## ConfirmationService
+## Confirmation Dialogs
 
-`app.use(ConfirmationService)` registers PrimeVue's global confirmation dialog service. Components access it through the `useConfirm()` composable.
+Confirmation is built into VUEDA's forms; there is no global service to register. Forms that can prompt for confirmation (for example, `ActionForm` and the object-form flows) render their own `FormConfirmDialog` and drive it through the per-form controller returned by `useConfirmationController`. When a submission returns warnings that require confirmation, the form opens its dialog and resolves once the user responds.
 
-**What depends on it:** `ActionForm` uses confirmation dialogs when the `confirmMessage` prop is set. Bulk delete operations and destructive actions may trigger confirmation prompts.
+**What depends on it:** `ActionForm` and the destroy and update flows prompt for confirmation when an action is configured to require it or when the server returns confirm-then-save warnings (HTTP 409).
 
-**What fails without it:** `useConfirm()` returns `undefined`. Any component that attempts to show a confirmation dialog throws a `TypeError`. In practice, this surfaces when a user triggers a delete or other destructive action that is configured to require confirmation.
+**What fails without it:** Nothing to register, so nothing fails at setup time. If you build a fully custom submit surface that bypasses the built-in dialog, the controller fails closed: it logs a console warning and treats the submission as cancelled rather than leaving it pending. Render `<FormConfirmDialog :controller="..." />` (or register a custom consumer via `confirmation.register()`) so the submission can be confirmed.
 
-## Tooltip Directive
+## Tooltips
 
-`app.directive("tooltip", Tooltip)` registers the PrimeVue tooltip as a global directive. Components use it via the `v-tooltip` attribute on template elements.
+Tooltips are first-party components built on Reka UI, not a registered directive. The shell layer (for example, `SidebarProvider`) wraps the relevant subtree in a `TooltipProvider`, and components render the `Tooltip` component where hover explanations are needed. There is no `v-tooltip` directive to register and nothing to install.
 
-**What depends on it:** Field help text, icon labels, and abbreviated content use `v-tooltip` for hover explanations.
+**What depends on it:** Field help text, icon labels, and abbreviated content render tooltips for hover explanations.
 
-**What fails without it:** The `v-tooltip` attribute is silently ignored. No runtime error occurs; help text tooltips simply do not appear. This is the least critical of the plugin dependencies, but users lose access to contextual help on form fields.
+**What fails without it:** Nothing to register. Tooltips appear wherever a `TooltipProvider` is present in the component tree above them, which the built-in shell components provide.
 
 ## Verification Checklist
 
@@ -181,15 +164,15 @@ After completing the registration sequence, verify the following:
 
 ## Troubleshooting
 
-**Toast notifications not appearing.** `<FeedbackToaster />` is not mounted in the root component. Add it to `TheApp.vue`.
+**Toast notifications not appearing.** The `Sonner` toaster is not mounted in the root component. Add `<Sonner />` to `TheApp.vue`.
 
-**Components render as unstyled HTML.** Either `setTheme` was not called (VUEDA layout classes are missing) or PrimeVue is not registered (PrimeVue widget styling is missing). Verify `setTheme(vuedaTailwind)` is called before app creation and `app.use(PrimeVue, { theme: { preset: Aura } })` is present. Check the browser console for missing CSS custom property warnings.
+**Components render as unstyled HTML.** `setTheme` was not called, so components resolve empty class strings. Verify `setTheme(vuedaTailwind)` is called before app creation and that Tailwind plus `@vueda/theme/vueda-tailwind/base.css` are imported in your stylesheet. Check the browser console for missing CSS custom property warnings.
 
 **Lists load but show no data.** CRUDL adapters are not registered. Verify that `setupDefaultListCrud()` and `setupDefaultObjectCrud()` are called before app creation. Check the network tab; if no HTTP requests are made for list data, the adapter layer has no implementation.
 
-**Tooltips do not appear on hover.** The Tooltip directive is not registered. Add `app.directive("tooltip", Tooltip)`. This has no runtime error, so it is easy to miss.
+**Tooltips do not appear on hover.** No `TooltipProvider` is present above the component in the tree. The built-in shell components provide one; if you render tooltip-bearing components outside that shell, wrap them in a `TooltipProvider`.
 
-**Confirmation dialog does not appear for delete actions.** `ConfirmationService` is not registered. Add `app.use(ConfirmationService)`. Also verify that the action's configuration includes a `confirmMessage` prop.
+**Confirmation dialog does not appear for an action.** The action is not configured to require confirmation, or a fully custom submit surface bypasses the built-in `FormConfirmDialog`. Verify the action's configuration requires confirmation, and that any custom form renders `FormConfirmDialog` (or registers a consumer on the confirmation controller).
 
 ## Relevant Implementation Surface
 

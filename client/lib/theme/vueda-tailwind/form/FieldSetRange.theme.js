@@ -4,12 +4,6 @@
  * Per-component theme registration for FieldSetRange. Imported as a side effect by
  * FieldSetRange.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire form family.
- *
- * Prototype-phase duplication: this entry mirrors the FieldSetRange slice of
- * form/index.js, which remains the docs-tooling source of truth until the
- * extractor learns to walk *.theme.js files. Under the legacy
- * setTheme(vuedaTailwind) path the wholesale replace overwrites this patch with
- * identical data.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
@@ -23,6 +17,7 @@ patchTheme({
         /** Card shell for paired lower and upper range fields, including nested-fieldset inset chrome. */
         root: {
             class: [
+                // Surface and nested fieldset treatment.
                 "bg-card border rounded-vueda-card overflow-clip p-3",
                 "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
             ],
@@ -46,14 +41,16 @@ patchTheme({
         title: {
             class: [
                 "leading-none",
-                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "text-muted-foreground",
             ],
         },
         /** Compact uppercase fallback label for the range group. See also: {@api theme-key:FieldSetRange.title}. */
         label: {
             class: [
                 "leading-none",
-                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+                "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "text-muted-foreground",
             ],
         },
         /** Wrapper around each rendered range endpoint field. */
@@ -65,7 +62,7 @@ patchTheme({
         /** Fieldset-level description and messages panel below the paired controls. */
         choresPanel: {
             class: [
-                "-mx-3 -mb-3 mt-3 px-3 py-2 border-t border-border",
+                "-mx-3 -mb-3 mt-3 px-3 py-2 border-t",
                 "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
                 "flex flex-col gap-1",
             ],

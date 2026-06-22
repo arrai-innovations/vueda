@@ -71,39 +71,45 @@ beforeEach(async () => {
     workflow.transitions = [];
 });
 
-scopedIt("shows loading component when model config is loading", async () => {
-    modelConfig.loading = true;
-    const wrapper = mount(ViewActionRouter, {
-        props: { app: "app", model: "model", action: "list" },
+describe("lib/views/ViewActionRouter.vue", () => {
+    describe("Loading state", () => {
+        scopedIt("shows loading component when model config is loading", async () => {
+            modelConfig.loading = true;
+            const wrapper = mount(ViewActionRouter, {
+                props: { app: "app", model: "model", action: "list" },
+            });
+            await flushPromises();
+            expect(wrapper.find('[data-qa="loading"]').exists()).toBe(true);
+        });
     });
-    await flushPromises();
-    expect(wrapper.find('[data-qa="loading"]').exists()).toBe(true);
-});
 
-scopedIt("renders workflow transition view for transition action", async () => {
-    const wrapper = mount(ViewActionRouter, {
-        props: { app: "a", model: "b", action: "transition" },
-    });
-    await flushPromises();
-    expect(wrapper.find('[data-qa="transition"]').exists()).toBe(true);
-});
+    describe("Action resolution", () => {
+        scopedIt("renders workflow transition view for transition action", async () => {
+            const wrapper = mount(ViewActionRouter, {
+                props: { app: "a", model: "b", action: "transition" },
+            });
+            await flushPromises();
+            expect(wrapper.find('[data-qa="transition"]').exists()).toBe(true);
+        });
 
-scopedIt("shows not-found when actions and transitions are missing", async () => {
-    modelConfig.info = undefined;
-    workflow.transitions = undefined;
-    const wrapper = mount(ViewActionRouter, {
-        props: { app: "a", model: "b", action: "whatever" },
-    });
-    await flushPromises();
-    expect(wrapper.find('[data-qa="not-found"]').exists()).toBe(true);
-});
+        scopedIt("shows not-found when actions and transitions are missing", async () => {
+            modelConfig.info = undefined;
+            workflow.transitions = undefined;
+            const wrapper = mount(ViewActionRouter, {
+                props: { app: "a", model: "b", action: "whatever" },
+            });
+            await flushPromises();
+            expect(wrapper.find('[data-qa="not-found"]').exists()).toBe(true);
+        });
 
-scopedIt("loads crud component when action is known", async () => {
-    modelConfig.info = { actions: [{ name: "list" }] };
-    const wrapper = mount(ViewActionRouter, {
-        props: { app: "a", model: "b", action: "list" },
+        scopedIt("loads crud component when action is known", async () => {
+            modelConfig.info = { actions: [{ name: "list" }] };
+            const wrapper = mount(ViewActionRouter, {
+                props: { app: "a", model: "b", action: "list" },
+            });
+            await flushPromises();
+            expect(crudComponents.list).toHaveBeenCalledWith({ app: "a", model: "b", action: "list", pk: "" });
+            expect(wrapper.find('[data-qa="crud"]').exists()).toBe(true);
+        });
     });
-    await flushPromises();
-    expect(crudComponents.list).toHaveBeenCalledWith({ app: "a", model: "b", action: "list", pk: "" });
-    expect(wrapper.find('[data-qa="crud"]').exists()).toBe(true);
 });

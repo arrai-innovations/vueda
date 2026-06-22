@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from "pinia";
 
 let storeWorkflowModule, storeWorkflow, mockedFetchHelper;
 
-describe("lib/store/storeWorkflow.js", () => {
+describe("lib/stores/storeWorkflow.js", () => {
     beforeEach(async () => {
         setActivePinia(createPinia());
         mockedFetchHelper = vi.fn();

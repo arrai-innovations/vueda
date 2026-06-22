@@ -67,6 +67,28 @@ just coverage-server --cov-report=html
 just test-docs-tooling-py -x --lf
 ```
 
+## Security Audits
+
+- Python audit: run from the repo root so `pysentry-rs` uses the root
+  `uv.lock` workspace resolution:
+
+  ```bash
+  uvx pysentry-rs . --config server/pyproject.toml --compact --color never
+  ```
+
+  Do not run `uvx pysentry-rs .` from `server/`; that audits direct
+  `pyproject.toml` lower bounds and can report false positives that are
+  already fixed in `uv.lock`.
+
+- JS audit: run from the repo root:
+
+  ```bash
+  pnpm audit
+  ```
+
+  Audit ignores and transitive remediation overrides live in
+  `pnpm-workspace.yaml`.
+
 ## Commit Message Style
 
 We use a custom commitlint configuration based on [Conventional Commits](https://www.conventionalcommits.org/).
