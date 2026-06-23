@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Checkbox keeps a stable footprint across checked and unchecked states (Checkbox)**:
+    - The checkbox root now centers its indicator in an `inline-flex` box and sits on `align-middle`, so it holds a fixed 24px (`size-6`) box and a constant line-box contribution in every state. The indicator mounts only when checked, so the unchecked root previously fell back to the inherited line-height (rendering a couple of pixels taller), and on the default `baseline` alignment its reported baseline differed between states. Either one shifted the height of the surrounding row when a selection checkbox was toggled, including inside baseline-aligned containers such as the card-layout `ObjectsGrid` grid.
+      _No action required; visual fix._
 - **Scroll-reveal composable extracted from StickyBar (new `useScrollReveal`)**:
     - `StickyBar`'s hide-on-scroll-down / reveal-on-scroll-up logic now lives in a reusable composable, `useScrollReveal(rootRef, { reveal, scrollRoot, idleDelay })`, which returns a reactive `{ hidden }`. The `reveal` strategy is selectable: `always` (never hides), `scroll-up` (hides until a deliberate scroll up, no idle reveal), and `scroll-up-or-idle` (also reveals when scrolling settles). `reveal` also accepts a boolean (or boolean ref/getter) to hand visibility control to the caller entirely. `scrollRoot` accepts an element, a ref, or a getter, and the scroll listener and idle timer tear down automatically on scope dispose.
     - `StickyBar` is unchanged for consumers: same props, same markup, same default behavior (it uses the `scroll-up-or-idle` strategy). The composable is shared groundwork for the sticky page-chrome work below.
