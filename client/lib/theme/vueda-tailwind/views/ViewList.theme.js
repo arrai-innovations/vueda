@@ -45,11 +45,11 @@ patchTheme({
         underActionsBar: {
             class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3", "border-b bg-card text-foreground"],
         },
-        /** Bulk-actions strip that surfaces once one or more rows are selected. 6 %-mix primary fill and 12 px / 500 type so it reads as an active selection band, not a passive section; sits between the under-actions strip and the filter strip. */
+        /** Bulk-actions strip that surfaces once one or more rows are selected. 6 %-mix primary fill and 12 px / 500 type so it reads as an active selection band, not a passive section. Sits in the sticky-stack bottom zone just above the {@api theme-key:ViewList.paginationWrapper}; the top hairline separates it from the grid above, mirroring the pagination strip's rhythm so the chrome below the grid reads as a matched pair. */
         bulkActionsBar: {
             class: [
                 "w-full flex items-center flex-wrap gap-[10px] px-5 py-[10px]",
-                "border-b bg-primary/[0.06] text-foreground text-[12px] font-medium",
+                "border-t bg-primary/[0.06] text-foreground text-[12px] font-medium",
             ],
         },
         /** Button cluster inside the bulk-actions strip. Wraps so a large action menu folds across rows rather than overflowing the strip; `sm:w-fit sm:max-w-max` snaps the cluster to its content width once the viewport can hold all buttons inline. */
