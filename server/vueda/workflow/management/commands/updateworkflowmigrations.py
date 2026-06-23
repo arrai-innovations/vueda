@@ -1,5 +1,6 @@
 """Management command for updating existing workflow migrations with current function implementations."""
 
+import ast
 import importlib
 import os
 import re
@@ -109,15 +110,13 @@ class Command(BaseCommand):
 
     @staticmethod
     def _find_changed_data_end(lines, changed_data_index, class_migration_index):
-        depth = 0
-        for i in range(changed_data_index, class_migration_index):
-            for char in lines[i]:
-                if char == "[":
-                    depth += 1
-                elif char == "]":
-                    depth -= 1
-            if depth == 0 and i > changed_data_index:
-                return i
+        segment = "".join(lines[changed_data_index:class_migration_index])
+        tree = ast.parse(segment)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id == "changed_data":
+                        return changed_data_index + node.end_lineno - 1
         return changed_data_index
 
     def _update_migration_file(self, filepath):
