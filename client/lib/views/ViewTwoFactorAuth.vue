@@ -209,7 +209,7 @@ onBeforeUnmount(clearCooldownTimer);
                             {{ cooldownSeconds }}s
                         </span>
                     </Button>
-                    <Button :disabled="loading || !form.values?.code" type="submit">
+                    <Button :disabled="loading || !form.values?.code" type="submit" variant="default">
                         <LoadingSpinnerInline v-if="loading" />
                         Verify
                     </Button>

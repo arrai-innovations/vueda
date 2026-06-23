@@ -156,7 +156,7 @@ const icon = useIcons("ViewRecoveryCodes", props);
                     When you generate new recovery codes, you must download or print the new codes. Your old codes won't
                     work anymore.
                 </div>
-                <Button :disabled="loading" type="submit">
+                <Button :disabled="loading" type="submit" variant="default">
                     <LoadingSpinnerInline v-if="loading" />
                     Generate new recovery codes
                 </Button>

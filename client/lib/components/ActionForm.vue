@@ -210,7 +210,11 @@ const validationTitle = computed(() => {
                             type="submit"
                             :disabled="formContext.state.anyError"
                         >
-                            <Button type="submit" :disabled="combinedLoading || formContext.state.anyError">
+                            <Button
+                                type="submit"
+                                variant="default"
+                                :disabled="combinedLoading || formContext.state.anyError"
+                            >
                                 <LoadingSpinnerInline v-if="combinedLoading" />
                                 Yes, continue
                             </Button>

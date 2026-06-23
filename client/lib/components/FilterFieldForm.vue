@@ -176,7 +176,9 @@ defineExpose({ applyFilter, removeFilter, hasFilterValue });
                 >
                     Remove
                 </Button>
-                <Button type="submit" size="sm" :disabled="disabled" data-qa="filter-field-form-apply">Apply</Button>
+                <Button type="submit" variant="default" size="sm" :disabled="disabled" data-qa="filter-field-form-apply"
+                    >Apply</Button
+                >
             </div>
         </template>
     </FilterForm>

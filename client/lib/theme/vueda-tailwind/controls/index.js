@@ -107,6 +107,12 @@ export default {
     _ButtonSecondary: {},
     _ButtonGhost: {},
     _ButtonLink: {},
+    _ButtonPrimaryOutline: {},
+    _ButtonDestructiveOutline: {},
+    _ButtonPrimaryGhost: {},
+    _ButtonDestructiveGhost: {},
+    _ButtonNeutralLink: {},
+    _ButtonDestructiveLink: {},
     // ---------- Button ----------
     Button: {},
     // ---------- Button group ----------

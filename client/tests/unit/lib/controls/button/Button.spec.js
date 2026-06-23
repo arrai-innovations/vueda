@@ -15,10 +15,18 @@ describe("lib/controls/button/Button.vue", () => {
             expect(wrapper.attributes("data-slot")).toBe("button");
         });
 
-        scopedIt("applies default variant classes", () => {
+        scopedIt("a bare button resolves to the neutral fill (secondary) resting default", () => {
             const wrapper = mount(Button);
-            expect(wrapper.classes()).toContain("bg-primary");
+            expect(wrapper.classes()).toContain("bg-secondary");
+            expect(wrapper.classes()).not.toContain("bg-primary");
             expect(wrapper.classes()).toContain("h-vueda-control");
+            expect(wrapper.attributes("data-tone")).toBe("neutral");
+            expect(wrapper.attributes("data-emphasis")).toBe("fill");
+        });
+
+        scopedIt("the primary fill is opt-in via variant=default", () => {
+            const wrapper = mount(Button, { props: { variant: "default" } });
+            expect(wrapper.classes()).toContain("bg-primary");
         });
 
         scopedIt("applies variant-specific classes", () => {
@@ -58,12 +66,38 @@ describe("lib/controls/button/Button.vue", () => {
         scopedIt("merges custom class while preserving variant classes", () => {
             const wrapper = mount(Button, { props: { class: "my-custom-class" } });
             expect(wrapper.classes()).toContain("my-custom-class");
-            expect(wrapper.classes()).toContain("bg-primary");
+            expect(wrapper.classes()).toContain("bg-secondary");
         });
 
         scopedIt("renders slot content", () => {
             const wrapper = mount(Button, { slots: { default: "Click me" } });
             expect(wrapper.text()).toBe("Click me");
+        });
+
+        scopedIt("resolves explicit tone + emphasis to the matching primitive classes", () => {
+            const wrapper = mount(Button, { props: { tone: "destructive", emphasis: "outline" } });
+            expect(wrapper.classes()).toContain("border-destructive");
+            expect(wrapper.classes()).toContain("text-destructive");
+            expect(wrapper.classes()).not.toContain("bg-destructive");
+        });
+
+        scopedIt("neutral link is foreground-toned, not primary-toned", () => {
+            const wrapper = mount(Button, { props: { tone: "neutral", emphasis: "link" } });
+            expect(wrapper.classes()).toContain("text-foreground");
+            expect(wrapper.classes()).toContain("h-auto");
+            expect(wrapper.classes()).not.toContain("text-primary");
+        });
+
+        scopedIt("explicit tone overrides the tone implied by variant", () => {
+            const wrapper = mount(Button, { props: { variant: "link", tone: "destructive" } });
+            expect(wrapper.classes()).toContain("text-destructive");
+            expect(wrapper.classes()).toContain("h-auto");
+        });
+
+        scopedIt("reflects resolved tone and emphasis in data attributes", () => {
+            const wrapper = mount(Button, { props: { variant: "outline" } });
+            expect(wrapper.attributes("data-tone")).toBe("neutral");
+            expect(wrapper.attributes("data-emphasis")).toBe("outline");
         });
 
         scopedIt("renders as a different element when as prop is set", () => {
@@ -78,7 +112,7 @@ describe("lib/controls/button/Button.vue", () => {
             });
             expect(wrapper.element.tagName).toBe("A");
             expect(wrapper.attributes("data-slot")).toBe("button");
-            expect(wrapper.classes()).toContain("bg-primary");
+            expect(wrapper.classes()).toContain("bg-secondary");
         });
     });
 });

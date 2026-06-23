@@ -48,15 +48,11 @@ focus-visible reproduced via the docs harness so every cell is verifiable
 without pointer or keyboard.
 
 Theme keys: {@api theme-key:Button}, composing
-{@api theme-key:\_ButtonBase} plus one of
-{@api theme-key:\_ButtonDefault},
-{@api theme-key:\_ButtonSecondary},
-{@api theme-key:\_ButtonOutline},
-{@api theme-key:\_ButtonGhost},
-{@api theme-key:\_ButtonDestructive},
-or {@api theme-key:\_ButtonLink} per variant. To restyle every button-shaped
-surface in the app (calendar day cells, pagination items, dialog actions),
-override the matching `_Button*` meta key rather than `Button` itself.
+{@api theme-key:\_ButtonBase} plus the `_Button*` primitive for the resolved
+(tone, emphasis) cell (see [Tone × emphasis](#button-tone-emphasis) below). To
+restyle every button-shaped surface in the app (calendar day cells, pagination
+items, dialog actions), override the matching `_Button*` meta key rather than
+`Button` itself.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="default" description="(primary CTA)">
@@ -253,6 +249,63 @@ override the matching `_Button*` meta key rather than `Button` itself.
       <span>fg <code>--primary</code></span>
       <span>hover underline</span>
       <span>use inside running text, not toolbars</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Button: tone × emphasis
+
+`variant` is shorthand. Underneath, a button resolves on two axes: **tone**
+(`neutral` · `primary` · `destructive`, the color) and **emphasis**
+(`fill` · `outline` · `ghost` · `link`, the structure). The shorthands name a
+cell of this grid (`default` = primary fill, `secondary` = neutral fill,
+`outline` = neutral outline, `ghost` = neutral ghost, `destructive` =
+destructive fill, `link` = primary link), and the explicit `tone` / `emphasis`
+props override the shorthand per axis, so `variant="link" tone="destructive"`
+yields a destructive text button. The grid below drives each cell from the
+two-axis props directly. The cells with no `variant` shorthand (every
+destructive non-fill, the primary outline / ghost, and the neutral link) are
+the ones a single `variant` enum could not express without enumerating the full
+matrix.
+
+Theme keys: each cell composes {@api theme-key:\_ButtonBase} plus its tone
+primitive: fills are {@api theme-key:\_ButtonDefault} /
+{@api theme-key:\_ButtonSecondary} / {@api theme-key:\_ButtonDestructive};
+outlines {@api theme-key:\_ButtonOutline} /
+{@api theme-key:\_ButtonPrimaryOutline} /
+{@api theme-key:\_ButtonDestructiveOutline}; ghosts
+{@api theme-key:\_ButtonGhost} / {@api theme-key:\_ButtonPrimaryGhost} /
+{@api theme-key:\_ButtonDestructiveGhost}; links
+{@api theme-key:\_ButtonNeutralLink} / {@api theme-key:\_ButtonLink} /
+{@api theme-key:\_ButtonDestructiveLink}.
+
+<VuedaDemo>
+  <DemoCard title="tone × emphasis" class="sm:col-span-2">
+    <div class="grid grid-cols-[auto_repeat(3,minmax(0,1fr))] items-center gap-x-4 gap-y-3">
+      <div></div>
+      <StateLabel>neutral</StateLabel>
+      <StateLabel>primary</StateLabel>
+      <StateLabel>destructive</StateLabel>
+      <StateLabel>fill</StateLabel>
+      <div><Button tone="neutral" emphasis="fill">Save</Button></div>
+      <div><Button tone="primary" emphasis="fill">Save</Button></div>
+      <div><Button tone="destructive" emphasis="fill">Delete</Button></div>
+      <StateLabel>outline</StateLabel>
+      <div><Button tone="neutral" emphasis="outline">Save</Button></div>
+      <div><Button tone="primary" emphasis="outline">Save</Button></div>
+      <div><Button tone="destructive" emphasis="outline">Delete</Button></div>
+      <StateLabel>ghost</StateLabel>
+      <div><Button tone="neutral" emphasis="ghost">Save</Button></div>
+      <div><Button tone="primary" emphasis="ghost">Save</Button></div>
+      <div><Button tone="destructive" emphasis="ghost">Delete</Button></div>
+      <StateLabel>link</StateLabel>
+      <div><Button tone="neutral" emphasis="link">Save</Button></div>
+      <div><Button tone="primary" emphasis="link">Save</Button></div>
+      <div><Button tone="destructive" emphasis="link">Delete</Button></div>
+    </div>
+    <template #footer>
+      <span>columns are tone (color); rows are emphasis (structure)</span>
+      <span>the filled diagonal corner (primary fill) is the one earned CTA per context</span>
     </template>
   </DemoCard>
 </VuedaDemo>

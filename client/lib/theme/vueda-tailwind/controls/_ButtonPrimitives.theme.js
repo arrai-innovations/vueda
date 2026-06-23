@@ -130,4 +130,86 @@ patchTheme({
         /** The inline-text recipe: `--primary` text with a 4px underline offset that appears on hover only; active deepens the text to `--primary-active`. The `link` variant of {@api theme-key:Button} also drops the control height and horizontal padding so the affordance does not break surrounding line metrics. */
         root: { class: "text-primary underline-offset-4 hover:underline active:text-primary-active" },
     },
+
+    /**
+     * Composition primitive: the primary-toned outline variant for Button.
+     * Composed into Button.root for the `(primary, outline)` cell, the primary
+     * sibling of {@api theme-key:_ButtonOutline}.
+     */
+    _ButtonPrimaryOutline: {
+        /** The primary neutral-chip recipe: a 1px `--primary` border and `--primary` text over the `--background` fill (dark mode keeps the outline-family `bg-input/30` rest tint), with the `shadow-vueda-control` micro-shadow. Hover and active wash a low-alpha `--primary` tint behind the label (`/10` then `/15`). The secondary-CTA treatment: it reads as accented without the full weight of a filled {@api theme-key:_ButtonDefault}, so it can sit beside the primary fill as the "other" emphasized action. */
+        root: {
+            class: [
+                // Shape and surface.
+                "border border-primary bg-background text-primary shadow-vueda-control dark:bg-input/30",
+
+                // Interactive states.
+                "hover:bg-primary/10 active:bg-primary/15",
+            ],
+        },
+    },
+
+    /**
+     * Composition primitive: the destructive-toned outline variant for Button.
+     * Composed into Button.root for the `(destructive, outline)` cell, the
+     * destructive sibling of {@api theme-key:_ButtonOutline}.
+     */
+    _ButtonDestructiveOutline: {
+        /** The destructive neutral-chip recipe: a 1px `--destructive` border and `--destructive` text over the `--background` fill (dark mode keeps the outline-family `bg-input/30` rest tint), with the `shadow-vueda-control` micro-shadow. Hover and active wash a low-alpha `--destructive` tint behind the label (`/10` then `/15`) so the chip warms toward danger on interaction without becoming a filled destructive CTA, and focus swaps to the destructive outline. Use for a reversible-but-cautionary action that should not carry the weight of a filled {@api theme-key:_ButtonDestructive} (a low-emphasis delete in a toolbar or row). */
+        root: {
+            class: [
+                // Shape and surface.
+                "border border-destructive bg-background text-destructive shadow-vueda-control dark:bg-input/30",
+
+                // Interactive and focus states.
+                "hover:bg-destructive/10 active:bg-destructive/15 focus-visible:outline-destructive",
+            ],
+        },
+    },
+
+    /**
+     * Composition primitive: the primary-toned ghost variant for Button.
+     * Composed into Button.root for the `(primary, ghost)` cell, the primary
+     * sibling of {@api theme-key:_ButtonGhost}.
+     */
+    _ButtonPrimaryGhost: {
+        /** The transparent-at-rest primary recipe: `--primary` text with no fill or border until hover, when a low-alpha `--primary` tint paints the background (`/10` hover, `/15` active). The lowest-weight accented affordance, for an emphasized action inside a dense cluster where an outline or fill would be too heavy. */
+        root: {
+            class: ["text-primary", "hover:bg-primary/10 active:bg-primary/15"],
+        },
+    },
+
+    /**
+     * Composition primitive: the destructive-toned ghost variant for Button.
+     * Composed into Button.root for the `(destructive, ghost)` cell, the
+     * destructive sibling of {@api theme-key:_ButtonGhost}.
+     */
+    _ButtonDestructiveGhost: {
+        /** The transparent-at-rest destructive recipe: `--destructive` text with no fill or border until hover, when a low-alpha `--destructive` tint paints the background (`/10` hover, `/15` active) and focus swaps to the destructive outline. The lowest-weight destructive affordance, for a cautionary action inside a dense cluster (a row's delete glyph, a menu-adjacent strip) where even an outlined chip would be too heavy. */
+        root: {
+            class: [
+                "text-destructive",
+                "hover:bg-destructive/10 active:bg-destructive/15 focus-visible:outline-destructive",
+            ],
+        },
+    },
+
+    /**
+     * Composition primitive: the neutral-toned inline-text variant for Button.
+     * Composed into Button.root for the `(neutral, link)` cell, the neutral
+     * sibling of {@api theme-key:_ButtonLink}.
+     */
+    _ButtonNeutralLink: {
+        /** The neutral inline-text recipe: `--foreground` text with a 4px underline offset that appears on hover only; active eases the label to 70% opacity. Unlike {@api theme-key:_ButtonLink}, it does not tint the text with `--primary`, so a row of quiet text actions does not spread the earned accent across every secondary affordance. The `link` emphasis of {@api theme-key:Button} also drops the control height and horizontal padding. */
+        root: { class: "text-foreground underline-offset-4 hover:underline active:opacity-70" },
+    },
+
+    /**
+     * Composition primitive: the destructive-toned inline-text variant for
+     * Button. Composed into Button.root for the `(destructive, link)` cell.
+     */
+    _ButtonDestructiveLink: {
+        /** The destructive inline-text recipe: `--destructive` text with a 4px underline offset that appears on hover only; active deepens the label to `--destructive-active`. The text-weight counterpart to {@api theme-key:_ButtonDestructive}, for a cautionary action that must read inline with prose rather than as a control. */
+        root: { class: "text-destructive underline-offset-4 hover:underline active:text-destructive-active" },
+    },
 });

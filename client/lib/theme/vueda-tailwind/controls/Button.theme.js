@@ -11,6 +11,7 @@
  * effect, then registers the `Button` entry itself.
  */
 import "./_ButtonPrimitives.theme.js";
+import { resolveButtonVariant } from "@vueda/controls/button/buttonVariant.js";
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
@@ -22,17 +23,17 @@ patchTheme({
      * inline-flow and skips the control-height + padding recipe.
      */
     Button: {
-        /** The pressable root. Composes {@api theme-key:_ButtonBase.root} plus the variant primitive named by `variant`, then layers the per-size height / padding pair from `base.css § Control sizing` (or `size-vueda-control*` for icon-only sizes). The `link` variant skips the control-height block and goes inline. The `data-state=cooldown` state (set by the component while a one-shot action is recovering) mutes the label to `--muted-foreground` and suppresses hover so a recently-clicked button reads as "wait" without changing layout. */
-        root: ({ variant, size }) => {
-            const v = variant || "default";
-            const variantKey = `_Button${v.charAt(0).toUpperCase()}${v.slice(1)}.root`;
+        /** The pressable root. Composes {@api theme-key:_ButtonBase.root} plus the `_Button*` primitive for the resolved (tone, emphasis) cell (see `controls/button/buttonVariant.js`; the legacy `variant` prop maps to a pair), then layers the per-size height / padding pair from `base.css § Control sizing` (or `size-vueda-control*` for icon-only sizes). The `link` emphasis skips the control-height block and goes inline. The `data-state=cooldown` state (set by the component while a one-shot action is recovering) mutes the label to `--muted-foreground` and suppresses hover so a recently-clicked button reads as "wait" without changing layout. */
+        root: ({ variant, tone, emphasis, size }) => {
+            const resolved = resolveButtonVariant({ variant, tone, emphasis });
+            const variantKey = `${resolved.primitive}.root`;
             const cooldownClass = [
                 "data-[state=cooldown]:text-muted-foreground",
                 "data-[state=cooldown]:cursor-default",
                 "data-[state=cooldown]:hover:bg-transparent",
                 "data-[state=cooldown]:hover:text-muted-foreground",
             ];
-            if (v === "link") {
+            if (resolved.inline) {
                 return {
                     composes: ["_ButtonBase.root", variantKey],
                     class: [

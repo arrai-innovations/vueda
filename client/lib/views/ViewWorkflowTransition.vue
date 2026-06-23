@@ -192,7 +192,7 @@ const handleSubmit = async () => {
                             >
                         </label>
                     </div>
-                    <Button :disabled="!selectedAction" type="submit">execute transition</Button>
+                    <Button :disabled="!selectedAction" type="submit" variant="default">execute transition</Button>
                 </form>
             </div>
             <div v-else :class="theme('empty')" data-qa="view-workflow-transition-empty">

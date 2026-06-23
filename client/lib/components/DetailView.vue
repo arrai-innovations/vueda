@@ -224,7 +224,12 @@ onMounted(() => {
                         name="submit-button"
                         type="submit"
                     >
-                        <Button :form="instance.formId" :disabled="objectForm?.state?.loading" type="submit">
+                        <Button
+                            :form="instance.formId"
+                            :disabled="objectForm?.state?.loading"
+                            type="submit"
+                            variant="default"
+                        >
                             <LoadingSpinnerInline v-if="objectForm?.state?.loading" />
                             Submit
                         </Button>
