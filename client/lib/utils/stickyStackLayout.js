@@ -62,8 +62,9 @@ export function resolveStickyStack(bars, edge = "top") {
             offset,
             // `|| 0` normalizes the `-0` that `sign * 0` would otherwise produce.
             translate: sign * distance || 0,
-            // Bars nearer the pinned edge sit on top so hiding bars slide behind them.
-            zIndex: edge === "bottom" ? index + 1 : count - index,
+            // Bars nearer the pinned edge sit on top so hiding bars slide behind them. Index 0 is
+            // always the bar nearest the edge (for either edge), so it always carries the top order.
+            zIndex: count - index,
         };
 
         nearerAll += height;

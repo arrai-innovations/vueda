@@ -65,8 +65,8 @@ describe("lib/utils/stickyStackLayout.js", () => {
             );
             expect(bars.map((b) => b.offset)).toEqual([0, 50]);
             expect(bars.map((b) => b.translate)).toEqual([0, 0]);
-            // Bars nearer the bottom edge sit on top.
-            expect(bars.map((b) => b.zIndex)).toEqual([1, 2]);
+            // Bars nearer the bottom edge sit on top, so the bottom-most bar (index 0) ranks highest.
+            expect(bars.map((b) => b.zIndex)).toEqual([2, 1]);
             expect(visibleExtent).toBe(82);
         });
 
