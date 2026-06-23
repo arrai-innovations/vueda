@@ -910,4 +910,36 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
     });
+
+    describe("Bulk selection read-out", () => {
+        // A bulk action makes the `selected_` checkbox column render; toggling that checkbox
+        // drives actions.selectedObjects, which the bulk-actions strip and its count read.
+        const configureBulkAction = () => {
+            modelConfig.config.actionDetails = { delete: { bulk: true } };
+            mockedUseFilteredActions.mockReturnValue(vue.reactive({ actions: ["delete"] }));
+        };
+
+        scopedIt("omits the selection strip when nothing is selected", async () => {
+            mockedInject.mockReturnValueOnce({});
+            configureBulkAction();
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.find('[data-qa="view-list-bulk-actions"]').exists()).toBe(false);
+            expect(wrapper.find('[data-qa="view-list-selection-count"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+
+        scopedIt("shows the selected-row count once a row is selected", async () => {
+            mockedInject.mockReturnValueOnce({});
+            configureBulkAction();
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await wrapper.find('[data-qa="checkbox"]').trigger("change");
+            await vue.nextTick();
+            const readout = wrapper.find('[data-qa="view-list-selection-count"]');
+            expect(readout.exists()).toBe(true);
+            expect(readout.text()).toContain("1 selected");
+            wrapper.unmount();
+        });
+    });
 });

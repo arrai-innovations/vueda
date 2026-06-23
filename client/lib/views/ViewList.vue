@@ -19,6 +19,7 @@ import SelectItem from "@vueda/controls/select/SelectItem.vue";
 import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
 import SelectValue from "@vueda/controls/select/SelectValue.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewList.theme.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -144,6 +145,7 @@ const { modelConfig, list, actions, search, sort, columns, pagination } = useVie
 usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loading }));
 
 const slots = useSlots();
+const icon = useIcons("ViewList");
 
 // Teleport target in the under-actions bar that the FilterGroup's add-filter
 // trigger teleports into, so the trigger sits in the toolbar while its popover
@@ -431,6 +433,19 @@ onMounted(() => {
              of shoving the grid down. -->
         <sticky-chrome v-if="actions.selectedObjects.length > 0" zone="bottom" :order="-1" reveal="always">
             <div :class="theme('bulkActionsBar')" data-qa="view-list-bulk-actions">
+                <!-- Selection read-out: leads the strip with the live count of selected rows, so the
+                     band reads as an active selection even before the eye reaches the action buttons. -->
+                <span :class="theme('selectionCount')" data-qa="view-list-selection-count">
+                    <component
+                        :is="icon('check').component"
+                        v-if="icon('check')"
+                        v-bind="icon('check').props"
+                        :class="theme('selectionCountIcon')"
+                        aria-hidden="true"
+                    />
+                    <strong :class="theme('selectionCountValue')">{{ actions.selectedObjects.length }}</strong>
+                    selected
+                </span>
                 <div :class="theme('actionButtonGroupBar')" data-qa="view-list-action-buttons">
                     <template v-for="actionName in actions.bulkActions" :key="actionName">
                         <!-- @slot [bulk-action-button, button] Replaces an individual bulk action button. -->

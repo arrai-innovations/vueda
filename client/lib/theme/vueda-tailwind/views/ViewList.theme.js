@@ -52,6 +52,18 @@ patchTheme({
                 "border-t bg-primary/[0.06] text-foreground text-[12px] font-medium",
             ],
         },
+        /** Selection read-out at the leading edge of the bulk-actions strip ("✓ N selected"). Inline flex row that holds the check glyph, the count, and the trailing word; sits before {@api theme-key:ViewList.actionButtonGroupBar} so the count anchors the band. */
+        selectionCount: {
+            class: ["flex items-center gap-2"],
+        },
+        /** Check glyph leading the selection read-out. Tinted `--primary` so the confirm mark carries the accent while the surrounding count text stays in the strip's `--foreground` tone. */
+        selectionCountIcon: {
+            class: ["text-primary"],
+        },
+        /** The numeric count inside the selection read-out. `font-semibold` lifts it one weight above the strip's 500 body so the figure reads first; `tabular-nums` keeps its width stable as the selection grows. */
+        selectionCountValue: {
+            class: ["font-semibold tabular-nums"],
+        },
         /** Button cluster inside the bulk-actions strip. Wraps so a large action menu folds across rows rather than overflowing the strip; `sm:w-fit sm:max-w-max` snaps the cluster to its content width once the viewport can hold all buttons inline. */
         actionButtonGroupBar: {
             class: ["flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"],
