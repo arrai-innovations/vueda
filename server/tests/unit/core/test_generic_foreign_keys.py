@@ -190,9 +190,220 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
         # Product-targeted specifiers do not touch Distributor.
         assert "quantity" not in expanded_data["store.distributor"]  # field doesn't exist on Distributor
 
+    def test_request_time_fields_filter_content_object(self, reader_client, notes):
+        """Runtime FIELDS_PARAM selection applies to GFK expansions, not just static specifiers."""
+        self.register_viewsets()
+
+        response = reader_client.get(
+            reverse("store.note-list"),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,content_object.id",
+            },
+        )
+
+        self.assert_response(response, HTTPStatus.OK)
+
+        for result in response.data["results"]:
+            co = result["content_object"]
+            # Only id should be present (plus always-injected identity metadata).
+            assert set(co.keys()) == {"id", "app_label", "model", "formatted_name"}
+
+    def test_request_time_omit_filters_content_object(self, reader_client, notes):
+        """Runtime OMIT_PARAM selection applies to GFK expansions, not just static specifiers."""
+        self.register_viewsets()
+
+        response = reader_client.get(
+            reverse("store.note-list"),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,content_object.*",
+                settings.REST_FLEX_FIELDS["OMIT_PARAM"]: "content_object.name",
+            },
+        )
+
+        self.assert_response(response, HTTPStatus.OK)
+
+        for result in response.data["results"]:
+            assert "name" not in result["content_object"]
+
     def test_list_without_expand_omits_content_object(self, reader_client, notes):
         response = reader_client.get(reverse("store.note-list"))
 
         self.assert_response(response, HTTPStatus.OK)
         for result in response.data["results"]:
             assert "content_object" not in result
+
+
+@pytest.mark.django_db
+class TestViewSetAnotherNoteContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    """Tests for AnotherNoteSerializer, which declares expandable_fields as a bare class (no options tuple)."""
+
+    groups_to_create: ClassVar[dict] = {
+        "Another Note Reader": [
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "another_note_reader@domain.invalid": {
+            "name": "Another Note Reader",
+            "password": "testpass",
+            "groups": ["Another Note Reader"],
+        },
+    }
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+
+    @pytest.fixture
+    def reader_client(self, api_client):
+        user = self.users["another_note_reader@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    @pytest.fixture
+    def distributor(self):
+        return store_models.Distributor.objects.create(
+            name="Sparks & Co.",
+            description="Electrical components distributor.",
+        )
+
+    @pytest.fixture
+    def product(self, distributor):
+        return store_models.Product.objects.create(
+            name="Stuffed Animal",
+            description="Soft and fluffy.",
+            quantity=10,
+            distributor=distributor,
+            order_between=[1, 3],
+            tangible_type=store_models.TangibleType.objects.get(code="physical"),
+            condition="new",
+        )
+
+    @pytest.fixture
+    def notes(self, distributor, product):
+        return [
+            store_models.Note.objects.create(
+                content_type=ContentType.objects.get_for_model(store_models.Distributor),
+                object_id=distributor.pk,
+                text="Note on a distributor.",
+            ),
+            store_models.Note.objects.create(
+                content_type=ContentType.objects.get_for_model(store_models.Product),
+                object_id=product.pk,
+                text="Note on a product.",
+            ),
+        ]
+
+    def test_runtime_fields_without_static_fields(self, reader_client, notes):
+        """Runtime FIELDS_PARAM applies when expandable_fields is a bare class with no static field options."""
+        self.register_viewsets()
+
+        response = reader_client.get(
+            reverse("store.another-note-list"),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,content_object.id",
+            },
+        )
+
+        self.assert_response(response, HTTPStatus.OK)
+        assert response.data["totalRecords"] == 2  # noqa: PLR2004
+
+        for result in response.data["results"]:
+            co = result["content_object"]
+            # Only id should be present (plus always-injected identity metadata).
+            assert set(co.keys()) == {"id", "app_label", "model", "formatted_name"}
+
+
+@pytest.mark.django_db
+class TestViewSetNoteStaticOmitContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    """Tests for NoteStaticOmitSerializer: plain (non-model-targeted) field names in FIELDS_PARAM and
+    available_actions pre-omitted statically."""
+
+    groups_to_create: ClassVar[dict] = {
+        "Static Omit Note Reader": [
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "static_omit_note_reader@domain.invalid": {
+            "name": "Static Omit Note Reader",
+            "password": "testpass",
+            "groups": ["Static Omit Note Reader"],
+        },
+    }
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+
+    @pytest.fixture
+    def reader_client(self, api_client):
+        user = self.users["static_omit_note_reader@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    @pytest.fixture
+    def distributor(self):
+        return store_models.Distributor.objects.create(
+            name="Sparks & Co.",
+            description="Electrical components distributor.",
+        )
+
+    @pytest.fixture
+    def product(self, distributor):
+        return store_models.Product.objects.create(
+            name="Stuffed Animal",
+            description="Soft and fluffy.",
+            quantity=10,
+            distributor=distributor,
+            order_between=[1, 3],
+            tangible_type=store_models.TangibleType.objects.get(code="physical"),
+            condition="new",
+        )
+
+    @pytest.fixture
+    def notes(self, distributor, product):
+        return [
+            store_models.Note.objects.create(
+                content_type=ContentType.objects.get_for_model(store_models.Distributor),
+                object_id=distributor.pk,
+                text="Note on a distributor.",
+            ),
+            store_models.Note.objects.create(
+                content_type=ContentType.objects.get_for_model(store_models.Product),
+                object_id=product.pk,
+                text="Note on a product.",
+            ),
+        ]
+
+    def test_plain_field_specifiers_with_static_available_actions_omit(self, reader_client, notes):
+        """Plain (non-model-targeted) FIELDS_PARAM specifiers pass through unchanged, and static omit of
+        available_actions means extra is empty so the if-extra branch is not taken."""
+        self.register_viewsets()
+
+        response = reader_client.get(
+            reverse("store.note-static-omit-list"),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
+            },
+        )
+
+        self.assert_response(response, HTTPStatus.OK)
+        assert response.data["totalRecords"] == 2  # noqa: PLR2004
+
+        for result in response.data["results"]:
+            co = result["content_object"]
+            # Static FIELDS_PARAM ["id", "name"] narrows the result; available_actions is absent
+            # because it was already in static_omit, so extra was empty (if extra: not taken).
+            assert set(co.keys()) == {"id", "name", "app_label", "model", "formatted_name"}

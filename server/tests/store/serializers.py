@@ -661,3 +661,27 @@ class NoteSerializer(VuedaSerializer):
                 },
             ),
         }
+
+
+class AnotherNoteSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "content_object": GenericForeignKeySerializer,
+        }
+
+
+class NoteStaticOmitSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "content_object": (
+                GenericForeignKeySerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["id", "name"],
+                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: ["available_actions"],
+                },
+            ),
+        }

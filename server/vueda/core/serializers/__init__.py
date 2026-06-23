@@ -625,8 +625,10 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
 
     Model-targeted field specifiers (``_applabel__modelname__field``) may be used in
     the ``FIELDS_PARAM`` and ``OMIT_PARAM`` lists inside ``expandable_fields`` to apply
-    filtering only when the related object is an instance of the named model.  Regular
-    field names and wildcards work exactly as before and apply to every related model.
+    filtering only when the related object is an instance of the named model.  Plain
+    field names and wildcards apply to every related model type.  If no static filtering
+    is needed, ``GenericForeignKeySerializer`` may be declared as a bare class without
+    options.
     """
 
     def get_fields(self):
@@ -638,6 +640,8 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
             return None
 
         serializer_class = get_serializer_for_model(type(instance))
+        if serializer_class is None:
+            raise TypeError(f"Unable to expand {instance.__class__}. It is not a VuedaModel.")
 
         # Flex options are lost when serializers are created, so we need to get the raw expandable data and process it.
         field_options = self.parent._expandable_fields.get(self.field_name, ())
@@ -646,12 +650,16 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
         else:
             serializer_settings = {}
 
-        # Resolve model-targeted field specifiers for the concrete instance type.
+        fields_param = settings.REST_FLEX_FIELDS["FIELDS_PARAM"]
+        omit_param = settings.REST_FLEX_FIELDS["OMIT_PARAM"]
+
+        # Resolve model-targeted field specifiers for the concrete instance type first, so the static
+        # declaration is in its final per-model form before we apply request-time selections on top.
         # Specifiers matching the current model are replaced with their bare field name;
         # specifiers targeting a different model are dropped.  Plain field names and
         # wildcards pass through unchanged.
         meta = instance._meta
-        for param in (settings.REST_FLEX_FIELDS["FIELDS_PARAM"], settings.REST_FLEX_FIELDS["OMIT_PARAM"]):
+        for param in (fields_param, omit_param):
             if param in serializer_settings:
                 resolved = []
                 for field in serializer_settings[param]:
@@ -661,6 +669,33 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
                     elif parsed[0] == meta.app_label and parsed[1] == meta.model_name:
                         resolved.append(parsed[2])
                 serializer_settings[param] = resolved
+
+        # Apply request-time field/omit selections (stored by flex-fields on self._flex_options_all).
+        # Runtime selections further restrict the static declaration — they cannot expand it:
+        # - fields: intersect with static (runtime can only narrow, not widen the allowed set)
+        # - omit: union with static (both sets of exclusions apply)
+        runtime_fields = self._flex_options_all["fields"]
+        runtime_omit = self._flex_options_all["omit"]
+
+        # runtime_fields will always be at least '*'.
+        static_fields = serializer_settings.get(fields_param, [])
+        if not static_fields:
+            serializer_settings[fields_param] = list(runtime_fields)
+        elif "*" in static_fields:
+            # Static allows all fields for this model; runtime narrows the set.
+            serializer_settings[fields_param] = list(runtime_fields)
+        elif "*" not in runtime_fields:
+            # Both sides are explicit: keep only fields the static declaration permits.
+            static_set = set(static_fields)
+            serializer_settings[fields_param] = [f for f in runtime_fields if f in static_set]
+        # else: runtime is a wildcard — the static restriction is already tighter; no change.
+
+        # runtime_omits will always be at least 'available_actions' because of
+        # 'VuedaExpandableFieldsSerializerMixin' > '_get_expanded_field_names'.
+        static_omit = serializer_settings.get(omit_param, [])
+        extra = [f for f in runtime_omit if f not in static_omit]
+        if extra:
+            serializer_settings[omit_param] = static_omit + extra
 
         serializer_settings["context"] = self.context
         serializer_settings["instance"] = instance

@@ -399,6 +399,19 @@ class NoExtraFieldsForViewSetMixin:
 
         if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
             extra_keys = submitted_fields - (valid_fields | valid_wildcard_fields)
+
+            # GFK expandable fields can resolve to any model, so sub-field specifiers like
+            # "content_object.id" cannot be pre-validated without knowing the concrete instance type.
+            # Filter them out here; the GFK serializer enforces field-level filtering at representation time.
+            if extra_keys and hasattr(serializer, "Meta"):
+                gfk_fields = {
+                    name
+                    for name, data in getattr(serializer.Meta, "expandable_fields", {}).items()
+                    if (data[0] if isinstance(data, tuple) else data) is GenericForeignKeySerializer
+                }
+                if gfk_fields:
+                    extra_keys = frozenset(k for k in extra_keys if k.split(".")[0] not in gfk_fields)
+
             if extra_keys:
                 errors = {}
                 for extra_key in extra_keys:

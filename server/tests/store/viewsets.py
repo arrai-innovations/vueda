@@ -231,3 +231,19 @@ class NoteViewSet(VuedaViewSet):
     permit_list_expands = ["content_object"]
     permit_retrieve_expands = ["content_object"]
     ordering_fields = ["content_type", "object_id"]
+
+
+class AnotherNoteViewSet(VuedaViewSet):
+    queryset = my_models.Note.objects.all()
+    serializer_class = my_serializers.AnotherNoteSerializer
+    permit_list_expands = ["content_object"]
+    permit_retrieve_expands = ["content_object"]
+    ordering_fields = ["content_type", "object_id"]
+
+
+class NoteStaticOmitViewSet(VuedaViewSet):
+    queryset = my_models.Note.objects.all()
+    serializer_class = my_serializers.NoteStaticOmitSerializer
+    permit_list_expands = ["content_object"]
+    permit_retrieve_expands = ["content_object"]
+    ordering_fields = ["content_type", "object_id"]

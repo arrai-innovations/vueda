@@ -74,6 +74,15 @@ class NoteSerializer(VuedaSerializer):
 
 Passing `"*"` via `FIELDS_PARAM` returns all fields from whatever serializer is registered for the concrete related model at representation time.
 
+If you do not need any static field filtering, you can declare `GenericForeignKeySerializer` as a bare class without options:
+
+```python
+        expandable_fields = {
+            "content_object": GenericForeignKeySerializer,
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+```
+
 Generic foreign key expands are always read-only. `GenericForeignKeySerializer` resolves the canonical registered serializer for the concrete type of the related object at representation time. Every model that can appear through the `GenericForeignKey` must be registered via `register` or `register_serializer`; if a related object's type is not registered, the expand returns `null` for that object.
 
 ### Model-targeted field filtering for generic foreign key expands
