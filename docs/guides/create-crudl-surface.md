@@ -40,6 +40,10 @@ VUEDA's conventions begin at the model layer. Extend `VuedaModel` to inherit the
 
 Setting `formatted_name = None` without providing either `formatted_name_lookup_expression` or `get_formatted_name()` is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served. Providing both alternatives triggers `vueda_info.E002`; decorating `get_formatted_name` with `@property` instead of leaving it as a plain method triggers `vueda_info.E003`; passing a non-string value for `formatted_name_lookup_expression` triggers `vueda_info.E004`.
 
+**Models that cannot inherit `VuedaModel`.** Django's built-in `Group`, `Permission`, and `ContentType` do not inherit from `VuedaModel`, but VUEDA patches them in `InfoConfig.ready()` so they work correctly as expandable fields without any action on your part. `Group` and `Permission` receive `formatted_name_lookup_expression = "name"`. `ContentType` receives a `get_formatted_name()` method that returns `app_labeled_name` (the `"app_label | verbose_name"` display string).
+
+If you have a third-party model that cannot inherit `VuedaModel` but needs to participate in VUEDA's expand and formatted-name system, apply the same pattern in your own `AppConfig.ready()`: set `formatted_name_lookup_expression` to a field path string, or assign a `get_formatted_name` method that returns a string. Then add `_has_formatted_name_field` as a classmethod that returns truthy, and `_get_formatted_name` as an instance method that reads the annotated `formatted_name` attribute when present and falls back to `get_formatted_name()` or `lookup_field`. The `FormattedNameBaseModel` source is the reference implementation for both.
+
 ## Serializer Contract
 
 The {@term Canonical Serializer} defines the field schema that the metadata API exposes to the client. Every field the client can see, validate against, or submit comes from this serializer definition. Extend `VuedaSerializer` for standard models or `VuedaHistorySerializer` for models that use the audit history system.

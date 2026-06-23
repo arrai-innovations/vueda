@@ -60,6 +60,9 @@ public-facing documentation baseline.
 - **`get_serializer_for_model`**:
     - Added `get_serializer_for_model` to the public API of `vueda.info.registration`. Returns the canonical serializer class registered for a given model by looking up the in-process registry directly, without a database query. Returns `None` if the model is not registered. Use this when you need the registered serializer class for a model and want to avoid the `ContentType` lookup required by `get_registration`.
 
+- **Django built-in model `formatted_name` support**:
+    - `InfoConfig.ready()` now patches Django's `Group`, `Permission`, and `ContentType` models with the `_has_formatted_name_field`, `_get_formatted_name`, and `formatted_name_lookup_expression` (or `get_formatted_name`) attributes that VUEDA's viewset and serializer layers require. `Group` and `Permission` use `name` as their display field; `ContentType` uses `app_labeled_name`. All three can now be used as expandable fields without any application-level configuration.
+
 ### Fixes
 
 - **Dependency security floor**:

@@ -2,6 +2,9 @@ from typing import ClassVar
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.urls import reverse
+from rest_framework import status
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
@@ -9,6 +12,53 @@ from tests.utils import FakeRequest
 from tests.utils import FakeView
 from vueda.user.serializers import UserSerializer
 from vueda.user.serializers import WhoIsSerializer
+
+
+@pytest.mark.django_db
+def test_expanding_groups_with_wildcard_works_after_patch(api_client):
+    """
+    Group is patched in InfoConfig.ready() with _has_formatted_name_field and
+    formatted_name_lookup_expression='name', so expanding groups.* no longer raises
+    AttributeError when the viewset recurses into GroupSerializer.
+    """
+    User = get_user_model()  # noqa: N806
+    user = User.objects.create_user(email="expand-test@domain.invalid", name="Expand Test", password="testpass")
+    group = Group.objects.create(name="Editors")
+    user.groups.add(group)
+    api_client.force_authenticate(user=user)
+
+    response = api_client.get(reverse("tests.usergroup-list"), {"e": "groups"})
+    assert response.status_code == status.HTTP_200_OK, response.data
+
+
+@pytest.mark.django_db
+def test_permission_formatted_name_patch(api_client):
+    """
+    Permission is patched with _has_formatted_name_field and formatted_name_lookup_expression='name'.
+    Expanding user_permissions.* exercises the full viewset + serializer code path for Permission.
+    Catches Django changes that remove or rename the name field or break the patch.
+    """
+    User = get_user_model()  # noqa: N806
+    user = User.objects.create_user(email="expand-perm@domain.invalid", name="Expand Perm", password="testpass")
+    api_client.force_authenticate(user=user)
+
+    response = api_client.get(reverse("tests.userpermission-list"), {"e": "user_permissions"})
+    assert response.status_code == status.HTTP_200_OK, response.data
+
+
+@pytest.mark.django_db
+def test_content_type_formatted_name_patch(api_client):
+    """
+    ContentType is patched with get_formatted_name() -> app_labeled_name.
+    Expanding content_type.* on a Permission viewset exercises the full code path for ContentType.
+    Catches Django changes that remove or rename app_labeled_name or break the patch.
+    """
+    User = get_user_model()  # noqa: N806
+    user = User.objects.create_user(email="expand-ct@domain.invalid", name="Expand CT", password="testpass")
+    api_client.force_authenticate(user=user)
+
+    response = api_client.get(reverse("tests.permission-list"), {"e": "content_type"})
+    assert response.status_code == status.HTTP_200_OK, response.data
 
 
 @pytest.mark.django_db
