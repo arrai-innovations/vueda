@@ -7,6 +7,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { searchForWorkspaceRoot } from "vite";
 
 const VUEDA_PACKAGE = "@arrai-innovations/vueda";
 const REACTIVE_HELPERS_PACKAGE = "@arrai-innovations/reactive-helpers";
@@ -70,6 +71,31 @@ const classifyDependency = (packageName, root) => {
 };
 
 /**
+ * Resolve the realpath of a linked package's source checkout.
+ *
+ * A `pnpm link` / `file:` dependency lives outside the consuming project's tree (e.g.
+ * `/home/me/code/vueda/client`), so Vite's dev server refuses to serve its files unless that path is on
+ * `server.fs.allow`. The path must be the realpath (`fs.allow` is matched against the resolved file, not the
+ * `node_modules` symlink). Returns null for absent or registry-installed packages, which need no allow-list
+ * entry because they resolve inside `node_modules`.
+ *
+ * @param {string} packageName - The package to inspect (e.g. `@arrai-innovations/vueda`).
+ * @param {string} root - The consuming project root that owns the `node_modules` to inspect.
+ * @returns {string|null} The source checkout realpath, or null when not linked.
+ */
+const linkedPackageRealpath = (packageName, root) => {
+    const packagePath = path.resolve(root, "node_modules", packageName);
+    let real;
+    try {
+        real = fs.realpathSync(packagePath);
+    } catch {
+        return null;
+    }
+    const nodeModulesSegment = `${path.sep}node_modules${path.sep}`;
+    return `${real}${path.sep}`.includes(nodeModulesSegment) ? null : real;
+};
+
+/**
  * Collect the union of `peerDependencies` keys declared by a set of package.json files.
  *
  * Peer dependencies are, by definition, packages that must be a single shared instance across the dependency
@@ -93,12 +119,21 @@ const collectPeerDependencies = (packageJsonPaths) => {
 
 /**
  * Returns a Vite config fragment for vueda, covering `define`, `resolve.alias`, `resolve.dedupe`, and
- * (optionally) `optimizeDeps`. Spread the result into your Vite `defineConfig` or merge it with `mergeConfig`.
+ * (optionally) `optimizeDeps` and `server.fs.allow`. Spread the result into your Vite `defineConfig` or merge
+ * it with `mergeConfig`.
  *
  * The fragment guarantees a single copy of VUEDA, reactive-helpers, and their shared peer dependencies by
  * listing them in `resolve.dedupe`, which forces every bare import (from any importer, including a linked
  * package's own internal imports) to resolve from this project's root. This works regardless of whether the
  * packages are installed or linked, and regardless of pnpm's symlinked/hoisted store layout.
+ *
+ * When vueda is linked (`pnpm link` / `file:`) its source lives outside the consuming project, which Vite's
+ * dev server will not serve unless the path is on `server.fs.allow`. In that case the fragment returns a
+ * `server.fs.allow` listing the workspace root plus the linked vueda source realpath. The list mirrors Vite's
+ * default (the workspace root) so it is safe to spread; but if you also declare your own `server` block,
+ * spreading both will let the later one win and drop this allow-list. Merge instead: either wrap with
+ * `mergeConfig(vuedaViteConfig(...), { server: { ... } })`, or inside your `server` block preserve
+ * `fs.allow` (e.g. `fs: { allow: [...(vueda.server?.fs?.allow ?? []), ...yourEntries] }`).
  *
  * @param {object} [options] - Configuration options.
  * @param {string} [options.root] - The project root directory. Defaults to process.cwd().
@@ -131,6 +166,15 @@ export const vuedaViteConfig = (options = {}) => {
 
     const vuedaWiring = classifyDependency(VUEDA_PACKAGE, root);
     const reactiveHelpersWiring = classifyDependency(REACTIVE_HELPERS_PACKAGE, root);
+
+    // A linked vueda source checkout lives outside the consuming project, so Vite's dev server refuses to
+    // serve its files (e.g. ColumnText.vue pulled through the `@vueda` alias) until its realpath is on
+    // `server.fs.allow`. Include the workspace root too so this stays additive to Vite's default allow-list
+    // rather than narrowing it. Registry/workspace installs resolve inside `node_modules` and need nothing.
+    const vuedaSourceRealpath = vuedaWiring === "linked" ? linkedPackageRealpath(VUEDA_PACKAGE, root) : null;
+    const server = vuedaSourceRealpath
+        ? { fs: { allow: [...new Set([searchForWorkspaceRoot(root), vuedaSourceRealpath])] } }
+        : undefined;
 
     // Build the dedupe set from the actual declared peers of vueda + reactive-helpers, plus the packages
     // themselves. vueda is consumed through the `@vueda` alias (a path), but bare imports of it are pinned
@@ -203,7 +247,8 @@ export const vuedaViteConfig = (options = {}) => {
                 `  ${REACTIVE_HELPERS_PACKAGE}: ${reactiveHelpersWiring}\n` +
                 `  resolve.dedupe (${dedupe.length}): ${dedupe.join(", ") || "(none)"}\n` +
                 `  optimizeDeps.include: ${mergedOptimizeDeps?.include?.join(", ") || "(none)"}\n` +
-                `  optimizeDeps.exclude: ${mergedOptimizeDeps?.exclude?.join(", ") || "(none)"}`,
+                `  optimizeDeps.exclude: ${mergedOptimizeDeps?.exclude?.join(", ") || "(none)"}\n` +
+                `  server.fs.allow: ${server?.fs?.allow?.join(", ") || "(default)"}`,
         );
     }
 
@@ -214,5 +259,6 @@ export const vuedaViteConfig = (options = {}) => {
             ...(dedupe.length ? { dedupe } : {}),
         },
         ...(mergedOptimizeDeps ? { optimizeDeps: mergedOptimizeDeps } : {}),
+        ...(server ? { server } : {}),
     };
 };
