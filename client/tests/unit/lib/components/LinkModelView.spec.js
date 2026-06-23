@@ -9,7 +9,7 @@ vi.mock("@vueda/use/useLinkModelView.js", () => ({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["as", "disabled", "href", "variant", "class"],
+    props: ["as", "disabled", "href", "variant", "tone", "emphasis", "class"],
     emits: ["click"],
     setup(props, { emit, slots }) {
         return () => {
@@ -22,6 +22,9 @@ const ButtonStub = defineComponent({
                     "data-qa": "prime-button",
                     "data-disabled": String(props.disabled),
                     "data-href": props.href,
+                    "data-variant": props.variant,
+                    "data-tone": props.tone,
+                    "data-emphasis": props.emphasis,
                     "data-label": typeof label === "string" ? label.trim() : undefined,
                     class: props.class,
                     onClick: () => emit("click"),
@@ -41,6 +44,7 @@ describe("lib/components/LinkModelView.vue", () => {
             href: ref("/path"),
             navigate: vi.fn(),
             actionDisabled: ref(false),
+            actionDetail: ref(undefined),
         });
         LinkModelView = (await import("@vueda/components/LinkModelView.vue")).default;
     });
@@ -111,10 +115,49 @@ describe("lib/components/LinkModelView.vue", () => {
             href: ref("/path"),
             navigate: vi.fn(),
             actionDisabled: ref(true),
+            actionDetail: ref(undefined),
         });
         const wrapper = mount(LinkModelView, {
             props: { app: "a", model: "m", view: "v" },
         });
         expect(wrapper.get('[data-qa="prime-button"]').attributes("data-disabled")).toBe("true");
+    });
+
+    describe("action-variant mode", () => {
+        scopedIt("uses the legacy link variant when no action-styling props are set", () => {
+            const wrapper = mount(LinkModelView, { props: { app: "a", model: "m", view: "create" } });
+            const btn = wrapper.get('[data-qa="prime-button"]');
+            expect(btn.attributes("data-variant")).toBe("link");
+            expect(btn.attributes("data-tone")).toBeUndefined();
+            expect(btn.attributes("data-emphasis")).toBeUndefined();
+        });
+
+        scopedIt("resolves a resting placement emphasis to tone+emphasis (no legacy variant)", () => {
+            const wrapper = mount(LinkModelView, {
+                props: { app: "a", model: "m", view: "export", resting: "outline" },
+            });
+            const btn = wrapper.get('[data-qa="prime-button"]');
+            expect(btn.attributes("data-variant")).toBeUndefined();
+            expect(btn.attributes("data-tone")).toBe("neutral");
+            expect(btn.attributes("data-emphasis")).toBe("outline");
+        });
+
+        scopedIt("promotes a primary action to the primary fill CTA", () => {
+            const wrapper = mount(LinkModelView, {
+                props: { app: "a", model: "m", view: "create", resting: "outline", primary: true },
+            });
+            const btn = wrapper.get('[data-qa="prime-button"]');
+            expect(btn.attributes("data-tone")).toBe("primary");
+            expect(btn.attributes("data-emphasis")).toBe("fill");
+        });
+
+        scopedIt("gives a delete action the destructive tone at its placement emphasis", () => {
+            const wrapper = mount(LinkModelView, {
+                props: { app: "a", model: "m", view: "delete", button: true, resting: "ghost" },
+            });
+            const btn = wrapper.get('[data-qa="prime-button"]');
+            expect(btn.attributes("data-tone")).toBe("destructive");
+            expect(btn.attributes("data-emphasis")).toBe("ghost");
+        });
     });
 });

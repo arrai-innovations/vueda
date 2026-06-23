@@ -23,12 +23,17 @@ import { useRouter } from "vue-router";
  *     href: import('vue').ComputedRef<string|undefined>,
  *     navigate: () => Promise<void>,
  *     actionDisabled: import('vue').ComputedRef<boolean>,
+ *     actionDetail: import('vue').ComputedRef<import('@vueda/stores/storeModelInfo.js').ActionInfo|undefined>,
  * }} The link model view state.
  */
 export const useLinkModelView = (props) => {
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), toRef(props, "view"));
     const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"));
     const actionName = computed(() => getActionName(props.view));
+    // The rendered action's metadata, used to derive its intrinsic Button tone
+    // (a delete/destroy action is destructive). Keyed by the raw view/action
+    // name, since `actionDetails` is model-wide and view-independent.
+    const actionDetail = computed(() => modelConfig.config?.actionDetails?.[props.view]);
     const requiresPK = computed(() => {
         const localActionName = unref(actionName);
         // Check action details
@@ -111,5 +116,6 @@ export const useLinkModelView = (props) => {
         href,
         navigate,
         actionDisabled,
+        actionDetail,
     };
 };

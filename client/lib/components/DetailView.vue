@@ -141,6 +141,11 @@ const props = defineProps({
         type: Array,
         default: undefined,
     },
+    /** Action names promoted to the filled hero CTA in the action bar; defaults to the `update` action. */
+    primaryActions: {
+        type: Array,
+        default: undefined,
+    },
     // other form-model props will get passed in via $attrs, as long as there are no conflicts
 });
 
@@ -202,6 +207,7 @@ onMounted(() => {
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
+                        resting="outline"
                     />
                 </slot>
             </template>
@@ -251,6 +257,8 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="actionName"
+                                resting="outline"
+                                :primary="actions.primaryActions.has(actionName)"
                             />
                         </slot>
                     </template>
@@ -271,6 +279,7 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="transition"
+                                resting="outline"
                             />
                         </slot>
                     </template>

@@ -601,6 +601,14 @@ export function useViewList(options) {
         const actionDetails = modelConfig.config?.actionDetails || {};
         return new Set(actions.filter((name) => actionDetails[name]?.bulk));
     });
+    // The list view's hero action: the one promoted to a filled CTA in the page
+    // title. By convention that is `create`; a consumer can override the set via
+    // the `primaryActions` prop. Intersected with the rendered targetless set so
+    // an override naming an unavailable action is simply inert.
+    const primaryActions = computed(() => {
+        const candidates = options.primaryActions ?? ["create"];
+        return new Set(candidates.filter((name) => targetlessActions.value.has(name)));
+    });
 
     const buttonSlotProps = reactive({});
     const bspEffectScope = effectScope();
@@ -789,6 +797,7 @@ export function useViewList(options) {
             bulkActions,
             targetlessActions,
             availableTransitions,
+            primaryActions,
             buttonSlotProps,
             selectedObjects,
             toggleSelectedObject,

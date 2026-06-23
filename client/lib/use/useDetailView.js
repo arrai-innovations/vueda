@@ -269,6 +269,17 @@ export function useDetailView(options, formInitialValue) {
         }),
     );
 
+    // The detail view's hero action: the one promoted to a filled CTA in the
+    // action bar. By convention that is `update` (the edit affordance on a read
+    // view); a consumer can override the set via `primaryActions`. Intersected
+    // with the rendered detail actions so it never double-promotes (on an update
+    // view `update` is the current view and not a detail action) and an override
+    // naming an unavailable action is simply inert.
+    const primaryActions = computed(() => {
+        const candidates = options.primaryActions ?? ["update"];
+        return new Set(candidates.filter((name) => detailActions.value.includes(name)));
+    });
+
     return {
         modelConfig,
         instanceObject,
@@ -287,6 +298,7 @@ export function useDetailView(options, formInitialValue) {
             nonDetailActions,
             detailActions,
             availableTransitions,
+            primaryActions,
         }),
     };
 }

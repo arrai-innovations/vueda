@@ -114,6 +114,7 @@ onMounted(() => {
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
+                        resting="outline"
                     />
                 </slot>
             </template>

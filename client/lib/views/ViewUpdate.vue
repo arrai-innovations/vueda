@@ -176,6 +176,7 @@ onMounted(() => {
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
+                        resting="outline"
                     />
                 </slot>
             </template>
@@ -224,6 +225,7 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="actionName"
+                                resting="outline"
                             />
                         </slot>
                     </template>
@@ -244,6 +246,7 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="transition"
+                                resting="outline"
                             />
                         </slot>
                     </template>
