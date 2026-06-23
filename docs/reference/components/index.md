@@ -30,6 +30,7 @@ designer can move from the visual to the override surface in one click.
 
 - [Containers](/reference/components/containers)
 - [Sidebar](/reference/components/sidebar)
+- [Sticky Chrome](/reference/components/sticky-chrome)
 
 ## Grid
 

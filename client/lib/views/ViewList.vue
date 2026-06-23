@@ -8,6 +8,7 @@ import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageActions from "@vueda/components/PageActions.vue";
 import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import SortControl from "@vueda/components/SortControl.vue";
+import StickyChrome from "@vueda/components/StickyChrome.vue";
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import InputGroup from "@vueda/controls/input-group/InputGroup.vue";
 import InputGroupButton from "@vueda/controls/input-group/InputGroupButton.vue";
@@ -227,66 +228,74 @@ onMounted(() => {
                 </template>
             </slot>
         </page-actions>
-        <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
-            <div :class="theme('filterControls')" data-qa="view-list-filter-controls">
-                <!-- FilterGroup's add-filter trigger teleports into this zone. -->
-                <div ref="filterTriggerZone" :class="theme('filterTriggerZone')" data-qa="view-list-filter-trigger" />
-                <sort-control
-                    v-if="sort.canShowSorter"
-                    :field-details="modelConfig.config?.fieldDetails || {}"
-                    :sortables="sort.sortablesList"
-                    :sorted="sort.sorting.state.sorted"
-                    @update:sorted="sort.sorting.updateSorted"
-                >
-                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                        <slot :name="slot" v-bind="slotProps || {}" />
-                    </template>
-                </sort-control>
+        <!-- Under-actions toolbar: teleports into the sticky-stack top zone (reveals on scroll up)
+             when a StickyStackProvider is present, otherwise renders inline here. -->
+        <sticky-chrome zone="top" reveal="scroll-up">
+            <div :class="theme('underActionsBar')" data-qa="view-list-under-actions">
+                <div :class="theme('filterControls')" data-qa="view-list-filter-controls">
+                    <!-- FilterGroup's add-filter trigger teleports into this zone. -->
+                    <div
+                        ref="filterTriggerZone"
+                        :class="theme('filterTriggerZone')"
+                        data-qa="view-list-filter-trigger"
+                    />
+                    <sort-control
+                        v-if="sort.canShowSorter"
+                        :field-details="modelConfig.config?.fieldDetails || {}"
+                        :sortables="sort.sortablesList"
+                        :sorted="sort.sorting.state.sorted"
+                        @update:sorted="sort.sorting.updateSorted"
+                    >
+                        <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                            <slot :name="slot" v-bind="slotProps || {}" />
+                        </template>
+                    </sort-control>
+                </div>
+                <div :class="theme('listControlBar')">
+                    <slot name="search" v-bind="themedSearchSlotProps">
+                        <InputGroup>
+                            <InputGroupInput
+                                :class="theme('searchInput')"
+                                :model-value="search.searchSlotProps.listSearch"
+                                name="search"
+                                placeholder="Search"
+                                type="search"
+                                @search="search.filterList"
+                                @update:model-value="search.searchSlotProps.updateListSearch"
+                            />
+                            <InputGroupButton @click="search.filterList"> Search </InputGroupButton>
+                        </InputGroup>
+                    </slot>
+                    <slot
+                        v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
+                        name="columns-select"
+                        :columns="columns.columns"
+                        :options="columns.columnOptions"
+                        :loading="list.loading"
+                    >
+                        <Select v-model="columns.columns" multiple>
+                            <SelectTrigger size="sm">
+                                <SelectValue>
+                                    <slot name="columns-select-value-label">columns</slot>
+                                </SelectValue>
+                                <template v-if="slots['columns-select-dropdown-icon']" #icon>
+                                    <slot name="columns-select-dropdown-icon" />
+                                </template>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="option in columns.columnOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </slot>
+                </div>
             </div>
-            <div :class="theme('listControlBar')">
-                <slot name="search" v-bind="themedSearchSlotProps">
-                    <InputGroup>
-                        <InputGroupInput
-                            :class="theme('searchInput')"
-                            :model-value="search.searchSlotProps.listSearch"
-                            name="search"
-                            placeholder="Search"
-                            type="search"
-                            @search="search.filterList"
-                            @update:model-value="search.searchSlotProps.updateListSearch"
-                        />
-                        <InputGroupButton @click="search.filterList"> Search </InputGroupButton>
-                    </InputGroup>
-                </slot>
-                <slot
-                    v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
-                    name="columns-select"
-                    :columns="columns.columns"
-                    :options="columns.columnOptions"
-                    :loading="list.loading"
-                >
-                    <Select v-model="columns.columns" multiple>
-                        <SelectTrigger size="sm">
-                            <SelectValue>
-                                <slot name="columns-select-value-label">columns</slot>
-                            </SelectValue>
-                            <template v-if="slots['columns-select-dropdown-icon']" #icon>
-                                <slot name="columns-select-dropdown-icon" />
-                            </template>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem
-                                v-for="option in columns.columnOptions"
-                                :key="option.value"
-                                :value="option.value"
-                            >
-                                {{ option.label }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </slot>
-            </div>
-        </div>
+        </sticky-chrome>
         <div
             v-if="actions.selectedObjects.length > 0"
             :class="theme('bulkActionsBar')"
@@ -443,26 +452,26 @@ onMounted(() => {
                 </slot>
             </template>
         </objects-grid>
-        <div
-            v-if="pagination.paginateInfo?.totalRecords > 0"
-            :class="theme('paginationWrapper')"
-            data-qa="view-list-pagination"
-        >
-            <pagination-component
-                v-model:current-page="list.listState.currentPage"
-                :loading="list.instanceList.state.loading"
-                :rows="pagination.paginateInfo?.perPage"
-                :total-records="pagination.paginateInfo?.totalRecords"
-                :is-table="sort.isTable"
-                :showing-all-pages="pagination.computedShowAllPages"
-                :allow-show-all-pages="modelConfig.config?.allowShowAllPages && allowShowAllPages"
-                :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
-                @update:showing-all-pages="pagination.showingAllPages = $event"
-            >
-                <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                    <slot :name="slot" v-bind="slotProps || {}" />
-                </template>
-            </pagination-component>
-        </div>
+        <!-- Pagination footer: teleports into the sticky-stack bottom zone (always shown) when a
+             StickyStackProvider is present, otherwise renders inline here. -->
+        <sticky-chrome v-if="pagination.paginateInfo?.totalRecords > 0" zone="bottom" reveal="always">
+            <div :class="theme('paginationWrapper')" data-qa="view-list-pagination">
+                <pagination-component
+                    v-model:current-page="list.listState.currentPage"
+                    :loading="list.instanceList.state.loading"
+                    :rows="pagination.paginateInfo?.perPage"
+                    :total-records="pagination.paginateInfo?.totalRecords"
+                    :is-table="sort.isTable"
+                    :showing-all-pages="pagination.computedShowAllPages"
+                    :allow-show-all-pages="modelConfig.config?.allowShowAllPages && allowShowAllPages"
+                    :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
+                    @update:showing-all-pages="pagination.showingAllPages = $event"
+                >
+                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                        <slot :name="slot" v-bind="slotProps || {}" />
+                    </template>
+                </pagination-component>
+            </div>
+        </sticky-chrome>
     </div>
 </template>

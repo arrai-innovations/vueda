@@ -75,7 +75,6 @@ const sorted = ref(["-updated", "mrr"]);
 // Each StickyBar demo binds its scroll-root to its own bounded, scrollable
 // panel so the bar pins to and reacts to the demo viewport instead of the page
 // (otherwise it would stick to the window and ride up over the site nav).
-const stickyViewport = ref(null);
 const createViewport = ref(null);
 const readViewport = ref(null);
 const updateViewport = ref(null);
@@ -124,7 +123,7 @@ const DemoTitleBar = defineComponent({
 
 # CRUDL Views
 
-Five view-scale layouts that form the backbone of every VUEDA application: list, create, read, update, and destroy. The two new components introduced here are {@api vue:component:PageTitle}, the layout-level header that displays each view's title and page actions, and {@api vue:component:StickyBar}, a scroll-aware action zone that keeps submit controls reachable on long forms. All other chrome — fields, field sets, alerts, ObjectsGrid, badges — is composed from earlier families.
+Five view-scale layouts that form the backbone of every VUEDA application: list, create, read, update, and destroy. The new component introduced here is {@api vue:component:PageTitle}, the layout-level header that displays each view's title and page actions. The scroll-aware action bars these views use to keep submit and transition controls reachable on long forms ({@api vue:component:StickyBar} and the surrounding sticky-stack family) have their own page: [Sticky Chrome](./sticky-chrome.md). All other chrome — fields, field sets, alerts, ObjectsGrid, badges — is composed from earlier families.
 
 Token surface: {@api css-token:background}, {@api css-token:card}, {@api css-token:border}, {@api css-token:primary}, {@api css-token:destructive}, {@api css-token:muted}, {@api css-token:muted-foreground}.
 
@@ -178,108 +177,11 @@ Theme keys: {@api theme-key:PageTitle}.
   </DemoCard>
 </VuedaDemo>
 
-## StickyBar
+## Sticky action bars
 
-{@api vue:component:StickyBar} wraps the default slot in a themed container that hides when the user scrolls down past its initial position and reappears when they scroll back up. In VUEDA forms it sits directly below PageTitle and holds the primary submit action.
+The create, read, and update views below pair PageTitle with a scroll-aware action bar that keeps the primary submit or transition controls reachable on long forms. That bar is {@api vue:component:StickyBar}, and in a real shell each view teleports it into the framework-owned sticky stack (via `StickyChrome` / `StickyStackProvider`) so it stacks beneath the pinned title and reveals on its own schedule. The demos on this page show the bar with a standalone `StickyBar` bound to the demo panel, which is visually identical but self-contained.
 
-By default the bar reacts to the window's scroll. When the bar lives inside a scrollable region rather than scrolling the whole page, pass that region's element to the `scrollRoot` prop so the bar pins to and reacts to it. The demo below does this: it binds `scrollRoot` to the bounded, scrollable panel so the bar treats the panel as its page.
-
-Theme keys: {@api theme-key:StickyBar}.
-
-<VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">sticky bar · submit pattern</header>
-  <ClientOnly>
-    <div ref="stickyViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[20rem]">
-      <StickyBar :scroll-root="stickyViewport">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <Button variant="default">
-              <FontAwesomeIcon :icon="faCheck" />
-              Create customer
-            </Button>
-            <Button variant="outline">Save and add another</Button>
-          </div>
-          <span class="text-xs text-muted-foreground">All required fields marked <span class="text-destructive">*</span></span>
-        </div>
-      </StickyBar>
-      <div class="px-6 py-5">
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field orientation="vertical">
-            <FieldLabel for="sb-name">Account name <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-            <FieldContent>
-              <Input id="sb-name" placeholder="Granger Holdings" />
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="sb-domain">Primary domain</FieldLabel>
-            <FieldContent>
-              <Input id="sb-domain" placeholder="example.com" />
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="sb-owner">Owner <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
-            <FieldContent>
-              <NativeSelect id="sb-owner">
-                <NativeSelectOption value="">— select —</NativeSelectOption>
-                <NativeSelectOption value="mt">Mara Tani</NativeSelectOption>
-                <NativeSelectOption value="jr">Jordan Reyes</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="sb-tier">Plan tier</FieldLabel>
-            <FieldContent>
-              <NativeSelect id="sb-tier">
-                <NativeSelectOption value="trial">Trial</NativeSelectOption>
-                <NativeSelectOption value="standard" selected>Standard</NativeSelectOption>
-                <NativeSelectOption value="enterprise">Enterprise</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="sb-billing-email">Billing email</FieldLabel>
-            <FieldContent>
-              <Input id="sb-billing-email" type="email" placeholder="ar@example.com" />
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="sb-currency">Currency</FieldLabel>
-            <FieldContent>
-              <NativeSelect id="sb-currency">
-                <NativeSelectOption value="usd">USD</NativeSelectOption>
-                <NativeSelectOption value="eur">EUR</NativeSelectOption>
-                <NativeSelectOption value="gbp">GBP</NativeSelectOption>
-              </NativeSelect>
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="sb-tax">Tax ID</FieldLabel>
-            <FieldContent>
-              <Input id="sb-tax" placeholder="Optional" />
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical">
-            <FieldLabel for="sb-phone">Billing phone</FieldLabel>
-            <FieldContent>
-              <Input id="sb-phone" type="tel" placeholder="Optional" />
-            </FieldContent>
-          </Field>
-          <Field orientation="vertical" class="sm:col-span-2">
-            <FieldLabel for="sb-notes">Notes</FieldLabel>
-            <FieldContent>
-              <Textarea id="sb-notes" placeholder="Internal notes visible only to staff." rows="3" />
-            </FieldContent>
-          </Field>
-        </div>
-      </div>
-    </div>
-  </ClientOnly>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>StickyBar default slot: free-form layout, usually a flex row of actions</span>
-    <span>theme key: <code>StickyBar.inner</code> for bar chrome (background, border, padding)</span>
-    <span>the bar binds <code>scrollRoot</code> to this panel; scroll inside the panel to see it hide on the way down and reappear on the way up</span>
-  </footer>
-</VuedaDemo>
+The bar primitive, the stack model, reveal strategies, and the integration contract are documented on their own page: [Sticky Chrome](./sticky-chrome.md).
 
 ## ViewList
 
@@ -572,7 +474,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
 
 ## ViewCreate
 
-The create view pairs PageTitle with a StickyBar immediately below it. The StickyBar holds the primary submit action (pinned and always reachable during form entry) alongside secondary options like "Save and add another." The form body below renders a real {@api vue:component:FormModel} against seeded model metadata, so it shows the framework's actual default field layout (a single-column stack) rather than hand-built markup. Grouping fields into sections or a multi-column grid is a customization layered on top; see [Forms](/reference/components/forms).
+The create view pairs PageTitle with a sticky action bar that holds the primary submit action (pinned and always reachable during form entry) alongside secondary options like "Save and add another." In a real shell that bar teleports into the sticky stack beneath the title (see [Sticky Chrome](./sticky-chrome.md)); the demo below shows it as a standalone `StickyBar` bound to the demo panel. The form body renders a real {@api vue:component:FormModel} against seeded model metadata, so it shows the framework's actual default field layout (a single-column stack) rather than hand-built markup. Grouping fields into sections or a multi-column grid is a customization layered on top; see [Forms](/reference/components/forms).
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view create · blank form · pristine</header>
@@ -609,7 +511,7 @@ The create view pairs PageTitle with a StickyBar immediately below it. The Stick
 
 ## ViewRead
 
-The read view presents a single record in a non-editable layout. Inputs are replaced by label/value rows with a fixed-width label column. The StickyBar swaps the submit button for transition actions (Edit, History, workflow steps). A status badge appears in the title actions area.
+The read view presents a single record in a non-editable layout. Inputs are replaced by label/value rows with a fixed-width label column. The sticky action bar swaps the submit button for transition actions (Edit, History, workflow steps); like the create view, it teleports into the sticky stack in a real shell (see [Sticky Chrome](./sticky-chrome.md)) and is shown here as a standalone `StickyBar`. A status badge appears in the title actions area.
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view read · single record · Northwind Logistics</header>
@@ -837,7 +739,7 @@ Token decisions flow across all five views:
 The highest-value theme keys for CRUDL views:
 
 - {@api theme-key:PageTitle} — `root`, `title`, `buttons`. Override `title` to change the heading size and weight (default: `text-[22px] font-semibold leading-[1.2]`).
-- {@api theme-key:StickyBar} — `root`, `inner`. Override `inner` to add a border, change the background, or adjust padding; to retint the bar from a wrapper, set the `--vueda-sticky-bar-surface` custom property instead of painting a competing background.
+- StickyBar and the sticky-stack keys are covered on its own page: see [Sticky Chrome](./sticky-chrome.md#customization-surface).
 - ObjectsGrid keys are covered on its own page: {@api theme-key:ObjectsGrid}, {@api theme-key:ObjectsGridTableHeader}, {@api theme-key:ObjectsGridBodyCell}.
 - Field and form keys are covered on the Forms page: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key:FieldContent}.
 - {@api theme-key:Alert} controls the form-level error banner in ViewUpdate.

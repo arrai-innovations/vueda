@@ -1,5 +1,6 @@
 <script setup>
 import PageTitle from "@vueda/components/PageTitle.vue";
+import StickyStackProvider from "@vueda/components/StickyStackProvider.vue";
 import Sonner from "@vueda/feedback/toast/Sonner.vue";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 
@@ -9,7 +10,11 @@ usePageTitle();
 </script>
 
 <template>
-    <PageTitle />
-    <RouterView />
+    <StickyStackProvider>
+        <template #top>
+            <PageTitle />
+        </template>
+        <RouterView />
+    </StickyStackProvider>
     <Sonner />
 </template>

@@ -182,7 +182,7 @@ onMounted(() => {
             <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
             <slot name="extra-buttons" />
         </page-actions>
-        <sticky-bar class="w-full">
+        <sticky-bar zone="top" reveal="scroll-up-or-idle">
             <template #primary>
                 <div
                     class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
