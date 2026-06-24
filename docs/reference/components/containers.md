@@ -140,7 +140,7 @@ Token surface: {@api css-token:card} (fill),
       </CardContent>
       <CardFooter class="justify-end gap-2">
         <Button size="sm" variant="ghost">Cancel</Button>
-        <Button size="sm">Archive</Button>
+        <Button size="sm" variant="default">Archive</Button>
       </CardFooter>
     </Card>
     <template #footer>

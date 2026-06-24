@@ -74,7 +74,7 @@ Suggestion data comes from `useSuggestRoutes({ limit })` (N-best matches with sc
       />
       <template #actions>
         <Button size="sm" variant="outline">Back</Button>
-        <Button size="sm" class="ml-auto">Go to home</Button>
+        <Button size="sm" variant="default" class="ml-auto">Go to home</Button>
       </template>
     </SystemMessageCard>
   </div>
@@ -118,7 +118,7 @@ Suggestions widen the previous closest-only behavior: every action on the closes
       />
       <template #actions>
         <Button size="sm" variant="outline">Back</Button>
-        <Button size="sm" class="ml-auto">Browse all actions</Button>
+        <Button size="sm" variant="default" class="ml-auto">Browse all actions</Button>
       </template>
     </SystemMessageCard>
   </div>

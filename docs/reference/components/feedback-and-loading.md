@@ -275,7 +275,7 @@ the classes it expects.
       </div>
       <div class="flex min-w-16 flex-col items-center gap-2">
         <span class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">button</span>
-        <Button disabled>
+        <Button variant="default" disabled>
           <LoadingSpinnerInline />
           Saving
         </Button>

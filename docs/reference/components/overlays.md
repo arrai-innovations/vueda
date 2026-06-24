@@ -104,7 +104,7 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
             </div>
             <div class="mt-4 flex justify-end gap-2">
               <Button variant="ghost" size="sm">Cancel</Button>
-              <Button size="sm">Apply</Button>
+              <Button size="sm" variant="default">Apply</Button>
             </div>
           </PopoverContent>
         </Popover>

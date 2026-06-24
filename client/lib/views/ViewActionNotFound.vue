@@ -158,6 +158,7 @@ function handleBrowse() {
                     <Button
                         v-if="closestApp && closestModel"
                         class="ml-auto"
+                        variant="default"
                         data-qa="view-action-not-found-browse"
                         @click="handleBrowse"
                         >Browse all actions</Button

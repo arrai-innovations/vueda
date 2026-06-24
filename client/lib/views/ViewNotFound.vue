@@ -120,7 +120,9 @@ function handleHome() {
                 <!-- @slot actions Override the default Back / Go to home button row. -->
                 <slot name="actions">
                     <Button variant="outline" data-qa="view-not-found-back" @click="handleBack">Back</Button>
-                    <Button class="ml-auto" data-qa="view-not-found-home" @click="handleHome">Go to home</Button>
+                    <Button variant="default" class="ml-auto" data-qa="view-not-found-home" @click="handleHome"
+                        >Go to home</Button
+                    >
                 </slot>
             </template>
         </system-message-card>

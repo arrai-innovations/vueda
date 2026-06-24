@@ -166,7 +166,7 @@ const icon = useIcons("ViewRecoveryCodes", props);
                 </Button>
             </div>
             <div v-else :class="theme('emptyActions')" data-qa="view-recovery-codes-form-action-bar-invalid">
-                <Button :disabled="loading" @click="goToSetupDevice">
+                <Button variant="default" :disabled="loading" @click="goToSetupDevice">
                     <LoadingSpinnerInline v-if="loading" />
                     Set up a device
                 </Button>

@@ -325,7 +325,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
             <strong class="text-sm font-semibold text-foreground">No invoices yet.</strong>
             <span class="text-sm text-muted-foreground">Issue your first invoice to populate this table.</span>
             <div class="mt-1">
-              <Button size="sm">
+              <Button size="sm" variant="default">
                 <FontAwesomeIcon :icon="faPlus" />New invoice
               </Button>
             </div>
@@ -458,7 +458,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
       <Button size="sm" variant="ghost" aria-label="Export">
         <FontAwesomeIcon :icon="faDownload" />
       </Button>
-      <Button size="sm">
+      <Button size="sm" variant="default">
         <FontAwesomeIcon :icon="faPlus" />New invoice
       </Button>
     </div>

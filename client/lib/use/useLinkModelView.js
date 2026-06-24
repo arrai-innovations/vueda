@@ -31,9 +31,9 @@ export const useLinkModelView = (props) => {
     const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"));
     const actionName = computed(() => getActionName(props.view));
     // The rendered action's metadata, used to derive its intrinsic Button tone
-    // (a delete/destroy action is destructive). Keyed by the raw view/action
-    // name, since `actionDetails` is model-wide and view-independent.
-    const actionDetail = computed(() => modelConfig.config?.actionDetails?.[props.view]);
+    // (a delete/destroy action is destructive). Keyed by the canonical action
+    // name so view aliases like "read" can resolve metadata for "retrieve".
+    const actionDetail = computed(() => modelConfig.config?.actionDetails?.[unref(actionName)]);
     const requiresPK = computed(() => {
         const localActionName = unref(actionName);
         // Check action details

@@ -472,7 +472,7 @@ Theme keys: {@api theme-key:CalendarFooter}. Token surface:
       <template #summary>Apr 10, 2026 → Apr 24, 2026 · 14 days</template>
       <template #actions>
         <Button variant="ghost" size="sm">Clear</Button>
-        <Button size="sm">Apply</Button>
+        <Button size="sm" variant="default">Apply</Button>
       </template>
     </CalendarFooter>
     <template #footer>

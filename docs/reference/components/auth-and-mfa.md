@@ -71,7 +71,7 @@ Token surface: `--card`, `--border`, `--muted-foreground`, `--ring`, `--destruct
         </div>
         <div class="flex h-8 items-center justify-center rounded border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">fields</div>
         <div class="flex gap-2">
-          <Button size="sm">Primary action</Button>
+          <Button size="sm" variant="default">Primary action</Button>
           <Button size="sm" variant="ghost">Cancel</Button>
         </div>
       </div>
@@ -89,7 +89,7 @@ Token surface: `--card`, `--border`, `--muted-foreground`, `--ring`, `--destruct
           <p class="mt-1 text-sm text-muted-foreground">No PageTitle. Card is the whole page.</p>
         </div>
         <div class="flex h-8 items-center justify-center rounded border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">fields</div>
-        <Button size="sm">Verify</Button>
+        <Button size="sm" variant="default">Verify</Button>
       </div>
     </div>
     <template #footer>
@@ -130,7 +130,7 @@ Three password fields in an AuthForm card. Two states: ready to submit and confi
         </FieldContent>
       </Field>
       <div class="flex gap-3 pt-1">
-        <Button type="submit">Update password</Button>
+        <Button type="submit" variant="default">Update password</Button>
         <Button variant="ghost">Cancel</Button>
       </div>
     </div>
@@ -174,7 +174,7 @@ Three password fields in an AuthForm card. Two states: ready to submit and confi
         <AlertDescription>Fix the field above and try again.</AlertDescription>
       </Alert>
       <div class="flex gap-3">
-        <Button type="submit" disabled aria-disabled="true">Update password</Button>
+        <Button type="submit" variant="default" disabled aria-disabled="true">Update password</Button>
         <Button variant="ghost">Cancel</Button>
       </div>
     </div>
@@ -242,7 +242,7 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
         </Field>
       </div>
       <div class="flex flex-wrap gap-2">
-        <Button>Verify</Button>
+        <Button variant="default">Verify</Button>
         <Button variant="ghost">
           <FontAwesomeIcon :icon="faLifeRing" />
           Use a recovery code
@@ -283,7 +283,7 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
         </FieldContent>
       </Field>
       <div class="flex flex-wrap gap-2">
-        <Button disabled aria-disabled="true">Verify</Button>
+        <Button variant="default" disabled aria-disabled="true">Verify</Button>
         <Button variant="ghost" disabled aria-disabled="true">
           <FontAwesomeIcon :icon="faClock" />
           Send sms again
@@ -318,7 +318,7 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
         </FieldContent>
       </Field>
       <div class="flex gap-2">
-        <Button>Verify</Button>
+        <Button variant="default">Verify</Button>
         <Button variant="ghost">
           <FontAwesomeIcon :icon="faArrowLeft" />
           Back to verified methods
@@ -393,7 +393,7 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
         </FieldContent>
       </Field>
       <div class="flex gap-3">
-        <Button>Continue</Button>
+        <Button variant="default">Continue</Button>
         <Button variant="ghost">Cancel</Button>
       </div>
     </div>
@@ -496,7 +496,7 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
         </FieldContent>
       </Field>
       <div class="flex gap-3">
-        <Button disabled aria-disabled="true">Verify and finish</Button>
+        <Button variant="default" disabled aria-disabled="true">Verify and finish</Button>
         <Button variant="ghost">
           <FontAwesomeIcon :icon="faArrowLeft" />
           Back
@@ -557,7 +557,7 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
         </FieldContent>
       </Field>
       <div class="flex flex-wrap gap-2">
-        <Button disabled aria-disabled="true">Verify and finish</Button>
+        <Button variant="default" disabled aria-disabled="true">Verify and finish</Button>
         <Button variant="ghost" disabled aria-disabled="true">
           <FontAwesomeIcon :icon="faClock" />
           Send sms again
@@ -652,7 +652,7 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
       </ol>
       <div class="flex items-start justify-between gap-3 rounded-vueda-control border border-border p-3">
         <p class="text-sm text-muted-foreground"><strong class="text-foreground">Generate a fresh set</strong> The codes above stop working as soon as you do. Print or download the new ones immediately.</p>
-        <Button class="shrink-0">
+        <Button variant="default" class="shrink-0">
           <FontAwesomeIcon :icon="faRotate" />
           Generate new codes
         </Button>
@@ -678,7 +678,7 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
         <AlertDescription>You'll be able to generate recovery codes once you have at least one verified device on your account.</AlertDescription>
       </Alert>
       <div class="flex gap-3">
-        <Button>
+        <Button variant="default">
           <FontAwesomeIcon :icon="faShieldHalved" />
           Set up a device
         </Button>

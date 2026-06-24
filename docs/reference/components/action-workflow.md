@@ -134,7 +134,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
     <!-- actions strip -->
     <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
       <Button variant="ghost">Cancel</Button>
-      <Button>
+      <Button variant="default">
         <FontAwesomeIcon :icon="faBoxArchive" />
         Archive 4 customers
       </Button>
@@ -205,7 +205,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
     <!-- actions strip -->
     <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
       <Button variant="ghost">Cancel</Button>
-      <Button>
+      <Button variant="default">
         <FontAwesomeIcon :icon="faClone" />
         Duplicate quote
       </Button>
@@ -283,7 +283,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
         <FontAwesomeIcon :icon="faArrowRotateRight" />
         Re-run dry-run
       </Button>
-      <Button disabled aria-disabled="true">
+      <Button variant="default" disabled aria-disabled="true">
         <FontAwesomeIcon :icon="faCreditCard" />
         Bill now
       </Button>
@@ -358,7 +358,7 @@ Same recipe as ViewAction with the banner switched to a success tone. Establishe
     <!-- actions strip -->
     <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
       <Button variant="ghost">Cancel</Button>
-      <Button>
+      <Button variant="default">
         <FontAwesomeIcon :icon="faCircleCheck" />
         Reactivate user
       </Button>
@@ -474,7 +474,7 @@ The current state is surfaced in a tinted strip below the title bar so there is 
     <!-- actions strip -->
     <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
       <Button variant="ghost">Cancel</Button>
-      <Button>
+      <Button variant="default">
         <FontAwesomeIcon :icon="faArrowRight" />
         {{ selectedTransition === 'send-for-review' ? 'Send for review' : selectedTransition === 'send-to-customer' ? 'Send to customer' : 'Apply transition' }}
       </Button>
