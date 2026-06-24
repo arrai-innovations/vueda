@@ -250,13 +250,13 @@ const doAfterSuccess = async (response) => {
                 <Button
                     v-if="step === STEPS.DONE"
                     type="button"
-                    variant="default"
+                    tone="primary"
                     data-qa="view-setup-device-continue"
                     @click="handleContinue"
                 >
                     Continue
                 </Button>
-                <Button v-else :disabled="loading || form.values?.method == null" type="submit" variant="default">
+                <Button v-else :disabled="loading || form.values?.method == null" type="submit" tone="primary">
                     <LoadingSpinnerInline v-if="loading" />
                     {{ step !== STEPS.CHOOSE ? "Verify Device" : "Choose Device" }}
                 </Button>

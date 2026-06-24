@@ -135,7 +135,7 @@ const slots = useSlots();
         </draggable>
         <Button
             v-if="items.length > 1"
-            variant="ghost"
+            emphasis="ghost"
             size="sm"
             :class="theme('clear')"
             data-qa="sort-clear"

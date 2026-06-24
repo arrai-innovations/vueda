@@ -86,7 +86,7 @@ const icons = useIcons("ResponsiveMenu", props);
     <Popover v-if="!isMobile" v-model:open="open">
         <Teleport :to="triggerTarget" :disabled="!triggerTarget">
             <PopoverTrigger as-child>
-                <Button size="sm" variant="outline" aria-haspopup="dialog" :data-qa="triggerQa">
+                <Button size="sm" emphasis="outline" aria-haspopup="dialog" :data-qa="triggerQa">
                     <component
                         :is="icons(props.icon).component"
                         v-if="props.icon && icons(props.icon)"
@@ -111,7 +111,7 @@ const icons = useIcons("ResponsiveMenu", props);
     <Dialog v-else v-model:open="open">
         <Teleport :to="triggerTarget" :disabled="!triggerTarget">
             <DialogTrigger as-child>
-                <Button size="sm" variant="outline" aria-haspopup="dialog" :data-qa="triggerQa" @click="open = true">
+                <Button size="sm" emphasis="outline" aria-haspopup="dialog" :data-qa="triggerQa" @click="open = true">
                     <component
                         :is="icons(props.icon).component"
                         v-if="props.icon && icons(props.icon)"

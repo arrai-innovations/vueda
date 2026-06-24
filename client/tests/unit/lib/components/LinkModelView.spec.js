@@ -9,7 +9,7 @@ vi.mock("@vueda/use/useLinkModelView.js", () => ({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["as", "disabled", "href", "variant", "tone", "emphasis", "class"],
+    props: ["as", "disabled", "href", "tone", "emphasis", "class"],
     emits: ["click"],
     setup(props, { emit, slots }) {
         return () => {
@@ -22,7 +22,6 @@ const ButtonStub = defineComponent({
                     "data-qa": "prime-button",
                     "data-disabled": String(props.disabled),
                     "data-href": props.href,
-                    "data-variant": props.variant,
                     "data-tone": props.tone,
                     "data-emphasis": props.emphasis,
                     "data-label": typeof label === "string" ? label.trim() : undefined,
@@ -123,28 +122,26 @@ describe("lib/components/LinkModelView.vue", () => {
         expect(wrapper.get('[data-qa="prime-button"]').attributes("data-disabled")).toBe("true");
     });
 
-    describe("action-variant mode", () => {
-        scopedIt("uses the legacy link variant when no action-styling props are set", () => {
+    describe("action styling mode", () => {
+        scopedIt("uses primary link styling when no action-styling props are set", () => {
             const wrapper = mount(LinkModelView, { props: { app: "a", model: "m", view: "create" } });
             const btn = wrapper.get('[data-qa="prime-button"]');
-            expect(btn.attributes("data-variant")).toBe("link");
-            expect(btn.attributes("data-tone")).toBeUndefined();
-            expect(btn.attributes("data-emphasis")).toBeUndefined();
+            expect(btn.attributes("data-tone")).toBe("primary");
+            expect(btn.attributes("data-emphasis")).toBe("link");
         });
 
-        scopedIt("resolves a resting placement emphasis to tone+emphasis (no legacy variant)", () => {
+        scopedIt("resolves a placement emphasis to tone+emphasis", () => {
             const wrapper = mount(LinkModelView, {
-                props: { app: "a", model: "m", view: "export", resting: "outline" },
+                props: { app: "a", model: "m", view: "export", emphasis: "outline" },
             });
             const btn = wrapper.get('[data-qa="prime-button"]');
-            expect(btn.attributes("data-variant")).toBeUndefined();
             expect(btn.attributes("data-tone")).toBe("neutral");
             expect(btn.attributes("data-emphasis")).toBe("outline");
         });
 
         scopedIt("promotes a primary action to the primary fill CTA", () => {
             const wrapper = mount(LinkModelView, {
-                props: { app: "a", model: "m", view: "create", resting: "outline", primary: true },
+                props: { app: "a", model: "m", view: "create", emphasis: "outline", primary: true },
             });
             const btn = wrapper.get('[data-qa="prime-button"]');
             expect(btn.attributes("data-tone")).toBe("primary");
@@ -153,7 +150,7 @@ describe("lib/components/LinkModelView.vue", () => {
 
         scopedIt("gives a delete action the destructive tone at its placement emphasis", () => {
             const wrapper = mount(LinkModelView, {
-                props: { app: "a", model: "m", view: "delete", button: true, resting: "ghost" },
+                props: { app: "a", model: "m", view: "delete", button: true, emphasis: "ghost" },
             });
             const btn = wrapper.get('[data-qa="prime-button"]');
             expect(btn.attributes("data-tone")).toBe("destructive");

@@ -58,7 +58,7 @@ The provider is **window-scroll-only by design** (no `scrollRoot`, and it warns 
       <span class="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-primary">order 0 · reveal always</span>
     </div>
     <div class="flex items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-2">
-      <Button size="sm" variant="outline">
+      <Button size="sm" emphasis="outline">
         <FontAwesomeIcon :icon="faFilter" />
         Filters
         <FontAwesomeIcon :icon="faChevronDown" class="size-2.5 text-muted-foreground" />
@@ -72,9 +72,9 @@ The provider is **window-scroll-only by design** (no `scrollRoot`, and it warns 
     </div>
     <div class="flex items-center justify-between gap-3 border-t border-border bg-muted/30 px-4 py-2">
       <span class="flex items-center gap-1">
-        <Button size="icon-sm" variant="outline" aria-label="Previous page"><FontAwesomeIcon :icon="faChevronLeft" /></Button>
+        <Button size="icon-sm" emphasis="outline" aria-label="Previous page"><FontAwesomeIcon :icon="faChevronLeft" /></Button>
         <span class="px-2 text-xs font-medium text-foreground">Page 1 of 36</span>
-        <Button size="icon-sm" variant="outline" aria-label="Next page"><FontAwesomeIcon :icon="faChevronRight" /></Button>
+        <Button size="icon-sm" emphasis="outline" aria-label="Next page"><FontAwesomeIcon :icon="faChevronRight" /></Button>
       </span>
       <span class="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">bottom zone · order 0 · reveal always</span>
     </div>
@@ -125,11 +125,11 @@ Theme keys: {@api theme-key:StickyBar}.
       <StickyBar :scroll-root="stickyViewport">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
-            <Button variant="default">
+            <Button tone="primary">
               <FontAwesomeIcon :icon="faCheck" />
               Create customer
             </Button>
-            <Button variant="outline">Save and add another</Button>
+            <Button emphasis="outline">Save and add another</Button>
           </div>
           <span class="text-xs text-muted-foreground">All required fields marked <span class="text-destructive">*</span></span>
         </div>

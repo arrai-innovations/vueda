@@ -148,8 +148,8 @@ Theme keys: {@api theme-key:Alert}, {@api theme-key:AlertTitle},
         Renew the table or configure manual rates before 2026-05-01.
       </AlertDescription>
       <AlertActions>
-        <Button variant="ghost" size="sm">Dismiss</Button>
-        <Button variant="outline" size="sm">Renew</Button>
+        <Button emphasis="ghost" size="sm">Dismiss</Button>
+        <Button emphasis="outline" size="sm">Renew</Button>
       </AlertActions>
     </Alert>
     <template #footer>
@@ -275,7 +275,7 @@ the classes it expects.
       </div>
       <div class="flex min-w-16 flex-col items-center gap-2">
         <span class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">button</span>
-        <Button variant="default" disabled>
+        <Button tone="primary" disabled>
           <LoadingSpinnerInline />
           Saving
         </Button>

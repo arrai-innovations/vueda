@@ -1,12 +1,10 @@
 /**
  * @module controls/button/buttonVariant
  * @description Resolves a Button's two design axes (tone and emphasis) into the
- * `_Button*` composition primitive that paints it. The flat `variant` prop is a
- * backward-compatibility shim that maps to a (tone, emphasis) pair, so existing
- * call sites and the shadcn-style API shape keep working while the theme
- * resolves on two axes underneath. Shared by `Button.vue` (for the `data-tone` /
- * `data-emphasis` attributes) and `Button.theme.js` (for the composed primitive
- * and the inline-flow flag) so the mapping lives in exactly one place.
+ * `_Button*` composition primitive that paints it. Shared by `Button.vue` (for
+ * the `data-tone` / `data-emphasis` attributes) and `Button.theme.js` (for the
+ * composed primitive and the inline-flow flag) so the mapping lives in exactly
+ * one place.
  */
 
 /**
@@ -26,26 +24,12 @@
  */
 
 /**
- * The resting (tone, emphasis) used when nothing is specified. A bare
+ * The default (tone, emphasis) used when nothing is specified. A bare
  * `<Button>` is a neutral filled chip, not a CTA: the primary fill is opt-in
- * (`variant="default"` or `tone="primary"`), so an unmarked button never claims
- * the earned accent. Equivalent to the legacy `secondary` variant.
+ * (`tone="primary"`), so an unmarked button never claims the earned accent.
  * @type {{ tone: ButtonTone, emphasis: ButtonEmphasis }}
  */
 const DEFAULT_VARIANT = { tone: "neutral", emphasis: "fill" };
-
-/**
- * shadcn-style flat `variant` values, mapped to their (tone, emphasis) pair.
- * @type {{ [variant: string]: { tone: ButtonTone, emphasis: ButtonEmphasis } }}
- */
-const VARIANT_SHIM = {
-    default: { tone: "primary", emphasis: "fill" },
-    secondary: { tone: "neutral", emphasis: "fill" },
-    destructive: { tone: "destructive", emphasis: "fill" },
-    outline: { tone: "neutral", emphasis: "outline" },
-    ghost: { tone: "neutral", emphasis: "ghost" },
-    link: { tone: "primary", emphasis: "link" },
-};
 
 /**
  * Realized (tone, emphasis) cells, keyed `"<tone>:<emphasis>"`, mapped to the
@@ -76,21 +60,17 @@ const PRIMITIVE_BY_CELL = {
 const INLINE_EMPHASES = new Set(["link"]);
 
 /**
- * Folds the `variant` shim and the explicit `tone` / `emphasis` props into a
- * single resolved cell. Explicit `tone` / `emphasis` override the variant-derived
- * value per axis, so `variant="link" tone="destructive"` yields a destructive
- * link. With nothing set, falls back to {@link DEFAULT_VARIANT}.
+ * Folds the explicit `tone` / `emphasis` props into a single resolved cell. With
+ * nothing set, falls back to {@link DEFAULT_VARIANT}.
  *
- * @param {object} [props] - The button's variant props.
- * @param {string} [props.variant] - shadcn-style flat variant.
+ * @param {object} [props] - The button's tone and emphasis props.
  * @param {ButtonTone} [props.tone] - Explicit tone axis.
  * @param {ButtonEmphasis} [props.emphasis] - Explicit emphasis axis.
  * @returns {ResolvedButtonVariant} The resolved tone, emphasis, primitive key, and inline flag.
  */
-export function resolveButtonVariant({ variant, tone, emphasis } = {}) {
-    const base = (variant && VARIANT_SHIM[variant]) || DEFAULT_VARIANT;
-    const resolvedTone = tone || base.tone;
-    const resolvedEmphasis = emphasis || base.emphasis;
+export function resolveButtonVariant({ tone, emphasis } = {}) {
+    const resolvedTone = tone || DEFAULT_VARIANT.tone;
+    const resolvedEmphasis = emphasis || DEFAULT_VARIANT.emphasis;
     const primitive =
         PRIMITIVE_BY_CELL[`${resolvedTone}:${resolvedEmphasis}`] ||
         PRIMITIVE_BY_CELL[`neutral:${resolvedEmphasis}`] ||

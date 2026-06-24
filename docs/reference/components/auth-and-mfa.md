@@ -71,8 +71,8 @@ Token surface: `--card`, `--border`, `--muted-foreground`, `--ring`, `--destruct
         </div>
         <div class="flex h-8 items-center justify-center rounded border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">fields</div>
         <div class="flex gap-2">
-          <Button size="sm" variant="default">Primary action</Button>
-          <Button size="sm" variant="ghost">Cancel</Button>
+          <Button size="sm" tone="primary">Primary action</Button>
+          <Button size="sm" emphasis="ghost">Cancel</Button>
         </div>
       </div>
     </div>
@@ -89,7 +89,7 @@ Token surface: `--card`, `--border`, `--muted-foreground`, `--ring`, `--destruct
           <p class="mt-1 text-sm text-muted-foreground">No PageTitle. Card is the whole page.</p>
         </div>
         <div class="flex h-8 items-center justify-center rounded border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">fields</div>
-        <Button size="sm" variant="default">Verify</Button>
+        <Button size="sm" tone="primary">Verify</Button>
       </div>
     </div>
     <template #footer>
@@ -130,8 +130,8 @@ Three password fields in an AuthForm card. Two states: ready to submit and confi
         </FieldContent>
       </Field>
       <div class="flex gap-3 pt-1">
-        <Button type="submit" variant="default">Update password</Button>
-        <Button variant="ghost">Cancel</Button>
+        <Button type="submit" tone="primary">Update password</Button>
+        <Button emphasis="ghost">Cancel</Button>
       </div>
     </div>
   </div>
@@ -174,8 +174,8 @@ Three password fields in an AuthForm card. Two states: ready to submit and confi
         <AlertDescription>Fix the field above and try again.</AlertDescription>
       </Alert>
       <div class="flex gap-3">
-        <Button type="submit" variant="default" disabled aria-disabled="true">Update password</Button>
-        <Button variant="ghost">Cancel</Button>
+        <Button type="submit" tone="primary" disabled aria-disabled="true">Update password</Button>
+        <Button emphasis="ghost">Cancel</Button>
       </div>
     </div>
   </div>
@@ -242,8 +242,8 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
         </Field>
       </div>
       <div class="flex flex-wrap gap-2">
-        <Button variant="default">Verify</Button>
-        <Button variant="ghost">
+        <Button tone="primary">Verify</Button>
+        <Button emphasis="ghost">
           <FontAwesomeIcon :icon="faLifeRing" />
           Use a recovery code
         </Button>
@@ -283,13 +283,13 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
         </FieldContent>
       </Field>
       <div class="flex flex-wrap gap-2">
-        <Button variant="default" disabled aria-disabled="true">Verify</Button>
-        <Button variant="ghost" disabled aria-disabled="true">
+        <Button tone="primary" disabled aria-disabled="true">Verify</Button>
+        <Button emphasis="ghost" disabled aria-disabled="true">
           <FontAwesomeIcon :icon="faClock" />
           Send sms again
           <span class="rounded border border-border bg-muted/40 px-1 font-mono text-xs">0:47</span>
         </Button>
-        <Button variant="ghost">
+        <Button emphasis="ghost">
           <FontAwesomeIcon :icon="faLifeRing" />
           Use a recovery code
         </Button>
@@ -318,8 +318,8 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
         </FieldContent>
       </Field>
       <div class="flex gap-2">
-        <Button variant="default">Verify</Button>
-        <Button variant="ghost">
+        <Button tone="primary">Verify</Button>
+        <Button emphasis="ghost">
           <FontAwesomeIcon :icon="faArrowLeft" />
           Back to verified methods
         </Button>
@@ -344,7 +344,7 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
     <PageTitle title="Set up a verification device">
       <template #subtitle>Pick how you want to receive verification codes when signing in.</template>
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <div class="flex max-w-md flex-col gap-5 px-6 py-5">
@@ -393,8 +393,8 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
         </FieldContent>
       </Field>
       <div class="flex gap-3">
-        <Button variant="default">Continue</Button>
-        <Button variant="ghost">Cancel</Button>
+        <Button tone="primary">Continue</Button>
+        <Button emphasis="ghost">Cancel</Button>
       </div>
     </div>
   </div>
@@ -412,7 +412,7 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
     <PageTitle title="Verify your authenticator">
       <template #subtitle>Scan this code with 1Password, Authy, or any TOTP app.</template>
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <div class="flex max-w-md flex-col gap-5 px-6 py-5">
@@ -471,7 +471,7 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
               <div class="flex items-center gap-1.5 rounded border border-border bg-muted/20 px-2 py-1">
                 <span class="text-xs text-muted-foreground">Key</span>
                 <span class="flex-1 truncate font-mono text-xs tracking-wide">JBSWY3DP-EHPK3PXP</span>
-                <Button size="sm" variant="ghost" class="h-5 w-5 shrink-0 p-0" aria-label="Copy manual key">
+                <Button size="sm" emphasis="ghost" class="h-5 w-5 shrink-0 p-0" aria-label="Copy manual key">
                   <FontAwesomeIcon :icon="faCopy" class="text-xs" />
                 </Button>
               </div>
@@ -496,8 +496,8 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
         </FieldContent>
       </Field>
       <div class="flex gap-3">
-        <Button variant="default" disabled aria-disabled="true">Verify and finish</Button>
-        <Button variant="ghost">
+        <Button tone="primary" disabled aria-disabled="true">Verify and finish</Button>
+        <Button emphasis="ghost">
           <FontAwesomeIcon :icon="faArrowLeft" />
           Back
         </Button>
@@ -518,7 +518,7 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
     <PageTitle title="Verify your phone">
       <template #subtitle>We sent a code to +1 (415) 555-0413. It expires in 5 minutes.</template>
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <div class="flex max-w-md flex-col gap-5 px-6 py-5">
@@ -557,13 +557,13 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
         </FieldContent>
       </Field>
       <div class="flex flex-wrap gap-2">
-        <Button variant="default" disabled aria-disabled="true">Verify and finish</Button>
-        <Button variant="ghost" disabled aria-disabled="true">
+        <Button tone="primary" disabled aria-disabled="true">Verify and finish</Button>
+        <Button emphasis="ghost" disabled aria-disabled="true">
           <FontAwesomeIcon :icon="faClock" />
           Send sms again
           <span class="rounded border border-border bg-muted/40 px-1 font-mono text-xs">0:32</span>
         </Button>
-        <Button variant="ghost">
+        <Button emphasis="ghost">
           <FontAwesomeIcon :icon="faArrowLeft" />
           Change number
         </Button>
@@ -603,22 +603,22 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
         <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">8.</span>xb9c-uea4-vhk2</li>
       </ol>
       <div class="flex flex-wrap gap-2">
-        <Button variant="outline">
+        <Button emphasis="outline">
           <FontAwesomeIcon :icon="faFloppyDisk" />
           Download .txt
         </Button>
-        <Button variant="outline">
+        <Button emphasis="outline">
           <FontAwesomeIcon :icon="faPrint" />
           Print
         </Button>
-        <Button variant="outline">
+        <Button emphasis="outline">
           <FontAwesomeIcon :icon="faCopy" />
           Copy all
         </Button>
       </div>
       <div class="flex items-start justify-between gap-3 rounded-vueda-control border border-border p-3">
         <p class="text-sm text-muted-foreground"><strong class="text-foreground">Need a new set?</strong> Regenerating invalidates these codes immediately. You'll need somewhere safe to put the new ones.</p>
-        <Button variant="ghost" class="shrink-0">
+        <Button emphasis="ghost" class="shrink-0">
           <FontAwesomeIcon :icon="faRotate" />
           Generate new codes
         </Button>
@@ -652,7 +652,7 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
       </ol>
       <div class="flex items-start justify-between gap-3 rounded-vueda-control border border-border p-3">
         <p class="text-sm text-muted-foreground"><strong class="text-foreground">Generate a fresh set</strong> The codes above stop working as soon as you do. Print or download the new ones immediately.</p>
-        <Button variant="default" class="shrink-0">
+        <Button tone="primary" class="shrink-0">
           <FontAwesomeIcon :icon="faRotate" />
           Generate new codes
         </Button>
@@ -678,11 +678,11 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
         <AlertDescription>You'll be able to generate recovery codes once you have at least one verified device on your account.</AlertDescription>
       </Alert>
       <div class="flex gap-3">
-        <Button variant="default">
+        <Button tone="primary">
           <FontAwesomeIcon :icon="faShieldHalved" />
           Set up a device
         </Button>
-        <Button variant="ghost">Learn more about recovery codes</Button>
+        <Button emphasis="ghost">Learn more about recovery codes</Button>
       </div>
     </div>
   </div>

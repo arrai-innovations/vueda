@@ -78,7 +78,7 @@ const imageSrc = computed(
         <div :class="theme('inner')" data-qa="widget-image-inner">
             <div v-if="widgetContext.state.combinedValue" :class="theme('image')">
                 <img alt="Image" :src="imageSrc" width="250" data-qa="image-preview" />
-                <Button variant="ghost" size="icon-sm" data-qa="image-remove" @click="onRemove">
+                <Button emphasis="ghost" size="icon-sm" data-qa="image-remove" @click="onRemove">
                     <component
                         :is="icon('close').component"
                         v-if="icon('close')"

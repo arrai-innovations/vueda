@@ -87,7 +87,7 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
       <ClientOnly>
         <Popover>
           <PopoverTrigger as-child>
-            <Button variant="outline">Edit terms</Button>
+            <Button emphasis="outline">Edit terms</Button>
           </PopoverTrigger>
           <PopoverContent class="w-72">
             <p class="font-semibold leading-none tracking-tight">Payment terms</p>
@@ -103,8 +103,8 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
               </div>
             </div>
             <div class="mt-4 flex justify-end gap-2">
-              <Button variant="ghost" size="sm">Cancel</Button>
-              <Button size="sm" variant="default">Apply</Button>
+              <Button emphasis="ghost" size="sm">Cancel</Button>
+              <Button size="sm" tone="primary">Apply</Button>
             </div>
           </PopoverContent>
         </Popover>
@@ -120,7 +120,7 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
       <ClientOnly>
         <Popover>
           <PopoverTrigger as-child>
-            <Button variant="ghost" size="icon" aria-label="Reconciliation status">
+            <Button emphasis="ghost" size="icon" aria-label="Reconciliation status">
               <FontAwesomeIcon :icon="faCircleInfo" />
             </Button>
           </PopoverTrigger>
@@ -140,7 +140,7 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
       <ClientOnly>
         <Popover>
           <PopoverTrigger as-child>
-            <Button variant="outline">Archive invoice…</Button>
+            <Button emphasis="outline">Archive invoice…</Button>
           </PopoverTrigger>
           <PopoverContent class="w-80">
             <p class="font-semibold leading-none tracking-tight">Archive INV-2026-0418-A1</p>
@@ -155,8 +155,8 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
                 <Label for="pop-close-quote" class="font-normal text-muted-foreground">Also close linked quote</Label>
               </div>
               <div class="flex gap-2">
-                <Button variant="ghost" size="sm">Cancel</Button>
-                <Button variant="destructive" size="sm">Archive</Button>
+                <Button emphasis="ghost" size="sm">Cancel</Button>
+                <Button tone="destructive" size="sm">Archive</Button>
               </div>
             </div>
           </PopoverContent>
@@ -181,7 +181,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
       <ClientOnly>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="outline">
+            <Button emphasis="outline">
               Row actions
               <FontAwesomeIcon :icon="faChevronDown" class="ml-1 size-3" />
             </Button>
@@ -240,7 +240,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
       <ClientOnly>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="outline">
+            <Button emphasis="outline">
               View
               <FontAwesomeIcon :icon="faChevronDown" class="ml-1 size-3" />
             </Button>
@@ -272,7 +272,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
       <ClientOnly>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="outline">
+            <Button emphasis="outline">
               File
               <FontAwesomeIcon :icon="faChevronDown" class="ml-1 size-3" />
             </Button>
@@ -434,7 +434,7 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         <TooltipProvider>
           <Tooltip :delay-duration="0">
             <TooltipTrigger as-child>
-              <Button variant="ghost" size="icon" aria-label="Customer tax info">
+              <Button emphasis="ghost" size="icon" aria-label="Customer tax info">
                 <FontAwesomeIcon :icon="faCircleInfo" />
               </Button>
             </TooltipTrigger>
@@ -450,7 +450,7 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         <TooltipProvider>
           <Tooltip :delay-duration="0">
             <TooltipTrigger as-child>
-              <Button variant="outline">Reconcile</Button>
+              <Button emphasis="outline">Reconcile</Button>
             </TooltipTrigger>
             <TooltipContent side="top">Match this invoice to a bank-feed transaction</TooltipContent>
           </Tooltip>
@@ -464,7 +464,7 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         <TooltipProvider>
           <Tooltip :delay-duration="0">
             <TooltipTrigger as-child>
-              <Button variant="ghost" size="icon" aria-label="Duplicate invoice">
+              <Button emphasis="ghost" size="icon" aria-label="Duplicate invoice">
                 <FontAwesomeIcon :icon="faCopy" />
               </Button>
             </TooltipTrigger>
@@ -480,7 +480,7 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         <TooltipProvider>
           <Tooltip :delay-duration="0">
             <TooltipTrigger as-child>
-              <Button variant="ghost" size="icon" aria-label="Archive invoice">
+              <Button emphasis="ghost" size="icon" aria-label="Archive invoice">
                 <FontAwesomeIcon :icon="faTrash" />
               </Button>
             </TooltipTrigger>
@@ -496,7 +496,7 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         <TooltipProvider>
           <Tooltip :delay-duration="0">
             <TooltipTrigger as-child>
-              <Button variant="outline">Save</Button>
+              <Button emphasis="outline">Save</Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
               Save invoice
@@ -516,7 +516,7 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
         <TooltipProvider>
           <Tooltip :delay-duration="0">
             <TooltipTrigger as-child>
-              <Button variant="ghost" size="icon" aria-label="Customer risk warning">
+              <Button emphasis="ghost" size="icon" aria-label="Customer risk warning">
                 <FontAwesomeIcon :icon="faTriangleExclamation" />
               </Button>
             </TooltipTrigger>

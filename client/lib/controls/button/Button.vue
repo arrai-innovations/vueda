@@ -6,10 +6,6 @@ import { Primitive } from "reka-ui";
 import { computed, reactive, toRef } from "vue";
 
 /**
- * @typedef {'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'} ButtonVariant
- */
-
-/**
  * @typedef {'neutral' | 'primary' | 'destructive'} ButtonTone
  */
 
@@ -23,32 +19,26 @@ import { computed, reactive, toRef } from "vue";
 
 /**
  * A button control built on Reka UI's Primitive. Its look resolves on two axes,
- * `tone` (color) and `emphasis` (structure); the legacy `variant` prop is a
- * shorthand that maps to a (tone, emphasis) pair. Explicit `tone` / `emphasis`
- * override the variant-derived value per axis, so `variant="link" tone="destructive"`
- * yields a destructive text button. Size styles also resolve via the theme system.
+ * `tone` (color) and `emphasis` (structure). A bare button rests at neutral fill;
+ * the primary fill is opt-in with `tone="primary"`. Size styles also resolve via
+ * the theme system.
  */
 defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
     /**
-     * Visual style shorthand. Maps to a (tone, emphasis) pair; see {@link ButtonTone} / {@link ButtonEmphasis}.
-     * @type {'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'}
-     */
-    variant: { type: String, default: undefined },
-    /**
-     * Color axis. Overrides the tone implied by `variant`.
+     * Color axis.
      * @type {'neutral' | 'primary' | 'destructive'}
      */
     tone: { type: String, default: undefined },
     /**
-     * Structure axis. Overrides the emphasis implied by `variant`.
+     * Structure axis.
      * @type {'fill' | 'outline' | 'ghost' | 'link'}
      */
     emphasis: { type: String, default: undefined },
     /**
-     * Size variant.
+     * Size axis.
      * @type {'default' | 'sm' | 'lg' | 'icon' | 'icon-sm' | 'icon-lg'}
      */
     size: { type: String, default: undefined },
@@ -67,7 +57,6 @@ const theme = useTheme(
     "Button",
     props,
     reactive({
-        variant: toRef(props, "variant"),
         tone: toRef(props, "tone"),
         emphasis: toRef(props, "emphasis"),
         size: toRef(props, "size"),
@@ -82,7 +71,6 @@ const resolved = computed(() => resolveButtonVariant(props));
 <template>
     <Primitive
         data-slot="button"
-        :data-variant="variant"
         :data-tone="resolved.tone"
         :data-emphasis="resolved.emphasis"
         :data-size="size"

@@ -5,7 +5,7 @@ import { defineComponent, h } from "vue";
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["severity", "rounded", "variant", "size", "onClick"],
+    props: ["tone", "emphasis", "size", "onClick"],
     setup(props, { slots }) {
         return () => h("button", { "data-qa": "copy-button", onClick: props.onClick }, slots.default?.());
     },

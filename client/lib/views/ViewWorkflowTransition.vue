@@ -192,7 +192,7 @@ const handleSubmit = async () => {
                             >
                         </label>
                     </div>
-                    <Button :disabled="!selectedAction" type="submit" variant="default">execute transition</Button>
+                    <Button :disabled="!selectedAction" type="submit" tone="primary">execute transition</Button>
                 </form>
             </div>
             <div v-else :class="theme('empty')" data-qa="view-workflow-transition-empty">
@@ -205,7 +205,7 @@ const handleSubmit = async () => {
                     {{ memoizedStartCase(modelConfig.info?.verbose_name) }}.
                 </p>
                 <div :class="theme('emptyAction')">
-                    <Button variant="ghost" @click="router.back()">Back to detail view</Button>
+                    <Button emphasis="ghost" @click="router.back()">Back to detail view</Button>
                 </div>
             </div>
         </div>

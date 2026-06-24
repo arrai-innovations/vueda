@@ -4,7 +4,7 @@
  * layers. Layer 1 is the action's intrinsic, placement-independent tone (the
  * color axis): a delete/destroy action is destructive, everything else neutral.
  * Layer 2 is contextual (the structure axis): the view's hero action is promoted
- * to a filled CTA, and every other action rests at a quieter emphasis chosen by
+ * to a filled CTA, and every other action uses the placement emphasis chosen by
  * where it is rendered (outline in a page-title or action bar, ghost in a dense
  * bulk strip). Shared by `LinkModelView`, the single chokepoint every action
  * button renders through, so the two layers resolve in exactly one place.
@@ -41,9 +41,8 @@ export function actionTone(actionName, actionDetail) {
  * @property {string} actionName - The action / view name being rendered.
  * @property {import('@vueda/stores/storeModelInfo.js').ActionInfo} [actionDetail] - The action's metadata, when available.
  * @property {boolean} [primary] - Promote this action to the filled hero CTA for the current view.
- * @property {'fill' | 'outline' | 'ghost' | 'link'} [resting] - Emphasis when not promoted; defaults to `outline`.
  * @property {'neutral' | 'primary' | 'destructive'} [tone] - Explicit tone override; wins over the intrinsic tone.
- * @property {'fill' | 'outline' | 'ghost' | 'link'} [emphasis] - Explicit emphasis override; wins over promotion and resting.
+ * @property {'fill' | 'outline' | 'ghost' | 'link'} [emphasis] - Placement emphasis when not promoted; defaults to `outline`.
  */
 
 /**
@@ -51,21 +50,14 @@ export function actionTone(actionName, actionDetail) {
  * sets the emphasis to `fill` and, for a neutral action, lifts the tone to
  * `primary` so the hero reads as the earned CTA; a promoted destructive action
  * stays destructive (a filled destructive hero, as on a destroy view). Explicit
- * `tone` / `emphasis` override their axis entirely.
+ * `tone` overrides the action's intrinsic tone.
  *
  * @param {ActionVariantInput} [input] - The action and its placement context.
  * @returns {{ tone: 'neutral' | 'primary' | 'destructive', emphasis: 'fill' | 'outline' | 'ghost' | 'link' }} The resolved Button axes.
  */
-export function resolveActionVariant({
-    actionName,
-    actionDetail,
-    primary = false,
-    resting = "outline",
-    tone,
-    emphasis,
-} = {}) {
+export function resolveActionVariant({ actionName, actionDetail, primary = false, tone, emphasis = "outline" } = {}) {
     const intrinsic = actionTone(actionName, actionDetail);
-    const resolvedEmphasis = emphasis || (primary ? "fill" : resting);
+    const resolvedEmphasis = primary ? "fill" : emphasis;
     const resolvedTone = tone || (primary && intrinsic === "neutral" ? "primary" : intrinsic);
     return { tone: resolvedTone, emphasis: resolvedEmphasis };
 }

@@ -28,7 +28,7 @@ describe("lib/utils/actionVariant.js", () => {
         });
 
         it("rests at the requested placement emphasis", () => {
-            expect(resolveActionVariant({ actionName: "tag", resting: "ghost" })).toEqual({
+            expect(resolveActionVariant({ actionName: "tag", emphasis: "ghost" })).toEqual({
                 tone: "neutral",
                 emphasis: "ghost",
             });
@@ -49,16 +49,17 @@ describe("lib/utils/actionVariant.js", () => {
         });
 
         it("rests a destructive action at the placement emphasis, destructive-toned", () => {
-            expect(resolveActionVariant({ actionName: "delete", resting: "ghost" })).toEqual({
+            expect(resolveActionVariant({ actionName: "delete", emphasis: "ghost" })).toEqual({
                 tone: "destructive",
                 emphasis: "ghost",
             });
         });
 
-        it("lets explicit tone and emphasis override both layers", () => {
-            expect(
-                resolveActionVariant({ actionName: "create", primary: true, tone: "neutral", emphasis: "link" }),
-            ).toEqual({ tone: "neutral", emphasis: "link" });
+        it("lets explicit tone override the intrinsic tone while primary owns emphasis", () => {
+            expect(resolveActionVariant({ actionName: "create", primary: true, tone: "neutral" })).toEqual({
+                tone: "neutral",
+                emphasis: "fill",
+            });
         });
     });
 });

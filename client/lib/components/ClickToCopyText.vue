@@ -34,7 +34,7 @@ const onClick = () => {
 const slotProps = {
     onClick,
     label: "copy",
-    variant: "ghost",
+    emphasis: "ghost",
     size: "sm",
     text: props.text,
     copied,
@@ -49,9 +49,9 @@ const theme = useTheme("ClickToCopyText", props);
         <slot name="text" :text="text">
             {{ text }}
         </slot>
-        <!-- Renders the copy button; receives `onClick`, `label`, `variant`, `size`, `text`, and `copied` as slot props. -->
+        <!-- Renders the copy button; receives `onClick`, `label`, `emphasis`, `size`, `text`, and `copied` as slot props. -->
         <slot name="copy-button" v-bind="slotProps">
-            <Button :variant="slotProps.variant" :size="slotProps.size" @click="slotProps.onClick">
+            <Button :emphasis="slotProps.emphasis" :size="slotProps.size" @click="slotProps.onClick">
                 {{ slotProps.label }}
             </Button>
         </slot>

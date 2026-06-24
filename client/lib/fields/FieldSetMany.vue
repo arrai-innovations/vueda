@@ -89,7 +89,7 @@ const icon = useIcons("FieldSetMany", props);
                                 <!-- @slot [destroy] Override the delete button for a row. The slot receives `onClick`, `disabled`, and `index` as slot props; the first entry's remove is disabled rather than hidden. -->
                                 <slot name="destroy" :disabled="index === 0" :index="index" @click="onDestroy(index)">
                                     <Button
-                                        variant="ghost"
+                                        emphasis="ghost"
                                         size="icon-sm"
                                         :disabled="index === 0"
                                         @click="onDestroy(index)"
@@ -111,7 +111,7 @@ const icon = useIcons("FieldSetMany", props);
             <div :class="theme('footer')" data-qa="field-set-many-footer">
                 <!-- @slot [add] Override the add button. -->
                 <slot name="add" @click="onAdd">
-                    <Button variant="outline" size="sm" @click="onAdd">
+                    <Button emphasis="outline" size="sm" @click="onAdd">
                         <component
                             :is="icon('plus').component"
                             v-if="icon('plus')"

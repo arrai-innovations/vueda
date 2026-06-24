@@ -4,7 +4,7 @@ import { defineComponent, h, markRaw, reactive } from "vue";
 
 const ControlButtonStub = defineComponent({
     name: "ControlButtonStub",
-    props: ["variant", "size", "disabled"],
+    props: ["tone", "emphasis", "size", "disabled"],
     emits: ["click"],
     setup(props, { emit, slots }) {
         return () =>
@@ -12,7 +12,8 @@ const ControlButtonStub = defineComponent({
                 "button",
                 {
                     "data-qa": "control-button",
-                    "data-variant": props.variant,
+                    "data-tone": props.tone,
+                    "data-emphasis": props.emphasis,
                     "data-size": props.size,
                     "data-disabled": props.disabled ? "true" : undefined,
                     disabled: props.disabled || undefined,
@@ -118,7 +119,7 @@ describe("lib/fields/FieldSetMany.vue", () => {
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
-        await wrapper.find('[data-variant="outline"]').trigger("click");
+        await wrapper.find('[data-qa="field-set-many-footer"] button').trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([1, undefined]);
         const comps = wrapper.findAll('[data-qa="many-component"]');
@@ -161,7 +162,7 @@ describe("lib/fields/FieldSetMany.vue", () => {
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
 
-        await wrapper.find('[data-variant="outline"]').trigger("click");
+        await wrapper.find('[data-qa="field-set-many-footer"] button').trigger("click");
         await vue.nextTick();
         expect(fieldContext.state.value).toEqual([undefined]);
 

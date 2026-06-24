@@ -151,7 +151,7 @@ watch(
                         :name="fieldSetInline.resolvedSlotNames['create-button'].name"
                         @click="addInline"
                     >
-                        <Button variant="outline" size="sm" :class="theme('createButton')" @click="addInline">
+                        <Button emphasis="outline" size="sm" :class="theme('createButton')" @click="addInline">
                             Create
                         </Button>
                     </slot>

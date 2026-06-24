@@ -113,7 +113,7 @@ const icon = useIcons("ViewRecoveryCodes", props);
                 </div>
 
                 <div :class="theme('savingOptionButtons')" data-qa="view-recovery-codes-saving-options">
-                    <Button :class="theme('savingOptionButton')" variant="outline" size="sm" @click="downloadCodes">
+                    <Button :class="theme('savingOptionButton')" emphasis="outline" size="sm" @click="downloadCodes">
                         <component
                             :is="icon('floppyDisk').component"
                             v-if="icon('floppyDisk')"
@@ -122,7 +122,7 @@ const icon = useIcons("ViewRecoveryCodes", props);
                         />
                         Download
                     </Button>
-                    <Button :class="theme('savingOptionButton')" variant="outline" size="sm" @click="printPage">
+                    <Button :class="theme('savingOptionButton')" emphasis="outline" size="sm" @click="printPage">
                         <component
                             :is="icon('print').component"
                             v-if="icon('print')"
@@ -131,7 +131,7 @@ const icon = useIcons("ViewRecoveryCodes", props);
                         />
                         Print
                     </Button>
-                    <Button :class="theme('savingOptionButton')" variant="outline" size="sm" @click="copy(codesText)">
+                    <Button :class="theme('savingOptionButton')" emphasis="outline" size="sm" @click="copy(codesText)">
                         <component
                             :is="icon('copy').component"
                             v-if="icon('copy')"
@@ -156,21 +156,21 @@ const icon = useIcons("ViewRecoveryCodes", props);
                     When you generate new recovery codes, you must download or print the new codes. Your old codes won't
                     work anymore.
                 </div>
-                <Button :disabled="loading" type="submit" variant="default">
+                <Button :disabled="loading" type="submit" tone="primary">
                     <LoadingSpinnerInline v-if="loading" />
                     Generate new recovery codes
                 </Button>
-                <Button variant="ghost" :disabled="loading" @click="handleCancelClick">
+                <Button emphasis="ghost" :disabled="loading" @click="handleCancelClick">
                     <LoadingSpinnerInline v-if="loading" />
                     Go Back
                 </Button>
             </div>
             <div v-else :class="theme('emptyActions')" data-qa="view-recovery-codes-form-action-bar-invalid">
-                <Button variant="default" :disabled="loading" @click="goToSetupDevice">
+                <Button tone="primary" :disabled="loading" @click="goToSetupDevice">
                     <LoadingSpinnerInline v-if="loading" />
                     Set up a device
                 </Button>
-                <Button variant="ghost" :disabled="loading" @click="handleCancelClick">
+                <Button emphasis="ghost" :disabled="loading" @click="handleCancelClick">
                     <LoadingSpinnerInline v-if="loading" />
                     Go Back
                 </Button>

@@ -207,7 +207,7 @@ onMounted(() => {
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
-                        resting="outline"
+                        emphasis="outline"
                     />
                 </slot>
             </template>
@@ -234,7 +234,7 @@ onMounted(() => {
                             :form="instance.formId"
                             :disabled="objectForm?.state?.loading"
                             type="submit"
-                            variant="default"
+                            tone="primary"
                         >
                             <LoadingSpinnerInline v-if="objectForm?.state?.loading" />
                             Submit
@@ -257,7 +257,7 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="actionName"
-                                resting="outline"
+                                emphasis="outline"
                                 :primary="actions.primaryActions.has(actionName)"
                             />
                         </slot>
@@ -279,7 +279,7 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="transition"
-                                resting="outline"
+                                emphasis="outline"
                             />
                         </slot>
                     </template>

@@ -15,7 +15,7 @@ describe("lib/controls/button/Button.vue", () => {
             expect(wrapper.attributes("data-slot")).toBe("button");
         });
 
-        scopedIt("a bare button resolves to the neutral fill (secondary) resting default", () => {
+        scopedIt("a bare button resolves to the neutral fill default", () => {
             const wrapper = mount(Button);
             expect(wrapper.classes()).toContain("bg-secondary");
             expect(wrapper.classes()).not.toContain("bg-primary");
@@ -24,13 +24,13 @@ describe("lib/controls/button/Button.vue", () => {
             expect(wrapper.attributes("data-emphasis")).toBe("fill");
         });
 
-        scopedIt("the primary fill is opt-in via variant=default", () => {
-            const wrapper = mount(Button, { props: { variant: "default" } });
+        scopedIt("the primary fill is opt-in via tone=primary", () => {
+            const wrapper = mount(Button, { props: { tone: "primary" } });
             expect(wrapper.classes()).toContain("bg-primary");
         });
 
-        scopedIt("applies variant-specific classes", () => {
-            const wrapper = mount(Button, { props: { variant: "destructive" } });
+        scopedIt("applies tone-specific classes", () => {
+            const wrapper = mount(Button, { props: { tone: "destructive" } });
             expect(wrapper.classes()).toContain("bg-destructive");
         });
 
@@ -39,23 +39,18 @@ describe("lib/controls/button/Button.vue", () => {
             expect(wrapper.classes()).toContain("h-vueda-control-lg");
         });
 
-        scopedIt("link variant uses inline-flow sizing (h-auto, px-0) instead of control sizing", () => {
-            const wrapper = mount(Button, { props: { variant: "link" } });
+        scopedIt("link emphasis uses inline-flow sizing (h-auto, px-0) instead of control sizing", () => {
+            const wrapper = mount(Button, { props: { emphasis: "link" } });
             expect(wrapper.classes()).toContain("h-auto");
             expect(wrapper.classes()).toContain("px-0");
             expect(wrapper.classes()).not.toContain("h-vueda-control");
             expect(wrapper.classes()).not.toContain("px-vueda-control-px");
         });
 
-        scopedIt("link variant ignores size prop for height/padding", () => {
-            const wrapper = mount(Button, { props: { variant: "link", size: "lg" } });
+        scopedIt("link emphasis ignores size prop for height/padding", () => {
+            const wrapper = mount(Button, { props: { emphasis: "link", size: "lg" } });
             expect(wrapper.classes()).toContain("h-auto");
             expect(wrapper.classes()).not.toContain("h-vueda-control-lg");
-        });
-
-        scopedIt("reflects variant prop in data-variant attribute", () => {
-            const wrapper = mount(Button, { props: { variant: "destructive" } });
-            expect(wrapper.attributes("data-variant")).toBe("destructive");
         });
 
         scopedIt("reflects size prop in data-size attribute", () => {
@@ -63,7 +58,7 @@ describe("lib/controls/button/Button.vue", () => {
             expect(wrapper.attributes("data-size")).toBe("lg");
         });
 
-        scopedIt("merges custom class while preserving variant classes", () => {
+        scopedIt("merges custom class while preserving tone and emphasis classes", () => {
             const wrapper = mount(Button, { props: { class: "my-custom-class" } });
             expect(wrapper.classes()).toContain("my-custom-class");
             expect(wrapper.classes()).toContain("bg-secondary");
@@ -88,14 +83,14 @@ describe("lib/controls/button/Button.vue", () => {
             expect(wrapper.classes()).not.toContain("text-primary");
         });
 
-        scopedIt("explicit tone overrides the tone implied by variant", () => {
-            const wrapper = mount(Button, { props: { variant: "link", tone: "destructive" } });
+        scopedIt("combines tone and emphasis into one cell", () => {
+            const wrapper = mount(Button, { props: { tone: "destructive", emphasis: "link" } });
             expect(wrapper.classes()).toContain("text-destructive");
             expect(wrapper.classes()).toContain("h-auto");
         });
 
         scopedIt("reflects resolved tone and emphasis in data attributes", () => {
-            const wrapper = mount(Button, { props: { variant: "outline" } });
+            const wrapper = mount(Button, { props: { emphasis: "outline" } });
             expect(wrapper.attributes("data-tone")).toBe("neutral");
             expect(wrapper.attributes("data-emphasis")).toBe("outline");
         });

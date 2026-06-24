@@ -243,7 +243,7 @@ onMounted(() => {
                     <slot :name="targetlessActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
                         <link-model-view
                             v-bind="themedButtonSlotProps[actionName]"
-                            resting="outline"
+                            emphasis="outline"
                             :primary="actions.primaryActions.has(actionName)"
                         />
                     </slot>
@@ -488,7 +488,7 @@ onMounted(() => {
                         <slot :name="bulkActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
                             <link-model-view
                                 button
-                                resting="ghost"
+                                emphasis="ghost"
                                 :pk="themedButtonSlotProps[actionName].selectedObjects"
                                 v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
                             />
@@ -499,7 +499,7 @@ onMounted(() => {
                         <slot :name="workflowActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
                             <link-model-view
                                 button
-                                resting="ghost"
+                                emphasis="ghost"
                                 :pk="themedButtonSlotProps[actionName].selectedObjects"
                                 v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
                             />

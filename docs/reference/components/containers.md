@@ -114,7 +114,7 @@ Token surface: {@api css-token:card} (fill),
         <CardTitle>Payment reminders</CardTitle>
         <CardDescription>Automated emails sent to overdue customers.</CardDescription>
         <CardAction>
-          <Button size="sm" variant="outline">Configure</Button>
+          <Button size="sm" emphasis="outline">Configure</Button>
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -139,8 +139,8 @@ Token surface: {@api css-token:card} (fill),
         </p>
       </CardContent>
       <CardFooter class="justify-end gap-2">
-        <Button size="sm" variant="ghost">Cancel</Button>
-        <Button size="sm" variant="default">Archive</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
+        <Button size="sm" tone="primary">Archive</Button>
       </CardFooter>
     </Card>
     <template #footer>
@@ -192,7 +192,7 @@ Token surface: {@api css-token:card} (fill),
         </p>
       </CardContent>
       <CardFooter class="border-t justify-end">
-        <Button size="sm" variant="destructive">Delete customer…</Button>
+        <Button size="sm" tone="destructive">Delete customer…</Button>
       </CardFooter>
     </Card>
     <template #footer>
@@ -419,8 +419,8 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
           <ItemDescription>CSV, Parquet, JSON · 3 destinations.</ItemDescription>
         </ItemContent>
         <ItemActions>
-          <Button size="sm" variant="ghost">Rename</Button>
-          <Button size="sm" variant="outline">Run</Button>
+          <Button size="sm" emphasis="ghost">Rename</Button>
+          <Button size="sm" emphasis="outline">Run</Button>
         </ItemActions>
       </Item>
       <Item variant="outline">
@@ -430,7 +430,7 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
           <ItemDescription>https://webhook.site/abc-123 · last ping 2 h ago</ItemDescription>
         </ItemContent>
         <ItemActions>
-          <Button size="sm" variant="ghost" aria-label="More">
+          <Button size="sm" emphasis="ghost" aria-label="More">
             <FontAwesomeIcon :icon="faEllipsis" />
           </Button>
         </ItemActions>
