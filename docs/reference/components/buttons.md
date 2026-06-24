@@ -149,7 +149,7 @@ items, dialog actions), override the matching `_Button*` meta key rather than
       <div><Button size="icon-lg" emphasis="outline" aria-label="Settings"><FontAwesomeIcon :icon="faGear" /></Button></div>
     </div>
     <template #footer>
-      <span>border <code>--foreground</code></span>
+      <span>hairline <code>--foreground</code></span>
       <span>bg <code>--background</code></span>
       <span>hover bg <code>--accent</code></span>
       <span>hover fg <code>--accent-foreground</code></span>
@@ -306,7 +306,7 @@ outlines {@api theme-key:\_ButtonOutline} /
 
 ## ButtonGroup: composition matrix
 
-ButtonGroup adjusts its children's border radii and shared edges so adjacent
+ButtonGroup adjusts its children's radii and shared edges so adjacent
 buttons read as a single control. The interesting axis is _composition_:
 orientation, child variant, and what kind of children sit inside (buttons,
 static text, separators). Child-button state shifts (hover, focus, disabled)
@@ -315,7 +315,7 @@ are already covered by the [Button matrix](#button-state-matrix) above.
 Theme keys: {@api theme-key:ButtonGroup},
 {@api theme-key:ButtonGroupText},
 {@api theme-key:ButtonGroupSeparator}. The seam treatment is a child-radius
-override applied via the parent's data attributes, so re-skinning the seam
+and hairline-overlap override applied via the parent's data attributes, so re-skinning the seam
 means editing these keys, not the token layer.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
@@ -330,7 +330,7 @@ means editing these keys, not the token layer.
       <Button size="sm" emphasis="outline">Month</Button>
       <Button size="sm" emphasis="outline">Quarter</Button>
     </ButtonGroup>
-    <template #footer>adjacent buttons drop inner radius and share a 1 px seam</template>
+    <template #footer>adjacent buttons drop inner radius and share one hairline seam</template>
   </DemoCard>
   <DemoCard title="horizontal · secondary">
     <ButtonGroup>

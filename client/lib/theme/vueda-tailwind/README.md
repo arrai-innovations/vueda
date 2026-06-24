@@ -477,9 +477,10 @@ colour must be opaque (a transparent gap layer does not mask the ring
 shadow behind it). Default gap colour is `--background`; override per
 surface via `[--vueda-focus-ring-gap-color:var(--card)]` etc.
 
-`hairline-destructive` swaps the painted edge to destructive on
-`aria-invalid` controls. `aria-invalid` is the cross-cutting trigger
-(see § 8).
+`hairline-primary` and `hairline-foreground` cover accented and
+high-contrast button outlines. `hairline-destructive` swaps the painted
+edge to destructive on `aria-invalid` controls. `aria-invalid` is the
+cross-cutting trigger (see § 8).
 
 ### 7.3 Directional `border-*-hairline` utilities
 

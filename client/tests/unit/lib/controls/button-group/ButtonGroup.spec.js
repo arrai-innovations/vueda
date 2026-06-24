@@ -33,6 +33,20 @@ describe("lib/controls/button-group/ButtonGroup.vue", () => {
             expect(wrapper.classes()).toContain("flex-col");
         });
 
+        scopedIt("overlaps horizontal outline button hairlines", () => {
+            const wrapper = mount(ButtonGroup);
+            expect(wrapper.attributes("class")).toContain(
+                "[&>[data-slot=button][data-emphasis=outline]:not(:first-child)]:-ml-[var(--vueda-hairline-width)]",
+            );
+        });
+
+        scopedIt("overlaps vertical outline button hairlines", () => {
+            const wrapper = mount(ButtonGroup, { props: { orientation: "vertical" } });
+            expect(wrapper.attributes("class")).toContain(
+                "[&>[data-slot=button][data-emphasis=outline]:not(:first-child)]:-mt-[var(--vueda-hairline-width)]",
+            );
+        });
+
         scopedIt("merges custom class while preserving base classes", () => {
             const wrapper = mount(ButtonGroup, { props: { class: "my-group" } });
             expect(wrapper.classes()).toContain("my-group");

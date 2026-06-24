@@ -83,11 +83,11 @@ patchTheme({
      * FileUpload.trigger, RangeCalendarPrevButton).
      */
     _ButtonOutline: {
-        /** The neutral-chip recipe: 1px `--foreground` border (set explicitly via `border-foreground` so it opts out of the default `--border` hairline and reads as a true high-contrast outline against the surface in both light and dark), `--background` fill, `shadow-vueda-control` micro-shadow, and an `--accent` hover swap with an `--accent-active` pressed step. Hover / active use the mode-aware `--accent` tokens in both light and dark, so the lightness step is identical in either mode; only the *rest* fill differs (dark mode keeps the input-tint convention, `bg-input/30`, so an outlined chip reads input-like at rest while keeping the foreground-coloured edge). The earlier dark-mode `bg-input/50` hover topped out near the rest lightness because `--input` is itself dark, leaving the smaller sizes with no perceptible state change. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons, so the hover and pressed steps reach those surfaces too. */
+        /** The neutral-chip recipe: DPR-aware `--foreground` hairline, `--background` fill, `shadow-vueda-control` micro-shadow, and an `--accent` hover swap with an `--accent-active` pressed step. The hairline paints as an inset shadow rather than a layout border, so outlined buttons match fill-button intrinsic width while using the same chromatic-fringing mitigation as inputs. Hover / active use the mode-aware `--accent` tokens in both light and dark, so the lightness step is identical in either mode; only the *rest* fill differs (dark mode keeps the input-tint convention, `bg-input/30`, so an outlined chip reads input-like at rest while keeping the foreground-coloured edge). The earlier dark-mode `bg-input/50` hover topped out near the rest lightness because `--input` is itself dark, leaving the smaller sizes with no perceptible state change. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons, so the hover and pressed steps reach those surfaces too. */
         root: {
             class: [
                 // Shape and surface.
-                "border border-foreground bg-background text-foreground shadow-vueda-control",
+                "hairline hairline-foreground bg-background text-foreground shadow-vueda-control",
 
                 // Interactive states.
                 "hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:bg-input/30",
@@ -111,7 +111,7 @@ patchTheme({
      * RangeCalendarCellTrigger so day buttons share the same hover recipe.
      */
     _ButtonGhost: {
-        /** The transparent-at-rest recipe: no fill or border until hover, when `--accent` paints the background, with an `--accent-active` pressed step (dark mode: half-strength `accent/50` hover, full `accent` active). Shared by {@api theme-key:CalendarCellTrigger.root} and {@api theme-key:RangeCalendarCellTrigger.root} so day buttons in a calendar grid keep one consistent hover and press affordance; dark-mode hover is half-strength accent so the day button does not over-saturate the popover surface. */
+        /** The transparent-at-rest recipe: no fill or edge until hover, when `--accent` paints the background, with an `--accent-active` pressed step (dark mode: half-strength `accent/50` hover, full `accent` active). Shared by {@api theme-key:CalendarCellTrigger.root} and {@api theme-key:RangeCalendarCellTrigger.root} so day buttons in a calendar grid keep one consistent hover and press affordance; dark-mode hover is half-strength accent so the day button does not over-saturate the popover surface. */
         root: {
             class: [
                 // Interactive states.
@@ -138,11 +138,11 @@ patchTheme({
      * sibling of {@api theme-key:_ButtonOutline}.
      */
     _ButtonPrimaryOutline: {
-        /** The primary neutral-chip recipe: a 1px `--primary` border and `--primary` text over the `--background` fill (dark mode keeps the outline-family `bg-input/30` rest tint), with the `shadow-vueda-control` micro-shadow. Hover and active wash a low-alpha `--primary` tint behind the label (`/10` then `/15`). The secondary-CTA treatment: it reads as accented without the full weight of a filled {@api theme-key:_ButtonDefault}, so it can sit beside the primary fill as the "other" emphasized action. */
+        /** The primary neutral-chip recipe: a DPR-aware `--primary` hairline and `--primary` text over the `--background` fill (dark mode keeps the outline-family `bg-input/30` rest tint), with the `shadow-vueda-control` micro-shadow. The inset hairline avoids layout-width drift against fill buttons and uses the same saturated-edge fringing mitigation as inputs. Hover and active wash a low-alpha `--primary` tint behind the label (`/10` then `/15`). The secondary-CTA treatment: it reads as accented without the full weight of a filled {@api theme-key:_ButtonDefault}, so it can sit beside the primary fill as the "other" emphasized action. */
         root: {
             class: [
                 // Shape and surface.
-                "border border-primary bg-background text-primary shadow-vueda-control dark:bg-input/30",
+                "hairline hairline-primary bg-background text-primary shadow-vueda-control dark:bg-input/30",
 
                 // Interactive states.
                 "hover:bg-primary/10 active:bg-primary/15",
@@ -156,11 +156,11 @@ patchTheme({
      * destructive sibling of {@api theme-key:_ButtonOutline}.
      */
     _ButtonDestructiveOutline: {
-        /** The destructive neutral-chip recipe: a 1px `--destructive` border and `--destructive` text over the `--background` fill (dark mode keeps the outline-family `bg-input/30` rest tint), with the `shadow-vueda-control` micro-shadow. Hover and active wash a low-alpha `--destructive` tint behind the label (`/10` then `/15`) so the chip warms toward danger on interaction without becoming a filled destructive CTA, and focus swaps to the destructive outline. Use for a reversible-but-cautionary action that should not carry the weight of a filled {@api theme-key:_ButtonDestructive} (a low-emphasis delete in a toolbar or row). */
+        /** The destructive neutral-chip recipe: a DPR-aware `--destructive` hairline and `--destructive` text over the `--background` fill (dark mode keeps the outline-family `bg-input/30` rest tint), with the `shadow-vueda-control` micro-shadow. The inset hairline avoids layout-width drift against fill buttons and uses the same saturated-edge fringing mitigation as inputs. Hover and active wash a low-alpha `--destructive` tint behind the label (`/10` then `/15`) so the chip warms toward danger on interaction without becoming a filled destructive CTA, and focus swaps to the destructive outline. Use for a reversible-but-cautionary action that should not carry the weight of a filled {@api theme-key:_ButtonDestructive} (a low-emphasis delete in a toolbar or row). */
         root: {
             class: [
                 // Shape and surface.
-                "border border-destructive bg-background text-destructive shadow-vueda-control dark:bg-input/30",
+                "hairline hairline-destructive bg-background text-destructive shadow-vueda-control dark:bg-input/30",
 
                 // Interactive and focus states.
                 "hover:bg-destructive/10 active:bg-destructive/15 focus-visible:outline-destructive",
@@ -174,7 +174,7 @@ patchTheme({
      * sibling of {@api theme-key:_ButtonGhost}.
      */
     _ButtonPrimaryGhost: {
-        /** The transparent-at-rest primary recipe: `--primary` text with no fill or border until hover, when a low-alpha `--primary` tint paints the background (`/10` hover, `/15` active). The lowest-weight accented affordance, for an emphasized action inside a dense cluster where an outline or fill would be too heavy. */
+        /** The transparent-at-rest primary recipe: `--primary` text with no fill or edge until hover, when a low-alpha `--primary` tint paints the background (`/10` hover, `/15` active). The lowest-weight accented affordance, for an emphasized action inside a dense cluster where an outline or fill would be too heavy. */
         root: {
             class: ["text-primary", "hover:bg-primary/10 active:bg-primary/15"],
         },
@@ -186,7 +186,7 @@ patchTheme({
      * destructive sibling of {@api theme-key:_ButtonGhost}.
      */
     _ButtonDestructiveGhost: {
-        /** The transparent-at-rest destructive recipe: `--destructive` text with no fill or border until hover, when a low-alpha `--destructive` tint paints the background (`/10` hover, `/15` active) and focus swaps to the destructive outline. The lowest-weight destructive affordance, for a cautionary action inside a dense cluster (a row's delete glyph, a menu-adjacent strip) where even an outlined chip would be too heavy. */
+        /** The transparent-at-rest destructive recipe: `--destructive` text with no fill or edge until hover, when a low-alpha `--destructive` tint paints the background (`/10` hover, `/15` active) and focus swaps to the destructive outline. The lowest-weight destructive affordance, for a cautionary action inside a dense cluster (a row's delete glyph, a menu-adjacent strip) where even an outlined chip would be too heavy. */
         root: {
             class: [
                 "text-destructive",

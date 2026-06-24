@@ -203,7 +203,8 @@ describe("lib/shell/alert-dialog/AlertDialog.vue", () => {
     describe("AlertDialogCancel", () => {
         scopedIt("applies outline button classes", () => {
             const wrapper = mount(AlertDialogCancel);
-            expect(wrapper.classes()).toContain("border");
+            expect(wrapper.classes()).toContain("hairline");
+            expect(wrapper.classes()).toContain("hairline-foreground");
             expect(wrapper.classes()).toContain("bg-background");
         });
     });

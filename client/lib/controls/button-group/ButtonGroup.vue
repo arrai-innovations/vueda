@@ -5,7 +5,7 @@ import { reactive, toRef } from "vue";
 
 /**
  * A container that groups related buttons into a single visual unit.
- * Applies border-radius and border adjustments to adjacent children based on orientation.
+ * Applies radius and edge adjustments to adjacent children based on orientation.
  */
 defineOptions({});
 
