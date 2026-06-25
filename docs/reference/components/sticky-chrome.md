@@ -99,6 +99,14 @@ A bar's `reveal` decides when it hides as the user scrolls. It is a strategy str
 
 The split is the principle in practice: context bars (`always`) never move; the toolbar reclaims space while reading (`scroll-up`) without popping back when you pause; the submit bar comes back fast on a pause (`scroll-up-or-idle`) because you return to it often.
 
+::: tip Conditionally present bars belong in the bottom zone
+A bar that appears only in a certain state (a bulk-action strip gated on a row selection, for example) adds and removes a box from the document every time that state flips. Where that box enters flow decides whether the user sees a jump.
+
+In the **top zone** the box appears above the content being read, so it pushes the whole view down: selecting the first row shoves the grid by the bar's height. In the **bottom zone** the box grows the document at the bottom, below the reading position, so the same change reads as a small scrollbar adjustment instead of a shove (unless the user is already scrolled to the very end).
+
+So gate a conditional bar with `v-if` and place it in the bottom zone with `reveal="always"`. `ViewList`'s bulk-action bar does exactly this, stacking just above the pagination footer. A boolean `reveal` that keeps the bar mounted and slides it out of view also avoids the jump, but it permanently reserves the bar's height even when nothing is selected, which the density canon would rather spend on data.
+:::
+
 ## StickyBar
 
 {@api vue:component:StickyBar} is the bar primitive. It wraps its default slot in a themed container and, on its own, hides when the user scrolls down past its initial position and reappears when they scroll back up. It has two modes:

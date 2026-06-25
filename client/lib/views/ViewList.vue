@@ -296,34 +296,6 @@ onMounted(() => {
                 </div>
             </div>
         </sticky-chrome>
-        <div
-            v-if="actions.selectedObjects.length > 0"
-            :class="theme('bulkActionsBar')"
-            data-qa="view-list-bulk-actions"
-        >
-            <div :class="theme('actionButtonGroupBar')" data-qa="view-list-action-buttons">
-                <template v-for="actionName in actions.bulkActions" :key="actionName">
-                    <!-- @slot [bulk-action-button, button] Replaces an individual bulk action button. -->
-                    <slot :name="bulkActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
-                        <link-model-view
-                            button
-                            :pk="themedButtonSlotProps[actionName].selectedObjects"
-                            v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
-                        />
-                    </slot>
-                </template>
-                <template v-for="actionName in actions.availableTransitions" :key="actionName">
-                    <!-- @slot [workflow-action-button, button] Replaces an individual workflow/transition action button. -->
-                    <slot :name="workflowActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
-                        <link-model-view
-                            button
-                            :pk="themedButtonSlotProps[actionName].selectedObjects"
-                            v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
-                        />
-                    </slot>
-                </template>
-            </div>
-        </div>
         <!-- FilterGroup teleports its add-filter trigger into the toolbar zone above and renders
              the active-filter chips strip (only when filters are present) in this flow position. -->
         <filter-group
@@ -452,6 +424,37 @@ onMounted(() => {
                 </slot>
             </template>
         </objects-grid>
+        <!-- Bulk-actions bar: teleports into the sticky-stack bottom zone (order -1, so it stacks
+             just above the always-pinned pagination footer) when a StickyStackProvider is present,
+             otherwise renders inline here below the grid. Living in the bottom zone means selecting
+             the first row only grows the document at the bottom (a small scrollbar change) instead
+             of shoving the grid down. -->
+        <sticky-chrome v-if="actions.selectedObjects.length > 0" zone="bottom" :order="-1" reveal="always">
+            <div :class="theme('bulkActionsBar')" data-qa="view-list-bulk-actions">
+                <div :class="theme('actionButtonGroupBar')" data-qa="view-list-action-buttons">
+                    <template v-for="actionName in actions.bulkActions" :key="actionName">
+                        <!-- @slot [bulk-action-button, button] Replaces an individual bulk action button. -->
+                        <slot :name="bulkActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
+                            <link-model-view
+                                button
+                                :pk="themedButtonSlotProps[actionName].selectedObjects"
+                                v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
+                            />
+                        </slot>
+                    </template>
+                    <template v-for="actionName in actions.availableTransitions" :key="actionName">
+                        <!-- @slot [workflow-action-button, button] Replaces an individual workflow/transition action button. -->
+                        <slot :name="workflowActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
+                            <link-model-view
+                                button
+                                :pk="themedButtonSlotProps[actionName].selectedObjects"
+                                v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
+                            />
+                        </slot>
+                    </template>
+                </div>
+            </div>
+        </sticky-chrome>
         <!-- Pagination footer: teleports into the sticky-stack bottom zone (always shown) when a
              StickyStackProvider is present, otherwise renders inline here. -->
         <sticky-chrome v-if="pagination.paginateInfo?.totalRecords > 0" zone="bottom" reveal="always">
