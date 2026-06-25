@@ -50,6 +50,10 @@ patchTheme({
         actionBar: {
             class: ["grid grid-cols-1 gap-2 sm:grid-cols-2"],
         },
+        /** Scrollable item list inside the add-sort field-picker popover. Capped so the popover never overflows the viewport on small screens. */
+        addMenuList: {
+            class: ["max-h-60 overflow-y-auto"],
+        },
         /** Eyebrow at the top of the add-sort field-picker menu. The in-popover micro-eyebrow recipe (11 px / 600 / 0.04em). */
         addMenuEyebrow: {
             class: [

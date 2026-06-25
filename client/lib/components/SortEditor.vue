@@ -233,22 +233,24 @@ const icon = useIcons("SortEditor");
                 </PopoverTrigger>
                 <PopoverContent data-qa="sort-add-menu" @interact-outside="keepOpenOverNestedPopper">
                     <div :class="theme('addMenuEyebrow')">Add sort</div>
-                    <button
-                        v-for="opt in availableSortableOptions"
-                        :key="opt.value"
-                        type="button"
-                        :class="theme('addMenuItem')"
-                        data-qa="sort-add-menu-item"
-                        @click="pickAddField(opt.value)"
-                    >
-                        {{ opt.label }}
-                    </button>
-                    <div
-                        v-if="!availableSortableOptions.length"
-                        :class="theme('addMenuEmpty')"
-                        data-qa="sort-add-menu-empty"
-                    >
-                        All fields sorted.
+                    <div :class="theme('addMenuList')">
+                        <button
+                            v-for="opt in availableSortableOptions"
+                            :key="opt.value"
+                            type="button"
+                            :class="theme('addMenuItem')"
+                            data-qa="sort-add-menu-item"
+                            @click="pickAddField(opt.value)"
+                        >
+                            {{ opt.label }}
+                        </button>
+                        <div
+                            v-if="!availableSortableOptions.length"
+                            :class="theme('addMenuEmpty')"
+                            data-qa="sort-add-menu-empty"
+                        >
+                            All fields sorted.
+                        </div>
                     </div>
                 </PopoverContent>
             </Popover>
