@@ -17,7 +17,7 @@ migration_app_label = "vueda_vdq"
 changed_data = [
     {
         "changes": {
-            "ignored": True,
+            "fail_with_silent": True,
             "id": {
                 "source_id": {"code": "cancelled", "workflow_id": {"code": "queueitem"}},
                 "transition_id": {"code": "succeed", "workflow_id": {"code": "queueitem"}},
@@ -31,7 +31,7 @@ changed_data = [
     },
     {
         "changes": {
-            "ignored": True,
+            "fail_with_silent": True,
             "id": {
                 "source_id": {"code": "cancelled", "workflow_id": {"code": "queueitem"}},
                 "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
@@ -776,7 +776,7 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
                     "id",
                     "source_id",
                     "transition_id",
-                    "ignored",
+                    "fail_with_silent",
                 ),
             )
             historical_transition_source.objects.create(**data)
@@ -921,12 +921,13 @@ def get_id_values_from_dict(id_data, reversing=False):
 
 
 class Migration(migrations.Migration):
+    # Do not edit anything below here.
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("auth", "0012_alter_user_first_name_max_length"),
         ("vueda_release", "0001_initial"),
         ("vueda_user", "0003_totpdevice"),
-        ("vueda_workflow", "__latest__"),
+        ("vueda_workflow", "0005_historicaltransitionsource_fail_with_silent_and_more"),
         ("vueda_vdq", "0004_alter_queueitem_done_since_alter_queueitem_object_id"),
     ]
 

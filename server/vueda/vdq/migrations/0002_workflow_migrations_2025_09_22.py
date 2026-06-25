@@ -1387,12 +1387,13 @@ def get_id_values_from_dict(id_data, reversing=False):
 
 
 class Migration(migrations.Migration):
+    # Do not edit anything below here.
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("auth", "0012_alter_user_first_name_max_length"),
         ("vueda_release", "0001_initial"),
         ("vueda_user", "0002_initial"),
-        ("vueda_workflow", "__latest__"),
+        ("vueda_workflow", "0004_alter_statepermission_options_and_more"),
         ("vueda_vdq", "0001_initial"),
     ]
 
