@@ -57,11 +57,6 @@ const props = defineProps({
         type: String,
         default: "p",
     },
-    /** Query parameter name used to send the page size. */
-    pageSizeKey: {
-        type: String,
-        default: PAGE_SIZE_PARAM,
-    },
     /** Tailwind breakpoint at which the layout switches from card to table view. */
     tableBreakpoint: {
         type: String,
@@ -149,7 +144,7 @@ const modelListProps = reactive({
 });
 // Always send the page size for a numeric selection so the server's `perPage` matches the choice.
 if (seededPerPage !== ALL_PAGES) {
-    modelListProps.params[props.pageSizeKey] = seededPerPage;
+    modelListProps.params[PAGE_SIZE_PARAM] = seededPerPage;
 }
 
 const instanceList = useList({
@@ -178,12 +173,12 @@ watch(perPage, (newPerPage, oldPerPage) => {
         return;
     }
     if (newPerPage === ALL_PAGES) {
-        delete modelListProps.params[props.pageSizeKey];
+        delete modelListProps.params[PAGE_SIZE_PARAM];
         showingAllPages.value = true;
     } else {
         showingAllPages.value = false;
         currentPage.value = 1;
-        modelListProps.params[props.pageSizeKey] = newPerPage;
+        modelListProps.params[PAGE_SIZE_PARAM] = newPerPage;
     }
 });
 watch([validAndActive, currentPage], () => {
@@ -510,6 +505,7 @@ const slots = useSlots();
         <pagination-footer
             v-model:current-page="currentPage"
             v-model:per-page="perPage"
+            :loading="instanceList.state.loading"
             :rows="instanceList.state.paginateInfo?.perPage || 1"
             :total-records="instanceList.state.paginateInfo?.totalRecords || 1"
             :is-table="isTable"

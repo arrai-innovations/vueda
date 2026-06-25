@@ -327,30 +327,6 @@ describe("lib/views/ViewHistoryList.vue", () => {
             expect(mockInstanceList.list).toHaveBeenCalled();
             wrapper.unmount();
         });
-
-        scopedIt("uses a custom page-size query key", async () => {
-            mockedInject.mockReturnValueOnce({});
-            const wrapper = mount(ViewHistoryList, {
-                props: {
-                    app: "a",
-                    model: "b",
-                    pk: "1",
-                    pageSizeKey: "page_size",
-                    pageSizeOptions: [25, 50, "all"],
-                    defaultPageSize: 50,
-                },
-            });
-            const pagination = wrapper.findComponent(PaginationFooterStub);
-            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
-
-            expect(listProps.params.page_size).toBe(50);
-            expect(listProps.params).not.toHaveProperty("ps");
-
-            pagination.vm.$emit("update:perPage", 25);
-            await vue.nextTick();
-            expect(listProps.params.page_size).toBe(25);
-            wrapper.unmount();
-        });
     });
 
     describe("Navigation", () => {
