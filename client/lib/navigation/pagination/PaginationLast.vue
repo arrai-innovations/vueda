@@ -39,16 +39,17 @@ const icon = useIcons("PaginationLast");
 <template>
     <PaginationLast
         data-slot="pagination-last"
+        data-qa="pagination-last"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
         v-bind="forwarded"
     >
         <slot>
-            <span class="hidden sm:block">Last</span>
+            <span class="sr-only">Last</span>
             <component
-                :is="icon('chevronRight').component"
-                v-if="icon('chevronRight')"
-                v-bind="icon('chevronRight').props"
+                :is="icon('anglesRight').component"
+                v-if="icon('anglesRight')"
+                v-bind="icon('anglesRight').props"
                 aria-hidden="true"
             />
         </slot>

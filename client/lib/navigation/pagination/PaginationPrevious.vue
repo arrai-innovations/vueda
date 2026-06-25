@@ -39,6 +39,7 @@ const icon = useIcons("PaginationPrevious");
 <template>
     <PaginationPrev
         data-slot="pagination-previous"
+        data-qa="pagination-previous"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
         v-bind="forwarded"
@@ -50,7 +51,7 @@ const icon = useIcons("PaginationPrevious");
                 v-bind="icon('chevronLeft').props"
                 aria-hidden="true"
             />
-            <span class="hidden sm:block">Previous</span>
+            <span class="sr-only">Previous</span>
         </slot>
     </PaginationPrev>
 </template>

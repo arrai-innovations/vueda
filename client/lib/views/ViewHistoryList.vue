@@ -2,9 +2,9 @@
 import { loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import PageActions from "@vueda/components/PageActions.vue";
-import PaginationComponent from "@vueda/components/PaginationComponent.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
+import PaginationFooter from "@vueda/navigation/pagination/PaginationFooter.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewHistoryList.theme.js";
 import { useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
@@ -12,7 +12,14 @@ import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { FIELDS_PARAM } from "@vueda/utils/constants.js";
+import {
+    ALL_PAGES,
+    DEFAULT_PAGE_SIZE,
+    DEFAULT_PAGE_SIZE_OPTIONS,
+    FIELDS_PARAM,
+    PAGE_PARAM,
+    PAGE_SIZE_PARAM,
+} from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
@@ -24,7 +31,7 @@ import { useRouter } from "vue-router";
  * Paginated list view showing the history audit trail for a specific model instance,
  * displaying field-level changes with old and new values in a table or card layout.
  *
- * @vueda-slot-forward PaginationComponent
+ * @vueda-slot-forward PaginationFooter
  */
 defineOptions({
     inheritAttrs: false,
@@ -45,11 +52,6 @@ const props = defineProps({
     pk: {
         type: String,
         required: true,
-    },
-    /** Query parameter name used to track the current page in the URL. */
-    pageKey: {
-        type: String,
-        default: "p",
     },
     /** Tailwind breakpoint at which the layout switches from card to table view. */
     tableBreakpoint: {
@@ -76,15 +78,15 @@ const props = defineProps({
             "new",
         ],
     },
-    /** When true, shows a control that lets the user load all history pages at once. */
-    allowShowAllPages: {
-        type: Boolean,
-        default: true,
+    /** Rows-per-page options offered by the pagination footer; the final `"all"` entry loads every history page at once. */
+    pageSizeOptions: {
+        type: Array,
+        default: () => [...DEFAULT_PAGE_SIZE_OPTIONS],
     },
-    /** When true, always fetches and displays all history pages without requiring user interaction. */
-    alwaysShowAllPages: {
-        type: Boolean,
-        default: false,
+    /** Initial rows-per-page (a number, or `"all"`). */
+    defaultPageSize: {
+        type: [Number, String],
+        default: DEFAULT_PAGE_SIZE,
     },
     /** When true, displays the total number of history records in the pagination bar. */
     showTotalRecordNum: {
@@ -118,6 +120,10 @@ if (!inject(LookupContextSymbol, null)) {
 const isActive = useIsActive();
 const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.loading === false));
 const currentPage = ref(1);
+// Seed rows-per-page from the configured default, validated against the offered options. History is
+// transient, so the selection is not persisted (it resets each visit).
+const seededPerPage = props.pageSizeOptions.includes(props.defaultPageSize) ? props.defaultPageSize : DEFAULT_PAGE_SIZE;
+const perPage = ref(seededPerPage);
 const modelListProps = reactive({
     target: {
         app: toRef(props, "app"),
@@ -127,11 +133,15 @@ const modelListProps = reactive({
     },
     pkKey: "history_id",
     params: {
-        [props.pageKey]: currentPage,
+        [PAGE_PARAM]: currentPage,
         [FIELDS_PARAM]: ["history"],
     },
     intendToList: validAndActive,
 });
+// Always send the page size for a numeric selection so the server's `perPage` matches the choice.
+if (seededPerPage !== ALL_PAGES) {
+    modelListProps.params[PAGE_SIZE_PARAM] = seededPerPage;
+}
 
 const instanceList = useList({
     props: modelListProps,
@@ -143,13 +153,28 @@ const instanceList = useList({
     },
 });
 
-const showingAllPages = ref(false);
-const computedShowAllPages = computed(() => (props.alwaysShowAllPages ? true : showingAllPages.value));
+// "All" is a rows-per-page selection that drives the all-pages fetch path rather than a `ps` value.
+const showingAllPages = ref(seededPerPage === ALL_PAGES);
+const computedShowAllPages = computed(() => showingAllPages.value);
 watch(computedShowAllPages, (newVal, oldVal) => {
     if (newVal !== oldVal) {
         currentPage.value = 1;
         instanceList.clearList();
         instanceList.list();
+    }
+});
+// Rows-per-page selection: drive the all-pages path ("All") or send the page size.
+watch(perPage, (newPerPage, oldPerPage) => {
+    if (newPerPage === oldPerPage) {
+        return;
+    }
+    if (newPerPage === ALL_PAGES) {
+        delete modelListProps.params[PAGE_SIZE_PARAM];
+        showingAllPages.value = true;
+    } else {
+        showingAllPages.value = false;
+        currentPage.value = 1;
+        modelListProps.params[PAGE_SIZE_PARAM] = newPerPage;
     }
 });
 watch([validAndActive, currentPage], () => {
@@ -473,19 +498,19 @@ const slots = useSlots();
             </objects-grid>
         </div>
 
-        <pagination-component
+        <pagination-footer
             v-model:current-page="currentPage"
+            v-model:per-page="perPage"
+            :loading="instanceList.state.loading"
             :rows="instanceList.state.paginateInfo?.perPage || 1"
             :total-records="instanceList.state.paginateInfo?.totalRecords || 1"
             :is-table="isTable"
-            :showing-all-pages="computedShowAllPages"
-            :allow-show-all-pages="allowShowAllPages"
+            :page-size-options="pageSizeOptions"
             :show-total-record-num="showTotalRecordNum"
-            @update:showing-all-pages="showingAllPages = $event"
         >
             <template v-for="(_, slot) in slots" #[slot]="slotProps">
                 <slot :name="slot" v-bind="slotProps || {}" />
             </template>
-        </pagination-component>
+        </pagination-footer>
     </div>
 </template>

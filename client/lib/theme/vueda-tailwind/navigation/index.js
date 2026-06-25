@@ -57,9 +57,9 @@ import "./NavigationMenuViewport.theme.js";
 import "./NavigationPaginationBar.theme.js";
 import "./NavigationPaginationNavButton.theme.js";
 import "./Pagination.theme.js";
-import "./PaginationComponent.theme.js";
 import "./PaginationContent.theme.js";
 import "./PaginationEllipsis.theme.js";
+import "./PaginationFooter.theme.js";
 import "./PaginationItem.theme.js";
 import "./PaginationMeta.theme.js";
 import "./Sidebar.theme.js";
@@ -153,7 +153,7 @@ export default {
     Pagination: {},
     NavigationPaginationBar: {},
     PaginationMeta: {},
-    PaginationComponent: {},
+    PaginationFooter: {},
     // ---------- Sidebar ----------
     SidebarContent: {},
     SidebarFooter: {},

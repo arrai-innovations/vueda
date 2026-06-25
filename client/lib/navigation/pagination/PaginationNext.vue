@@ -39,12 +39,13 @@ const icon = useIcons("PaginationNext");
 <template>
     <PaginationNext
         data-slot="pagination-next"
+        data-qa="pagination-next"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
         v-bind="forwarded"
     >
         <slot>
-            <span class="hidden sm:block">Next</span>
+            <span class="sr-only">Next</span>
             <component
                 :is="icon('chevronRight').component"
                 v-if="icon('chevronRight')"

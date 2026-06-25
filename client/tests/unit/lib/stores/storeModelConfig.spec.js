@@ -291,6 +291,8 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.actionRedirects.default).toBe("update");
 
             expect(config.formProps).toEqual({});
+            expect(config).not.toHaveProperty("allowShowAllPages");
+            expect(config).not.toHaveProperty("alwaysShowAllPages");
             expect(config.fieldComponents).toEqual({});
             expect(config.fieldProps).toEqual({});
             expect(config.widgetComponents).toEqual({});

@@ -21,7 +21,12 @@ const theme = useTheme("PaginationMeta", props);
 </script>
 
 <template>
-    <span data-slot="pagination-meta" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
+    <span
+        data-slot="pagination-meta"
+        data-qa="pagination-meta"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </span>
 </template>

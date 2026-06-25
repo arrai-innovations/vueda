@@ -103,14 +103,21 @@ describe("lib/navigation/pagination/Pagination.vue", () => {
             expect(wrapper.attributes("data-slot")).toBe("pagination-first");
         });
 
-        scopedIt("applies ghost button classes", () => {
+        scopedIt("applies outline button classes", () => {
             const wrapper = mount(PaginationFirst);
-            expect(wrapper.classes()).toContain("hover:bg-accent");
+            expect(wrapper.classes()).toContain("border");
+            expect(wrapper.classes()).toContain("bg-background");
         });
 
-        scopedIt("renders First label in default slot", () => {
+        scopedIt("applies the compact square size", () => {
+            const wrapper = mount(PaginationFirst);
+            expect(wrapper.classes()).toContain("size-vueda-control-sm");
+        });
+
+        scopedIt("renders First as an sr-only label in default slot", () => {
             const wrapper = mount(PaginationFirst);
             expect(wrapper.text()).toContain("First");
+            expect(wrapper.find("span.sr-only").text()).toBe("First");
         });
     });
 

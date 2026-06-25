@@ -30,6 +30,7 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride");
     <PaginationList
         v-slot="slotProps"
         data-slot="pagination-content"
+        data-qa="pagination-content"
         v-bind="delegatedProps"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"

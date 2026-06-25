@@ -12,6 +12,8 @@ import "./showcase-portals.css";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import {
+    faAnglesLeft,
+    faAnglesRight,
     faArrowRotateLeft,
     faArrowUpRightFromSquare,
     faCaretDown,
@@ -69,6 +71,8 @@ setIcons({
         filtered: { component: FontAwesomeIcon, props: { icon: faCircleQuestion } },
     },
     Default: {
+        anglesLeft: { component: FontAwesomeIcon, props: { icon: faAnglesLeft } },
+        anglesRight: { component: FontAwesomeIcon, props: { icon: faAnglesRight } },
         caretDown: { component: FontAwesomeIcon, props: { icon: faCaretDown } },
         caretUp: { component: FontAwesomeIcon, props: { icon: faCaretUp } },
         check: { component: FontAwesomeIcon, props: { icon: faCheck } },

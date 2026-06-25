@@ -41,7 +41,7 @@ patchTheme({
         objectsGrid: {
             class: ["w-full border-0 rounded-none"],
         },
-        /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with the title row above and the {@api theme-key:ViewList.paginationWrapper} below, so the chrome reads as a matched frame around the grid. */
+        /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with the title row above and the {@api theme-key:NavigationPaginationBar} below, so the chrome reads as a matched frame around the grid. */
         underActionsBar: {
             class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3", "border-b bg-card text-foreground"],
         },
@@ -75,10 +75,6 @@ patchTheme({
         /** Cell class for the column-totals row appended below the body rows when any column declares a total. The 2 px top border separates the totals row from the data rows above it; the cell otherwise inherits {@api theme-key:ObjectsGridBodyCell} chrome. */
         columnTotalCell: {
             class: "border-t-2",
-        },
-        /** Pagination strip beneath the grid. Card-toned with a top hairline; mirrors the {@api theme-key:ViewList.underActionsBar} rhythm so the chrome above and below the grid read as a matched pair. */
-        paginationWrapper: {
-            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px]", "border-t bg-card text-foreground"],
         },
     },
 });
