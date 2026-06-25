@@ -431,6 +431,16 @@ describe("lib/views/ViewList.vue", () => {
             expect(instanceList.list.mock.calls.length).toBe(initialListCalls + 1);
             wrapper.unmount();
         });
+
+        scopedIt("sends the seeded page size as `ps` on the initial request", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+
+            expect(listProps.params.ps).toBe(25);
+            wrapper.unmount();
+        });
         scopedIt("hides pagination when there are no records", async () => {
             mockedInject.mockReturnValueOnce({});
             instanceList.state.paginateInfo.totalRecords = 0;

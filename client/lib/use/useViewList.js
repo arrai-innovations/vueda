@@ -357,7 +357,9 @@ export function useViewList(options) {
     const showingAllPages = ref(seededPerPage === ALL_PAGES);
     const computedShowAllPages = computed(() => showingAllPages.value);
 
-    const alwaysParamsKeys = [ORDERING_PARAM, FIELDS_PARAM, EXPAND_PARAM];
+    // The page-size param is framework-managed (seeded here, updated by the perPage watch), so it must
+    // survive the consumer-`params` reconciliation below the same way ordering, fields, and expand do.
+    const alwaysParamsKeys = [ORDERING_PARAM, FIELDS_PARAM, EXPAND_PARAM, PAGE_SIZE_PARAM];
     const listState = reactive({
         currentPage: 1,
         perPage: seededPerPage,
