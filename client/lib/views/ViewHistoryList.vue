@@ -17,6 +17,7 @@ import {
     DEFAULT_PAGE_SIZE,
     DEFAULT_PAGE_SIZE_OPTIONS,
     FIELDS_PARAM,
+    PAGE_PARAM,
     PAGE_SIZE_PARAM,
 } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
@@ -51,11 +52,6 @@ const props = defineProps({
     pk: {
         type: String,
         required: true,
-    },
-    /** Query parameter name used to track the current page in the URL. */
-    pageKey: {
-        type: String,
-        default: "p",
     },
     /** Tailwind breakpoint at which the layout switches from card to table view. */
     tableBreakpoint: {
@@ -137,7 +133,7 @@ const modelListProps = reactive({
     },
     pkKey: "history_id",
     params: {
-        [props.pageKey]: currentPage,
+        [PAGE_PARAM]: currentPage,
         [FIELDS_PARAM]: ["history"],
     },
     intendToList: validAndActive,
