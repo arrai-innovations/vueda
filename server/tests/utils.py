@@ -12,8 +12,12 @@ from django.http import QueryDict
 from django.test import modify_settings
 from django.test import override_settings
 from django.test.utils import extend_sys_path
+from django.urls import get_resolver
+from django.urls import include
+from django.urls import path
 from django.utils.module_loading import module_dir
 
+from tests.urls import urlpatterns
 from vueda.info import registration
 
 
@@ -153,3 +157,25 @@ def adjust_page_size(settings, value):
         yield
     finally:
         settings.REST_FRAMEWORK["PAGE_SIZE"] = orig_value
+
+
+@contextmanager
+def use_test_router(router_class, url_path, registrations):
+    """
+    Creates a router.
+    Registers viewsets with the router.
+    And removes the urlpatterns when done, to prevent urlpattern bleed into other tests.
+    """
+    try:
+        router = router_class()
+        for name, viewset in registrations:
+            router.register(name, viewset)
+        urlpatterns.append(
+            path(url_path, include(router.urls)),
+        )
+        resolver = get_resolver()
+        resolver._populated = False  # Modified url patterns, so force _populate to refresh the resolvers cached data.
+        yield router
+    finally:
+        urlpatterns.pop()
+        resolver._populated = False  # Modified url patterns, so force _populate to refresh the resolvers cached data.
