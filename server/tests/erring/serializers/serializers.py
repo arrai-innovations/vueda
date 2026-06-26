@@ -75,3 +75,9 @@ class RelatedObjectsAreMissingDataSerializer(VuedaSerializer):
             "id",
             "no_name",
         ] + VuedaSerializer.Meta.fields
+
+
+class FalseyFormattedNamesLookupSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.FalseyFormattedNamesLookup
+        fields = ["id", "description"]

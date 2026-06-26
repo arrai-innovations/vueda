@@ -1,4 +1,5 @@
 from .models import BothFormattedNameConfigured  # noqa: F401
+from .models import FalseyFormattedNamesLookup  # noqa: F401
 from .models import FormattedNameExpressionNotString  # noqa: F401
 from .models import NoExpandableFieldsData  # noqa: F401
 from .models import NoNameField  # noqa: F401

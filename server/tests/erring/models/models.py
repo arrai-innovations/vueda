@@ -118,3 +118,17 @@ class RelatedObjectsAreMissingData(VuedaModel):
 
     def __str__(self):
         return self.pk
+
+
+class FalseyFormattedNamesLookup(VuedaModel):
+    description = models.CharField(max_length=255)
+
+    formatted_name = None
+    formatted_name_lookup_expression = False
+
+    class Meta(VuedaModel.Meta):
+        verbose_name = "falsey formatted names lookup"
+        verbose_name_plural = "falsey formatted names lookups"
+
+    def __str__(self):
+        return self.pk

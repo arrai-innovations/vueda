@@ -36,7 +36,7 @@ def check_formatted_name_configuration(app_configs, **kwargs):
                     id="vueda_info.E003",
                 )
             )
-        elif has_lookup and not isinstance(has_lookup, str):
+        elif has_lookup is not None and not isinstance(has_lookup, str):
             errors.append(
                 Error(
                     f"{model.__name__} defines formatted_name_lookup_expression as something other than a string.",

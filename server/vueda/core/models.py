@@ -39,7 +39,8 @@ class FormattedNameBaseModel(models.Model):
 
             else:
                 formatted_name_lookup_expression = getattr(self._meta.model, "formatted_name_lookup_expression", None)
-                _, _, formatted_name = lookup_field(formatted_name_lookup_expression, self)
+                if isinstance(formatted_name_lookup_expression, str):
+                    _, _, formatted_name = lookup_field(formatted_name_lookup_expression, self)
 
         return formatted_name or None
 
