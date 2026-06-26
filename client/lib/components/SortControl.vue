@@ -15,15 +15,15 @@ import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
-import { computed, ref, useSlots } from "vue";
+import { ref, useSlots } from "vue";
 
 /**
- * Toolbar entry point for multi-field sorting. The trigger shows the active-sort
- * count and opens the shared {@api vue:component:SortEditor}: a popover on desktop,
- * a full-screen dialog on mobile. The trigger teleports into a toolbar zone
- * supplied by the host view so the button sits in the under-actions bar while the
- * editor's state and surface stay anchored to it. This is the layout-independent
- * companion to column-header sorting; both write the same `sorted` array.
+ * Toolbar entry point for multi-field sorting. The trigger opens the shared
+ * {@api vue:component:SortEditor}: a popover on desktop, a full-screen dialog on
+ * mobile. The trigger teleports into a toolbar zone supplied by the host view so
+ * the button sits in the under-actions bar while the editor's state and surface
+ * stay anchored to it. This is the layout-independent companion to
+ * column-header sorting; both write the same `sorted` array.
  */
 defineOptions({});
 
@@ -66,8 +66,6 @@ const breakpoints = useBreakpoints(breakpointsVueda);
 // or above it, a popover. Matches the sidebar's mobile boundary.
 const isMobile = breakpoints.smaller("md");
 
-const sortedCount = computed(() => props.sorted.length);
-
 const theme = useTheme("SortControl", props);
 const icon = useIcons("SortControl");
 const slots = useSlots();
@@ -86,9 +84,6 @@ const slots = useSlots();
                         aria-hidden="true"
                     />
                     {{ label }}
-                    <span v-if="sortedCount" :class="theme('badge')" data-qa="sort-control-count">{{
-                        sortedCount
-                    }}</span>
                     <component
                         :is="icon('caretDown').component"
                         v-if="icon('caretDown')"
@@ -129,9 +124,6 @@ const slots = useSlots();
                         aria-hidden="true"
                     />
                     {{ label }}
-                    <span v-if="sortedCount" :class="theme('badge')" data-qa="sort-control-count">{{
-                        sortedCount
-                    }}</span>
                     <component
                         :is="icon('caretDown').component"
                         v-if="icon('caretDown')"

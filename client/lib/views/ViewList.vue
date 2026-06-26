@@ -1,4 +1,5 @@
 <script setup>
+import ConstraintsBar from "@vueda/components/ConstraintsBar.vue";
 import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
 import FilterGroup from "@vueda/components/FilterGroup.vue";
 import FormMessage from "@vueda/components/FormMessage.vue";
@@ -7,6 +8,7 @@ import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
 import ObjectsGridBodyCell from "@vueda/components/ObjectsGridBodyCell.vue";
 import PageActions from "@vueda/components/PageActions.vue";
 import SortControl from "@vueda/components/SortControl.vue";
+import SortGroup from "@vueda/components/SortGroup.vue";
 import StickyChrome from "@vueda/components/StickyChrome.vue";
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import InputGroup from "@vueda/controls/input-group/InputGroup.vue";
@@ -140,7 +142,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 
-const { modelConfig, list, actions, search, sort, columns, pagination } = useViewList(props);
+const { modelConfig, list, actions, search, sort, columns, pagination, clearConstraints } = useViewList(props);
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loading }));
@@ -152,6 +154,13 @@ const icon = useIcons("ViewList");
 // trigger teleports into, so the trigger sits in the toolbar while its popover
 // state stays owned by FilterGroup.
 const filterTriggerZone = ref(null);
+
+// The shared constraints band hosts both the filter chips and the sort chips.
+// `hasFilters` drives band visibility and the divider; it reads the applied
+// filter params (the chip-bearing source) rather than threading a count. Clearing
+// both axes is delegated to useViewList's coordinated single-push clearConstraints.
+const hasFilters = computed(() => Object.keys(list.listState.filterArgs || {}).length > 0);
+const hasSorts = computed(() => (sort.sorting.state.sorted?.length || 0) > 0);
 
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
 const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
@@ -299,26 +308,48 @@ onMounted(() => {
                 </div>
             </div>
         </sticky-chrome>
-        <!-- FilterGroup teleports its add-filter trigger into the toolbar zone above and renders
-             the active-filter chips strip (only when filters are present) in this flow position. -->
-        <filter-group
-            v-model="list.listState.filterArgs"
-            :app="props.app"
-            :model="props.model"
-            :view="'list'"
-            :error="list.instanceList.state.error"
-            :errored="list.instanceList.state.errored"
-            :filterable-details="props.filterableDetails"
-            :filterables="props.filterables"
-            :trigger-target="filterTriggerZone"
-            @filter-change="emit('filter-change', $event)"
-            @hide-filter-form="emit('hide-filter-form', $event)"
-            @query-change="emit('query-change', $event)"
-        >
-            <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                <slot :name="slot" v-bind="slotProps || {}" />
-            </template>
-        </filter-group>
+        <!-- Active-constraints band: filter chips and sort chips share one sticky strip, told apart
+             by tint. Each group teleports its add/edit trigger into the toolbar zone above; their
+             chips render here, hosted bare so the band owns the chrome. The band collapses when
+             nothing is active, and Clear all clears both filters and sorts. -->
+        <sticky-chrome zone="top" reveal="scroll-up">
+            <constraints-bar :filters-active="hasFilters" :sorts-active="hasSorts" @clear-all="clearConstraints">
+                <template #filters>
+                    <filter-group
+                        v-model="list.listState.filterArgs"
+                        hosted
+                        :app="props.app"
+                        :model="props.model"
+                        :view="'list'"
+                        :error="list.instanceList.state.error"
+                        :errored="list.instanceList.state.errored"
+                        :filterable-details="props.filterableDetails"
+                        :filterables="props.filterables"
+                        :trigger-target="filterTriggerZone"
+                        @filter-change="emit('filter-change', $event)"
+                        @hide-filter-form="emit('hide-filter-form', $event)"
+                        @query-change="emit('query-change', $event)"
+                    >
+                        <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                            <slot :name="slot" v-bind="slotProps || {}" />
+                        </template>
+                    </filter-group>
+                </template>
+                <template #sort>
+                    <sort-group
+                        v-if="sort.canShowSorter"
+                        hosted
+                        :sorted="sort.sorting.state.sorted"
+                        :field-details="modelConfig.config?.fieldDetails || {}"
+                        @update:sorted="sort.sorting.updateSorted"
+                    >
+                        <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                            <slot :name="slot" v-bind="slotProps || {}" />
+                        </template>
+                    </sort-group>
+                </template>
+            </constraints-bar>
+        </sticky-chrome>
 
         <slot name="additional-errors" />
         <error-display :error="list.error" :errored="list.errored" @dismiss-error="list.dismissError" />
@@ -348,11 +379,8 @@ onMounted(() => {
             :loading="list.loading"
             :objects-in-order="list.instanceList.state.objectsInOrder"
             :related-objects="list.instanceList.state.relatedObjects"
-            :sortables="sort.sorting.state.sortables"
-            :sorted="sort.sorting.state.sorted"
             :table-breakpoint="tableBreakpoint"
             :theme-override="themeOverride"
-            @update:sorted="sort.sorting.updateSorted"
             @update:is-table="sort.isTable = $event"
         >
             <template

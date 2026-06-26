@@ -123,12 +123,9 @@ describe("lib/components/SortControl.vue", () => {
         expect(wrapper.findComponent({ name: "DialogHeaderStub" }).classes()).toContain("dialogHeader");
     });
 
-    scopedIt("shows the active-sort count badge only when sorts are applied", () => {
+    scopedIt("does not render an active-sort count badge", () => {
         const { wrapper } = mountControl({ props: { sorted: ["name", "-created_at"] } });
-        expect(wrapper.find('[data-qa="sort-control-count"]').text()).toBe("2");
-
-        const { wrapper: empty } = mountControl({ props: { sorted: [] } });
-        expect(empty.find('[data-qa="sort-control-count"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="sort-control-count"]').exists()).toBe(false);
     });
 
     scopedIt("teleports the trigger into the provided target element", () => {

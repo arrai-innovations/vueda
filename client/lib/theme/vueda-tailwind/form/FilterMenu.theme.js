@@ -10,16 +10,10 @@ import { patchTheme } from "@vueda/use/themeRegistry.js";
 patchTheme({
     /**
      * FilterMenu is the toolbar entry point for adding filters. Its trigger
-     * carries the active-filter count and opens a popover that lists the
-     * not-yet-applied fields and drills into a chosen field's form in place.
+     * opens a popover that lists the not-yet-applied fields and drills into a
+     * chosen field's form in place.
      */
     FilterMenu: {
-        /** Active-filter count badge on the trigger. */
-        badge: {
-            class: [
-                "ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground",
-            ],
-        },
         /** Group eyebrow at the top of the add-filter list and the drill-in. The in-popover micro-eyebrow recipe (11 px / 600 / 0.04em). */
         eyebrow: {
             class: [

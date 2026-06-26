@@ -11,12 +11,12 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, ref, useSlots, watch } from "vue";
 
 /**
- * Toolbar entry point for adding filters. The trigger shows the active-filter
- * count and opens a popover listing the fields not yet applied; picking one
- * drills the popover in place to that field's {@api vue:component:FilterFieldForm},
- * with a back affordance returning to the list. The trigger teleports into a
- * toolbar zone supplied by the host view so the button sits in the under-actions
- * bar while the menu's state and popover stay anchored to it.
+ * Toolbar entry point for adding filters. The trigger opens a popover listing
+ * the fields not yet applied; picking one drills the popover in place to that
+ * field's {@api vue:component:FilterFieldForm}, with a back affordance returning
+ * to the list. The trigger teleports into a toolbar zone supplied by the host
+ * view so the button sits in the under-actions bar while the menu's state and
+ * popover stay anchored to it.
  */
 defineOptions({});
 
@@ -59,7 +59,6 @@ const emit = defineEmits(["hide-filter-form"]);
 const open = ref(false);
 const pickedField = ref(null);
 
-const activeCount = computed(() => addedFilters.value.length);
 const inactiveFilterables = computed(() =>
     (props.filterables || []).filter((field) => !addedFilters.value.some((filter) => filter.field === field)),
 );
@@ -99,9 +98,6 @@ const slots = useSlots();
                         aria-hidden="true"
                     />
                     {{ label }}
-                    <span v-if="activeCount" :class="theme('badge')" data-qa="filter-menu-count">{{
-                        activeCount
-                    }}</span>
                     <component
                         :is="icon('caretDown').component"
                         v-if="icon('caretDown')"

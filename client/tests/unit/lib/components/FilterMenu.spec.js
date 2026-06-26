@@ -75,9 +75,9 @@ describe("lib/components/FilterMenu.vue", () => {
         expect(items.map((i) => i.text().trim())).toEqual(["B", "C"]);
     });
 
-    scopedIt("shows the active-filter count on the trigger", () => {
+    scopedIt("does not render an active-filter count badge", () => {
         const { wrapper } = mountMenu({ addedFilters: [{ field: "a" }, { field: "b" }] });
-        expect(wrapper.get('[data-qa="filter-menu-count"]').text()).toBe("2");
+        expect(wrapper.find('[data-qa="filter-menu-count"]').exists()).toBe(false);
     });
 
     scopedIt("drills into a field's form when picked, and returns via back", async () => {

@@ -73,6 +73,15 @@ const props = defineProps({
         type: [Object, String],
         default: null,
     },
+    /**
+     * When true, the chips render as a bare subgroup (no band chrome, no own
+     * Clear all) for hosting inside a shared {@api vue:component:ConstraintsBar}.
+     * When false (default), the chips render as a self-contained strip.
+     */
+    hosted: {
+        type: Boolean,
+        default: false,
+    },
 });
 const emit = defineEmits(["filter-change", "hide-filter-form", "query-change"]);
 
@@ -198,7 +207,11 @@ defineExpose({ addedFilters });
                 <slot :name="slot" v-bind="slotProps || {}" />
             </template>
         </filter-menu>
-        <div v-if="addedFilters.length" :class="theme('strip')" data-qa="filter-group-strip">
+        <div
+            v-if="addedFilters.length"
+            :class="hosted ? theme('subgroup') : theme('strip')"
+            data-qa="filter-group-strip"
+        >
             <span :class="theme('eyebrow')">Filters</span>
             <filter-chip
                 v-for="filter in addedFilters"
@@ -214,7 +227,14 @@ defineExpose({ addedFilters });
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
             </filter-chip>
-            <Button variant="ghost" size="sm" :class="theme('clear')" data-qa="filter-clear" @click="clearFilters">
+            <Button
+                v-if="!hosted"
+                variant="ghost"
+                size="sm"
+                :class="theme('clear')"
+                data-qa="filter-clear"
+                @click="clearFilters"
+            >
                 Clear all
             </Button>
         </div>
