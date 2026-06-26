@@ -120,6 +120,15 @@ importers:
       '@codemirror/view':
         specifier: ^6.43.0
         version: 6.43.0
+      '@fortawesome/fontawesome-svg-core':
+        specifier: ^7.2.0
+        version: 7.2.0
+      '@fortawesome/free-solid-svg-icons':
+        specifier: ^7.2.0
+        version: 7.2.0
+      '@fortawesome/vue-fontawesome':
+        specifier: ^3.2.0
+        version: 3.2.0(@fortawesome/fontawesome-svg-core@7.2.0)(vue@3.5.27(typescript@5.9.3))
       '@internationalized/date':
         specifier: ^3.5.0
         version: 3.12.1
