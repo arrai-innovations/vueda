@@ -11,14 +11,6 @@ import { useIcons } from "@vueda/use/useIcons.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
-import {
-    addSortField,
-    formatSortField,
-    indexOfSortField,
-    removeSortField,
-    sortFieldBases,
-    toggleSortField,
-} from "@vueda/utils/sortedFields.js";
 import { useBreakpoints } from "@vueuse/core";
 import { computed, effectScope, onMounted, reactive, toRef, useSlots, watch } from "vue";
 
@@ -109,18 +101,6 @@ const props = defineProps({
         default: "lg",
         description: "When to switch to table layout.",
     },
-    /** Field names that are sortable; clicking their headers emits a sort event. */
-    sortables: {
-        type: Array,
-        default: () => [],
-        description: "Field names that can be sorted.",
-    },
-    /** Currently active sort fields; prefix with `-` for descending order. */
-    sorted: {
-        type: Array,
-        default: () => [],
-        description: "Field names that are sorted. Prefix each with `-` for descending on that field.",
-    },
     /** Name of the field used as the primary key for row identity. */
     pkKey: {
         type: String,
@@ -149,7 +129,7 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const emit = defineEmits(["update:sorted", "update:isTable"]);
+const emit = defineEmits(["update:isTable"]);
 
 const breakpoints = useBreakpoints(breakpointsVueda);
 const isTableByBP = breakpoints.greaterOrEqual(toRef(props, "tableBreakpoint"));
@@ -162,34 +142,9 @@ onMounted(() => {
     emit("update:isTable", isTable.value);
 });
 
-const sortClick = (e, fieldName) => {
-    if (!props.sortables.includes(fieldName)) {
-        return;
-    }
-    const present = indexOfSortField(props.sorted, fieldName) !== -1;
-    let newSorted;
-    if (e.ctrlKey) {
-        // Ctrl-click accumulates a multi-field sort: add a new field, toggle the
-        // sole field's direction, or drop a field from a multi-field sort.
-        if (!present) {
-            newSorted = addSortField(props.sorted, fieldName);
-        } else if (props.sorted.length === 1) {
-            newSorted = toggleSortField(props.sorted, fieldName);
-        } else {
-            newSorted = removeSortField(props.sorted, fieldName);
-        }
-    } else {
-        // Plain click replaces the sort with this field (ascending), or toggles its
-        // direction in place when it is already part of the sort.
-        newSorted = present ? toggleSortField(props.sorted, fieldName) : [formatSortField(fieldName)];
-    }
-    emit("update:sorted", newSorted);
-};
-
 const icons = useIcons("ObjectsGrid");
 const emptyIconEntry = computed(() => icons(props.emptyVariant));
 
-const directionlessSorted = computed(() => sortFieldBases(props.sorted));
 const themeContext = reactive({
     isTable,
     tableBreakpoint: toRef(props, "tableBreakpoint"),
@@ -218,7 +173,6 @@ watch(
                     slotNameResolvers[key] = {};
                     slotNameResolvers[key]["field"] = useSlotNameResolver([`field(${key})`, "field"], slots);
                     slotNameResolvers[key]["header"] = useSlotNameResolver([`header(${key})`, "header"], slots);
-                    slotNameResolvers[key]["sortIcon"] = useSlotNameResolver([`sort-icon(${key})`, "sort-icon"], slots);
                 });
             }
         }
@@ -226,7 +180,6 @@ watch(
             if (slotNameResolvers[key]) {
                 slotNameResolvers[key].field.stop();
                 slotNameResolvers[key].header.stop();
-                slotNameResolvers[key].sortIcon.stop();
                 delete slotNameResolvers[key];
             }
         }
@@ -258,13 +211,12 @@ watch(
                             :data-numeric="field?.numeric || undefined"
                             data-qa="objects-grid-header"
                             role="columnheader"
-                            @click="sortClick($event, field?.name)"
                         >
                             <objects-grid-table-header
-                                v-if="field.extra"
                                 :column-index="columnIndex"
                                 :column-count="fields.length"
                                 :field="field"
+                                :field-props="field.extra ? undefined : fieldProps"
                             >
                                 <template #label="slotProps">
                                     <!-- @slot [header(fieldName)] Override the header label cell for a specific field column. -->
@@ -273,25 +225,6 @@ watch(
                                         :name="slotNameResolvers[field?.name]?.header?.name"
                                         v-bind="slotProps"
                                     />
-                                </template>
-                            </objects-grid-table-header>
-                            <objects-grid-table-header
-                                v-else
-                                :ascending="sorted.includes(field.name)"
-                                :column-index="columnIndex"
-                                :column-count="fields.length"
-                                :descending="sorted.includes(`-${field.name}`)"
-                                :field="field"
-                                :field-props="fieldProps"
-                                :multi-sort-index="sorted.length > 1 ? directionlessSorted.indexOf(field.name) : -1"
-                                :sortable="sortables.includes(field.name)"
-                            >
-                                <template #label="slotProps">
-                                    <slot :name="slotNameResolvers[field?.name]?.header?.name" v-bind="slotProps" />
-                                </template>
-                                <template #sort-icon="slotProps">
-                                    <!-- @slot [sortIcon(fieldName)] Override the sort direction icon for a specific field column. -->
-                                    <slot :name="slotNameResolvers[field?.name]?.sortIcon?.name" v-bind="slotProps" />
                                 </template>
                             </objects-grid-table-header>
                         </div>

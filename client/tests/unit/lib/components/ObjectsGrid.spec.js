@@ -38,7 +38,7 @@ const CardCellSkeletonStub = defineComponent({
 });
 const TableHeaderStub = defineComponent({
     name: "TableHeaderStub",
-    props: ["field", "ascending", "descending", "sortable"],
+    props: ["field"],
     setup(props, { attrs }) {
         return () => h("div", { "data-qa": "table-header", "data-field": props.field?.name, ...attrs });
     },
@@ -74,39 +74,6 @@ describe("lib/components/ObjectsGrid.vue", () => {
         tableRef.value = true;
         await nextTick();
         expect(wrapper.emitted()["update:isTable"][1]).toEqual([true]);
-    });
-
-    scopedIt("sortClick toggles sorting without ctrl", async () => {
-        const wrapper = mount(ObjectsGrid, {
-            props: { fields: [{ name: "a" }], sortables: ["a"], sorted: [], objectsInOrder: [] },
-        });
-        wrapper.vm.sortClick({ ctrlKey: false }, "a");
-        expect(wrapper.emitted()["update:sorted"][0]).toEqual([["a"]]);
-        await wrapper.setProps({ sorted: ["a"] });
-        await nextTick();
-        wrapper.vm.sortClick({ ctrlKey: false }, "a");
-        expect(wrapper.emitted()["update:sorted"][1]).toEqual([["-a"]]);
-    });
-
-    scopedIt("sortClick handles multi-sort with ctrl", async () => {
-        const wrapper = mount(ObjectsGrid, {
-            props: {
-                fields: [{ name: "a" }, { name: "b" }],
-                sortables: ["a", "b"],
-                sorted: ["a"],
-                objectsInOrder: [],
-            },
-        });
-        wrapper.vm.sortClick({ ctrlKey: true }, "b");
-        expect(wrapper.emitted()["update:sorted"][0]).toEqual([["a", "b"]]);
-        await wrapper.setProps({ sorted: ["a", "b"] });
-        await nextTick();
-        wrapper.vm.sortClick({ ctrlKey: true }, "b");
-        expect(wrapper.emitted()["update:sorted"][1]).toEqual([["a"]]);
-        await wrapper.setProps({ sorted: ["a"] });
-        await nextTick();
-        wrapper.vm.sortClick({ ctrlKey: true }, "a");
-        expect(wrapper.emitted()["update:sorted"][2]).toEqual([["-a"]]);
     });
 
     scopedIt("renders skeleton when loading with no data", () => {
