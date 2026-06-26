@@ -45,7 +45,7 @@ patchTheme({
         underActionsBar: {
             class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3", "border-b bg-card text-foreground"],
         },
-        /** Bulk-actions strip that surfaces once one or more rows are selected. 6 %-mix primary fill and 12 px / 500 type so it reads as an active selection band, not a passive section. Sits in the sticky-stack bottom zone just above the {@api theme-key:ViewList.paginationWrapper}; the top hairline separates it from the grid above, mirroring the pagination strip's rhythm so the chrome below the grid reads as a matched pair. */
+        /** Bulk-actions strip that surfaces once one or more rows are selected. 6 %-mix primary fill and 12 px / 500 type so it reads as an active selection band, not a passive section. Sits in the sticky-stack bottom zone just above the {@api theme-key:PaginationFooter}; the top hairline separates it from the grid above, mirroring the pagination strip's rhythm so the chrome below the grid reads as a matched pair. */
         bulkActionsBar: {
             class: [
                 "w-full flex items-center flex-wrap gap-[10px] px-5 py-[10px]",
