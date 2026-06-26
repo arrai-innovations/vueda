@@ -18,6 +18,7 @@ class TestManagementCommandGroupAdded(BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
             "group_added": "tests.group_added",
+            "no_migrations": None,
         },
         AUTH_USER_MODEL="group_added.GroupAddedUser",
     )
@@ -121,6 +122,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
     @override_settings(
         MIGRATION_MODULES={
             "group_changed": "tests.group_changed",
+            "no_migrations": None,
         },
         AUTH_USER_MODEL="group_changed.GroupChangedUser",
     )
@@ -205,6 +207,7 @@ class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand)
     @override_settings(
         MIGRATION_MODULES={
             "group_deleted": "tests.group_deleted",
+            "no_migrations": None,
         },
         AUTH_USER_MODEL="group_deleted.GroupDeletedUser",
     )

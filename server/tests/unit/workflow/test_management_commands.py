@@ -46,6 +46,7 @@ def strip_registered_info_from_stderr(stderr):
 class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
+            "no_migrations": None,
             "workflow_added": "tests.workflow_added",
         },
     )
@@ -87,6 +88,7 @@ class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
 class TestManagementCommandWorkflowAdded(BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
+            "no_migrations": None,
             "workflow_added": "tests.workflow_added",
         },
     )
@@ -342,6 +344,7 @@ class TestManagementCommandWorkflowAdded(BaseTestMigrations, BaseTestCallCommand
 class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
+            "no_migrations": None,
             "workflow_changed": "tests.workflow_changed",
         },
     )
@@ -751,6 +754,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
 class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
+            "no_migrations": None,
             "workflow_deleted": "tests.workflow_deleted",
         },
     )
@@ -1047,6 +1051,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
 class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
+            "no_migrations": None,
             "workflow_multi": "tests.workflow_multi",
         },
     )
@@ -1156,6 +1161,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
     @override_settings(
         MIGRATION_MODULES={
+            "no_migrations": None,
             "workflow_duplicates": "tests.workflow_duplicates",
         },
     )
@@ -1347,6 +1353,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
+            "no_migrations": None,
             "workflow_initial_state": "tests.workflow_initial_state",
         },
     )
@@ -1434,6 +1441,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
     @override_settings(
         MIGRATION_MODULES={
+            "no_migrations": None,
             "workflow_initial_state": "tests.workflow_initial_state",
         },
     )

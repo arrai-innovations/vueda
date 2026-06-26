@@ -40,6 +40,9 @@ class Command(BaseCommand):
         else:
             module_name = f"{app_config.name}.{MIGRATIONS_MODULE_NAME}"
 
+        if module_name is None:
+            return None
+
         try:
             module = importlib.import_module(module_name)
         except ModuleNotFoundError:

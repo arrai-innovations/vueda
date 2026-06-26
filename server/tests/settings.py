@@ -32,9 +32,14 @@ LOCAL_APPS = [
     "tests.confirmation.apps.ConfirmationConfig",
     "tests.erring.apps.ErringConfig",
     "tests.logging.apps.LoggingConfig",
+    "tests.no_migrations.apps.NoMigrationsConfig",
     "tests.store.apps.StoreConfig",
     "django_view_manager.utils",
 ]
+
+MIGRATION_MODULES = {
+    "no_migrations": None,
+}
 
 # noinspection PyUnresolvedReferences
 INSTALLED_APPS = DJANGO_APPS + VUEDA_APPS + THIRD_PARTY_APPS + LOCAL_APPS  # noqa: F821
