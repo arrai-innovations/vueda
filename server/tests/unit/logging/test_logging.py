@@ -12,6 +12,7 @@ from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.logging import models as logging_models
 from tests.logging import viewsets
+from tests.utils import use_test_router
 from vueda.core.routers import IncludeAppInRouteNameRouter
 
 
@@ -76,9 +77,6 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         process_id = os.getpid()
         api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
-        router = IncludeAppInRouteNameRouter()
-        router.register("log_records", viewsets.LogRecordsViewSet)
-
         # Need a record that I can update, so I cause the validation to fail, which generates a log record.
         obj = logging_models.LogRecords.objects.create(
             message="Test",
@@ -86,15 +84,16 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
             process_id=0,
         )
 
-        # Send an update to the serializer, so we can generate the validation errors for process id 1.
-        # Refer to tests/logging/serializers.py -> LogRecordsSerializer -> def validate -> 'case 1'.
-        response = api_client.put(
-            reverse("logging.logrecords-detail", kwargs={"pk": obj.pk}),
-            format="json",
-            data={
-                "process_id": 1,
-            },
-        )
+        with use_test_router(IncludeAppInRouteNameRouter, "logging/", (("log_records", viewsets.LogRecordsViewSet),)):
+            # Send an update to the serializer, so we can generate the validation errors for process id 1.
+            # Refer to tests/logging/serializers.py -> LogRecordsSerializer -> def validate -> 'case 1'.
+            response = api_client.put(
+                reverse("logging.logrecords-detail", kwargs={"pk": obj.pk}),
+                format="json",
+                data={
+                    "process_id": 1,
+                },
+            )
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "Test Error 1" in str(response.data["non_field_errors"][0])
@@ -126,9 +125,6 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         process_id = os.getpid()
         api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
-        router = IncludeAppInRouteNameRouter()
-        router.register("log_records", viewsets.LogRecordsViewSet)
-
         # Need a record that I can update, so I cause the validation to fail, which generates a log record.
         obj = logging_models.LogRecords.objects.create(
             message="Test",
@@ -136,15 +132,16 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
             process_id=0,
         )
 
-        # Send an update to the serializer, so we can generate the validation errors for process id 2.
-        # Refer to tests/logging/serializers.py -> LogRecordsSerializer -> def validate -> 'case 2'.
-        response = api_client.put(
-            reverse("logging.logrecords-detail", kwargs={"pk": obj.pk}),
-            format="json",
-            data={
-                "process_id": 2,
-            },
-        )
+        with use_test_router(IncludeAppInRouteNameRouter, "logging/", (("log_records", viewsets.LogRecordsViewSet),)):
+            # Send an update to the serializer, so we can generate the validation errors for process id 2.
+            # Refer to tests/logging/serializers.py -> LogRecordsSerializer -> def validate -> 'case 2'.
+            response = api_client.put(
+                reverse("logging.logrecords-detail", kwargs={"pk": obj.pk}),
+                format="json",
+                data={
+                    "process_id": 2,
+                },
+            )
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "Test Error 1" in str(response.data["non_field_errors"][0])
@@ -172,9 +169,6 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         process_id = os.getpid()
         api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
-        router = IncludeAppInRouteNameRouter()
-        router.register("log_records", viewsets.LogRecordsViewSet)
-
         # Need a record that I can update, so I cause the validation to fail, which generates a log record.
         obj = logging_models.LogRecords.objects.create(
             message="Test",
@@ -182,15 +176,16 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
             process_id=0,
         )
 
-        # Send an update to the serializer, so we can generate the validation errors for process id 3.
-        # Refer to tests/logging/serializers.py -> LogRecordsSerializer -> def validate -> 'case 3'.
-        response = api_client.put(
-            reverse("logging.logrecords-detail", kwargs={"pk": obj.pk}),
-            format="json",
-            data={
-                "process_id": 3,
-            },
-        )
+        with use_test_router(IncludeAppInRouteNameRouter, "logging/", (("log_records", viewsets.LogRecordsViewSet),)):
+            # Send an update to the serializer, so we can generate the validation errors for process id 3.
+            # Refer to tests/logging/serializers.py -> LogRecordsSerializer -> def validate -> 'case 3'.
+            response = api_client.put(
+                reverse("logging.logrecords-detail", kwargs={"pk": obj.pk}),
+                format="json",
+                data={
+                    "process_id": 3,
+                },
+            )
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
         assert "Test Warning 1" in str(response.data["non_field_errors"][0])
