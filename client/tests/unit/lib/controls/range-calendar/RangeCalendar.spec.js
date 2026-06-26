@@ -12,6 +12,17 @@ import RangeCalendarHeader from "@vueda/controls/range-calendar/RangeCalendarHea
 import RangeCalendarHeading from "@vueda/controls/range-calendar/RangeCalendarHeading.vue";
 import RangeCalendarNextButton from "@vueda/controls/range-calendar/RangeCalendarNextButton.vue";
 import RangeCalendarPrevButton from "@vueda/controls/range-calendar/RangeCalendarPrevButton.vue";
+import { defineComponent, h, markRaw } from "vue";
+
+const makeIconStub = (qa) =>
+    markRaw(
+        defineComponent({
+            name: qa,
+            setup(_, { attrs }) {
+                return () => h("i", { "data-qa": qa, ...attrs });
+            },
+        }),
+    );
 
 vi.mock("reka-ui", async (importOriginal) => {
     const actual = await importOriginal();
@@ -61,6 +72,23 @@ describe("lib/controls/range-calendar/RangeCalendar.vue", () => {
         scopedIt("merges custom class", () => {
             const wrapper = mount(RangeCalendar, { props: { class: "my-calendar" } });
             expect(wrapper.find('[data-slot="range-calendar"]').classes()).toContain("my-calendar");
+        });
+
+        scopedIt("provides iconOverride to nested navigation buttons", () => {
+            const wrapper = mount(RangeCalendar, {
+                props: {
+                    iconOverride: {
+                        RangeCalendarPrevButton: {
+                            chevronLeft: { component: makeIconStub("range-calendar-prev-override") },
+                        },
+                        RangeCalendarNextButton: {
+                            chevronRight: { component: makeIconStub("range-calendar-next-override") },
+                        },
+                    },
+                },
+            });
+            expect(wrapper.find('[data-qa="range-calendar-prev-override"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="range-calendar-next-override"]').exists()).toBe(true);
         });
     });
 

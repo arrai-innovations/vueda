@@ -156,6 +156,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 - **Icon registry coverage for remaining glyph defaults (AlertClose, CommandInput, ComboboxInput, FieldSetMany, FileUpload, InputOTPSeparator, NumberFieldIncrement/Decrement, ResizableHandle, ViewLoading, WidgetDateField, WidgetDateRangeField)**:
     - These components now resolve their built-in icon affordances through `useIcons()` before falling back to the old text glyph. New registry keys used by this pass are `calendar`, `search`, `upload`, `minus`, and `hourglass`; the pass also reuses existing `close`, `gripVertical`, and `plus` keys.
       _No action is required if you use the new Font Awesome Free preset. If you maintain a custom icon registry, add these keys under `Default` or under the named component to replace the text fallback._
+- **Deep icon pass-through slots removed (Calendar, ViewList)**:
+    - `Calendar` no longer forwards `calendar-prev-icon` or `calendar-next-icon` into its navigation buttons, and `ViewList` no longer forwards `columns-select-dropdown-icon` into the columns `SelectTrigger`. `Calendar` and `RangeCalendar` now accept `iconOverride` and provide it to their descendant navigation buttons.
+      _Replace these deep icon slots with `iconOverride`: use `CalendarPrevButton.chevronLeft` and `CalendarNextButton.chevronRight` for `Calendar`, `RangeCalendarPrevButton.chevronLeft` and `RangeCalendarNextButton.chevronRight` for `RangeCalendar`, and `SelectTrigger.caretDown` for the `ViewList` columns select._
 - **Toast dependencies**:
     - `vue-sonner` is now a peer dependency of `@arrai-innovations/vueda`, and the Copier client templates install it directly.
       _Add `vue-sonner` to consuming applications so direct `toast` imports and VUEDA's toaster resolve the same package instance._

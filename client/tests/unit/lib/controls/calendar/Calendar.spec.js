@@ -12,6 +12,17 @@ import CalendarHeader from "@vueda/controls/calendar/CalendarHeader.vue";
 import CalendarHeading from "@vueda/controls/calendar/CalendarHeading.vue";
 import CalendarNextButton from "@vueda/controls/calendar/CalendarNextButton.vue";
 import CalendarPrevButton from "@vueda/controls/calendar/CalendarPrevButton.vue";
+import { defineComponent, h, markRaw } from "vue";
+
+const makeIconStub = (qa) =>
+    markRaw(
+        defineComponent({
+            name: qa,
+            setup(_, { attrs }) {
+                return () => h("i", { "data-qa": qa, ...attrs });
+            },
+        }),
+    );
 
 // CalendarRoot and all calendar sub-primitives require internal CalendarRoot context.
 // Stub them as passthrough divs so each Calendar* wrapper can be tested in isolation.
@@ -85,6 +96,23 @@ describe("lib/controls/calendar/Calendar.vue", () => {
         scopedIt("merges custom class", () => {
             const wrapper = mount(Calendar, { props: { class: "my-calendar" } });
             expect(wrapper.find('[data-slot="calendar"]').classes()).toContain("my-calendar");
+        });
+
+        scopedIt("provides iconOverride to nested navigation buttons", () => {
+            const wrapper = mount(Calendar, {
+                props: {
+                    iconOverride: {
+                        CalendarPrevButton: {
+                            chevronLeft: { component: makeIconStub("calendar-prev-override") },
+                        },
+                        CalendarNextButton: {
+                            chevronRight: { component: makeIconStub("calendar-next-override") },
+                        },
+                    },
+                },
+            });
+            expect(wrapper.find('[data-qa="calendar-prev-override"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="calendar-next-override"]').exists()).toBe(true);
         });
     });
 

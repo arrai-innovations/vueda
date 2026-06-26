@@ -291,9 +291,6 @@ onMounted(() => {
                                 <SelectValue>
                                     <slot name="columns-select-value-label">columns</slot>
                                 </SelectValue>
-                                <template v-if="slots['columns-select-dropdown-icon']" #icon>
-                                    <slot name="columns-select-dropdown-icon" />
-                                </template>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
