@@ -96,17 +96,14 @@ const icon = useIcons("SortChip", props);
             @click="emit('toggle')"
         >
             <span :class="theme('field')">{{ label }}</span>
-            <!-- @slot Override the direction glyph. Receives `field`, `base`, `descending`, and `ascending`. -->
-            <slot name="sort-icon" :field="field" :base="base" :descending="descending" :ascending="!descending">
-                <component
-                    :is="icon('sortDown').component"
-                    v-if="icon('sortDown')"
-                    v-bind="icon('sortDown').props"
-                    :class="[theme('direction'), { 'rotate-180': !descending }]"
-                    aria-hidden="true"
-                />
-                <span v-else :class="theme('direction')" aria-hidden="true">{{ descending ? "↓" : "↑" }}</span>
-            </slot>
+            <component
+                :is="icon('sortDown').component"
+                v-if="icon('sortDown')"
+                v-bind="icon('sortDown').props"
+                :class="[theme('direction'), { 'rotate-180': !descending }]"
+                aria-hidden="true"
+            />
+            <span v-else :class="theme('direction')" aria-hidden="true">{{ descending ? "↓" : "↑" }}</span>
         </button>
         <span :class="theme('divider')" aria-hidden="true" />
         <button

@@ -16,8 +16,8 @@ import { computed, effectScope, onMounted, reactive, toRef, useSlots, watch } fr
 
 /**
  * Renders a list of objects as either a table or a card grid depending on the
- * current breakpoint. Supports sorting, skeleton loading rows, field-level slot
- * overrides, and per-field class customization.
+ * current breakpoint. Supports skeleton loading rows, field-level slot overrides,
+ * and per-field class customization.
  */
 defineOptions({});
 
