@@ -6,7 +6,7 @@ import Button from "@vueda/controls/button/Button.vue";
 import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
 import PaginationFooter from "@vueda/navigation/pagination/PaginationFooter.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewHistoryList.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -37,6 +37,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
@@ -260,7 +261,7 @@ const evenColumn = (obj) => {
     return obj.parent_row % 2 === 0;
 };
 const theme = useTheme("ViewHistoryList", props);
-const icons = useIcons("ViewHistoryList");
+const icons = useIcons("ViewHistoryList", props);
 const formatHistoryDate = (date) => {
     return date ? DateTime.fromISO(date).toLocaleString(DateTime.DATETIME_MED) : "";
 };

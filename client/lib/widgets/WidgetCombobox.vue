@@ -13,7 +13,7 @@ import ComboboxViewport from "@vueda/controls/combobox/ComboboxViewport.vue";
 import ComboboxVirtualizer from "@vueda/controls/combobox/ComboboxVirtualizer.vue";
 import "@vueda/theme/vueda-tailwind/widgets/WidgetCombobox.theme.js";
 import { useComboboxSearch } from "@vueda/use/useComboboxSearch.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
@@ -33,6 +33,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     ...WIDGET_PROPS,
     /** Static option array. When provided, filtering is handled client-side via useFilter. */
@@ -184,7 +185,7 @@ const handleOpenChange = (open) => {
 };
 
 const theme = useTheme("WidgetCombobox", props);
-const icon = useIcons("WidgetCombobox");
+const icon = useIcons("WidgetCombobox", props);
 </script>
 <template>
     <!-- TODO: theme.hideStyle requires a single themed root -->

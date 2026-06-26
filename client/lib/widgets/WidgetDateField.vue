@@ -6,7 +6,7 @@ import DateFieldInput from "@vueda/controls/date-field/DateFieldInput.vue";
 import Popover from "@vueda/shell/popover/Popover.vue";
 import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
@@ -23,6 +23,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     ...WIDGET_PROPS,
     /** The granularity of the field: "day" for date-only, "hour"/"minute"/"second" for datetime. */
@@ -78,7 +79,7 @@ const onCalendarSelect = (value) => {
 };
 
 const theme = useTheme("WidgetDateField", props);
-const icon = useIcons("WidgetDateField");
+const icon = useIcons("WidgetDateField", props);
 </script>
 
 <template>

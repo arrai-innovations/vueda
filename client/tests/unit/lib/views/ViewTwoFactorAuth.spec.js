@@ -125,7 +125,7 @@ vi.mock("@vueda/controls/input-otp/InputOTP.vue", () => ({ default: InputOTPStub
 vi.mock("@vueda/controls/input-otp/InputOTPGroup.vue", () => ({ default: InputOTPGroupStub }));
 vi.mock("@vueda/controls/input-otp/InputOTPSlot.vue", () => ({ default: InputOTPSlotStub }));
 vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
-vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
+vi.mock("@vueda/use/useIcons.js", () => ({ ICON_OVERRIDE_PROPS: {}, useIcons: () => () => null }));
 vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: makeUseThemeMock({ slotResolver: (part) => part }),

@@ -1,7 +1,7 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/navigation/ContextMenuCheckboxItem.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ContextMenuCheckboxItem, ContextMenuItemIndicator } from "reka-ui";
@@ -12,6 +12,7 @@ import { ContextMenuCheckboxItem, ContextMenuItemIndicator } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -37,10 +38,10 @@ const emits = defineEmits({
     "update:modelValue": null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("ContextMenuCheckboxItem", props);
-const icon = useIcons("ContextMenuCheckboxItem");
+const icon = useIcons("ContextMenuCheckboxItem", props);
 </script>
 
 <template>

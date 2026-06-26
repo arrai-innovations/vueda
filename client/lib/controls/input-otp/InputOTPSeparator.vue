@@ -1,5 +1,5 @@
 <script setup>
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 
 /**
  * A visual separator between OTP slot groups, rendering a minus icon by default.
@@ -7,11 +7,12 @@ import { useIcons } from "@vueda/use/useIcons.js";
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the separator element. */
     class: { type: [String, Array, Object], default: undefined },
 });
 
-const icon = useIcons("InputOTPSeparator");
+const icon = useIcons("InputOTPSeparator", props);
 </script>
 
 <template>

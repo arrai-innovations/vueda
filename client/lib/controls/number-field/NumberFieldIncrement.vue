@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/NumberFieldIncrement.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { NumberFieldIncrement, useForwardProps } from "reka-ui";
@@ -12,6 +12,7 @@ import { NumberFieldIncrement, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -26,11 +27,11 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 const forwarded = useForwardProps(delegatedProps);
 
 const theme = useTheme("NumberFieldIncrement", props);
-const icon = useIcons("NumberFieldIncrement");
+const icon = useIcons("NumberFieldIncrement", props);
 </script>
 
 <template>

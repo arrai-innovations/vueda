@@ -63,7 +63,7 @@ vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 // --- composable mocks ----------------------------------------------------
 
 const mockedUseIcons = vi.fn();
-vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: mockedUseIcons }));
+vi.mock("@vueda/use/useIcons.js", () => ({ ICON_OVERRIDE_PROPS: {}, useIcons: mockedUseIcons }));
 
 const mockedUseRouter = vi.fn();
 vi.mock("vue-router", () => ({ useRouter: mockedUseRouter }));

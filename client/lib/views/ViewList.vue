@@ -21,7 +21,7 @@ import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
 import SelectValue from "@vueda/controls/select/SelectValue.vue";
 import PaginationFooter from "@vueda/navigation/pagination/PaginationFooter.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewList.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -42,6 +42,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
@@ -148,7 +149,7 @@ const { modelConfig, list, actions, search, sort, columns, pagination } = useVie
 usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loading }));
 
 const slots = useSlots();
-const icon = useIcons("ViewList");
+const icon = useIcons("ViewList", props);
 
 // Teleport target in the under-actions bar that the FilterGroup's add-filter
 // trigger teleports into, so the trigger sits in the toolbar while its popover

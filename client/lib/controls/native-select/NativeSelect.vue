@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/NativeSelect.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit, useVModel } from "@vueuse/core";
 
@@ -13,6 +13,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** The current value of the select. */
     modelValue: { type: [String, Number, Boolean, Array, Object], default: undefined },
@@ -30,10 +31,10 @@ const modelValue = useVModel(props, "modelValue", emit, {
     defaultValue: "",
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 
 const theme = useTheme("NativeSelect", props);
-const icon = useIcons("NativeSelect");
+const icon = useIcons("NativeSelect", props);
 </script>
 
 <template>

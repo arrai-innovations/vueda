@@ -1,7 +1,7 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/shell/ResizableHandle.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { SplitterResizeHandle } from "reka-ui";
@@ -12,6 +12,7 @@ import { SplitterResizeHandle } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -30,10 +31,10 @@ const emits = defineEmits({
     dragging: null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "withHandle", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "withHandle", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("ResizableHandle", props);
-const icon = useIcons("ResizableHandle");
+const icon = useIcons("ResizableHandle", props);
 </script>
 
 <template>

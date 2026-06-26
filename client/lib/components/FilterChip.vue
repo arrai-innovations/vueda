@@ -5,7 +5,7 @@ import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
 import { keepOpenOverNestedPopper } from "@vueda/shell/popover/keepOpenOverNestedPopper.js";
 import "@vueda/theme/vueda-tailwind/form/FilterChip.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useModelChoices } from "@vueda/use/useModelChoices.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FilterModelSymbol } from "@vueda/utils/symbols.js";
@@ -22,6 +22,7 @@ import { computed, inject, reactive, ref, toRef, useSlots } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** The active filter entry to render: `{ field, value, range, param }`. */
     filter: {
@@ -121,7 +122,7 @@ const onHideFilterForm = (name) => {
 };
 
 const theme = useTheme("FilterChip", props, reactive({ errored: toRef(props, "errored") }));
-const icon = useIcons("FilterChip");
+const icon = useIcons("FilterChip", props);
 const slots = useSlots();
 </script>
 

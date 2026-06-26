@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/display/ConsequencesBullets.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed } from "vue";
 
@@ -12,13 +12,14 @@ import { computed } from "vue";
  * consequence list communicates relative severity without overwhelming
  * the surrounding card.
  *
- * Icons resolve via `useIcons("ConsequencesBullets")(item.icon)`. When the
+ * Icons resolve via `useIcons("ConsequencesBullets", props)(item.icon)`. When the
  * lookup returns null (icon name missing or unregistered), the icon cell
  * still renders so labels stay aligned across rows.
  */
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Consequence rows.
@@ -38,7 +39,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("ConsequencesBullets", props);
-const icon = useIcons("ConsequencesBullets");
+const icon = useIcons("ConsequencesBullets", props);
 
 const resolvedItems = computed(() =>
     props.items.map((item, idx) => ({

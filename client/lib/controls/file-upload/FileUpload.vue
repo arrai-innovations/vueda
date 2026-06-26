@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/FileUpload.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Primitive } from "reka-ui";
 import { reactive, ref, toRef } from "vue";
@@ -12,6 +12,7 @@ import { reactive, ref, toRef } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** The currently selected File, or null. */
     modelValue: { type: [File, Object], default: null },
@@ -48,7 +49,7 @@ const theme = useTheme(
         dragging: ref(false),
     }),
 );
-const icon = useIcons("FileUpload");
+const icon = useIcons("FileUpload", props);
 
 const inputRef = ref(null);
 const dragging = ref(false);

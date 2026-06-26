@@ -5,7 +5,7 @@ import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewDeactivate.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
@@ -27,6 +27,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
@@ -65,7 +66,7 @@ const userStore = storeUser();
 const expectedConfirmValue = computed(() => userStore.loggedInUser?.email || "");
 
 const theme = useTheme("ViewDeactivate", props);
-const icon = useIcons("ViewDeactivate");
+const icon = useIcons("ViewDeactivate", props);
 
 const router = useRouter();
 

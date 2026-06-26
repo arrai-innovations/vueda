@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/feedback/Sonner.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Toaster as Sonner } from "vue-sonner";
 
@@ -11,6 +11,7 @@ import { Toaster as Sonner } from "vue-sonner";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -36,7 +37,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("Sonner", props);
-const icon = useIcons("Sonner");
+const icon = useIcons("Sonner", props);
 </script>
 
 <template>

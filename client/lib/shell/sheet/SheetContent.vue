@@ -2,7 +2,7 @@
 import SheetOverlay from "./SheetOverlay.vue";
 import "@vueda/theme/vueda-tailwind/shell/SheetContent.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { DialogClose, DialogContent, DialogPortal } from "reka-ui";
@@ -16,6 +16,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -46,10 +47,10 @@ const emits = defineEmits({
     closeAutoFocus: null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "side", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "side", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("SheetContent", props, reactive({ side: toRef(props, "side") }));
-const icon = useIcons("SheetContent");
+const icon = useIcons("SheetContent", props);
 </script>
 
 <template>

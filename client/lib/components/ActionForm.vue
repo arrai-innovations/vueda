@@ -6,7 +6,7 @@ import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/views/ActionForm.theme.js";
 import { useActionForm } from "@vueda/use/useActionForm.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -25,6 +25,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     /**
      * Function to execute the action.
      * @param {Object} options - Action execution options
@@ -102,7 +103,7 @@ const formContext = inject(FormContextSymbol);
 const { combinedError, combinedErrored, combinedLoading, confirmation, handleConfirm, handleCancelClick } =
     useActionForm(formContext, props);
 const theme = useTheme("ActionForm", props);
-const icon = useIcons("ActionForm");
+const icon = useIcons("ActionForm", props);
 
 /**
  * Per-field validation entries derived from `formContext.state.errors`.

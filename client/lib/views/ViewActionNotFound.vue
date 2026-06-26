@@ -6,7 +6,7 @@ import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import "@vueda/theme/vueda-tailwind/views/ViewActionNotFound.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
@@ -27,6 +27,7 @@ import { useRoute, useRouter } from "vue-router";
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Extra rows appended to the `DiagnosticStrip` (after the route row).
@@ -50,7 +51,7 @@ if (!inject(LookupContextSymbol, null)) {
 }
 
 const theme = useTheme("ViewActionNotFound", props);
-const icon = useIcons("ViewActionNotFound");
+const icon = useIcons("ViewActionNotFound", props);
 
 const findClosestMatch = (input, options) => {
     let bestMatch = null;

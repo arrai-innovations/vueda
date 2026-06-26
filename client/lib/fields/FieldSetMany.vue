@@ -5,7 +5,7 @@ import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
 import "@vueda/theme/vueda-tailwind/form/FieldSetMany.theme.js";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { watchIfDev } from "@vueda/utils/dev.js";
 import { computed, useAttrs } from "vue";
@@ -20,6 +20,7 @@ defineOptions({});
 
 const attrs = useAttrs();
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...FIELD_PROPS,
     /** The component used to render each individual entry in the list. */
     manyComponent: {
@@ -61,7 +62,7 @@ const onDestroy = (index) => {
     fieldContext.state.value = (fieldContext.state.value ?? []).filter((_, i) => i !== index);
 };
 const theme = useTheme("FieldSetMany", props);
-const icon = useIcons("FieldSetMany");
+const icon = useIcons("FieldSetMany", props);
 </script>
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="field-set-many" data-vueda-fieldset>

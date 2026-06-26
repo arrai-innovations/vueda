@@ -1,7 +1,7 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/CommandInput.theme.js";
 import { useCommand } from "@vueda/use/useCommand.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ListboxFilter, useForwardProps } from "reka-ui";
@@ -14,6 +14,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -32,14 +33,14 @@ const props = defineProps({
     asChild: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 
 const forwardedProps = useForwardProps(delegatedProps);
 
 const { filterState } = useCommand();
 
 const theme = useTheme("CommandInput", props);
-const icon = useIcons("CommandInput");
+const icon = useIcons("CommandInput", props);
 </script>
 
 <template>

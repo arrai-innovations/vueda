@@ -5,7 +5,7 @@ import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import FormField from "@vueda/fields/FormField.vue";
 import "@vueda/theme/vueda-tailwind/views/ModelActionForm.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
@@ -36,6 +36,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
@@ -268,7 +269,7 @@ const defaultRunAction = ({ formValues, dryRun, acknowledgeWarnings }) => {
     );
 };
 const theme = useTheme("ModelActionForm", props);
-const icon = useIcons("ModelActionForm");
+const icon = useIcons("ModelActionForm", props);
 const slots = useSlots();
 const dryRun = computed(
     () => !!(props.app && props.model && props.action && props.enableDryRun && pks.value.length > 0),

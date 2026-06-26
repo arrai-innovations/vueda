@@ -5,7 +5,7 @@ import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
 import "@vueda/theme/vueda-tailwind/form/FieldSetRange.theme.js";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FilterModelSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
 import IsObject from "lodash-es/isObject.js";
@@ -19,6 +19,7 @@ import { computed, inject, useSlots, watch } from "vue";
  */
 defineOptions({});
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...FIELD_PROPS,
     /** The data type of the range boundaries (e.g. "number" or "date"). */
     type: {
@@ -37,7 +38,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 const theme = useTheme("FieldSetRange", props);
-const icon = useIcons("FieldSetRange");
+const icon = useIcons("FieldSetRange", props);
 const emit = defineEmits([...FIELD_EMITS]);
 
 const fieldContext = useField(props, emit);

@@ -3,7 +3,7 @@ import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import ModelActionForm from "@vueda/components/ModelActionForm.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewDestroy.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
@@ -22,6 +22,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
@@ -68,7 +69,7 @@ const props = defineProps({
 const { modelConfig, handleDelete, instanceList } = useViewDestroy(props);
 const slots = useSlots();
 const theme = useTheme("ViewDestroy", props);
-const icon = useIcons("ViewDestroy");
+const icon = useIcons("ViewDestroy", props);
 
 const cascadeItems = computed(() =>
     props.linkedObjectCounts.map((entry) => ({

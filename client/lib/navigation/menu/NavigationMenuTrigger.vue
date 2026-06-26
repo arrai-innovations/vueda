@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/navigation/NavigationMenuTrigger.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { NavigationMenuTrigger, useForwardProps } from "reka-ui";
@@ -11,6 +11,7 @@ import { NavigationMenuTrigger, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -25,10 +26,10 @@ const props = defineProps({
     disabled: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 const forwardedProps = useForwardProps(delegatedProps);
 const theme = useTheme("NavigationMenuTrigger", props);
-const icon = useIcons("NavigationMenuTrigger");
+const icon = useIcons("NavigationMenuTrigger", props);
 </script>
 
 <template>

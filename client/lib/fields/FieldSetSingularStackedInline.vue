@@ -7,7 +7,7 @@ import "@vueda/theme/vueda-tailwind/form/FieldSetStackedInline.theme.js";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, toRef, watch } from "vue";
 
@@ -22,6 +22,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     ...FIELD_SET_INLINE_PROPS,
     /** When true, automatically creates an empty inline object if none exists and field objects are available. */
@@ -34,7 +35,7 @@ const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
 const logger = useDevLogger({ fieldContext: fieldSetContext });
 const theme = useTheme("FieldSetStackedInline", props);
-const icon = useIcons("FieldSetSingularStackedInline");
+const icon = useIcons("FieldSetSingularStackedInline", props);
 const fieldSetInline = useFieldSetInline({
     props,
     emit,

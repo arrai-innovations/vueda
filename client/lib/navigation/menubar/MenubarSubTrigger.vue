@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/navigation/MenubarSubTrigger.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { MenubarSubTrigger, useForwardProps } from "reka-ui";
@@ -11,6 +11,7 @@ import { MenubarSubTrigger, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -29,10 +30,10 @@ const props = defineProps({
     inset: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride", "inset");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride", "inset");
 const forwardedProps = useForwardProps(delegatedProps);
 const theme = useTheme("MenubarSubTrigger", props);
-const icon = useIcons("MenubarSubTrigger");
+const icon = useIcons("MenubarSubTrigger", props);
 </script>
 
 <template>

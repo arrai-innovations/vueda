@@ -4,7 +4,7 @@ import LoadingSkeletonGhost from "@vueda/components/LoadingSkeletonGhost.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewLoading.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 
@@ -21,6 +21,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** What is being loaded (e.g. "Loading customer record"). */
     name: { type: String, default: undefined },
@@ -63,7 +64,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("ViewLoading", props);
-const icon = useIcons("ViewLoading");
+const icon = useIcons("ViewLoading", props);
 
 const elapsedMs = ref(0);
 let intervalId = null;

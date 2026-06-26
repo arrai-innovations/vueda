@@ -27,7 +27,7 @@ vi.mock("@vueda/shell/popover/PopoverTrigger.vue", () => ({ default: PassThrough
 
 const mockedUseModelChoices = vi.fn(() => ({ choices: {} }));
 vi.mock("@vueda/use/useModelChoices.js", () => ({ useModelChoices: mockedUseModelChoices }));
-vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
+vi.mock("@vueda/use/useIcons.js", () => ({ ICON_OVERRIDE_PROPS: {}, useIcons: () => () => null }));
 
 const { makeThemeFn, makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const themeFn = makeThemeFn({ slotResolver: () => "t" });

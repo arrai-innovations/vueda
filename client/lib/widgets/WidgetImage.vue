@@ -2,7 +2,7 @@
 import Button from "@vueda/controls/button/Button.vue";
 import FileUpload from "@vueda/controls/file-upload/FileUpload.vue";
 import "@vueda/theme/vueda-tailwind/widgets/WidgetImage.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
@@ -20,6 +20,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...WIDGET_PROPS,
     ...THEME_OVERRIDE_PROPS,
 });
@@ -28,7 +29,7 @@ const widgetContext = useWidget(props, emit);
 /** @type {import('@vueda/use/useField.js').FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
 const theme = useWidgetTheme("WidgetImage", props, widgetContext.state);
-const icon = useIcons("WidgetImage");
+const icon = useIcons("WidgetImage", props);
 
 if (fieldContext) {
     watch(

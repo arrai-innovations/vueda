@@ -5,7 +5,7 @@ import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
 import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewNotFound.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useSuggestRoutes } from "@vueda/use/useSuggestRoute.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed } from "vue";
@@ -22,6 +22,7 @@ import { useRouter } from "vue-router";
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Maximum number of suggested routes to display.
@@ -44,7 +45,7 @@ const props = defineProps({
 const router = useRouter();
 const suggestedRoutes = useSuggestRoutes({ limit: props.suggestionLimit });
 const theme = useTheme("ViewNotFound", props);
-const icon = useIcons("ViewNotFound");
+const icon = useIcons("ViewNotFound", props);
 
 const currentPath = computed(() => router.currentRoute.value.path);
 

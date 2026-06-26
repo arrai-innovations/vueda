@@ -7,7 +7,7 @@ import "@vueda/theme/vueda-tailwind/form/FieldSetStackedInline.theme.js";
 import { useDevLogger } from "@vueda/use/useDevLogger.js";
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, watch } from "vue";
 
@@ -20,7 +20,7 @@ import { computed, watch } from "vue";
 defineOptions({
     inheritAttrs: false,
 });
-const props = defineProps({ ...FIELD_SET_INLINE_PROPS, ...THEME_OVERRIDE_PROPS });
+const props = defineProps({ ...FIELD_SET_INLINE_PROPS, ...THEME_OVERRIDE_PROPS, ...ICON_OVERRIDE_PROPS });
 const emit = defineEmits([...FIELD_EMITS]);
 const fieldSetContext = useField(props, emit);
 const fieldSetInline = useFieldSetInline({
@@ -30,7 +30,7 @@ const fieldSetInline = useFieldSetInline({
     fieldSetContext,
 });
 const theme = useTheme("FieldSetStackedInline", props);
-const icon = useIcons("FieldSetStackedInline");
+const icon = useIcons("FieldSetStackedInline", props);
 const logger = useDevLogger({ fieldContext: fieldSetContext });
 
 const hasChoresContent = computed(

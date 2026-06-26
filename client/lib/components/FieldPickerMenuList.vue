@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/display/FieldPickerMenuList.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
@@ -13,6 +13,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Pickable options: `{ value, label }`. */
     items: {
@@ -46,7 +47,7 @@ const emit = defineEmits([
 ]);
 
 const theme = useTheme("FieldPickerMenuList", props);
-const icon = useIcons("FieldPickerMenuList");
+const icon = useIcons("FieldPickerMenuList", props);
 </script>
 
 <template>

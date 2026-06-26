@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/display/SortChip.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { parseSortField } from "@vueda/utils/sortedFields.js";
@@ -18,6 +18,7 @@ import { computed, reactive, toRef } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Sort entry to render, e.g. `"updated"` (ascending) or `"-updated"` (descending). */
     field: {
@@ -57,7 +58,7 @@ const descending = computed(() => parsed.value.descending);
 const label = computed(() => props.fieldDetails?.[base.value]?.label || memoizedStartCase(base.value));
 
 const theme = useTheme("SortChip", props, reactive({ showOrdinal: toRef(props, "showOrdinal") }));
-const icon = useIcons("SortChip");
+const icon = useIcons("SortChip", props);
 </script>
 
 <template>
