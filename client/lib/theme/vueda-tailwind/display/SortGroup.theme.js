@@ -24,6 +24,14 @@ patchTheme({
         subgroup: {
             class: ["flex flex-wrap items-center gap-2"],
         },
+        /** Drag-reorder container holding the sort chips; lays them out in the same flowing row as the strip so the wrapper adds no visual seam. */
+        draggable: {
+            class: ["flex flex-wrap items-center gap-2"],
+        },
+        /** Applied to the chips row only while a drag is in progress. Forces the grab-in-progress cursor on every handle and suppresses the per-handle hover background, so the chip that slides under the pointer (taking the dragged chip's old slot) does not read as the active handle. */
+        dragging: {
+            class: ["[&_.drag-handle]:cursor-grabbing", "[&_.drag-handle:hover]:bg-transparent"],
+        },
         /** "Sort" eyebrow at the left of the chips strip. 11 px / 600 / 0.06em uppercase against `--muted-foreground`. */
         eyebrow: {
             class: [

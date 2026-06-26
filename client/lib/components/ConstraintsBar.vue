@@ -65,8 +65,12 @@ const theme = useTheme("ConstraintsBar", props);
                 />
                 <!-- @slot The sort chips group (SortGroup in hosted mode). -->
                 <slot name="sort" />
+                <!-- Combined Clear all temporarily suppressed pending UX feedback:
+                     each group now owns its own clear (clearing one axis at a time).
+                     Left wired so it can be restored or removed once the per-axis
+                     approach is confirmed. -->
                 <Button
-                    v-if="active"
+                    v-if="false"
                     variant="ghost"
                     size="sm"
                     :class="theme('clear')"

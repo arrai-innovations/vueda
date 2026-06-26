@@ -880,7 +880,10 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("clears both filters and sorts in a single push from the band Clear all", async () => {
+        // The combined band Clear all is suppressed pending UX feedback; filters and sorts now
+        // clear independently from their own group controls. Skipped (not deleted) so it can be
+        // restored alongside the combined button or removed with it once the direction is confirmed.
+        scopedIt.skip("clears both filters and sorts in a single push from the band Clear all", async () => {
             mockedInject.mockReturnValueOnce({});
             route.query = { [ORDERING_PARAM]: "-name", status: "active" };
             modelConfig.config.sortables = ["name"];

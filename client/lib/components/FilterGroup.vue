@@ -227,8 +227,9 @@ defineExpose({ addedFilters });
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
             </filter-chip>
+            <!-- Bulk clear only earns its place with more than one filter; a lone chip is removed by its own x. -->
             <Button
-                v-if="!hosted"
+                v-if="addedFilters.length > 1"
                 variant="ghost"
                 size="sm"
                 :class="theme('clear')"

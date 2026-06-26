@@ -79,6 +79,7 @@ import "./StepperSeparator.theme.js";
 import "./StepperTitle.theme.js";
 import "./StepperTrigger.theme.js";
 import "./StickyBar.theme.js";
+import "./StickyStackProvider.theme.js";
 import "./Tabs.theme.js";
 import "./TabsContent.theme.js";
 import "./TabsList.theme.js";
@@ -187,4 +188,5 @@ export default {
     TooltipContent: {},
     // ---------- Sticky Bar ----------
     StickyBar: {},
+    StickyStackProvider: {},
 };

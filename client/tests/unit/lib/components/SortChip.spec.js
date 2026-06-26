@@ -39,6 +39,14 @@ describe("lib/components/SortChip.vue", () => {
         expect(wrapper.get('[data-qa="sort-chip-toggle"]').attributes("aria-label")).toContain("currently ascending");
     });
 
+    scopedIt("shows the ordinal by default and hides it when showOrdinal is false", () => {
+        const shown = mount(SortChip, { props: { field: "mrr", index: 0 } });
+        expect(shown.find('[data-qa="sort-chip-ordinal"]').exists()).toBe(true);
+
+        const hidden = mount(SortChip, { props: { field: "mrr", index: 0, showOrdinal: false } });
+        expect(hidden.find('[data-qa="sort-chip-ordinal"]').exists()).toBe(false);
+    });
+
     scopedIt("prefers the fieldDetails label over the start-cased base", () => {
         const wrapper = mount(SortChip, { props: { field: "mrr", index: 0, fieldDetails: { mrr: { label: "MRR" } } } });
         expect(wrapper.text()).toContain("MRR");

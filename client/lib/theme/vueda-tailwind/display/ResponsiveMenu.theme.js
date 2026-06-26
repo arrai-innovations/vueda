@@ -1,19 +1,20 @@
 /**
- * @module theme/vueda-tailwind/display/SortControl.theme
+ * @module theme/vueda-tailwind/display/ResponsiveMenu.theme
  *
- * Per-component theme registration for SortControl. Imported as a side effect by
- * SortControl.vue, so a route chunk that pulls only that SFC drags only this
- * component's theme entry, not the entire display family.
+ * Per-component theme registration for ResponsiveMenu. Imported as a side effect
+ * by ResponsiveMenu.vue, so a route chunk that pulls only that SFC drags only
+ * this component's theme entry, not the entire display family.
  */
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * SortControl is the toolbar entry point for multi-field sorting. Its trigger
-     * opens the shared SortEditor in a popover on desktop or a full-screen dialog
-     * on mobile.
+     * ResponsiveMenu is the shared toolbar-menu shell: a trigger that opens its
+     * slotted body as a popover on desktop or a full-screen dialog on mobile. Only
+     * the mobile dialog needs chrome; the desktop popover surface is themed by the
+     * popover primitive.
      */
-    SortControl: {
+    ResponsiveMenu: {
         /** Full-screen mobile dialog surface with a fixed header row and a bounded body row. */
         dialog: {
             class: ["grid-rows-[auto_minmax(0,1fr)] overflow-hidden"],

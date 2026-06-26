@@ -109,19 +109,6 @@
  *     </SelectContent>
  * </Select>
  * ```
- *
- * @example Wiring MobileSortComponent
- * ```html
- * <mobile-sort-component
- *     v-if="sort.canShowMobileSorter"
- *     v-model:visible="sort.mobileSortDrawerVisible"
- *     :header="`Sort ${memoizedStartCase(modelConfig.config?.verboseNamePlural || 'items')}`"
- *     :field-details="modelConfig.config?.fieldDetails || {}"
- *     :sortables="sort.sortablesList"
- *     :sorted="sort.sorting.state.sorted"
- *     @update:sorted="sort.sorting.updateSorted"
- * />
- * ```
  */
 import { assignReactiveObject, keyDiff, loadingCombine, union, useList } from "@arrai-innovations/reactive-helpers";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";

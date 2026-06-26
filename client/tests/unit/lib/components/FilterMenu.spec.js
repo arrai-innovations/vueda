@@ -2,20 +2,31 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, nextTick, ref } from "vue";
 
-const PassThroughStub = (name, qa) =>
-    defineComponent({
-        name,
-        setup(_, { slots }) {
-            return () => h("div", qa ? { "data-qa": qa } : {}, slots.default ? slots.default() : null);
-        },
-    });
+// The responsive shell and the field list are tested in their own specs; here we
+// stub them and verify FilterMenu's own job: computing the not-yet-applied options
+// and drilling into the picked field's form (with a back affordance).
+const ResponsiveMenuStub = defineComponent({
+    name: "ResponsiveMenuStub",
+    props: ["icon", "label", "title", "triggerTarget", "triggerQa", "contentQa", "open"],
+    emits: ["update:open"],
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "responsive-menu" }, slots.default ? slots.default() : null);
+    },
+});
 
-const ButtonStub = defineComponent({
-    name: "ButtonStub",
-    inheritAttrs: false,
-    emits: ["click"],
-    setup(_, { emit, slots, attrs }) {
-        return () => h("button", { ...attrs, onClick: () => emit("click") }, slots.default ? slots.default() : null);
+const FieldPickerMenuListStub = defineComponent({
+    name: "FieldPickerMenuListStub",
+    props: ["items", "eyebrow", "emptyText", "itemIcon", "qa"],
+    emits: ["pick"],
+    setup(props, { emit }) {
+        return () =>
+            h(
+                "div",
+                { "data-qa": "field-picker" },
+                props.items.map((opt) =>
+                    h("button", { "data-qa": `${props.qa}-item`, onClick: () => emit("pick", opt.value) }, opt.label),
+                ),
+            );
     },
 });
 
@@ -27,11 +38,19 @@ const FilterFieldFormStub = defineComponent({
     },
 });
 
+const ButtonStub = defineComponent({
+    name: "ButtonStub",
+    inheritAttrs: false,
+    emits: ["click"],
+    setup(_, { emit, slots, attrs }) {
+        return () => h("button", { ...attrs, onClick: () => emit("click") }, slots.default ? slots.default() : null);
+    },
+});
+
+vi.mock("@vueda/components/ResponsiveMenu.vue", () => ({ default: ResponsiveMenuStub }));
+vi.mock("@vueda/components/FieldPickerMenuList.vue", () => ({ default: FieldPickerMenuListStub }));
 vi.mock("@vueda/components/FilterFieldForm.vue", () => ({ default: FilterFieldFormStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/shell/popover/Popover.vue", () => ({ default: PassThroughStub("PopoverStub") }));
-vi.mock("@vueda/shell/popover/PopoverContent.vue", () => ({ default: PassThroughStub("PopoverContentStub") }));
-vi.mock("@vueda/shell/popover/PopoverTrigger.vue", () => ({ default: PassThroughStub("PopoverTriggerStub") }));
 vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
 
 const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
@@ -68,16 +87,12 @@ function mountMenu(options = {}) {
 }
 
 describe("lib/components/FilterMenu.vue", () => {
-    scopedIt("lists only the not-yet-applied fields", () => {
+    scopedIt("offers only the not-yet-applied fields, labeled", () => {
         const { wrapper } = mountMenu({ addedFilters: [{ field: "a" }] });
-        const items = wrapper.findAll('[data-qa="filter-menu-item"]');
-        expect(items).toHaveLength(2);
-        expect(items.map((i) => i.text().trim())).toEqual(["B", "C"]);
-    });
-
-    scopedIt("does not render an active-filter count badge", () => {
-        const { wrapper } = mountMenu({ addedFilters: [{ field: "a" }, { field: "b" }] });
-        expect(wrapper.find('[data-qa="filter-menu-count"]').exists()).toBe(false);
+        expect(wrapper.findComponent(FieldPickerMenuListStub).props("items")).toEqual([
+            { value: "b", label: "B" },
+            { value: "c", label: "C" },
+        ]);
     });
 
     scopedIt("drills into a field's form when picked, and returns via back", async () => {
@@ -88,16 +103,17 @@ describe("lib/components/FilterMenu.vue", () => {
         await nextTick();
         const form = wrapper.get('[data-qa="filter-field-form"]');
         expect(form.attributes("data-field")).toBe("a");
+        // The list is replaced by the drill-in while a field is picked.
+        expect(wrapper.findComponent(FieldPickerMenuListStub).exists()).toBe(false);
 
         await wrapper.get('[data-qa="filter-menu-back"]').trigger("click");
         await nextTick();
         expect(wrapper.find('[data-qa="filter-field-form"]').exists()).toBe(false);
-        expect(wrapper.findAll('[data-qa="filter-menu-item"]')).toHaveLength(3);
+        expect(wrapper.findComponent(FieldPickerMenuListStub).props("items")).toHaveLength(3);
     });
 
-    scopedIt("shows an empty state when every field is applied", () => {
+    scopedIt("passes an empty option set to the list when every field is applied", () => {
         const { wrapper } = mountMenu({ addedFilters: [{ field: "a" }, { field: "b" }, { field: "c" }] });
-        expect(wrapper.find('[data-qa="filter-menu-empty"]').exists()).toBe(true);
-        expect(wrapper.findAll('[data-qa="filter-menu-item"]')).toHaveLength(0);
+        expect(wrapper.findComponent(FieldPickerMenuListStub).props("items")).toHaveLength(0);
     });
 });
