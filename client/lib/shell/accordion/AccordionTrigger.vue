@@ -35,16 +35,14 @@ const icon = useIcons("AccordionTrigger", props);
     <AccordionHeader :class="theme('header')" :style="theme.hideStyle?.value">
         <AccordionTrigger data-slot="accordion-trigger" v-bind="delegatedProps" :class="[theme('root'), props.class]">
             <slot />
-            <slot name="icon">
-                <span :class="theme('icon')">
-                    <component
-                        :is="icon('caretDown').component"
-                        v-if="icon('caretDown')"
-                        v-bind="icon('caretDown').props"
-                        aria-hidden="true"
-                    />
-                </span>
-            </slot>
+            <span :class="theme('icon')">
+                <component
+                    :is="icon('caretDown').component"
+                    v-if="icon('caretDown')"
+                    v-bind="icon('caretDown').props"
+                    aria-hidden="true"
+                />
+            </span>
         </AccordionTrigger>
     </AccordionHeader>
 </template>

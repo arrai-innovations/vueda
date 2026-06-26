@@ -47,14 +47,12 @@ const icon = useIcons("SelectItem", props);
     >
         <span class="absolute right-2 flex size-3.5 items-center justify-center">
             <SelectItemIndicator>
-                <slot name="indicator-icon">
-                    <component
-                        :is="icon('check').component"
-                        v-if="icon('check')"
-                        v-bind="icon('check').props"
-                        aria-hidden="true"
-                    />
-                </slot>
+                <component
+                    :is="icon('check').component"
+                    v-if="icon('check')"
+                    v-bind="icon('check').props"
+                    aria-hidden="true"
+                />
             </SelectItemIndicator>
         </span>
         <SelectItemText>

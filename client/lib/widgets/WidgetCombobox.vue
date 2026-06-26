@@ -223,16 +223,13 @@ const icon = useIcons("WidgetCombobox", props);
             >
                 <span v-if="closedStateLabel">{{ closedStateLabel }}</span>
                 <span v-else class="text-muted-foreground">{{ effectivePlaceholder }}</span>
-                <!-- Replaces the dropdown chevron icon; receives no slot props. -->
-                <slot name="icon">
-                    <component
-                        :is="icon('caretDown').component"
-                        v-if="icon('caretDown')"
-                        v-bind="icon('caretDown').props"
-                        aria-hidden="true"
-                        class="opacity-50"
-                    />
-                </slot>
+                <component
+                    :is="icon('caretDown').component"
+                    v-if="icon('caretDown')"
+                    v-bind="icon('caretDown').props"
+                    aria-hidden="true"
+                    class="opacity-50"
+                />
             </ComboboxTrigger>
         </ComboboxAnchor>
         <ComboboxList class="w-[var(--reka-combobox-trigger-width)]">

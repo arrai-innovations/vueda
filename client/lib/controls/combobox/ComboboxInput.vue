@@ -49,19 +49,14 @@ const icon = useIcons("ComboboxInput", props);
 
 <template>
     <div data-slot="combobox-input-wrapper" class="flex h-9 items-center gap-2 border-b px-3">
-        <!-- Replaces the search icon; receives no slot props. -->
-        <slot name="icon">
-            <component
-                :is="icon('search').component"
-                v-if="icon('search')"
-                v-bind="icon('search').props"
-                aria-hidden="true"
-                class="size-4 shrink-0 text-center leading-4 opacity-50 select-none"
-            />
-            <span v-else aria-hidden="true" class="size-4 shrink-0 text-center leading-4 opacity-50 select-none"
-                >⚲</span
-            >
-        </slot>
+        <component
+            :is="icon('search').component"
+            v-if="icon('search')"
+            v-bind="icon('search').props"
+            aria-hidden="true"
+            class="size-4 shrink-0 text-center leading-4 opacity-50 select-none"
+        />
+        <span v-else aria-hidden="true" class="size-4 shrink-0 text-center leading-4 opacity-50 select-none">⚲</span>
         <ComboboxInput
             data-slot="combobox-input"
             :class="[theme('root'), props.class]"

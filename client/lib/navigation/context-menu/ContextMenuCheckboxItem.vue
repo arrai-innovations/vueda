@@ -53,14 +53,12 @@ const icon = useIcons("ContextMenuCheckboxItem", props);
     >
         <span :class="theme('indicator')">
             <ContextMenuItemIndicator>
-                <slot name="check-icon">
-                    <component
-                        :is="icon('check').component"
-                        v-if="icon('check')"
-                        v-bind="icon('check').props"
-                        aria-hidden="true"
-                    />
-                </slot>
+                <component
+                    :is="icon('check').component"
+                    v-if="icon('check')"
+                    v-bind="icon('check').props"
+                    aria-hidden="true"
+                />
             </ContextMenuItemIndicator>
         </span>
         <slot />

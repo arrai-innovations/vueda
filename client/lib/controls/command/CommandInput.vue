@@ -45,18 +45,14 @@ const icon = useIcons("CommandInput", props);
 
 <template>
     <div data-slot="command-input-wrapper" :class="theme('wrapper')">
-        <slot name="search-icon">
-            <component
-                :is="icon('search').component"
-                v-if="icon('search')"
-                v-bind="icon('search').props"
-                aria-hidden="true"
-                class="size-4 shrink-0 opacity-50"
-            />
-            <span v-else aria-hidden="true" class="size-4 shrink-0 text-center leading-4 opacity-50 select-none"
-                >⌕</span
-            >
-        </slot>
+        <component
+            :is="icon('search').component"
+            v-if="icon('search')"
+            v-bind="icon('search').props"
+            aria-hidden="true"
+            class="size-4 shrink-0 opacity-50"
+        />
+        <span v-else aria-hidden="true" class="size-4 shrink-0 text-center leading-4 opacity-50 select-none">⌕</span>
         <ListboxFilter
             v-bind="{ ...forwardedProps, ...$attrs }"
             v-model="filterState.search"

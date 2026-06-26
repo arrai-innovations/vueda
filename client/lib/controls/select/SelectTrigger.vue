@@ -49,16 +49,13 @@ const icon = useIcons("SelectTrigger", props);
     >
         <slot />
         <SelectIcon as-child>
-            <!-- Replaces the dropdown chevron icon; receives no slot props. -->
-            <slot name="icon">
-                <component
-                    :is="icon('caretDown').component"
-                    v-if="icon('caretDown')"
-                    v-bind="icon('caretDown').props"
-                    aria-hidden="true"
-                    class="size-4 opacity-50"
-                />
-            </slot>
+            <component
+                :is="icon('caretDown').component"
+                v-if="icon('caretDown')"
+                v-bind="icon('caretDown').props"
+                aria-hidden="true"
+                class="size-4 opacity-50"
+            />
         </SelectIcon>
     </SelectTrigger>
 </template>

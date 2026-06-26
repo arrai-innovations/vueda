@@ -8,7 +8,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 /**
  * A button that toggles the sidebar open or closed. The toggle glyph resolves through
  * `useIcons("SidebarTrigger", props)("toggle")`; consumers register a default (canon is
- * `fa-regular fa-rectangle-list`) via `setIcons` or replace per-instance via the `icon` slot.
+ * `fa-regular fa-rectangle-list`) via `setIcons` or replace per-instance via `iconOverride`.
  */
 defineOptions({});
 
@@ -37,15 +37,12 @@ const { toggleSidebar } = useSidebar();
         :style="theme.hideStyle?.value"
         @click="toggleSidebar"
     >
-        <!-- Replaces the sidebar toggle icon; receives no slot props. -->
-        <slot name="icon">
-            <component
-                :is="icon('toggle').component"
-                v-if="icon('toggle')"
-                v-bind="icon('toggle').props"
-                aria-hidden="true"
-            />
-        </slot>
+        <component
+            :is="icon('toggle').component"
+            v-if="icon('toggle')"
+            v-bind="icon('toggle').props"
+            aria-hidden="true"
+        />
         <span class="sr-only">Toggle Sidebar</span>
     </Button>
 </template>

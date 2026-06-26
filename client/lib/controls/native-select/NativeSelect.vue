@@ -48,19 +48,12 @@ const icon = useIcons("NativeSelect", props);
         >
             <slot />
         </select>
-        <!-- Replaces the dropdown chevron icon; receives no slot props. -->
-        <slot name="icon">
-            <span
-                class="text-muted-foreground pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-center leading-4 opacity-50"
-                aria-hidden="true"
-                data-slot="native-select-icon"
-            >
-                <component
-                    :is="icon('caretDown').component"
-                    v-if="icon('caretDown')"
-                    v-bind="icon('caretDown').props"
-                />
-            </span>
-        </slot>
+        <span
+            class="text-muted-foreground pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-center leading-4 opacity-50"
+            aria-hidden="true"
+            data-slot="native-select-icon"
+        >
+            <component :is="icon('caretDown').component" v-if="icon('caretDown')" v-bind="icon('caretDown').props" />
+        </span>
     </div>
 </template>

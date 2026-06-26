@@ -41,9 +41,7 @@ const icon = useIcons("BreadcrumbEllipsis", props);
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
     >
-        <slot name="icon">
-            <component :is="icon('ellipsis').component" v-if="icon('ellipsis')" v-bind="icon('ellipsis').props" />
-        </slot>
+        <component :is="icon('ellipsis').component" v-if="icon('ellipsis')" v-bind="icon('ellipsis').props" />
         <span :class="theme('label')">More</span>
     </component>
 </template>

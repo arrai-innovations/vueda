@@ -43,12 +43,8 @@ const icon = useIcons("NavigationMenuTrigger", props);
         <span
             class="relative top-[1px] ml-1 size-3 transition duration-300 group-data-[state=open]:rotate-180"
             aria-hidden="true"
-            ><slot name="icon">
-                <component
-                    :is="icon('caretDown').component"
-                    v-if="icon('caretDown')"
-                    v-bind="icon('caretDown').props"
-                /> </slot
-        ></span>
+        >
+            <component :is="icon('caretDown').component" v-if="icon('caretDown')" v-bind="icon('caretDown').props" />
+        </span>
     </NavigationMenuTrigger>
 </template>

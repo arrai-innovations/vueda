@@ -66,15 +66,12 @@ const icon = useIcons("DialogContent", props);
             <slot />
 
             <DialogClose v-if="showCloseButton" data-slot="dialog-close" :class="theme('close')">
-                <!-- Replaces the close-button icon; receives no slot props. -->
-                <slot name="close-icon">
-                    <component
-                        :is="icon('close').component"
-                        v-if="icon('close')"
-                        v-bind="icon('close').props"
-                        aria-hidden="true"
-                    />
-                </slot>
+                <component
+                    :is="icon('close').component"
+                    v-if="icon('close')"
+                    v-bind="icon('close').props"
+                    aria-hidden="true"
+                />
                 <span class="sr-only">Close</span>
             </DialogClose>
         </DialogContent>

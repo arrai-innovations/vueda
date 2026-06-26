@@ -45,13 +45,12 @@ const icon = useIcons("DropdownMenuSubTrigger", props);
         :style="theme.hideStyle?.value"
     >
         <slot />
-        <span :class="theme('iconWrapper')" aria-hidden="true"
-            ><slot name="icon">
-                <component
-                    :is="icon('chevronRight').component"
-                    v-if="icon('chevronRight')"
-                    v-bind="icon('chevronRight').props"
-                /> </slot
-        ></span>
+        <span :class="theme('iconWrapper')" aria-hidden="true">
+            <component
+                :is="icon('chevronRight').component"
+                v-if="icon('chevronRight')"
+                v-bind="icon('chevronRight').props"
+            />
+        </span>
     </DropdownMenuSubTrigger>
 </template>
