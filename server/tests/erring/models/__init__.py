@@ -3,6 +3,7 @@ from .models import FalseyFormattedNamesLookup  # noqa: F401
 from .models import FormattedNameExpressionNotString  # noqa: F401
 from .models import NoExpandableFieldsData  # noqa: F401
 from .models import NoNameField  # noqa: F401
+from .models import NonVuedaFormattedName  # noqa: F401
 from .models import PropertyFormattedName  # noqa: F401
 from .models import RelatedObjectsAreMissingData  # noqa: F401
 from .models import ValidGetFormattedName  # noqa: F401

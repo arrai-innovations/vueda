@@ -3,6 +3,7 @@ from .serializers import FalseyFormattedNamesLookupSerializer  # noqa: F401
 from .serializers import FormattedNameExpressionNotStringSerializer  # noqa: F401
 from .serializers import NoExpandableFieldsDataSerializer  # noqa: F401
 from .serializers import NoNameFieldSerializer  # noqa: F401
+from .serializers import NonVuedaFormattedNameSerializer  # noqa: F401
 from .serializers import PropertyFormattedNameSerializer  # noqa: F401
 from .serializers import RelatedObjectsAreMissingDataSerializer  # noqa: F401
 from .serializers import ValidGetFormattedNameSerializer  # noqa: F401

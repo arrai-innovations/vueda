@@ -487,6 +487,37 @@ class TestFormattedName:
             "relatedobjectsaremissingdata, the_name_field"
         ) in response.data["serverStack"]
 
+    def test_expand_model_with_no_formatted_name_returns_null(self, test_data, api_client):
+        """Expanding a model that has formatted_name = None and no alternatives returns null for formatted_name rather than crashing."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        related_obj = err_models.RelatedObjectsAreMissingData.objects.create()
+        no_name_obj = err_models.NoNameField.objects.create(the_name_field="Test1")
+        related_obj.no_name.add(no_name_obj)
+
+        with use_test_router(
+            IncludeAppInRouteNameRouter,
+            "erring/",
+            (("related_objects_are_missing_data", err_viewsets.RelatedObjectsAreMissingDataViewSet),),
+        ):
+            info.registration.get_empty_registry()
+            info.register(
+                err_serializers.RelatedObjectsAreMissingDataSerializer, err_viewsets.RelatedObjectsAreMissingDataViewSet
+            )
+            response = api_client.get(
+                reverse("erring.relatedobjectsaremissingdata-list"),
+                data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "no_name"},
+            )
+
+        assert response.status_code == HTTPStatus.OK, response.content
+        results = response.data["results"]
+        assert len(results) == 1
+        assert results[0]["formatted_name"] is None
+        expanded = results[0]["no_name"]
+        assert len(expanded) == 1
+        assert expanded[0]["formatted_name"] is None
+
     def test_non_string_lookup_expression_returns_none(self):
         """_get_formatted_name returns None when formatted_name_lookup_expression is not a string."""
         instance = err_models.FormattedNameExpressionNotString()

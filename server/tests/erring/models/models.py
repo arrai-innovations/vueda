@@ -132,3 +132,17 @@ class FalseyFormattedNamesLookup(VuedaModel):
 
     def __str__(self):
         return self.pk
+
+
+class NonVuedaFormattedName(models.Model):
+    """Plain model (no VuedaModel heritage) with formatted_name = None and no alternative configured."""
+
+    some_field = models.CharField(max_length=255)
+    formatted_name = None
+
+    class Meta:
+        app_label = "erring"
+        managed = False
+
+    def __str__(self):
+        return self.some_field

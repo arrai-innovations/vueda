@@ -73,11 +73,20 @@ class RelatedObjectsAreMissingDataSerializer(VuedaSerializer):
         model = my_models.RelatedObjectsAreMissingData
         fields = [
             "id",
-            "no_name",
         ] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "no_name": (NoNameFieldSerializer, {"many": True}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
 class FalseyFormattedNamesLookupSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.FalseyFormattedNamesLookup
         fields = ["id", "description"]
+
+
+class NonVuedaFormattedNameSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.NonVuedaFormattedName
+        fields = ["id", "some_field"] + VuedaSerializer.Meta.fields

@@ -145,3 +145,28 @@ class TestFormattedNameChecks:
                 id="vueda_info.E001",
             )
         ]
+
+    def test_non_vueda_model_skips_formatted_name_check(self):
+        """NonVuedaFormattedName is a plain model (no VuedaModel heritage); formatted name checks must be skipped entirely."""
+        from vueda.info.checks import check_formatted_name_configuration
+
+        info.registration.get_empty_registry()
+        info.register_serializer(err_serializers.NonVuedaFormattedNameSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert errors == []
+
+    def test_expandable_model_with_no_formatted_name_found_by_system_check(self):
+        """The enhanced check scans expandable_fields; NoNameField is not registered directly but is flagged because it appears in RelatedObjectsAreMissingDataSerializer.expandable_fields."""
+        from vueda.info.checks import check_formatted_name_configuration
+
+        info.registration.get_empty_registry()
+        info.register_serializer(err_serializers.RelatedObjectsAreMissingDataSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        error_objs = {e.obj for e in errors}
+        assert err_models.RelatedObjectsAreMissingData in error_objs
+        assert err_models.NoNameField in error_objs
+        assert all(e.id == "vueda_info.E001" for e in errors)
