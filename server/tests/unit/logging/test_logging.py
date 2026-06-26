@@ -6,6 +6,7 @@ from typing import ClassVar
 
 import pytest
 from django.db import connections
+from django.urls import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
@@ -88,7 +89,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         # Send an update to the serializer, so we can generate the validation errors for process id 1.
         # Refer to tests/logging/serializers.py -> LogRecordsSerializer -> def validate -> 'case 1'.
         response = api_client.put(
-            f"/routes/tests/logging/log_records/{obj.pk}/",
+            reverse("logging.logrecords-detail", kwargs={"pk": obj.pk}),
             format="json",
             data={
                 "process_id": 1,
@@ -138,7 +139,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         # Send an update to the serializer, so we can generate the validation errors for process id 2.
         # Refer to tests/logging/serializers.py -> LogRecordsSerializer -> def validate -> 'case 2'.
         response = api_client.put(
-            f"/routes/tests/logging/log_records/{obj.pk}/",
+            reverse("logging.logrecords-detail", kwargs={"pk": obj.pk}),
             format="json",
             data={
                 "process_id": 2,
@@ -184,7 +185,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         # Send an update to the serializer, so we can generate the validation errors for process id 3.
         # Refer to tests/logging/serializers.py -> LogRecordsSerializer -> def validate -> 'case 3'.
         response = api_client.put(
-            f"/routes/tests/logging/log_records/{obj.pk}/",
+            reverse("logging.logrecords-detail", kwargs={"pk": obj.pk}),
             format="json",
             data={
                 "process_id": 3,
