@@ -4,6 +4,7 @@ import LoadingSkeletonGhost from "@vueda/components/LoadingSkeletonGhost.vue";
 import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewLoading.theme.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 
@@ -62,6 +63,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("ViewLoading", props);
+const icon = useIcons("ViewLoading");
 
 const elapsedMs = ref(0);
 let intervalId = null;
@@ -91,7 +93,14 @@ const crestKind = computed(() => {
         <system-message-card :tone="cardTone" data-qa="view-loading-card">
             <template #crest-icon>
                 <loading-spinner-block v-if="!isSlow" :class="theme('crest')" aria-hidden="true" />
-                <span v-else :class="theme('slowCrest')" aria-hidden="true" role="img" aria-label="slow">⏳</span>
+                <component
+                    :is="icon('hourglass').component"
+                    v-else-if="icon('hourglass')"
+                    v-bind="icon('hourglass').props"
+                    :class="theme('slowCrest')"
+                    aria-hidden="true"
+                />
+                <span v-else :class="theme('slowCrest')" aria-hidden="true">⏳</span>
             </template>
             <template v-if="crestKind" #crest-kind>{{ crestKind }}</template>
 

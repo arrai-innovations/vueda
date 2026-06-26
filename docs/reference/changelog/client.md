@@ -153,6 +153,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 - **Font Awesome Free icon preset (vueda-tailwind icons)**:
     - The default Tailwind theme now ships an opt-in Font Awesome Free icon registry at `@vueda/theme/vueda-tailwind/icons/fontAwesomeFree.js`. It exports `fontAwesomeFreeIcons` and a default registry object that can be passed to `setIcons()`, plus `installFontAwesomeFreeIcons()` for apps that want a one-call installer.
       _To use it, install `@fortawesome/fontawesome-svg-core`, `@fortawesome/free-solid-svg-icons`, and `@fortawesome/vue-fontawesome` in the consuming app, import Font Awesome CSS according to your app setup, then call `setIcons(fontAwesomeFreeIcons)` during app bootstrap. Apps using another icon system can keep registering their own icon registry._
+- **Icon registry coverage for remaining glyph defaults (AlertClose, CommandInput, ComboboxInput, FieldSetMany, FileUpload, InputOTPSeparator, NumberFieldIncrement/Decrement, ResizableHandle, ViewLoading, WidgetDateField, WidgetDateRangeField)**:
+    - These components now resolve their built-in icon affordances through `useIcons()` before falling back to the old text glyph. New registry keys used by this pass are `calendar`, `search`, `upload`, `minus`, and `hourglass`; the pass also reuses existing `close`, `gripVertical`, and `plus` keys.
+      _No action is required if you use the new Font Awesome Free preset. If you maintain a custom icon registry, add these keys under `Default` or under the named component to replace the text fallback._
 - **Toast dependencies**:
     - `vue-sonner` is now a peer dependency of `@arrai-innovations/vueda`, and the Copier client templates install it directly.
       _Add `vue-sonner` to consuming applications so direct `toast` imports and VUEDA's toaster resolve the same package instance._

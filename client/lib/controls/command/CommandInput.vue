@@ -1,6 +1,7 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/CommandInput.theme.js";
 import { useCommand } from "@vueda/use/useCommand.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ListboxFilter, useForwardProps } from "reka-ui";
@@ -38,11 +39,23 @@ const forwardedProps = useForwardProps(delegatedProps);
 const { filterState } = useCommand();
 
 const theme = useTheme("CommandInput", props);
+const icon = useIcons("CommandInput");
 </script>
 
 <template>
     <div data-slot="command-input-wrapper" :class="theme('wrapper')">
-        <slot name="search-icon">⌕</slot>
+        <slot name="search-icon">
+            <component
+                :is="icon('search').component"
+                v-if="icon('search')"
+                v-bind="icon('search').props"
+                aria-hidden="true"
+                class="size-4 shrink-0 opacity-50"
+            />
+            <span v-else aria-hidden="true" class="size-4 shrink-0 text-center leading-4 opacity-50 select-none"
+                >⌕</span
+            >
+        </slot>
         <ListboxFilter
             v-bind="{ ...forwardedProps, ...$attrs }"
             v-model="filterState.search"

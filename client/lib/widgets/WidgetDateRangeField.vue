@@ -6,6 +6,7 @@ import RangeCalendar from "@vueda/controls/range-calendar/RangeCalendar.vue";
 import Popover from "@vueda/shell/popover/Popover.vue";
 import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
@@ -94,6 +95,7 @@ const onCalendarSelect = (value) => {
 };
 
 const theme = useTheme("WidgetDateRangeField", props);
+const icon = useIcons("WidgetDateRangeField");
 </script>
 
 <template>
@@ -152,7 +154,14 @@ const theme = useTheme("WidgetDateRangeField", props);
                         tabindex="-1"
                         data-qa="widget-date-range-field-trigger"
                     >
-                        <span aria-hidden="true" :class="theme('triggerIcon')">📅</span>
+                        <component
+                            :is="icon('calendar').component"
+                            v-if="icon('calendar')"
+                            v-bind="icon('calendar').props"
+                            :class="theme('triggerIcon')"
+                            aria-hidden="true"
+                        />
+                        <span v-else aria-hidden="true" :class="theme('triggerIcon')">📅</span>
                     </button>
                 </PopoverTrigger>
             </template>

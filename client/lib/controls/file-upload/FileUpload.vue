@@ -1,5 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/FileUpload.theme.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Primitive } from "reka-ui";
 import { reactive, ref, toRef } from "vue";
@@ -47,6 +48,7 @@ const theme = useTheme(
         dragging: ref(false),
     }),
 );
+const icon = useIcons("FileUpload");
 
 const inputRef = ref(null);
 const dragging = ref(false);
@@ -134,7 +136,13 @@ defineExpose({ openFilePicker });
                 @click="openFilePicker"
             >
                 <slot name="trigger-content">
-                    <span aria-hidden="true" class="select-none">⇧</span>
+                    <component
+                        :is="icon('upload').component"
+                        v-if="icon('upload')"
+                        v-bind="icon('upload').props"
+                        aria-hidden="true"
+                    />
+                    <span v-else aria-hidden="true" class="select-none">⇧</span>
                     Choose file
                 </slot>
             </button>

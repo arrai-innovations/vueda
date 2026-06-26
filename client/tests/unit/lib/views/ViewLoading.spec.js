@@ -1,5 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { setIcons } from "@vueda/use/useIcons.js";
 import { defineComponent, h } from "vue";
 
 const SpinnerStub = defineComponent({
@@ -21,6 +22,13 @@ const HeartbeatStripStub = defineComponent({
     props: ["requestId", "elapsedMs", "resolved", "total", "tone"],
     setup(props, { attrs }) {
         return () => h("div", { "data-qa": "heartbeat-strip", ...props, ...attrs });
+    },
+});
+
+const HourglassIconStub = defineComponent({
+    name: "HourglassIconStub",
+    setup(_, { attrs }) {
+        return () => h("i", { "data-qa": "hourglass-icon", ...attrs });
     },
 });
 
@@ -48,11 +56,13 @@ let ViewLoading;
 
 beforeEach(async () => {
     vi.useFakeTimers();
+    setIcons({});
     ViewLoading = (await import("@vueda/views/ViewLoading.vue")).default;
 });
 
 afterEach(() => {
     vi.useRealTimers();
+    setIcons({});
 });
 
 describe("lib/views/ViewLoading.vue", () => {
@@ -163,7 +173,19 @@ describe("lib/views/ViewLoading.vue", () => {
             expect(wrapper.findComponent(SpinnerStub).exists()).toBe(true);
             await vi.advanceTimersByTimeAsync(600);
             expect(wrapper.findComponent(SpinnerStub).exists()).toBe(false);
-            expect(wrapper.find('[aria-label="slow"]').exists()).toBe(true);
+            expect(wrapper.text()).toContain("⏳");
+        });
+
+        scopedIt("renders the registered hourglass icon when slow", async () => {
+            setIcons({
+                Default: {
+                    hourglass: { component: HourglassIconStub },
+                },
+            });
+            const wrapper = mount(ViewLoading, { props: { slowAfterMs: 500 } });
+            await vi.advanceTimersByTimeAsync(600);
+            expect(wrapper.find('[data-qa="hourglass-icon"]').exists()).toBe(true);
+            expect(wrapper.text()).not.toContain("⏳");
         });
 
         scopedIt("flips heartbeat tone to slow", async () => {

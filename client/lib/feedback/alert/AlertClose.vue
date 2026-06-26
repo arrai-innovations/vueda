@@ -1,5 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/feedback/AlertClose.theme.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
@@ -22,6 +23,7 @@ const emit = defineEmits({
 });
 
 const theme = useTheme("AlertClose", props);
+const icon = useIcons("AlertClose");
 </script>
 
 <template>
@@ -31,6 +33,15 @@ const theme = useTheme("AlertClose", props);
         :style="theme.hideStyle?.value"
         @click="emit('close')"
     >
-        <slot>&#x2715;</slot>
+        <slot>
+            <component
+                :is="icon('close').component"
+                v-if="icon('close')"
+                v-bind="icon('close').props"
+                aria-hidden="true"
+            />
+            <span v-else aria-hidden="true">&#x2715;</span>
+            <span class="sr-only">Close</span>
+        </slot>
     </button>
 </template>

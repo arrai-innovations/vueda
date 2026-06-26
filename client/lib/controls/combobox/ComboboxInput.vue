@@ -1,6 +1,7 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/ComboboxInput.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ComboboxInput } from "reka-ui";
@@ -42,13 +43,23 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
 const theme = useTheme("ComboboxInput", props);
+const icon = useIcons("ComboboxInput");
 </script>
 
 <template>
     <div data-slot="combobox-input-wrapper" class="flex h-9 items-center gap-2 border-b px-3">
         <!-- Replaces the search icon; receives no slot props. -->
         <slot name="icon">
-            <span aria-hidden="true" class="size-4 shrink-0 text-center leading-4 opacity-50 select-none">⚲</span>
+            <component
+                :is="icon('search').component"
+                v-if="icon('search')"
+                v-bind="icon('search').props"
+                aria-hidden="true"
+                class="size-4 shrink-0 text-center leading-4 opacity-50 select-none"
+            />
+            <span v-else aria-hidden="true" class="size-4 shrink-0 text-center leading-4 opacity-50 select-none"
+                >⚲</span
+            >
         </slot>
         <ComboboxInput
             data-slot="combobox-input"
