@@ -1,14 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { setIcons } from "@vueda/use/useIcons.js";
 import { defineComponent, h } from "vue";
-
-const SpinnerStub = defineComponent({
-    name: "SpinnerStub",
-    setup(_, { attrs }) {
-        return () => h("div", { "data-qa": "spinner", ...attrs });
-    },
-});
 
 const SkeletonGhostStub = defineComponent({
     name: "SkeletonGhostStub",
@@ -25,21 +17,13 @@ const HeartbeatStripStub = defineComponent({
     },
 });
 
-const HourglassIconStub = defineComponent({
-    name: "HourglassIconStub",
-    setup(_, { attrs }) {
-        return () => h("i", { "data-qa": "hourglass-icon", ...attrs });
-    },
-});
-
 // Renders default + named slots so we can inspect slot content.
 const SystemMessageCardStub = defineComponent({
     name: "SystemMessageCardStub",
-    props: { tone: String },
+    props: { tone: String, iconName: String, iconProps: Object, iconOverride: Object },
     setup(props, { slots }) {
         return () =>
-            h("div", { "data-qa": "system-message-card", "data-tone": props.tone }, [
-                slots["crest-icon"]?.(),
+            h("div", { "data-qa": "system-message-card", "data-tone": props.tone, "data-icon-name": props.iconName }, [
                 slots["crest-kind"]?.(),
                 slots.default?.(),
                 slots.actions?.(),
@@ -48,7 +32,6 @@ const SystemMessageCardStub = defineComponent({
 });
 
 vi.mock("@vueda/components/SystemMessageCard.vue", () => ({ default: SystemMessageCardStub }));
-vi.mock("@vueda/components/LoadingSpinnerBlock.vue", () => ({ default: SpinnerStub }));
 vi.mock("@vueda/components/LoadingSkeletonGhost.vue", () => ({ default: SkeletonGhostStub }));
 vi.mock("@vueda/components/LoadingHeartbeatStrip.vue", () => ({ default: HeartbeatStripStub }));
 
@@ -56,13 +39,11 @@ let ViewLoading;
 
 beforeEach(async () => {
     vi.useFakeTimers();
-    setIcons({});
     ViewLoading = (await import("@vueda/views/ViewLoading.vue")).default;
 });
 
 afterEach(() => {
     vi.useRealTimers();
-    setIcons({});
 });
 
 describe("lib/views/ViewLoading.vue", () => {
@@ -72,9 +53,15 @@ describe("lib/views/ViewLoading.vue", () => {
             expect(wrapper.findComponent(SystemMessageCardStub).props("tone")).toBe("loading");
         });
 
-        scopedIt("renders the loading spinner in the crest", () => {
+        scopedIt("passes the loading icon name to the card by default", () => {
             const wrapper = mount(ViewLoading);
-            expect(wrapper.findComponent(SpinnerStub).exists()).toBe(true);
+            expect(wrapper.findComponent(SystemMessageCardStub).props("iconName")).toBe("loading");
+        });
+
+        scopedIt("passes iconOverride through to SystemMessageCard", () => {
+            const iconOverride = { Default: {} };
+            const wrapper = mount(ViewLoading, { props: { iconOverride } });
+            expect(wrapper.findComponent(SystemMessageCardStub).props("iconOverride")).toEqual(iconOverride);
         });
 
         scopedIt("renders LoadingSkeletonGhost", () => {
@@ -168,24 +155,11 @@ describe("lib/views/ViewLoading.vue", () => {
             expect(wrapper.findComponent(SystemMessageCardStub).props("tone")).toBe("warning");
         });
 
-        scopedIt("replaces spinner with hourglass when slow", async () => {
+        scopedIt("passes the hourglass icon name when slow", async () => {
             const wrapper = mount(ViewLoading, { props: { slowAfterMs: 500 } });
-            expect(wrapper.findComponent(SpinnerStub).exists()).toBe(true);
+            expect(wrapper.findComponent(SystemMessageCardStub).props("iconName")).toBe("loading");
             await vi.advanceTimersByTimeAsync(600);
-            expect(wrapper.findComponent(SpinnerStub).exists()).toBe(false);
-            expect(wrapper.text()).toContain("⏳");
-        });
-
-        scopedIt("renders the registered hourglass icon when slow", async () => {
-            setIcons({
-                Default: {
-                    hourglass: { component: HourglassIconStub },
-                },
-            });
-            const wrapper = mount(ViewLoading, { props: { slowAfterMs: 500 } });
-            await vi.advanceTimersByTimeAsync(600);
-            expect(wrapper.find('[data-qa="hourglass-icon"]').exists()).toBe(true);
-            expect(wrapper.text()).not.toContain("⏳");
+            expect(wrapper.findComponent(SystemMessageCardStub).props("iconName")).toBe("hourglass");
         });
 
         scopedIt("flips heartbeat tone to slow", async () => {

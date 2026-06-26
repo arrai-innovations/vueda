@@ -328,19 +328,12 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
                     :model-verbose-name="modelVerboseName"
                 >
                     <div :class="theme('banner')" data-qa="model-action-form-banner">
-                        <div
-                            v-if="$slots['banner-icon'] || icon(bannerIconName)"
-                            :class="theme('bannerIcon')"
-                            aria-hidden="true"
-                        >
-                            <!-- @slot [banner-icon] Replaces the icon shown in the action banner; receives `tone` and `iconName` as slot props. -->
-                            <slot name="banner-icon" :tone="tone" :icon-name="bannerIconName">
-                                <component
-                                    :is="icon(bannerIconName).component"
-                                    v-bind="icon(bannerIconName).props"
-                                    aria-hidden="true"
-                                />
-                            </slot>
+                        <div v-if="icon(bannerIconName)" :class="theme('bannerIcon')" aria-hidden="true">
+                            <component
+                                :is="icon(bannerIconName).component"
+                                v-bind="icon(bannerIconName).props"
+                                aria-hidden="true"
+                            />
                         </div>
                         <div :class="theme('bannerBody')">
                             <div :class="theme('bannerTitle')" data-qa="model-action-form-banner-title">

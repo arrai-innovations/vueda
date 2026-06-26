@@ -1,12 +1,11 @@
 <script setup>
 import LoadingHeartbeatStrip from "@vueda/components/LoadingHeartbeatStrip.vue";
 import LoadingSkeletonGhost from "@vueda/components/LoadingSkeletonGhost.vue";
-import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
 import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewLoading.theme.js";
-import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, toRef } from "vue";
 
 /**
  * Full-page loading placeholder for route-level async resolution. Composes a
@@ -64,7 +63,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("ViewLoading", props);
-const icon = useIcons("ViewLoading", props);
+useIconsOverride(toRef(props, "iconOverride"));
 
 const elapsedMs = ref(0);
 let intervalId = null;
@@ -81,6 +80,8 @@ onUnmounted(() => {
 
 const isSlow = computed(() => elapsedMs.value >= props.slowAfterMs);
 const cardTone = computed(() => (isSlow.value ? "warning" : "loading"));
+const cardIconName = computed(() => (isSlow.value ? "hourglass" : "loading"));
+const cardIconProps = computed(() => ({ class: isSlow.value ? theme("slowCrest") : theme("crest") }));
 const heartbeatTone = computed(() => (isSlow.value ? "slow" : "default"));
 
 const crestKind = computed(() => {
@@ -91,18 +92,13 @@ const crestKind = computed(() => {
 
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="view-loading-root">
-        <system-message-card :tone="cardTone" data-qa="view-loading-card">
-            <template #crest-icon>
-                <loading-spinner-block v-if="!isSlow" :class="theme('crest')" aria-hidden="true" />
-                <component
-                    :is="icon('hourglass').component"
-                    v-else-if="icon('hourglass')"
-                    v-bind="icon('hourglass').props"
-                    :class="theme('slowCrest')"
-                    aria-hidden="true"
-                />
-                <span v-else :class="theme('slowCrest')" aria-hidden="true">⏳</span>
-            </template>
+        <system-message-card
+            :tone="cardTone"
+            :icon-name="cardIconName"
+            :icon-props="cardIconProps"
+            :icon-override="props.iconOverride"
+            data-qa="view-loading-card"
+        >
             <template v-if="crestKind" #crest-kind>{{ crestKind }}</template>
 
             <div v-if="!isSlow && (name || context)" :class="theme('bodyRow')" data-qa="view-loading-body-row">

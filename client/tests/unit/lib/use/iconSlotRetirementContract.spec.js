@@ -16,6 +16,9 @@ const retiredSlotNames = [
     "error-icon",
     "loading-icon",
     "sort-icon",
+    "validation-icon",
+    "banner-icon",
+    "crest-icon",
 ];
 const retiredSlotAlternation = retiredSlotNames.join("|");
 const retiredSlotOutletPattern = new RegExp(`<slot\\s+name=["'](${retiredSlotAlternation})["']`, "g");

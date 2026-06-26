@@ -104,19 +104,12 @@ const computedBannerTitle = computed(() => {
             <!-- @slot [view-destroy-banner] Override the danger banner shown above the confirmation form. -->
             <slot name="view-destroy-banner" :linked-object-counts="linkedObjectCounts" :title="computedBannerTitle">
                 <div :class="theme('banner')" data-qa="view-destroy-banner">
-                    <div
-                        v-if="$slots['banner-icon'] || icon('triangleExclamation')"
-                        :class="theme('bannerIcon')"
-                        aria-hidden="true"
-                    >
-                        <!-- @slot [banner-icon] Replaces the icon shown in the danger banner; receives no slot props. -->
-                        <slot name="banner-icon">
-                            <component
-                                :is="icon('triangleExclamation').component"
-                                v-bind="icon('triangleExclamation').props"
-                                aria-hidden="true"
-                            />
-                        </slot>
+                    <div v-if="icon('triangleExclamation')" :class="theme('bannerIcon')" aria-hidden="true">
+                        <component
+                            :is="icon('triangleExclamation').component"
+                            v-bind="icon('triangleExclamation').props"
+                            aria-hidden="true"
+                        />
                     </div>
                     <div :class="theme('bannerBody')">
                         <div :class="theme('bannerTitle')" data-qa="view-destroy-banner-title">

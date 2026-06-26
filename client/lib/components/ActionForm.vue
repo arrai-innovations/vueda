@@ -162,19 +162,12 @@ const validationTitle = computed(() => {
                     :title="validationTitle"
                 >
                     <div :class="theme('validation')" role="alert" data-tone="danger" data-qa="action-form-validation">
-                        <div
-                            v-if="$slots['validation-icon'] || icon('triangleExclamation')"
-                            :class="theme('validationIcon')"
-                            aria-hidden="true"
-                        >
-                            <!-- @slot [validation-icon] Replaces the icon shown in the validation alert. -->
-                            <slot name="validation-icon">
-                                <component
-                                    :is="icon('triangleExclamation').component"
-                                    v-bind="icon('triangleExclamation').props"
-                                    aria-hidden="true"
-                                />
-                            </slot>
+                        <div v-if="icon('triangleExclamation')" :class="theme('validationIcon')" aria-hidden="true">
+                            <component
+                                :is="icon('triangleExclamation').component"
+                                v-bind="icon('triangleExclamation').props"
+                                aria-hidden="true"
+                            />
                         </div>
                         <div :class="theme('validationBody')">
                             <div :class="theme('validationTitle')" data-qa="action-form-validation-title">

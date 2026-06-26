@@ -1,6 +1,8 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/display/SystemMessageCard.theme.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { computed } from "vue";
 
 /**
  * Centered card chassis for system-level messages: 404, action-not-found,
@@ -10,12 +12,13 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
  * optional actions footer.
  *
  * Tone drives icon-tile background and ink color via the
- * `group/system-message-card` named scope; consumers place any icon
- * component inside the `crest-icon` slot and it inherits the tinted color.
+ * `group/system-message-card` named scope; the optional `iconName` prop
+ * resolves the visible crest icon through the icon registry.
  */
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Visual severity of the message. Drives the icon-tile tint.
@@ -27,6 +30,16 @@ const props = defineProps({
         default: "info",
         validator: (v) => ["info", "warning", "danger", "loading"].includes(v),
     },
+    /** Icon registry key rendered inside the tone-tinted crest tile. */
+    iconName: {
+        type: String,
+        default: undefined,
+    },
+    /** Extra props merged onto the resolved crest icon component. */
+    iconProps: {
+        type: Object,
+        default: undefined,
+    },
     /**
      * Additional CSS classes applied to the card root.
      *
@@ -36,6 +49,12 @@ const props = defineProps({
 });
 
 const theme = useTheme("SystemMessageCard", props);
+const icon = useIcons("SystemMessageCard", props);
+const crestIcon = computed(() => (props.iconName ? icon(props.iconName) : null));
+const crestIconProps = computed(() => ({
+    ...(crestIcon.value?.props || {}),
+    ...(props.iconProps || {}),
+}));
 </script>
 
 <template>
@@ -49,8 +68,7 @@ const theme = useTheme("SystemMessageCard", props);
         <!-- Crest: icon tile + meta column + optional trailing code -->
         <div :class="theme('crest')" data-qa="system-message-card-crest">
             <div :class="theme('crestIcon')" aria-hidden="true" data-qa="system-message-card-crest-icon">
-                <!-- @slot crest-icon Icon component placed inside the tone-tinted 36 px tile. -->
-                <slot name="crest-icon" />
+                <component :is="crestIcon.component" v-if="crestIcon" v-bind="crestIconProps" />
             </div>
             <div :class="theme('crestMeta')" data-qa="system-message-card-crest-meta">
                 <span

@@ -7,7 +7,7 @@ type: reference
 
 <script setup>
 import { ref } from "vue";
-import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
+import ViewLoading from "@vueda/views/ViewLoading.vue";
 import PageTitle from "@vueda/components/PageTitle.vue";
 import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
 import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
@@ -15,13 +15,7 @@ import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
 import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import {
-    faHouse,
-    faSearch,
-    faCircleQuestion,
-    faTriangleExclamation,
-    faArrowLeft,
-} from "@fortawesome/free-solid-svg-icons";
+import { faHouse, faSearch } from "@fortawesome/free-solid-svg-icons";
 
 const deactivateConfirm = ref("");
 const destroyConfirm = ref("");
@@ -33,19 +27,25 @@ Utility views that handle loading states and navigation dead ends. These are not
 
 ## ViewLoading
 
-Fills its container with a centered `LoadingSpinnerBlock`. The spinner itself is icon-driven: it renders the component registered under the `loading` icon key via `useIcons("LoadingSpinnerBlock")`. There are no theme keys on `ViewLoading` or `LoadingSpinnerBlock` — customization is through icon registration.
+Route-level loading fallback. Composes `SystemMessageCard(tone="loading")` with the `loading` icon registry key, optional request identity in the crest kind, a skeleton preview, and a heartbeat strip. Once `slowAfterMs` is reached the card flips to warning tone and switches its crest icon name to `hourglass`.
 
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewLoading — full-container centered spinner</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewLoading: composed card with registry-backed crest icon</header>
   <div class="rounded-vueda-card border border-border bg-card overflow-clip" style="min-height: 220px;">
-    <div class="flex w-full h-full items-center justify-center" style="min-height: 220px;">
-      <LoadingSpinnerBlock class="w-1/3 h-1/3" />
-    </div>
+    <ViewLoading
+      name="Loading customer record"
+      verb="GET"
+      path="/crm/customers/42"
+      context="Northwind Logistics"
+      request-id="req-demo-42"
+      :dependencies="{ resolved: 2, total: 5 }"
+      :slow-after-ms="60000"
+    />
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>layout: <code>flex items-center justify-center w-full h-full</code> — fills whatever container the router mounts it in</span>
-    <span>spinner: <code>LoadingSpinnerBlock</code> rendered at <code>w-1/3 h-1/3</code> of the container</span>
-    <span>icon-driven: replace the spinner graphic by registering a component under the <code>loading</code> icon key via <code>useIcons</code></span>
+    <span>layout: centers the shared <code>SystemMessageCard</code> in the route container</span>
+    <span>normal crest icon: <code>icon-name="loading"</code>; slow crest icon: <code>icon-name="hourglass"</code></span>
+    <span>customization: register those keys globally, or pass an <code>iconOverride</code> scoped to this view</span>
   </footer>
 </VuedaDemo>
 
@@ -58,10 +58,7 @@ Suggestion data comes from `useSuggestRoutes({ limit })` (N-best matches with sc
 <VuedaDemo class="flex flex-col gap-5">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewNotFound — composed output (404 crest + tried path + suggestions + diagnostics)</header>
   <div class="flex justify-center">
-    <SystemMessageCard tone="info">
-      <template #crest-icon>
-        <FontAwesomeIcon :icon="faCircleQuestion" />
-      </template>
+    <SystemMessageCard tone="info" icon-name="notFound">
       <template #crest-eyebrow>Route not found</template>
       <template #crest-kind>/admin/custmrs/99999/edit</template>
       <template #crest-code>404</template>
@@ -104,10 +101,7 @@ Suggestions widen the previous closest-only behavior: every action on the closes
 <VuedaDemo class="flex flex-col gap-5">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewActionNotFound — composed output (404 crest + action-key callout + available actions)</header>
   <div class="flex justify-center">
-    <SystemMessageCard tone="info">
-      <template #crest-icon>
-        <FontAwesomeIcon :icon="faTriangleExclamation" />
-      </template>
+    <SystemMessageCard tone="info" icon-name="actionNotFound">
       <template #crest-eyebrow>Action not found</template>
       <template #crest-kind>crm/customer/archve</template>
       <template #crest-code>404</template>
@@ -146,15 +140,14 @@ Suggestions widen the previous closest-only behavior: every action on the closes
 
 Centered 460 px card chassis shared by all four system views (NotFound, ActionNotFound, Loading, Deactivate) and by the AuthAndMFA card. Provides a tone-tracked 36 px crest icon tile above a border separator, a meta column (eyebrow label + mono kind text), an optional trailing status code, a body slot, and an optional actions footer.
 
-The root carries `data-tone` and opens a `group/system-message-card` named scope. The `crestIcon` theme key routes soft tint colors (`~12–14 %` opacity) from that scope via `group-data-[tone=*]/system-message-card:` variants, so any icon component placed in the `crest-icon` slot inherits the tinted ink color automatically.
+The root carries `data-tone` and opens a `group/system-message-card` named scope. The `crestIcon` theme key routes soft tint colors (about 12 to 14 percent opacity) from that scope via `group-data-[tone=*]/system-message-card:` variants, so the icon resolved from `icon-name` inherits the tinted ink color automatically.
+
+Set `icon-name` to a registry key to render the crest icon. Pass `icon-props` for per-call attributes or classes, and use `iconOverride` to replace the icon registry entry for this card and its descendants.
 
 <VuedaDemo class="flex flex-col gap-5">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SystemMessageCard — info tone (404 route not found)</header>
   <div class="flex justify-center">
-    <SystemMessageCard tone="info">
-      <template #crest-icon>
-        <FontAwesomeIcon :icon="faCircleQuestion" />
-      </template>
+    <SystemMessageCard tone="info" icon-name="notFound">
       <template #crest-eyebrow>route not found</template>
       <template #crest-kind>/admin/customers/99999/edit</template>
       <template #crest-code>404</template>
@@ -181,10 +174,7 @@ The root carries `data-tone` and opens a `group/system-message-card` named scope
 <VuedaDemo class="flex flex-col gap-5">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SystemMessageCard — warning tone (deactivate confirmation)</header>
   <div class="flex justify-center">
-    <SystemMessageCard tone="warning">
-      <template #crest-icon>
-        <FontAwesomeIcon :icon="faTriangleExclamation" />
-      </template>
+    <SystemMessageCard tone="warning" icon-name="warning">
       <template #crest-eyebrow>deactivate account</template>
       <template #crest-kind>mara.tani</template>
       <p class="text-[13px] leading-[1.5] text-muted-foreground">This account will be suspended. All active sessions will end immediately.</p>
@@ -262,10 +252,7 @@ The submit button stays disabled until `TypedConfirmField` emits a match and rem
 <VuedaDemo class="flex flex-col gap-5">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewDeactivate — full composition (consequences + typed confirm)</header>
   <div class="flex justify-center">
-    <SystemMessageCard tone="warning">
-      <template #crest-icon>
-        <FontAwesomeIcon :icon="faTriangleExclamation" />
-      </template>
+    <SystemMessageCard tone="warning" icon-name="warning">
       <template #crest-eyebrow>account · deactivate</template>
       <template #crest-kind>myapp/account/deactivate</template>
       <p class="text-[13px] leading-[1.5] text-muted-foreground">Your account will be suspended. Active sessions will end immediately, API tokens will be disabled, and shared resources will be reassigned. After 30 days this action is permanent.</p>

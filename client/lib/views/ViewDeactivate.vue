@@ -5,13 +5,13 @@ import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewDeactivate.theme.js";
-import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl } from "@vueda/utils/urls.js";
-import { computed, ref } from "vue";
+import { computed, ref, toRef } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -66,7 +66,7 @@ const userStore = storeUser();
 const expectedConfirmValue = computed(() => userStore.loggedInUser?.email || "");
 
 const theme = useTheme("ViewDeactivate", props);
-const icon = useIcons("ViewDeactivate", props);
+useIconsOverride(toRef(props, "iconOverride"));
 
 const router = useRouter();
 
@@ -109,15 +109,12 @@ function handleCancel() {
 
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="view-deactivate-root" v-bind="$attrs">
-        <system-message-card tone="warning" data-qa="view-deactivate-card">
-            <template #crest-icon>
-                <component
-                    :is="icon('warning').component"
-                    v-if="icon('warning')"
-                    v-bind="icon('warning').props"
-                    aria-hidden="true"
-                />
-            </template>
+        <system-message-card
+            tone="warning"
+            icon-name="warning"
+            :icon-override="props.iconOverride"
+            data-qa="view-deactivate-card"
+        >
             <template #crest-eyebrow>{{ model }} · deactivate</template>
             <template #crest-kind>{{ app }}/{{ model }}/deactivate</template>
             <!-- @slot message Override the default suspension explanation paragraph. -->

@@ -5,10 +5,10 @@ import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
 import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewNotFound.theme.js";
-import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { useSuggestRoutes } from "@vueda/use/useSuggestRoute.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed } from "vue";
+import { computed, toRef } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -45,7 +45,7 @@ const props = defineProps({
 const router = useRouter();
 const suggestedRoutes = useSuggestRoutes({ limit: props.suggestionLimit });
 const theme = useTheme("ViewNotFound", props);
-const icon = useIcons("ViewNotFound", props);
+useIconsOverride(toRef(props, "iconOverride"));
 
 const currentPath = computed(() => router.currentRoute.value.path);
 
@@ -86,15 +86,12 @@ function handleHome() {
 
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-not-found-root">
-        <system-message-card tone="info" data-qa="view-not-found-card">
-            <template #crest-icon>
-                <component
-                    :is="icon('notFound').component"
-                    v-if="icon('notFound')"
-                    v-bind="icon('notFound').props"
-                    aria-hidden="true"
-                />
-            </template>
+        <system-message-card
+            tone="info"
+            icon-name="notFound"
+            :icon-override="props.iconOverride"
+            data-qa="view-not-found-card"
+        >
             <template #crest-eyebrow>Route not found</template>
             <template #crest-kind>{{ currentPath }}</template>
             <template #crest-code>404</template>
