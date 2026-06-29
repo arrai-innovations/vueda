@@ -1,14 +1,16 @@
 <script setup>
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 
 /**
  * Renders the configured loading icon for block-level loading placeholders. The
- * icon entry is resolved from `useIcons("LoadingSpinnerBlock")`, falling back
+ * icon entry is resolved from `useIcons("LoadingSpinnerBlock", props)`, falling back
  * to `Default.loading`.
  */
 defineOptions({});
 
-const icon = useIcons("LoadingSpinnerBlock");
+const props = defineProps({ ...ICON_OVERRIDE_PROPS });
+
+const icon = useIcons("LoadingSpinnerBlock", props);
 </script>
 
 <template>

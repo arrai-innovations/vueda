@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/display/SuggestionList.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
@@ -15,6 +15,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Suggestion rows. Each entry becomes one navigable row.
@@ -60,7 +61,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("SuggestionList", props);
-const icon = useIcons("SuggestionList");
+const icon = useIcons("SuggestionList", props);
 
 const formatScore = (score) => `${Math.round(score * 100)}%`;
 </script>

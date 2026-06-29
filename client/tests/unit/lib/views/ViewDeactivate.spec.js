@@ -7,10 +7,10 @@ import { defineComponent, h, reactive } from "vue";
 const SystemMessageCardStub = defineComponent({
     name: "SystemMessageCardStub",
     inheritAttrs: false,
-    props: ["tone"],
+    props: ["tone", "iconName", "iconOverride"],
     setup(props, { slots }) {
         return () =>
-            h("div", { "data-qa": "system-message-card", "data-tone": props.tone }, [
+            h("div", { "data-qa": "system-message-card", "data-tone": props.tone, "data-icon-name": props.iconName }, [
                 slots["crest-eyebrow"] ? h("div", { "data-slot": "crest-eyebrow" }, slots["crest-eyebrow"]()) : null,
                 slots["crest-kind"] ? h("div", { "data-slot": "crest-kind" }, slots["crest-kind"]()) : null,
                 ...(slots.default ? slots.default() : []),
@@ -62,8 +62,11 @@ vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 
 // --- composable mocks ----------------------------------------------------
 
-const mockedUseIcons = vi.fn();
-vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: mockedUseIcons }));
+const mockedUseIconsOverride = vi.fn();
+vi.mock("@vueda/use/useIcons.js", () => ({
+    ICON_OVERRIDE_PROPS: { iconOverride: { type: Object, default: null } },
+    useIconsOverride: mockedUseIconsOverride,
+}));
 
 const mockedUseRouter = vi.fn();
 vi.mock("vue-router", () => ({ useRouter: mockedUseRouter }));
@@ -95,7 +98,7 @@ beforeEach(async () => {
     mockRouter = { back: vi.fn() };
     mockedUseRouter.mockReturnValue(mockRouter);
 
-    mockedUseIcons.mockReturnValue(() => null);
+    mockedUseIconsOverride.mockReturnValue(null);
 
     mockedGetDetailUrl.mockReturnValue("/api/myapp/mymodel/deactivate/");
 
@@ -115,6 +118,19 @@ describe("lib/views/ViewDeactivate.vue", () => {
         scopedIt("renders a warning-toned SystemMessageCard", () => {
             const wrapper = mount(ViewDeactivate, { props: { app: "myapp", model: "mymodel", pk: "1" } });
             expect(wrapper.find('[data-qa="system-message-card"]').attributes("data-tone")).toBe("warning");
+        });
+
+        scopedIt("passes the warning icon name to SystemMessageCard", () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "myapp", model: "mymodel", pk: "1" } });
+            expect(wrapper.findComponent(SystemMessageCardStub).props("iconName")).toBe("warning");
+        });
+
+        scopedIt("passes iconOverride through to SystemMessageCard", () => {
+            const iconOverride = { Default: {} };
+            const wrapper = mount(ViewDeactivate, {
+                props: { app: "myapp", model: "mymodel", pk: "1", iconOverride },
+            });
+            expect(wrapper.findComponent(SystemMessageCardStub).props("iconOverride")).toEqual(iconOverride);
         });
 
         scopedIt("crest-eyebrow contains the model name", () => {

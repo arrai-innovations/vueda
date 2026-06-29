@@ -15,11 +15,12 @@ import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
 import NativeSelectOption from "@vueda/controls/native-select/NativeSelectOption.vue";
 import "@vueda/theme/vueda-tailwind/controls/Calendar.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { createReusableTemplate, reactiveOmit, useVModel } from "@vueuse/core";
 import { CalendarRoot, useDateFormatter } from "reka-ui";
 import { createYear, createYearRange, toDate } from "reka-ui/date";
-import { computed, toRaw } from "vue";
+import { computed, toRaw, toRef } from "vue";
 
 /**
  * A full-featured calendar component built on CalendarRoot with optional month/year navigation dropdowns.
@@ -28,6 +29,7 @@ import { computed, toRaw } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the calendar root. */
     class: { type: [String, Array, Object], default: undefined },
@@ -82,9 +84,10 @@ const emits = defineEmits({
     "update:placeholder": null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "layout", "placeholder", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "layout", "placeholder", "themeOverride");
 
 const theme = useTheme("Calendar", props);
+useIconsOverride(toRef(props, "iconOverride"));
 
 const placeholder = useVModel(props, "placeholder", emits, {
     passive: true,
@@ -183,12 +186,8 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
     >
         <CalendarHeader class="pt-0">
             <nav class="flex items-center gap-1 absolute top-0 inset-x-0 justify-between">
-                <CalendarPrevButton>
-                    <slot name="calendar-prev-icon" />
-                </CalendarPrevButton>
-                <CalendarNextButton>
-                    <slot name="calendar-next-icon" />
-                </CalendarNextButton>
+                <CalendarPrevButton />
+                <CalendarNextButton />
             </nav>
 
             <slot name="calendar-heading" :date="date" :month="ReuseMonthTemplate" :year="ReuseYearTemplate">

@@ -491,9 +491,10 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
 ## Sonner: variant matrix
 
 Sonner is the toast container. The component supplies VUEDA colors and renders
-registered icons for its named icon slots (`success-icon`, `info-icon`,
-`warning-icon`, `error-icon`, `loading-icon`, `close-icon`). Consumers can
-override any slot with an icon component.
+registry-backed icons for success, info, warning, error, loading, and close
+states. Consumers can override those icons with `setIcons()` or per-instance
+`iconOverride`; Sonner uses the `check`, `info`, `triangleExclamation`, `close`,
+and `loading` registry keys.
 Toasts read against the popover surface, the same one used by Popover and
 HoverCard, so re-toning the popover token shifts all three in lockstep.
 
@@ -595,7 +596,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
       </div>
     </div>
     <template #footer>
-      <span>slot names <code>success-icon</code>, <code>info-icon</code>, <code>warning-icon</code>, <code>error-icon</code>, <code>loading-icon</code>, <code>close-icon</code></span>
+      <span>registry keys <code>check</code>, <code>info</code>, <code>triangleExclamation</code>, <code>close</code>, <code>loading</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>

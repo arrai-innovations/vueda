@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/navigation/PaginationEllipsis.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { PaginationEllipsis } from "reka-ui";
@@ -11,6 +11,7 @@ import { PaginationEllipsis } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -24,8 +25,8 @@ const props = defineProps({
 });
 
 const theme = useTheme("PaginationEllipsis", props);
-const icon = useIcons("PaginationEllipsis");
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const icon = useIcons("PaginationEllipsis", props);
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 </script>
 
 <template>

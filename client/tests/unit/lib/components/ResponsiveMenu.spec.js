@@ -44,7 +44,7 @@ vi.mock("@vueda/shell/dialog/DialogContent.vue", () => ({ default: PassThroughSt
 vi.mock("@vueda/shell/dialog/DialogHeader.vue", () => ({ default: PassThroughStub("DialogHeaderStub") }));
 vi.mock("@vueda/shell/dialog/DialogTitle.vue", () => ({ default: PassThroughStub("DialogTitleStub") }));
 vi.mock("@vueda/shell/dialog/DialogTrigger.vue", () => ({ default: PassThroughStub("DialogTriggerStub") }));
-vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
+vi.mock("@vueda/use/useIcons.js", () => ({ ICON_OVERRIDE_PROPS: {}, useIcons: () => () => null }));
 
 vi.mock("@vueuse/core", async (importOriginal) => {
     const actual = await importOriginal();

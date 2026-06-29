@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/navigation/ContextMenuSubTrigger.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { ContextMenuSubTrigger, useForwardProps } from "reka-ui";
@@ -11,6 +11,7 @@ import { ContextMenuSubTrigger, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -29,10 +30,10 @@ const props = defineProps({
     inset: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride", "inset");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride", "inset");
 const forwardedProps = useForwardProps(delegatedProps);
 const theme = useTheme("ContextMenuSubTrigger", props);
-const icon = useIcons("ContextMenuSubTrigger");
+const icon = useIcons("ContextMenuSubTrigger", props);
 </script>
 
 <template>
@@ -44,13 +45,12 @@ const icon = useIcons("ContextMenuSubTrigger");
         :style="theme.hideStyle?.value"
     >
         <slot />
-        <span :class="theme('iconWrapper')" aria-hidden="true"
-            ><slot name="icon">
-                <component
-                    :is="icon('chevronRight').component"
-                    v-if="icon('chevronRight')"
-                    v-bind="icon('chevronRight').props"
-                /> </slot
-        ></span>
+        <span :class="theme('iconWrapper')" aria-hidden="true">
+            <component
+                :is="icon('chevronRight').component"
+                v-if="icon('chevronRight')"
+                v-bind="icon('chevronRight').props"
+            />
+        </span>
     </ContextMenuSubTrigger>
 </template>

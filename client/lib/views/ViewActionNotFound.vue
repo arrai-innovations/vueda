@@ -6,7 +6,7 @@ import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import "@vueda/theme/vueda-tailwind/views/ViewActionNotFound.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
@@ -27,6 +27,7 @@ import { useRoute, useRouter } from "vue-router";
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Extra rows appended to the `DiagnosticStrip` (after the route row).
@@ -50,7 +51,7 @@ if (!inject(LookupContextSymbol, null)) {
 }
 
 const theme = useTheme("ViewActionNotFound", props);
-const icon = useIcons("ViewActionNotFound");
+useIconsOverride(toRef(props, "iconOverride"));
 
 const findClosestMatch = (input, options) => {
     let bestMatch = null;
@@ -120,15 +121,12 @@ function handleBrowse() {
 
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-action-not-found-root">
-        <system-message-card tone="info" data-qa="view-action-not-found-card">
-            <template #crest-icon>
-                <component
-                    :is="icon('actionNotFound').component"
-                    v-if="icon('actionNotFound')"
-                    v-bind="icon('actionNotFound').props"
-                    aria-hidden="true"
-                />
-            </template>
+        <system-message-card
+            tone="info"
+            icon-name="actionNotFound"
+            :icon-override="props.iconOverride"
+            data-qa="view-action-not-found-card"
+        >
             <template #crest-eyebrow>Action not found</template>
             <template #crest-kind>{{ actionKey }}</template>
             <template #crest-code>404</template>

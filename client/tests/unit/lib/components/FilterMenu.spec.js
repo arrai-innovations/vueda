@@ -51,7 +51,7 @@ vi.mock("@vueda/components/ResponsiveMenu.vue", () => ({ default: ResponsiveMenu
 vi.mock("@vueda/components/FieldPickerMenuList.vue", () => ({ default: FieldPickerMenuListStub }));
 vi.mock("@vueda/components/FilterFieldForm.vue", () => ({ default: FilterFieldFormStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
+vi.mock("@vueda/use/useIcons.js", () => ({ ICON_OVERRIDE_PROPS: {}, useIcons: () => () => null }));
 
 const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "t" });

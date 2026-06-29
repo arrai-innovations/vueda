@@ -1,6 +1,19 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
+import { setIcons } from "@vueda/use/useIcons.js";
+import { defineComponent, h } from "vue";
+
+const IconStub = defineComponent({
+    name: "SystemMessageCardIconStub",
+    setup(_, { attrs }) {
+        return () => h("i", { "data-qa": "registry-icon", ...attrs });
+    },
+});
+
+afterEach(() => {
+    setIcons({});
+});
 
 describe("lib/components/SystemMessageCard.vue", () => {
     describe("root element", () => {
@@ -36,11 +49,18 @@ describe("lib/components/SystemMessageCard.vue", () => {
             expect(wrapper.find('[data-qa="system-message-card-crest-icon"]').exists()).toBe(true);
         });
 
-        scopedIt("renders crest-icon slot content inside the icon tile", () => {
-            const wrapper = mount(SystemMessageCard, {
-                slots: { "crest-icon": '<span data-qa="my-icon">X</span>' },
+        scopedIt("renders iconName through the icon registry inside the icon tile", () => {
+            setIcons({
+                Default: {
+                    notFound: { component: IconStub, props: { "data-default": "yes" } },
+                },
             });
-            expect(wrapper.find('[data-qa="my-icon"]').exists()).toBe(true);
+            const wrapper = mount(SystemMessageCard, {
+                props: { iconName: "notFound", iconProps: { "data-local": "yes" } },
+            });
+            const icon = wrapper.get('[data-qa="registry-icon"]');
+            expect(icon.attributes("data-default")).toBe("yes");
+            expect(icon.attributes("data-local")).toBe("yes");
         });
 
         scopedIt("renders the crest-eyebrow slot when provided", () => {

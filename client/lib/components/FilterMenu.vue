@@ -3,7 +3,7 @@ import FieldPickerMenuList from "@vueda/components/FieldPickerMenuList.vue";
 import FilterFieldForm from "@vueda/components/FilterFieldForm.vue";
 import ResponsiveMenu from "@vueda/components/ResponsiveMenu.vue";
 import "@vueda/theme/vueda-tailwind/form/FilterMenu.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, ref, useSlots, watch } from "vue";
 
@@ -18,6 +18,7 @@ import { computed, ref, useSlots, watch } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Valid filterable field names (those with a `typeFilter`). */
     filterables: {
@@ -81,7 +82,7 @@ watch(open, (isOpen) => {
 });
 
 const theme = useTheme("FilterMenu", props);
-const icon = useIcons("FilterMenu");
+const icon = useIcons("FilterMenu", props);
 const slots = useSlots();
 </script>
 

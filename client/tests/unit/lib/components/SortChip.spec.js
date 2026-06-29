@@ -10,7 +10,7 @@ vi.mock("@vueda/use/useTheme.js", () => ({
     mergeTheme: (...themes) => Object.assign({}, ...themes),
 }));
 // No registered icons: the SFC falls back to the unicode direction triangles and `×`.
-vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
+vi.mock("@vueda/use/useIcons.js", () => ({ ICON_OVERRIDE_PROPS: {}, useIcons: () => () => null }));
 
 let SortChip;
 

@@ -1,7 +1,7 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/navigation/DropdownMenuRadioItem.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { DropdownMenuItemIndicator, DropdownMenuRadioItem } from "reka-ui";
@@ -12,6 +12,7 @@ import { DropdownMenuItemIndicator, DropdownMenuRadioItem } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -35,10 +36,10 @@ const emits = defineEmits({
     select: null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("DropdownMenuRadioItem", props);
-const icon = useIcons("DropdownMenuRadioItem");
+const icon = useIcons("DropdownMenuRadioItem", props);
 </script>
 
 <template>

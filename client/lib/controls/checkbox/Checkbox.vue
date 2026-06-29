@@ -1,7 +1,7 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/Checkbox.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { CheckboxIndicator, CheckboxRoot } from "reka-ui";
@@ -13,6 +13,7 @@ import { CheckboxIndicator, CheckboxRoot } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the checkbox root. */
     class: { type: [String, Array, Object], default: undefined },
@@ -45,11 +46,11 @@ const emits = defineEmits({
     "update:modelValue": null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
 const theme = useTheme("Checkbox", props);
-const icon = useIcons("Checkbox");
+const icon = useIcons("Checkbox", props);
 </script>
 
 <template>

@@ -57,6 +57,16 @@ import {
     faHandshake,
     faRectangleList,
 } from "@fortawesome/free-regular-svg-icons";
+import { markRaw } from "vue";
+
+const sidebarTriggerIconOverride = {
+    SidebarTrigger: {
+        toggle: {
+            component: markRaw(FontAwesomeIcon),
+            props: { icon: faRectangleList },
+        },
+    },
+};
 </script>
 
 # Sidebar
@@ -92,11 +102,7 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
               <img src="/assets/logo-cube-solid.svg" alt="" class="h-5 w-5 shrink-0" />
               <span class="font-semibold text-sm tracking-tight">vueda</span>
             </a>
-            <SidebarTrigger>
-              <template #icon>
-                <FontAwesomeIcon :icon="faRectangleList" />
-              </template>
-            </SidebarTrigger>
+            <SidebarTrigger :icon-override="sidebarTriggerIconOverride" />
           </div>
           <SidebarInput placeholder="Search…" type="search" />
         </SidebarHeader>
@@ -645,18 +651,14 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
         </template>
       </DemoCard>
       <DemoCard title="SidebarTrigger">
-        <p class="text-xs text-muted-foreground">28 px ghost · default icon is Unicode placeholder ◫ · override via <code>#icon</code> slot</p>
+        <p class="text-xs text-muted-foreground">28 px ghost · icon from registry · override via <code>iconOverride</code></p>
         <div class="rounded-vueda-card border border-border bg-sidebar p-2 flex items-center gap-2">
           <SidebarTrigger />
-          <SidebarTrigger>
-            <template #icon>
-              <FontAwesomeIcon :icon="faRectangleList" />
-            </template>
-          </SidebarTrigger>
+          <SidebarTrigger :icon-override="sidebarTriggerIconOverride" />
         </div>
         <template #footer>
-          <span>left: default Unicode ◫ glyph</span>
-          <span>right: <code>fa-regular fa-rectangle-list</code> via #icon slot</span>
+          <span>left: registry default</span>
+          <span>right: <code>fa-regular fa-rectangle-list</code> via <code>iconOverride</code></span>
           <span>h-7 w-7 ghost button</span>
         </template>
       </DemoCard>

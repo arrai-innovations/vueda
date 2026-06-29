@@ -8,7 +8,7 @@ import InputOTPSlot from "@vueda/controls/input-otp/InputOTPSlot.vue";
 import FormField from "@vueda/fields/FormField.vue";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewTwoFactorAuth.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
@@ -25,7 +25,7 @@ import { toast } from "vue-sonner";
  */
 defineOptions({});
 
-const props = defineProps({ ...THEME_OVERRIDE_PROPS });
+const props = defineProps({ ...THEME_OVERRIDE_PROPS, ...ICON_OVERRIDE_PROPS });
 
 const formProps = reactive({
     initialValues: {
@@ -110,7 +110,7 @@ watch([isActive, toRef(userStore, "loggedIn")], async ([newActive, newloggedIn])
     }
 });
 const theme = useTheme("ViewTwoFactorAuth", props);
-const icon = useIcons("ViewTwoFactorAuth");
+const icon = useIcons("ViewTwoFactorAuth", props);
 const sendCodeMethods = ["sms", "email"];
 const toggleRecovery = () => {
     useRecoveryCode.value = !useRecoveryCode.value;

@@ -7,7 +7,7 @@ import ObjectsGridCardCell from "@vueda/components/ObjectsGridCardCell.vue";
 import ObjectsGridCardCellSkeleton from "@vueda/components/ObjectsGridCardCellSkeleton.vue";
 import ObjectsGridTableHeader from "@vueda/components/ObjectsGridTableHeader.vue";
 import "@vueda/theme/vueda-tailwind/objects-grid/ObjectsGrid.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
@@ -16,12 +16,13 @@ import { computed, effectScope, onMounted, reactive, toRef, useSlots, watch } fr
 
 /**
  * Renders a list of objects as either a table or a card grid depending on the
- * current breakpoint. Supports sorting, skeleton loading rows, field-level slot
- * overrides, and per-field class customization.
+ * current breakpoint. Supports skeleton loading rows, field-level slot overrides,
+ * and per-field class customization.
  */
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     /** Ordered array of row objects to render. */
     objectsInOrder: {
         type: Array,
@@ -142,7 +143,7 @@ onMounted(() => {
     emit("update:isTable", isTable.value);
 });
 
-const icons = useIcons("ObjectsGrid");
+const icons = useIcons("ObjectsGrid", props);
 const emptyIconEntry = computed(() => icons(props.emptyVariant));
 
 const themeContext = reactive({

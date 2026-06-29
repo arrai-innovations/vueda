@@ -7,7 +7,7 @@ import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewRecoveryCodes.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
@@ -22,7 +22,7 @@ import { toast } from "vue-sonner";
  */
 defineOptions({});
 
-const props = defineProps({ ...THEME_OVERRIDE_PROPS });
+const props = defineProps({ ...THEME_OVERRIDE_PROPS, ...ICON_OVERRIDE_PROPS });
 
 const userStore = storeUser();
 const isActive = useIsActive();
@@ -74,7 +74,7 @@ const goToSetupDevice = async () => {
 
 const { copied, copy } = useClipboard();
 const theme = useTheme("ViewRecoveryCodes", props);
-const icon = useIcons("ViewRecoveryCodes");
+const icon = useIcons("ViewRecoveryCodes", props);
 </script>
 
 <template>

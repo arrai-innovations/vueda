@@ -60,11 +60,10 @@ vi.mock("vue", async () => {
 // verify the composition without rendering the primitives.
 const SystemMessageCardStub = defineComponent({
     name: "SystemMessageCardStub",
-    props: { tone: String },
+    props: { tone: String, iconName: String, iconOverride: Object },
     setup(props, { slots }) {
         return () =>
-            h("div", { "data-qa": "system-message-card", "data-tone": props.tone }, [
-                slots["crest-icon"]?.(),
+            h("div", { "data-qa": "system-message-card", "data-tone": props.tone, "data-icon-name": props.iconName }, [
                 slots["crest-eyebrow"]?.(),
                 slots["crest-kind"]?.(),
                 slots["crest-code"]?.(),
@@ -147,6 +146,19 @@ describe("lib/views/ViewActionNotFound.vue", () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewActionNotFound);
             expect(wrapper.findComponent(SystemMessageCardStub).props("tone")).toBe("info");
+        });
+
+        scopedIt("passes the actionNotFound icon name to SystemMessageCard", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewActionNotFound);
+            expect(wrapper.findComponent(SystemMessageCardStub).props("iconName")).toBe("actionNotFound");
+        });
+
+        scopedIt("passes iconOverride through to SystemMessageCard", () => {
+            mockedInject.mockReturnValueOnce({});
+            const iconOverride = { Default: {} };
+            const wrapper = mount(ViewActionNotFound, { props: { iconOverride } });
+            expect(wrapper.findComponent(SystemMessageCardStub).props("iconOverride")).toEqual(iconOverride);
         });
 
         scopedIt("renders the 404 status code in the crest", () => {

@@ -2,7 +2,7 @@
 import DialogOverlay from "./DialogOverlay.vue";
 import "@vueda/theme/vueda-tailwind/shell/DialogContent.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { DialogClose, DialogContent, DialogPortal } from "reka-ui";
@@ -16,6 +16,7 @@ defineOptions({
 });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -46,11 +47,11 @@ const emits = defineEmits({
     interactOutside: null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "fullScreen", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "fullScreen", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("DialogContent", props, reactive({ fullScreen: toRef(props, "fullScreen") }));
-const icon = useIcons("DialogContent");
+const icon = useIcons("DialogContent", props);
 </script>
 
 <template>
@@ -65,15 +66,12 @@ const icon = useIcons("DialogContent");
             <slot />
 
             <DialogClose v-if="showCloseButton" data-slot="dialog-close" :class="theme('close')">
-                <!-- Replaces the close-button icon; receives no slot props. -->
-                <slot name="close-icon">
-                    <component
-                        :is="icon('close').component"
-                        v-if="icon('close')"
-                        v-bind="icon('close').props"
-                        aria-hidden="true"
-                    />
-                </slot>
+                <component
+                    :is="icon('close').component"
+                    v-if="icon('close')"
+                    v-bind="icon('close').props"
+                    aria-hidden="true"
+                />
                 <span class="sr-only">Close</span>
             </DialogClose>
         </DialogContent>

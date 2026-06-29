@@ -248,6 +248,8 @@ Complete type annotations also position the codebase for future `.d.ts` generati
 
 - Wrap all test files in a root `describe("<source file path>", ...)` block (e.g. `describe("lib/components/ActionForm.vue", ...)`) to clearly associate tests with their source. This improves readability, traceability in CI, and allows behavioral grouping inside without losing context.
 
+- If a spec intentionally covers a set of source files, use a source-like pseudo-glob in the root `describe(...)` block (e.g. `describe("lib/**/*.vue", ...)`). Put the contract or behavior name in a nested `describe(...)` block.
+
 - Group related tests with `describe(...)` blocks that reflect **behavioral responsibilities**, not implementation details (e.g. `"Confirm flow"` or `"Rendering with slots"`).
 
 ---

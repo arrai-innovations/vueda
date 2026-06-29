@@ -12,9 +12,11 @@ import RangeCalendarNextButton from "./RangeCalendarNextButton.vue";
 import RangeCalendarPrevButton from "./RangeCalendarPrevButton.vue";
 import "@vueda/theme/vueda-tailwind/controls/RangeCalendar.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { RangeCalendarRoot } from "reka-ui";
+import { toRef } from "vue";
 
 /**
  * A full-featured date range calendar built on RangeCalendarRoot.
@@ -23,6 +25,7 @@ import { RangeCalendarRoot } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Additional CSS classes to apply to the calendar root. */
     class: { type: [String, Array, Object], default: undefined },
@@ -79,11 +82,12 @@ const emits = defineEmits({
     "update:placeholder": null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 
 const theme = useTheme("RangeCalendar", props);
+useIconsOverride(toRef(props, "iconOverride"));
 </script>
 
 <template>

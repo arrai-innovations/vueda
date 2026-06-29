@@ -10,7 +10,7 @@ import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
 import { keepOpenOverNestedPopper } from "@vueda/shell/popover/keepOpenOverNestedPopper.js";
 import "@vueda/theme/vueda-tailwind/display/ResponsiveMenu.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { useBreakpoints } from "@vueuse/core";
@@ -31,6 +31,7 @@ import { computed } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Icon-registry key for the leading trigger glyph (e.g. `"sort"`, `"filter"`). */
     icon: {
@@ -77,7 +78,7 @@ const isMobile = breakpoints.smaller("md");
 const heading = computed(() => props.title ?? props.label);
 
 const theme = useTheme("ResponsiveMenu", props);
-const icons = useIcons("ResponsiveMenu");
+const icons = useIcons("ResponsiveMenu", props);
 </script>
 
 <template>

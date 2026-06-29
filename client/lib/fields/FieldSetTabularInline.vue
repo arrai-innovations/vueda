@@ -12,7 +12,7 @@ import {
     FIELD_SET_TABULAR_INLINE_PROPS,
     useFieldSetTabularInline,
 } from "@vueda/use/useFieldSetTabularInline.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import omit from "lodash-es/omit.js";
 import { computed, watch } from "vue";
@@ -29,7 +29,7 @@ const logger = useDevLogger();
 defineOptions({
     inheritAttrs: false,
 });
-const props = defineProps(FIELD_SET_TABULAR_INLINE_PROPS);
+const props = defineProps({ ...FIELD_SET_TABULAR_INLINE_PROPS, ...ICON_OVERRIDE_PROPS });
 const emit = defineEmits([...FIELD_SET_TABULAR_INLINE_EMITS]);
 const fieldSetTabularInline = useFieldSetTabularInline({
     props,
@@ -48,7 +48,7 @@ const fieldSetTabularInline = useFieldSetTabularInline({
         "empty-state",
     ],
 });
-const icon = useIcons("FieldSetTabularInline");
+const icon = useIcons("FieldSetTabularInline", props);
 
 const hasChoresContent = computed(
     () =>

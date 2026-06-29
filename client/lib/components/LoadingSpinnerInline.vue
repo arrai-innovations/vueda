@@ -1,13 +1,15 @@
 <script setup>
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 
 /**
  * Renders the configured inline loading icon. The icon entry is resolved from
- * `useIcons("LoadingSpinnerInline")`, falling back to `Default.loading`.
+ * `useIcons("LoadingSpinnerInline", props)`, falling back to `Default.loading`.
  */
 defineOptions({});
 
-const icon = useIcons("LoadingSpinnerInline");
+const props = defineProps({ ...ICON_OVERRIDE_PROPS });
+
+const icon = useIcons("LoadingSpinnerInline", props);
 </script>
 
 <template>

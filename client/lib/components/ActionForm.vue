@@ -6,7 +6,7 @@ import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/views/ActionForm.theme.js";
 import { useActionForm } from "@vueda/use/useActionForm.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -25,6 +25,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     /**
      * Function to execute the action.
      * @param {Object} options - Action execution options
@@ -102,7 +103,7 @@ const formContext = inject(FormContextSymbol);
 const { combinedError, combinedErrored, combinedLoading, confirmation, handleConfirm, handleCancelClick } =
     useActionForm(formContext, props);
 const theme = useTheme("ActionForm", props);
-const icon = useIcons("ActionForm");
+const icon = useIcons("ActionForm", props);
 
 /**
  * Per-field validation entries derived from `formContext.state.errors`.
@@ -161,19 +162,12 @@ const validationTitle = computed(() => {
                     :title="validationTitle"
                 >
                     <div :class="theme('validation')" role="alert" data-tone="danger" data-qa="action-form-validation">
-                        <div
-                            v-if="$slots['validation-icon'] || icon('triangleExclamation')"
-                            :class="theme('validationIcon')"
-                            aria-hidden="true"
-                        >
-                            <!-- @slot [validation-icon] Replaces the icon shown in the validation alert. -->
-                            <slot name="validation-icon">
-                                <component
-                                    :is="icon('triangleExclamation').component"
-                                    v-bind="icon('triangleExclamation').props"
-                                    aria-hidden="true"
-                                />
-                            </slot>
+                        <div v-if="icon('triangleExclamation')" :class="theme('validationIcon')" aria-hidden="true">
+                            <component
+                                :is="icon('triangleExclamation').component"
+                                v-bind="icon('triangleExclamation').props"
+                                aria-hidden="true"
+                            />
                         </div>
                         <div :class="theme('validationBody')">
                             <div :class="theme('validationTitle')" data-qa="action-form-validation-title">

@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/display/SortChip.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { parseSortField } from "@vueda/utils/sortedFields.js";
@@ -18,6 +18,7 @@ import { computed, reactive, toRef } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Sort entry to render, e.g. `"updated"` (ascending) or `"-updated"` (descending). */
     field: {
@@ -57,7 +58,7 @@ const descending = computed(() => parsed.value.descending);
 const label = computed(() => props.fieldDetails?.[base.value]?.label || memoizedStartCase(base.value));
 
 const theme = useTheme("SortChip", props, reactive({ showOrdinal: toRef(props, "showOrdinal") }));
-const icon = useIcons("SortChip");
+const icon = useIcons("SortChip", props);
 </script>
 
 <template>
@@ -95,17 +96,14 @@ const icon = useIcons("SortChip");
             @click="emit('toggle')"
         >
             <span :class="theme('field')">{{ label }}</span>
-            <!-- @slot Override the direction glyph. Receives `field`, `base`, `descending`, and `ascending`. -->
-            <slot name="sort-icon" :field="field" :base="base" :descending="descending" :ascending="!descending">
-                <component
-                    :is="icon('sortDown').component"
-                    v-if="icon('sortDown')"
-                    v-bind="icon('sortDown').props"
-                    :class="[theme('direction'), { 'rotate-180': !descending }]"
-                    aria-hidden="true"
-                />
-                <span v-else :class="theme('direction')" aria-hidden="true">{{ descending ? "↓" : "↑" }}</span>
-            </slot>
+            <component
+                :is="icon('sortDown').component"
+                v-if="icon('sortDown')"
+                v-bind="icon('sortDown').props"
+                :class="[theme('direction'), { 'rotate-180': !descending }]"
+                aria-hidden="true"
+            />
+            <span v-else :class="theme('direction')" aria-hidden="true">{{ descending ? "↓" : "↑" }}</span>
         </button>
         <span :class="theme('divider')" aria-hidden="true" />
         <button
