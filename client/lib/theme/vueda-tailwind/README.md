@@ -577,6 +577,44 @@ VUEDA-original primitives (net-new, no shadcn lineage) include the
 `TriedUrlCallout`. Per-primitive behaviour and slot contracts are in
 the auto-generated reference.
 
+### 9.2 Button tone and emphasis: placement vs meaning
+
+Button resolves on two axes (`tone`: `neutral` / `primary` / `destructive`;
+`emphasis`: `fill` / `outline` / `ghost` / `link`). They answer two
+independent questions, and the canon keeps them independent:
+
+- **emphasis is placement.** How loud the control is and what chrome it sits
+  in. `fill` is the one earned action in a context (form submit, dialog
+  confirm, page-title hero); `outline` is a genuine alternative that still
+  deserves a chip (secondary form action, toolbar trigger, pagination,
+  error-recovery retry); `ghost` is a dismiss or a dense-strip action (cancel,
+  clear, bulk-bar actions); `link` is inline within running prose only.
+- **tone is meaning, set once.** A delete reads `destructive` whether it is a
+  page hero or a quiet row glyph; the tone does not change as the action moves
+  between contexts, only the emphasis does. `neutral` is the resting default,
+  so a bare `<Button>` is a neutral fill, not a CTA.
+- **`primary` is the one earned action.** Exactly one control per context
+  carries the accent. Promotion sets `emphasis` to `fill` and lifts a neutral
+  action's tone to `primary`; a promoted destructive action stays a
+  `destructive` fill. This is the §2.2 rule (`--primary` is the CTA, not a
+  passive surface) expressed on the control: do not spread `primary` across a
+  cluster.
+
+Mark a destructive action with `tone="destructive"`, never a one-off
+`text-destructive` class: the tone composes the matching `_ButtonDestructive*`
+primitive for whichever emphasis the placement chose (a destructive ghost for a
+row glyph, a destructive fill for a confirm hero), so the hover / active steps
+and focus ring come through with it.
+
+For model-action buttons this resolves at one chokepoint: `LinkModelView`
+reads the action's intrinsic tone (delete / destroy → `destructive`, else
+`neutral`, overridable via `actionDetail.tone`), applies the placement
+`emphasis` the view passes, and promotes the view's hero action to a fill (see
+`utils/actionVariant.js`). Hand-authored buttons should follow the same
+placement-to-axis mapping so resolved and hand-placed buttons read
+identically; the full placement table lives in the buttons reference
+(`docs/reference/components/buttons.md`).
+
 ## 10. Copy voice
 
 The voice is **terse, factual, operator-first.** Cockpit placards, not
