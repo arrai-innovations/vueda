@@ -106,7 +106,8 @@ describe("lib/navigation/pagination/Pagination.vue", () => {
 
         scopedIt("applies outline button classes", () => {
             const wrapper = mount(PaginationFirst);
-            expect(wrapper.classes()).toContain("border");
+            expect(wrapper.classes()).toContain("hairline");
+            expect(wrapper.classes()).toContain("hairline-foreground");
             expect(wrapper.classes()).toContain("bg-background");
         });
 
