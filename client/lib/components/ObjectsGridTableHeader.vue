@@ -4,7 +4,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, reactive } from "vue";
 
 /**
- * Renders a column header cell in the table-layout view of ObjectsGrid, showing the field label and an optional sort direction indicator.
+ * Renders a column header cell in the table-layout view of ObjectsGrid, showing the field label.
  */
 defineOptions({});
 
@@ -25,27 +25,7 @@ const props = defineProps({
         type: Number,
         required: true,
     },
-    /** Whether this column can be sorted by clicking the header. */
-    sortable: {
-        type: Boolean,
-        default: false,
-    },
-    /** Whether the current sort order for this column is ascending. */
-    ascending: {
-        type: Boolean,
-        default: false,
-    },
-    /** Whether the current sort order for this column is descending. */
-    descending: {
-        type: Boolean,
-        default: false,
-    },
-    /** Zero-based sort priority index when multiple columns are sorted simultaneously; `-1` means not part of a multi-sort. */
-    multiSortIndex: {
-        type: Number,
-        default: undefined,
-    },
-    /** Additional props forwarded to the `label` and `sort-icon` slots. */
+    /** Additional props forwarded to the `label` slot. */
     fieldProps: {
         type: Object,
         default: () => ({}),
@@ -79,33 +59,6 @@ const uniqueKeyForSlot = computed(() =>
             >
                 {{ field.label }}
             </slot>
-        </span>
-        <span v-if="sortable" :class="theme('sortIcon')" data-qa="objects-grid-table-header-sort-icon">
-            <!-- Sort direction icon; receives `ascending`, `columnIndex`, `columnCount`, `descending`, `field`, `isTableLayout`, `isCardLayout`, and any `fieldProps` as slot props. -->
-            <slot
-                :key="uniqueKeyForSlot"
-                :ascending="ascending"
-                :column-index="columnIndex"
-                :column-count="columnCount"
-                :descending="descending"
-                :field="field"
-                :is-table-layout="true"
-                :is-card-layout="false"
-                name="sort-icon"
-                v-bind="fieldProps"
-            >
-                <!-- iconless text, screams to integrators to provide an icon -->
-                <template v-if="ascending">⬆️</template>
-                <template v-else-if="descending">⬇️</template>
-                <template v-else>↕️</template>
-            </slot>
-            <span
-                v-if="multiSortIndex !== -1"
-                :class="theme('multiSortNumber')"
-                data-qa="objects-grid-table-header-multi-sort-number"
-            >
-                {{ multiSortIndex + 1 }}
-            </span>
         </span>
     </div>
 </template>

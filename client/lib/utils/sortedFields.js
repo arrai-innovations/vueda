@@ -4,7 +4,8 @@
  * names where a leading `-` marks descending order (e.g. `["-updated", "mrr"]` is Updated
  * descending, then MRR ascending). This is the single home for the `-` prefix convention and
  * the add / remove / toggle edit operations, shared by the sort surfaces (column-header
- * sorting in `ObjectsGrid` and the `SortEditor` multi-field editor) so they cannot drift.
+ * sorting in `ObjectsGrid`, the `SortControl` add menu, and the `SortGroup` chips) so they
+ * cannot drift.
  *
  * A given base field appears at most once in a sort order, so edits are keyed by base field
  * name rather than by array position. Every function is non-mutating and returns a fresh array.

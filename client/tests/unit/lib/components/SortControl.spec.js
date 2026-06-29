@@ -2,87 +2,45 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, ref } from "vue";
 
-const { isMobileState } = await vi.hoisted(async () => {
-    const { ref: vueRef } = await import("vue");
-    return { isMobileState: vueRef(false) };
-});
-
-const PassThroughStub = (name) =>
-    defineComponent({
-        name,
-        inheritAttrs: false,
-        setup(_, { slots, attrs }) {
-            return () => h("div", { ...attrs }, slots.default ? slots.default() : null);
-        },
-    });
-
-const ButtonStub = defineComponent({
-    name: "ButtonStub",
-    inheritAttrs: false,
-    emits: ["click"],
-    setup(_, { emit, slots, attrs }) {
-        return () => h("button", { ...attrs, onClick: () => emit("click") }, slots.default ? slots.default() : null);
+// The responsive shell and the field list are tested in their own specs; here we
+// stub them and verify SortControl's own job: mapping sortables to add-options and
+// appending the picked field.
+const ResponsiveMenuStub = defineComponent({
+    name: "ResponsiveMenuStub",
+    props: ["icon", "label", "title", "triggerTarget", "triggerQa", "contentQa"],
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "responsive-menu" }, slots.default ? slots.default() : null);
     },
 });
 
-const SortEditorStub = defineComponent({
-    name: "SortEditorStub",
-    props: ["sortables", "sorted", "fieldDetails"],
-    emits: ["update:sorted"],
-    setup(_, { slots }) {
-        // Render every provided slot (default + named) so forwarded body slots are observable.
+const FieldPickerMenuListStub = defineComponent({
+    name: "FieldPickerMenuListStub",
+    props: ["items", "eyebrow", "emptyText", "itemIcon", "qa"],
+    emits: ["pick"],
+    setup(props, { emit }) {
         return () =>
             h(
                 "div",
-                { "data-qa": "sort-editor" },
-                Object.values(slots).map((slotFn) => slotFn()),
+                { "data-qa": "field-picker", "data-empty": props.emptyText },
+                props.items.map((opt) =>
+                    h("button", { "data-qa": `${props.qa}-item`, onClick: () => emit("pick", opt.value) }, opt.label),
+                ),
             );
     },
 });
 
-const DialogStub = defineComponent({
-    name: "DialogStub",
-    inheritAttrs: false,
-    props: ["open"],
-    emits: ["update:open"],
-    setup(_, { slots, attrs }) {
-        return () => h("div", { ...attrs }, slots.default ? slots.default() : null);
-    },
-});
-
-vi.mock("@vueda/components/SortEditor.vue", () => ({ default: SortEditorStub }));
-vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/shell/popover/Popover.vue", () => ({ default: PassThroughStub("PopoverStub") }));
-vi.mock("@vueda/shell/popover/PopoverContent.vue", () => ({ default: PassThroughStub("PopoverContentStub") }));
-vi.mock("@vueda/shell/popover/PopoverTrigger.vue", () => ({ default: PassThroughStub("PopoverTriggerStub") }));
-vi.mock("@vueda/shell/dialog/Dialog.vue", () => ({ default: DialogStub }));
-vi.mock("@vueda/shell/dialog/DialogContent.vue", () => ({ default: PassThroughStub("DialogContentStub") }));
-vi.mock("@vueda/shell/dialog/DialogHeader.vue", () => ({ default: PassThroughStub("DialogHeaderStub") }));
-vi.mock("@vueda/shell/dialog/DialogTitle.vue", () => ({ default: PassThroughStub("DialogTitleStub") }));
-vi.mock("@vueda/shell/dialog/DialogTrigger.vue", () => ({ default: PassThroughStub("DialogTriggerStub") }));
-vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
-
-vi.mock("@vueuse/core", async (importOriginal) => {
-    const actual = await importOriginal();
-    return { ...actual, useBreakpoints: () => ({ smaller: () => isMobileState }) };
-});
-
-const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
-const mockedUseTheme = makeUseThemeMock({ slotResolver: (key) => key });
-vi.mock("@vueda/use/useTheme.js", () => ({
-    useTheme: mockedUseTheme,
-    THEME_OVERRIDE_PROPS: {},
-}));
+vi.mock("@vueda/components/ResponsiveMenu.vue", () => ({ default: ResponsiveMenuStub }));
+vi.mock("@vueda/components/FieldPickerMenuList.vue", () => ({ default: FieldPickerMenuListStub }));
 
 let SortControl;
 
 beforeEach(async () => {
-    isMobileState.value = false;
     SortControl = (await import("@vueda/components/SortControl.vue")).default;
 });
 
 afterEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
 });
 
 function mountControl(options = {}) {
@@ -98,94 +56,43 @@ function mountControl(options = {}) {
             },
             ...options.props,
         },
-        slots: options.slots,
     });
     return { wrapper };
 }
 
 describe("lib/components/SortControl.vue", () => {
-    scopedIt("renders the popover shell on desktop and not the dialog", () => {
-        isMobileState.value = false;
+    scopedIt("presents the add-field list inside the responsive menu", () => {
         const { wrapper } = mountControl();
-
-        expect(wrapper.findComponent({ name: "PopoverStub" }).exists()).toBe(true);
-        expect(wrapper.findComponent({ name: "DialogStub" }).exists()).toBe(false);
+        expect(wrapper.findComponent(ResponsiveMenuStub).exists()).toBe(true);
+        expect(wrapper.findComponent(ResponsiveMenuStub).props("triggerQa")).toBe("sort-control-trigger");
+        expect(wrapper.findComponent(FieldPickerMenuListStub).exists()).toBe(true);
     });
 
-    scopedIt("renders the full-screen dialog shell on mobile and not the popover", () => {
-        isMobileState.value = true;
-        const { wrapper } = mountControl();
-
-        expect(wrapper.findComponent({ name: "DialogStub" }).exists()).toBe(true);
-        expect(wrapper.findComponent({ name: "PopoverStub" }).exists()).toBe(false);
-        expect(wrapper.find('[data-qa="sort-control-dialog-body"]').classes()).toContain("dialogBody");
-        expect(wrapper.findComponent({ name: "DialogContentStub" }).classes()).toContain("dialog");
-        expect(wrapper.findComponent({ name: "DialogHeaderStub" }).classes()).toContain("dialogHeader");
-    });
-
-    scopedIt("shows the active-sort count badge only when sorts are applied", () => {
-        const { wrapper } = mountControl({ props: { sorted: ["name", "-created_at"] } });
-        expect(wrapper.find('[data-qa="sort-control-count"]').text()).toBe("2");
-
-        const { wrapper: empty } = mountControl({ props: { sorted: [] } });
-        expect(empty.find('[data-qa="sort-control-count"]').exists()).toBe(false);
-    });
-
-    scopedIt("teleports the trigger into the provided target element", () => {
-        const target = document.createElement("div");
-        document.body.appendChild(target);
-
-        mountControl({ props: { triggerTarget: target } });
-
-        expect(target.querySelector('[data-qa="sort-control-trigger"]')).not.toBeNull();
-
-        target.remove();
-    });
-
-    scopedIt("hosts SortEditor with the sort props forwarded", () => {
+    scopedIt("offers only the sortable fields not yet in the sort, labeled", () => {
         const { wrapper } = mountControl({
             props: {
                 sortables: ["name", "created_at", "status"],
-                sorted: ["name", "-created_at"],
-                fieldDetails: { name: { label: "Name" } },
+                sorted: ["name"],
+                fieldDetails: { created_at: { label: "Created" } },
             },
         });
-
-        const editor = wrapper.findComponent(SortEditorStub);
-        expect(editor.exists()).toBe(true);
-        expect(editor.props("sortables")).toEqual(["name", "created_at", "status"]);
-        expect(editor.props("sorted")).toEqual(["name", "-created_at"]);
-        expect(editor.props("fieldDetails")).toEqual({ name: { label: "Name" } });
+        const list = wrapper.findComponent(FieldPickerMenuListStub);
+        expect(list.props("items")).toEqual([
+            { value: "created_at", label: "Created" },
+            { value: "status", label: "Status" },
+        ]);
     });
 
-    scopedIt("re-emits update:sorted raised by the hosted SortEditor", async () => {
+    scopedIt("appends the picked field to the sort", async () => {
         const { wrapper } = mountControl({ props: { sorted: ["name"] } });
-
-        wrapper.findComponent(SortEditorStub).vm.$emit("update:sorted", ["-name"]);
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["-name"]);
+        await wrapper.findAll('[data-qa="sort-add-menu-item"]')[0].trigger("click");
+        expect(wrapper.emitted()["update:sorted"][0][0]).toEqual(["name", "created_at"]);
     });
 
-    scopedIt("opens the dialog when the mobile trigger is clicked", async () => {
-        isMobileState.value = true;
-        const { wrapper } = mountControl();
-
-        expect(wrapper.findComponent({ name: "DialogStub" }).props("open")).toBe(false);
-
-        await wrapper.find('[data-qa="sort-control-trigger"]').trigger("click");
-
-        expect(wrapper.findComponent({ name: "DialogStub" }).props("open")).toBe(true);
-    });
-
-    scopedIt("forwards body slots through to SortEditor", () => {
-        isMobileState.value = false;
-        const { wrapper } = mountControl({
-            slots: {
-                "drag-handle": () => h("span", { "data-qa": "custom-drag" }, "drag"),
-            },
-        });
-
-        expect(wrapper.find('[data-qa="custom-drag"]').exists()).toBe(true);
+    scopedIt("does not append a field already in the sort", async () => {
+        const { wrapper } = mountControl({ props: { sorted: ["name"] } });
+        // Picking a field that is already sorted is a no-op (defensive guard).
+        wrapper.findComponent(FieldPickerMenuListStub).vm.$emit("pick", "name");
+        expect(wrapper.emitted()["update:sorted"]).toBeUndefined();
     });
 });

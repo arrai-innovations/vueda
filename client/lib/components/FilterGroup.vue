@@ -19,7 +19,7 @@ import { useRoute } from "vue-router";
  * filterable fields from server configuration, renders the add-filter
  * {@api vue:component:FilterMenu} (whose trigger teleports into the toolbar) and,
  * when filters are active, a strip of removable {@api vue:component:FilterChip}s
- * plus a Clear all control. It owns the active-filter list, mirrors it to the
+ * plus a Clear filters control. It owns the active-filter list, mirrors it to the
  * `v-model` query params, and restores active filters from the URL on load.
  *
  * @vueda-slot-forward FilterFieldForm
@@ -72,6 +72,16 @@ const props = defineProps({
     triggerTarget: {
         type: [Object, String],
         default: null,
+    },
+    /**
+     * When true, the chips render as a bare subgroup (no band chrome) for
+     * hosting inside a shared {@api vue:component:ConstraintsBar}; the group
+     * keeps its own Clear filters control. When false (default), the chips
+     * render as a self-contained strip.
+     */
+    hosted: {
+        type: Boolean,
+        default: false,
     },
 });
 const emit = defineEmits(["filter-change", "hide-filter-form", "query-change"]);
@@ -198,7 +208,11 @@ defineExpose({ addedFilters });
                 <slot :name="slot" v-bind="slotProps || {}" />
             </template>
         </filter-menu>
-        <div v-if="addedFilters.length" :class="theme('strip')" data-qa="filter-group-strip">
+        <div
+            v-if="addedFilters.length"
+            :class="hosted ? theme('subgroup') : theme('strip')"
+            data-qa="filter-group-strip"
+        >
             <span :class="theme('eyebrow')">Filters</span>
             <filter-chip
                 v-for="filter in addedFilters"
@@ -214,8 +228,16 @@ defineExpose({ addedFilters });
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
             </filter-chip>
-            <Button variant="ghost" size="sm" :class="theme('clear')" data-qa="filter-clear" @click="clearFilters">
-                Clear all
+            <!-- Bulk clear only earns its place with more than one filter; a lone chip is removed by its own x. -->
+            <Button
+                v-if="addedFilters.length > 1"
+                variant="ghost"
+                size="sm"
+                :class="theme('clear')"
+                data-qa="filter-clear"
+                @click="clearFilters"
+            >
+                Clear filters
             </Button>
         </div>
         <div v-if="isFilterErrored" :class="theme('messageWrapper')">

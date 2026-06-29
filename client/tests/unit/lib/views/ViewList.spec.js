@@ -107,8 +107,8 @@ let objectsGridProps;
 let columnSlotProps = {};
 const ObjectsGridStub = defineComponent({
     name: "ObjectsGridStub",
-    props: ["fields", "sorted"],
-    emits: ["update:isTable", "update:sorted"],
+    props: ["fields"],
+    emits: ["update:isTable"],
     setup(props, { slots, attrs }) {
         objectsGridProps = props;
         return () =>
@@ -161,6 +161,23 @@ const StickyBarStub = defineComponent({
         return () => h("div", { "data-qa": "sticky-bar", ...attrs }, slots.default ? slots.default() : null);
     },
 });
+const StickyChromeStub = defineComponent({
+    name: "StickyChromeStub",
+    props: ["zone", "reveal", "order"],
+    setup(props, { slots }) {
+        return () =>
+            h(
+                "div",
+                {
+                    "data-qa": "sticky-chrome",
+                    "data-zone": props.zone,
+                    "data-reveal": props.reveal,
+                    "data-order": props.order,
+                },
+                slots.default ? slots.default() : null,
+            );
+    },
+});
 const InputGroupStub = defineComponent({
     name: "InputGroupStub",
     setup(_, { slots }) {
@@ -192,8 +209,8 @@ const InputGroupButtonStub = defineComponent({
 const ButtonStub = defineComponent({
     name: "ButtonStub",
     emits: ["click"],
-    setup(_, { emit, slots }) {
-        return () => h("button", { "data-qa": "button", onClick: () => emit("click") }, slots.default?.());
+    setup(_, { emit, slots, attrs }) {
+        return () => h("button", { "data-qa": "button", ...attrs, onClick: () => emit("click") }, slots.default?.());
     },
 });
 const CheckboxStub = defineComponent({
@@ -264,6 +281,7 @@ vi.mock("@vueda/components/SortControl.vue", () => ({ default: SortControlStub }
 vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
 vi.mock("@vueda/navigation/pagination/PaginationFooter.vue", () => ({ default: PaginationComponentStub }));
 vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
+vi.mock("@vueda/components/StickyChrome.vue", () => ({ default: StickyChromeStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/controls/checkbox/Checkbox.vue", () => ({ default: CheckboxStub }));
 vi.mock("@vueda/controls/input-group/InputGroup.vue", () => ({ default: InputGroupStub }));
@@ -630,10 +648,10 @@ describe("lib/views/ViewList.vue", () => {
                 query: { status: "active", [ORDERING_PARAM]: "field1,field2" },
             });
             expect(route.query).toEqual({ status: "active", [ORDERING_PARAM]: "field1,field2" });
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(storedSorting);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(storedSorting);
             wrapper.unmount();
         });
-        scopedIt("applies stored sorting to ObjectsGrid on mount", async () => {
+        scopedIt("applies stored sorting to the sort control on mount", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.sortables = ["created_at", "name"];
             const storedSorting = ["-created_at"];
@@ -643,7 +661,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             await vue.nextTick();
 
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(storedSorting);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(storedSorting);
             wrapper.unmount();
         });
         scopedIt("propagates sort control updates to preferences and params", async () => {
@@ -676,7 +694,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             await vue.nextTick();
 
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(["-name", "created_at"]);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-name", "created_at"]);
             expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
             expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
             wrapper.unmount();
@@ -692,7 +710,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             await vue.nextTick();
 
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual([]);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual([]);
             expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
             expect(routerReplace).not.toHaveBeenCalled();
             wrapper.unmount();
@@ -707,7 +725,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             await vue.nextTick();
 
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(["-name", "created_at"]);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-name", "created_at"]);
             expect(routerReplace).toHaveBeenCalledWith({
                 query: { [ORDERING_PARAM]: "-name,created_at" },
             });
@@ -725,7 +743,7 @@ describe("lib/views/ViewList.vue", () => {
             route.query = { status: "active" };
             await vue.nextTick();
 
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual([]);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual([]);
             expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
             wrapper.unmount();
         });
@@ -756,7 +774,7 @@ describe("lib/views/ViewList.vue", () => {
             expect(routerPush).toHaveBeenCalledWith({
                 query: { [ORDERING_PARAM]: "-name", filter: "status" },
             });
-            expect(objectsGridProps.sorted).toEqual(["-name"]);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-name"]);
             wrapper.unmount();
         });
 
@@ -801,7 +819,7 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("removes sorting from the URL when Clear all is used", async () => {
+        scopedIt("removes sorting from the URL when Clear sort is used", async () => {
             mockedInject.mockReturnValueOnce({});
             route.query = { [ORDERING_PARAM]: "-name", status: "active" };
             modelConfig.config.sortables = ["name"];
@@ -828,6 +846,37 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(wrapper.find('[data-qa="sort-control"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+    });
+
+    describe("Constraints band", () => {
+        scopedIt("keeps the sticky constraints band collapsed with no active constraint", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name"];
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.find('[data-qa="view-list-constraints-toggle"]').exists()).toBe(false);
+            expect(wrapper.get('[data-qa="constraints-bar"]').attributes("data-open")).toBe("false");
+            const constraintsChrome = wrapper
+                .findAll('[data-qa="sticky-chrome"][data-zone="top"][data-reveal="scroll-up"]')
+                .find((chrome) => chrome.find('[data-qa="constraints-bar"]').exists());
+            expect(constraintsChrome).toBeTruthy();
+            wrapper.unmount();
+        });
+
+        scopedIt("opens the sticky constraints band once a sort is active", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name"];
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["-name"]);
+            await vue.nextTick();
+
+            expect(wrapper.find('[data-qa="view-list-constraints-toggle"]').exists()).toBe(false);
+            expect(wrapper.get('[data-qa="constraints-bar"]').attributes("data-open")).toBe("true");
             wrapper.unmount();
         });
     });

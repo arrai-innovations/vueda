@@ -9,17 +9,19 @@ import "./AvatarImage.theme.js";
 import "./Badge.theme.js";
 import "./ClickToCopyText.theme.js";
 import "./ConsequencesBullets.theme.js";
+import "./ConstraintsBar.theme.js";
 import "./DateRangeDisplay.theme.js";
 import "./DateTimeDisplay.theme.js";
 import "./DiagnosticStrip.theme.js";
 import "./ErrorDisplay.theme.js";
+import "./FieldPickerMenuList.theme.js";
 import "./Kbd.theme.js";
 import "./KbdGroup.theme.js";
 import "./LoadingHeartbeatStrip.theme.js";
 import "./LoadingSkeletonGhost.theme.js";
-import "./MobileSortComponent.theme.js";
-import "./SortControl.theme.js";
-import "./SortEditor.theme.js";
+import "./ResponsiveMenu.theme.js";
+import "./SortChip.theme.js";
+import "./SortGroup.theme.js";
 import "./SuggestionList.theme.js";
 import "./SystemMessageCard.theme.js";
 import "./TriedUrlCallout.theme.js";
@@ -51,8 +53,12 @@ export default {
     DiagnosticStrip: {},
     SuggestionList: {},
     TriedUrlCallout: {},
+    // ---------- Menus ----------
+    ResponsiveMenu: {},
+    FieldPickerMenuList: {},
+    // ---------- Constraints band ----------
+    ConstraintsBar: {},
     // ---------- Sorting ----------
-    MobileSortComponent: {},
-    SortControl: {},
-    SortEditor: {},
+    SortChip: {},
+    SortGroup: {},
 };

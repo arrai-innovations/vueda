@@ -47,26 +47,6 @@ describe("lib/components/ObjectsGridTableHeader.vue", () => {
         expect(wrapper.vm.uniqueKeyForSlot).toBe("foo-1");
     });
 
-    scopedIt("renders sort icon and multi sort number", () => {
-        const wrapper = mount(ObjectsGridTableHeader, {
-            props: {
-                field: { name: "bar", label: "Bar" },
-                columnIndex: 0,
-                columnCount: 1,
-                sortable: true,
-                ascending: true,
-                multiSortIndex: 2,
-            },
-        });
-
-        const sortIcon = wrapper.get('[data-qa="objects-grid-table-header-sort-icon"]');
-        expect(sortIcon.classes()).toContain("theme-sortIcon");
-        expect(sortIcon.text()).toContain("⬆️");
-
-        const multi = wrapper.get('[data-qa="objects-grid-table-header-multi-sort-number"]');
-        expect(multi.text()).toBe("3");
-    });
-
     scopedIt("computes fallback key when field has no name", () => {
         const wrapper = mount(ObjectsGridTableHeader, {
             props: { field: { label: "NoName" }, columnIndex: 2, columnCount: 4 },
