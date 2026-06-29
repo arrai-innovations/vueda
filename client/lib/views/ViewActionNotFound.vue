@@ -154,7 +154,7 @@ function handleBrowse() {
             <template #actions>
                 <!-- @slot actions Override the default Back / Browse all actions button row. -->
                 <slot name="actions">
-                    <Button emphasis="outline" data-qa="view-action-not-found-back" @click="handleBack">Back</Button>
+                    <Button emphasis="ghost" data-qa="view-action-not-found-back" @click="handleBack">Back</Button>
                     <Button
                         v-if="closestApp && closestModel"
                         class="ml-auto"

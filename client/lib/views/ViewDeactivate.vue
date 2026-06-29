@@ -139,7 +139,7 @@ function handleCancel() {
             />
             <p v-if="submitError" :class="theme('error')" data-qa="view-deactivate-error">{{ submitError }}</p>
             <template #actions>
-                <Button emphasis="outline" data-qa="view-deactivate-cancel" @click="handleCancel">Cancel</Button>
+                <Button emphasis="ghost" data-qa="view-deactivate-cancel" @click="handleCancel">Cancel</Button>
                 <Button
                     tone="destructive"
                     class="ml-auto"
