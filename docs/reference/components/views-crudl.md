@@ -436,7 +436,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
             <div class="flex h-7 items-center justify-between rounded-vueda-control border border-destructive bg-background px-2 text-sm text-foreground" aria-invalid="true">24<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></div>
             <p class="mt-1 text-xs text-destructive">Select a valid choice. 24 is not one of the available choices.</p>
             <div class="mt-2 flex items-center justify-between">
-              <Button size="sm" emphasis="ghost" class="text-xs text-destructive">Remove</Button>
+              <Button size="sm" tone="destructive" emphasis="ghost" class="text-xs">Remove</Button>
               <Button size="sm" tone="primary">Apply</Button>
             </div>
           </div>

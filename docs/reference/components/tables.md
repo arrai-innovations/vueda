@@ -492,7 +492,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
       <Button size="sm" emphasis="ghost">
         <FontAwesomeIcon :icon="faDownload" />Export
       </Button>
-      <Button size="sm" emphasis="ghost" class="text-destructive hover:text-destructive">
+      <Button size="sm" tone="destructive" emphasis="ghost">
         <FontAwesomeIcon :icon="faTrash" />Delete
       </Button>
     </div>

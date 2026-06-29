@@ -85,7 +85,8 @@ items, dialog actions), override the matching `_Button*` meta key rather than
     <template #footer>
       <span>bg <code>--primary</code></span>
       <span>fg <code>--primary-foreground</code></span>
-      <span>hover <code>--primary</code>/90</span>
+      <span>hover <code>--primary-hover</code></span>
+      <span>active <code>--primary-active</code></span>
     </template>
   </DemoCard>
   <DemoCard title="secondary">
@@ -118,7 +119,8 @@ items, dialog actions), override the matching `_Button*` meta key rather than
     <template #footer>
       <span>bg <code>--secondary</code></span>
       <span>fg <code>--secondary-foreground</code></span>
-      <span>hover <code>--secondary</code>/80</span>
+      <span>hover <code>--secondary-hover</code></span>
+      <span>active <code>--secondary-active</code></span>
     </template>
   </DemoCard>
   <DemoCard title="outline">
@@ -218,7 +220,8 @@ items, dialog actions), override the matching `_Button*` meta key rather than
     <template #footer>
       <span>bg <code>--destructive</code></span>
       <span>fg <code>--destructive-foreground</code></span>
-      <span>hover <code>--destructive</code>/90</span>
+      <span>hover <code>--destructive-hover</code></span>
+      <span>active <code>--destructive-active</code></span>
       <span>ring <code>--destructive</code></span>
     </template>
   </DemoCard>
@@ -303,6 +306,72 @@ outlines {@api theme-key:\_ButtonOutline} /
     </template>
   </DemoCard>
 </VuedaDemo>
+
+## Choosing tone and emphasis
+
+The two axes answer two independent questions, and the default theme keeps
+them independent. Decide each separately:
+
+- **emphasis is placement.** How loud the control is and what chrome it sits
+  in. It does not depend on what the action does.
+- **tone is meaning.** What the action is. A delete reads `destructive`
+  whether it is a page hero or a quiet row glyph; the tone is set once and does
+  not change as the same action moves between contexts.
+- **`primary` is "the one action here."** Exactly one control per context
+  earns a `fill`. Promotion sets `emphasis` to `fill` and lifts a neutral
+  action's tone to `primary`; a promoted destructive action stays a
+  `destructive` fill.
+
+### Pick emphasis by placement
+
+- **`fill`** is the single earned action in a context: the form submit, the
+  confirm in a dialog, the hero action in a page title. One per context.
+- **`outline`** is a genuine alternative that still deserves a chip: a
+  secondary form action, a page-title secondary action, a toolbar trigger,
+  pagination, an error-recovery retry.
+- **`ghost`** is a dismiss or a dense-strip action: cancel, clear, the actions
+  in a bulk-selection bar, an inline tertiary affordance.
+- **`link`** is inline within running prose only. Never in a toolbar or an
+  action strip, where it breaks the control rhythm.
+
+### Pick tone by meaning
+
+- **`neutral`** is the resting default. A bare `<Button>` is a neutral fill,
+  not a CTA.
+- **`primary`** is the earned accent. Reach for it only on the one promoted
+  action per context (or set it explicitly for a deliberate CTA). Spreading
+  `primary` across a cluster spends the accent that signals "the" action.
+- **`destructive`** marks an action that deletes data or is otherwise
+  irreversible. Set the tone, not a `text-destructive` class: a destructive
+  ghost (`tone="destructive" emphasis="ghost"`) is a quiet red row action, a
+  destructive fill is a confirm hero. The tone composes the right
+  `_ButtonDestructive*` primitive for whatever emphasis the placement chose.
+
+### Size by chrome density
+
+Size is a third, independent placement axis: `sm` in dense chrome (titles,
+toolbars, dialogs, bulk bars), `default` (32px) in form footers, `lg` for auth
+and full-page CTAs, `icon-sm` for pagination.
+
+### Placement reference
+
+| Placement              | Primary action     | Alternative                | Dismiss    | Destructive             |
+| ---------------------- | ------------------ | -------------------------- | ---------- | ----------------------- |
+| Page-title action zone | `primary` fill, sm | `neutral` outline, sm      | `ghost` sm | `destructive` fill, sm  |
+| Form / dialog footer   | `primary` fill     | `neutral` outline          | `ghost`    | `destructive` fill      |
+| Toolbar                |                    | `neutral` outline, sm      |            |                         |
+| Bulk-selection bar     |                    | `ghost` sm                 |            | `destructive` ghost, sm |
+| Pagination             |                    | `neutral` outline, icon-sm |            |                         |
+| Empty state            | `primary` fill, sm | `neutral` outline, sm      | `ghost` sm |                         |
+| Inline (running prose) | `primary` link     | `neutral` link             |            | `destructive` link      |
+
+For buttons that navigate to a model action, this resolution happens
+automatically: every action button renders through
+{@api theme-key:Button} via `LinkModelView`, which reads the action's intrinsic
+tone (a delete / destroy action is `destructive`, everything else `neutral`),
+applies the placement `emphasis` chosen by the surrounding view, and promotes
+the view's hero action to a fill. Authoring a `<Button>` by hand should follow
+the same table so hand-placed and resolved buttons read identically.
 
 ## ButtonGroup: composition matrix
 
