@@ -185,10 +185,10 @@ The bar primitive, the stack model, reveal strategies, and the integration contr
 
 ## ViewList
 
-The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and filter and sort entry points. The search and column buttons stay anchored right at all times. The `Filters` control on the left opens an add-filter menu listing the fields not yet applied; picking one slides the popover to that field's filter form in place (no modal, no second surface), and a back affordance returns to the list to add another. Active filters and sorts render as a sticky constraints band below: click a filter chip to edit it (reopening the same form anchored to the chip), the ✕ to remove a chip, or `Clear all` to reset every filter and sort. When rows are selected, a bulk-actions strip appears. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
+The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and filter and sort entry points. The search and column buttons stay anchored right at all times. The `Filters` control on the left opens an add-filter menu listing the fields not yet applied; picking one slides the popover to that field's filter form in place (no modal, no second surface), and a back affordance returns to the list to add another. Active filters and sorts render as a sticky constraints band below: click a filter chip to edit it (reopening the same form anchored to the chip), the ✕ to remove a chip, or a group's `Clear filters` / `Clear sort` to clear that axis. When rows are selected, a bulk-actions strip appears. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
 
 ::: info Mockup status
-This ViewList is a static mockup. The live components implement the filter UX: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. The toolbar `Sort` trigger is now live too: `SortControl` opens an add-field menu of the not-yet-sorted columns (a popover on desktop, a full-screen dialog on mobile), and `ViewList` renders it next to `Filters` whenever the model has sortable fields. Active filters and sorts share one sticky constraints band below the toolbar: filter chips (primary-tinted) and sort chips (neutral). Sort editing lives on the chips: click to toggle direction, the trailing control removes, and (with more than one sort) each chip shows a grip handle and priority ordinal, and can be dragged by the handle to reorder. Each group has its own `Clear all`, shown only with more than one chip. Column headers are not interactive; sorting is driven entirely from the `Sort` control and the sort chips, so the data surface stays free of sort affordances. The pagination footer is live too: `PaginationFooter` renders the range read-out, the rows-per-page selector (its `All` entry loads every page), and the navigation cluster; the selected page size persists per model. The panels below remain static illustrations of the editor's states. See [Pagination](./pagination.md) for the footer's own reference.
+This ViewList is a static mockup. The live components implement the filter UX: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. The toolbar `Sort` trigger is now live too: `SortControl` opens an add-field menu of the not-yet-sorted columns (a popover on desktop, a full-screen dialog on mobile), and `ViewList` renders it next to `Filters` whenever the model has sortable fields. Active filters and sorts share one sticky constraints band below the toolbar: filter chips (primary-tinted) and sort chips (neutral). Sort editing lives on the chips: click to toggle direction, the trailing control removes, and (with more than one sort) each chip shows a grip handle and priority ordinal, and can be dragged by the handle to reorder. Each group has its own clear control (`Clear filters` / `Clear sort`), shown only with more than one chip. Column headers are not interactive; sorting is driven entirely from the `Sort` control and the sort chips, so the data surface stays free of sort affordances. The pagination footer is live too: `PaginationFooter` renders the range read-out, the rows-per-page selector (its `All` entry loads every page), and the navigation cluster; the selected page size persists per model. The panels below are static illustrations of the add menus and chip states; the live `SortControl` / `SortGroup` / `FilterGroup` are the source of truth, and this mockup trails them where they have moved ahead. See [Pagination](./pagination.md) for the footer's own reference.
 :::
 
 <VuedaDemo class="flex flex-col gap-3">
@@ -260,7 +260,22 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
         <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
       </span>
-      <Button size="sm" variant="ghost" class="ml-auto text-xs">Clear all</Button>
+      <Button size="sm" variant="ghost" class="text-xs">Clear filters</Button>
+      <span class="h-5 w-px self-center bg-border" aria-hidden="true"></span>
+      <span class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sort</span>
+      <span class="inline-flex items-center rounded-full border border-border bg-card text-xs font-semibold text-foreground">
+        <span class="drag-handle inline-flex items-center gap-0.5 rounded-l-full cursor-grab select-none py-1 pl-2 pr-1 text-[10px] text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-2.5 opacity-70" /><span class="font-mono tabular-nums">1</span></span>
+        <button type="button" class="inline-flex items-center gap-1.5 py-1 pl-1.5 pr-2 hover:bg-accent" aria-label="Toggle sort: Updated (descending)">Updated<FontAwesomeIcon :icon="faSortDown" class="size-2.5 text-muted-foreground" /></button>
+        <span class="h-4 w-px bg-border" aria-hidden="true"></span>
+        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-1 opacity-70 hover:bg-accent hover:opacity-100" aria-label="Remove sort: Updated"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+      </span>
+      <span class="inline-flex items-center rounded-full border border-border bg-card text-xs font-semibold text-foreground">
+        <span class="drag-handle inline-flex items-center gap-0.5 rounded-l-full cursor-grab select-none py-1 pl-2 pr-1 text-[10px] text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-2.5 opacity-70" /><span class="font-mono tabular-nums">2</span></span>
+        <button type="button" class="inline-flex items-center gap-1.5 py-1 pl-1.5 pr-2 hover:bg-accent" aria-label="Toggle sort: MRR (ascending)">MRR<FontAwesomeIcon :icon="faSortDown" class="size-2.5 rotate-180 text-muted-foreground" /></button>
+        <span class="h-4 w-px bg-border" aria-hidden="true"></span>
+        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-1 opacity-70 hover:bg-accent hover:opacity-100" aria-label="Remove sort: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+      </span>
+      <Button size="sm" variant="ghost" class="text-xs">Clear sort</Button>
     </div>
     <div class="flex items-center gap-4 border-b border-border bg-muted/50 px-4 py-2 text-sm">
       <span class="flex items-center gap-2 font-medium">
@@ -365,52 +380,27 @@ This ViewList is a static mockup. The live components implement the filter UX: `
     </div>
   </div>
   <div class="flex flex-col gap-2">
-    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sort [2] → multi-field editor · the trigger opens this popover · same editor body the mobile full-screen dialog hosts</header>
+    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sort → the trigger opens an add-field menu · picking a field appends a chip · editing lives on the chips in the band above</header>
     <div class="flex flex-wrap items-start gap-6">
       <div class="flex flex-col gap-1.5">
-        <span class="text-[11px] font-medium text-muted-foreground">active sorts · priority top-to-bottom · the field control swaps the column, the arrow flips direction, ✕ removes</span>
-        <div class="w-72 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
-          <div class="px-2 pb-1 pt-1.5">
-            <h3 class="mb-1 text-sm font-semibold">Sort by</h3>
-            <p class="mb-2 text-xs text-muted-foreground">Drag to reorder. The first sort has the highest priority.</p>
-            <div class="flex flex-col gap-1">
-              <div class="flex items-center gap-1.5">
-                <span class="flex size-5 cursor-grab items-center justify-center text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-3" /></span>
-                <span class="w-4 text-center font-mono text-xs text-muted-foreground">1</span>
-                <span class="flex h-7 flex-1 items-center justify-between rounded-vueda-control border border-input bg-background px-2 text-sm text-foreground">Updated<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></span>
-                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Sort Updated ascending (currently descending)"><FontAwesomeIcon :icon="faSortDown" /></button>
-                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Remove sort: Updated"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span class="flex size-5 cursor-grab items-center justify-center text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-3" /></span>
-                <span class="w-4 text-center font-mono text-xs text-muted-foreground">2</span>
-                <span class="flex h-7 flex-1 items-center justify-between rounded-vueda-control border border-input bg-background px-2 text-sm text-foreground">MRR<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></span>
-                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Sort MRR descending (currently ascending)"><FontAwesomeIcon :icon="faSortDown" class="rotate-180" /></button>
-                <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Remove sort: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-              </div>
-            </div>
-            <div class="mt-2 flex items-center justify-between">
-              <Button size="sm" variant="outline"><FontAwesomeIcon :icon="faPlus" />Add sort</Button>
-              <Button size="sm" variant="ghost" class="text-xs">Clear all</Button>
-            </div>
-          </div>
+        <span class="text-[11px] font-medium text-muted-foreground">chip anatomy · grip + mono ordinal show only with more than one sort · the label toggles direction · ✕ removes</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="inline-flex items-center rounded-full border border-border bg-card text-xs font-semibold text-foreground">
+            <span class="drag-handle inline-flex items-center gap-0.5 rounded-l-full cursor-grab select-none py-1 pl-2 pr-1 text-[10px] text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-2.5 opacity-70" /><span class="font-mono tabular-nums">1</span></span>
+            <button type="button" class="inline-flex items-center gap-1.5 py-1 pl-1.5 pr-2 hover:bg-accent" aria-label="Toggle sort: Updated (descending)">Updated<FontAwesomeIcon :icon="faSortDown" class="size-2.5 text-muted-foreground" /></button>
+            <span class="h-4 w-px bg-border" aria-hidden="true"></span>
+            <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-1 opacity-70 hover:bg-accent hover:opacity-100" aria-label="Remove sort: Updated"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+          </span>
+          <span class="text-[11px] text-muted-foreground">→ with a single sort the grip and ordinal drop:</span>
+          <span class="inline-flex items-center rounded-full border border-border bg-card text-xs font-semibold text-foreground">
+            <button type="button" class="inline-flex items-center gap-1.5 rounded-l-full py-1 pl-2.5 pr-2 hover:bg-accent" aria-label="Toggle sort: Updated (descending)">Updated<FontAwesomeIcon :icon="faSortDown" class="size-2.5 text-muted-foreground" /></button>
+            <span class="h-4 w-px bg-border" aria-hidden="true"></span>
+            <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-1 opacity-70 hover:bg-accent hover:opacity-100" aria-label="Remove sort: Updated"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
+          </span>
         </div>
       </div>
       <div class="flex flex-col gap-1.5">
-        <span class="text-[11px] font-medium text-muted-foreground">empty state · no sorts applied · Add sort opens the field-picker</span>
-        <div class="w-72 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
-          <div class="px-2 pb-1 pt-1.5">
-            <h3 class="mb-1 text-sm font-semibold">Sort by</h3>
-            <p class="mb-3 text-xs text-muted-foreground">No sorting applied. Add a field to begin.</p>
-            <div class="flex items-center justify-between">
-              <Button size="sm" variant="outline"><FontAwesomeIcon :icon="faPlus" />Add sort</Button>
-              <Button size="sm" variant="ghost" class="text-xs" disabled>Clear all</Button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="flex flex-col gap-1.5">
-        <span class="text-[11px] font-medium text-muted-foreground">Add sort menu · lists only fields not already sorted · clicking one appends a row</span>
+        <span class="text-[11px] font-medium text-muted-foreground">Add sort menu · lists only fields not already sorted · clicking one appends a chip · popover on desktop, full-screen dialog on mobile</span>
         <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
           <div class="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Add sort</div>
           <button type="button" class="flex w-full items-center rounded-sm bg-accent px-2 py-1.5 text-sm text-accent-foreground">Account</button>
@@ -457,10 +447,10 @@ This ViewList is a static mockup. The live components implement the filter UX: `
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>under-actions: search and column controls anchored right; the Filters and Sort controls sit left</span>
     <span>Sort: opens the add-field menu of fields not already sorted (popover on desktop, full-screen dialog on mobile); clicking one appends a sort chip</span>
-    <span>sort chips: click to toggle direction, ✕ to remove; with more than one sort, drag a chip by its grip handle to reorder. Each group's Clear all shows only with more than one chip</span>
+    <span>sort chips: click to toggle direction, ✕ to remove; with more than one sort, drag a chip by its grip handle to reorder. Each group's Clear sort shows only with more than one chip</span>
     <span>Filters: opens the add-filter menu of not-yet-applied fields</span>
     <span>add-filter flow: pick a field, the popover slides to that field's form in place; ‹ returns to the list; one anchored surface, no modal</span>
-    <span>filter chips: one per active filter; click the label to edit (reopens the same form anchored to the chip), ✕ to remove, Clear all resets every filter</span>
+    <span>filter chips: one per active filter; click the label to edit (reopens the same form anchored to the chip), ✕ to remove, Clear filters resets every filter</span>
     <span>constraints band: tinted, sticky, and present only when active filters or sorts exist</span>
     <span>errors (HTTP 400, keyed by field): the offending chip turns destructive and its form shows the server message inline; no separate error banner</span>
     <span>bulk-actions strip: transient, appears only when rows are selected</span>
