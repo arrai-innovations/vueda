@@ -496,25 +496,6 @@ export function useViewList(options) {
         { deep: true },
     );
 
-    // Clear every active filter and sort in one coordinated route push. Clearing
-    // the two axes through their independent writers (the imperative sort push and
-    // the filter watcher above) races: each rebuilds the query from the current
-    // route and re-stamps the other axis before it has been removed, so only one
-    // axis drops per click. A single push to a constraint-free query (search kept)
-    // sidesteps that; FilterGroup clears its chips by restoring from the empty URL.
-    const clearConstraints = () => {
-        const args = preferenceArgs();
-        listPreferenceStore.setSorting(args, []);
-        assignReactiveObject(sorting.state.sorted, []);
-        const routeQuery = {
-            ...(route.query[SEARCH_PARAM] !== undefined ? { [SEARCH_PARAM]: route.query[SEARCH_PARAM] } : {}),
-        };
-        listPreferenceStore.setFilters(args, preferenceQueryFrom(routeQuery));
-        if (!isEqual(routeQuery, route.query)) {
-            router.push({ query: routeQuery });
-        }
-    };
-
     const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
     const titleStr = computed(() => `List ${memoizedStartCase(modelConfig.config?.verboseNamePlural || "items")}`);
     const errored = computed(() =>
@@ -789,7 +770,6 @@ export function useViewList(options) {
 
     return {
         modelConfig,
-        clearConstraints,
         list: reactive({
             instanceList,
             listState,

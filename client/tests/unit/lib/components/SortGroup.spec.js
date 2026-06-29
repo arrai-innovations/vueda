@@ -161,7 +161,7 @@ describe("lib/components/SortGroup.vue", () => {
         expect(row().classes()).not.toContain("dragging");
     });
 
-    scopedIt("offers Clear all only with more than one sort", async () => {
+    scopedIt("offers Clear sort only with more than one sort", async () => {
         const single = mount(SortGroup, { props: { sorted: ["-updated"] } });
         expect(single.find('[data-qa="sort-group-strip"]').exists()).toBe(true);
         expect(single.find('[data-qa="sort-clear"]').exists()).toBe(false);

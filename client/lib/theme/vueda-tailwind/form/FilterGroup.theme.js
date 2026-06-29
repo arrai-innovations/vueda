@@ -11,8 +11,8 @@ patchTheme({
     /**
      * Filter orchestrator for model list views. Renders the toolbar add-filter
      * menu (whose trigger teleports into the under-actions bar) and, when filters
-     * are active, the chips strip plus a Clear all control. Owns the active-filter
-     * list and keeps it in sync with the URL query.
+     * are active, the chips strip plus a Clear filters control. Owns the
+     * active-filter list and keeps it in sync with the URL query.
      */
     FilterGroup: {
         /** Root wrapper. `contents` so it adds no box of its own: the teleported menu trigger and the chips strip flow as direct children of the list layout. */

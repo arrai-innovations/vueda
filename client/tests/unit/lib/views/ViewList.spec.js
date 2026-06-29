@@ -819,7 +819,7 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("removes sorting from the URL when Clear all is used", async () => {
+        scopedIt("removes sorting from the URL when Clear sort is used", async () => {
             mockedInject.mockReturnValueOnce({});
             route.query = { [ORDERING_PARAM]: "-name", status: "active" };
             modelConfig.config.sortables = ["name"];
@@ -877,34 +877,6 @@ describe("lib/views/ViewList.vue", () => {
 
             expect(wrapper.find('[data-qa="view-list-constraints-toggle"]').exists()).toBe(false);
             expect(wrapper.get('[data-qa="constraints-bar"]').attributes("data-open")).toBe("true");
-            wrapper.unmount();
-        });
-
-        // The combined band Clear all is suppressed pending UX feedback; filters and sorts now
-        // clear independently from their own group controls. Skipped (not deleted) so it can be
-        // restored alongside the combined button or removed with it once the direction is confirmed.
-        scopedIt.skip("clears both filters and sorts in a single push from the band Clear all", async () => {
-            mockedInject.mockReturnValueOnce({});
-            route.query = { [ORDERING_PARAM]: "-name", status: "active" };
-            modelConfig.config.sortables = ["name"];
-            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
-            await vue.nextTick();
-            // Both axes active: sort restored from the URL, a filter param applied.
-            wrapper.vm.list.listState.filterArgs.status = "active";
-            await vue.nextTick();
-
-            const clear = wrapper.find('[data-qa="constraints-clear"]');
-            expect(clear.exists()).toBe(true);
-
-            routerPush.mockClear();
-            await clear.trigger("click");
-            await vue.nextTick();
-
-            // One push to a constraint-free query (neither ordering nor the filter param), and the
-            // sort state is emptied — not one axis per click.
-            expect(wrapper.vm.sort.sorting.state.sorted).toEqual([]);
-            expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, []);
-            expect(routerPush).toHaveBeenCalledWith({ query: {} });
             wrapper.unmount();
         });
     });

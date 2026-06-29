@@ -1,15 +1,14 @@
 <script setup>
-import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/display/ConstraintsBar.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed } from "vue";
 
 /**
  * The active list-constraints band: one strip that hosts the filter chips and
- * the sort chips on a single line, separated by a hairline divider, with a
- * single Clear all control. Filters and sorts are told apart by their own tint
- * (primary for filters, neutral for sorts), so the band reads as two grouped
- * categories rather than one undifferentiated pile.
+ * the sort chips on a single line, separated by a hairline divider. Filters and
+ * sorts are told apart by their own tint (primary for filters, neutral for
+ * sorts), so the band reads as two grouped categories rather than one
+ * undifferentiated pile. Each group owns its own clear control.
  *
  * Presentational only: the host supplies the two chip groups via the `filters`
  * and `sort` slots and tells the band which groups are active. The band
@@ -32,10 +31,6 @@ const props = defineProps({
         default: false,
     },
 });
-const emit = defineEmits([
-    /** Emitted when Clear all is pressed; the host clears both filters and sorts. */
-    "clear-all",
-]);
 
 const active = computed(() => props.filtersActive || props.sortsActive);
 const showDivider = computed(() => props.filtersActive && props.sortsActive);
@@ -65,20 +60,6 @@ const theme = useTheme("ConstraintsBar", props);
                 />
                 <!-- @slot The sort chips group (SortGroup in hosted mode). -->
                 <slot name="sort" />
-                <!-- Combined Clear all temporarily suppressed pending UX feedback:
-                     each group now owns its own clear (clearing one axis at a time).
-                     Left wired so it can be restored or removed once the per-axis
-                     approach is confirmed. -->
-                <Button
-                    v-if="false"
-                    variant="ghost"
-                    size="sm"
-                    :class="theme('clear')"
-                    data-qa="constraints-clear"
-                    @click="emit('clear-all')"
-                >
-                    Clear all
-                </Button>
             </div>
         </div>
     </div>

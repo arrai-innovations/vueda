@@ -9,7 +9,7 @@ import { VueDraggableNext as draggable } from "vue-draggable-next";
 
 /**
  * Renders the active sort order as a strip of removable {@api vue:component:SortChip}s,
- * plus a Clear all control (shown only with more than one chip). Each chip toggles
+ * plus a Clear sort control (shown only with more than one chip). Each chip toggles
  * its own direction; removing a chip drops that field from the sort; dragging a
  * chip by its priority ordinal reorders the sort. Adding fields stays with the
  * {@api vue:component:SortControl} add menu; this strip is the always-visible
@@ -31,9 +31,10 @@ const props = defineProps({
         default: () => ({}),
     },
     /**
-     * When true, the chips render as a bare subgroup (no band chrome, no own
-     * Clear all) for hosting inside a shared {@api vue:component:ConstraintsBar}.
-     * When false (default), the chips render as a self-contained strip.
+     * When true, the chips render as a bare subgroup (no band chrome) for
+     * hosting inside a shared {@api vue:component:ConstraintsBar}; the group
+     * keeps its own Clear sort control. When false (default), the chips render
+     * as a self-contained strip.
      */
     hosted: {
         type: Boolean,
@@ -140,7 +141,7 @@ const slots = useSlots();
             data-qa="sort-clear"
             @click="clearAll"
         >
-            Clear all
+            Clear sort
         </Button>
     </div>
 </template>

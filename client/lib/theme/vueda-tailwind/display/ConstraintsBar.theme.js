@@ -37,9 +37,5 @@ patchTheme({
         divider: {
             class: ["h-5 w-px self-center bg-border"],
         },
-        /** Clear-all control, pushed to the right edge of the band. Clears both filters and sorts. */
-        clear: {
-            class: ["ml-auto text-xs"],
-        },
     },
 });

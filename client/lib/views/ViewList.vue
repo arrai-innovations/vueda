@@ -142,7 +142,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 
-const { modelConfig, list, actions, search, sort, columns, pagination, clearConstraints } = useViewList(props);
+const { modelConfig, list, actions, search, sort, columns, pagination } = useViewList(props);
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loading }));
@@ -157,8 +157,8 @@ const filterTriggerZone = ref(null);
 
 // The shared constraints band hosts both the filter chips and the sort chips.
 // `hasFilters` drives band visibility and the divider; it reads the applied
-// filter params (the chip-bearing source) rather than threading a count. Clearing
-// both axes is delegated to useViewList's coordinated single-push clearConstraints.
+// filter params (the chip-bearing source) rather than threading a count. Each
+// group owns its own clear control.
 const hasFilters = computed(() => Object.keys(list.listState.filterArgs || {}).length > 0);
 const hasSorts = computed(() => (sort.sorting.state.sorted?.length || 0) > 0);
 
@@ -311,9 +311,9 @@ onMounted(() => {
         <!-- Active-constraints band: filter chips and sort chips share one sticky strip, told apart
              by tint. Each group teleports its add/edit trigger into the toolbar zone above; their
              chips render here, hosted bare so the band owns the chrome. The band collapses when
-             nothing is active, and Clear all clears both filters and sorts. -->
+             nothing is active; each group owns its own clear control. -->
         <sticky-chrome zone="top" reveal="scroll-up">
-            <constraints-bar :filters-active="hasFilters" :sorts-active="hasSorts" @clear-all="clearConstraints">
+            <constraints-bar :filters-active="hasFilters" :sorts-active="hasSorts">
                 <template #filters>
                     <filter-group
                         v-model="list.listState.filterArgs"

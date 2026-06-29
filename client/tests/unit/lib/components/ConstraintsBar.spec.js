@@ -72,18 +72,4 @@ describe("lib/components/ConstraintsBar.vue", () => {
         const filtersOnly = mount(ConstraintsBar, { props: { filtersActive: true, sortsActive: false }, slots });
         expect(filtersOnly.find('[data-qa="constraints-bar-divider"]').exists()).toBe(false);
     });
-
-    // Combined Clear all is temporarily suppressed pending UX feedback (each group
-    // now owns its own clear). Skipped rather than removed so it can be restored
-    // alongside the button, or deleted with it once the direction is confirmed.
-    scopedIt.skip("emits clear-all when Clear all is pressed", async () => {
-        const wrapper = mount(ConstraintsBar, { props: { filtersActive: true, sortsActive: false }, slots });
-        await wrapper.get('[data-qa="constraints-clear"]').trigger("click");
-        expect(wrapper.emitted("clear-all")).toHaveLength(1);
-    });
-
-    scopedIt("omits Clear all when nothing is active", () => {
-        const wrapper = mount(ConstraintsBar, { props: { filtersActive: false, sortsActive: false }, slots });
-        expect(wrapper.find('[data-qa="constraints-clear"]').exists()).toBe(false);
-    });
 });

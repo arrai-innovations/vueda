@@ -180,7 +180,7 @@ describe("lib/components/FilterGroup.vue", () => {
         expect(wrapper.emitted()["query-change"][1]).toEqual([{ q: "2" }]);
     });
 
-    scopedIt("offers Clear all only with more than one filter", async () => {
+    scopedIt("offers Clear filters only with more than one filter", async () => {
         const { wrapper } = mountGroup();
         wrapper.vm.addedFilters.push({ field: "foo", param: "foo", value: "bar" });
         await vue.nextTick();
@@ -192,7 +192,7 @@ describe("lib/components/FilterGroup.vue", () => {
         expect(wrapper.get('[data-qa="filter-clear"]').exists()).toBe(true);
     });
 
-    scopedIt("clears all filters via the Clear all button", async () => {
+    scopedIt("clears all filters via the Clear filters button", async () => {
         const { wrapper } = mountGroup();
         wrapper.vm.addedFilters.push({ field: "foo", param: "foo", value: "bar" });
         wrapper.vm.addedFilters.push({ field: "baz", param: "baz", value: "qux" });
