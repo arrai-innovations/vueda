@@ -314,8 +314,8 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         </template>
         <template #[`field(actions)`]>
           <span class="inline-flex gap-1">
-            <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Edit"><FontAwesomeIcon :icon="faPen" /></button>
-            <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="More"><FontAwesomeIcon :icon="faEllipsis" /></button>
+            <Button size="icon-sm" emphasis="ghost" aria-label="Edit"><FontAwesomeIcon :icon="faPen" /></Button>
+            <Button size="icon-sm" emphasis="ghost" aria-label="More"><FontAwesomeIcon :icon="faEllipsis" /></Button>
           </span>
         </template>
       </ObjectsGrid>
