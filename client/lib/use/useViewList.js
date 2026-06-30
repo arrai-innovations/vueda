@@ -167,6 +167,9 @@ const VIEW_NAME = "list";
  * Pagination behaviour.
  * @property {(number|string)} [defaultPageSize] - Initial rows-per-page when no preference is stored (a number, or `"all"`). Defaults to `DEFAULT_PAGE_SIZE`.
  * @property {(number|string)[]} [pageSizeOptions] - Rows-per-page options offered by the footer; the final `"all"` entry loads every page. Defaults to `DEFAULT_PAGE_SIZE_OPTIONS`.
+ *
+ * Action styling.
+ * @property {import('vue').Ref<string[]> | string[]} [primaryActions] - Targetless action names promoted to the filled hero CTA; defaults to `["create"]`.
  */
 
 /**
@@ -191,6 +194,7 @@ const VIEW_NAME = "list";
  * @property {Set<string>} bulkActions - Action names that operate on selected objects.
  * @property {Set<string>} targetlessActions - Action names that require no selected objects.
  * @property {Set<string>} availableTransitions - Workflow transition codes available to the current user.
+ * @property {Set<string>} primaryActions - Targetless action names promoted to the filled hero CTA.
  * @property {{[actionName: string]: object}} buttonSlotProps - Ready-to-spread slot props for each action button; keyed by action name. Does not include a `class` property — shells supply their own.
  * @property {import('vue').Ref<(string|number)[]>} selectedObjects - Array of selected primary keys (auto-unwrapped in templates).
  * @property {(pk: string|number) => void} toggleSelectedObject - Adds or removes a primary key from the selection.
@@ -601,6 +605,14 @@ export function useViewList(options) {
         const actionDetails = modelConfig.config?.actionDetails || {};
         return new Set(actions.filter((name) => actionDetails[name]?.bulk));
     });
+    // The list view's hero action: the one promoted to a filled CTA in the page
+    // title. By convention that is `create`; a consumer can override the set via
+    // the `primaryActions` prop. Intersected with the rendered targetless set so
+    // an override naming an unavailable action is simply inert.
+    const primaryActions = computed(() => {
+        const candidates = options.primaryActions ?? ["create"];
+        return new Set(candidates.filter((name) => targetlessActions.value.has(name)));
+    });
 
     const buttonSlotProps = reactive({});
     const bspEffectScope = effectScope();
@@ -789,6 +801,7 @@ export function useViewList(options) {
             bulkActions,
             targetlessActions,
             availableTransitions,
+            primaryActions,
             buttonSlotProps,
             selectedObjects,
             toggleSelectedObject,

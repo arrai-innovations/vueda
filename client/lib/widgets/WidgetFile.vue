@@ -110,7 +110,7 @@ const fileURL = computed(() => {
                     >{{ fileName }}</a
                 >
                 <div :class="theme('buttonGroup')">
-                    <Button variant="ghost" size="icon-sm" data-qa="file-remove" @click="onRemoveFile">
+                    <Button emphasis="ghost" size="icon-sm" data-qa="file-remove" @click="onRemoveFile">
                         <component
                             :is="icon('close').component"
                             v-if="icon('close')"
@@ -119,7 +119,7 @@ const fileURL = computed(() => {
                         />
                         <span class="sr-only">Remove file</span>
                     </Button>
-                    <Button variant="ghost" size="icon-sm" data-qa="file-download" @click="onDownload">
+                    <Button emphasis="ghost" size="icon-sm" data-qa="file-download" @click="onDownload">
                         <component
                             :is="icon('download').component"
                             v-if="icon('download')"

@@ -168,7 +168,7 @@ defineExpose({ applyFilter, removeFilter, hasFilterValue });
                 <Button
                     v-if="showRemove"
                     type="button"
-                    variant="ghost"
+                    emphasis="ghost"
                     size="sm"
                     :class="theme('remove')"
                     data-qa="filter-field-form-remove"
@@ -176,7 +176,9 @@ defineExpose({ applyFilter, removeFilter, hasFilterValue });
                 >
                     Remove
                 </Button>
-                <Button type="submit" size="sm" :disabled="disabled" data-qa="filter-field-form-apply">Apply</Button>
+                <Button type="submit" tone="primary" size="sm" :disabled="disabled" data-qa="filter-field-form-apply"
+                    >Apply</Button
+                >
             </div>
         </template>
     </FilterForm>

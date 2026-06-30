@@ -7,6 +7,7 @@ aside: false
 ---
 
 <script setup>
+import Button from "@vueda/controls/button/Button.vue";
 import Sidebar from "@vueda/navigation/sidebar/Sidebar.vue";
 import SidebarContent from "@vueda/navigation/sidebar/SidebarContent.vue";
 import SidebarFooter from "@vueda/navigation/sidebar/SidebarFooter.vue";
@@ -211,14 +212,14 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
             <span class="text-foreground font-medium">Invoices</span>
           </nav>
           <div class="ml-auto flex items-center gap-2">
-            <button type="button" class="flex h-7 items-center gap-1.5 rounded-vueda-control border border-border bg-background px-2.5 text-xs hover:bg-accent hover:text-accent-foreground">
+            <Button size="sm" emphasis="outline">
               <FontAwesomeIcon :icon="faFileInvoiceDollar" class="size-3" />
               Export
-            </button>
-            <button type="button" class="flex h-7 items-center gap-1.5 rounded-vueda-control bg-primary px-2.5 text-xs text-primary-foreground hover:bg-primary/90">
+            </Button>
+            <Button size="sm" tone="primary">
               <FontAwesomeIcon :icon="faPlus" class="size-3" />
               New invoice
-            </button>
+            </Button>
           </div>
         </header>
         <div class="flex-1 overflow-auto p-3">
@@ -363,10 +364,10 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
             <span class="text-foreground font-medium">Invoices</span>
           </nav>
           <div class="ml-auto flex items-center gap-2">
-            <button type="button" class="flex h-7 items-center gap-1.5 rounded-vueda-control bg-primary px-2.5 text-xs text-primary-foreground hover:bg-primary/90">
+            <Button size="sm" tone="primary">
               <FontAwesomeIcon :icon="faPlus" class="size-3" />
               New invoice
-            </button>
+            </Button>
           </div>
         </header>
         <div class="flex-1 overflow-auto p-3">

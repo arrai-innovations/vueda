@@ -27,7 +27,7 @@ const theme = useTheme("DialogFooter", props);
     <div data-slot="dialog-footer" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
         <DialogClose v-if="showCloseButton" as-child>
-            <Button variant="outline"> Close </Button>
+            <Button emphasis="ghost"> Close </Button>
         </DialogClose>
     </div>
 </template>

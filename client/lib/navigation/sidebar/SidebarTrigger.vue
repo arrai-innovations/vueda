@@ -31,7 +31,7 @@ const { toggleSidebar } = useSidebar();
     <Button
         data-sidebar="trigger"
         data-slot="sidebar-trigger"
-        variant="ghost"
+        emphasis="ghost"
         size="icon"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"

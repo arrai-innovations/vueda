@@ -175,7 +175,7 @@ watch(
                         @click="fieldSetTabularInline.doCreate"
                     >
                         <Button
-                            variant="outline"
+                            emphasis="outline"
                             size="sm"
                             :class="fieldSetTabularInline.theme('createButton')"
                             @click="fieldSetTabularInline.doCreate"
@@ -250,7 +250,7 @@ watch(
                                             "
                                         >
                                             <Button
-                                                variant="ghost"
+                                                emphasis="ghost"
                                                 size="sm"
                                                 @click="
                                                     fieldSetTabularInline.removeObject(
@@ -334,7 +334,7 @@ watch(
                                             }"
                                         >
                                             <Button
-                                                variant="outline"
+                                                emphasis="outline"
                                                 size="sm"
                                                 @click="
                                                     ($event) =>
@@ -406,7 +406,7 @@ watch(
                                 @click="fieldSetTabularInline.doCreate"
                             >
                                 <Button
-                                    variant="ghost"
+                                    emphasis="ghost"
                                     size="sm"
                                     :class="fieldSetTabularInline.theme('inLineCreateButton')"
                                     @click="fieldSetTabularInline.doCreate"

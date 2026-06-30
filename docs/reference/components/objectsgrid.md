@@ -7,6 +7,7 @@ type: reference
 
 <script setup>
 import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faEllipsis, faPen } from "@fortawesome/free-solid-svg-icons";
 
@@ -66,8 +67,8 @@ The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overf
         </template>
         <template #[`field(actions)`]>
           <span class="inline-flex gap-1">
-            <button class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Edit" type="button"><FontAwesomeIcon :icon="faPen" /></button>
-            <button class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="More" type="button"><FontAwesomeIcon :icon="faEllipsis" /></button>
+            <Button size="icon-sm" emphasis="ghost" aria-label="Edit"><FontAwesomeIcon :icon="faPen" /></Button>
+            <Button size="icon-sm" emphasis="ghost" aria-label="More"><FontAwesomeIcon :icon="faEllipsis" /></Button>
           </span>
         </template>
       </ObjectsGrid>

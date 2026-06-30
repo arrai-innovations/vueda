@@ -507,10 +507,10 @@ Section headers and a 2-column grid compose multi-section forms. A `vk-form-sect
     </section>
     <!-- Form actions -->
     <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
-      <Button type="submit">Create customer</Button>
-      <Button variant="outline">Save as draft</Button>
+      <Button type="submit" tone="primary">Create customer</Button>
+      <Button emphasis="outline">Save as draft</Button>
       <span class="flex-1"></span>
-      <Button variant="ghost">Cancel</Button>
+      <Button emphasis="ghost">Cancel</Button>
     </div>
   </div>
   <template #footer>
@@ -558,14 +558,14 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
           </label>
         </FieldGroup>
         <div class="mt-5">
-          <Button type="submit" class="w-full justify-center">Sign in</Button>
+          <Button type="submit" tone="primary" class="w-full justify-center">Sign in</Button>
         </div>
         <div class="relative my-5 flex items-center gap-3">
           <div class="h-px flex-1 bg-border"></div>
           <span class="text-xs text-muted-foreground">or</span>
           <div class="h-px flex-1 bg-border"></div>
         </div>
-        <Button variant="outline" class="w-full justify-center">
+        <Button emphasis="outline" class="w-full justify-center">
           <FontAwesomeIcon :icon="faMicrosoft" />
           Continue with single sign-on
         </Button>
@@ -601,8 +601,8 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
           </InputOTP>
         </div>
         <div class="mt-5 flex gap-2">
-          <Button type="submit" class="flex-1 justify-center">Verify</Button>
-          <Button variant="ghost">Resend code</Button>
+          <Button type="submit" tone="primary" class="flex-1 justify-center">Verify</Button>
+          <Button emphasis="ghost">Resend code</Button>
         </div>
         <p class="mt-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
           <span>Lost your authenticator?</span>
@@ -652,8 +652,8 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
           </Field>
         </FieldGroup>
         <div class="mt-5 flex gap-2">
-          <Button type="submit" class="flex-1 justify-center">Update password</Button>
-          <Button variant="ghost">Sign out</Button>
+          <Button type="submit" tone="primary" class="flex-1 justify-center">Update password</Button>
+          <Button emphasis="ghost">Sign out</Button>
         </div>
       </div>
     </div>
@@ -698,11 +698,11 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
           </li>
         </ul>
         <div class="mt-4 flex flex-wrap gap-2">
-          <Button type="submit">
+          <Button type="submit" tone="primary">
             <FontAwesomeIcon :icon="faPaperPlane" />
             Yes, send all 4
           </Button>
-          <Button variant="ghost">Cancel, go back</Button>
+          <Button emphasis="ghost">Cancel, go back</Button>
         </div>
       </div>
     </div>
@@ -732,8 +732,8 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
         </Alert>
         <p class="text-sm text-muted-foreground">Resolve the listed problems and try again, or remove the affected invoices from your selection.</p>
         <div class="mt-4 flex flex-wrap gap-2">
-          <Button type="submit" disabled>Yes, void all 2</Button>
-          <Button variant="ghost">Cancel, go back</Button>
+          <Button type="submit" tone="primary" disabled>Yes, void all 2</Button>
+          <Button emphasis="ghost">Cancel, go back</Button>
         </div>
       </div>
     </div>

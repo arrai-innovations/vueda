@@ -114,6 +114,7 @@ onMounted(() => {
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
+                        emphasis="outline"
                     />
                 </slot>
             </template>
@@ -132,7 +133,12 @@ onMounted(() => {
                         name="submit-button"
                         type="submit"
                     >
-                        <Button :form="instance.formId" :disabled="objectForm.state.loading" type="submit">
+                        <Button
+                            :form="instance.formId"
+                            :disabled="objectForm.state.loading"
+                            type="submit"
+                            tone="primary"
+                        >
                             <LoadingSpinnerInline v-if="objectForm.state.loading" />
                             Submit
                         </Button>

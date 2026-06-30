@@ -38,6 +38,11 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    /** Action names promoted to the filled hero CTA in the action bar; defaults to the `update` action. */
+    primaryActions: {
+        type: Array,
+        default: undefined,
+    },
 });
 
 const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object", "form-context"]);
@@ -52,6 +57,7 @@ const internalOptions = reactive({
     model: toRef(props, "model"),
     viewName: "read",
     pk: toRef(props, "pk"),
+    primaryActions: toRef(props, "primaryActions"),
 });
 
 const { instanceObject, instance, actions } = useDetailView(internalOptions, formContextProps.initialValues);
@@ -97,6 +103,7 @@ onMounted(() => {
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
+                        emphasis="outline"
                     />
                 </slot>
             </template>
@@ -123,6 +130,8 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="actionName"
+                                emphasis="outline"
+                                :primary="actions.primaryActions.has(actionName)"
                             />
                         </slot>
                     </template>
@@ -143,6 +152,7 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="transition"
+                                emphasis="outline"
                             />
                         </slot>
                     </template>

@@ -142,7 +142,7 @@ const rowState = computed(() => {
                             :value="action.value"
                             @click="onDelete"
                         >
-                            <Button variant="ghost" @click="onDelete">Delete</Button>
+                            <Button emphasis="ghost" @click="onDelete">Delete</Button>
                         </slot>
                         <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox] Checkbox used to mark an existing inline row for deletion. -->
                         <slot

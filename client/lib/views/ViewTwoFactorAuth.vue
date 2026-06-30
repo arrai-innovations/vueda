@@ -186,7 +186,7 @@ onBeforeUnmount(clearCooldownTimer);
                 <div :class="theme('buttons')" data-qa="view-two-factor-auth-buttons">
                     <Button
                         v-if="!useRecoveryCode && sendCodeMethods.includes(form.values?.method)"
-                        variant="ghost"
+                        emphasis="ghost"
                         :disabled="loading || timer"
                         :data-state="timer ? 'cooldown' : undefined"
                         data-qa="view-two-factor-auth-resend"
@@ -209,12 +209,12 @@ onBeforeUnmount(clearCooldownTimer);
                             {{ cooldownSeconds }}s
                         </span>
                     </Button>
-                    <Button :disabled="loading || !form.values?.code" type="submit">
+                    <Button :disabled="loading || !form.values?.code" type="submit" tone="primary">
                         <LoadingSpinnerInline v-if="loading" />
                         Verify
                     </Button>
                     <Button
-                        variant="ghost"
+                        emphasis="ghost"
                         type="button"
                         :class="theme('recoveryToggle')"
                         data-qa="view-two-factor-auth-recovery-toggle"

@@ -325,7 +325,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
             <strong class="text-sm font-semibold text-foreground">No invoices yet.</strong>
             <span class="text-sm text-muted-foreground">Issue your first invoice to populate this table.</span>
             <div class="mt-1">
-              <Button size="sm">
+              <Button size="sm" tone="primary">
                 <FontAwesomeIcon :icon="faPlus" />New invoice
               </Button>
             </div>
@@ -378,7 +378,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
             <strong class="text-sm font-semibold text-foreground">Could not load invoices.</strong>
             <span class="text-sm text-muted-foreground">Check your connection and try again.</span>
             <div class="mt-1">
-              <Button size="sm" variant="outline">
+              <Button size="sm" emphasis="outline">
                 <FontAwesomeIcon :icon="faRotateRight" />Retry
               </Button>
             </div>
@@ -407,7 +407,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
             <strong class="text-sm font-semibold text-foreground">No matches.</strong>
             <span class="text-sm text-muted-foreground">No invoices match the current filters.</span>
             <div class="mt-1">
-              <Button size="sm" variant="ghost">Clear filters</Button>
+              <Button size="sm" emphasis="ghost">Clear filters</Button>
             </div>
           </TableEmpty>
         </TableBody>
@@ -441,24 +441,24 @@ bar appears at accent tint to signal a system-level state distinct from hover.
         <FontAwesomeIcon :icon="faMagnifyingGlass" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground pointer-events-none" />
         <input type="text" placeholder="Search invoices…" class="w-full h-8 pl-7 pr-2 rounded border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30" />
       </div>
-      <Button size="sm" variant="outline">
+      <Button size="sm" emphasis="outline">
         <FontAwesomeIcon :icon="faFilter" />Filter
       </Button>
-      <Button size="sm" variant="outline">
+      <Button size="sm" emphasis="outline">
         <FontAwesomeIcon :icon="faCalendar" />Date range
       </Button>
       <div class="flex-1"></div>
       <span class="font-mono text-[11px] text-muted-foreground whitespace-nowrap">48 rows · 3 overdue</span>
-      <Button size="sm" variant="ghost" aria-label="Density">
+      <Button size="sm" emphasis="ghost" aria-label="Density">
         <FontAwesomeIcon :icon="faBars" />
       </Button>
-      <Button size="sm" variant="ghost" aria-label="Columns">
+      <Button size="sm" emphasis="ghost" aria-label="Columns">
         <FontAwesomeIcon :icon="faTableColumns" />
       </Button>
-      <Button size="sm" variant="ghost" aria-label="Export">
+      <Button size="sm" emphasis="ghost" aria-label="Export">
         <FontAwesomeIcon :icon="faDownload" />
       </Button>
-      <Button size="sm">
+      <Button size="sm" tone="primary">
         <FontAwesomeIcon :icon="faPlus" />New invoice
       </Button>
     </div>
@@ -483,16 +483,16 @@ bar appears at accent tint to signal a system-level state distinct from hover.
       <input type="checkbox" checked aria-label="Selected" class="size-3.5 rounded-sm border border-border accent-primary" />
       <span><strong class="font-semibold">3</strong> rows selected</span>
       <div class="flex-1"></div>
-      <Button size="sm" variant="ghost">
+      <Button size="sm" emphasis="ghost">
         <FontAwesomeIcon :icon="faPaperPlane" />Send
       </Button>
-      <Button size="sm" variant="ghost">
+      <Button size="sm" emphasis="ghost">
         <FontAwesomeIcon :icon="faTag" />Tag
       </Button>
-      <Button size="sm" variant="ghost">
+      <Button size="sm" emphasis="ghost">
         <FontAwesomeIcon :icon="faDownload" />Export
       </Button>
-      <Button size="sm" variant="ghost" class="text-destructive hover:text-destructive">
+      <Button size="sm" tone="destructive" emphasis="ghost">
         <FontAwesomeIcon :icon="faTrash" />Delete
       </Button>
     </div>

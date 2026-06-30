@@ -307,7 +307,7 @@ const slots = useSlots();
     <div :class="theme('root')" :style="theme.hideStyle?.value">
         <!-- The Back button teleports into the layout's PageTitle action zone. -->
         <page-actions>
-            <Button variant="ghost" @click="router.back()">Back</Button>
+            <Button emphasis="ghost" @click="router.back()">Back</Button>
         </page-actions>
         <slot name="before-list" />
         <div v-if="!hasHistory" :class="theme('empty')" data-qa="view-history-empty">

@@ -73,8 +73,8 @@ Suggestion data comes from `useSuggestRoutes({ limit })` (N-best matches with sc
         ]"
       />
       <template #actions>
-        <Button size="sm" variant="outline">Back</Button>
-        <Button size="sm" class="ml-auto">Go to home</Button>
+        <Button size="sm" emphasis="outline">Back</Button>
+        <Button size="sm" tone="primary" class="ml-auto">Go to home</Button>
       </template>
     </SystemMessageCard>
   </div>
@@ -117,8 +117,8 @@ Suggestions widen the previous closest-only behavior: every action on the closes
         ]"
       />
       <template #actions>
-        <Button size="sm" variant="outline">Back</Button>
-        <Button size="sm" class="ml-auto">Browse all actions</Button>
+        <Button size="sm" emphasis="outline">Back</Button>
+        <Button size="sm" tone="primary" class="ml-auto">Browse all actions</Button>
       </template>
     </SystemMessageCard>
   </div>
@@ -153,11 +153,11 @@ Set `icon-name` to a registry key to render the crest icon. Pass `icon-props` fo
       <template #crest-code>404</template>
       <p class="text-[13px] leading-[1.5] text-muted-foreground">The path <code class="rounded border border-border bg-muted/40 px-1 font-mono text-[11px]">/admin/customers/99999/edit</code> does not match any registered route.</p>
       <template #actions>
-        <Button size="sm" variant="outline">
+        <Button size="sm" emphasis="outline">
           <FontAwesomeIcon :icon="faHouse" />
           Return to dashboard
         </Button>
-        <Button size="sm" variant="ghost">
+        <Button size="sm" emphasis="ghost">
           <FontAwesomeIcon :icon="faSearch" />
           Did you mean /admin/customers/99999?
         </Button>
@@ -179,8 +179,8 @@ Set `icon-name` to a registry key to render the crest icon. Pass `icon-props` fo
       <template #crest-kind>mara.tani</template>
       <p class="text-[13px] leading-[1.5] text-muted-foreground">This account will be suspended. All active sessions will end immediately.</p>
       <template #actions>
-        <Button size="sm" variant="outline">Cancel</Button>
-        <Button size="sm" variant="destructive">Deactivate</Button>
+        <Button size="sm" emphasis="outline">Cancel</Button>
+        <Button size="sm" tone="destructive">Deactivate</Button>
       </template>
     </SystemMessageCard>
   </div>
@@ -271,8 +271,8 @@ The submit button stays disabled until `TypedConfirmField` emits a match and rem
         label-tail="to confirm"
       />
       <template #actions>
-        <Button size="sm" variant="outline">Cancel</Button>
-        <Button size="sm" variant="destructive" :disabled="deactivateConfirm !== 'mara.tani@example.com'" class="ml-auto">Deactivate account</Button>
+        <Button size="sm" emphasis="outline">Cancel</Button>
+        <Button size="sm" tone="destructive" :disabled="deactivateConfirm !== 'mara.tani@example.com'" class="ml-auto">Deactivate account</Button>
       </template>
     </SystemMessageCard>
   </div>

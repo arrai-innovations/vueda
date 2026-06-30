@@ -117,7 +117,7 @@ watch(
                         @click="fieldSetInline.doCreate"
                     >
                         <Button
-                            variant="outline"
+                            emphasis="outline"
                             size="sm"
                             :class="theme('createButton')"
                             @click="fieldSetInline.doCreate"

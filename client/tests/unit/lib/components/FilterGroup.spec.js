@@ -27,12 +27,16 @@ const FilterChipStub = defineComponent({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["variant"],
+    props: ["tone", "emphasis"],
     inheritAttrs: false,
     emits: ["click"],
     setup(props, { emit, slots, attrs }) {
         return () =>
-            h("button", { ...attrs, "data-variant": props.variant, onClick: () => emit("click") }, slots.default?.());
+            h(
+                "button",
+                { ...attrs, "data-tone": props.tone, "data-emphasis": props.emphasis, onClick: () => emit("click") },
+                slots.default?.(),
+            );
     },
 });
 

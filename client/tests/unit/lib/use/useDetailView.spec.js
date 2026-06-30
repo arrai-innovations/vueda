@@ -118,6 +118,7 @@ describe("lib/use/useDetailView.js", () => {
             expect(actions).toHaveProperty("nonDetailActions");
             expect(actions).toHaveProperty("detailActions");
             expect(actions).toHaveProperty("availableTransitions");
+            expect(actions).toHaveProperty("primaryActions");
         });
     });
 

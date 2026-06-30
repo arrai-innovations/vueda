@@ -11,30 +11,31 @@
  * effect, then registers the `Button` entry itself.
  */
 import "./_ButtonPrimitives.theme.js";
+import { resolveButtonVariant } from "@vueda/controls/button/buttonVariant.js";
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * The standard pressable control. Variants pick which `_Button*` primitive
-     * composes into the root (`default`, `destructive`, `outline`, `secondary`,
-     * `ghost`, `link`); `size` picks the control-height tier (`default`, `sm`,
-     * `lg`, plus `icon` / `icon-sm` / `icon-lg`). The `link` variant is
-     * inline-flow and skips the control-height + padding recipe.
+     * The standard pressable control. `tone` and `emphasis` pick which
+     * `_Button*` primitive composes into the root; `size` picks the
+     * control-height tier (`default`, `sm`, `lg`, plus `icon` / `icon-sm` /
+     * `icon-lg`). The `link` emphasis is inline-flow and skips the control-height
+     * + padding recipe.
      */
     Button: {
-        /** The pressable root. Composes {@api theme-key:_ButtonBase.root} plus the variant primitive named by `variant`, then layers the per-size height / padding pair from `base.css § Control sizing` (or `size-vueda-control*` for icon-only sizes). The `link` variant skips the control-height block and goes inline. The `data-state=cooldown` state (set by the component while a one-shot action is recovering) mutes the label to `--muted-foreground` and suppresses hover so a recently-clicked button reads as "wait" without changing layout. */
-        root: ({ variant, size }) => {
-            const v = variant || "default";
-            const variantKey = `_Button${v.charAt(0).toUpperCase()}${v.slice(1)}.root`;
+        /** The pressable root. Composes {@api theme-key:_ButtonBase.root} plus the `_Button*` primitive for the resolved (tone, emphasis) cell (see `controls/button/buttonVariant.js`), then layers the per-size height / padding pair from `base.css § Control sizing` (or `size-vueda-control*` for icon-only sizes). The `link` emphasis skips the control-height block and goes inline. The `data-state=cooldown` state (set by the component while a one-shot action is recovering) mutes the label to `--muted-foreground` and suppresses hover so a recently-clicked button reads as "wait" without changing layout. */
+        root: ({ tone, emphasis, size }) => {
+            const resolved = resolveButtonVariant({ tone, emphasis });
+            const primitiveKey = `${resolved.primitive}.root`;
             const cooldownClass = [
                 "data-[state=cooldown]:text-muted-foreground",
                 "data-[state=cooldown]:cursor-default",
                 "data-[state=cooldown]:hover:bg-transparent",
                 "data-[state=cooldown]:hover:text-muted-foreground",
             ];
-            if (v === "link") {
+            if (resolved.inline) {
                 return {
-                    composes: ["_ButtonBase.root", variantKey],
+                    composes: ["_ButtonBase.root", primitiveKey],
                     class: [
                         // Link sizing.
                         "h-auto px-0",
@@ -45,7 +46,7 @@ patchTheme({
                 };
             }
             return {
-                composes: ["_ButtonBase.root", variantKey],
+                composes: ["_ButtonBase.root", primitiveKey],
                 class: [
                     // Size classes.
                     {

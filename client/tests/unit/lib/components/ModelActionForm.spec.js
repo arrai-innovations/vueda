@@ -42,7 +42,7 @@ const ActionFormStub = defineComponent({
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["type", "disabled", "variant"],
+    props: ["type", "disabled", "tone", "emphasis"],
     setup(props, { slots, attrs }) {
         return () =>
             h(
@@ -51,7 +51,8 @@ const ButtonStub = defineComponent({
                     type: props.type,
                     disabled: props.disabled || undefined,
                     "data-qa": "button-stub",
-                    "data-variant": props.variant,
+                    "data-tone": props.tone,
+                    "data-emphasis": props.emphasis,
                     ...attrs,
                 },
                 slots.default ? slots.default() : null,

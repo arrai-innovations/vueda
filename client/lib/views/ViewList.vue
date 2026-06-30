@@ -140,6 +140,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    /** Action names promoted to the filled hero CTA in the page title; defaults to the `create` action. */
+    primaryActions: {
+        type: Array,
+        default: undefined,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 
@@ -236,7 +241,11 @@ onMounted(() => {
                 >
                     <!-- @slot [targetless-action-button, button] Replaces an individual targetless action button. -->
                     <slot :name="targetlessActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
-                        <link-model-view v-bind="themedButtonSlotProps[actionName]" />
+                        <link-model-view
+                            v-bind="themedButtonSlotProps[actionName]"
+                            emphasis="outline"
+                            :primary="actions.primaryActions.has(actionName)"
+                        />
                     </slot>
                 </template>
             </slot>
@@ -479,6 +488,7 @@ onMounted(() => {
                         <slot :name="bulkActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
                             <link-model-view
                                 button
+                                emphasis="ghost"
                                 :pk="themedButtonSlotProps[actionName].selectedObjects"
                                 v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
                             />
@@ -489,6 +499,7 @@ onMounted(() => {
                         <slot :name="workflowActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
                             <link-model-view
                                 button
+                                emphasis="ghost"
                                 :pk="themedButtonSlotProps[actionName].selectedObjects"
                                 v-bind="omit(themedButtonSlotProps[actionName], ['selectedObjects'])"
                             />

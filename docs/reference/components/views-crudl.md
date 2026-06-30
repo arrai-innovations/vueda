@@ -143,11 +143,11 @@ Theme keys: {@api theme-key:PageTitle}.
       <ClientOnly>
         <DemoTitleBar title="Customers">
           <template #actions>
-            <Button size="sm" variant="outline">
+            <Button size="sm" emphasis="outline">
               <FontAwesomeIcon :icon="faArrowUpFromBracket" />
               Export
             </Button>
-            <Button size="sm" variant="default">
+            <Button size="sm" tone="primary">
               <FontAwesomeIcon :icon="faPlus" />
               New customer
             </Button>
@@ -165,7 +165,7 @@ Theme keys: {@api theme-key:PageTitle}.
       <ClientOnly>
         <DemoTitleBar title="Northwind Logistics" :loading="true">
           <template #actions>
-            <Button size="sm" variant="default" disabled>Edit</Button>
+            <Button size="sm" tone="primary" disabled>Edit</Button>
           </template>
         </DemoTitleBar>
       </ClientOnly>
@@ -200,15 +200,15 @@ This ViewList is a static mockup. The live components implement the filter UX: `
     <ClientOnly>
       <DemoTitleBar title="Customers">
         <template #actions>
-          <Button size="sm" variant="outline">
+          <Button size="sm" emphasis="outline">
             <FontAwesomeIcon :icon="faArrowUpFromBracket" />
             Export
           </Button>
-          <Button size="sm" variant="outline">
+          <Button size="sm" emphasis="outline">
             <FontAwesomeIcon :icon="faFileImport" />
             Import
           </Button>
-          <Button size="sm" variant="default">
+          <Button size="sm" tone="primary">
             <FontAwesomeIcon :icon="faPlus" />
             New customer
           </Button>
@@ -217,13 +217,13 @@ This ViewList is a static mockup. The live components implement the filter UX: `
     </ClientOnly>
     <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
       <div class="flex items-center gap-2">
-        <Button size="sm" variant="outline" aria-haspopup="menu">
+        <Button size="sm" emphasis="outline" aria-haspopup="menu">
           <FontAwesomeIcon :icon="faFilter" />
           Filters
           <span class="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">3</span>
           <FontAwesomeIcon :icon="faChevronDown" class="size-2.5 text-muted-foreground" />
         </Button>
-        <Button size="sm" variant="outline" aria-haspopup="dialog">
+        <Button size="sm" emphasis="outline" aria-haspopup="dialog">
           <FontAwesomeIcon :icon="faSort" />
           Sort
           <span class="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">2</span>
@@ -235,10 +235,10 @@ This ViewList is a static mockup. The live components implement the filter UX: `
           <span class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-muted-foreground"><FontAwesomeIcon :icon="faMagnifyingGlass" class="size-3" /></span>
           <Input class="w-48 pl-7" type="search" placeholder="Search customers…" />
         </div>
-        <Button size="icon-sm" variant="outline" aria-label="Columns">
+        <Button size="icon-sm" emphasis="outline" aria-label="Columns">
           <FontAwesomeIcon :icon="faTableColumns" />
         </Button>
-        <Button size="icon-sm" variant="outline" aria-label="More">
+        <Button size="icon-sm" emphasis="outline" aria-label="More">
           <FontAwesomeIcon :icon="faEllipsis" />
         </Button>
       </div>
@@ -260,7 +260,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
         <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
       </span>
-      <Button size="sm" variant="ghost" class="text-xs">Clear filters</Button>
+      <Button size="sm" emphasis="ghost" class="text-xs">Clear filters</Button>
       <span class="h-5 w-px self-center bg-border" aria-hidden="true"></span>
       <span class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sort</span>
       <span class="inline-flex items-center rounded-full border border-border bg-card text-xs font-semibold text-foreground">
@@ -275,7 +275,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         <span class="h-4 w-px bg-border" aria-hidden="true"></span>
         <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-1 opacity-70 hover:bg-accent hover:opacity-100" aria-label="Remove sort: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
       </span>
-      <Button size="sm" variant="ghost" class="text-xs">Clear sort</Button>
+      <Button size="sm" emphasis="ghost" class="text-xs">Clear sort</Button>
     </div>
     <div class="flex items-center gap-4 border-b border-border bg-muted/50 px-4 py-2 text-sm">
       <span class="flex items-center gap-2 font-medium">
@@ -283,19 +283,19 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         <strong>1</strong> selected
       </span>
       <div class="flex items-center gap-1">
-        <Button size="sm" variant="ghost">
+        <Button size="sm" emphasis="ghost">
           <FontAwesomeIcon :icon="faEnvelope" />
           Email
         </Button>
-        <Button size="sm" variant="ghost">
+        <Button size="sm" emphasis="ghost">
           <FontAwesomeIcon :icon="faTag" />
           Tag
         </Button>
-        <Button size="sm" variant="ghost">
+        <Button size="sm" emphasis="ghost">
           <FontAwesomeIcon :icon="faArrowRight" />
           Reassign
         </Button>
-        <Button size="sm" variant="ghost">
+        <Button size="sm" emphasis="ghost">
           <FontAwesomeIcon :icon="faTrash" />
           Delete
         </Button>
@@ -314,8 +314,8 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         </template>
         <template #[`field(actions)`]>
           <span class="inline-flex gap-1">
-            <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Edit"><FontAwesomeIcon :icon="faPen" /></button>
-            <button type="button" class="inline-flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="More"><FontAwesomeIcon :icon="faEllipsis" /></button>
+            <Button size="icon-sm" emphasis="ghost" aria-label="Edit"><FontAwesomeIcon :icon="faPen" /></Button>
+            <Button size="icon-sm" emphasis="ghost" aria-label="More"><FontAwesomeIcon :icon="faEllipsis" /></Button>
           </span>
         </template>
       </ObjectsGrid>
@@ -335,17 +335,17 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         </span>
       </div>
       <nav class="flex items-center gap-1" aria-label="Pagination">
-        <Button size="icon-sm" variant="outline" aria-label="First page" disabled>
+        <Button size="icon-sm" emphasis="outline" aria-label="First page" disabled>
           <FontAwesomeIcon :icon="faAnglesLeft" />
         </Button>
-        <Button size="icon-sm" variant="outline" aria-label="Previous page" disabled>
+        <Button size="icon-sm" emphasis="outline" aria-label="Previous page" disabled>
           <FontAwesomeIcon :icon="faChevronLeft" />
         </Button>
         <span class="px-2 font-mono text-xs font-medium tabular-nums text-foreground">Page 1 of 36</span>
-        <Button size="icon-sm" variant="outline" aria-label="Next page">
+        <Button size="icon-sm" emphasis="outline" aria-label="Next page">
           <FontAwesomeIcon :icon="faChevronRight" />
         </Button>
-        <Button size="icon-sm" variant="outline" aria-label="Last page">
+        <Button size="icon-sm" emphasis="outline" aria-label="Last page">
           <FontAwesomeIcon :icon="faAnglesRight" />
         </Button>
       </nav>
@@ -373,7 +373,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
           <div class="px-2 pb-1 pt-0.5">
             <h3 class="mb-2 text-sm font-semibold">Filter by Plan tier</h3>
             <div class="flex h-7 items-center justify-between rounded-vueda-control border border-input bg-background px-2 text-sm text-foreground">Enterprise<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></div>
-            <div class="mt-2 flex justify-end"><Button size="sm" variant="default">Apply</Button></div>
+            <div class="mt-2 flex justify-end"><Button size="sm" tone="primary">Apply</Button></div>
           </div>
         </div>
       </div>
@@ -436,8 +436,8 @@ This ViewList is a static mockup. The live components implement the filter UX: `
             <div class="flex h-7 items-center justify-between rounded-vueda-control border border-destructive bg-background px-2 text-sm text-foreground" aria-invalid="true">24<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></div>
             <p class="mt-1 text-xs text-destructive">Select a valid choice. 24 is not one of the available choices.</p>
             <div class="mt-2 flex items-center justify-between">
-              <Button size="sm" variant="ghost" class="text-xs text-destructive">Remove</Button>
-              <Button size="sm" variant="default">Apply</Button>
+              <Button size="sm" tone="destructive" emphasis="ghost" class="text-xs">Remove</Button>
+              <Button size="sm" tone="primary">Apply</Button>
             </div>
           </div>
         </div>
@@ -469,18 +469,18 @@ The create view pairs PageTitle with a sticky action bar that holds the primary 
     <ClientOnly>
       <DemoTitleBar title="Create customer">
         <template #actions>
-          <Button size="sm" variant="ghost">Cancel</Button>
+          <Button size="sm" emphasis="ghost">Cancel</Button>
         </template>
       </DemoTitleBar>
     </ClientOnly>
     <StickyBar :scroll-root="createViewport">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
-          <Button variant="default">
+          <Button tone="primary">
             <FontAwesomeIcon :icon="faCheck" />
             Create customer
           </Button>
-          <Button variant="outline">Save and add another</Button>
+          <Button emphasis="outline">Save and add another</Button>
         </div>
         <span class="text-xs text-muted-foreground">All required fields marked <span class="text-destructive">*</span></span>
       </div>
@@ -513,25 +513,25 @@ The read view presents a single record in a non-editable layout. Inputs are repl
     <StickyBar :scroll-root="readViewport">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
-          <Button variant="default">
+          <Button tone="primary">
             <FontAwesomeIcon :icon="faPen" />
             Edit
           </Button>
         </div>
         <div class="flex items-center gap-2">
-          <Button variant="outline">
+          <Button emphasis="outline">
             <FontAwesomeIcon :icon="faClockRotateLeft" />
             History
           </Button>
-          <Button variant="outline">
+          <Button emphasis="outline">
             <FontAwesomeIcon :icon="faEnvelope" />
             Email
           </Button>
-          <Button variant="outline">
+          <Button emphasis="outline">
             <FontAwesomeIcon :icon="faArrowRight" />
             Renew
           </Button>
-          <Button size="icon" variant="outline" aria-label="More">
+          <Button size="icon" emphasis="outline" aria-label="More">
             <FontAwesomeIcon :icon="faEllipsis" />
           </Button>
         </div>
@@ -616,18 +616,18 @@ The update view renders the same form as create, populated from the loaded recor
     <ClientOnly>
       <DemoTitleBar title="Edit Northwind Logistics">
         <template #actions>
-          <Button size="sm" variant="ghost">View read-only</Button>
+          <Button size="sm" emphasis="ghost">View read-only</Button>
         </template>
       </DemoTitleBar>
     </ClientOnly>
     <StickyBar :scroll-root="updateViewport">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
-          <Button variant="default">
+          <Button tone="primary">
             <FontAwesomeIcon :icon="faCheck" />
             Save changes
           </Button>
-          <Button variant="outline">Discard</Button>
+          <Button emphasis="outline">Discard</Button>
         </div>
       </div>
     </StickyBar>
@@ -654,7 +654,7 @@ The view card takes on a destructive accent: border color is tinted toward `--de
     <ClientOnly>
       <DemoTitleBar title="Delete 3 customers">
         <template #actions>
-          <Button size="sm" variant="ghost">Cancel</Button>
+          <Button size="sm" emphasis="ghost">Cancel</Button>
         </template>
       </DemoTitleBar>
     </ClientOnly>
@@ -697,8 +697,8 @@ The view card takes on a destructive accent: border color is tinted toward `--de
         </FieldContent>
       </Field>
       <div class="flex items-center justify-end gap-3 border-t border-border pt-4">
-        <Button variant="ghost">Cancel</Button>
-        <Button variant="destructive" disabled aria-disabled="true">
+        <Button emphasis="ghost">Cancel</Button>
+        <Button tone="destructive" disabled aria-disabled="true">
           <FontAwesomeIcon :icon="faTrash" />
           Delete 3 customers permanently
         </Button>

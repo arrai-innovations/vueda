@@ -79,7 +79,7 @@ const remainingSlotNames = computed(() => {
                 :disabled="formContext.state.anyError"
                 :modified="formContext.state.anyModified"
             >
-                <Button type="submit" size="sm" :disabled="formContext.state.anyError">Apply</Button>
+                <Button type="submit" tone="primary" size="sm" :disabled="formContext.state.anyError">Apply</Button>
             </slot>
         </div>
     </form>

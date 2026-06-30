@@ -80,7 +80,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
     <PageTitle title="Archive 4 customers">
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <!-- info banner -->
@@ -133,8 +133,8 @@ Generic action confirmation view. An info-toned banner explains what the action 
     </div>
     <!-- actions strip -->
     <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
-      <Button variant="ghost">Cancel</Button>
-      <Button>
+      <Button emphasis="ghost">Cancel</Button>
+      <Button tone="primary">
         <FontAwesomeIcon :icon="faBoxArchive" />
         Archive 4 customers
       </Button>
@@ -158,7 +158,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
     <PageTitle title="Duplicate quote">
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <!-- info banner -->
@@ -204,8 +204,8 @@ Generic action confirmation view. An info-toned banner explains what the action 
     </div>
     <!-- actions strip -->
     <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
-      <Button variant="ghost">Cancel</Button>
-      <Button>
+      <Button emphasis="ghost">Cancel</Button>
+      <Button tone="primary">
         <FontAwesomeIcon :icon="faClone" />
         Duplicate quote
       </Button>
@@ -228,7 +228,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
     <PageTitle title="Bill now (3 subscriptions)">
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <!-- warning banner -->
@@ -278,12 +278,12 @@ Generic action confirmation view. An info-toned banner explains what the action 
     </div>
     <!-- actions strip -->
     <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
-      <Button variant="ghost">Cancel</Button>
-      <Button variant="outline">
+      <Button emphasis="ghost">Cancel</Button>
+      <Button emphasis="outline">
         <FontAwesomeIcon :icon="faArrowRotateRight" />
         Re-run dry-run
       </Button>
-      <Button disabled aria-disabled="true">
+      <Button tone="primary" disabled aria-disabled="true">
         <FontAwesomeIcon :icon="faCreditCard" />
         Bill now
       </Button>
@@ -310,7 +310,7 @@ Same recipe as ViewAction with the banner switched to a success tone. Establishe
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
     <PageTitle title="Reactivate user">
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <!-- success banner -->
@@ -357,8 +357,8 @@ Same recipe as ViewAction with the banner switched to a success tone. Establishe
     </div>
     <!-- actions strip -->
     <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
-      <Button variant="ghost">Cancel</Button>
-      <Button>
+      <Button emphasis="ghost">Cancel</Button>
+      <Button tone="primary">
         <FontAwesomeIcon :icon="faCircleCheck" />
         Reactivate user
       </Button>
@@ -384,7 +384,7 @@ The current state is surfaced in a tinted strip below the title bar so there is 
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
     <PageTitle title="Move invoice to next state">
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <!-- current state strip -->
@@ -473,8 +473,8 @@ The current state is surfaced in a tinted strip below the title bar so there is 
     </div>
     <!-- actions strip -->
     <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
-      <Button variant="ghost">Cancel</Button>
-      <Button>
+      <Button emphasis="ghost">Cancel</Button>
+      <Button tone="primary">
         <FontAwesomeIcon :icon="faArrowRight" />
         {{ selectedTransition === 'send-for-review' ? 'Send for review' : selectedTransition === 'send-to-customer' ? 'Send to customer' : 'Apply transition' }}
       </Button>
@@ -499,7 +499,7 @@ The current state is surfaced in a tinted strip below the title bar so there is 
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
     <PageTitle title="Move invoice to next state">
       <template #button>
-        <Button size="sm" variant="ghost">Back to invoice</Button>
+        <Button size="sm" emphasis="ghost">Back to invoice</Button>
       </template>
     </PageTitle>
     <!-- current state strip -->
@@ -519,9 +519,9 @@ The current state is surfaced in a tinted strip below the title bar so there is 
     </div>
     <!-- actions strip -->
     <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
-      <Button variant="ghost">Back to invoice</Button>
+      <Button emphasis="ghost">Back to invoice</Button>
       <span class="ml-auto"></span>
-      <Button variant="outline">
+      <Button emphasis="outline">
         <FontAwesomeIcon :icon="faRotateLeft" />
         Issue credit note
       </Button>
@@ -543,11 +543,11 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
     <PageTitle title="Audit trail · Northwind Logistics">
       <template #button>
-        <Button size="sm" variant="outline">
+        <Button size="sm" emphasis="outline">
           <FontAwesomeIcon :icon="faFilter" />
           Filter
         </Button>
-        <Button size="sm" variant="outline">
+        <Button size="sm" emphasis="outline">
           <FontAwesomeIcon :icon="faArrowUpFromBracket" />
           Export CSV
         </Button>
@@ -563,10 +563,10 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
       <span class="mr-4 text-muted-foreground"><strong class="text-foreground">Type</strong> all</span>
       <span class="text-muted-foreground"><strong class="text-foreground">User</strong> any</span>
       <div class="ml-auto flex overflow-clip rounded-vueda-control border border-border">
-        <Button size="sm" variant="ghost" class="rounded-none border-r border-border text-xs">
+        <Button size="sm" emphasis="ghost" class="rounded-none border-r border-border text-xs">
           <FontAwesomeIcon :icon="faTable" /> Table
         </Button>
-        <Button size="sm" variant="ghost" class="rounded-none text-xs text-muted-foreground">
+        <Button size="sm" emphasis="ghost" class="rounded-none text-xs text-muted-foreground">
           <FontAwesomeIcon :icon="faIdCard" /> Cards
         </Button>
       </div>
@@ -735,7 +735,7 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
   <div class="rounded-vueda-card border border-border bg-card overflow-clip">
     <PageTitle title="Audit trail · Hightower Mfg.">
       <template #button>
-        <Button size="sm" variant="outline">
+        <Button size="sm" emphasis="outline">
           <FontAwesomeIcon :icon="faArrowUpFromBracket" />
           Export CSV
         </Button>
@@ -746,10 +746,10 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
       <span class="text-muted-foreground"><strong class="text-foreground">Range</strong> all time</span>
       <span class="text-muted-foreground"><strong class="text-foreground">3 revisions</strong></span>
       <div class="ml-auto flex overflow-clip rounded-vueda-control border border-border">
-        <Button size="sm" variant="ghost" class="rounded-none border-r border-border text-xs text-muted-foreground">
+        <Button size="sm" emphasis="ghost" class="rounded-none border-r border-border text-xs text-muted-foreground">
           <FontAwesomeIcon :icon="faTable" /> Table
         </Button>
-        <Button size="sm" variant="ghost" class="rounded-none text-xs">
+        <Button size="sm" emphasis="ghost" class="rounded-none text-xs">
           <FontAwesomeIcon :icon="faIdCard" /> Cards
         </Button>
       </div>

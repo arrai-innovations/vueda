@@ -305,4 +305,37 @@ describe("lib/use/useLinkModelView.js", () => {
 
         expect(actionDisabled.value).toBe(true);
     });
+
+    scopedIt("resolves action metadata through the canonical action name", async () => {
+        vi.resetModules();
+        vi.doMock("@vueda/use/useModelConfig.js", () => ({
+            useModelConfig: vi.fn(() => ({
+                config: {
+                    actionDetails: {
+                        read: { detail: true, tone: "neutral" },
+                        retrieve: { detail: true, tone: "destructive" },
+                    },
+                },
+            })),
+        }));
+        vi.doMock("@vueda/use/useWorkflowTransitions.js", () => ({
+            useWorkflowTransitions: vi.fn(() => ({ transitions: [] })),
+        }));
+        vi.doMock("@vueda/utils/actionMap.js", () => ({
+            getActionName: vi.fn((view) => (view === "read" ? "retrieve" : view)),
+        }));
+
+        const { useLinkModelView } = await import("@vueda/use/useLinkModelView.js");
+
+        const { actionDetail } = useLinkModelView({
+            app: "foo",
+            model: "bar",
+            pk: "123",
+            view: "read",
+        });
+        await flushPromises();
+
+        expect(actionDetail.value).toEqual({ detail: true, tone: "destructive" });
+        expect(actionDetail.value).not.toEqual({ detail: true, tone: "neutral" });
+    });
 });

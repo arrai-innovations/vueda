@@ -109,6 +109,12 @@
 @utility hairline-ring {
     --vueda-hairline-color: var(--ring);
 }
+@utility hairline-primary {
+    --vueda-hairline-color: var(--primary);
+}
+@utility hairline-foreground {
+    --vueda-hairline-color: var(--foreground);
+}
 @utility hairline-destructive {
     --vueda-hairline-color: var(--destructive);
 }

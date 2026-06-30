@@ -14,13 +14,18 @@ const RowStub = defineComponent({
 
 const ControlButtonStub = defineComponent({
     name: "ControlButtonStub",
-    props: ["variant", "size"],
+    props: ["tone", "emphasis", "size"],
     emits: ["click"],
     setup(props, { emit, slots }) {
         return () =>
             h(
                 "button",
-                { "data-qa": "button-stub", "data-variant": props.variant, onClick: () => emit("click") },
+                {
+                    "data-qa": "button-stub",
+                    "data-tone": props.tone,
+                    "data-emphasis": props.emphasis,
+                    onClick: () => emit("click"),
+                },
                 slots.default?.(),
             );
     },

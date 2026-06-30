@@ -201,10 +201,12 @@ describe("lib/shell/alert-dialog/AlertDialog.vue", () => {
     });
 
     describe("AlertDialogCancel", () => {
-        scopedIt("applies outline button classes", () => {
+        scopedIt("applies ghost button classes", () => {
             const wrapper = mount(AlertDialogCancel);
-            expect(wrapper.classes()).toContain("border");
-            expect(wrapper.classes()).toContain("bg-background");
+            expect(wrapper.classes()).toContain("hover:bg-accent");
+            expect(wrapper.classes()).toContain("hover:text-accent-foreground");
+            expect(wrapper.classes()).not.toContain("hairline");
+            expect(wrapper.classes()).not.toContain("bg-background");
         });
     });
 

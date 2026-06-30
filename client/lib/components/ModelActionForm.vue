@@ -302,6 +302,7 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
             <Button
                 v-else
                 type="submit"
+                tone="primary"
                 :disabled="slotProps.loading || slotProps.disabled || typedConfirmGateBlocking"
             >
                 <LoadingSpinnerInline v-if="slotProps.loading" />

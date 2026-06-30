@@ -48,12 +48,12 @@ vi.mock("@vueda/components/TypedConfirmField.vue", () => ({ default: TypedConfir
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["variant", "disabled"],
+    props: ["tone", "emphasis", "disabled"],
     setup(props, { slots, attrs }) {
         return () =>
             h(
                 "button",
-                { "data-variant": props.variant, disabled: props.disabled, ...attrs },
+                { "data-tone": props.tone, "data-emphasis": props.emphasis, disabled: props.disabled, ...attrs },
                 slots.default ? slots.default() : null,
             );
     },
