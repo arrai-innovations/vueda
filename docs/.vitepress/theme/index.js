@@ -1,5 +1,6 @@
 import Layout from "./Layout.vue";
 import "./brand.css";
+import AuthDemo from "./components/AuthDemo.vue";
 import DemoCard from "./components/DemoCard.vue";
 import DemoFormModel from "./components/DemoFormModel.vue";
 import ForceState from "./components/ForceState.vue";
@@ -65,6 +66,7 @@ const theme = {
         app.use(pinia);
         seedShowcaseModels(pinia);
 
+        app.component("AuthDemo", AuthDemo);
         app.component("DemoCard", DemoCard);
         app.component("DemoFormModel", DemoFormModel);
         app.component("GlossaryTerm", GlossaryTerm);

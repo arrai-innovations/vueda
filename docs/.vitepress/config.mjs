@@ -903,7 +903,20 @@ export default defineConfig({
                 "@internationalized/date": fileURLToPath(
                     new URL("../../client/node_modules/@internationalized/date", import.meta.url),
                 ),
+                // vue-router is a client dependency, not a docs one. The auth-view demos
+                // (AuthDemo) need it, but declaring it as a direct docs dependency changes
+                // vite's SSR externalization globally and breaks the production build with a
+                // CJS/ESM "vue has no default export" error. Alias to the client's copy (as
+                // with @internationalized/date) so it resolves without being a docs dep;
+                // AuthDemo only imports it via a client-only dynamic import.
+                "vue-router": fileURLToPath(new URL("../../client/node_modules/vue-router", import.meta.url)),
             },
+        },
+        ssr: {
+            // Bundle vue-router as ESM for the SSR build instead of externalizing its CJS
+            // entry, which does `require("vue")` and breaks Node ESM instantiation with a
+            // "vue has no default export" error. Pairs with the vue-router resolve alias.
+            noExternal: ["vue-router"],
         },
         server: {
             host: true,
