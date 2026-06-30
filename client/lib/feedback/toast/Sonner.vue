@@ -2,7 +2,11 @@
 import "@vueda/theme/vueda-tailwind/feedback/Sonner.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+// vue-sonner ships its base stylesheet separately; without it the Toaster has no
+// fixed positioning or surface styling (toasts render in document flow, unstyled).
+// The theme below only layers VUEDA tokens on top of these base rules.
 import { Toaster as Sonner } from "vue-sonner";
+import "vue-sonner/style.css";
 
 /**
  * A toast notification container built on vue-sonner, providing styled toast popups

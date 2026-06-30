@@ -14,6 +14,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Sonner now loads vue-sonner's base stylesheet (Sonner)**:
+    - `Sonner.vue` now imports `vue-sonner/style.css` as a side effect. Without it the mounted `Toaster` had no base rules: toasts rendered in document flow (not a fixed overlay) with no surface, showing up unstyled (for example white text on a white page). The VUEDA theme only layers tokens (`--popover`, `--border`, radius) on top of those base rules, so the stylesheet is required for the wrapper to look right.
+      _No action required if you render `@vueda/feedback/toast/Sonner.vue`; the stylesheet now comes with it. If you previously imported `vue-sonner/style.css` yourself to work around this, you can drop that import._
+- **New default sign-in view (new ViewSignIn)**:
     - `ViewSignIn` is a ready-to-route sign-in view: an email and password form in an `AuthorizingForm` card (centered chrome), wired to `storeUser.login` through the inner `ActionForm`, with post-login routing and MFA pending-flow detection handled by `AuthorizingForm` via `useSignInFlow`. It presents a single "Sign In" action (no cancel: admin apps have nowhere to cancel a sign-in to) and stays re-submittable after a rejected attempt. It exposes the same customization surface as the other auth views: props forwarded to `AuthorizingForm` (`header`, `subTitle`, `redirect`, `formProps`, `requireRecentLogin`, theme overrides) plus `field(email)`, `widget(email)`, `field(password)`, `widget(password)`, and `action-bar` slots, with any other `AuthorizingForm` or `ActionForm` slot forwarded.
       _Additive. Point your sign-in route at `@vueda/views/ViewSignIn.vue` to adopt the default, or wrap it and override the widget slots (for example to restyle the inputs) instead of hand-rolling a sign-in view._
 
