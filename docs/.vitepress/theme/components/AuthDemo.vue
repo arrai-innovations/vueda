@@ -40,6 +40,13 @@ const props = defineProps({
     routeName: { type: String, default: "sign-in" },
     /** Initial in-memory route query. */
     routeQuery: { type: Object, default: () => ({}) },
+    /**
+     * Mount vueda's Sonner so the auth flows' toasts (success, validation warning,
+     * action error) render. vue-sonner's toast store is a global singleton, so a single
+     * mounted Sonner shows every demo's toasts as one corner overlay (as in a real app).
+     * Enable on exactly one demo per page to avoid duplicate toasters.
+     */
+    toasts: { type: Boolean, default: false },
 });
 
 // Stub routes covering every name the auth flows push to, so router.push() in the
@@ -78,6 +85,8 @@ onMounted(async () => {
         import("@vueda/stores/storeUser.js"),
         props.view(),
     ]);
+    // Optional toast host (client-only like the rest, kept out of the SSR graph).
+    const SonnerComponent = props.toasts ? (await import("@vueda/feedback/toast/Sonner.vue")).default : null;
     // Bail if the host component unmounted while the dynamic imports were in flight.
     if (!mountPoint.value) {
         return;
@@ -103,7 +112,12 @@ onMounted(async () => {
         store[name] = makeWrapped(store, fn);
     }
 
-    const app = createApp({ render: () => h(ViewComponent, props.viewProps) });
+    const app = createApp({
+        render: () => {
+            const view = h(ViewComponent, props.viewProps);
+            return SonnerComponent ? [view, h(SonnerComponent)] : view;
+        },
+    });
     app.use(pinia);
     app.use(router);
     app.mount(mountPoint.value);
