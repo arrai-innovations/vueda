@@ -1,4 +1,3 @@
-import logging
 import os
 from copy import deepcopy
 from http import HTTPStatus
@@ -7,6 +6,7 @@ from typing import ClassVar
 import pytest
 from django.db import connections
 from django.urls import reverse
+from django.utils.log import configure_logging
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
@@ -42,15 +42,16 @@ def log_to_db(settings):
         },
     }
 
-    logging.config.dictConfig(new_logging)
+    configure_logging(settings.LOGGING_CONFIG, new_logging)
 
     yield settings
 
-    # dictConfig with disable_existing_loggers=False leaves loggers not in the new config
-    # untouched, so the "django" logger would retain the "db" handler after cleanup and
-    # cause unrelated tests to fail when they trigger Django error logging.
-    logging.getLogger("django").handlers = []
-    logging.config.dictConfig(settings.LOGGING)
+    # Reset logging to Django's startup state. The "django" logger is defined by Django's
+    # DEFAULT_LOGGING, not settings.LOGGING, and dictConfig runs with
+    # disable_existing_loggers=False, so re-applying settings.LOGGING alone would leave this
+    # fixture's db handler and ERROR level on the "django" logger. configure_logging reapplies
+    # DEFAULT_LOGGING and settings.LOGGING together, the same way startup does, fully restoring it.
+    configure_logging(settings.LOGGING_CONFIG, settings.LOGGING)
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
