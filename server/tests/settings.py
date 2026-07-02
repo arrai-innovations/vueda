@@ -32,7 +32,6 @@ LOCAL_APPS = [
     "tests.confirmation.apps.ConfirmationConfig",
     "tests.erring.apps.ErringConfig",
     "tests.logging.apps.LoggingConfig",
-    "tests.no_migrations.apps.NoMigrationsConfig",
     "tests.store.apps.StoreConfig",
     "django_view_manager.utils",
 ]
