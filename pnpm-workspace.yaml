@@ -77,3 +77,4 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@arrai-innovations/reactive-helpers@21.1.2'
+  - '@arrai-innovations/vue-sonner@2.0.10'
