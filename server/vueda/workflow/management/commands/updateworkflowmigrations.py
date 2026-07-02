@@ -169,7 +169,7 @@ class Command(BaseCommand):
                 class_migration_index = i
 
         if None in (generated_index, history_change_reason_index, changed_data_index, class_migration_index):
-            self.stdout.write(self.style.ERROR(f"  Could not parse required sections in {filepath}, skipping."))
+            self.stderr.write(self.style.ERROR(f"  Could not parse required sections in {filepath}, skipping."))
             return False
 
         import_instead = self._is_import_instead(lines)
