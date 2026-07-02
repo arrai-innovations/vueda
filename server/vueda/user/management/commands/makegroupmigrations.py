@@ -24,6 +24,7 @@ import importlib
 import inspect
 import io
 import os
+import re
 import sys
 from pathlib import Path
 from pprint import pformat
@@ -241,8 +242,14 @@ def get_group_migration_imports(import_instead=False):
 
 def get_group_migration_sources(import_instead=False):
     """Return the source-code strings inserted into a group migration file."""
-    forwards_through_imports_source = inspect.getsource(forwards_migrate_groups_through_imports)
-    backwards_through_imports_source = inspect.getsource(backwards_migrate_groups_through_imports)
+    noqa_removal_regex = r"\s*#\s*noqa:\s*F821[^\n]*"  # Removes 'noqa: F821' from these functions.
+
+    forwards_through_imports_source = re.sub(
+        noqa_removal_regex, "", inspect.getsource(forwards_migrate_groups_through_imports)
+    )
+    backwards_through_imports_source = re.sub(
+        noqa_removal_regex, "", inspect.getsource(backwards_migrate_groups_through_imports)
+    )
 
     result = [
         f"{NEWLINE}{NEWLINE}{forwards_through_imports_source}",
@@ -250,8 +257,8 @@ def get_group_migration_sources(import_instead=False):
     ]
 
     if not import_instead:
-        forwards_migrate_groups_source = inspect.getsource(forwards_migrate_groups)
-        backwards_migrate_groups_source = inspect.getsource(backwards_migrate_groups)
+        forwards_migrate_groups_source = re.sub(noqa_removal_regex, "", inspect.getsource(forwards_migrate_groups))
+        backwards_migrate_groups_source = re.sub(noqa_removal_regex, "", inspect.getsource(backwards_migrate_groups))
 
         result.extend(
             [
