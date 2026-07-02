@@ -7,7 +7,9 @@ __all__ = (
     "Command",
     "GroupChangeTypes",
     "backwards_migrate_groups",
+    "backwards_migrate_groups_through_imports",
     "forwards_migrate_groups",
+    "forwards_migrate_groups_through_imports",
     "get_group_migration_imports",
     "get_group_migration_sources",
     "make_sure_permissions_exist",
@@ -22,7 +24,6 @@ import importlib
 import inspect
 import io
 import os
-import re
 import sys
 from pathlib import Path
 from pprint import pformat
@@ -121,14 +122,19 @@ def migrate_step(
                 group.delete()
 
 
-def forwards_migrate_groups(apps, schema_editor):
+# Migration-only entry point; its existence makes the underlying function testable.
+def forwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover
+    # Copied changed_data, so tests can migrate forwards and backwards.
+    forwards_migrate_groups(apps, copy.deepcopy(changed_data))  # noqa: F821
+
+
+def forwards_migrate_groups(apps, changed_items):
     content_types = apps.get_model("contenttypes", "ContentType")
     group_changes = apps.get_model("vueda_user", "GroupChange")
     groups = apps.get_model("auth", "Group")
     permissions = apps.get_model("auth", "Permission")
 
-    # Copied, so tests can migrate forwards and then backwards.
-    for changed_item in copy.deepcopy(changed_data):  # noqa: F821
+    for changed_item in changed_items:
         group_name = changed_item["group_name"]
         group_name_old = changed_item["group_name_old"]
         change_type = changed_item["change_type"]
@@ -155,13 +161,18 @@ def forwards_migrate_groups(apps, schema_editor):
             create_group_change(changed_item, group_change_model=group_changes)
 
 
-def backwards_migrate_groups(apps, schema_editor):
+# Migration-only entry point; its existence makes the underlying function testable.
+def backwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover
+    # Copied changed_data, so tests can migrate forwards and backwards.
+    backwards_migrate_groups(apps, copy.deepcopy(changed_data))  # noqa: F821
+
+
+def backwards_migrate_groups(apps, changed_items):
     content_types = apps.get_model("contenttypes", "ContentType")
     groups = apps.get_model("auth", "Group")
     permissions = apps.get_model("auth", "Permission")
 
-    # Copied and reversed, so tests can migrate backwards and then forwards.
-    for changed_item in reversed(copy.deepcopy(changed_data)):  # noqa: F821
+    for changed_item in reversed(changed_items):
         group_name = changed_item["group_name"]
         group_name_old = changed_item["group_name_old"]
         change_type = changed_item["change_type"]
@@ -210,16 +221,12 @@ def get_group_migration_imports(import_instead=False):
     if import_instead:
         return [
             MIGRATION_MODIFIED_COMMENT,
+            "import copy",
             f"{NEWLINE}import datetime",
             f"{NEWLINE}{NEWLINE}from django.conf import settings",
-            f"{NEWLINE}{NEWLINE}import vueda.user.management.commands.makegroupmigrations as _makegroupmigrations",
-            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import backwards_migrate_groups",
+            f"{NEWLINE}{NEWLINE}from vueda.user.management.commands.makegroupmigrations import backwards_migrate_groups",
             f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import forwards_migrate_groups",
-            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import GroupChangeTypes",
             f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import make_sure_permissions_exist",
-            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import migrate_step",
-            f"{NEWLINE}from vueda.user.management.commands.utils import create_group_change",
-            f"{NEWLINE}from vueda.user.management.commands.utils import get_matching_record",
         ]
     return [
         MIGRATION_MODIFIED_COMMENT,
@@ -234,27 +241,32 @@ def get_group_migration_imports(import_instead=False):
 
 def get_group_migration_sources(import_instead=False):
     """Return the source-code strings inserted into a group migration file."""
-    if import_instead:
-        return [
-            f"_makegroupmigrations.changed_data = changed_data{NEWLINE}",
-            f"{NEWLINE}",
-        ]
+    forwards_through_imports_source = inspect.getsource(forwards_migrate_groups_through_imports)
+    backwards_through_imports_source = inspect.getsource(backwards_migrate_groups_through_imports)
 
-    noqa_removal_regex = r"\s*#\s*noqa[^\n]*"  # Removes 'noqa: F821' from these functions.
-
-    forwards_migrate_groups_source = re.sub(noqa_removal_regex, "", inspect.getsource(forwards_migrate_groups))
-    backwards_migrate_groups_source = re.sub(noqa_removal_regex, "", inspect.getsource(backwards_migrate_groups))
-
-    return [
-        f"{NEWLINE}{NEWLINE}{inspect.getsource(create_group_change)}",
-        f"{NEWLINE}{NEWLINE}{inspect.getsource(get_matching_record)}",
-        f"{NEWLINE}{NEWLINE}{inspect.getsource(GroupChangeTypes)}",
-        f"{NEWLINE}{NEWLINE}{inspect.getsource(migrate_step)}",
-        f"{NEWLINE}{NEWLINE}{forwards_migrate_groups_source}",
-        f"{NEWLINE}{NEWLINE}{backwards_migrate_groups_source}",
-        f"{NEWLINE}{NEWLINE}{inspect.getsource(make_sure_permissions_exist)}",
-        f"{NEWLINE}{NEWLINE}",
+    result = [
+        f"{NEWLINE}{NEWLINE}{forwards_through_imports_source}",
+        f"{NEWLINE}{NEWLINE}{backwards_through_imports_source}",
     ]
+
+    if not import_instead:
+        forwards_migrate_groups_source = inspect.getsource(forwards_migrate_groups)
+        backwards_migrate_groups_source = inspect.getsource(backwards_migrate_groups)
+
+        result.extend(
+            [
+                f"{NEWLINE}{NEWLINE}{inspect.getsource(create_group_change)}",
+                f"{NEWLINE}{NEWLINE}{inspect.getsource(get_matching_record)}",
+                f"{NEWLINE}{NEWLINE}{inspect.getsource(GroupChangeTypes)}",
+                f"{NEWLINE}{NEWLINE}{inspect.getsource(migrate_step)}",
+                f"{NEWLINE}{NEWLINE}{forwards_migrate_groups_source}",
+                f"{NEWLINE}{NEWLINE}{backwards_migrate_groups_source}",
+                f"{NEWLINE}{NEWLINE}{inspect.getsource(make_sure_permissions_exist)}",
+            ]
+        )
+
+    result.append(f"{NEWLINE}{NEWLINE}")
+    return result
 
 
 class Command(BaseCommand):
@@ -418,8 +430,8 @@ class Command(BaseCommand):
                     reverse_index = line_no
 
             # We write lines starting from the bottom to the top, so our line numbers are correct through the process.
-            lines[reverse_index] = lines[reverse_index].replace("int", "backwards_migrate_groups")
-            lines[forwards_index] = lines[forwards_index].replace("str", "forwards_migrate_groups")
+            lines[reverse_index] = lines[reverse_index].replace("int", "backwards_migrate_groups_through_imports")
+            lines[forwards_index] = lines[forwards_index].replace("str", "forwards_migrate_groups_through_imports")
             lines[p_reverse_index] = lines[p_reverse_index].replace("type", "migrations.RunPython.noop")
             lines[p_forwards_index] = lines[p_forwards_index].replace("dict", "make_sure_permissions_exist")
 

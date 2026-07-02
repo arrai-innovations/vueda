@@ -16,7 +16,7 @@ from vueda.user.management.commands.makegroupmigrations import get_group_migrati
 
 
 _GROUP_MIGRATION_COMMENT_MARKER = MIGRATION_MODIFIED_COMMENT.strip()
-_IMPORT_INSTEAD_MARKER = "import vueda.user.management.commands.makegroupmigrations as _makegroupmigrations"
+_IMPORT_INSTEAD_MARKER = "from vueda.user.management.commands.makegroupmigrations import make_sure_permissions_exist"
 
 
 class Command(BaseCommand):
@@ -91,7 +91,6 @@ class Command(BaseCommand):
                 for target in node.targets:
                     if isinstance(target, ast.Name) and target.id == "changed_data":
                         return changed_data_index + node.end_lineno - 1
-        return changed_data_index
 
     def _update_migration_file(self, filepath):
         with open(filepath, encoding="utf-8") as f:
