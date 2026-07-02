@@ -3,7 +3,6 @@
 import ast
 import importlib
 import os
-import re
 import sys
 
 from django.apps import apps as django_apps
@@ -17,15 +16,19 @@ from vueda.workflow.management.commands.makeworkflowmigrations import get_migrat
 from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_sources
 
 
+class NoRenamesError(Exception):
+    pass
+
+
 _WORKFLOW_MIGRATION_COMMENT_MARKER = MIGRATION_MODIFIED_COMMENT.strip()
 _IMPORT_INSTEAD_MARKER = "from vueda.workflow.management.commands.makeworkflowmigrations import"
 
 # Old function names (without _through_imports) that must be renamed in the operations block.
-_OPERATION_FUNCTION_RENAMES = [
-    (re.compile(r"make_sure_permissions_exist(?!_through_imports)"), "make_sure_permissions_exist_through_imports"),
-    (re.compile(r"forwards_migrate_workflow(?!_through_imports)"), "forwards_migrate_workflow_through_imports"),
-    (re.compile(r"backwards_migrate_workflow(?!_through_imports)"), "backwards_migrate_workflow_through_imports"),
-]
+_OPERATION_FUNCTION_RENAMES = {
+    "make_sure_permissions_exist": "make_sure_permissions_exist_through_imports",
+    "forwards_migrate_workflow": "forwards_migrate_workflow_through_imports",
+    "backwards_migrate_workflow": "backwards_migrate_workflow_through_imports",
+}
 
 
 class Command(BaseCommand):
@@ -107,9 +110,37 @@ class Command(BaseCommand):
 
     @staticmethod
     def _update_operation_function_names(class_migration_block):
-        for pattern, replacement in _OPERATION_FUNCTION_RENAMES:
-            class_migration_block = pattern.sub(replacement, class_migration_block)
-        return class_migration_block
+        tree = ast.parse(class_migration_block)
+
+        # Collect (lineno, col_offset, old_name) for Name nodes inside RunPython calls only,
+        # so string literals in dependencies are never touched.
+        renames = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if not (isinstance(func, ast.Attribute) and func.attr == "RunPython"):
+                continue
+            for arg in node.args:
+                if isinstance(arg, ast.Name) and arg.id in _OPERATION_FUNCTION_RENAMES:
+                    renames.append((arg.lineno, arg.col_offset, arg.id))
+            for kw in node.keywords:
+                if (
+                    kw.arg in ("code", "reverse_code")
+                    and isinstance(kw.value, ast.Name)
+                    and kw.value.id in _OPERATION_FUNCTION_RENAMES
+                ):
+                    renames.append((kw.value.lineno, kw.value.col_offset, kw.value.id))
+
+        if not renames:
+            raise NoRenamesError()
+
+        lines = class_migration_block.splitlines(keepends=True)
+        for lineno, col_offset, old_name in sorted(renames, reverse=True):
+            new_name = _OPERATION_FUNCTION_RENAMES[old_name]
+            line = lines[lineno - 1]
+            lines[lineno - 1] = line[:col_offset] + new_name + line[col_offset + len(old_name) :]
+        return "".join(lines)
 
     @staticmethod
     def _find_changed_data_end(lines, changed_data_index, class_migration_index):
