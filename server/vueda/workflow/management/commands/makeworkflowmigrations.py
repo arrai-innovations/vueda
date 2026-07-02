@@ -156,10 +156,9 @@ def forwards_migrate_workflow(apps, changed_items, change_reason):
     handle_state_objects(apps)
 
 
-# This function exists to pass changed_data and history_change_reason when a test imports to handle coverage.
-# It only gets called in the migration itself.
+# Migration-only entry point; its existence makes the underlying function testable.
 def forwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover
-    # Copied, so tests can migrate forwards and backwards.
+    # Copied changed_data, so tests can migrate forwards and backwards.
     forwards_migrate_workflow(apps, copy.deepcopy(changed_data), history_change_reason)  # noqa: F821
 
 
@@ -201,10 +200,9 @@ def backwards_migrate_workflow(apps, changed_items, change_reason):
                 handle_transition_source(apps, changed_item, change_reason, reversing=True)
 
 
-# This function exists to pass changed_data and history_change_reason when a test imports to handle coverage.
-# It only gets called in the migration itself.
+# Migration-only entry point; its existence makes the underlying function testable.
 def backwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover
-    # Copied, so tests can migrate forwards and backwards.
+    # Copied changed_data, so tests can migrate forwards and backwards.
     backwards_migrate_workflow(apps, copy.deepcopy(changed_data), history_change_reason)  # noqa: F821
 
 
@@ -975,8 +973,7 @@ def make_sure_permissions_exist(app_label):
     create_permissions(app, interactive=False)
 
 
-# This function exists to pass migration_app_label when a test imports to handle coverage.
-# It only gets called in the migration itself.
+# Migration-only entry point; its existence makes the underlying function testable.
 def make_sure_permissions_exist_through_imports(apps, schema_editor):  # pragma: no cover
     make_sure_permissions_exist(migration_app_label)  # noqa: F821
 
