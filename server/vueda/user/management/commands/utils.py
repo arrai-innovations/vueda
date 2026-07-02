@@ -6,13 +6,9 @@ __all__ = (
 )
 
 
-def get_matching_record(change, group_change_model=None):
+def get_matching_record(change, group_change_model):
     """Return GroupChange.pk if a record matching this change exists, None otherwise."""
-    # Provide a way to use the model through a migration.
-    if group_change_model is None:
-        from vueda.user.models import GroupChange
-
-        group_change_model = GroupChange
+    # Need group_change_model since we could be running from a migration.
     obj = group_change_model.objects.filter(
         group_name=change["group_name"],
         group_name_old=change["group_name_old"],
@@ -26,12 +22,8 @@ def get_matching_record(change, group_change_model=None):
         return obj.first().pk
 
 
-def create_group_change(change, group_change_model=None):
-    # Provide a way to use the model through a migration.
-    if group_change_model is None:
-        from vueda.user.models import GroupChange
-
-        group_change_model = GroupChange
+def create_group_change(change, group_change_model):
+    # Need group_change_model since we could be running from a migration.
     obj = group_change_model.objects.create(
         group_name=change["group_name"],
         group_name_old=change["group_name_old"],

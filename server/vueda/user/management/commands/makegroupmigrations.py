@@ -523,6 +523,8 @@ class Command(BaseCommand):
 
     @atomic
     def handle(self, **options):
+        from vueda.user.models import GroupChange
+
         self.dry_run = options["dry_run"]
         self.import_instead = options["import_instead"]
 
@@ -531,7 +533,7 @@ class Command(BaseCommand):
 
         for migration_name in all_migrated_data["migrations"]:
             for change in all_migrated_data["migrations"][migration_name]["changes"]:
-                pk = get_matching_record(change)
+                pk = get_matching_record(change, GroupChange)
                 if pk is not None:
                     matched_group_change_pks.add(pk)
 

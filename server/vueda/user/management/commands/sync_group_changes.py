@@ -17,12 +17,14 @@ class Command(BaseCommand):
     help = "Sync GroupChange records from migrations created by makegroupmigrations."
 
     def handle(self, **options):
+        from vueda.user.models import GroupChange
+
         created = 0
         for migration_file in self._find_group_migrations():
             module = self._load_migration_module(migration_file)
             for change in module.changed_data:
-                if not get_matching_record(change):
-                    create_group_change(change)
+                if not get_matching_record(change, GroupChange):
+                    create_group_change(change, GroupChange)
                     created += 1
         self.stdout.write(self.style.SUCCESS(f"Created {created} GroupChange record(s)."))
 
