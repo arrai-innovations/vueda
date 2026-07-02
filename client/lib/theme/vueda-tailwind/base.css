@@ -678,6 +678,59 @@
     color: var(--muted-foreground);
 }
 
+/* Drag-to-dismiss affordance. vue-sonner only sets `user-select: none` once a
+ * swipe is already underway (after `[data-swiped="true"]`), so starting a
+ * mouse drag on top of toast text triggers native text selection instead of
+ * the swipe gesture. Suppress selection from pointer-down and show a grab
+ * cursor on any dismissible toast so the drag is discoverable up front. */
+[data-sonner-toast][data-dismissible="true"] {
+    cursor: grab;
+    user-select: none;
+}
+[data-sonner-toast][data-dismissible="true"][data-swiping="true"] {
+    cursor: grabbing;
+}
+
+/* Close button: vue-sonner's default is a circular badge on the toast's
+ * corner, deliberately straddling the border (its `--toast-close-button-
+ * transform` shifts it 35% outside the box). Restyle to a plain contained
+ * icon button that reads like the rest of the theme (Alert's dismiss
+ * button) instead of a floating badge. `!important` guards the override:
+ * this selector ties vue-sonner's own rule in specificity, so it would
+ * otherwise depend on which stylesheet the bundler happens to emit last. */
+[data-sonner-toast][data-styled="true"] [data-close-button] {
+    top: 12px !important;
+    right: 12px !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    color: var(--muted-foreground) !important;
+}
+[data-sonner-toast][data-styled="true"] [data-close-button]:hover {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--foreground) !important;
+}
+
+/* Toast motion: vue-sonner's stock transform/opacity/height/box-shadow
+ * transition runs at 400ms (200ms for box-shadow), well past VUEDA's
+ * canonical interaction duration. Hovering the stack expands it and
+ * dismissing a toast can collapse it again (vue-sonner auto-collapses once
+ * one toast remains); at 400ms a stray mousemove is easily caught mid-
+ * transition and re-expands it, fighting the collapse. This is vue-sonner's
+ * own state logic, not ours to fix, but resolving on the shorter canonical
+ * duration shrinks that window by more than 3x. */
+[data-sonner-toast] {
+    transition:
+        transform var(--vueda-duration-interaction) var(--vueda-ease-interaction),
+        opacity var(--vueda-duration-interaction) var(--vueda-ease-interaction),
+        height var(--vueda-duration-interaction) var(--vueda-ease-interaction),
+        box-shadow var(--vueda-duration-interaction) var(--vueda-ease-interaction) !important;
+}
+
 /* ---------- Color palette: dark (primary target for operators) ----------
  * Surface stack: background < card < accent. All cool-neutral.
  * Blue shifts slightly lighter for contrast on dark. */
