@@ -1095,7 +1095,7 @@ def get_migration_imports(import_instead=False):
 
 def get_migration_sources(import_instead=False):
     """Return the source-code strings that follow changed_data in a workflow migration file."""
-    noqa_removal_regex = r"\s*#\s*noqa[^\n]*"  # Removes 'noqa: F821' from these functions.
+    noqa_removal_regex = r"\s*#\s*noqa:\s*F821[^\n]*"  # Removes 'noqa: F821' from these functions.
 
     forwards_migrate_workflow_source = re.sub(
         noqa_removal_regex, "", inspect.getsource(forwards_migrate_workflow_through_imports)
