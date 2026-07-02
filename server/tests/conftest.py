@@ -3,6 +3,7 @@ import contextlib
 import hashlib
 import importlib
 import io
+from collections.abc import Iterable
 from http import HTTPStatus
 from typing import ClassVar
 
@@ -264,12 +265,20 @@ class BaseTestListModelViewSet:
                 break
             if not self.page_data_arguments:
                 index_of_page_data_arguments_item = 0
-                break
             else:
+                all_match = set()
                 for key, value in self.page_data_arguments[0].items():
-                    if result[key] == value:
-                        index_of_page_data_arguments_item = index
-                        break
+                    # Make sure iterables are the same type.
+                    if isinstance(value, Iterable) and not isinstance(value, str):
+                        value = tuple(value)
+                    if isinstance(result[key], Iterable) and not isinstance(result[key], str):
+                        result[key] = tuple(result[key])
+                    all_match.add(result[key] == value)
+                if all(all_match):
+                    index_of_page_data_arguments_item = index
+
+        # If the index is still none, then we need the results to figure out why.
+        assert index_of_page_data_arguments_item is not None, response_info["results"]
 
         current_history_id = response_info["results"][index_of_page_data_arguments_item]["current_history_id"]
         assert current_history_id is not None
