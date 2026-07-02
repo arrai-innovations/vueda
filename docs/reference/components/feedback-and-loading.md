@@ -15,7 +15,9 @@ import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Progress from "@vueda/feedback/progress/Progress.vue";
 import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
+import Sonner from "@vueda/feedback/toast/Sonner.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import { toast } from "vue-sonner";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
   faBell,
@@ -28,6 +30,14 @@ import {
   faTriangleExclamation,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+
+function fireLoadingToast() {
+  toast.promise(new Promise((resolve) => setTimeout(resolve, 2500)), {
+    loading: "Generating export",
+    description: "Reconciling ledger.",
+    success: () => ({ message: "Export ready", description: "Available in Downloads." }),
+  });
+}
 </script>
 
 # Feedback + Loading
@@ -490,11 +500,27 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
 
 ## Sonner: variant matrix
 
-Sonner is the toast container. The component supplies VUEDA colors and renders
-registry-backed icons for success, info, warning, error, loading, and close
-states. Consumers can override those icons with `setIcons()` or per-instance
-`iconOverride`; Sonner uses the `check`, `info`, `triangleExclamation`, `close`,
-and `loading` registry keys.
+Sonner is the toast container. Like Button, it resolves on two axes: `type`
+(info, success, warning, error, loading -- the tone) and a surface treatment,
+normal vs `richColors`. The normal surface reads against the popover token;
+`richColors` reuses Alert's status recipe (status text, border at 50%,
+background at 10%, mixed against `--popover` rather than `transparent` so
+the filled surface stays opaque like every other floating overlay) instead
+of a bold fill, so re-toning stays consistent with Alert's already-
+established status language. Loading and the default type have no semantic
+tone to fill, so they only appear on the normal-surface cards. Toasts are
+also dismissible by dragging; a grab cursor and suppressed text selection
+make that discoverable from the first pointer-down, rather than only once a
+drag is already underway.
+
+Each row below has a static pair (the intended target, hand-authored) and a
+live pair (a real `Sonner` firing real `toast()` calls, so animation,
+stacking, drag-dismiss, and timing behave exactly as they do in a consuming
+app).
+
+Icons come from the `check`, `info`, `triangleExclamation`, `close`, and
+`loading` registry keys via `useIcons`; override them with `setIcons()` or
+per-instance `iconOverride`.
 Toasts read against the popover surface, the same one used by Popover and
 HoverCard, so re-toning the popover token shifts all three in lockstep.
 
@@ -502,11 +528,11 @@ Theme key: {@api theme-key:Sonner}. Token surface:
 {@api css-token:popover}, {@api css-token:popover-foreground},
 {@api css-token:border}, and {@api css-token:vueda-control-radius}.
 
-<VuedaDemo class="grid gap-6">
-  <DemoCard title="types with default glyphs">
+<VuedaDemo class="grid gap-6 lg:grid-cols-2">
+  <DemoCard title="static — normal surface">
     <div class="grid gap-2 lg:grid-cols-2">
       <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <span class="mt-0.5 font-mono text-sm leading-none">ℹ</span>
+        <FontAwesomeIcon :icon="faCircleInfo" class="mt-0.5" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">New records imported</div>
           <div class="text-xs leading-snug text-muted-foreground">248 entries added by the Stripe connector.</div>
@@ -516,7 +542,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
         </button>
       </div>
       <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <span class="mt-0.5 font-mono text-sm leading-none text-success">✓</span>
+        <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5 text-success" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Invoice posted · A-0419</div>
           <div class="text-xs leading-snug text-muted-foreground">Payment of $12,840.00 applied.</div>
@@ -526,16 +552,17 @@ Theme key: {@api theme-key:Sonner}. Token surface:
         </button>
       </div>
       <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <span class="mt-0.5 font-mono text-sm leading-none text-warning">⚠</span>
+        <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5 text-warning" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Session expires in 5 minutes</div>
+          <div class="text-xs leading-snug text-muted-foreground">Save your work to avoid losing changes.</div>
         </div>
         <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
       <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <span class="mt-0.5 font-mono text-sm leading-none text-destructive">✕</span>
+        <FontAwesomeIcon :icon="faCircleExclamation" class="mt-0.5 text-destructive" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Sync failed · Stripe</div>
           <div class="text-xs leading-snug text-muted-foreground">HTTP 502, will retry in 60s.</div>
@@ -550,9 +577,6 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <div class="text-sm font-medium leading-tight">Generating export</div>
           <div class="text-xs leading-snug text-muted-foreground">Reconciling ledger.</div>
         </div>
-        <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
-          <FontAwesomeIcon :icon="faXmark" />
-        </button>
       </div>
       <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
         <FontAwesomeIcon :icon="faBell" class="mt-0.5 text-muted-foreground" />
@@ -568,27 +592,63 @@ Theme key: {@api theme-key:Sonner}. Token surface:
     <template #footer>
       <span>bg <code>--popover</code></span>
       <span>fg <code>--popover-foreground</code></span>
-      <span>border <code>--border</code></span>
-      <span>icons from <code>useIcons</code></span>
+      <span>loading omits the dismiss button: it tracks a pending promise</span>
     </template>
   </DemoCard>
-  <DemoCard title="Font Awesome override">
+  <DemoCard title="live — normal surface" description="fires real toast() calls against the actual Sonner component">
+    <div class="flex flex-wrap gap-2">
+      <Button size="sm" @click="toast.info('New records imported', { description: '248 entries added by the Stripe connector.', duration: Infinity })">Info</Button>
+      <Button size="sm" @click="toast.success('Invoice posted · A-0419', { description: 'Payment of $12,840.00 applied.', duration: Infinity })">Success</Button>
+      <Button size="sm" @click="toast.warning('Session expires in 5 minutes', { description: 'Save your work to avoid losing changes.', duration: Infinity })">Warning</Button>
+      <Button size="sm" @click="toast.error('Sync failed · Stripe', { description: 'HTTP 502, will retry in 60s.', duration: Infinity })">Error</Button>
+      <Button size="sm" @click="fireLoadingToast">Loading</Button>
+      <Button size="sm" @click="toast('Draft saved', { description: 'Last change 2s ago, autosave every 30s.', duration: Infinity })">Default</Button>
+      <Button size="sm" @click="toast.success('Copied to clipboard', { description: 'Share link copied.', duration: 2000 })">Short duration</Button>
+    </div>
+    <template #footer>
+      <span>info/success/warning/error/default use <code>duration: Infinity</code></span>
+      <span>loading uses <code>toast.promise()</code> and resolves to success after 2.5s</span>
+      <span>"short duration" auto-dismisses after 2s</span>
+      <span>drag any toast to dismiss it early -- cursor shows grab/grabbing</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="static — rich colors">
     <div class="grid gap-2 lg:grid-cols-2">
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5 text-success" />
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-info/50 bg-info/10 p-3 text-info shadow-vueda-popover">
+        <FontAwesomeIcon :icon="faCircleInfo" class="mt-0.5" />
         <div class="grid gap-1">
-          <div class="text-sm font-medium leading-tight">Reconciliation complete</div>
-          <div class="text-xs leading-snug text-muted-foreground">All 247 entries matched.</div>
+          <div class="text-sm font-medium leading-tight">New records imported</div>
+          <div class="text-xs leading-snug text-info/90">248 entries added by the Stripe connector.</div>
         </div>
         <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <FontAwesomeIcon :icon="faCircleExclamation" class="mt-0.5 text-destructive" />
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-success/50 bg-success/10 p-3 text-success shadow-vueda-popover">
+        <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5" />
         <div class="grid gap-1">
-          <div class="text-sm font-medium leading-tight">Upload rejected</div>
-          <div class="text-xs leading-snug text-muted-foreground">File exceeds 50MB limit.</div>
+          <div class="text-sm font-medium leading-tight">Invoice posted · A-0419</div>
+          <div class="text-xs leading-snug text-success/90">Payment of $12,840.00 applied.</div>
+        </div>
+        <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
+          <FontAwesomeIcon :icon="faXmark" />
+        </button>
+      </div>
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-warning/50 bg-warning/10 p-3 text-warning shadow-vueda-popover">
+        <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5" />
+        <div class="grid gap-1">
+          <div class="text-sm font-medium leading-tight">Session expires in 5 minutes</div>
+          <div class="text-xs leading-snug text-warning/90">Save your work to avoid losing changes.</div>
+        </div>
+        <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
+          <FontAwesomeIcon :icon="faXmark" />
+        </button>
+      </div>
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-destructive/50 bg-destructive/10 p-3 text-destructive shadow-vueda-popover">
+        <FontAwesomeIcon :icon="faCircleExclamation" class="mt-0.5" />
+        <div class="grid gap-1">
+          <div class="text-sm font-medium leading-tight">Sync failed · Stripe</div>
+          <div class="text-xs leading-snug text-destructive/90">HTTP 502, will retry in 60s.</div>
         </div>
         <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
           <FontAwesomeIcon :icon="faXmark" />
@@ -596,10 +656,28 @@ Theme key: {@api theme-key:Sonner}. Token surface:
       </div>
     </div>
     <template #footer>
-      <span>registry keys <code>check</code>, <code>info</code>, <code>triangleExclamation</code>, <code>close</code>, <code>loading</code></span>
+      <span>bg <code>--{type}</code>/10</span>
+      <span>border <code>--{type}</code>/50</span>
+      <span>mirrors Alert's status recipe</span>
+      <span>loading and the default type have no semantic tone to fill, so they stay off this card</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="live — rich colors" description="same buttons, richColors: true on each toast() call">
+    <div class="flex flex-wrap gap-2">
+      <Button size="sm" @click="toast.info('New records imported', { description: '248 entries added by the Stripe connector.', duration: Infinity, richColors: true })">Info</Button>
+      <Button size="sm" @click="toast.success('Invoice posted · A-0419', { description: 'Payment of $12,840.00 applied.', duration: Infinity, richColors: true })">Success</Button>
+      <Button size="sm" @click="toast.warning('Session expires in 5 minutes', { description: 'Save your work to avoid losing changes.', duration: Infinity, richColors: true })">Warning</Button>
+      <Button size="sm" @click="toast.error('Sync failed · Stripe', { description: 'HTTP 502, will retry in 60s.', duration: Infinity, richColors: true })">Error</Button>
+    </div>
+    <template #footer>
+      <span><code>richColors</code> is a per-toast option, not just a Toaster-level prop</span>
+      <span>description inherits the tone automatically; the close button stays neutral, matching the static preview</span>
     </template>
   </DemoCard>
 </VuedaDemo>
+<ClientOnly>
+  <Sonner />
+</ClientOnly>
 
 ## HoverCard: composition matrix
 
