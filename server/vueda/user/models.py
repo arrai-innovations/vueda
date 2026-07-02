@@ -89,9 +89,6 @@ class AbstractVUEDAUserMeta(BaseModelMeta):
 
     ordering = ("-date_joined",)
     default_related_name = "users"
-    permissions = [
-        ("list_permission", "Can list permissions"),
-    ]
     indexes = [
         GinIndex(fields=["email"], name="gin_email_idx", opclasses=["gin_trgm_ops"]),
         GinIndex(fields=["name"], name="gin_name_idx", opclasses=["gin_trgm_ops"]),
