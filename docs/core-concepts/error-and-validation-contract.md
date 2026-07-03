@@ -17,19 +17,23 @@ flowchart TD
         VVE["VuedaValidationError<br/>(is_warning=False)"]
         VVW["VuedaValidationError<br/>(is_warning=True)"]
         EH["Exception Handler<br/>+ serverStack"]
+        WG["get_warnings() /<br/>gate_warnings()"]
     end
 
     VVE -- "field: [msg]" --> EH
     VVW -- "field: [warnings: [msg]]" --> EH
     EH -- "HTTP 400" --> GATE
+    WG -- "HTTP 409" --> GATE
 
     subgraph Client["Client Adapter"]
-        GATE{{"Status<br/>= 400?"}}
+        GATE{{"Status?"}}
         FVE["FormValidationError<br/>constructor"]
+        CRE["ConfirmationRequiredError<br/>(opens confirm dialog)"]
     end
 
-    GATE -- "Yes" --> FVE
-    GATE -- "No" --> FE["FetchError<br/>(no form feedback)"]
+    GATE -- "400" --> FVE
+    GATE -- "409" --> CRE
+    GATE -- "other" --> FE["FetchError<br/>(no form feedback)"]
 
     FVE -- "flatten & split<br/>on .warnings regex" --> SPLIT
 
@@ -56,7 +60,7 @@ flowchart TD
 
 The server is the sole authority over validation outcomes. It decides what is valid, what is a warning, and what shape the error payload takes. The client is the authority over how those payloads are represented in the runtime state and rendered in the UI. Neither side has visibility into the other's internal logic; they communicate solely through HTTP responses.
 
-The contract has a single classification gate: **HTTP 400 means form validation; everything else does not.** This is a deliberate constraint. The client's {@term CRUDL} adapters, auth handlers, and action form components all share the same rule: 400 responses are wrapped in `FormValidationError` and routed into form state. Non-400 failures (`FetchError`, `ListFilterError`, or resolver-specific classes) follow generic error handling paths and do not populate form feedback. This means that a validation-shaped payload returned with a 500 status will never appear in form fields, and a generic error returned with a 400 status will be treated as validation feedback.
+The contract has two classification gates. **HTTP 400 means form validation failure**: the client's {@term CRUDL} adapters, auth handlers, and action form components wrap these responses in `FormValidationError` and route them into form state. **HTTP 409 means the server is withholding a write behind a warning confirmation gate**: the client raises `ConfirmationRequiredError`, which `useObjectForm` and `useActionForm` handle by surfacing the warnings and opening a confirm dialog; a confirmed resubmission carries an `Acknowledge-Warnings` header that the server matches to allow the write. All other failures — 5xx errors, 403s, network failures — produce `FetchError`, `ListFilterError`, or resolver-specific classes that follow generic error handling and do not populate form feedback. This means a validation-shaped payload returned with a 500 status will never appear in form fields; a generic 400 from an unrelated endpoint will be treated as validation feedback; and a 409 from a non-confirmation source will be misinterpreted as a warning gate.
 
 ## Wire Error Shapes and Status Branches
 
@@ -120,9 +124,31 @@ The two maps, `FormValidationError.errors` and `FormValidationError.messages`, a
 
 A response can contain both errors and warnings. The parser processes them independently; there is no mutual exclusion. A field can have a blocking error and a non-blocking warning simultaneously, and both will be visible in the form UI (as error-severity and warning-severity feedback, respectively).
 
+## Warning Confirmation Gate (HTTP 409)
+
+The warning confirmation gate is a distinct transport path from the 400 validation channel. A 409 response signals that the write has been withheld because unacknowledged warnings exist: the submitted data was valid, the server is waiting for explicit user consent before proceeding.
+
+On the server, the gate activates when the write request carries no `Acknowledge-Warnings` header and warnings are present. For create and update operations, `VuedaViewSet` calls the serializer's `get_warnings()` hook after `validate()` succeeds. For destroy, activate/deactivate, and bulk deletes, the viewset's own `get_warnings(action, objs)` hook runs. Custom action bodies call `gate_warnings(request, warnings)` directly after input validation. When warnings are present and unacknowledged, the viewset responds:
+
+```json
+{
+    "confirmation_required": true,
+    "digest": "<sha256-of-warning-payload>",
+    "warnings": { "field": ["message"] }
+}
+```
+
+with HTTP 409. Nothing is written; the response is always pre-commit.
+
+On the client, the CRUDL mutation adapters classify 409 responses as `ConfirmationRequiredError`. This error carries the server's `digest` and a `FormValidationError` pre-built from the `warnings` payload. `useObjectForm` and `useActionForm` catch `ConfirmationRequiredError` and ingest the nested `FormValidationError` into form state (populating `state.messages` via `handleServerFormValidationError`), then open the `confirmation` controller. A `FormConfirmDialog` bound to the controller presents the warnings and waits for user input. Confirming reruns the submit with the digest as the `Acknowledge-Warnings` request header; cancelling resolves as cancelled with the warnings left visible.
+
+The digest is a SHA-256 hash of the serialized warning mapping. If the warning content changes between the first 409 and the confirmed retry — because database state changed, or because the submitted input changed — the server rejects the stale digest and responds with a fresh 409 carrying a new digest and updated warnings. The user is re-prompted until they confirm the current warning text or cancel.
+
+The 409 path is separate from the 400 validation path at every layer. The exception class is `ConfirmationRequiredError`, not `FormValidationError`. The form state effects land in `state.messages`, not `state.errors`. Two write paths are excluded from the warning gate: bulk/list-serializer create and update saves, and workflow transitions.
+
 ## Client Classification and Form-State Ingestion
 
-Client CRUDL adapters (`objectCrud` for `create`/`update`/`delete`, `listCrud` for bulk delete, `storeUser` for authentication, `ModelActionForm` for action execution) all follow the same classification rule: HTTP 400 becomes `FormValidationError`, everything else becomes `FetchError` or a more specific non-form error class.
+Client CRUDL adapters (`objectCrud` for `create`/`update`/`delete`, `listCrud` for bulk delete, `storeUser` for authentication, `ModelActionForm` for action execution) follow two classification rules: HTTP 400 becomes `FormValidationError`, HTTP 409 becomes `ConfirmationRequiredError`, and everything else becomes `FetchError` or a more specific non-form error class. The authentication adapter (`storeUser`) does not observe the 409 path; login is not subject to warning confirmation.
 
 `FormValidationError` construction happens at the adapter layer, before the error reaches any form-context handler. The constructor:
 
@@ -154,6 +180,8 @@ This means that a form component fetching choices for a field that references an
 
 **Warning-only responses on form-validation transport.** A response containing only warnings still uses HTTP 400 and still arrives as a `FormValidationError`. The client routes all entries to `.messages` (none to `.errors`), so the form will not show any blocking errors. However, callers that treat any `FormValidationError` as a hard failure (without checking the error/message split) may incorrectly block the user.
 
+**Warning confirmation 409 mishandled as a generic error.** A 409 response from a warning gate is not a `FormValidationError`; it is a `ConfirmationRequiredError`. Code that catches only `FormValidationError` will miss the 409 and surface it through `FetchError` handling, leaving the user with no confirmation prompt. Code that treats any `ConfirmationRequiredError` as a hard failure without checking the confirm path will silently cancel the write.
+
 **Non-field errors with no `FormMessage`.** `non_field_errors` entries are rendered by `FormMessage` placed inside a form context. Field-scope `FieldMessage` instances do not pick up non-field errors. If a form does not include a `FormMessage`, non-field errors will appear in state but be invisible in the UI.
 
 **Choices endpoint 404 vs validation 400.** A missing or invalid model/field/filter on a choices endpoint returns 404, not 400. Code that only handles `FormValidationError` will miss these failures. The error surfaces as a `FetchError` and must be caught separately.
@@ -184,6 +212,7 @@ This means that a form component fetching choices for a field that references an
 - {@api js:module:@arrai-innovations/vueda/utils/objectCrud}
 - {@api js:module:@arrai-innovations/vueda/utils/listCrud}
 - {@api js:module:@arrai-innovations/vueda/stores/storeUser}
+- {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
 - {@api js:module:@arrai-innovations/vueda/use/useForm}
 - {@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.handleServerFormValidationError}
 - {@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.clearServerErrors}
@@ -192,3 +221,5 @@ This means that a form component fetching choices for a field that references an
 - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
 - {@api vue:component:ActionForm}
 - {@api vue:component:ModelActionForm}
+- {@api py:class:vueda.core.viewsets.WarningConfirmationMixin}
+- {@api py:function:vueda.core.exceptions.gate_warnings}
