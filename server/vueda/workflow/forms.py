@@ -24,6 +24,7 @@ __all__ = (
 )
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
@@ -36,6 +37,11 @@ from vueda.workflow.globals import CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT
 
 
 def _workflow_content_type_queryset():
+    apps_without_migrations = set()
+    for app_label, model in settings.MIGRATION_MODULES.items():
+        if model is None:
+            apps_without_migrations.add(app_label)
+
     # Remove the historical content types, vueda.workflow, and django.contrib apps.
     excluded_ids = [
         content_type.pk
@@ -48,7 +54,8 @@ def _workflow_content_type_queryset():
             or hasattr(content_type.model_class(), "pgh_tracked_model")
             or content_type.model_class()._meta.abstract
         )
-        or content_type.app_label in ("workflow", "auth", "contenttypes", "sessions", "sites")
+        or content_type.app_label
+        in ("workflow", "auth", "contenttypes", "sessions", "sites") + tuple(apps_without_migrations)
     ]
     return ContentType.objects.exclude(pk__in=excluded_ids).order_by("app_label", "model")
 
