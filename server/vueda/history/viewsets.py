@@ -10,13 +10,9 @@ from rest_framework.response import Response
 
 from vueda.core.decorators import action
 from vueda.history.serializers import DynamicHistoricalSerializer
-from vueda.history.serializers.mixins import HISTORICAL_FIELDS
 
 
 class SimpleHistoryViewSetMixin:
-    def get_historical_fields(self):
-        return HISTORICAL_FIELDS
-
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.annotate(
@@ -33,21 +29,6 @@ class SimpleHistoryViewSetMixin:
         history_id = request.query_params.get("history_id")
         is_current = self.get_queryset().filter(pk=pk, current_history_id=history_id).exists()
         return Response({"current": is_current})
-
-    def diff_fields(self, previous_entry, entry):
-        from django.forms import model_to_dict
-
-        different_fields = []
-        previous_entry_dict = model_to_dict(previous_entry)
-        entry_dict = model_to_dict(entry)
-        for name, old_value in previous_entry_dict.items():
-            if name in self.get_historical_fields():
-                continue
-            new_value = entry_dict[name]
-            if old_value != new_value:
-                different_fields.append(name)
-
-        return different_fields
 
     @action(detail=True, methods=["get"])
     def history_list(self, request, pk=None):

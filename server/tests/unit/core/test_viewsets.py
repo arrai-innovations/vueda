@@ -25,7 +25,6 @@ from vueda import info
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
-from vueda.history.serializers.mixins import HISTORICAL_FIELDS
 
 
 def test_vueda_read_only_viewset_excludes_write_actions():
@@ -220,7 +219,14 @@ class TestProductViewSet(BaseTestModelViewSet):
         first_history_entry = response.data.pop("first_history_entry")
         # Remove the history fields, copying the history id as current history id,
         # since that is supposed to be in the response.
-        for key in HISTORICAL_FIELDS:
+        for key in (
+            "history_id",
+            "history_date",
+            "history_change_reason",
+            "history_type",
+            "history_user",
+            "history_relation",
+        ):
             if key == "history_id":
                 expected_retrieve_response["current_history_id"] = first_history_entry[key]
                 first_history_entry["current_history_id"] = first_history_entry[key]
