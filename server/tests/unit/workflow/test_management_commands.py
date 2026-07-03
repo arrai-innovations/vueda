@@ -1,5 +1,7 @@
 import ast
 import datetime
+import io
+import os
 import time
 
 import pytest
@@ -43,7 +45,7 @@ def strip_registered_info_from_stderr(stderr):
     return stderr
 
 
-class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
+class TestManagementCommandWorkflowTests(BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
             "no_migrations": None,
@@ -60,9 +62,7 @@ class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_no_app_label_specified(self):
-        with (
-            self.temporary_migration_module(app_label="workflow_added"),
-        ):
+        with self.temporary_migration_module(app_label="workflow_added"):
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app__in=("workflow_added",)).count() == 0
 
@@ -83,6 +83,70 @@ class TestManagementCommandWorkflow(BaseTestMigrations, BaseTestCallCommand):
             results = frozenset([line.strip() for line in results if line.strip()])
 
             assert "Migrations for 'workflow_added':" in results, results
+
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_bad_app_label(self):
+        with pytest.raises(SystemExit):
+            self.call_command("makeworkflowmigrations", "app_that_does_not_exist")
+
+    @override_settings(
+        MIGRATION_MODULES={
+            "no_migrations": None,
+            "workflow_added": "tests.workflow_added",
+        },
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.workflow_added",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_comment_removed(self):
+        """
+        This test doesn't use --import-instead, so we can verify that
+        the noqa comments are stripped from the generated migration.
+        """
+        with self.temporary_migration_module(app_label="workflow_added") as migration_dir:
+            # Migrate forwards.
+            succeeded, results = self.call_command("migrate", "workflow_added")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Create the generated migration 0003.
+            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_added")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Verify that the noqa comments are gone.
+            migration_filepath = os.path.join(
+                migration_dir, f"0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
+            )
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            assert (
+                "    forwards_migrate_workflow(apps, copy.deepcopy(changed_data), history_change_reason)\n"
+                in migration_content
+            )
+            assert (
+                "    backwards_migrate_workflow(apps, copy.deepcopy(changed_data), history_change_reason)\n"
+                in migration_content
+            )
+            assert "    make_sure_permissions_exist(migration_app_label)\n" in migration_content
+
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_dry_run_no_changes(self):
+        succeeded, results = self.call_command("makeworkflowmigrations", "--dry-run")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert "No workflow changes detected.\n" in results
 
 
 class TestManagementCommandWorkflowAdded(BaseTestMigrations, BaseTestCallCommand):
@@ -1661,3 +1725,288 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             assert test_3.object_state.state.code == "third"
             assert test_4.object_state.state.code == "fourth"
             assert test_5.object_state.state.code == "first"
+
+
+class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallCommand):
+    @override_settings(
+        MIGRATION_MODULES={
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        },
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.workflow_updating",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_updating(self):
+        with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
+            migration_filepath = os.path.join(migration_dir, "0002_workflow_migrations_2026_06_29.py")
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # Untouched
+            assert (
+                'history_change_reason = "Workflow Migration - 0002_workflow_migrations_2026_06_29"'
+                in migration_content
+            )
+            assert 'migration_app_label = "workflow_updating"' in migration_content
+            assert "changed_data = [" in migration_content
+
+            # Original
+            assert "def forwards_migrate_workflow(apps, schema_editor):" in migration_content
+            assert "def backwards_migrate_workflow(apps, schema_editor):" in migration_content
+            assert "def make_sure_permissions_exist(apps, schema_editor):" in migration_content
+            assert "def handle_workflow(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_workflow_permission(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_state(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_state_permission(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_initial_state(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_transition(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_transition_source(apps, changed_item, *, reversing=False):" in migration_content
+            assert (
+                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
+                in migration_content
+            )
+            assert "code=make_sure_permissions_exist," in migration_content
+            assert "code=forwards_migrate_workflow," in migration_content
+            assert "reverse_code=backwards_migrate_workflow," in migration_content
+
+            # Unchanged
+            assert "def apply_and_save_changes(obj, data, *, reversing=False):" in migration_content
+            assert "def get_id_values_from_item(values, reversing=False):" in migration_content
+            assert "def get_id_values_from_dict(id_data, reversing=False):" in migration_content
+
+            # New
+            assert (
+                "def forwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover"
+                not in migration_content
+            )
+            assert (
+                "def backwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover"
+                not in migration_content
+            )
+            assert (
+                "def make_sure_permissions_exist_through_imports(apps, schema_editor):  # pragma: no cover"
+                not in migration_content
+            )
+            assert "class WorkflowChangeTypes(enum.Enum):" not in migration_content
+            assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def make_sure_permissions_exist(app_label):" not in migration_content
+            assert (
+                "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" not in migration_content
+            )
+            assert (
+                "def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=False):"
+                not in migration_content
+            )
+            assert "def handle_state(apps, changed_item, change_reason, *, reversing=False):" not in migration_content
+            assert (
+                "def handle_state_permission(apps, changed_item, change_reason, *, reversing=False):"
+                not in migration_content
+            )
+            assert (
+                "def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):"
+                not in migration_content
+            )
+            assert (
+                "def handle_transition(apps, changed_item, change_reason, *, reversing=False):" not in migration_content
+            )
+            assert (
+                "def handle_transition_permission(apps, changed_item, change_reason, *, reversing=False):"
+                not in migration_content
+            )
+            assert (
+                "def handle_transition_source(apps, changed_item, change_reason, *, reversing=False):"
+                not in migration_content
+            )
+            assert "def handle_state_objects(apps, *, reversing=False):" not in migration_content
+            assert (
+                """def manage_state_objects(
+    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
+):"""
+                not in migration_content
+            )
+            assert (
+                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
+                not in migration_content
+            )
+            assert "code=make_sure_permissions_exist_through_imports," not in migration_content
+            assert "code=forwards_migrate_workflow_through_imports," not in migration_content
+            assert "reverse_code=backwards_migrate_workflow_through_imports," not in migration_content
+
+            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # Untouched
+            assert (
+                'history_change_reason = "Workflow Migration - 0002_workflow_migrations_2026_06_29"'
+                in migration_content
+            )
+            assert 'migration_app_label = "workflow_updating"' in migration_content
+            assert "changed_data = [" in migration_content
+
+            # Removed Original
+            assert "def forwards_migrate_workflow(apps, schema_editor):" not in migration_content
+            assert "def backwards_migrate_workflow(apps, schema_editor):" not in migration_content
+            assert "def make_sure_permissions_exist(apps, schema_editor):" not in migration_content
+            assert "def handle_workflow(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_workflow_permission(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_state(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_state_permission(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_initial_state(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_transition(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_transition_source(apps, changed_item, *, reversing=False):" not in migration_content
+            assert (
+                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
+                not in migration_content
+            )
+            assert "code=make_sure_permissions_exist," not in migration_content
+            assert "code=forwards_migrate_workflow," not in migration_content
+            assert "reverse_code=backwards_migrate_workflow," not in migration_content
+
+            # Unchanged
+            assert "def apply_and_save_changes(obj, data, *, reversing=False):" in migration_content
+            assert "def get_id_values_from_item(values, reversing=False):" in migration_content
+            assert "def get_id_values_from_dict(id_data, reversing=False):" in migration_content
+
+            # Added New
+            assert (
+                "def forwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover"
+                in migration_content
+            )
+            assert (
+                "def backwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover"
+                in migration_content
+            )
+            assert (
+                "def make_sure_permissions_exist_through_imports(apps, schema_editor):  # pragma: no cover"
+                in migration_content
+            )
+            assert "class WorkflowChangeTypes(enum.Enum):" in migration_content
+            assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def make_sure_permissions_exist(app_label):" in migration_content
+            assert "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" in migration_content
+            assert (
+                "def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=False):"
+                in migration_content
+            )
+            assert "def handle_state(apps, changed_item, change_reason, *, reversing=False):" in migration_content
+            assert (
+                "def handle_state_permission(apps, changed_item, change_reason, *, reversing=False):"
+                in migration_content
+            )
+            assert (
+                "def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):" in migration_content
+            )
+            assert "def handle_transition(apps, changed_item, change_reason, *, reversing=False):" in migration_content
+            assert (
+                "def handle_transition_permission(apps, changed_item, change_reason, *, reversing=False):"
+                in migration_content
+            )
+            assert (
+                "def handle_transition_source(apps, changed_item, change_reason, *, reversing=False):"
+                in migration_content
+            )
+            assert "def handle_state_objects(apps, *, reversing=False):" in migration_content
+            assert (
+                """def manage_state_objects(
+    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
+):"""
+                in migration_content
+            )
+            assert (
+                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
+                in migration_content
+            )
+            assert "code=make_sure_permissions_exist_through_imports," in migration_content
+            assert "code=forwards_migrate_workflow_through_imports," in migration_content
+            assert "reverse_code=backwards_migrate_workflow_through_imports," in migration_content
+
+    @override_settings(
+        MIGRATION_MODULES={
+            "workflow_updating_bad_migrations": "tests.workflow_updating_bad_migrations",
+        },
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.workflow_updating_bad_migrations",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_updating_bad_migrations(self):
+        err = io.StringIO()
+        out = io.StringIO()
+
+        with self.temporary_migration_module(app_label="workflow_updating_bad_migrations") as migration_dir:
+            with pytest.raises(SystemExit):
+                self.call_command(
+                    "updateworkflowmigrations", "workflow_updating_bad_migrations", stdout=out, stderr=err
+                )
+
+            err.seek(0)
+            results = err.read()
+
+            assert (
+                f"  Could not parse required sections in {migration_dir}"
+                "/0002_workflow_migrations_2026_06_29.py, skipping.\n"
+            ) in results
+            assert (
+                f"  Unable to parse migration at {migration_dir}/0003_workflow_migrations_2026_06_29.py"
+                " due to syntax error '[' was never closed (<unknown>, line 1), skipping.\n"
+            ) in results
+
+            out.seek(0)
+            results = out.read()
+
+            assert "Failed updating 2 workflow migration(s).\n" in results
+
+    @override_settings(
+        MIGRATION_MODULES={
+            "workflow_updating_no_migrations": None,
+        },
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.workflow_updating_no_migrations",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_updating_no_migrations(self):
+        succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating_no_migrations")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert "No workflow migrations found to update.\n" in results
+
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_bad_app_label(self):
+        err = io.StringIO()
+
+        with pytest.raises(SystemExit):
+            self.call_command("updateworkflowmigrations", "app_that_does_not_exist", stderr=err)
+
+        err.seek(0)
+        results = err.read()
+
+        assert "No installed app with label 'app_that_does_not_exist'.\n" in results
