@@ -13,9 +13,9 @@ patchTheme({
      * an explicit access or consent step.
      */
     AuthorizingForm: {
-        /** Outer wrapper that fills the viewport and centers the framed card both axes. Differs from {@api theme-key:AuthForm.root} which flows top-aligned; the consent step is short enough that a vertically centered card reads as a focused decision surface. */
+        /** Outer wrapper that fills the viewport and centers the framed card both axes. Uses `min-h-svh` rather than `min-h-full` so the fill works regardless of whether an integrator's shell gives this component's ancestors an explicit height; it never depends on a height cascade it does not control. Differs from {@api theme-key:AuthForm.root} which flows top-aligned; the consent step is short enough that a vertically centered card reads as a focused decision surface. */
         root: {
-            class: ["flex min-h-full justify-center items-center"],
+            class: ["flex min-h-svh justify-center items-center"],
         },
         /** Column around the framed card. No max-width cap (uses `max-w-full`) since the inner card already caps itself; the column exists only to anchor the inner card to its content. */
         outer: {
