@@ -226,7 +226,12 @@ const validationTitle = computed(() => {
                             name="cancel-button"
                             @click="handleCancelClick"
                         >
-                            <Button emphasis="ghost" :disabled="combinedLoading" @click="handleCancelClick">
+                            <Button
+                                type="button"
+                                emphasis="ghost"
+                                :disabled="combinedLoading"
+                                @click="handleCancelClick"
+                            >
                                 <LoadingSpinnerInline v-if="combinedLoading" />
                                 Cancel, go back
                             </Button>

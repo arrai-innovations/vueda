@@ -2,7 +2,11 @@
 import "@vueda/theme/vueda-tailwind/feedback/Sonner.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+// vue-sonner ships its base stylesheet separately; without it the Toaster has no
+// fixed positioning or surface styling (toasts render in document flow, unstyled).
+// The theme below only layers VUEDA tokens on top of these base rules.
 import { Toaster as Sonner } from "vue-sonner";
+import "vue-sonner/style.css";
 
 /**
  * A toast notification container built on vue-sonner, providing styled toast popups
@@ -20,8 +24,12 @@ const props = defineProps({
     class: { type: [String, Array, Object], default: undefined },
     /** The position of the toaster on screen. */
     position: { type: String, default: undefined },
-    /** Whether toasts should be shown with a close button. */
-    closeButton: { type: Boolean, default: undefined },
+    /**
+     * Whether toasts should be shown with a close button. Defaults to `true`:
+     * without it, drag-to-dismiss is the only way to close a toast early, and
+     * that gesture has no visual affordance.
+     */
+    closeButton: { type: Boolean, default: true },
     /** Whether rich colors should be used. */
     richColors: { type: Boolean, default: undefined },
     /** Whether the newest toast should appear on top. */
@@ -50,6 +58,21 @@ const icon = useIcons("Sonner", props);
                 '--normal-text': 'var(--popover-foreground)',
                 '--normal-border': 'var(--border)',
                 '--border-radius': 'var(--vueda-card-radius)',
+                // richColors cells: mixed against --popover rather than transparent, so the
+                // filled surface stays opaque like every other floating overlay (Popover,
+                // Dialog) instead of true alpha over unpredictable page content underneath.
+                '--success-bg': 'color-mix(in oklab, var(--success) 10%, var(--popover))',
+                '--success-border': 'color-mix(in oklab, var(--success) 50%, var(--popover))',
+                '--success-text': 'var(--success)',
+                '--info-bg': 'color-mix(in oklab, var(--info) 10%, var(--popover))',
+                '--info-border': 'color-mix(in oklab, var(--info) 50%, var(--popover))',
+                '--info-text': 'var(--info)',
+                '--warning-bg': 'color-mix(in oklab, var(--warning) 10%, var(--popover))',
+                '--warning-border': 'color-mix(in oklab, var(--warning) 50%, var(--popover))',
+                '--warning-text': 'var(--warning)',
+                '--error-bg': 'color-mix(in oklab, var(--destructive) 10%, var(--popover))',
+                '--error-border': 'color-mix(in oklab, var(--destructive) 50%, var(--popover))',
+                '--error-text': 'var(--destructive)',
             },
             theme.hideStyle?.value,
         ]"

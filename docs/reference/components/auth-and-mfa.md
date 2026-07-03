@@ -42,12 +42,16 @@ import {
   faLifeRing,
 } from "@fortawesome/free-regular-svg-icons";
 import { ref } from "vue";
+import { LOGGED_OUT, formError } from "../../.vitepress/theme/fixtures/authUser.js";
 
 const tfaMethod = ref("totp");
 const setupMethod = ref("totp");
 const otpPartial = ref("4829");
 const otpSmsPartial = ref("391");
 const otpSetup = ref("298");
+
+const signInAccepts = { login: (payload, store) => { store.loggedIn = true; } };
+const signInRejects = { login: () => { throw formError({ non_field_errors: ["Incorrect email or password."] }); } };
 </script>
 
 # Auth & MFA Views
@@ -93,11 +97,36 @@ Token surface: `--card`, `--border`, `--muted-foreground`, `--ring`, `--destruct
       </div>
     </div>
     <template #footer>
-      <span>theme key: <code>AuthorizingForm</code> · <code>theme.root</code>: <code>flex min-h-full justify-center items-center</code></span>
+      <span>theme key: <code>AuthorizingForm</code> · <code>theme.root</code>: <code>flex min-h-svh justify-center items-center</code></span>
       <span>used by: TwoFactorAuth</span>
     </template>
   </DemoCard>
 </VuedaDemo>
+
+## SignIn
+
+`ViewSignIn` is the default sign-in view: an email and password form in an `AuthorizingForm` card. Post-login routing and MFA pending-flow detection come from `AuthorizingForm` (via `useSignInFlow`); submission, loading, and server-side validation mapping come from the inner `ActionForm`. Unlike the cards above, these demos render the **live component** through the `AuthDemo` harness, so submitting exercises the real loading, toast, and error paths. The first demo hosts a single `Sonner`; because the toast store is global, every demo on this page surfaces its toasts through that one corner overlay, as in a real app.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Default · credentials accepted — submit to see the loading state then the "Signed In" success toast</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewSignIn.vue')" :state="LOGGED_OUT" route-name="sign-in" :mocks="signInAccepts" toasts />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>AuthorizingForm centers the card; <code>ViewSignIn</code> supplies the email and password fields plus a single "Sign In" submit</span>
+    <span>theme key: <code>AuthorizingForm</code> · source: <code>ViewSignIn.vue</code></span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Invalid credentials — submit to see the form-scope error and the failure toast</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewSignIn.vue')" :state="LOGGED_OUT" route-name="sign-in" :mocks="signInRejects" />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>a server <code>non_field_errors</code> response maps to the ActionForm form-scope error; <code>action-error-summary</code> drives the toast</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
 
 ## ChangePassword
 
