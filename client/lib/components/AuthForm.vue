@@ -67,8 +67,8 @@ onMounted(() => {
             <div :class="theme('inner')" data-qa="auth-form-inner">
                 <div :class="theme('contentContainer')" data-qa="auth-form-content-container">
                     <div :class="theme('title')" data-qa="auth-form-title">
-                        <h1>{{ header }}</h1>
-                        <p v-if="subTitle">{{ subTitle }}</p>
+                        <h1 :class="theme('header')">{{ header }}</h1>
+                        <p v-if="subTitle" :class="theme('subTitle')">{{ subTitle }}</p>
                     </div>
                     <!-- @slot [form-content] Override the entire form content area; receives run-action, on-submission-error-handler, and redirect-to bindings. -->
                     <slot

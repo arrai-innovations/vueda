@@ -251,12 +251,26 @@
     --font-mono: var(--vueda-font-mono);
 
     /* Typography role aliases (generates text-* utilities for VUEDA scale).
-     * Pairs font-size with the role's canonical line-height so consumers can
-     * write `text-body` instead of `text-[length:var(--vueda-text-body)] leading-[1.4]`.
-     * Other roles keep referencing the raw `--vueda-text-*` tokens via arbitrary
-     * values until their migration sweep lands. */
+     * Pairs font-size with the role's canonical line-height (and, for the
+     * semibold heading roles, weight) so consumers can write `text-body`
+     * instead of `text-[length:var(--vueda-text-body)] leading-[1.4]`.
+     * Remaining roles (reading, label, micro) keep referencing the raw
+     * `--vueda-text-*` tokens via arbitrary values until their migration
+     * sweep lands. */
     --text-body: var(--vueda-text-body);
     --text-body--line-height: 1.4;
+
+    --text-heading: var(--vueda-text-heading);
+    --text-heading--line-height: 1.2;
+    --text-heading--font-weight: var(--vueda-font-weight-label);
+
+    --text-title: var(--vueda-text-title);
+    --text-title--line-height: 1.2;
+    --text-title--font-weight: var(--vueda-font-weight-label);
+
+    --text-display: var(--vueda-text-display);
+    --text-display--line-height: 1.2;
+    --text-display--font-weight: var(--vueda-font-weight-label);
 
     /* Control sizing (generates h-vueda-control-*, px-vueda-control-px-* utilities).
      * Mapped through --spacing-* so the values are available to any spacing-family

@@ -77,12 +77,12 @@ onMounted(() => {
                         <div :class="theme('title')">
                             <!-- Heading area; receives `header` as a slot prop. -->
                             <slot name="header" :header="header">
-                                <h1 v-if="header" data-qa="authorizing-form-header">
+                                <h1 v-if="header" :class="theme('header')" data-qa="authorizing-form-header">
                                     {{ header }}
                                 </h1>
                             </slot>
 
-                            <p>{{ subTitle }}</p>
+                            <p :class="theme('subTitle')">{{ subTitle }}</p>
                         </div>
                         <!-- Replaces the default ActionForm; receives `runAction` and all inherited attrs as slot props. -->
                         <slot name="content" :run-action="runAction" v-bind="$attrs">

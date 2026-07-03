@@ -97,7 +97,7 @@ Token surface: `--card`, `--border`, `--muted-foreground`, `--ring`, `--destruct
       </div>
     </div>
     <template #footer>
-      <span>theme key: <code>AuthorizingForm</code> · <code>theme.root</code>: <code>flex min-h-full justify-center items-center</code></span>
+      <span>theme key: <code>AuthorizingForm</code> · <code>theme.root</code>: <code>flex min-h-svh justify-center items-center</code></span>
       <span>used by: TwoFactorAuth</span>
     </template>
   </DemoCard>

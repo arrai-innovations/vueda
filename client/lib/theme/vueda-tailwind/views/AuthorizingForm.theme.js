@@ -33,9 +33,17 @@ patchTheme({
         contentContainer: {
             class: ["min-w-min"],
         },
-        /** Title region above the form body. Project prose recipe with dark-mode invert so embedded markup picks up the typography scale; see {@api theme-key:AuthForm.title} for the matching sign-in recipe. */
+        /** Title region above the form body; spacing only, see `header` and `subTitle` for the text recipes. */
         title: {
-            class: ["prose dark:prose-invert mt-5"],
+            class: ["mt-5"],
+        },
+        /** The card's `<h1>`. AuthorizingForm has no separate PageTitle above it ("the card is the whole page"), so its heading carries the page-title role. */
+        header: {
+            class: ["text-title"],
+        },
+        /** The card's subtitle paragraph beneath the heading. Supporting-text recipe, matching {@api theme-key:FieldDescription.root}. */
+        subTitle: {
+            class: ["mt-1 text-muted-foreground text-[length:var(--vueda-text-supporting)] leading-[1.4] font-normal"],
         },
     },
 });
