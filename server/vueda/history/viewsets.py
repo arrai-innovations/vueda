@@ -60,7 +60,7 @@ class SimpleHistoryViewSetMixin:
         if self.paginator.page.has_next():
             next_page_number = self.paginator.page.next_page_number()
             next_page = self.paginator.page.paginator.page(next_page_number)
-            previous_entry = history_queryset[next_page.start_index()]
+            previous_entry = history_queryset[next_page.start_index() - 1]
         else:
             previous_entry = None
         serializer_class = self.get_serializer_class()

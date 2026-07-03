@@ -323,12 +323,22 @@ class TestStoreDistributorHistoryList(BaseTestAssertResponseMixin, BaseTestUserM
         """
         When there are more history entries than fit on the first page, the
         endpoint sets previous_entry by looking ahead to the next page so that
-        the oldest entry on page 1 can be diffed against an earlier record.
+        the oldest entry on page 1 can be diffed against its immediately
+        preceding record (not an earlier one).
 
-        This covers the 'if self.paginator.page.has_next():' branch (both the
-        branch entry and the 'previous_entry = history_queryset[...]' line).
-        With a page size of 1 and three history entries the first page always
-        has a next page, confirming the branch is executed.
+        Three revisions with page_size=1:
+          history[0] v3 (newest)  — page 1
+          history[1] v2 (middle)  — page 2
+          history[2] v1 (oldest)  — page 3
+
+        Page 1 must diff v3 against v2, not v3 against v1.
+        Page 2 must diff v2 against v1, not raise an IndexError (HTTP 500).
+
+        This covers:
+        - The 'if self.paginator.page.has_next():' branch.
+        - The 'previous_entry = history_queryset[next_page.start_index() - 1]'
+          line (Page.start_index() is 1-based; the fix subtracts 1 before using
+          it as a 0-based queryset index).
         """
         distributor = store_models.Distributor.objects.create(
             name="Paged Corp. v1",
@@ -340,7 +350,7 @@ class TestStoreDistributorHistoryList(BaseTestAssertResponseMixin, BaseTestUserM
         distributor.save()
         # Three entries: one create + two updates.
 
-        # Request page 1 with page size 1 so has_next() is True.
+        # ---- page 1 ----
         response = reader_client.get(
             self._history_list_url(distributor.pk),
             data={"ps": 1},
@@ -350,16 +360,36 @@ class TestStoreDistributorHistoryList(BaseTestAssertResponseMixin, BaseTestUserM
         assert response.data["totalRecords"] == 3  # noqa: PLR2004
         assert response.data["totalPages"] == 3  # noqa: PLR2004
         assert response.data["perPage"] == 1
-        # Only one result on page 1.
         assert len(response.data["results"]) == 1
 
-        # The single result is the most recent entry (v3).
+        # The result is v3 diffed against its immediate predecessor v2.
         entry = response.data["results"][0]
         assert entry["history_type"] == "~"
-        # A previous_entry was fetched from the next page, so a comparison was
-        # made and changes are present (the has_next branch was exercised).
         assert "changes" in entry
-        assert entry["num_changes"] >= 1
+        assert entry["num_changes"] == 1
+        name_change = next(c for c in entry["changes"] if c["field"] == "name")
+        assert name_change["old"] == "Paged Corp. v2"
+        assert name_change["new"] == "Paged Corp. v3"
+
+        # ---- page 2 ----
+        # With the off-by-one bug, next_page.start_index() = 3 causes
+        # history_queryset[3] → IndexError → HTTP 500.  With the fix it
+        # correctly reads history_queryset[2] (v1) and returns HTTP 200.
+        response2 = reader_client.get(
+            self._history_list_url(distributor.pk),
+            data={"ps": 1, "p": 2},
+        )
+
+        self.assert_response(response2, HTTPStatus.OK)
+        assert len(response2.data["results"]) == 1
+
+        entry2 = response2.data["results"][0]
+        assert entry2["history_type"] == "~"
+        assert "changes" in entry2
+        assert entry2["num_changes"] == 1
+        name_change2 = next(c for c in entry2["changes"] if c["field"] == "name")
+        assert name_change2["old"] == "Paged Corp. v1"
+        assert name_change2["new"] == "Paged Corp. v2"
 
     def test_history_list_requires_authentication(self, api_client):
         """Un-authenticated requests are rejected."""
