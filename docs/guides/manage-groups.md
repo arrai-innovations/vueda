@@ -24,7 +24,7 @@ The `vueda.user` app must be in `INSTALLED_APPS`. The group management URLs beco
 
 ### Navigating to the Permission Overview
 
-Open the permission overview page at `/routes/vueda.user/permissions/overview/`. On a local development server this is typically `http://localhost:8000/routes/vueda.user/permissions/overview/`. This page lists every permission in the project, grouped by app.
+Open the permission overview page at `/routes/vueda.user/permissions/overview/`. On a local development server this is typically `http://localhost:8000/routes/vueda.user/permissions/overview/`. This page lists the permissions in the project, grouped by app. Some permissions are intentionally excluded from the page: create, update, and delete permissions for system-managed models (such as `auth.Group`, `auth.Permission`, `contenttypes.ContentType`, VDQ queue models, and other internal models) are hidden because those objects should not be created or modified directly through group management. Read and list permissions for those models remain visible so groups can be granted read access.
 
 If you are not authenticated, you will be redirected to the login form. Log in before proceeding.
 
