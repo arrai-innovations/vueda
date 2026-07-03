@@ -39,6 +39,7 @@ from django.db.models import Case
 from django.db.models import CharField
 from django.db.models import F
 from django.db.models import OuterRef
+from django.db.models import Q
 from django.db.models import Value
 from django.db.models import When
 from django.db.models.functions import Cast
@@ -74,6 +75,8 @@ from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.adapters import get_adapter
 from vueda.user.decorators import ensure_csrf_token
+from vueda.user.globals import APPS_MODELS_AND_PERMISSION_CODENAMES_TO_HIDE_FROM_PERMISSION_MANAGEMENT
+from vueda.user.globals import CUD_CODENAMES
 from vueda.user.mixins import LogoutMixin
 from vueda.user.models import GroupChange
 from vueda.user.permissions import Authenticating
@@ -312,65 +315,91 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
         # we can group the historical and non-historical models together.
         index_after_historical = 11
 
-        permissions = Permission.objects.annotate(
-            underscore_index=StrIndex(F("codename"), Value("_")),
-            codename_type=Substr(F("codename"), 1, length=F("underscore_index") - 1),
-            is_historical=Case(
-                When(
-                    content_type__model__startswith="historical",
-                    then=True,
+        # Exclude certain models and permissions from being able to have groups added to them.
+        excluded = Q()
+        for app_label, model, codename in APPS_MODELS_AND_PERMISSION_CODENAMES_TO_HIDE_FROM_PERMISSION_MANAGEMENT:
+            match codename:
+                case "*":
+                    excluded |= Q(content_type__app_label=app_label, content_type__model=model)
+                case "CUD":
+                    for cud_codename in CUD_CODENAMES:
+                        excluded |= Q(
+                            content_type__app_label=app_label,
+                            content_type__model=model,
+                            codename__startswith=cud_codename,
+                            codename__endswith=f"_{model}",
+                        )
+                case _:
+                    excluded |= Q(
+                        content_type__app_label=app_label,
+                        content_type__model=model,
+                        codename__startswith=codename,
+                        codename__endswith=f"_{model}",
+                    )
+
+        permissions = (
+            Permission.objects.exclude(excluded)
+            .annotate(
+                underscore_index=StrIndex(F("codename"), Value("_")),
+                codename_type=Substr(F("codename"), 1, length=F("underscore_index") - 1),
+                is_historical=Case(
+                    When(
+                        content_type__model__startswith="historical",
+                        then=True,
+                    ),
+                    default=False,
                 ),
-                default=False,
-            ),
-            is_local_app=Case(
-                When(
-                    content_type__app_label__in=local_apps,
-                    then=True,
+                is_local_app=Case(
+                    When(
+                        content_type__app_label__in=local_apps,
+                        then=True,
+                    ),
+                    default=False,
                 ),
-                default=False,
-            ),
-            model_and_historical_model_group=Case(
-                When(
-                    is_historical=True,
-                    then=(
-                        ContentType.objects.filter(
-                            app_label=OuterRef("content_type__app_label"),
-                            model=Substr(OuterRef("content_type__model"), index_after_historical),
-                        ).values_list("model", flat=True)
+                model_and_historical_model_group=Case(
+                    When(
+                        is_historical=True,
+                        then=(
+                            ContentType.objects.filter(
+                                app_label=OuterRef("content_type__app_label"),
+                                model=Substr(OuterRef("content_type__model"), index_after_historical),
+                            ).values_list("model", flat=True)
+                        ),
+                    ),
+                    default=F("content_type__model"),
+                ),
+                crud_order_by=Case(
+                    When(
+                        codename_type__in=("create", "add"),
+                        then=0,
+                    ),
+                    When(
+                        codename_type__in=("read", "view"),
+                        then=1,
+                    ),
+                    When(
+                        codename_type__in=("update", "change"),
+                        then=2,
+                    ),
+                    When(
+                        codename_type="delete",
+                        then=3,
+                    ),
+                    When(
+                        codename_type="list",
+                        then=4,
+                    ),
+                    default=5,
+                ),
+                groups=ArrayAgg(
+                    Array(
+                        Cast("group__pk", output_field=CharField()),
+                        "group__name",
                     ),
                 ),
-                default=F("content_type__model"),
-            ),
-            crud_order_by=Case(
-                When(
-                    codename_type__in=("create", "add"),
-                    then=0,
-                ),
-                When(
-                    codename_type__in=("read", "view"),
-                    then=1,
-                ),
-                When(
-                    codename_type__in=("update", "change"),
-                    then=2,
-                ),
-                When(
-                    codename_type="delete",
-                    then=3,
-                ),
-                When(
-                    codename_type="list",
-                    then=4,
-                ),
-                default=5,
-            ),
-            groups=ArrayAgg(
-                Array(
-                    Cast("group__pk", output_field=CharField()),
-                    "group__name",
-                ),
-            ),
-        ).order_by("content_type__app_label", "model_and_historical_model_group", "is_historical", "crud_order_by")
+            )
+            .order_by("content_type__app_label", "model_and_historical_model_group", "is_historical", "crud_order_by")
+        )
 
         context.update(
             {
