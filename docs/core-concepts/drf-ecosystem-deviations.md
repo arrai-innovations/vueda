@@ -49,6 +49,24 @@ Django's `CompositePrimaryKey` field requires coordinated deviations at the seri
 
 **`reverse()` incompatibility.** Django's `reverse()` function does not accept a list or tuple as an URL argument. A composite primary key's `.pk` attribute is a list, so passing it directly to `reverse()` raises an error. The value must be converted to a JSON string before being passed to `reverse()`.
 
+## File and Image Field Serialization
+
+DRF's built-in `FileField` serializer returns a plain URL string. VUEDA replaces it with a `{"name": ..., "url": ...}` object representation. Both `models.FileField` and `models.ImageField` are mapped to VUEDA's serializer fields via `VuedaSerializer.serializer_field_mapping`, so this applies automatically to any serializer that inherits from `VuedaSerializer`.
+
+The representation shape is:
+
+```json
+{
+    "avatar": { "name": "photo.jpg", "url": "/media/uploads/photo.jpg" }
+}
+```
+
+A null or missing file is represented as `null`, not as an empty string or missing key.
+
+On the client, `WidgetFile` and `WidgetImage` consume this `{name, url}` shape. The `name` is used for display (filename label) and the `url` for the download or preview link. Custom widgets that handle file or image fields must expect an object, not a string. Any code that reads file field values from API responses (outside of VUEDA's widget layer) must also account for this shape.
+
+`ImageField` is mapped explicitly ahead of `FileField` in `serializer_field_mapping` so that Django's MRO lookup resolves `models.ImageField` to the image-specific serializer entry. Both share the `{name, url}` representation; the distinction is that `VuedaSerializer.ImageField` subclasses the file field rather than DRF's `ImageField`, so it does not pull in Pillow for image validation.
+
 ## Observable Failure Modes
 
 **Query parameter typo returns 400.** A misspelled filter key or an unsupported query parameter produces an HTTP 400 with `"Invalid query parameter.  Valid filters are ..."`. The error includes the valid filter set for diagnosis.
@@ -66,3 +84,7 @@ Django's `CompositePrimaryKey` field requires coordinated deviations at the seri
 - {@api py:module:vueda.core.serializers}
 - {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}
 - {@api py:class:vueda.core.serializers.fields.CompositePrimaryKeyField}
+- {@api py:class:vueda.core.fields.serializers.FileField}
+- {@api py:class:vueda.core.fields.serializers.ImageField}
+- {@api vue:component:WidgetFile}
+- {@api vue:component:WidgetImage}
