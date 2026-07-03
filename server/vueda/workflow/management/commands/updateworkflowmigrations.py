@@ -235,12 +235,22 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No workflow migrations found to update."))
             return
 
+        failure_count = 0
         updated_count = 0
         for filepath in migration_files:
             verb = "Would update" if self.dry_run else "Updating"
             self.stdout.write(f"{verb}: {filepath}")
             if self._update_migration_file(filepath):
                 updated_count += 1
+            else:
+                # Something went wrong, stderr will have printed what.
+                failure_count += 1
 
-        verb = "Would update" if self.dry_run else "Updated"
-        self.stdout.write(self.style.SUCCESS(f"{NEWLINE}{verb} {updated_count} workflow migration(s).{NEWLINE}"))
+        if updated_count:
+            verb = "Would update" if self.dry_run else "Updated"
+            self.stdout.write(self.style.SUCCESS(f"{NEWLINE}{verb} {updated_count} workflow migration(s).{NEWLINE}"))
+
+        if failure_count:
+            verb = "Would have failed updating" if self.dry_run else "Failed updating"
+            self.stdout.write(self.style.ERROR(f"{NEWLINE}{verb} {failure_count} workflow migration(s).{NEWLINE}"))
+            sys.exit(1)
