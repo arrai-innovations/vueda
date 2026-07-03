@@ -82,17 +82,21 @@ const forwardedSlots = computed(() => Object.keys(slots).filter((name) => !HANDL
         </template>
         <!-- Single "Sign In" action. VUEDA admin apps expose only a landing and sign-in
              publicly, so a sign-in form has nowhere to cancel to; ActionForm's default
-             confirm + cancel pair is replaced with one submit button. The wrapper mirrors
-             ActionForm's `buttons` strip. Gated on `loading` only (never the form's
-             anyError): a rejected login surfaces a form-scope `non_field_errors` error that
-             no field edit can clear, so anyError gating would permanently disable retry; a
-             login form must stay re-submittable since the server re-validates each attempt. -->
+             confirm + cancel pair is replaced with one submit button. The strip chrome
+             mirrors ActionForm's `buttons` strip, but the button itself is full-width
+             rather than left-aligned: ActionForm's left alignment reads as "start of a
+             confirm/cancel cluster", which doesn't apply with a single button and no
+             cluster to anchor, so it's sized to match the field width above it instead.
+             Gated on `loading` only (never the form's anyError): a rejected login surfaces
+             a form-scope `non_field_errors` error that no field edit can clear, so
+             anyError gating would permanently disable retry; a login form must stay
+             re-submittable since the server re-validates each attempt. -->
         <template #action-bar="actionBarProps">
             <slot name="action-bar" v-bind="actionBarProps">
                 <div
                     class="flex flex-row flex-wrap items-center gap-2 px-4 py-3 mt-2 border-t bg-muted/25 rounded-b-vueda-card"
                 >
-                    <Button type="submit" :disabled="actionBarProps.loading">
+                    <Button type="submit" class="w-full" :disabled="actionBarProps.loading">
                         <LoadingSpinnerInline v-if="actionBarProps.loading" />
                         Sign In
                     </Button>
