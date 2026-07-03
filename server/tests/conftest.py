@@ -5,6 +5,7 @@ import importlib
 import io
 from collections.abc import Iterable
 from http import HTTPStatus
+from pprint import pformat
 from typing import ClassVar
 
 import pytest
@@ -24,6 +25,20 @@ from rest_framework.test import APIClient
 
 
 POSTGRES_MAX_DB_NAME_LENGTH = 63
+
+
+def response_body(response):
+    """Return the best available representation of a response body for assertion messages."""
+    if hasattr(response, "data"):
+        if isinstance(response.data, str) and "Traceback" in response.data:
+            return response.data
+        return pformat(response.data)
+    try:
+        return response.json()
+    except (ValueError, AttributeError):
+        return response.content
+
+
 pytest_plugins = ["celery.contrib.pytest"]
 
 # Avoid truncating the test database between after each transactional tests, we'll handle it ourselves in suffix_each_test.
@@ -118,13 +133,13 @@ class BaseTestAssertResponseMixin:
                     )
                 else:
                     print(
-                        f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response.data}"
+                        f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response_body(response)}"
                     )
             except ValueError:
                 print(
-                    f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response.data}"
+                    f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response_body(response)}"
                 )
-        assert response.status_code == expected_status_code, response.data
+        assert response.status_code == expected_status_code, response_body(response)
 
 
 class BaseTestGroupMixin:
@@ -254,7 +269,7 @@ class BaseTestListModelViewSet:
             )
 
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         # Get the index of the record we are trying to validate, so we know it has a current_history_id.
         # The only reason this worked before, was because there was no object
         # with a name alphabetically before 'Distributor A'.  There is now.
@@ -330,7 +345,7 @@ class BaseTestCreateModelViewSet:
         status_code = self.expected_create_status_code
         response = authenticated_client.post(self.list_url(detail_querystring), data=create_arguments, format="json")
         new_instance = self.model.objects.latest("pk")
-        assert response.status_code == status_code, response.data
+        assert response.status_code == status_code, response_body(response)
         assert new_instance is not None
         self.update_expected_create_response(expected_create_response, new_instance)
         if status_code == HTTPStatus.CREATED:
@@ -357,7 +372,7 @@ class BaseTestRetrieveModelViewSet:
         instance = page_data.first()
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data == expected_retrieve_response
 
 
@@ -366,10 +381,10 @@ class BaseTestDestroyModelViewSet:
         pk = page_data.first().id
         response = authenticated_client.delete(self.detail_url(pk))
         if self.has_delete_permission:
-            assert response.status_code == HTTPStatus.NO_CONTENT, response.data
+            assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
             assert not self.model.objects.filter(pk=pk).exists()
         else:
-            assert response.status_code == HTTPStatus.FORBIDDEN, response.data
+            assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
             assert self.model.objects.filter(pk=pk).exists()
 
 
@@ -416,7 +431,7 @@ class BaseTestUpdateModelViewSet:
             self.detail_url(page_data.first().id, detail_querystring), data=update_arguments, format="json"
         )
         updated_instance = self.model.objects.first()
-        assert response.status_code == status_code, response.data
+        assert response.status_code == status_code, response_body(response)
         assert updated_instance is not None
         self.update_expected_update_response(expected_update_response, updated_instance)
         if status_code == HTTPStatus.OK:

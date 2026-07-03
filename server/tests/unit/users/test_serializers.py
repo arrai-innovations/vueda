@@ -8,6 +8,7 @@ from rest_framework import status
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.utils import FakeRequest
 from tests.utils import FakeView
 from vueda.user.serializers import UserSerializer
@@ -28,7 +29,7 @@ def test_expanding_groups_with_wildcard_works_after_patch(api_client):
     api_client.force_authenticate(user=user)
 
     response = api_client.get(reverse("tests.usergroup-list"), {"e": "groups"})
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == status.HTTP_200_OK, response_body(response)
 
 
 @pytest.mark.django_db
@@ -43,7 +44,7 @@ def test_permission_formatted_name_patch(api_client):
     api_client.force_authenticate(user=user)
 
     response = api_client.get(reverse("tests.userpermission-list"), {"e": "user_permissions"})
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == status.HTTP_200_OK, response_body(response)
 
 
 @pytest.mark.django_db
@@ -58,7 +59,7 @@ def test_content_type_formatted_name_patch(api_client):
     api_client.force_authenticate(user=user)
 
     response = api_client.get(reverse("tests.permission-list"), {"e": "content_type"})
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == status.HTTP_200_OK, response_body(response)
 
 
 @pytest.mark.django_db

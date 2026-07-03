@@ -26,6 +26,7 @@ from django.urls import reverse
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import models as store_models
 
 
@@ -113,7 +114,7 @@ class TestStoreDistributorCurrentAction(BaseTestAssertResponseMixin, BaseTestUse
             self._current_url(distributor.pk),
             data={"history_id": annotated.current_history_id},
         )
-        assert response.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.UNAUTHORIZED), response.data
+        assert response.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.UNAUTHORIZED), response_body(response)
 
 
 # ---------------------------------------------------------------------------
@@ -398,7 +399,7 @@ class TestStoreDistributorHistoryList(BaseTestAssertResponseMixin, BaseTestUserM
             description="Testing auth on history-list.",
         )
         response = api_client.get(self._history_list_url(distributor.pk))
-        assert response.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.UNAUTHORIZED), response.data
+        assert response.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.UNAUTHORIZED), response_body(response)
 
 
 # ---------------------------------------------------------------------------

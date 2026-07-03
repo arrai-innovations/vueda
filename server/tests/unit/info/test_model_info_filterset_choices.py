@@ -6,6 +6,7 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
@@ -280,14 +281,14 @@ class TestModelInfoFiltersetChoices:
         # The customer is not able to list inventory records.
         match (app_label, model_name, field_name):
             case ("store", "inventoryrecord", "is_added") | ("store", "inventoryrecord", "reason"):
-                assert response.status_code == HTTPStatus.FORBIDDEN, response.data
+                assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
 
             case _:
                 msg = (
                     f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_choices"
                 )
 
-                assert response.status_code == HTTPStatus.OK, response.data
+                assert response.status_code == HTTPStatus.OK, response_body(response)
                 assert frozenset(result["label"] for result in response.data["results"]) == frozenset(
                     result["label"] for result in expected_choices
                 ), msg
@@ -326,7 +327,7 @@ class TestModelInfoFiltersetChoices:
 
         msg = f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_choices"
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
 
         assert frozenset(result["label"] for result in response.data["results"]) == frozenset(
             result["label"] for result in expected_choices
@@ -351,7 +352,7 @@ class TestModelInfoFiltersetChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert "" not in {result["label"] for result in response.data["results"]}
         assert "" not in {result["value"] for result in response.data["results"]}
 
@@ -373,7 +374,7 @@ class TestModelInfoFiltersetChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert response.data["detail"] == (
             "Invalid filter 'invalid_filterset_field'. Valid filters are condition, disabled, "
             "distributor, id, last_ordered, name, name_icontains, quantity, special_care, tangible_type."
@@ -405,7 +406,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         result_labels = frozenset(r["label"] for r in response.data["results"])
         assert result_labels == frozenset({"Tasty Treats Assoc."}), (
             f"Expected distributor choices filtered to cookie-product distributor only, got: {result_labels}"
@@ -423,7 +424,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         result_labels = frozenset(r["label"] for r in response.data["results"])
         assert result_labels == frozenset({"T-Shirt Corp.", "Vibrant Looks Inc."}), (
             f"Expected distributor choices filtered to shirt-product distributor only, got: {result_labels}"
@@ -445,7 +446,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         result_labels = frozenset(r["label"] for r in response.data["results"])
         assert result_labels == frozenset({"Fragile", "Perishable", "Temperature Controlled"}), (
             f"Expected special_care choices filtered to cookie-product values only, got: {result_labels}"
@@ -466,7 +467,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         result_labels = frozenset(r["label"] for r in response.data["results"])
         assert result_labels == frozenset({"Physical"}), (
             f"Expected tangible_type choices filtered to cookie-product values only, got: {result_labels}"
@@ -489,7 +490,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         result_labels = frozenset(r["label"] for r in response.data["results"])
         assert result_labels == frozenset({"New", "Like New"}), (
             f"Expected only choices containing 'ne', got: {result_labels}"

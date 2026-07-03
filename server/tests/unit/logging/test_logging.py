@@ -10,6 +10,7 @@ from django.utils.log import configure_logging
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.logging import models as logging_models
 from tests.logging import viewsets
 from tests.utils import use_test_router
@@ -96,7 +97,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
                 },
             )
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "Test Error 1" in str(response.data["non_field_errors"][0])
         assert "Test Warning 1" in str(response.data["non_field_errors"][1])
         assert "Test Error 2" in str(response.data["non_field_errors"][2])
@@ -144,7 +145,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
                 },
             )
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "Test Error 1" in str(response.data["non_field_errors"][0])
         assert "Test Error 2" in str(response.data["non_field_errors"][1])
 
@@ -188,7 +189,7 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
                 },
             )
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, response.data
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "Test Warning 1" in str(response.data["non_field_errors"][0])
         assert "Test Warning 2" in str(response.data["non_field_errors"][1])
 

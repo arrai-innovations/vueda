@@ -9,6 +9,7 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.erring import models as err_models
 from tests.erring import serializers as err_serializers
 from tests.erring import viewsets as err_viewsets
@@ -66,7 +67,7 @@ class TestModelInfoInvalidChoices:
                 reverse("info.model_info_choices-list", args=("store", "pets", "tangible_type")),
                 data={},
             )
-        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert 'Unable to find the content type "store.pets".' == response.data["detail"]
 
     def test_invalid_filter_choices_model(self, test_data, api_client):
@@ -86,7 +87,7 @@ class TestModelInfoInvalidChoices:
                 reverse("info.model_info_filterset_choices-list", args=("store", "pets", "tangible_type")),
                 data={},
             )
-        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert 'Unable to find the content type "store.pets".' == response.data["detail"]
 
     def test_invalid_choices_field(self, test_data, api_client):
@@ -108,7 +109,7 @@ class TestModelInfoInvalidChoices:
                 ),
                 data={},
             )
-        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert (
             "Invalid field 'tangible_type'. No choice fields found on erring.RelatedObjectsAreMissingData."
             == response.data["detail"]
@@ -134,7 +135,7 @@ class TestModelInfoInvalidChoices:
                 ),
                 data={},
             )
-        assert response.status_code == HTTPStatus.NOT_FOUND, response.data
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert "Invalid filter 'tangible_type'. Valid filters are id, no_name." == response.data["detail"]
 
 
@@ -411,12 +412,12 @@ class TestModelInfoWorkflowConfigurationErrs:
 
         if will_err:
             data = response.json()
-            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response.data
+            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response_body(response)
             assert expected_error == frozenset(response.data["detail"])
 
         else:
             data = response.json()
-            assert response.status_code == HTTPStatus.OK, response.data
+            assert response.status_code == HTTPStatus.OK, response_body(response)
             # In this case the expected error is actually the results.
             assert expected_error == frozenset(data)
 
@@ -480,7 +481,7 @@ class TestFormattedName:
                 },
             )
 
-        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response.data
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response_body(response)
         assert (
             "Cannot resolve keyword "
             "'formatted_name' into field. Choices are: id, "

@@ -8,6 +8,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from tests.conftest import BaseTestCommonModelViewSet
+from tests.conftest import response_body
 from tests.models import Employee
 from tests.models import Product
 from tests.models import Timesheet
@@ -67,7 +68,7 @@ class TestPagination(BaseTestCommonModelViewSet):
             url = reverse("tests.product-list")
             response = authenticated_client.get(url, format="json")
             response_data = {x: y for x, y in response.data.items() if x != "results"}
-            assert response.status_code == HTTPStatus.OK, response.data
+            assert response.status_code == HTTPStatus.OK, response_body(response)
             assert response_data["perPage"] == 5  # noqa: PLR2004
             assert response_data["totalPages"] == 3  # noqa: PLR2004
             assert response_data["totalRecords"] == len(self.page_data_arguments)
@@ -97,7 +98,7 @@ class TestPagination(BaseTestCommonModelViewSet):
             url = reverse("tests.product-list")
             response = authenticated_client.get(url, data={"our_p": 3}, format="json")
             response_data = {x: y for x, y in response.data.items() if x != "results"}
-            assert response.status_code == HTTPStatus.OK, response.data
+            assert response.status_code == HTTPStatus.OK, response_body(response)
             assert response_data["perPage"] == 5  # noqa: PLR2004
             assert response_data["totalPages"] == 3  # noqa: PLR2004
             assert len(response.data["results"]) == 3  # noqa: PLR2004
@@ -107,14 +108,14 @@ class TestPagination(BaseTestCommonModelViewSet):
         with adjust_page_size(settings, 5):
             url = reverse("tests.product-list")
             response = authenticated_client.get(url, data={"p": 999}, format="json")
-            assert response.status_code == HTTPStatus.NOT_FOUND, response.data
+            assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
             assert "Invalid page." in response.data["detail"]
 
     def test_page_negative_returns_empty(self, settings, authenticated_client, page_data):
         with adjust_page_size(settings, 5):
             url = reverse("tests.product-list")
             response = authenticated_client.get(url, data={"p": -1}, format="json")
-            assert response.status_code == HTTPStatus.NOT_FOUND, response.data
+            assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
             assert "Invalid page." in response.data["detail"]
 
     def test_max_page_size(self, settings, authenticated_client, page_data):
@@ -167,5 +168,5 @@ class TestColumnTotals(BaseTestCommonModelViewSet):
     def test_column_totals(self, authenticated_client, page_data):
         url = reverse("tests.timesheetentry-list")
         response = authenticated_client.get(url, format="json")
-        assert response.status_code == status.HTTP_200_OK, response.data
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert str(response.data["columnTotals"]["hours"]) == "3.15"

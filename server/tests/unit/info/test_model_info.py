@@ -7,6 +7,7 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.expected_results_model_info import EXPECTED_RESULTS
@@ -319,7 +320,7 @@ class TestModelInfoSerializer:
 
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["totalRecords"] == 17  # noqa: PLR2004
 
     @pytest.mark.parametrize(
@@ -360,7 +361,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
         self.check_model_actions_data(response, kwargs["expected_actions_admin"], app_label, model_name)
@@ -408,7 +409,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
         self.check_model_actions_data(response, kwargs["expected_actions_customer"], app_label, model_name)

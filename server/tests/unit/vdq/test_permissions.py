@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.urls import reverse
 
+from tests.conftest import response_body
 from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SentItem
 
@@ -41,7 +42,7 @@ def test_resend_requires_permission_allows_user(monkeypatch, api_client, sent_it
 
     response = api_client.post(url, format="json")
 
-    assert response.status_code == HTTPStatus.OK, response.data
+    assert response.status_code == HTTPStatus.OK, response_body(response)
     assert response.data == {"message": "Successfully Queued."}
     assert len(scheduled_items) == 1
     assert scheduled_items[0].pk != sent_item.pk
@@ -63,5 +64,5 @@ def test_resend_requires_permission_denies_without_flag(monkeypatch, api_client,
 
     response = api_client.post(url, format="json")
 
-    assert response.status_code == HTTPStatus.FORBIDDEN, response.data
+    assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
     assert not scheduled_items

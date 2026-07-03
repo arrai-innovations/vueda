@@ -11,6 +11,7 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import models as store_models
 from tests.store.serializers import OrderItemCompositePKSerializer
 
@@ -123,7 +124,7 @@ class TestCompositeKey:
 
         data: _OrderItemCompositePKDetail = response.json()
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
 
     def test_object_data_with_fields(self, test_data, api_client):
@@ -154,7 +155,7 @@ class TestCompositeKey:
 
         data: _OrderItemCompositePKDetailSparseFields = response.json()
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
         assert data["formatted_name"] == product_1.name  # Verify the formatted_name is not None
         assert [tuple(x) for x in data["order"]["order_items_composite_pks"]] == [tuple(order_item_1.pk)]
@@ -182,7 +183,7 @@ class TestCompositeKey:
 
         data: _OrderCompositePKDetail = response.json()
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])
 
     def test_object_data_with_expanded_fields(self, test_data, api_client):
@@ -213,7 +214,7 @@ class TestCompositeKey:
 
         data: _OrderCompositePKDetailSparseFields = response.json()
 
-        assert response.status_code == HTTPStatus.OK, response.data
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])
 
 
