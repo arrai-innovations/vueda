@@ -182,6 +182,7 @@ class Command(BaseCommand):
         fresh_sources = "".join(get_group_migration_sources(import_instead))
 
         # Preserve the class Migration block, updating any stale function names in operations.
+        class_migration_block = "".join(lines[class_migration_index:])
         try:
             class_migration_block = self._update_operation_function_names("".join(lines[class_migration_index:]))
         except SyntaxError as e:
