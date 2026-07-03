@@ -1,4 +1,6 @@
 import datetime
+import io
+import os
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -12,6 +14,60 @@ from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
 from tests.utils import info_register_aware_modify_settings
 from vueda.user.models import GroupChange
+
+
+class TestManagementCommandGroupTests(BaseTestMigrations, BaseTestCallCommand):
+    """
+    This test doesn't use --import-instead, so we can verify that
+    the noqa comments are stripped from the generated migration.
+    """
+
+    @override_settings(
+        MIGRATION_MODULES={
+            "group_added": "tests.group_added",
+        },
+        AUTH_USER_MODEL="group_added.GroupAddedUser",
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.group_added",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_comment_removed(self):
+        with self.temporary_migration_module(app_label="group_added") as migration_dir:
+            # Migrate forwards.
+            succeeded, results = self.call_command("migrate", "group_added")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Create the generated migration 0003.
+            succeeded, results = self.call_command("makegroupmigrations")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Verify that the noqa comments are gone.
+            migration_filepath = os.path.join(
+                migration_dir, f"0003_group_permission_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
+            )
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            assert "    forwards_migrate_groups(apps, copy.deepcopy(changed_data))\n" in migration_content
+            assert "    backwards_migrate_groups(apps, copy.deepcopy(changed_data))\n" in migration_content
+
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_dry_run_no_changes(self):
+        succeeded, results = self.call_command("makegroupmigrations", "--dry-run")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert "No group changes detected.\n" in results
 
 
 class TestManagementCommandGroupAdded(BaseTestMigrations, BaseTestCallCommand):
@@ -321,3 +377,249 @@ class TestCreateUserCommand:
         user = get_user_model().objects.get(email="newuser@domain.invalid")
         assert not user.is_superuser
         assert user.groups.filter(name="TestGroup").exists()
+
+
+class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand):
+    @override_settings(
+        MIGRATION_MODULES={
+            "group_updating": "tests.group_updating",
+            "no_migrations": None,
+        },
+        AUTH_USER_MODEL="group_updating.GroupUpdatingUser",
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.group_updating",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_group_updating(self):
+        with self.temporary_migration_module(app_label="group_updating") as migration_dir:
+            migration_filepath = os.path.join(migration_dir, "0002_group_permission_migrations_2026_06_29.py")
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # Untouched
+            assert "changed_data = [" in migration_content
+
+            # Original
+            assert "def forwards_migrate_groups(apps, schema_editor):" in migration_content
+            assert "def backwards_migrate_groups(apps, schema_editor):" in migration_content
+            assert "code=forwards_migrate_groups," in migration_content
+            assert "reverse_code=backwards_migrate_groups," in migration_content
+
+            # Unchanged
+            assert "def create_group_change(change, group_change_model):" in migration_content
+            assert "class GroupChangeTypes(enum.Enum):" in migration_content
+            assert "def get_matching_record(change, group_change_model):" in migration_content
+            assert (
+                """def migrate_step(
+    content_types,
+    groups,
+    permissions,
+    group_name,
+    group_name_old,
+    change_type,
+    historical_permission_codename,
+    historical_permission_content_type_app_label,
+    historical_permission_content_type_model_name,
+    historical_permission_name,
+):"""
+                in migration_content
+            )
+            assert "def make_sure_permissions_exist(apps, schema_editor):" in migration_content
+            assert "code=make_sure_permissions_exist," in migration_content
+
+            # New
+            assert (
+                "def forwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
+                not in migration_content
+            )
+            assert (
+                "def backwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
+                not in migration_content
+            )
+            assert "def forwards_migrate_groups(apps, changed_items):" not in migration_content
+            assert "def backwards_migrate_groups(apps, changed_items):" not in migration_content
+            assert "code=forwards_migrate_groups_through_imports," not in migration_content
+            assert "reverse_code=backwards_migrate_groups_through_imports," not in migration_content
+
+            succeeded, results = self.call_command("updategroupmigrations")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # Untouched
+            assert "changed_data = [" in migration_content
+
+            # Removed Original
+            assert "def forwards_migrate_groups(apps, schema_editor):" not in migration_content
+            assert "def backwards_migrate_groups(apps, schema_editor):" not in migration_content
+            assert "code=forwards_migrate_groups," not in migration_content
+            assert "reverse_code=backwards_migrate_groups," not in migration_content
+
+            # Unchanged
+            assert "def create_group_change(change, group_change_model):" in migration_content
+            assert "class GroupChangeTypes(enum.Enum):" in migration_content
+            assert "def get_matching_record(change, group_change_model):" in migration_content
+            assert (
+                """def migrate_step(
+    content_types,
+    groups,
+    permissions,
+    group_name,
+    group_name_old,
+    change_type,
+    historical_permission_codename,
+    historical_permission_content_type_app_label,
+    historical_permission_content_type_model_name,
+    historical_permission_name,
+):"""
+                in migration_content
+            )
+            assert "def make_sure_permissions_exist(apps, schema_editor):" in migration_content
+            assert "code=make_sure_permissions_exist," in migration_content
+
+            # Added New
+            assert (
+                "def forwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
+                in migration_content
+            )
+            assert (
+                "def backwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
+                in migration_content
+            )
+            assert "def forwards_migrate_groups(apps, changed_items):" in migration_content
+            assert "def backwards_migrate_groups(apps, changed_items):" in migration_content
+            assert "code=forwards_migrate_groups_through_imports," in migration_content
+            assert "reverse_code=backwards_migrate_groups_through_imports," in migration_content
+
+    @override_settings(
+        MIGRATION_MODULES={
+            "group_updating_bad_migrations": "tests.group_updating_bad_migrations",
+            "no_migrations": None,
+        },
+        AUTH_USER_MODEL="group_updating_bad_migrations.GroupUpdatingBadMigrationsUser",
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.group_updating_bad_migrations",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_group_updating_bad_migrations(self):
+        err = io.StringIO()
+        out = io.StringIO()
+
+        with self.temporary_migration_module(app_label="group_updating_bad_migrations") as migration_dir:
+            with pytest.raises(SystemExit):
+                self.call_command("updategroupmigrations", stdout=out, stderr=err)
+
+            err.seek(0)
+            results = err.read()
+
+            assert (
+                f"  Could not parse required sections in {migration_dir}"
+                "/0002_group_permission_migrations_2026_06_29.py, skipping.\n"
+            ) in results
+            assert (
+                f"  Unable to parse migration at {migration_dir}/0003_group_permission_migrations_2026_06_29.py"
+                " due to syntax error '[' was never closed (<unknown>, line 1), skipping.\n"
+            ) in results
+
+            out.seek(0)
+            results = out.read()
+
+            assert "Failed updating 2 group migration(s).\n" in results
+
+    @override_settings(
+        MIGRATION_MODULES={
+            "group_updating_no_migrations": None,
+            "no_migrations": None,
+        },
+        AUTH_USER_MODEL="group_updating_no_migrations.GroupUpdatingNoMigrationsUser",
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.group_updating_no_migrations",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_group_updating_no_migrations(self):
+        succeeded, results = self.call_command("updategroupmigrations")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert "No group migrations found to update.\n" in results
+
+    @override_settings(
+        MIGRATION_MODULES={
+            "group_changes_syncing": "tests.group_changes_syncing",
+            "no_migrations": None,
+        },
+        AUTH_USER_MODEL="group_changes_syncing.GroupChangesSyncingUser",
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.group_changes_syncing",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_group_changes_syncing(self):
+        with self.temporary_migration_module(app_label="group_changes_syncing"):
+            assert GroupChange.objects.count() == 0
+
+            succeeded, results = self.call_command("sync_group_changes")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            assert GroupChange.objects.count() == 2, GroupChange.objects.values()  # noqa: PLR2004
+            assert dict(
+                *GroupChange.objects.filter(historical_permission_codename="read_contenttype").values(
+                    "group_name",
+                    "group_name_old",
+                    "change_type",
+                    "historical_permission_codename",
+                    "historical_permission_content_type_app_label",
+                    "historical_permission_content_type_model_name",
+                )
+            ) == {
+                "group_name": "Member",
+                "group_name_old": "",
+                "change_type": "added",
+                "historical_permission_codename": "read_contenttype",
+                "historical_permission_content_type_app_label": "contenttypes",
+                "historical_permission_content_type_model_name": "contenttype",
+            }
+            assert dict(
+                *GroupChange.objects.filter(historical_permission_codename="list_permission").values(
+                    "group_name",
+                    "group_name_old",
+                    "change_type",
+                    "historical_permission_codename",
+                    "historical_permission_content_type_app_label",
+                    "historical_permission_content_type_model_name",
+                )
+            ) == {
+                "group_name": "Member",
+                "group_name_old": "",
+                "change_type": "associated",
+                "historical_permission_codename": "list_permission",
+                "historical_permission_content_type_app_label": "auth",
+                "historical_permission_content_type_model_name": "permission",
+            }
