@@ -144,6 +144,7 @@ class Command(BaseCommand):
 
     @staticmethod
     def _find_changed_data_end(lines, changed_data_index, class_migration_index):
+        # Either we find the end of changed_data, or we get a syntax error when we call parse.
         segment = "".join(lines[changed_data_index:class_migration_index])
         tree = ast.parse(segment)
         for node in ast.walk(tree):
