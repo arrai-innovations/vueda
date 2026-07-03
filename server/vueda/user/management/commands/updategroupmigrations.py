@@ -157,7 +157,13 @@ class Command(BaseCommand):
             return False
 
         import_instead = self._is_import_instead(lines)
-        changed_data_end_index = self._find_changed_data_end(lines, changed_data_index, class_migration_index)
+        try:
+            changed_data_end_index = self._find_changed_data_end(lines, changed_data_index, class_migration_index)
+        except SyntaxError as e:
+            self.stderr.write(
+                self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
+            )
+            return False
 
         # Preamble: everything up to and including the Django-generated comment line.
         preamble = "".join(lines[: generated_index + 1])
@@ -173,8 +179,14 @@ class Command(BaseCommand):
         # Fresh function sources (or the import-instead assignment).
         fresh_sources = "".join(get_group_migration_sources(import_instead))
 
-        # Preserve the class Migration block exactly as written.
-        class_migration_block = "".join(lines[class_migration_index:])
+        # Preserve the class Migration block, updating any stale function names in operations.
+        try:
+            class_migration_block = self._update_operation_function_names("".join(lines[class_migration_index:]))
+        except SyntaxError as e:
+            self.stderr.write(
+                self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
+            )
+            return False
 
         new_content = (
             preamble
