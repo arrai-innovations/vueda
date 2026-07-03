@@ -203,6 +203,9 @@ class Command(BaseCommand):
                 self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
             )
             return False
+        except NoRenamesError:
+            # Write this, but continue with the update.
+            self.stdout.write(self.style.ERROR(f"  Nothing to rename found in {filepath}."))
 
         new_content = (
             preamble + fresh_imports + f"{NEWLINE}{NEWLINE}" + data_block + fresh_sources + class_migration_block
