@@ -1,5 +1,4 @@
 <script setup>
-import LinkModelView from "@vueda/components/LinkModelView.vue";
 import Combobox from "@vueda/controls/combobox/Combobox.vue";
 import ComboboxAnchor from "@vueda/controls/combobox/ComboboxAnchor.vue";
 import ComboboxEmpty from "@vueda/controls/combobox/ComboboxEmpty.vue";
@@ -11,6 +10,7 @@ import ComboboxList from "@vueda/controls/combobox/ComboboxList.vue";
 import ComboboxTrigger from "@vueda/controls/combobox/ComboboxTrigger.vue";
 import ComboboxViewport from "@vueda/controls/combobox/ComboboxViewport.vue";
 import ComboboxVirtualizer from "@vueda/controls/combobox/ComboboxVirtualizer.vue";
+import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
 import "@vueda/theme/vueda-tailwind/widgets/WidgetCombobox.theme.js";
 import { useComboboxSearch } from "@vueda/use/useComboboxSearch.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";

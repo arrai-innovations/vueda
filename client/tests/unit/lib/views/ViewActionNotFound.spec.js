@@ -102,10 +102,10 @@ const DiagnosticStripStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/SystemMessageCard.vue", () => ({ default: SystemMessageCardStub }));
-vi.mock("@vueda/components/TriedUrlCallout.vue", () => ({ default: TriedUrlCalloutStub }));
-vi.mock("@vueda/components/SuggestionList.vue", () => ({ default: SuggestionListStub }));
-vi.mock("@vueda/components/DiagnosticStrip.vue", () => ({ default: DiagnosticStripStub }));
+vi.mock("@vueda/display/system-message/SystemMessageCard.vue", () => ({ default: SystemMessageCardStub }));
+vi.mock("@vueda/display/system-message/TriedUrlCallout.vue", () => ({ default: TriedUrlCalloutStub }));
+vi.mock("@vueda/display/system-message/SuggestionList.vue", () => ({ default: SuggestionListStub }));
+vi.mock("@vueda/display/system-message/DiagnosticStrip.vue", () => ({ default: DiagnosticStripStub }));
 
 let ViewActionNotFound, vue;
 

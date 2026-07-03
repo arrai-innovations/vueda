@@ -1,9 +1,9 @@
 <script setup>
-import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import FormField from "@vueda/fields/FormField.vue";
+import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, reactive, useSlots } from "vue";
 

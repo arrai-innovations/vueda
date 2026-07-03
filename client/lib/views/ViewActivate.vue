@@ -1,9 +1,8 @@
 <script setup>
 import { useList } from "@arrai-innovations/reactive-helpers";
-import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import ModelActionForm from "@vueda/components/ModelActionForm.vue";
-import PageActions from "@vueda/components/PageActions.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import LoadingSpinnerBlock from "@vueda/display/loading/LoadingSpinnerBlock.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewActivate.theme.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
@@ -16,6 +15,7 @@ import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl } from "@vueda/utils/urls.js";
+import ModelActionForm from "@vueda/views/ModelActionForm.vue";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import { computed, inject, reactive, toRef, useSlots } from "vue";

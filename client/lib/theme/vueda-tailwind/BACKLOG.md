@@ -84,7 +84,7 @@ client work in `useActionForm.js` to capture and surface the result in
 form-context state.
 
 **Files.** `client/lib/composables/useActionForm.js`,
-`client/lib/components/ModelActionForm.vue`, plus the corresponding
+`client/lib/views/ModelActionForm.vue`, plus the corresponding
 server-side dry-run response shape.
 
 ---
@@ -151,8 +151,8 @@ verb-tone recipe in the theme README § 9.1 (action canon), or stays scoped
 to `VerbTag`. Decide alongside server work so the canon and the metadata
 land together.
 
-**Files.** New `client/lib/components/VerbTag.vue`,
-`client/lib/components/SuggestionList.vue`, plus the corresponding
+**Files.** New `client/lib/display/system-message/VerbTag.vue`,
+`client/lib/display/system-message/SuggestionList.vue`, plus the corresponding
 server-side action registry extension.
 
 ---
@@ -176,8 +176,7 @@ should be finalised against a concrete consuming surface so the popover
 positioning, icon choice, and label conventions are anchored to a real
 use case rather than guessed.
 
-**Files.** New `client/lib/components/FormHiddenFeedback.vue` (or
-`client/lib/fields/FormHiddenFeedback.vue`), consuming
+**Files.** New `client/lib/form/form-model/FormHiddenFeedback.vue`, consuming
 `useTheme("FormHiddenFeedback", ...)` and rendering a `Button` + `Popover`
 composition that pulls from the form-context error/warning/help state.
 

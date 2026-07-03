@@ -18,7 +18,7 @@ const SystemMessageCardStub = defineComponent({
             ]);
     },
 });
-vi.mock("@vueda/components/SystemMessageCard.vue", () => ({ default: SystemMessageCardStub }));
+vi.mock("@vueda/display/system-message/SystemMessageCard.vue", () => ({ default: SystemMessageCardStub }));
 
 const ConsequencesBulletsStub = defineComponent({
     name: "ConsequencesBulletsStub",
@@ -28,7 +28,7 @@ const ConsequencesBulletsStub = defineComponent({
         return () => h("ul", { "data-qa": "consequences-bullets", "data-item-count": props.items?.length });
     },
 });
-vi.mock("@vueda/components/ConsequencesBullets.vue", () => ({ default: ConsequencesBulletsStub }));
+vi.mock("@vueda/display/consequences-bullets/ConsequencesBullets.vue", () => ({ default: ConsequencesBulletsStub }));
 
 const TypedConfirmFieldStub = defineComponent({
     name: "TypedConfirmFieldStub",
@@ -44,7 +44,7 @@ const TypedConfirmFieldStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/components/TypedConfirmField.vue", () => ({ default: TypedConfirmFieldStub }));
+vi.mock("@vueda/form/confirm/TypedConfirmField.vue", () => ({ default: TypedConfirmFieldStub }));
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",

@@ -52,10 +52,10 @@ const LoadingSpinnerInlineStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/AuthorizingForm.vue", () => ({ default: AuthorizingFormStub }));
-vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: LoadingSpinnerInlineStub }));
+vi.mock("@vueda/views/AuthorizingForm.vue", () => ({ default: AuthorizingFormStub }));
+vi.mock("@vueda/display/loading/LoadingSpinnerInline.vue", () => ({ default: LoadingSpinnerInlineStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
+vi.mock("@vueda/form/form-model/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => ({ login: loginMock }) }));
 

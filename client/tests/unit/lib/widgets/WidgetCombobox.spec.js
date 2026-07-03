@@ -160,7 +160,7 @@ const LinkModelViewStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
+vi.mock("@vueda/navigation/link-model-view/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 
 vi.mock("reka-ui", () => ({
     useFilter: () => ({

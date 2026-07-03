@@ -8,11 +8,11 @@ type: reference
 <script setup>
 import { ref } from "vue";
 import ViewLoading from "@vueda/views/ViewLoading.vue";
-import PageTitle from "@vueda/components/PageTitle.vue";
-import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
-import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
-import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
-import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
+import PageTitle from "@vueda/shell/page-title/PageTitle.vue";
+import ConsequencesBullets from "@vueda/display/consequences-bullets/ConsequencesBullets.vue";
+import SystemMessageCard from "@vueda/display/system-message/SystemMessageCard.vue";
+import TypedConfirmField from "@vueda/form/confirm/TypedConfirmField.vue";
+import TriedUrlCallout from "@vueda/display/system-message/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faHouse, faSearch } from "@fortawesome/free-solid-svg-icons";

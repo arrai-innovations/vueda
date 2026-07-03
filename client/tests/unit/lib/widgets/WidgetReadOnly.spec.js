@@ -40,7 +40,7 @@ vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive }));
 const useSlotNameResolver = vi.fn(() => ({ name: ref("n"), exists: ref(false) }));
 vi.mock("@vueda/use/useSlotNameResolver.js", () => ({ useSlotNameResolver }));
 
-vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
+vi.mock("@vueda/navigation/link-model-view/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 
 describe("lib/widgets/WidgetReadOnly.vue", () => {
     let WidgetReadOnly;

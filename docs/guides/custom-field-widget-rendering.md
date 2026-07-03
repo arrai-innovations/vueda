@@ -31,7 +31,7 @@ You understand the field/widget distinction. In VUEDA's form architecture, a **f
 
 Three override surfaces are available, evaluated in precedence order:
 
-**Per-instance view props** take the highest precedence. When a view component passes `fieldComponents`, `widgetComponents`, `fieldProps`, or `widgetProps` as props to `FormModel` or `DetailedView`, those values override any model config settings for that specific view instance.
+**Per-instance view props** take the highest precedence. When a view component passes `fieldComponents`, `widgetComponents`, `fieldProps`, or `widgetProps` as props to `FormModel` or `DetailView`, those values override any model config settings for that specific view instance.
 
 **Model config** provides portable, model-wide overrides. Setting overrides through `storeModelConfig.setConfig` applies them across all views that use `useModelConfig` for that model. This is the preferred surface for overrides that should be consistent across create, update, and `read` views.
 
@@ -211,7 +211,7 @@ const widget = useWidget(props, emit);
 - Vue.js Components:
     - {@api vue:component:FormModel}
     - {@api vue:component:FieldRenderer}
-    - {@api vue:component:DetailedView}
+    - {@api vue:component:DetailView}
     - {@api vue:component:FilterForm}
     - {@api vue:component:FieldSetTabularInline}
     - {@api vue:component:WidgetSelectDropdown}

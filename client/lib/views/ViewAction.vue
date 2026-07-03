@@ -1,7 +1,6 @@
 <script setup>
-import ModelActionForm from "@vueda/components/ModelActionForm.vue";
-import PageActions from "@vueda/components/PageActions.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewAction.theme.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
@@ -9,6 +8,7 @@ import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
+import ModelActionForm from "@vueda/views/ModelActionForm.vue";
 import omit from "lodash-es/omit.js";
 import { computed, inject, useSlots } from "vue";
 import { useRouter } from "vue-router";

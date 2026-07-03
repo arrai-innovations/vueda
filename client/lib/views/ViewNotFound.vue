@@ -1,9 +1,9 @@
 <script setup>
-import DiagnosticStrip from "@vueda/components/DiagnosticStrip.vue";
-import SuggestionList from "@vueda/components/SuggestionList.vue";
-import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
-import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import DiagnosticStrip from "@vueda/display/system-message/DiagnosticStrip.vue";
+import SuggestionList from "@vueda/display/system-message/SuggestionList.vue";
+import SystemMessageCard from "@vueda/display/system-message/SystemMessageCard.vue";
+import TriedUrlCallout from "@vueda/display/system-message/TriedUrlCallout.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewNotFound.theme.js";
 import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { useSuggestRoutes } from "@vueda/use/useSuggestRoute.js";

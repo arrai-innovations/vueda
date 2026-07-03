@@ -116,15 +116,15 @@ const InputOTPSlotStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/AuthorizingForm.vue", () => ({ default: AuthorizingFormStub }));
-vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
+vi.mock("@vueda/views/AuthorizingForm.vue", () => ({ default: AuthorizingFormStub }));
+vi.mock("@vueda/form/form-model/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetSelectDropdown.vue", () => ({ default: WidgetSelectDropdownStub }));
 vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/controls/input-otp/InputOTP.vue", () => ({ default: InputOTPStub }));
 vi.mock("@vueda/controls/input-otp/InputOTPGroup.vue", () => ({ default: InputOTPGroupStub }));
 vi.mock("@vueda/controls/input-otp/InputOTPSlot.vue", () => ({ default: InputOTPSlotStub }));
-vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("@vueda/display/loading/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
 vi.mock("@vueda/use/useIcons.js", () => ({ ICON_OVERRIDE_PROPS: {}, useIcons: () => () => null }));
 vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({

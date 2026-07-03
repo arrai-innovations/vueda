@@ -1,7 +1,7 @@
 <script setup>
-import LinkModelView from "@vueda/components/LinkModelView.vue";
-import PageActions from "@vueda/components/PageActions.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import "@vueda/theme/vueda-tailwind/views/ViewWorkflowTransition.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";

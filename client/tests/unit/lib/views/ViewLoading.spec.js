@@ -31,9 +31,9 @@ const SystemMessageCardStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/SystemMessageCard.vue", () => ({ default: SystemMessageCardStub }));
-vi.mock("@vueda/components/LoadingSkeletonGhost.vue", () => ({ default: SkeletonGhostStub }));
-vi.mock("@vueda/components/LoadingHeartbeatStrip.vue", () => ({ default: HeartbeatStripStub }));
+vi.mock("@vueda/display/system-message/SystemMessageCard.vue", () => ({ default: SystemMessageCardStub }));
+vi.mock("@vueda/display/loading/LoadingSkeletonGhost.vue", () => ({ default: SkeletonGhostStub }));
+vi.mock("@vueda/display/loading/LoadingHeartbeatStrip.vue", () => ({ default: HeartbeatStripStub }));
 
 let ViewLoading;
 

@@ -1,7 +1,6 @@
 <script setup>
-import AuthForm from "@vueda/components/AuthForm.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import Alert from "@vueda/feedback/alert/Alert.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
@@ -10,6 +9,7 @@ import "@vueda/theme/vueda-tailwind/views/ViewRecoveryCodes.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import AuthForm from "@vueda/views/AuthForm.vue";
 import { useClipboard } from "@vueuse/core";
 import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";

@@ -6,11 +6,11 @@ type: reference
 ---
 
 <script setup>
-import PageTitle from "@vueda/components/PageTitle.vue";
-import PageActions from "@vueda/components/PageActions.vue";
-import StickyBar from "@vueda/components/StickyBar.vue";
+import PageTitle from "@vueda/shell/page-title/PageTitle.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
+import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
-import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import ObjectsGrid from "@vueda/objects-grid/ObjectsGrid.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Input from "@vueda/controls/input/Input.vue";
 import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";

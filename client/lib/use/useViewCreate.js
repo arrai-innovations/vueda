@@ -11,7 +11,7 @@
  * @example Basic shell setup
  * ```vue
  * <script setup>
- * import FormConfirmDialog from "@vueda/components/FormConfirmDialog.vue";
+ * import FormConfirmDialog from "@vueda/form/confirm/FormConfirmDialog.vue";
  * import { useViewCreate } from "@vueda/use/useViewCreate.js";
  * import { memoizedStartCase } from "@vueda/utils/case.js";
  * import { onMounted, toRef } from "vue";

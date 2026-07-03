@@ -1,7 +1,7 @@
 <script setup>
-import AuthForm from "@vueda/components/AuthForm.vue";
-import FormField from "@vueda/fields/FormField.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import AuthForm from "@vueda/views/AuthForm.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { reactive } from "vue";
 

@@ -6,7 +6,7 @@ type: reference
 ---
 
 <script setup>
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageTitle from "@vueda/shell/page-title/PageTitle.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Input from "@vueda/controls/input/Input.vue";
 import Textarea from "@vueda/controls/textarea/Textarea.vue";

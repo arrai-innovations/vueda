@@ -127,14 +127,14 @@ const FormConfirmDialogStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
-vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
-vi.mock("@vueda/components/FormModel.vue", () => ({ default: FormModelStub }));
-vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
-vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
+vi.mock("@vueda/shell/page-title/PageActions.vue", () => ({ default: PageActionsStub }));
+vi.mock("@vueda/shell/sticky/StickyBar.vue", () => ({ default: StickyBarStub }));
+vi.mock("@vueda/form/form-model/FormModel.vue", () => ({ default: FormModelStub }));
+vi.mock("@vueda/display/error-display/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
+vi.mock("@vueda/navigation/link-model-view/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
-vi.mock("@vueda/components/FormConfirmDialog.vue", () => ({ default: FormConfirmDialogStub }));
+vi.mock("@vueda/display/loading/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("@vueda/form/confirm/FormConfirmDialog.vue", () => ({ default: FormConfirmDialogStub }));
 
 vi.mock("vue", async () => {
     const actual = await vi.importActual("vue");

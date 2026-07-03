@@ -2,7 +2,7 @@
  * @module utils/columnLookups
  * @description Registry of all available list column adapter components. Mirrors `formLookups.js` (fields/widgets). String-keyed so model config and the `columnComponents` prop can reference an adapter by name without importing the component.
  */
-import ColumnText from "@vueda/components/ColumnText.vue";
+import ColumnText from "@vueda/objects-grid/ColumnText.vue";
 import { defineAsyncComponent, markRaw } from "vue";
 
 /**
@@ -24,9 +24,9 @@ import { defineAsyncComponent, markRaw } from "vue";
 export const availableColumns = {
     ColumnText: markRaw(ColumnText),
     ColumnDateTime: markRaw(
-        defineAsyncComponent(async () => (await import("@vueda/components/ColumnDateTime.vue")).default),
+        defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnDateTime.vue")).default),
     ),
     ColumnModelLink: markRaw(
-        defineAsyncComponent(async () => (await import("@vueda/components/ColumnModelLink.vue")).default),
+        defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnModelLink.vue")).default),
     ),
 };

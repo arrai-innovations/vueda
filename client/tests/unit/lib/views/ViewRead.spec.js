@@ -14,13 +14,13 @@ vi.mock("@vueda/use/useForm.js", async () => {
 });
 
 // Stub all child components to avoid needing their dependencies.
-vi.mock("@vueda/components/ErrorDisplay.vue", () => ({
+vi.mock("@vueda/display/error-display/ErrorDisplay.vue", () => ({
     default: defineComponent({ name: "ErrorDisplay", template: "<div />" }),
 }));
-vi.mock("@vueda/components/FormModel.vue", () => ({
+vi.mock("@vueda/form/form-model/FormModel.vue", () => ({
     default: defineComponent({ name: "FormModel", template: "<div />" }),
 }));
-vi.mock("@vueda/components/LinkModelView.vue", () => ({
+vi.mock("@vueda/navigation/link-model-view/LinkModelView.vue", () => ({
     default: defineComponent({ name: "LinkModelView", template: "<div />" }),
 }));
 const PageActionsStub = defineComponent({
@@ -29,8 +29,8 @@ const PageActionsStub = defineComponent({
         return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
     },
 });
-vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
-vi.mock("@vueda/components/StickyBar.vue", () => ({
+vi.mock("@vueda/shell/page-title/PageActions.vue", () => ({ default: PageActionsStub }));
+vi.mock("@vueda/shell/sticky/StickyBar.vue", () => ({
     default: defineComponent({
         name: "StickyBar",
         template: "<div><slot /><slot name='primary' /><slot name='secondary' /></div>",

@@ -56,7 +56,7 @@ const ObjectsGridStub = defineComponent({
             );
     },
 });
-vi.mock("@vueda/components/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
+vi.mock("@vueda/objects-grid/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
 
 const PageActionsStub = defineComponent({
     name: "PageActionsStub",
@@ -64,7 +64,7 @@ const PageActionsStub = defineComponent({
         return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
     },
 });
-vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
+vi.mock("@vueda/shell/page-title/PageActions.vue", () => ({ default: PageActionsStub }));
 
 const PaginationFooterStub = defineComponent({
     name: "PaginationFooterStub",

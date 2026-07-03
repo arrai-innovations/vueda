@@ -1,5 +1,5 @@
 <script setup>
-import ClickToCopyText from "@vueda/components/ClickToCopyText.vue";
+import ClickToCopyText from "@vueda/display/click-to-copy-text/ClickToCopyText.vue";
 import "@vueda/theme/vueda-tailwind/widgets/WidgetTemplateLegend.theme.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";

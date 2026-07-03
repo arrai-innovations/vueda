@@ -1,5 +1,5 @@
 <script setup>
-import LinkModelView from "@vueda/components/LinkModelView.vue";
+import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
 import "@vueda/theme/vueda-tailwind/widgets/WidgetReadOnly.theme.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useResolvedLookupObject } from "@vueda/use/useResolvedLookupObject.js";
