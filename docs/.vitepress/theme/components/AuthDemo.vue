@@ -1,7 +1,20 @@
 <script setup>
 import { DEMO_LATENCY_MS } from "../fixtures/authUser.js";
+import { mergeTheme } from "@vueda/use/useTheme.js";
 import { createPinia } from "pinia";
 import { createApp, h, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
+
+// AuthorizingForm's root uses min-h-svh so a real sign-in page fills the browser viewport and
+// centers vertically (see AuthorizingForm.theme.js). Here it mounts inline in a scrolling docs
+// page instead, where "the viewport" is the whole doc, not the card, so min-h-svh reserves a full
+// screen height of blank space around a much shorter card. min-h-svh and a replacement like
+// min-h-full both set the CSS min-height property but are different utility classes, and
+// combineClasses has no tailwind-merge, so adding a replacement class would just add a second
+// competing utility rather than override the first (see
+// client/lib/theme/vueda-tailwind/README.md § 9.1). Cancel the exact token instead: combineClasses
+// treats a class object's `false` entries as a clobber on that literal key, which reliably removes
+// min-h-svh without depending on which utility rule happens to compile later.
+const AUTH_DEMO_THEME_OVERRIDE = { AuthorizingForm: { root: { class: { "min-h-svh": false } } } };
 
 /**
  * Docs-only harness that previews a real auth view (ViewSignIn, ViewTwoFactorAuth,
@@ -112,9 +125,16 @@ onMounted(async () => {
         store[name] = makeWrapped(store, fn);
     }
 
+    // Vue's attrs fallthrough carries themeOverride from the sub-app root all the way to
+    // AuthorizingForm, since ViewSignIn (and its siblings) declare no props of their own and don't
+    // set inheritAttrs: false.
+    const viewProps = {
+        ...props.viewProps,
+        themeOverride: mergeTheme(AUTH_DEMO_THEME_OVERRIDE, props.viewProps.themeOverride),
+    };
     const app = createApp({
         render: () => {
-            const view = h(ViewComponent, props.viewProps);
+            const view = h(ViewComponent, viewProps);
             return SonnerComponent ? [view, h(SonnerComponent)] : view;
         },
     });
