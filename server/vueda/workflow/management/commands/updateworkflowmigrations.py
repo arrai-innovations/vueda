@@ -152,7 +152,6 @@ class Command(BaseCommand):
                 for target in node.targets:
                     if isinstance(target, ast.Name) and target.id == "changed_data":
                         return changed_data_index + node.end_lineno - 1
-        return changed_data_index
 
     def _update_migration_file(self, filepath):
         with open(filepath, encoding="utf-8") as f:
