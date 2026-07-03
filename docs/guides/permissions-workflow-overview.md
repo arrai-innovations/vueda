@@ -19,7 +19,7 @@ By the end of this guide you will be able to:
 
 Before you begin:
 
-The `vueda.user` app must be in `INSTALLED_APPS`. The overview URL becomes available when the project is running in debug mode (`DEBUG = True` in settings); it is not exposed in production. You will need a superuser account to access the page, because the `user.list_permission` permission is required.
+The `vueda.user` app must be in `INSTALLED_APPS`. The overview URL becomes available when the project is running in debug mode (`DEBUG = True` in settings); it is not exposed in production. You will need a superuser account to access the page, because the `auth.list_permission` permission is required.
 
 ## Navigating to the Overview
 
