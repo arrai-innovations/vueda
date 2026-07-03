@@ -437,7 +437,7 @@ class BaseTestModelViewSet(
 
 
 class BaseTestCallCommand:
-    def call_command(self, *args):
+    def call_command(self, *args, stdout=None, stderr=None):
         """
         Call a management command and capture the results.
 
@@ -449,8 +449,8 @@ class BaseTestCallCommand:
                 boolean: False if erred calling the command, True otherwise.
                 string: The captured results or error text.
         """
-        err = io.StringIO()
-        out = io.StringIO()
+        err = io.StringIO() if stderr is None else stderr
+        out = io.StringIO() if stdout is None else stdout
 
         # If we don't do this, sometimes we can't import a newly created migration.
         # Do it here, so we don't need to know which calls require it, and which don't.
