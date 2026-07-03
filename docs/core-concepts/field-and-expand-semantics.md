@@ -60,7 +60,7 @@ Generic foreign key expands are always read-only. There is no write path through
 
 The model-info `model_expands` entry for a generic foreign key expand carries distinct type identifiers:
 
-- `type_db`: `null` — no database column type applies, because the column holds an object identifier rather than a typed foreign key reference.
+- `type_db`: `null` — no single database column type applies, because a generic foreign key is a compound relationship backed by two separate columns: a `content_type` column that stores the related model type and an `object_id` column that stores the related object's primary key.
 - `type_model`: `"GenericForeignKey"` — identifies this expand as a polymorphic relationship.
 - `type_serializer`: `"GenericForeignKeySerializer"` — the serializer class name that handles the expand.
 
