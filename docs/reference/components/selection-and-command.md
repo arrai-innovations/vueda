@@ -405,12 +405,12 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
             <CommandItem value="new-invoice">
               <FontAwesomeIcon :icon="faFileLines" />
               New invoice
-              <CommandShortcut>⌘ N</CommandShortcut>
+              <CommandShortcut :keys="['⌘', 'N']" />
             </CommandItem>
             <CommandItem value="send-statement">
               <FontAwesomeIcon :icon="faPaperPlane" />
               Send statement
-              <CommandShortcut>⌘ ⇧ S</CommandShortcut>
+              <CommandShortcut :keys="['⌘', '⇧', 'S']" />
             </CommandItem>
           </CommandGroup>
           <CommandSeparator />
@@ -418,12 +418,12 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
             <CommandItem value="go-receivables">
               <FontAwesomeIcon :icon="faChartBar" />
               Go to receivables
-              <CommandShortcut>G R</CommandShortcut>
+              <CommandShortcut :keys="['G', 'R']" />
             </CommandItem>
             <CommandItem value="find-customer">
               <FontAwesomeIcon :icon="faBuilding" />
               Find customer
-              <CommandShortcut>⌘ K</CommandShortcut>
+              <CommandShortcut :keys="['⌘', 'K']" />
             </CommandItem>
           </CommandGroup>
         </CommandList>
@@ -445,12 +445,12 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
             <CommandItem value="footer-new-invoice">
               <FontAwesomeIcon :icon="faFileLines" />
               New invoice
-              <CommandShortcut>⌘ N</CommandShortcut>
+              <CommandShortcut :keys="['⌘', 'N']" />
             </CommandItem>
             <CommandItem value="footer-find-customer">
               <FontAwesomeIcon :icon="faBuilding" />
               Find customer
-              <CommandShortcut>⌘ K</CommandShortcut>
+              <CommandShortcut :keys="['⌘', 'K']" />
             </CommandItem>
           </CommandGroup>
         </CommandList>
@@ -485,7 +485,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
             <CommandItem value="send-statement-b" disabled>
               <FontAwesomeIcon :icon="faPaperPlane" />
               Send statement
-              <CommandShortcut>⌘ ⇧ S</CommandShortcut>
+              <CommandShortcut :keys="['⌘', '⇧', 'S']" />
             </CommandItem>
             <CommandItem value="find-customer-b">
               <FontAwesomeIcon :icon="faBuilding" />
@@ -529,7 +529,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
               <CommandItem value="cdlg-new-invoice" @select="commandOpen = false">
                 <FontAwesomeIcon :icon="faFileLines" />
                 New invoice
-                <CommandShortcut>⌘ N</CommandShortcut>
+                <CommandShortcut :keys="['⌘', 'N']" />
               </CommandItem>
               <CommandItem value="cdlg-send-statement" @select="commandOpen = false">
                 <FontAwesomeIcon :icon="faPaperPlane" />
@@ -538,7 +538,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
               <CommandItem value="cdlg-find-customer" @select="commandOpen = false">
                 <FontAwesomeIcon :icon="faBuilding" />
                 Find customer
-                <CommandShortcut>⌘ K</CommandShortcut>
+                <CommandShortcut :keys="['⌘', 'K']" />
               </CommandItem>
             </CommandGroup>
           </CommandList>

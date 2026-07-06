@@ -12,7 +12,7 @@ const cases = [
 
 describe("lib/navigation menu shortcut components", () => {
     scopedIt.each(cases)("%s renders a shortcut wrapper with grouped Kbd children", (_name, component, slotName) => {
-        const wrapper = mount(component, { slots: { default: "⇧⌘L" } });
+        const wrapper = mount(component, { props: { keys: ["⇧", "⌘", "L"] } });
 
         expect(wrapper.attributes("data-slot")).toBe(slotName);
         expect(wrapper.element.tagName).toBe("SPAN");
@@ -25,11 +25,17 @@ describe("lib/navigation menu shortcut components", () => {
 
     scopedIt.each(cases)("%s keeps custom classes on the alignment wrapper", (_name, component) => {
         const wrapper = mount(component, {
-            props: { class: "my-shortcut" },
-            slots: { default: "⌘S" },
+            props: { class: "my-shortcut", keys: ["⌘", "S"] },
         });
 
         expect(wrapper.classes()).toContain("my-shortcut");
         expect(wrapper.get("[data-slot='kbd-group']").classes()).not.toContain("my-shortcut");
+    });
+
+    scopedIt.each(cases)("%s falls back to parsing slot text", (_name, component) => {
+        const wrapper = mount(component, { slots: { default: "⌘S" } });
+
+        const keycaps = wrapper.get("[data-slot='kbd-group']").findAll("kbd");
+        expect(keycaps.map((kbd) => kbd.text())).toEqual(["⌘", "S"]);
     });
 });

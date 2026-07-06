@@ -332,17 +332,17 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
             <DropdownMenuItem>
               <FontAwesomeIcon :icon="faFileLines" />
               Open
-              <DropdownMenuShortcut>↵</DropdownMenuShortcut>
+              <DropdownMenuShortcut :keys="['↵']" />
             </DropdownMenuItem>
             <DropdownMenuItem>
               <FontAwesomeIcon :icon="faPen" />
               Edit
-              <DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
+              <DropdownMenuShortcut :keys="['⌘', 'E']" />
             </DropdownMenuItem>
             <DropdownMenuItem>
               <FontAwesomeIcon :icon="faCopy" />
               Duplicate
-              <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
+              <DropdownMenuShortcut :keys="['⌘', 'D']" />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
@@ -364,7 +364,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
             <DropdownMenuItem variant="destructive">
               <FontAwesomeIcon :icon="faTrash" />
               Archive
-              <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
+              <DropdownMenuShortcut :keys="['⌘', '⌫']" />
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -388,7 +388,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
           <DropdownMenuContent class="w-48">
             <DropdownMenuLabel :inset="true">COLUMNS</DropdownMenuLabel>
             <DropdownMenuCheckboxItem v-model="colCustomer">Customer</DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem v-model="colAmount">Amount <DropdownMenuShortcut>$</DropdownMenuShortcut></DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem v-model="colAmount">Amount <DropdownMenuShortcut :keys="['$']" /></DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem v-model="colDueDate">Due date</DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem v-model="colPoNumber">PO number</DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
@@ -421,12 +421,12 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
             <DropdownMenuItem>
               <FontAwesomeIcon :icon="faPlus" />
               New invoice
-              <DropdownMenuShortcut>⌘N</DropdownMenuShortcut>
+              <DropdownMenuShortcut :keys="['⌘', 'N']" />
             </DropdownMenuItem>
             <DropdownMenuItem>
               <FontAwesomeIcon :icon="faFolderOpen" />
               Open
-              <DropdownMenuShortcut>⌘O</DropdownMenuShortcut>
+              <DropdownMenuShortcut :keys="['⌘', 'O']" />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuSub>
@@ -441,7 +441,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   Share link
-                  <DropdownMenuShortcut>⇧⌘L</DropdownMenuShortcut>
+                  <DropdownMenuShortcut :keys="['⇧', '⌘', 'L']" />
                 </DropdownMenuItem>
                 <DropdownMenuItem>Copy to clipboard</DropdownMenuItem>
               </DropdownMenuSubContent>
@@ -449,7 +449,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
             <DropdownMenuItem :disabled="true">
               <FontAwesomeIcon :icon="faPrint" />
               Print
-              <DropdownMenuShortcut>⌘P</DropdownMenuShortcut>
+              <DropdownMenuShortcut :keys="['⌘', 'P']" />
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -468,34 +468,34 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
           <FontAwesomeIcon :icon="faFileLines" class="size-4 shrink-0 text-muted-foreground" />
           Open
-          <DropdownMenuShortcut>↵</DropdownMenuShortcut>
+          <DropdownMenuShortcut :keys="['↵']" />
         </div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm bg-accent text-accent-foreground">
           <FontAwesomeIcon :icon="faPen" class="size-4 shrink-0" />
           Edit
-          <DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
+          <DropdownMenuShortcut :keys="['⌘', 'E']" />
         </div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
           <FontAwesomeIcon :icon="faCopy" class="size-4 shrink-0 text-muted-foreground" />
           Duplicate
-          <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
+          <DropdownMenuShortcut :keys="['⌘', 'D']" />
         </div>
         <div class="bg-border -mx-1 my-1 h-px"></div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive">
           <FontAwesomeIcon :icon="faTrash" class="size-4 shrink-0 text-destructive" />
           Archive
-          <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
+          <DropdownMenuShortcut :keys="['⌘', '⌫']" />
         </div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive bg-destructive/10">
           <FontAwesomeIcon :icon="faTrash" class="size-4 shrink-0 text-destructive" />
           Archive
-          <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
+          <DropdownMenuShortcut :keys="['⌘', '⌫']" />
         </div>
         <div class="bg-border -mx-1 my-1 h-px"></div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm opacity-50 pointer-events-none">
           <FontAwesomeIcon :icon="faPrint" class="size-4 shrink-0 text-muted-foreground" />
           Print
-          <DropdownMenuShortcut>⌘P</DropdownMenuShortcut>
+          <DropdownMenuShortcut :keys="['⌘', 'P']" />
         </div>
       </div>
     </div>
@@ -528,11 +528,11 @@ ContextMenu uses the same panel and item primitives as DropdownMenu; the only di
           <ContextMenuItem>
             <FontAwesomeIcon :icon="faEnvelope" />
             Send reminder email
-            <ContextMenuShortcut>⌘R</ContextMenuShortcut>
+            <ContextMenuShortcut :keys="['⌘', 'R']" />
           </ContextMenuItem>
           <ContextMenuItem>
             Mark as sent
-            <ContextMenuShortcut>⌘↵</ContextMenuShortcut>
+            <ContextMenuShortcut :keys="['⌘', '↵']" />
           </ContextMenuItem>
           <ContextMenuItem>Match to payment…</ContextMenuItem>
           <ContextMenuSeparator />
@@ -545,7 +545,7 @@ ContextMenu uses the same panel and item primitives as DropdownMenu; the only di
           <ContextMenuSeparator />
           <ContextMenuItem>
             Copy reference
-            <ContextMenuShortcut>⌘C</ContextMenuShortcut>
+            <ContextMenuShortcut :keys="['⌘', 'C']" />
           </ContextMenuItem>
           <ContextMenuItem variant="destructive">
             <FontAwesomeIcon :icon="faTrash" />

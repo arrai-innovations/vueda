@@ -13,6 +13,23 @@ const textFromVNode = (node) => {
 const textFromVNodes = (nodes) => nodes.map(textFromVNode).join("");
 
 /**
+ * Normalize a shortcut value into physical key labels.
+ *
+ * Arrays are the canonical input for shortcut components because they preserve
+ * key boundaries without relying on text parsing. Strings are accepted for
+ * compatibility with existing slot content and compact menu notation.
+ *
+ * @param {string|string[]|null|undefined} value - Shortcut keys as structured labels or display text.
+ * @returns {string[]} The key labels in display order.
+ */
+export function normalizeShortcutKeys(value) {
+    if (Array.isArray(value)) {
+        return value.map((key) => String(key ?? "").trim()).filter(Boolean);
+    }
+    return splitShortcutKeys(value);
+}
+
+/**
  * Split a shortcut label into physical key labels.
  *
  * Whitespace is the explicit separator used by command demos (`⌘ ⇧ S`,
@@ -58,5 +75,5 @@ export function splitShortcutKeys(value) {
  * @returns {string[]} The key labels in display order.
  */
 export function shortcutKeysFromVNodes(nodes) {
-    return splitShortcutKeys(textFromVNodes(nodes));
+    return normalizeShortcutKeys(textFromVNodes(nodes));
 }

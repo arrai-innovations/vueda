@@ -269,15 +269,15 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       <div class="bg-border -mx-1 my-1 h-px"></div>
       <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none">
         New Window
-        <MenubarShortcut>&#8984;N</MenubarShortcut>
+        <MenubarShortcut :keys="['⌘', 'N']" />
       </div>
       <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none bg-accent text-accent-foreground">
         Open...
-        <MenubarShortcut>&#8984;O</MenubarShortcut>
+        <MenubarShortcut :keys="['⌘', 'O']" />
       </div>
       <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none opacity-50">
         Close
-        <MenubarShortcut>&#8984;W</MenubarShortcut>
+        <MenubarShortcut :keys="['⌘', 'W']" />
       </div>
       <div class="bg-border -mx-1 my-1 h-px"></div>
       <div class="relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm select-none">

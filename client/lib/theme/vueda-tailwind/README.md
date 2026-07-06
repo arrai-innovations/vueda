@@ -253,8 +253,8 @@ Two recipes:
 Menu surfaces (DropdownMenu, ContextMenu, Menubar, Combobox) use a mono
 variant of the same recipe for group labels; the sans/mono split is
 intentional and tracks the surface (selection vs menu). Keyboard shortcut
-slots inside menus (`*MenuShortcut`) and command rows render parsed
-`KbdGroup` chords. The shortcut component owns row-end alignment; `Kbd`
+components inside menus (`*MenuShortcut`) and command rows render structured
+`keys` as `KbdGroup` chords. The shortcut component owns row-end alignment; `Kbd`
 owns the visual shortcut cue so users learn one keyboard-hint shape across
 buttons, menus, command palettes, tooltips, and action strips.
 

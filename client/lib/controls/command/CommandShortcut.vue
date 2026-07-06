@@ -1,7 +1,7 @@
 <script setup>
 import Kbd from "@vueda/display/kbd/Kbd.vue";
 import KbdGroup from "@vueda/display/kbd/KbdGroup.vue";
-import { shortcutKeysFromVNodes } from "@vueda/display/kbd/shortcutKeys.js";
+import { normalizeShortcutKeys, shortcutKeysFromVNodes } from "@vueda/display/kbd/shortcutKeys.js";
 import "@vueda/theme/vueda-tailwind/controls/CommandShortcut.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useSlots } from "vue";
@@ -18,11 +18,16 @@ const props = defineProps({
      * @type {import('vue').HTMLAttributes['class']}
      */
     class: { type: [String, Array, Object], default: undefined },
+    /** Structured shortcut key labels. Prefer this over slot text so each physical key renders as a Kbd chip. */
+    keys: { type: [String, Array], default: undefined },
 });
 
 const theme = useTheme("CommandShortcut", props);
 const slots = useSlots();
-const getKeys = () => shortcutKeysFromVNodes(slots.default?.() ?? []);
+const getKeys = () =>
+    props.keys === undefined || props.keys === null
+        ? shortcutKeysFromVNodes(slots.default?.() ?? [])
+        : normalizeShortcutKeys(props.keys);
 </script>
 
 <template>
