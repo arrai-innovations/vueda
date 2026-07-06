@@ -199,7 +199,7 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
     </template>
   </DemoCard>
   <DemoCard title="content anatomy" description="(static panel)">
-    <div class="bg-popover text-popover-foreground rounded-vueda-control border shadow overflow-hidden p-2 flex flex-col gap-0.5">
+    <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline overflow-hidden p-2 flex flex-col gap-0.5">
       <a href="#" class="flex flex-col gap-1 rounded-sm p-2 text-sm hover:bg-accent hover:text-accent-foreground">
         <span class="font-medium leading-none">Components</span>
         <span class="text-muted-foreground text-xs leading-snug">Browse the component library</span>
@@ -214,7 +214,7 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
       </a>
     </div>
     <template #footer>
-      <span>viewport: bg <code>--popover</code>, rounded, border, shadow</span>
+      <span>viewport: bg <code>--popover</code>, rounded, <code>overlay-hairline</code></span>
       <span>link: flex-col, gap-1, p-2, rounded-sm, text-sm</span>
       <span>active link: bg <code>--accent/50</code></span>
       <span>hover/focus link: bg <code>--accent</code></span>
@@ -252,18 +252,18 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       <StateLabel>hover / focus / open</StateLabel>
       <div></div>
       <div>
-        <div class="bg-background flex h-9 w-fit items-center gap-1 rounded-vueda-control border p-1 shadow-vueda-control">
+        <div class="bg-background flex h-9 w-fit items-center gap-1 rounded-vueda-control hairline hairline-border p-1 shadow-vueda-control">
           <div class="flex items-center rounded-sm px-2 py-1 text-sm font-medium bg-accent text-accent-foreground select-none">File</div>
         </div>
       </div>
     </div>
     <template #footer>
-      <span>bar: bg <code>--background</code>, h-9, rounded, border, shadow</span>
+      <span>bar: bg <code>--background</code>, h-9, rounded, <code>hairline hairline-border</code>, shadow</span>
       <span>trigger hover/focus/open: bg <code>--accent</code>, fg <code>--accent-foreground</code></span>
     </template>
   </DemoCard>
   <DemoCard title="content anatomy" description="(static panel)">
-    <div class="bg-popover text-popover-foreground min-w-48 rounded-vueda-control border p-1 shadow-vueda-popover">
+    <div class="bg-popover text-popover-foreground min-w-48 rounded-vueda-control overlay-hairline p-1">
       <div class="px-2 py-1.5 text-sm font-medium">File</div>
       <div class="bg-border -mx-1 my-1 h-px"></div>
       <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none">
@@ -300,7 +300,7 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       </div>
     </div>
     <template #footer>
-      <span>content: bg <code>--popover</code>, min-w-48, rounded, border, shadow</span>
+      <span>content: bg <code>--popover</code>, min-w-48, rounded, <code>overlay-hairline</code></span>
       <span>item hover/focus: bg <code>--accent</code></span>
       <span>indicator: size-3.5, absolute left-2</span>
       <span>shortcut: text-xs tracking-widest ml-auto</span>

@@ -43,8 +43,8 @@ function fireLoadingToast() {
 # Feedback + Loading
 
 The feedback family covers the surfaces that report state to the operator:
-alerts, badges, loading icons, progress bars, skeleton placeholders, the toast
-container, and the hover card popover. They share the status token surface
+alerts, badges, loading icons, progress bars, skeleton placeholders, and the
+toast container. They share the status token surface
 ({@api css-token:destructive}, {@api css-token:warning},
 {@api css-token:info}, {@api css-token:success}) and the popover surface
 ({@api css-token:popover}, {@api css-token:popover-foreground},
@@ -686,67 +686,3 @@ Theme key: {@api theme-key:Sonner}. Token surface:
 <ClientOnly>
   <Sonner />
 </ClientOnly>
-
-## HoverCard: composition matrix
-
-HoverCard is a glance-weight summary popover, lighter than Popover. The
-content panel is `w-64` (256 px) with {@api css-token:vueda-control-radius},
-deliberately tighter than the popover surface used for actionable Popover
-content; HoverCard is for read-only summaries (a profile by hovering a
-username, a record summary by hovering an ID), Popover is for actions.
-
-Theme key: {@api theme-key:HoverCardContent}. Token surface:
-{@api css-token:popover}, {@api css-token:popover-foreground},
-{@api css-token:border}, and {@api css-token:vueda-control-radius}. The
-elevation comes from {@api css-token:vueda-shadow-popover}.
-
-<VuedaDemo class="grid gap-6 lg:grid-cols-2">
-  <DemoCard title="profile summary">
-    <div class="w-64 rounded-vueda-control border border-border bg-popover p-4 text-popover-foreground shadow-vueda-popover">
-      <div class="flex items-center gap-3">
-        <div class="flex size-10 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">JO</div>
-        <div class="grid gap-0.5">
-          <div class="text-sm font-medium leading-tight">Jadesola Okafor</div>
-          <div class="text-xs text-muted-foreground">j.okafor · Accounts</div>
-        </div>
-      </div>
-      <p class="mt-3 text-xs leading-snug text-muted-foreground">
-        Senior AR specialist. Posts to GL-4100 and GL-4105 only.
-      </p>
-      <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-        <dt class="text-muted-foreground">Role</dt>
-        <dd class="font-mono">AR.Specialist</dd>
-        <dt class="text-muted-foreground">Last login</dt>
-        <dd>today, 13:52</dd>
-        <dt class="text-muted-foreground">Posted</dt>
-        <dd>1,284 invoices</dd>
-      </dl>
-    </div>
-    <template #footer>
-      <span>width <code>w-64</code></span>
-      <span>padding <code>p-4</code></span>
-      <span>radius <code>--vueda-control-radius</code></span>
-    </template>
-  </DemoCard>
-  <DemoCard title="record summary">
-    <div class="w-64 rounded-vueda-control border border-border bg-popover p-4 text-popover-foreground shadow-vueda-popover">
-      <div class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Customer</div>
-      <div class="mt-1 text-sm font-medium leading-tight">Granger Holdings</div>
-      <div class="text-xs text-muted-foreground">CUST-3487 · Net 30</div>
-      <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-        <dt class="text-muted-foreground">Balance</dt>
-        <dd class="font-mono">$24,108.50</dd>
-        <dt class="text-muted-foreground">Open INV</dt>
-        <dd class="font-mono">3</dd>
-        <dt class="text-muted-foreground">DSO</dt>
-        <dd class="font-mono">42d</dd>
-        <dt class="text-muted-foreground">Credit</dt>
-        <dd class="font-mono">$50,000</dd>
-      </dl>
-    </div>
-    <template #footer>
-      <span>summary, not actionable</span>
-      <span>use Popover when the panel needs buttons</span>
-    </template>
-  </DemoCard>
-</VuedaDemo>

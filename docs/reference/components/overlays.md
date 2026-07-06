@@ -9,6 +9,34 @@ type: reference
 import Popover from "@vueda/shell/popover/Popover.vue";
 import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
+import HoverCard from "@vueda/shell/hover-card/HoverCard.vue";
+import HoverCardContent from "@vueda/shell/hover-card/HoverCardContent.vue";
+import HoverCardTrigger from "@vueda/shell/hover-card/HoverCardTrigger.vue";
+import Dialog from "@vueda/shell/dialog/Dialog.vue";
+import DialogContent from "@vueda/shell/dialog/DialogContent.vue";
+import DialogDescription from "@vueda/shell/dialog/DialogDescription.vue";
+import DialogFooter from "@vueda/shell/dialog/DialogFooter.vue";
+import DialogHeader from "@vueda/shell/dialog/DialogHeader.vue";
+import DialogScrollContent from "@vueda/shell/dialog/DialogScrollContent.vue";
+import DialogTitle from "@vueda/shell/dialog/DialogTitle.vue";
+import DialogTrigger from "@vueda/shell/dialog/DialogTrigger.vue";
+import Sheet from "@vueda/shell/sheet/Sheet.vue";
+import SheetClose from "@vueda/shell/sheet/SheetClose.vue";
+import SheetContent from "@vueda/shell/sheet/SheetContent.vue";
+import SheetDescription from "@vueda/shell/sheet/SheetDescription.vue";
+import SheetFooter from "@vueda/shell/sheet/SheetFooter.vue";
+import SheetHeader from "@vueda/shell/sheet/SheetHeader.vue";
+import SheetTitle from "@vueda/shell/sheet/SheetTitle.vue";
+import SheetTrigger from "@vueda/shell/sheet/SheetTrigger.vue";
+import AlertDialog from "@vueda/shell/alert-dialog/AlertDialog.vue";
+import AlertDialogAction from "@vueda/shell/alert-dialog/AlertDialogAction.vue";
+import AlertDialogCancel from "@vueda/shell/alert-dialog/AlertDialogCancel.vue";
+import AlertDialogContent from "@vueda/shell/alert-dialog/AlertDialogContent.vue";
+import AlertDialogDescription from "@vueda/shell/alert-dialog/AlertDialogDescription.vue";
+import AlertDialogFooter from "@vueda/shell/alert-dialog/AlertDialogFooter.vue";
+import AlertDialogHeader from "@vueda/shell/alert-dialog/AlertDialogHeader.vue";
+import AlertDialogTitle from "@vueda/shell/alert-dialog/AlertDialogTitle.vue";
+import AlertDialogTrigger from "@vueda/shell/alert-dialog/AlertDialogTrigger.vue";
 import Tooltip from "@vueda/shell/tooltip/Tooltip.vue";
 import TooltipContent from "@vueda/shell/tooltip/TooltipContent.vue";
 import TooltipProvider from "@vueda/shell/tooltip/TooltipProvider.vue";
@@ -42,18 +70,26 @@ import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
+  faArrowRight,
+  faArrowUpRightFromSquare,
+  faBars,
   faChevronDown,
+  faCircleCheck,
   faCircleInfo,
+  faClock,
   faCopy,
   faDownload,
   faEnvelope,
   faFileExport,
   faFileLines,
   faFolderOpen,
+  faLayerGroup,
+  faListCheck,
   faPen,
   faPlus,
   faPrint,
   faShareNodes,
+  faShieldHalved,
   faTrash,
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
@@ -69,9 +105,25 @@ const assignee = ref("me");
 
 # Overlays
 
-Popover, DropdownMenu, ContextMenu, and Tooltip. Three of the four share one floating surface: `bg-popover` fill, 1 px `border-border` edge, `--vueda-control-radius` corners, and `--vueda-shadow-popover` elevation. The border carries the elevation signal in VUEDA; the shadow is a 12 px ambient softener, not a lift. Tooltip deliberately inverts the surface (`bg-foreground` / `text-background`) so it reads as a transient label rather than an actionable panel.
+Overlays cover anchored popovers, menu panels, transient labels, modal dialogs,
+edge sheets, and blocking confirmations. Popover, HoverCard, DropdownMenu,
+and ContextMenu share one floating surface: `bg-popover` fill, a DPR-aware
+`overlay-hairline` edge, `--vueda-control-radius` corners, and
+`--vueda-shadow-popover` elevation. Dialog and AlertDialog use the modal
+radius plus `overlay-hairline-elevated`; Sheet uses directional
+`border-*-hairline` edges with the same overlay elevation. Tooltip
+deliberately inverts the surface (`bg-foreground` / `text-background`) so it
+reads as a transient label rather than an actionable panel.
 
-This page is the visual contract for {@api vue:component:Popover}, {@api vue:component:DropdownMenu}, {@api vue:component:ContextMenu}, and {@api vue:component:Tooltip}. The Combobox list panel uses the same floating surface; its trigger and open states are documented on [Selection + Command](./selection-and-command).
+This page is the visual contract for {@api vue:component:Popover},
+{@api vue:component:HoverCard}, {@api vue:component:Dialog},
+{@api vue:component:Sheet}, {@api vue:component:AlertDialog},
+{@api vue:component:DropdownMenu}, {@api vue:component:ContextMenu}, and
+{@api vue:component:Tooltip}. Menubar and NavigationMenu also open overlay
+surfaces, but their triggers are navigation primitives, so their visual
+coverage lives on [Navigation](./navigation). The Combobox and Select list
+panels use the same floating surface; their triggers and open states are
+documented on [Selection + Command](./selection-and-command).
 
 For how to change any of this, see [Customize VUEDA Appearance](../../guides/customize-vueda-appearance.md). Values belong in [CSS tokens](../theming/tokens.md); compositions belong in [theme keys](../theming/keys.md).
 
@@ -165,6 +217,91 @@ Theme key: {@api theme-key:PopoverContent}. Token surface: {@api css-token:popov
     </div>
     <template #footer>
       <span>destructive confirm stays inside the surface, not a Dialog</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## HoverCard
+
+HoverCard is a glance-weight summary popover, lighter than Popover. The
+content panel is `w-64` (256 px) with {@api css-token:vueda-control-radius},
+deliberately tighter than the actionable Popover surface. Use it for read-only
+summaries: a profile by hovering a username, or a record summary by hovering
+an ID.
+
+Theme key: {@api theme-key:HoverCardContent}. Token surface:
+{@api css-token:popover}, {@api css-token:popover-foreground},
+{@api css-token:border}, {@api css-token:vueda-control-radius}, and
+{@api css-token:vueda-shadow-popover}.
+
+<VuedaDemo class="grid gap-6 lg:grid-cols-2">
+  <DemoCard title="profile summary - initially open">
+    <div class="flex justify-center py-8">
+      <ClientOnly>
+        <HoverCard :open-delay="0" :close-delay="150" :default-open="true">
+          <HoverCardTrigger as-child>
+            <Button emphasis="ghost">Jadesola Okafor</Button>
+          </HoverCardTrigger>
+          <HoverCardContent side="bottom" align="center">
+            <div class="flex items-center gap-3">
+              <div class="flex size-10 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">JO</div>
+              <div class="grid gap-0.5">
+                <div class="text-sm font-medium leading-tight">Jadesola Okafor</div>
+                <div class="text-xs text-muted-foreground">j.okafor · Accounts</div>
+              </div>
+            </div>
+            <p class="mt-3 text-xs leading-snug text-muted-foreground">
+              Senior AR specialist. Posts to GL-4100 and GL-4105 only.
+            </p>
+            <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+              <dt class="text-muted-foreground">Role</dt>
+              <dd class="font-mono">AR.Specialist</dd>
+              <dt class="text-muted-foreground">Last login</dt>
+              <dd>today, 13:52</dd>
+              <dt class="text-muted-foreground">Posted</dt>
+              <dd>1,284 invoices</dd>
+            </dl>
+          </HoverCardContent>
+        </HoverCard>
+      </ClientOnly>
+    </div>
+    <template #footer>
+      <span>width <code>w-64</code></span>
+      <span>padding <code>p-4</code></span>
+      <span>surface from <code>HoverCardContent</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="record summary - hover trigger">
+    <div class="flex justify-center py-8">
+      <ClientOnly>
+        <HoverCard :open-delay="0" :close-delay="150">
+          <HoverCardTrigger as-child>
+            <Button emphasis="outline">
+              CUST-3487
+              <FontAwesomeIcon :icon="faArrowUpRightFromSquare" class="ml-1 size-3" />
+            </Button>
+          </HoverCardTrigger>
+          <HoverCardContent side="bottom" align="center">
+            <div class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Customer</div>
+            <div class="mt-1 text-sm font-medium leading-tight">Granger Holdings</div>
+            <div class="text-xs text-muted-foreground">CUST-3487 · Net 30</div>
+            <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+              <dt class="text-muted-foreground">Balance</dt>
+              <dd class="font-mono">$24,108.50</dd>
+              <dt class="text-muted-foreground">Open INV</dt>
+              <dd class="font-mono">3</dd>
+              <dt class="text-muted-foreground">DSO</dt>
+              <dd class="font-mono">42d</dd>
+              <dt class="text-muted-foreground">Credit</dt>
+              <dd class="font-mono">$50,000</dd>
+            </dl>
+          </HoverCardContent>
+        </HoverCard>
+      </ClientOnly>
+    </div>
+    <template #footer>
+      <span>summary only</span>
+      <span>use Popover when the panel needs actions</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -322,7 +459,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
   </DemoCard>
   <DemoCard title="open panel anatomy — item state matrix · static" class="lg:col-span-3">
     <div class="flex flex-wrap gap-8 items-start">
-      <div class="bg-popover text-popover-foreground rounded-vueda-control border p-1 shadow-vueda-popover w-52 shrink-0 text-sm">
+      <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline p-1 w-52 shrink-0 text-sm">
         <div class="px-2 py-1.5 text-sm font-medium">INV-2026-0418-A1</div>
         <div class="bg-border -mx-1 my-1 h-px"></div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
@@ -417,6 +554,294 @@ ContextMenu uses the same panel and item primitives as DropdownMenu; the only di
     <template #footer>
       <span>same surface + item primitive as DropdownMenu</span>
       <span>trigger: any right-click region · not a button</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Dialog
+
+Dialog is the centered modal surface for focused work that needs a blocking
+context but is not inherently destructive. Standard content uses the modal
+radius with `overlay-hairline overlay-hairline-elevated`; the scroll content
+variant preserves the same surface while letting the overlay own vertical
+scroll.
+
+Theme keys: {@api theme-key:DialogContent},
+{@api theme-key:DialogScrollContent}, {@api theme-key:DialogHeader},
+{@api theme-key:DialogTitle}, {@api theme-key:DialogDescription}, and
+{@api theme-key:DialogFooter}. Token surface: {@api css-token:background},
+{@api css-token:foreground}, {@api css-token:overlay},
+{@api css-token:vueda-modal-radius}, and {@api css-token:vueda-shadow-overlay}.
+
+<VuedaDemo class="grid gap-6 lg:grid-cols-2">
+  <DemoCard title="standard modal">
+    <div class="flex justify-center py-4">
+      <ClientOnly>
+        <Dialog>
+          <DialogTrigger as-child>
+            <Button emphasis="outline">
+              <FontAwesomeIcon :icon="faShieldHalved" />
+              Review hold
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Review payment hold</DialogTitle>
+              <DialogDescription>
+                Confirm the customer record, hold reason, and release criteria before changing payment status.
+              </DialogDescription>
+            </DialogHeader>
+            <div class="grid gap-3 text-sm">
+              <div class="rounded-vueda-control bg-muted/40 p-3">
+                <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Customer</div>
+                <div class="mt-1 font-medium">Northwind Logistics</div>
+                <div class="text-xs text-muted-foreground">Balance $18,240.00 · 2 invoices past due</div>
+              </div>
+              <div class="grid grid-cols-[16px_1fr] gap-2 text-muted-foreground">
+                <FontAwesomeIcon :icon="faClock" class="mt-0.5" />
+                <p class="m-0">The hold expires automatically in 48 hours if no action is taken.</p>
+              </div>
+            </div>
+            <DialogFooter show-close-button>
+              <Button tone="primary">
+                <FontAwesomeIcon :icon="faCircleCheck" />
+                Release hold
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </ClientOnly>
+    </div>
+    <template #footer>
+      <span>surface: <code>DialogContent</code></span>
+      <span>edge + elevation: <code>overlay-hairline overlay-hairline-elevated</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="scroll content">
+    <div class="flex justify-center py-4">
+      <ClientOnly>
+        <Dialog>
+          <DialogTrigger as-child>
+            <Button emphasis="outline">
+              <FontAwesomeIcon :icon="faListCheck" />
+              Open long review
+            </Button>
+          </DialogTrigger>
+          <DialogScrollContent>
+            <DialogHeader>
+              <DialogTitle>Reconciliation review</DialogTitle>
+              <DialogDescription>
+                Review ledger warnings before accepting the imported bank match.
+              </DialogDescription>
+            </DialogHeader>
+            <div class="grid gap-3 text-sm">
+              <div
+                v-for="item in [
+                  'Invoice date is 12 days older than the bank transaction.',
+                  'Customer account has one unresolved credit memo.',
+                  'Imported memo references a purchase order not found on the invoice.',
+                  'Currency conversion uses the daily close rate, not the transaction timestamp.',
+                  'Two similar payments were imported in the same batch.',
+                  'The matched GL account differs from the customer default.'
+                ]"
+                :key="item"
+                class="rounded-vueda-control bg-muted/40 p-3"
+              >
+                <div class="flex gap-2">
+                  <FontAwesomeIcon :icon="faCircleInfo" class="mt-0.5 text-info" />
+                  <p class="m-0 text-muted-foreground">{{ item }}</p>
+                </div>
+              </div>
+            </div>
+            <DialogFooter show-close-button>
+              <Button tone="primary">Accept match</Button>
+            </DialogFooter>
+          </DialogScrollContent>
+        </Dialog>
+      </ClientOnly>
+    </div>
+    <template #footer>
+      <span>surface: <code>DialogScrollContent</code></span>
+      <span>overlay scrolls, modal surface keeps its elevated hairline</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Sheet
+
+Sheet is the edge-attached modal surface for focused side work. The surface is
+owned by {@api theme-key:SheetContent}; the `side` prop selects the matching
+slide motion, edge side, and directional hairline: left sheets paint a right
+edge, right sheets paint a left edge, top sheets paint a bottom edge, and
+bottom sheets paint a top edge.
+
+Theme keys: {@api theme-key:SheetContent}, {@api theme-key:SheetHeader},
+{@api theme-key:SheetTitle}, {@api theme-key:SheetDescription}, and
+{@api theme-key:SheetFooter}. Token surface: {@api css-token:background},
+{@api css-token:foreground}, {@api css-token:border},
+{@api css-token:overlay}, and {@api css-token:vueda-shadow-overlay}.
+
+<VuedaDemo class="grid gap-6 lg:grid-cols-2">
+  <DemoCard title="side sheets">
+    <div class="grid gap-3 sm:grid-cols-2">
+      <ClientOnly>
+        <Sheet>
+          <SheetTrigger as-child>
+            <Button emphasis="outline">
+              <FontAwesomeIcon :icon="faLayerGroup" />
+              Right
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right">
+            <SheetHeader>
+              <SheetTitle>Invoice filters</SheetTitle>
+              <SheetDescription>Refine the list without leaving the table.</SheetDescription>
+            </SheetHeader>
+            <div class="grid gap-3 px-4 text-sm">
+              <label class="grid gap-1.5">
+                <span class="text-xs font-medium text-muted-foreground">Status</span>
+                <Input default-value="Overdue" />
+              </label>
+              <label class="grid gap-1.5">
+                <span class="text-xs font-medium text-muted-foreground">Owner</span>
+                <Input default-value="Collections team" />
+              </label>
+            </div>
+            <SheetFooter>
+              <SheetClose as-child>
+                <Button tone="primary">Apply filters</Button>
+              </SheetClose>
+              <SheetClose as-child>
+                <Button emphasis="ghost">Cancel</Button>
+              </SheetClose>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      </ClientOnly>
+      <ClientOnly>
+        <Sheet>
+          <SheetTrigger as-child>
+            <Button emphasis="outline">
+              <FontAwesomeIcon :icon="faBars" />
+              Left
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left">
+            <SheetHeader>
+              <SheetTitle>Record navigation</SheetTitle>
+              <SheetDescription>Jump between sections in the current customer record.</SheetDescription>
+            </SheetHeader>
+            <div class="grid gap-2 px-4 text-sm">
+              <Button emphasis="ghost" class="justify-start">Overview</Button>
+              <Button emphasis="ghost" class="justify-start">Invoices</Button>
+              <Button emphasis="ghost" class="justify-start">Contacts</Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </ClientOnly>
+    </div>
+    <template #footer>
+      <span>right uses <code>border-l-hairline</code></span>
+      <span>left uses <code>border-r-hairline</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="top and bottom sheets">
+    <div class="grid gap-3 sm:grid-cols-2">
+      <ClientOnly>
+        <Sheet>
+          <SheetTrigger as-child>
+            <Button emphasis="outline">
+              <FontAwesomeIcon :icon="faArrowRight" class="-rotate-90" />
+              Top
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="top">
+            <SheetHeader>
+              <SheetTitle>Sync status</SheetTitle>
+              <SheetDescription>Three background jobs are running for this workspace.</SheetDescription>
+            </SheetHeader>
+            <div class="grid gap-2 px-4 pb-4 text-sm">
+              <div class="rounded-vueda-control bg-muted/40 p-3">Stripe import is 82% complete.</div>
+              <div class="rounded-vueda-control bg-muted/40 p-3">Ledger export is queued.</div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </ClientOnly>
+      <ClientOnly>
+        <Sheet>
+          <SheetTrigger as-child>
+            <Button emphasis="outline">
+              <FontAwesomeIcon :icon="faArrowRight" class="rotate-90" />
+              Bottom
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom">
+            <SheetHeader>
+              <SheetTitle>Bulk action summary</SheetTitle>
+              <SheetDescription>Review the selected invoices before applying the action.</SheetDescription>
+            </SheetHeader>
+            <div class="grid gap-2 px-4 pb-4 text-sm">
+              <div class="rounded-vueda-control bg-muted/40 p-3">12 invoices selected.</div>
+              <div class="rounded-vueda-control bg-muted/40 p-3">$48,210.00 total balance.</div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </ClientOnly>
+    </div>
+    <template #footer>
+      <span>top uses <code>border-b-hairline</code></span>
+      <span>bottom uses <code>border-t-hairline</code></span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## AlertDialog
+
+AlertDialog is the blocking confirmation surface for consequential choices. It
+uses the same centered modal geometry as Dialog, but the title, description,
+and actions are optimized for confirmation flows where escape, cancel, and the
+primary action must stay visually clear.
+
+Theme keys: {@api theme-key:AlertDialogContent},
+{@api theme-key:AlertDialogHeader}, {@api theme-key:AlertDialogTitle},
+{@api theme-key:AlertDialogDescription}, {@api theme-key:AlertDialogFooter},
+{@api theme-key:AlertDialogCancel}, and {@api theme-key:AlertDialogAction}.
+
+<VuedaDemo class="grid gap-6">
+  <DemoCard title="destructive confirmation">
+    <div class="flex justify-center py-4">
+      <ClientOnly>
+        <AlertDialog>
+          <AlertDialogTrigger as-child>
+            <Button tone="destructive">
+              <FontAwesomeIcon :icon="faTrash" />
+              Void invoice
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Void INV-2026-0418-A1?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This removes the invoice from ageing reports and records a void event in the audit trail. Payments already posted stay linked for review.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div class="rounded-vueda-control bg-destructive/10 p-3 text-sm text-destructive">
+              <div class="flex gap-2">
+                <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5 shrink-0" />
+                <p class="m-0">This action cannot be undone from the invoice list.</p>
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction>Void invoice</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </ClientOnly>
+    </div>
+    <template #footer>
+      <span>surface: <code>AlertDialogContent</code></span>
+      <span>same elevated hairline as standard modal Dialog</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -561,11 +986,22 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
 
 ## Customization Surface
 
-The shared overlay surface (`--popover`, `--popover-foreground`, `--border`, `--vueda-shadow-popover`) is the single dial that shifts all four components at once. Tooltip's inverted surface uses `--foreground` and `--background` directly and does not reference `--popover`, so a popover re-tone does not affect tooltips.
+The shared floating surface (`--popover`, `--popover-foreground`, `--border`,
+`--vueda-shadow-popover`) is the single dial that shifts Popover, HoverCard,
+DropdownMenu, ContextMenu, Menubar content, NavigationMenu viewports, Select
+lists, Combobox lists, and normal Sonner toasts together. Dialog,
+AlertDialog, and Sheet use `--background`, `--foreground`, `--overlay`, and
+`--vueda-shadow-overlay` instead. Tooltip's inverted surface uses
+`--foreground` and `--background` directly and does not reference `--popover`,
+so a popover re-tone does not affect tooltips.
 
 The highest-value theme keys for structural customization are:
 
 - {@api theme-key:PopoverContent}: `root` (surface, padding defaults).
+- {@api theme-key:HoverCardContent}: `root` (summary popover surface).
+- {@api theme-key:DialogContent} and {@api theme-key:DialogScrollContent}: `root` (modal surface), `overlay` on scroll content.
+- {@api theme-key:SheetContent}: `root` (edge-attached surface and side-specific hairline).
+- {@api theme-key:AlertDialogContent}: `root` and `overlay` (blocking confirmation surface).
 - {@api theme-key:DropdownMenuContent} and {@api theme-key:ContextMenuContent}: `root` (surface), each must remain visually identical.
 - {@api theme-key:DropdownMenuItem} and {@api theme-key:ContextMenuItem}: `root` (base), `highlighted` (hover/focus recipe), `destructive` (color-only variant at rest).
 - {@api theme-key:TooltipContent}: `root` (inverted surface, arrow, radius).
