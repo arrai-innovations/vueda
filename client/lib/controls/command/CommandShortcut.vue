@@ -1,4 +1,5 @@
 <script setup>
+import Kbd from "@vueda/display/kbd/Kbd.vue";
 import "@vueda/theme/vueda-tailwind/controls/CommandShortcut.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
@@ -21,6 +22,8 @@ const theme = useTheme("CommandShortcut", props);
 
 <template>
     <span data-slot="command-shortcut" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
-        <slot />
+        <Kbd :class="theme('kbd')">
+            <slot />
+        </Kbd>
     </span>
 </template>

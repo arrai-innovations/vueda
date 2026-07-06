@@ -621,6 +621,8 @@ Cap typography reads from {@api css-token:vueda-text-micro} (11px) and the
 mono stack ({@api css-token:vueda-font-mono}); the rounded chiclet shape
 follows {@api css-token:vueda-checkbox-radius} so caps match the form-control
 language rather than the slab-control language.
+The keycap edge uses `border-hairline`, keeping inline chip sizing while
+avoiding a raw 1px border.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="content">

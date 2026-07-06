@@ -12,15 +12,17 @@ describe("lib/display/kbd/Kbd.vue", () => {
 
         scopedIt("applies base classes", () => {
             const wrapper = mount(Kbd);
-            expect(wrapper.classes()).toContain("rounded-sm");
-            expect(wrapper.classes()).toContain("font-medium");
-            expect(wrapper.classes()).toContain("text-xs");
+            expect(wrapper.classes()).toContain("rounded-vueda-checkbox");
+            expect(wrapper.classes()).toContain("border-hairline");
+            expect(wrapper.classes()).toContain("font-mono");
+            expect(wrapper.classes()).toContain("text-[length:var(--vueda-text-micro)]");
+            expect(wrapper.classes()).toContain("font-semibold");
         });
 
         scopedIt("merges custom class while preserving base classes", () => {
             const wrapper = mount(Kbd, { props: { class: "my-custom-class" } });
             expect(wrapper.classes()).toContain("my-custom-class");
-            expect(wrapper.classes()).toContain("rounded-sm");
+            expect(wrapper.classes()).toContain("rounded-vueda-checkbox");
         });
 
         scopedIt("renders slot content", () => {

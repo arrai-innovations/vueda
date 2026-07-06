@@ -70,6 +70,7 @@ import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Alert from "@vueda/feedback/alert/Alert.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
+import Kbd from "@vueda/display/kbd/Kbd.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
   faArrowRight,
@@ -467,34 +468,34 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
           <FontAwesomeIcon :icon="faFileLines" class="size-4 shrink-0 text-muted-foreground" />
           Open
-          <span class="ml-auto text-xs tracking-widest text-muted-foreground">↵</span>
+          <DropdownMenuShortcut>↵</DropdownMenuShortcut>
         </div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm bg-accent text-accent-foreground">
           <FontAwesomeIcon :icon="faPen" class="size-4 shrink-0" />
           Edit
-          <span class="ml-auto text-xs tracking-widest">⌘E</span>
+          <DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
         </div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
           <FontAwesomeIcon :icon="faCopy" class="size-4 shrink-0 text-muted-foreground" />
           Duplicate
-          <span class="ml-auto text-xs tracking-widest text-muted-foreground">⌘D</span>
+          <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
         </div>
         <div class="bg-border -mx-1 my-1 h-px"></div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive">
           <FontAwesomeIcon :icon="faTrash" class="size-4 shrink-0 text-destructive" />
           Archive
-          <span class="ml-auto text-xs tracking-widest">⌘⌫</span>
+          <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
         </div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive bg-destructive/10">
           <FontAwesomeIcon :icon="faTrash" class="size-4 shrink-0 text-destructive" />
           Archive
-          <span class="ml-auto text-xs tracking-widest">⌘⌫</span>
+          <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
         </div>
         <div class="bg-border -mx-1 my-1 h-px"></div>
         <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm opacity-50 pointer-events-none">
           <FontAwesomeIcon :icon="faPrint" class="size-4 shrink-0 text-muted-foreground" />
           Print
-          <span class="ml-auto text-xs tracking-widest text-muted-foreground">⌘P</span>
+          <DropdownMenuShortcut>⌘P</DropdownMenuShortcut>
         </div>
       </div>
     </div>
@@ -925,14 +926,14 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
             </TooltipTrigger>
             <TooltipContent side="bottom">
               Save invoice
-              <kbd class="ml-1.5 inline-flex h-5 select-none items-center rounded border border-background/20 bg-background/10 px-1.5 font-mono text-[10px] font-medium">⌘S</kbd>
+              <Kbd class="ml-1.5">⌘S</Kbd>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </ClientOnly>
     </div>
     <template #footer>
-      <span><code>kbd</code>: border + bg at <code>/20</code> against foreground surface</span>
+      <span><code>Kbd</code>: tooltip content adjusts keycap contrast</span>
     </template>
   </DemoCard>
   <DemoCard title="wrapped · long content">
@@ -958,20 +959,20 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
     <div class="flex flex-wrap gap-8 items-start pt-2">
       <div class="flex flex-col items-center">
         <span class="text-[10px] uppercase tracking-wide text-muted-foreground self-start mb-2">plain label</span>
-        <div class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs whitespace-nowrap">Customer tax ID on file</div>
+        <div data-slot="tooltip-content" class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs whitespace-nowrap">Customer tax ID on file</div>
         <div class="size-2.5 bg-foreground rotate-45 rounded-[2px] -mt-[4px]"></div>
       </div>
       <div class="flex flex-col items-center">
         <span class="text-[10px] uppercase tracking-wide text-muted-foreground self-start mb-2">with keyboard shortcut</span>
-        <div class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs inline-flex items-center whitespace-nowrap">
+        <div data-slot="tooltip-content" class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs inline-flex items-center whitespace-nowrap">
           Save invoice
-          <kbd class="ml-1.5 inline-flex h-5 select-none items-center rounded border border-background/20 bg-background/10 px-1.5 font-mono text-[10px] font-medium">⌘S</kbd>
+          <Kbd class="ml-1.5">⌘S</Kbd>
         </div>
         <div class="size-2.5 bg-foreground rotate-45 rounded-[2px] -mt-[4px]"></div>
       </div>
       <div class="flex flex-col items-center">
         <span class="text-[10px] uppercase tracking-wide text-muted-foreground self-start mb-2">long content</span>
-        <div class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs max-w-[220px] text-center text-balance">Customer hasn't responded in 14 days. Consider escalating to collections review.</div>
+        <div data-slot="tooltip-content" class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs max-w-[220px] text-center text-balance">Customer hasn't responded in 14 days. Consider escalating to collections review.</div>
         <div class="size-2.5 bg-foreground rotate-45 rounded-[2px] -mt-[4px]"></div>
       </div>
     </div>
@@ -979,7 +980,7 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
       <span>surface: <code>bg-foreground text-background</code> · inverts the shared overlay palette</span>
       <span>radius: same <code>--vueda-control-radius</code> as all overlays</span>
       <span>arrow: rotated square · <code>size-2.5 rotate-45 rounded-[2px]</code> · same fill as surface</span>
-      <span><code>kbd</code>: <code>border-background/20 bg-background/10</code> against the inverted surface</span>
+      <span><code>Kbd</code>: tooltip contrast variant against the inverted surface</span>
     </template>
   </DemoCard>
 </VuedaDemo>

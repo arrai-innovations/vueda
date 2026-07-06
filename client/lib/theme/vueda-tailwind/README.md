@@ -253,9 +253,10 @@ Two recipes:
 Menu surfaces (DropdownMenu, ContextMenu, Menubar, Combobox) use a mono
 variant of the same recipe for group labels; the sans/mono split is
 intentional and tracks the surface (selection vs menu). Keyboard shortcut
-slots inside menus (`*MenuShortcut`) render as 11px mono at weight 500,
-muted-foreground, no tracking: the keycap-sibling form of the same
-micro-text idiom.
+slots inside menus (`*MenuShortcut`) and command rows render a nested
+`Kbd` keycap. The shortcut component owns row-end alignment; `Kbd` owns
+the visual shortcut cue so users learn one keyboard-hint shape across
+buttons, menus, command palettes, tooltips, and action strips.
 
 ## 4. Layout
 
@@ -522,6 +523,10 @@ kept deliberately:
   `border-*-hairline` for exactly this.
 - **Overlapping seams** (InputOTPSlot). Cells pull together by one device
   pixel to read as a single painted line, which needs a real border.
+- **Inline keycaps** (`Kbd`, compact CommandFooter hints). Keycaps sit
+  inside text, button, menu, and tooltip rows; `border-hairline` keeps
+  the chip edge inside inline box sizing and lets nested surfaces retint
+  the edge with normal border-colour utilities.
 - **2px accent rails** (`border-l-2` dirty / selected / timeline rails).
   2px already distributes colour across subpixels, so it does not fringe.
 - **Transparent rest edges** used only to reserve layout space

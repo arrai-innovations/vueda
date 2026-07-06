@@ -35,6 +35,7 @@ import CommandList from "@vueda/controls/command/CommandList.vue";
 import CommandSeparator from "@vueda/controls/command/CommandSeparator.vue";
 import CommandShortcut from "@vueda/controls/command/CommandShortcut.vue";
 import CommandFooter from "@vueda/controls/command/CommandFooter.vue";
+import Kbd from "@vueda/display/kbd/Kbd.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faBuilding, faCheck, faChartBar, faChevronDown, faFileLines, faMagnifyingGlass, faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { ref } from "vue";
@@ -430,7 +431,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
     <template #footer>
       <span>command bg <code>--popover</code></span>
       <span>highlighted bg <code>--accent</code></span>
-      <span>shortcut fg <code>--muted-foreground</code>, text-xs tracking-widest</span>
+      <span>shortcut: nested <code>Kbd</code> keycap aligned to row end</span>
       <span>separator <code>--border</code>, -mx-1</span>
     </template>
   </DemoCard>
@@ -454,11 +455,11 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
         </CommandList>
         <CommandFooter>
           <template #start>
-            <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
-            <span><kbd>↵</kbd> select</span>
+            <span><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
+            <span><Kbd>↵</Kbd> select</span>
           </template>
           <template #end>
-            <span><kbd>Esc</kbd> close</span>
+            <span><Kbd>Esc</Kbd> close</span>
           </template>
         </CommandFooter>
       </Command>
@@ -466,7 +467,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
     <template #footer>
       <span>chin height <code>--vueda-cmd-footer-height</code> (32px)</span>
       <span>chin bg <code>--muted</code>, top border <code>--border</code></span>
-      <span>kbd 18px, mono 10px, 1px border, 2px radius</span>
+      <span><code>Kbd</code> compacted to 18px, mono 10px, hairline edge</span>
     </template>
   </DemoCard>
   <DemoCard title="empty state — no items match; disabled item">

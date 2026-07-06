@@ -19,6 +19,7 @@ import NavigationMenuList from "@vueda/navigation/menu/NavigationMenuList.vue";
 import NavigationMenuTrigger from "@vueda/navigation/menu/NavigationMenuTrigger.vue";
 import Menubar from "@vueda/navigation/menubar/Menubar.vue";
 import MenubarMenu from "@vueda/navigation/menubar/MenubarMenu.vue";
+import MenubarShortcut from "@vueda/navigation/menubar/MenubarShortcut.vue";
 import MenubarTrigger from "@vueda/navigation/menubar/MenubarTrigger.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faCheck, faCircle } from "@fortawesome/free-solid-svg-icons";
@@ -268,15 +269,15 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       <div class="bg-border -mx-1 my-1 h-px"></div>
       <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none">
         New Window
-        <span class="text-muted-foreground ml-auto text-xs tracking-widest">&#8984;N</span>
+        <MenubarShortcut>&#8984;N</MenubarShortcut>
       </div>
       <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none bg-accent text-accent-foreground">
         Open...
-        <span class="ml-auto text-xs tracking-widest opacity-70">&#8984;O</span>
+        <MenubarShortcut>&#8984;O</MenubarShortcut>
       </div>
       <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none opacity-50">
         Close
-        <span class="text-muted-foreground ml-auto text-xs tracking-widest">&#8984;W</span>
+        <MenubarShortcut>&#8984;W</MenubarShortcut>
       </div>
       <div class="bg-border -mx-1 my-1 h-px"></div>
       <div class="relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm select-none">
@@ -303,7 +304,7 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       <span>content: bg <code>--popover</code>, min-w-48, rounded, <code>overlay-hairline</code></span>
       <span>item hover/focus: bg <code>--accent</code></span>
       <span>indicator: size-3.5, absolute left-2</span>
-      <span>shortcut: text-xs tracking-widest ml-auto</span>
+      <span>shortcut: <code>MenubarShortcut</code> with nested <code>Kbd</code></span>
       <span>disabled: opacity-50 pointer-events-none</span>
     </template>
   </DemoCard>

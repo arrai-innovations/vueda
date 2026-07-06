@@ -9,18 +9,16 @@ import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * MenubarShortcut styles keyboard shortcut hints aligned inside menubar items.
+     * MenubarShortcut aligns keyboard shortcut keycaps inside menubar items.
      */
     MenubarShortcut: {
-        /** Trailing keyboard hint inside menubar content. See also: {@api theme-key:DropdownMenuShortcut.root}. */
+        /** Alignment wrapper for the trailing keyboard hint inside menubar content. See also: {@api theme-key:DropdownMenuShortcut.root}. */
         root: {
-            class: [
-                // Layout and color.
-                "text-muted-foreground ml-auto",
-
-                // Type.
-                "font-mono text-[length:var(--vueda-text-micro)] font-medium leading-none",
-            ],
+            class: "ml-auto inline-flex items-center pl-2",
+        },
+        /** Local sizing for the nested {@api theme-key:Kbd.root} inside menubar rows. */
+        kbd: {
+            class: "h-[18px] min-w-[18px] px-1 text-[10px]",
         },
     },
 });

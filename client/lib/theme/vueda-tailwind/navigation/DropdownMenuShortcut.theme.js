@@ -9,18 +9,16 @@ import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * DropdownMenuShortcut styles keyboard shortcut hints aligned inside dropdown menu items.
+     * DropdownMenuShortcut aligns keyboard shortcut keycaps inside dropdown menu items.
      */
     DropdownMenuShortcut: {
-        /** Trailing keyboard hint with mono micro type so shortcuts scan independently from item labels. */
+        /** Alignment wrapper for the trailing keyboard hint. The nested {@api theme-key:Kbd.root} owns the visible keycap. */
         root: {
-            class: [
-                // Layout and color.
-                "text-muted-foreground ml-auto",
-
-                // Type.
-                "font-mono text-[length:var(--vueda-text-micro)] font-medium leading-none",
-            ],
+            class: "ml-auto inline-flex items-center pl-2",
+        },
+        /** Local sizing for the nested {@api theme-key:Kbd.root} inside menu rows. */
+        kbd: {
+            class: "h-[18px] min-w-[18px] px-1 text-[10px]",
         },
     },
 });

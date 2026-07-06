@@ -16,14 +16,15 @@ patchTheme({
         root: {
             class: [
                 // Surface and layout.
-                "bg-muted text-muted-foreground",
+                "border-hairline border-border bg-muted text-muted-foreground",
                 "pointer-events-none inline-flex h-5 w-fit min-w-5 items-center justify-center gap-1",
 
                 // Shape and type.
-                "rounded-sm px-1 font-sans text-xs font-medium select-none",
+                "rounded-vueda-checkbox px-1 font-mono text-[length:var(--vueda-text-micro)] leading-[1.25] font-semibold select-none",
 
                 // Icons and nested surfaces.
                 "[&_svg:not([class*='size-'])]:size-3",
+                "[[data-slot=tooltip-content]_&]:border-background/20",
                 "[[data-slot=tooltip-content]_&]:bg-background/20",
                 "[[data-slot=tooltip-content]_&]:text-background",
                 "dark:[[data-slot=tooltip-content]_&]:bg-background/10",

@@ -1,4 +1,5 @@
 <script setup>
+import Kbd from "@vueda/display/kbd/Kbd.vue";
 import "@vueda/theme/vueda-tailwind/navigation/ContextMenuShortcut.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
@@ -21,6 +22,8 @@ const theme = useTheme("ContextMenuShortcut", props);
 
 <template>
     <span data-slot="context-menu-shortcut" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
-        <slot />
+        <Kbd :class="theme('kbd')">
+            <slot />
+        </Kbd>
     </span>
 </template>

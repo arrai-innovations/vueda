@@ -27,6 +27,7 @@ import TableHead from "@vueda/grid/table/TableHead.vue";
 import TableHeader from "@vueda/grid/table/TableHeader.vue";
 import TableRow from "@vueda/grid/table/TableRow.vue";
 import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
+import Kbd from "@vueda/display/kbd/Kbd.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
     faBoxArchive,
@@ -210,8 +211,8 @@ Generic action confirmation view. An info-toned banner explains what the action 
         Duplicate quote
       </Button>
       <span class="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-        <kbd class="rounded border border-border bg-muted/40 px-1 font-mono text-xs">⌘</kbd>
-        <kbd class="rounded border border-border bg-muted/40 px-1 font-mono text-xs">↵</kbd>
+        <Kbd>⌘</Kbd>
+        <Kbd>↵</Kbd>
         to confirm
       </span>
     </div>
@@ -219,7 +220,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>single-object variant: "Source" heading instead of "Records to archive N" — same panel chrome, different semantics</span>
     <span>extra fields: action-specific inputs appear between the object list and the actions strip; reuse Field + Input + Checkbox from the forms family</span>
-    <span>keyboard hint: <code>kbd</code> tokens rendered inline in the hint area</span>
+    <span>keyboard hint: <code>Kbd</code> rendered inline in the hint area</span>
   </footer>
 </VuedaDemo>
 
