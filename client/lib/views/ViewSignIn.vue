@@ -94,7 +94,7 @@ const forwardedSlots = computed(() => Object.keys(slots).filter((name) => !HANDL
         <template #action-bar="actionBarProps">
             <slot name="action-bar" v-bind="actionBarProps">
                 <div
-                    class="flex flex-row flex-wrap items-center gap-2 px-4 py-3 mt-2 border-t bg-muted/25 rounded-b-vueda-card"
+                    class="flex flex-row flex-wrap items-center gap-2 px-4 py-3 mt-2 border-t-hairline bg-muted/25 rounded-b-vueda-card"
                 >
                     <Button type="submit" class="w-full" :disabled="actionBarProps.loading">
                         <LoadingSpinnerInline v-if="actionBarProps.loading" />

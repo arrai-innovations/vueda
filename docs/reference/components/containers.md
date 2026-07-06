@@ -147,9 +147,9 @@ Token surface: {@api css-token:card} (fill),
       <span>CardFooter is a flex row; consumer aligns it</span>
     </template>
   </DemoCard>
-  <DemoCard title="border-b on header — tight grouping">
+  <DemoCard title="border-b-hairline on header — tight grouping">
     <Card>
-      <CardHeader class="border-b">
+      <CardHeader class="border-b-hairline">
         <CardTitle>Transactions</CardTitle>
         <CardDescription>Last 3 days, from all connected feeds.</CardDescription>
       </CardHeader>
@@ -180,7 +180,7 @@ Token surface: {@api css-token:card} (fill),
       <span>consumer adds <code>border-b</code> on the header</span>
     </template>
   </DemoCard>
-  <DemoCard title="border-t on footer — danger zone">
+  <DemoCard title="border-t-hairline on footer — danger zone">
     <Card>
       <CardHeader>
         <CardTitle>Danger zone</CardTitle>
@@ -191,7 +191,7 @@ Token surface: {@api css-token:card} (fill),
           Deleting a customer removes all linked invoices, payments, and contact records.
         </p>
       </CardContent>
-      <CardFooter class="border-t justify-end">
+      <CardFooter class="border-t-hairline justify-end">
         <Button size="sm" tone="destructive">Delete customer…</Button>
       </CardFooter>
     </Card>
@@ -606,7 +606,7 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
   </DemoCard>
   <DemoCard title="inside a Card">
     <Card class="py-0">
-      <CardHeader class="border-b py-4">
+      <CardHeader class="border-b-hairline py-4">
         <CardTitle class="text-sm">Activity</CardTitle>
         <CardDescription class="text-xs">Last 30 events</CardDescription>
       </CardHeader>

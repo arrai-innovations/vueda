@@ -13,10 +13,10 @@ patchTheme({
      */
     CardFooter: {
         /**
-         * The trailing card footer row. It aligns footer content horizontally and adds top padding only when the footer also carries a top border.
+         * The trailing card footer row. It aligns footer content horizontally and adds top padding when the footer carries a top divider (a raw `border-t` or the DPR-tracked `border-t-hairline`; prefer the hairline form, see README § 7.3).
          */
         root: {
-            class: "flex items-center px-6 [.border-t]:pt-6",
+            class: "flex items-center px-6 [.border-t]:pt-6 [.border-t-hairline]:pt-6",
         },
     },
 });
