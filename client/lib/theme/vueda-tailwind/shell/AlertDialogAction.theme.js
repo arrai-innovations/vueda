@@ -5,19 +5,17 @@
  * AlertDialogAction.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire shell family.
  */
-import "@vueda/theme/vueda-tailwind/controls/_ButtonPrimitives.theme.js";
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * AlertDialogAction styles the primary action inside a blocking confirmation dialog.
+     * AlertDialogAction contributes alert-dialog-specific classes to the Button it renders internally.
      */
     AlertDialogAction: {
         /**
-         * The primary confirmation button in an alert dialog. It composes the default Button recipe so blocking confirmations keep the same focus, height, and CTA treatment as regular primary actions.
+         * Extra classes for the Button rendered inside AlertDialogAction. Button owns the tone, emphasis, size, focus, and disabled recipes; this slot is intentionally empty by default so the wrapper cannot drift from the button contract.
          */
         root: {
-            composes: ["_ButtonBase.root", "_ButtonDefault.root"],
             class: [],
         },
     },

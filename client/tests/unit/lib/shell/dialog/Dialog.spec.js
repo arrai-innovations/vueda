@@ -194,19 +194,32 @@ describe("lib/shell/alert-dialog/AlertDialog.vue", () => {
     });
 
     describe("AlertDialogAction", () => {
-        scopedIt("applies primary button classes", () => {
+        scopedIt("renders a primary Button by default", () => {
             const wrapper = mount(AlertDialogAction);
-            expect(wrapper.classes()).toContain("bg-primary");
+            const button = wrapper.find('[data-slot="button"]');
+            expect(button.classes()).toContain("bg-primary");
+            expect(button.attributes("data-tone")).toBe("primary");
+        });
+
+        scopedIt("passes tone to the underlying Button", () => {
+            const wrapper = mount(AlertDialogAction, { props: { tone: "destructive" } });
+            const button = wrapper.find('[data-slot="button"]');
+            expect(button.classes()).toContain("bg-destructive");
+            expect(button.attributes("data-tone")).toBe("destructive");
         });
     });
 
     describe("AlertDialogCancel", () => {
-        scopedIt("applies ghost button classes", () => {
+        scopedIt("renders a ghost Button by default", () => {
             const wrapper = mount(AlertDialogCancel);
-            expect(wrapper.classes()).toContain("hover:bg-accent");
-            expect(wrapper.classes()).toContain("hover:text-accent-foreground");
-            expect(wrapper.classes()).not.toContain("hairline");
-            expect(wrapper.classes()).not.toContain("bg-background");
+            const button = wrapper.find('[data-slot="button"]');
+            expect(button.classes()).toContain("hover:bg-accent");
+            expect(button.classes()).toContain("hover:text-accent-foreground");
+            expect(button.classes()).toContain("mt-2");
+            expect(button.attributes("data-tone")).toBe("neutral");
+            expect(button.attributes("data-emphasis")).toBe("ghost");
+            expect(button.classes()).not.toContain("hairline");
+            expect(button.classes()).not.toContain("bg-background");
         });
     });
 

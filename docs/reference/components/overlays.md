@@ -68,6 +68,8 @@ import Input from "@vueda/controls/input/Input.vue";
 import Textarea from "@vueda/controls/textarea/Textarea.vue";
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
   faArrowRight,
@@ -825,15 +827,13 @@ Theme keys: {@api theme-key:AlertDialogContent},
                 This removes the invoice from ageing reports and records a void event in the audit trail. Payments already posted stay linked for review.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div class="rounded-vueda-control bg-destructive/10 p-3 text-sm text-destructive">
-              <div class="flex gap-2">
-                <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5 shrink-0" />
-                <p class="m-0">This action cannot be undone from the invoice list.</p>
-              </div>
-            </div>
+            <Alert variant="destructive">
+              <FontAwesomeIcon :icon="faTriangleExclamation" />
+              <AlertDescription>This action cannot be undone from the invoice list.</AlertDescription>
+            </Alert>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction>Void invoice</AlertDialogAction>
+              <AlertDialogAction tone="destructive">Void invoice</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
