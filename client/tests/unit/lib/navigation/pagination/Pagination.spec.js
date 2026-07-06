@@ -177,7 +177,7 @@ describe("lib/navigation/pagination/Pagination.vue", () => {
             const classes = wrapper.classes();
             expect(classes).toContain("flex");
             expect(classes).toContain("justify-between");
-            expect(classes).toContain("border-t");
+            expect(classes).toContain("border-t-hairline");
             expect(classes).toContain("bg-card");
             expect(classes).toContain("rounded-b-vueda-card");
         });

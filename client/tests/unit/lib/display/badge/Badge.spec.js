@@ -59,7 +59,7 @@ describe("lib/display/badge/Badge.vue", () => {
 
         scopedIt("declares aria-invalid destructive ring on root", () => {
             const wrapper = mount(Badge);
-            expect(wrapper.classes()).toContain("aria-invalid:border-destructive");
+            expect(wrapper.classes()).toContain("aria-invalid:hairline-destructive");
             expect(wrapper.classes()).toContain("aria-invalid:focus-ring-shadow-destructive");
         });
     });

@@ -65,7 +65,7 @@ describe("lib/controls/command/Command.vue", () => {
             const wrapper = mount(CommandFooter);
             const cls = wrapper.find('[data-slot="command-footer"]').classes();
             expect(cls).toContain("h-[var(--vueda-cmd-footer-height)]");
-            expect(cls).toContain("border-t");
+            expect(cls).toContain("border-t-hairline");
             expect(cls).toContain("bg-muted");
         });
 

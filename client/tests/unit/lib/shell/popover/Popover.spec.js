@@ -66,7 +66,7 @@ describe("lib/shell/popover/Popover.vue", () => {
             const content = wrapper.find('[data-slot="popover-content"]');
             expect(content.classes()).toContain("z-50");
             expect(content.classes()).toContain("rounded-vueda-control");
-            expect(content.classes()).toContain("border");
+            expect(content.classes()).toContain("overlay-hairline");
         });
 
         scopedIt("merges custom class", () => {
