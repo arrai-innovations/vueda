@@ -68,7 +68,9 @@ state recipes) belong in [theme keys](../theming/keys.md).
 
 Alert is the canonical boxed status message. The default variant is neutral;
 destructive, warning, info, and success all use the same recipe: status text,
-status border at 50%, status background at 10%. The icon column collapses
+a status hairline at 50%, status background at 10%. The edge is a `hairline`
+(inset box-shadow), not a `border`, so the saturated status colors do not
+fringe at integer DPR. The icon column collapses
 when no direct SVG child is present, so consumers never align icon and text
 manually: the grid template selects between `[16px_1fr]` and `[0_1fr]` based
 on `has-[>svg]`.
@@ -125,7 +127,7 @@ Theme keys: {@api theme-key:Alert}, {@api theme-key:AlertTitle},
     </div>
     <template #footer>
       <span>status bg <code>/10</code></span>
-      <span>status border <code>/50</code></span>
+      <span>status hairline <code>/50</code></span>
       <span>icon column only when direct SVG child exists</span>
     </template>
   </DemoCard>
@@ -503,15 +505,19 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
 Sonner is the toast container. Like Button, it resolves on two axes: `type`
 (info, success, warning, error, loading -- the tone) and a surface treatment,
 normal vs `richColors`. The normal surface reads against the popover token;
-`richColors` reuses Alert's status recipe (status text, border at 50%,
-background at 10%, mixed against `--popover` rather than `transparent` so
+`richColors` reuses Alert's status recipe (status text, a status hairline at
+50%, background at 10%, mixed against `--popover` rather than `transparent` so
 the filled surface stays opaque like every other floating overlay) instead
 of a bold fill, so re-toning stays consistent with Alert's already-
 established status language. Loading and the default type have no semantic
-tone to fill, so they only appear on the normal-surface cards. Toasts are
-also dismissible by dragging; a grab cursor and suppressed text selection
-make that discoverable from the first pointer-down, rather than only once a
-drag is already underway.
+tone to fill, so they only appear on the normal-surface cards. Every toast,
+normal or rich, carries the same edge and elevation as Popover and HoverCard:
+an inset `hairline` (so the saturated rich edges do not fringe at integer DPR)
+composed with {@api css-token:vueda-shadow-popover}. The live toasts override
+vue-sonner's own border and drop shadow to match. Toasts are also dismissible
+by dragging; a grab cursor and suppressed text selection make that
+discoverable from the first pointer-down, rather than only once a drag is
+already underway.
 
 Each row below has a static pair (the intended target, hand-authored) and a
 live pair (a real `Sonner` firing real `toast()` calls, so animation,
@@ -531,7 +537,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
   <DemoCard title="static — normal surface">
     <div class="grid gap-2 lg:grid-cols-2">
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
         <FontAwesomeIcon :icon="faCircleInfo" class="mt-0.5" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">New records imported</div>
@@ -541,7 +547,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
         <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5 text-success" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Invoice posted · A-0419</div>
@@ -551,7 +557,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
         <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5 text-warning" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Session expires in 5 minutes</div>
@@ -561,7 +567,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
         <FontAwesomeIcon :icon="faCircleExclamation" class="mt-0.5 text-destructive" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Sync failed · Stripe</div>
@@ -571,14 +577,14 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
         <span class="mt-0.5 size-4"><LoadingSpinnerInline /></span>
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Generating export</div>
           <div class="text-xs leading-snug text-muted-foreground">Reconciling ledger.</div>
         </div>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
         <FontAwesomeIcon :icon="faBell" class="mt-0.5 text-muted-foreground" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Draft saved</div>
@@ -592,6 +598,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
     <template #footer>
       <span>bg <code>--popover</code></span>
       <span>fg <code>--popover-foreground</code></span>
+      <span>hairline edge <code>--border</code> + <code>--vueda-shadow-popover</code></span>
       <span>loading omits the dismiss button: it tracks a pending promise</span>
     </template>
   </DemoCard>
@@ -614,7 +621,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
   </DemoCard>
   <DemoCard title="static — rich colors">
     <div class="grid gap-2 lg:grid-cols-2">
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-info/50 bg-info/10 p-3 text-info shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline [--vueda-hairline-color:color-mix(in_oklab,var(--info)_50%,var(--popover))] bg-info/10 p-3 text-info">
         <FontAwesomeIcon :icon="faCircleInfo" class="mt-0.5" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">New records imported</div>
@@ -624,7 +631,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-success/50 bg-success/10 p-3 text-success shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline [--vueda-hairline-color:color-mix(in_oklab,var(--success)_50%,var(--popover))] bg-success/10 p-3 text-success">
         <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Invoice posted · A-0419</div>
@@ -634,7 +641,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-warning/50 bg-warning/10 p-3 text-warning shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline [--vueda-hairline-color:color-mix(in_oklab,var(--warning)_50%,var(--popover))] bg-warning/10 p-3 text-warning">
         <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Session expires in 5 minutes</div>
@@ -644,7 +651,7 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-destructive/50 bg-destructive/10 p-3 text-destructive shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline [--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_50%,var(--popover))] bg-destructive/10 p-3 text-destructive">
         <FontAwesomeIcon :icon="faCircleExclamation" class="mt-0.5" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Sync failed · Stripe</div>
@@ -657,7 +664,8 @@ Theme key: {@api theme-key:Sonner}. Token surface:
     </div>
     <template #footer>
       <span>bg <code>--{type}</code>/10</span>
-      <span>border <code>--{type}</code>/50</span>
+      <span>hairline edge <code>--{type}</code>/50</span>
+      <span>elevation <code>--vueda-shadow-popover</code></span>
       <span>mirrors Alert's status recipe</span>
       <span>loading and the default type have no semantic tone to fill, so they stay off this card</span>
     </template>

@@ -19,21 +19,25 @@ patchTheme({
             class: [
                 // Layout and spacing.
                 "relative w-full",
-                "rounded-vueda-card border px-4 py-3 text-sm",
+                // Edge is a `hairline` (inset box-shadow), not a `border`: the status
+                // variants paint a saturated /50 edge, which a real 1px border renders
+                // with chromatic fringing at integer DPR (see base.css § DPR-aware
+                // hairline). Each variant recolours it via --vueda-hairline-color.
+                "rounded-vueda-card hairline px-4 py-3 text-sm",
                 "grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr]",
                 "has-[>svg]:gap-x-3 gap-y-0.5 items-start",
 
                 // Icon placement.
                 "[&>svg]:size-4 [&>svg]:row-span-2 [&>svg]:translate-y-0.5 [&>svg]:text-current",
                 {
-                    "bg-card text-card-foreground": !variant || variant === "default",
-                    "border-destructive/50 text-destructive bg-destructive/10 *:data-[slot=alert-description]:text-destructive/90":
+                    "bg-card text-card-foreground hairline-border": !variant || variant === "default",
+                    "[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_50%,transparent)] text-destructive bg-destructive/10 *:data-[slot=alert-description]:text-destructive/90":
                         variant === "destructive",
-                    "border-warning/50 text-warning bg-warning/10 *:data-[slot=alert-description]:text-warning/90":
+                    "[--vueda-hairline-color:color-mix(in_oklab,var(--warning)_50%,transparent)] text-warning bg-warning/10 *:data-[slot=alert-description]:text-warning/90":
                         variant === "warning",
-                    "border-info/50 text-info bg-info/10 *:data-[slot=alert-description]:text-info/90":
+                    "[--vueda-hairline-color:color-mix(in_oklab,var(--info)_50%,transparent)] text-info bg-info/10 *:data-[slot=alert-description]:text-info/90":
                         variant === "info",
-                    "border-success/50 text-success bg-success/10 *:data-[slot=alert-description]:text-success/90":
+                    "[--vueda-hairline-color:color-mix(in_oklab,var(--success)_50%,transparent)] text-success bg-success/10 *:data-[slot=alert-description]:text-success/90":
                         variant === "success",
                 },
             ],

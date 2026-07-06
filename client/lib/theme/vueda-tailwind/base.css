@@ -125,6 +125,23 @@
     --vueda-hairline-color: var(--border-strong);
 }
 
+/* `overlay-hairline` gives a floating surface a painted edge without a real
+ * `border`: a DPR-keyed inset hairline (so it dodges the integer-DPR chromatic
+ * fringing a saturated 1px `border` shows on rich colours) composed with the
+ * popover elevation in a single box-shadow. Colour the edge via
+ * `--vueda-hairline-color` (default `--border`); used by the toast surface,
+ * whose rich-colour edge is a saturated status tint. Because it writes
+ * `box-shadow`, it cannot be combined with a `shadow-*` utility on the same
+ * element — the elevation is already folded in. */
+@utility overlay-hairline {
+    box-shadow:
+        inset 0 0 0 var(--vueda-hairline-width) var(--vueda-hairline-color, var(--border)),
+        var(--vueda-shadow-popover);
+    @media (forced-colors: active) {
+        border: 1px solid ButtonBorder;
+    }
+}
+
 /* Directional border-width utilities keyed to `--vueda-hairline-width`. Use
  * these when `hairline` (4-sided inset box-shadow) can't be used because only
  * some sides should be stroked, e.g. a joined segmented control. Pair with a

@@ -1,4 +1,9 @@
 <script setup>
+// Loaded after vue-sonner's stylesheet so its equal-specificity rules win:
+// swaps vue-sonner's real border for a DPR-aware inset hairline (no chromatic
+// fringing on rich-colour edges) and its drop-only shadow for the VUEDA
+// popover elevation. See Sonner.css.
+import "@vueda/feedback/toast/Sonner.css";
 import "@vueda/theme/vueda-tailwind/feedback/Sonner.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
