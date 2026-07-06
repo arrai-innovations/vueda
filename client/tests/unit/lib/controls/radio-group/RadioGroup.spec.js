@@ -74,6 +74,9 @@ describe("lib/controls/radio-group/RadioGroup.vue", () => {
             const el = wrapper.find('[data-slot="radio-group-item"]');
             expect(el.classes()).toContain("hairline");
             expect(el.classes()).toContain("shrink-0");
+            // Dark rest edge strengthens to --border-strong for list-row visibility,
+            // parity with Checkbox.
+            expect(el.classes()).toContain("dark:hairline-border-strong");
         });
 
         scopedIt("merges custom class", () => {
