@@ -22,7 +22,7 @@ patchTheme({
                 "data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09]",
                 "data-[state=selected]:active:bg-primary/[0.12]",
                 "data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)]",
-                "border-b transition-colors",
+                "border-b-hairline transition-colors",
             ],
         },
     },

@@ -19,7 +19,7 @@ patchTheme({
                 "flex w-full items-center justify-between gap-3",
 
                 // Shape and surface.
-                "rounded-b-vueda-card border-t bg-card text-foreground px-5 py-3",
+                "rounded-b-vueda-card border-t-hairline bg-card text-foreground px-5 py-3",
             ],
         },
     },

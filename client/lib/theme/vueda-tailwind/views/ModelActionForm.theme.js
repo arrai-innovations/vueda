@@ -25,7 +25,7 @@ patchTheme({
         card: {
             class: [
                 "group/model-action-form",
-                "rounded-vueda-card border bg-card overflow-hidden",
+                "rounded-vueda-card border-hairline bg-card overflow-hidden",
 
                 // info (default)
                 "data-[tone=info]:border-border",
@@ -48,7 +48,7 @@ patchTheme({
         banner: {
             class: [
                 "flex items-start gap-3 p-4",
-                "border-b",
+                "border-b-hairline",
                 // info
                 "group-data-[tone=info]/model-action-form:border-border",
                 "group-data-[tone=info]/model-action-form:bg-[color-mix(in_oklab,var(--info)_6%,transparent)]",
@@ -114,16 +114,16 @@ patchTheme({
         /** Selected-objects panel: tinted-muted background, hairline, card radius. Tone routing tints the panel destructive when nested in either the {@api theme-key:ViewDestroy.card} `group/view-destroy` scope or this form's own `group/model-action-form` scope at `tone="danger"`; neutral otherwise. */
         selectedObjects: {
             class: [
-                "rounded-vueda-card bg-muted/25 border p-3",
+                "rounded-vueda-card bg-muted/25 hairline hairline-border p-3",
                 "flex flex-col gap-2",
 
                 // Tint when surrounding ViewDestroy card is in danger tone.
                 "group-data-[tone=danger]/view-destroy:bg-destructive/[0.06]",
-                "group-data-[tone=danger]/view-destroy:border-destructive/40",
+                "group-data-[tone=danger]/view-destroy:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
 
                 // Same when the ModelActionForm card itself is in danger tone.
                 "group-data-[tone=danger]/model-action-form:bg-destructive/[0.06]",
-                "group-data-[tone=danger]/model-action-form:border-destructive/40",
+                "group-data-[tone=danger]/model-action-form:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
             ],
         },
         /** Eyebrow head row above the chip strip: label on the left, mono count on the right. Wraps when the count grows long so the label never overflows the panel. */
@@ -170,11 +170,11 @@ patchTheme({
         listItem: {
             class: [
                 "inline-flex items-center gap-2 px-2 py-1 rounded-vueda-control",
-                "border bg-card",
+                "hairline hairline-border bg-card",
                 "text-[12px] font-medium text-foreground leading-none",
-                "group-data-[tone=danger]/view-destroy:border-destructive/40",
+                "group-data-[tone=danger]/view-destroy:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
                 "group-data-[tone=danger]/view-destroy:bg-card",
-                "group-data-[tone=danger]/model-action-form:border-destructive/40",
+                "group-data-[tone=danger]/model-action-form:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
                 "group-data-[tone=danger]/model-action-form:bg-card",
             ],
         },

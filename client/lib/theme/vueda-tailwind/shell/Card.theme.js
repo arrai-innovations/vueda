@@ -24,7 +24,7 @@ patchTheme({
                 "flex flex-col gap-6",
 
                 // Shape and elevation.
-                "rounded-vueda-card border py-6 shadow-vueda-card",
+                "rounded-vueda-card hairline hairline-border py-6",
             ],
         },
     },

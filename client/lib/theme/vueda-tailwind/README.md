@@ -487,7 +487,51 @@ cross-cutting trigger (see § 8).
 `border-t-hairline`, `border-b-hairline`, etc. are realized for surfaces
 that need only one painted edge (toolbar bottom hairline, sidebar
 separator, table head bottom). They consume `--vueda-hairline-width` so
-their thickness DPR-tracks with the canon edge.
+their thickness DPR-tracks with the canon edge. The 4-sided
+`border-hairline` is the same tool for elements that must keep a real
+`border` (see § 7.5) but should still DPR-track rather than sit at a raw
+1px.
+
+### 7.4 Floating-surface edges: `overlay-hairline`
+
+A floating surface needs an edge _and_ an elevation, but `hairline` and a
+`shadow-*` utility both write `box-shadow` and cannot coexist on one
+element. `overlay-hairline` folds both into a single declaration: an inset
+hairline (coloured via `--vueda-hairline-color`, default `--border`) plus
+the popover shadow. Pair it with `overlay-hairline-elevated` to swap the
+popover shadow for the heavier overlay drop on viewport-covering surfaces.
+Popover, HoverCard, the dropdown / context / menubar menus, the
+combobox / select lists, and the toast surface use `overlay-hairline`;
+Dialog, Sheet, and AlertDialog add `overlay-hairline-elevated`.
+
+### 7.5 When a real `border` is still correct
+
+The edge-as-box-shadow rule has principled exceptions, where a real
+`border` (or the DPR-tracked `border-hairline` / `border-*-hairline`) is
+kept deliberately:
+
+- **Curved edges** (Slider knob, Switch pill, UserAvatar, circular step
+  badges). A `rounded-full` edge is browser-anti-aliased, so it shows no
+  axis-aligned subpixel fringing; these also compose ring halos through
+  `box-shadow`, which `hairline` would collide with.
+- **Dashed edges** (FileUpload dropzone, empty-state panels). `box-shadow`
+  cannot render dashes.
+- **Joined-segment seams** (ButtonGroup, ToggleGroup outline, the
+  layout-toggle pair). Adjacent items share a real directional border at
+  the seam; a 4-sided inset shadow would double the line. base.css sizes
+  `border-*-hairline` for exactly this.
+- **Overlapping seams** (InputOTPSlot). Cells pull together by one device
+  pixel to read as a single painted line, which needs a real border.
+- **2px accent rails** (`border-l-2` dirty / selected / timeline rails).
+  2px already distributes colour across subpixels, so it does not fringe.
+- **Transparent rest edges** used only to reserve layout space
+  (Item, ScrollBar gutter, dense action buttons). A transparent border is
+  invisible and cannot fringe.
+
+Surfaces that pair a coloured edge with a `box-shadow` ring (the
+`ModelActionForm` / `ViewDestroy` tone cards, the workflow-transition
+option) keep a `border-hairline` real edge so the ring keeps its own
+`box-shadow`.
 
 ## 8. Cross-cutting attributes
 

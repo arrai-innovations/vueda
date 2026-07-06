@@ -19,7 +19,7 @@ patchTheme({
         root: {
             class: [
                 // Footer layout and separator.
-                "flex items-center justify-between gap-2 mt-2 pt-2 border-t",
+                "flex items-center justify-between gap-2 mt-2 pt-2 border-t-hairline",
             ],
         },
         /** The date-readout span inside a {@api theme-key:CalendarFooter.root}. Mono plus tabular plus slashed-zero (`font-feature-settings: 'tnum','zero'`) so the date string stays digit-aligned with the segment text in the trigger that opened the popover; renders at `--vueda-text-supporting` size with `leading-none` on `--muted-foreground` so the chin reads as status, not primary copy. */

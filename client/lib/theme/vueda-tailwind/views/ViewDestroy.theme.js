@@ -21,14 +21,14 @@ patchTheme({
         card: {
             class: [
                 "group/view-destroy",
-                "rounded-vueda-card border bg-card overflow-hidden",
+                "rounded-vueda-card border-hairline bg-card overflow-hidden",
                 "border-destructive/50",
                 "shadow-[0_0_0_3px_color-mix(in_oklab,var(--destructive)_8%,transparent)]",
             ],
         },
         /** Banner row at the top of the danger card: destructive 6 %-mix background, destructive-tinted bottom hairline. Mirrors the {@api theme-key:ModelActionForm.banner} layout so danger and tone-routed banners read as siblings. */
         banner: {
-            class: ["flex items-start gap-3 p-4", "border-b border-destructive/20 bg-destructive/[0.06]"],
+            class: ["flex items-start gap-3 p-4", "border-b-hairline border-destructive/20 bg-destructive/[0.06]"],
         },
         /** 36 px destructive icon tile leading the banner. Fixed destructive recipe (no tone routing) since ViewDestroy is the danger specialization; matches {@api theme-key:ModelActionForm.bannerIcon} under the danger tone. */
         bannerIcon: {

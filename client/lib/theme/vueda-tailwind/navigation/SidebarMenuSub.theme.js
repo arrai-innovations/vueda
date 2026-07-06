@@ -15,7 +15,7 @@ patchTheme({
         /** Nested list rail and indentation for submenu items. Icon-collapsed mode hides the nested list. */
         root: {
             class: [
-                "border-sidebar-border mx-3 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5",
+                "border-sidebar-border mx-3 flex min-w-0 translate-x-px flex-col gap-1 border-l-hairline px-2.5 py-0.5",
                 "group-data-[collapsible=icon]:hidden",
             ],
         },

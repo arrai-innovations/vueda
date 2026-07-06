@@ -19,11 +19,11 @@ patchTheme({
         root: {
             class: [
                 // Footer shell.
-                "flex h-[var(--vueda-cmd-footer-height)] items-center justify-between gap-3 border-t bg-muted px-[var(--vueda-control-px-md)] text-[length:var(--vueda-text-supporting)] text-muted-foreground",
+                "flex h-[var(--vueda-cmd-footer-height)] items-center justify-between gap-3 border-t-hairline bg-muted px-[var(--vueda-control-px-md)] text-[length:var(--vueda-text-supporting)] text-muted-foreground",
 
                 // Inline kbd elements.
                 "[&_kbd]:inline-flex [&_kbd]:h-[18px] [&_kbd]:min-w-[18px] [&_kbd]:items-center [&_kbd]:justify-center",
-                "[&_kbd]:rounded-[2px] [&_kbd]:border [&_kbd]:bg-background [&_kbd]:px-1 [&_kbd]:font-mono [&_kbd]:text-[10px] [&_kbd]:font-medium [&_kbd]:text-foreground",
+                "[&_kbd]:rounded-[2px] [&_kbd]:border-hairline [&_kbd]:bg-background [&_kbd]:px-1 [&_kbd]:font-mono [&_kbd]:text-[10px] [&_kbd]:font-medium [&_kbd]:text-foreground",
             ],
         },
         /** The hints cluster inside a {@api theme-key:CommandFooter.root}. Inline-flex row with a 12px gap so consecutive kbd-plus-label pairs (`↑↓ navigate`, `↵ select`, `Esc close`) sit as one readable strip rather than collapsing into a run-on glyph soup. */

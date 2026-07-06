@@ -24,7 +24,7 @@ patchTheme({
                 "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4",
 
                 // Shape and elevation.
-                "rounded-vueda-modal border p-6 shadow-vueda-overlay duration-200 sm:max-w-lg",
+                "rounded-vueda-modal overlay-hairline overlay-hairline-elevated p-6 duration-200 sm:max-w-lg",
             ],
         },
         /**

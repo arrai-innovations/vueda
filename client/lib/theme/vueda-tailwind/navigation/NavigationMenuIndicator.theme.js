@@ -24,7 +24,7 @@ patchTheme({
         },
         /** Rotated popover-colored arrow for navigation-menu content. */
         arrow: {
-            class: "bg-popover border-l border-t relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm",
+            class: "bg-popover border-l-hairline border-t-hairline relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm",
         },
     },
 });

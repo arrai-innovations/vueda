@@ -21,7 +21,7 @@ patchTheme({
                 "relative z-50 grid w-full max-w-lg my-8 gap-4",
 
                 // Surface and elevation.
-                "border bg-background text-foreground p-6 shadow-vueda-overlay duration-200",
+                "overlay-hairline overlay-hairline-elevated bg-background text-foreground p-6 duration-200",
 
                 // Responsive states.
                 "sm:rounded-vueda-modal md:w-full",

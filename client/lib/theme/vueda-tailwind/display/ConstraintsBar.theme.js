@@ -30,7 +30,7 @@ patchTheme({
         root: {
             class: [
                 "w-full flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-[10px]",
-                "border-b bg-[color-mix(in_oklab,var(--muted)_25%,var(--card))] text-foreground",
+                "border-b-hairline bg-[color-mix(in_oklab,var(--muted)_25%,var(--card))] text-foreground",
             ],
         },
         /** Hairline divider between the filters group and the sort group; shown only when both are active. */

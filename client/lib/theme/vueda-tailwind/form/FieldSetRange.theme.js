@@ -18,7 +18,7 @@ patchTheme({
         root: {
             class: [
                 // Surface and nested fieldset treatment.
-                "bg-card border rounded-vueda-card overflow-clip p-3",
+                "bg-card border-hairline rounded-vueda-card overflow-clip p-3",
                 "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
             ],
         },
@@ -62,7 +62,7 @@ patchTheme({
         /** Fieldset-level description and messages panel below the paired controls. */
         choresPanel: {
             class: [
-                "-mx-3 -mb-3 mt-3 px-3 py-2 border-t",
+                "-mx-3 -mb-3 mt-3 px-3 py-2 border-t-hairline",
                 "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
                 "flex flex-col gap-1",
             ],

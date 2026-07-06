@@ -34,7 +34,7 @@ patchTheme({
          * The visible grip inside a resizable handle. It gives pointer users a small bordered target without changing the panel separator's actual layout width.
          */
         handle: {
-            class: "bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border",
+            class: "bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs hairline hairline-border",
         },
     },
 });

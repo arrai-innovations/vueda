@@ -24,6 +24,6 @@ patchTheme({
             ],
         },
         /** The row that wraps {@api theme-key:CommandInput.root} together with the leading search icon, sized to `--vueda-cmd-input-height` and capped by a bottom hairline (`border-b`) so the input separates cleanly from the {@api theme-key:CommandList.root} below. The wrapper, not the input, owns the divider so the seam stays continuous even when the input is empty or focused. */
-        wrapper: { class: "flex h-[var(--vueda-cmd-input-height)] items-center gap-2 border-b px-3" },
+        wrapper: { class: "flex h-[var(--vueda-cmd-input-height)] items-center gap-2 border-b-hairline px-3" },
     },
 });

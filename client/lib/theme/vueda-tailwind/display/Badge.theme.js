@@ -17,7 +17,7 @@ patchTheme({
             class: [
                 // Layout and sizing.
                 "inline-flex items-center justify-center",
-                "rounded-vueda-control border py-0.5",
+                "rounded-vueda-control hairline py-0.5",
                 "text-xs font-medium",
                 "w-fit whitespace-nowrap shrink-0",
 
@@ -26,15 +26,16 @@ patchTheme({
 
                 // Focus, invalid, and motion states.
                 "focus-visible:focus-ring-shadow",
-                "aria-invalid:border-destructive aria-invalid:focus-ring-shadow-destructive",
+                "aria-invalid:hairline-destructive aria-invalid:focus-ring-shadow-destructive",
                 "transition-colors overflow-hidden",
                 {
                     "px-2": !numeric,
                     "font-mono tabular-nums min-w-5 px-1": numeric,
-                    // Solid fills make the base `border` transparent (it only reserves
-                    // space); `outline` keeps a visible border. Hoisted to one key so a
-                    // sibling branch's `false` cannot clear it (combineClasses last-write-wins).
-                    "border-transparent": variant !== "outline",
+                    // Solid fills hide the edge (transparent hairline colour); `outline`
+                    // paints a visible `--border` hairline. Each colour lives in exactly one
+                    // branch so combineClasses (last-write-wins) never clears the other.
+                    "[--vueda-hairline-color:transparent]": variant !== "outline",
+                    "hairline-border": variant === "outline",
                     "bg-primary text-primary-foreground [a&]:hover:bg-primary-hover [a&]:active:bg-primary-active":
                         !variant || variant === "default",
                     "bg-secondary text-secondary-foreground [a&]:hover:bg-secondary-hover [a&]:active:bg-secondary-active":

@@ -24,7 +24,7 @@ patchTheme({
                 "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
 
                 // Positioning, shape, padding, and transform origin.
-                "z-50 p-3 rounded-vueda-control border shadow-vueda-popover origin-(--reka-popover-content-transform-origin) outline-hidden",
+                "z-50 p-3 rounded-vueda-control overlay-hairline origin-(--reka-popover-content-transform-origin) outline-hidden",
             ],
         },
     },

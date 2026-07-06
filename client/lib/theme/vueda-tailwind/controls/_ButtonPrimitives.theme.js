@@ -43,7 +43,7 @@ patchTheme({
 
                 // Focus and invalid states.
                 "focus-visible:focus-ring",
-                "aria-invalid:border-destructive",
+                "aria-invalid:hairline aria-invalid:hairline-destructive",
             ],
         },
     },

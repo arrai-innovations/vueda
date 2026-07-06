@@ -18,7 +18,7 @@ patchTheme({
         root: {
             class: [
                 // Surface and nested fieldset treatment.
-                "bg-card border rounded-vueda-card overflow-clip",
+                "bg-card border-hairline rounded-vueda-card overflow-clip",
                 "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
             ],
         },
@@ -34,7 +34,7 @@ patchTheme({
         titleBar: {
             class: [
                 // Layout and edge merge.
-                "flex items-center gap-2 2xs:gap-3 px-3 py-2 -mx-3 -mt-3 mb-1 border-b",
+                "flex items-center gap-2 2xs:gap-3 px-3 py-2 -mx-3 -mt-3 mb-1 border-b-hairline",
 
                 // Type and nested fieldset surface.
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none",
@@ -95,7 +95,7 @@ patchTheme({
         /** Fieldset-level help and validation panel below the row stack. */
         choresPanel: {
             class: [
-                "-mx-3 -mb-3 px-3 py-2 border-t",
+                "-mx-3 -mb-3 px-3 py-2 border-t-hairline",
                 "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
                 "flex flex-col gap-1",
             ],

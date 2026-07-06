@@ -24,7 +24,7 @@ patchTheme({
                 "inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5",
 
                 // Shape and type.
-                "rounded-vueda-control border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap",
+                "rounded-vueda-control border-hairline border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap",
 
                 // Focus and disabled states.
                 "transition-colors focus-visible:focus-ring disabled:pointer-events-none disabled:opacity-50",

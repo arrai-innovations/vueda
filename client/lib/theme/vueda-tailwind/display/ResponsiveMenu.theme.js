@@ -21,7 +21,7 @@ patchTheme({
         },
         /** Visible mobile dialog header; right padding leaves room for the built-in close control. */
         dialogHeader: {
-            class: ["border-b px-4 py-4 pr-12"],
+            class: ["border-b-hairline px-4 py-4 pr-12"],
         },
         /** Padded scrolling region below the fixed mobile dialog header. */
         dialogBody: {

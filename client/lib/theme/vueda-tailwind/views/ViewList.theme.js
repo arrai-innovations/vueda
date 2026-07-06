@@ -43,13 +43,13 @@ patchTheme({
         },
         /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with the title row above and the {@api theme-key:NavigationPaginationBar} below, so the chrome reads as a matched frame around the grid. */
         underActionsBar: {
-            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3", "border-b bg-card text-foreground"],
+            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3", "border-b-hairline bg-card text-foreground"],
         },
         /** Bulk-actions strip that surfaces once one or more rows are selected. 6 %-mix primary fill and 12 px / 500 type so it reads as an active selection band, not a passive section. Sits in the sticky-stack bottom zone just above the {@api theme-key:PaginationFooter}; the top hairline separates it from the grid above, mirroring the pagination strip's rhythm so the chrome below the grid reads as a matched pair. */
         bulkActionsBar: {
             class: [
                 "w-full flex items-center flex-wrap gap-[10px] px-5 py-[10px]",
-                "border-t bg-primary/[0.06] text-foreground text-[12px] font-medium",
+                "border-t-hairline bg-primary/[0.06] text-foreground text-[12px] font-medium",
             ],
         },
         /** Selection read-out at the leading edge of the bulk-actions strip ("✓ N selected"). Inline flex row that holds the check glyph, the count, and the trailing word; sits before {@api theme-key:ViewList.actionButtonGroupBar} so the count anchors the band. */

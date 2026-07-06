@@ -17,7 +17,7 @@ patchTheme({
         strip: {
             class: [
                 "w-full flex flex-wrap items-center gap-2 px-5 py-[10px]",
-                "border-b bg-[color-mix(in_oklab,var(--sunken)_50%,var(--card))] text-foreground",
+                "border-b-hairline bg-[color-mix(in_oklab,var(--sunken)_50%,var(--card))] text-foreground",
             ],
         },
         /** Bare chips group used when hosted inside a shared ConstraintsBar: the band chrome (border, tint, padding) belongs to the host, so this carries only the flex layout for the eyebrow and chips. */

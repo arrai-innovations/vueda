@@ -19,12 +19,12 @@ patchTheme({
         /** Pill container. Neutral surface with a strong hairline so it reads against both the card and the constraints-strip tint. */
         root: {
             class: [
-                "inline-flex items-center rounded-full border border-border-strong bg-card text-xs font-semibold text-foreground",
+                "inline-flex items-center rounded-full hairline hairline-border-strong bg-card text-xs font-semibold text-foreground",
                 // Drag states (sortablejs in force-fallback mode). The floating clone
                 // (`.sortable-drag`) reads as a lifted, primary-accented chip; the gap it
                 // leaves behind (`.sortable-ghost`) is dimmed to mark the drop target.
                 "[&.sortable-ghost]:opacity-40",
-                "[&.sortable-drag]:cursor-grabbing [&.sortable-drag]:border-primary [&.sortable-drag]:bg-primary/10 [&.sortable-drag]:text-primary",
+                "[&.sortable-drag]:cursor-grabbing [&.sortable-drag]:hairline-primary [&.sortable-drag]:bg-primary/10 [&.sortable-drag]:text-primary",
             ],
         },
         /** Label segment: field label and direction glyph. Clicking it flips direction. Stretches to full pill height so the hover target covers the pill. Carries the left pill radius only when no leading ordinal is shown. */
