@@ -45,8 +45,9 @@ describe("lib/display/kbd/Kbd.vue", () => {
         scopedIt("applies base classes", () => {
             const wrapper = mount(KbdGroup);
             expect(wrapper.classes()).toContain("inline-flex");
+            expect(wrapper.classes()).toContain("w-fit");
             expect(wrapper.classes()).toContain("items-center");
-            expect(wrapper.classes()).toContain("gap-1");
+            expect(wrapper.classes()).toContain("gap-0.5");
         });
 
         scopedIt("merges custom class while preserving base classes", () => {
