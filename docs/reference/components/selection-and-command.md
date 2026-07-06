@@ -36,6 +36,7 @@ import CommandSeparator from "@vueda/controls/command/CommandSeparator.vue";
 import CommandShortcut from "@vueda/controls/command/CommandShortcut.vue";
 import CommandFooter from "@vueda/controls/command/CommandFooter.vue";
 import Kbd from "@vueda/display/kbd/Kbd.vue";
+import KbdGroup from "@vueda/display/kbd/KbdGroup.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faBuilding, faCheck, faChartBar, faChevronDown, faFileLines, faMagnifyingGlass, faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { ref } from "vue";
@@ -455,7 +456,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
         </CommandList>
         <CommandFooter>
           <template #start>
-            <span><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
+            <span><KbdGroup><Kbd>↑</Kbd><Kbd>↓</Kbd></KbdGroup> navigate</span>
             <span><Kbd>↵</Kbd> select</span>
           </template>
           <template #end>
@@ -467,7 +468,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
     <template #footer>
       <span>chin height <code>--vueda-cmd-footer-height</code> (32px)</span>
       <span>chin bg <code>--muted</code>, top border <code>--border</code></span>
-      <span><code>Kbd</code> compacted to 18px, mono 10px, hairline edge</span>
+      <span>hints use canonical <code>Kbd</code> / <code>KbdGroup</code> keycaps</span>
     </template>
   </DemoCard>
   <DemoCard title="empty state — no items match; disabled item">
@@ -514,7 +515,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
         >
           <FontAwesomeIcon :icon="faMagnifyingGlass" />
           Search or run a command
-          <span class="ml-auto font-mono text-xs opacity-70">⌘ K</span>
+          <KbdGroup class="ml-auto opacity-70"><Kbd>⌘</Kbd><Kbd>K</Kbd></KbdGroup>
         </button>
         <CommandDialog
           v-model:open="commandOpen"

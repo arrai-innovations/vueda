@@ -32,9 +32,9 @@ describe("lib/display/kbd/Kbd.vue", () => {
     });
 
     describe("KbdGroup", () => {
-        scopedIt("renders as a <kbd> element", () => {
+        scopedIt("renders as a non-keycap grouping element", () => {
             const wrapper = mount(KbdGroup);
-            expect(wrapper.element.tagName).toBe("KBD");
+            expect(wrapper.element.tagName).toBe("SPAN");
         });
 
         scopedIt("always has data-slot=kbd-group", () => {

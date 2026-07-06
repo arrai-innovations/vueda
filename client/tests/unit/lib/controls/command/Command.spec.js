@@ -67,6 +67,7 @@ describe("lib/controls/command/Command.vue", () => {
             expect(cls).toContain("h-[var(--vueda-cmd-footer-height)]");
             expect(cls).toContain("border-t-hairline");
             expect(cls).toContain("bg-muted");
+            expect(cls.some((value) => value.includes("_kbd"))).toBe(false);
         });
 
         scopedIt("renders start and end slots in default layout", () => {

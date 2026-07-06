@@ -20,7 +20,7 @@ const theme = useTheme("KbdGroup", props);
 </script>
 
 <template>
-    <kbd data-slot="kbd-group" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
+    <span data-slot="kbd-group" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
         <slot />
-    </kbd>
+    </span>
 </template>

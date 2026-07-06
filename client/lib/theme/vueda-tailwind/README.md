@@ -523,7 +523,7 @@ kept deliberately:
   `border-*-hairline` for exactly this.
 - **Overlapping seams** (InputOTPSlot). Cells pull together by one device
   pixel to read as a single painted line, which needs a real border.
-- **Inline keycaps** (`Kbd`, compact CommandFooter hints). Keycaps sit
+- **Inline keycaps** (`Kbd`, CommandFooter hints). Keycaps sit
   inside text, button, menu, and tooltip rows; `border-hairline` keeps
   the chip edge inside inline box sizing and lets nested surfaces retint
   the edge with normal border-colour utilities.
