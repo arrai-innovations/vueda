@@ -139,7 +139,7 @@ Theme keys: {@api theme-key:NavigationPaginationBar}, {@api theme-key:Pagination
     </template>
   </DemoCard>
   <DemoCard title="PaginationBar" description="(footer substrate seated against a data surface)">
-    <div class="rounded-vueda-card border bg-card overflow-clip">
+    <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
       <div class="px-3 py-6 text-center text-sm text-muted-foreground">grid / table body</div>
       <PaginationBar>
         <PaginationMeta>1–25 of 142 · page 1 of 6</PaginationMeta>

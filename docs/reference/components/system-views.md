@@ -31,7 +31,7 @@ Route-level loading fallback. Composes `SystemMessageCard(tone="loading")` with 
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewLoading: composed card with registry-backed crest icon</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip" style="min-height: 220px;">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip" style="min-height: 220px;">
     <ViewLoading
       name="Loading customer record"
       verb="GET"
@@ -211,7 +211,7 @@ Icons resolve through `useIcons("ConsequencesBullets")`. Register a component un
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ConsequencesBullets — self-destroy cascade</header>
-  <div class="rounded-vueda-card border border-border bg-card p-4">
+  <div class="rounded-vueda-card hairline hairline-border bg-card p-4">
     <ConsequencesBullets
       :items="[
         { icon: 'shieldHalved', label: 'Sessions revoked', description: 'All sessions across devices end immediately.' },
@@ -299,7 +299,7 @@ Consumers read the match state via `v-model:match` (or the `match` event) and ga
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TypedConfirmField — username self-destroy confirm</header>
-  <div class="rounded-vueda-card border border-border bg-card p-4">
+  <div class="rounded-vueda-card hairline hairline-border bg-card p-4">
     <TypedConfirmField
       v-model="deactivateConfirm"
       expected-value="mara.tani"
@@ -320,7 +320,7 @@ Consumers read the match state via `v-model:match` (or the `match` event) and ga
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TypedConfirmField — multi-record destroy phrase</header>
-  <div class="rounded-vueda-card border border-border bg-card p-4">
+  <div class="rounded-vueda-card hairline hairline-border bg-card p-4">
     <TypedConfirmField
       v-model="destroyConfirm"
       expected-value="delete 3 customers"
@@ -351,7 +351,7 @@ The root is a 2-column grid: an 88 px uppercase eyebrow label column on the left
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TriedUrlCallout — route path with typo segment</header>
-  <div class="rounded-vueda-card border border-border bg-card p-4 flex flex-col gap-3">
+  <div class="rounded-vueda-card hairline hairline-border bg-card p-4 flex flex-col gap-3">
     <TriedUrlCallout
       label="You tried"
       :segments="[

@@ -438,7 +438,7 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
     </ItemGroup>
   </DemoCard>
   <DemoCard title="ItemGroup + ItemSeparator — divider rows" class="sm:col-span-2">
-    <ItemGroup class="rounded-md border overflow-hidden">
+    <ItemGroup class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Item>
         <ItemMedia variant="icon"><FontAwesomeIcon :icon="faUser" /></ItemMedia>
         <ItemContent>
@@ -577,7 +577,7 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="vertical">
-    <div class="rounded-md border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <ScrollArea style="height: 200px;" class="p-3">
         <ul class="m-0 list-none p-0 text-sm leading-relaxed">
           <li>01. Draft a new invoice</li>
@@ -646,7 +646,7 @@ one.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="horizontal — section break">
-    <div class="rounded-md border p-4">
+    <div class="rounded-vueda-card hairline hairline-border p-4">
       <div class="text-sm font-medium">Account</div>
       <p class="mt-1 text-xs text-muted-foreground">Change the email and password used to sign in.</p>
       <Separator class="my-3" />
@@ -658,7 +658,7 @@ one.
     </template>
   </DemoCard>
   <DemoCard title="vertical — inline items">
-    <div class="inline-flex w-fit items-center gap-3 rounded-md border px-3 py-2 text-sm font-medium">
+    <div class="inline-flex w-fit items-center gap-3 rounded-vueda-card hairline hairline-border px-3 py-2 text-sm font-medium">
       <span>Overview</span>
       <Separator orientation="vertical" class="h-4" />
       <span>Transactions</span>

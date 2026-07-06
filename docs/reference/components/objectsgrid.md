@@ -53,7 +53,7 @@ The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overf
     <span class="font-semibold uppercase tracking-wide">table layout · populated</span>
     <span class="font-mono">headers: display-only</span>
   </header>
-  <div class="rounded-md border border-border overflow-hidden">
+  <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
     <ClientOnly>
       <ObjectsGrid :objects-in-order="accounts" :fields="fields" table-breakpoint="xs" :field-props="{ statusClasses }">
         <template #[`field(account)`]="{ obj, formatted }">
@@ -115,7 +115,7 @@ While loading, each cell is replaced by a `Skeleton` sized to its field type: `h
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
   <DemoCard title="table skeletons">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <ClientOnly>
         <ObjectsGrid loading :skeleton-rows="3" :objects-in-order="[]" :fields="compactFields" table-breakpoint="xs" />
       </ClientOnly>
@@ -127,28 +127,28 @@ While loading, each cell is replaced by a `Skeleton` sized to its field type: `h
     </ClientOnly>
   </DemoCard>
   <DemoCard title="empty — first-run">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <ClientOnly>
         <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="No accounts yet." table-breakpoint="xs" />
       </ClientOnly>
     </div>
   </DemoCard>
   <DemoCard title="filtered — no matches">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <ClientOnly>
         <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="No accounts match the current filters." empty-variant="filtered" table-breakpoint="xs" />
       </ClientOnly>
     </div>
   </DemoCard>
   <DemoCard title="loading — spinner + message">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <ClientOnly>
         <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="Loading accounts…" empty-variant="loading" table-breakpoint="xs" />
       </ClientOnly>
     </div>
   </DemoCard>
   <DemoCard title="error — destructive icon">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <ClientOnly>
         <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="Could not load accounts." empty-variant="error" table-breakpoint="xs" />
       </ClientOnly>

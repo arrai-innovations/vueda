@@ -139,7 +139,7 @@ Theme keys: {@api theme-key:PageTitle}.
 
 <VuedaDemo class="flex flex-col gap-6">
   <DemoCard title="title + actions">
-    <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+    <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
       <ClientOnly>
         <DemoTitleBar title="Customers">
           <template #actions>
@@ -161,7 +161,7 @@ Theme keys: {@api theme-key:PageTitle}.
     </template>
   </DemoCard>
   <DemoCard title="loading">
-    <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+    <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
       <ClientOnly>
         <DemoTitleBar title="Northwind Logistics" :loading="true">
           <template #actions>
@@ -196,7 +196,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
     <span class="font-semibold uppercase tracking-wide">view list · 4 rows · 1 selected · 3 active filters · 2 sorts (updated desc, mrr asc)</span>
     <span class="font-mono">sorted: {{ sorted.join(", ") }}</span>
   </header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <ClientOnly>
       <DemoTitleBar title="Customers">
         <template #actions>
@@ -215,7 +215,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         </template>
       </DemoTitleBar>
     </ClientOnly>
-    <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
+    <div class="flex items-center justify-between gap-2 border-b-hairline px-4 py-2">
       <div class="flex items-center gap-2">
         <Button size="sm" emphasis="outline" aria-haspopup="menu">
           <FontAwesomeIcon :icon="faFilter" />
@@ -243,7 +243,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         </Button>
       </div>
     </div>
-    <div class="flex flex-wrap items-center gap-2 border-b border-border bg-muted/30 px-4 py-2">
+    <div class="flex flex-wrap items-center gap-2 border-b-hairline bg-muted/30 px-4 py-2">
       <span class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filters</span>
       <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
         <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: Status">Status: Active</button>
@@ -277,7 +277,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
       </span>
       <Button size="sm" emphasis="ghost" class="text-xs">Clear sort</Button>
     </div>
-    <div class="flex items-center gap-4 border-b border-border bg-muted/50 px-4 py-2 text-sm">
+    <div class="flex items-center gap-4 border-b-hairline bg-muted/50 px-4 py-2 text-sm">
       <span class="flex items-center gap-2 font-medium">
         <FontAwesomeIcon :icon="faCheck" class="text-primary" />
         <strong>1</strong> selected
@@ -320,7 +320,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
         </template>
       </ObjectsGrid>
     </ClientOnly>
-    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-2 text-xs text-muted-foreground">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-t-hairline px-4 py-2 text-xs text-muted-foreground">
       <div class="flex items-center gap-4">
         <span class="font-mono tabular-nums">Showing <strong class="text-foreground">1 to 4</strong> of <strong class="text-foreground">142</strong></span>
         <span class="flex items-center gap-1.5">
@@ -356,7 +356,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
     <div class="flex flex-wrap items-start gap-6">
       <div class="flex flex-col gap-1.5">
         <span class="text-[11px] font-medium text-muted-foreground">1 · pick a field (lists only the fields not yet applied)</span>
-        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+        <div class="w-60 rounded-vueda-control overlay-hairline bg-popover p-1 text-popover-foreground">
           <div class="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Add filter</div>
           <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Account<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
           <button type="button" class="flex w-full items-center gap-2 rounded-sm bg-accent px-2 py-1.5 text-sm text-accent-foreground">Plan tier<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3" /></button>
@@ -367,7 +367,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
       </div>
       <div class="flex flex-col gap-1.5">
         <span class="text-[11px] font-medium text-muted-foreground">2 · set the value · ‹ returns to the list to add another</span>
-        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+        <div class="w-60 rounded-vueda-control overlay-hairline bg-popover p-1 text-popover-foreground">
           <button type="button" class="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"><FontAwesomeIcon :icon="faChevronLeft" class="size-3" />Add filter</button>
           <div class="bg-border -mx-1 my-1 h-px"></div>
           <div class="px-2 pb-1 pt-0.5">
@@ -401,7 +401,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
       </div>
       <div class="flex flex-col gap-1.5">
         <span class="text-[11px] font-medium text-muted-foreground">Add sort menu · lists only fields not already sorted · clicking one appends a chip · popover on desktop, full-screen dialog on mobile</span>
-        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+        <div class="w-60 rounded-vueda-control overlay-hairline bg-popover p-1 text-popover-foreground">
           <div class="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Add sort</div>
           <button type="button" class="flex w-full items-center rounded-sm bg-accent px-2 py-1.5 text-sm text-accent-foreground">Account</button>
           <button type="button" class="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Owner</button>
@@ -430,7 +430,7 @@ This ViewList is a static mockup. The live components implement the filter UX: `
       </div>
       <div class="flex flex-col gap-1.5">
         <span class="text-[11px] font-medium text-muted-foreground">click the errored chip · same form, chip container · the server message renders inline</span>
-        <div class="w-60 rounded-vueda-control border border-border bg-popover p-1 text-popover-foreground shadow-vueda-popover">
+        <div class="w-60 rounded-vueda-control overlay-hairline bg-popover p-1 text-popover-foreground">
           <div class="px-2 pb-1 pt-1.5">
             <h3 class="mb-2 text-sm font-semibold">Filter by Plan tier</h3>
             <div class="flex h-7 items-center justify-between rounded-vueda-control border border-destructive bg-background px-2 text-sm text-foreground" aria-invalid="true">24<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></div>
@@ -465,7 +465,7 @@ The create view pairs PageTitle with a sticky action bar that holds the primary 
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view create · blank form · pristine</header>
-  <div ref="createViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[34rem]">
+  <div ref="createViewport" class="rounded-vueda-card hairline hairline-border bg-card overflow-y-auto max-h-[34rem]">
     <ClientOnly>
       <DemoTitleBar title="Create customer">
         <template #actions>
@@ -502,7 +502,7 @@ The read view presents a single record in a non-editable layout. Inputs are repl
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view read · single record · Northwind Logistics</header>
-  <div ref="readViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[34rem]">
+  <div ref="readViewport" class="rounded-vueda-card hairline hairline-border bg-card overflow-y-auto max-h-[34rem]">
     <ClientOnly>
       <DemoTitleBar title="Northwind Logistics">
         <template #actions>
@@ -539,7 +539,7 @@ The read view presents a single record in a non-editable layout. Inputs are repl
     </StickyBar>
     <div class="px-6 py-5">
       <div class="mb-6">
-        <div class="mb-3 flex items-baseline justify-between border-b border-border pb-2">
+        <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
           <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Profile</h3>
           <span class="text-xs text-muted-foreground">created 2024-08-12</span>
         </div>
@@ -563,7 +563,7 @@ The read view presents a single record in a non-editable layout. Inputs are repl
         </div>
       </div>
       <div class="mb-6">
-        <div class="mb-3 flex items-baseline justify-between border-b border-border pb-2">
+        <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
           <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Billing</h3>
           <span class="text-xs text-muted-foreground">last invoice 2026-04-01</span>
         </div>
@@ -587,7 +587,7 @@ The read view presents a single record in a non-editable layout. Inputs are repl
         </div>
       </div>
       <div>
-        <div class="mb-3 border-b border-border pb-2">
+        <div class="mb-3 border-b-hairline pb-2">
           <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Notes</h3>
         </div>
         <div class="divide-y divide-border">
@@ -612,7 +612,7 @@ The update view renders the same form as create, populated from the loaded recor
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · populated form · real FormModel</header>
-  <div ref="updateViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[34rem]">
+  <div ref="updateViewport" class="rounded-vueda-card hairline hairline-border bg-card overflow-y-auto max-h-[34rem]">
     <ClientOnly>
       <DemoTitleBar title="Edit Northwind Logistics">
         <template #actions>
@@ -667,11 +667,11 @@ The view card takes on a destructive accent: border color is tinted toward `--de
     </div>
     <div class="px-6 py-5">
       <div class="mb-5">
-        <div class="mb-3 flex items-baseline justify-between border-b border-border pb-2">
+        <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
           <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Records to delete</h3>
           <span class="text-xs text-muted-foreground">3 of 3 selected</span>
         </div>
-        <div class="divide-y divide-border rounded-vueda-control border border-border">
+        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
           <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
             <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
             <span>Pemberton &amp; Vale</span>
@@ -696,7 +696,7 @@ The view card takes on a destructive accent: border color is tinted toward `--de
           <FieldDescription>Type <code class="font-mono text-xs">delete 3 customers</code> exactly to enable the delete button.</FieldDescription>
         </FieldContent>
       </Field>
-      <div class="flex items-center justify-end gap-3 border-t border-border pt-4">
+      <div class="flex items-center justify-end gap-3 border-t-hairline pt-4">
         <Button emphasis="ghost">Cancel</Button>
         <Button tone="destructive" disabled aria-disabled="true">
           <FontAwesomeIcon :icon="faTrash" />

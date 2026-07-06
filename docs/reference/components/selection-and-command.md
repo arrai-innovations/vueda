@@ -222,7 +222,7 @@ Token surface: {@api css-token:border} (trigger stroke),
       </div>
       <div class="flex flex-col gap-2">
         <StateLabel>content panel · static anatomy</StateLabel>
-        <div class="bg-popover text-popover-foreground rounded-vueda-control border shadow-vueda-popover p-1 w-52 text-sm">
+        <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline p-1 w-52 text-sm">
           <div class="text-muted-foreground px-2 py-1.5 text-xs">Standard</div>
           <div class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 bg-accent text-accent-foreground">
             Net 30
@@ -331,8 +331,8 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
     <div class="flex flex-col gap-4">
       <div>
         <div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">filtered results</div>
-        <div class="bg-popover text-popover-foreground rounded-vueda-control border shadow-vueda-popover overflow-hidden w-64">
-          <div class="flex h-9 items-center gap-2 border-b px-3">
+        <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline overflow-hidden w-64">
+          <div class="flex h-9 items-center gap-2 border-b-hairline px-3">
             <FontAwesomeIcon :icon="faMagnifyingGlass" class="size-4 opacity-50 shrink-0" />
             <input class="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground" value="acme" readonly />
           </div>
@@ -357,8 +357,8 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
       </div>
       <div>
         <div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">empty state</div>
-        <div class="bg-popover text-popover-foreground rounded-vueda-control border shadow-vueda-popover overflow-hidden w-64">
-          <div class="flex h-9 items-center gap-2 border-b px-3">
+        <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline overflow-hidden w-64">
+          <div class="flex h-9 items-center gap-2 border-b-hairline px-3">
             <FontAwesomeIcon :icon="faMagnifyingGlass" class="size-4 opacity-50 shrink-0" />
             <input class="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground" value="zzqq" readonly />
           </div>
@@ -368,7 +368,7 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
     </div>
     <template #footer>
       <span>list bg <code>--popover</code></span>
-      <span>search row <code>h-9 border-b</code> separates from items</span>
+      <span>search row <code>h-9 border-b-hairline</code> separates from items</span>
       <span>highlighted bg <code>--accent</code></span>
       <span>empty <code>py-6 text-center text-sm</code></span>
     </template>
@@ -397,7 +397,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="inline palette — groups, shortcuts, separator; type to filter live">
-    <div class="rounded-md border bg-popover text-popover-foreground overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border bg-popover text-popover-foreground overflow-hidden">
       <Command>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
@@ -437,7 +437,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
     </template>
   </DemoCard>
   <DemoCard title="footer chin — keyboard hints below CommandList">
-    <div class="rounded-md border bg-popover text-popover-foreground overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border bg-popover text-popover-foreground overflow-hidden">
       <Command>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
@@ -472,7 +472,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
     </template>
   </DemoCard>
   <DemoCard title="empty state — no items match; disabled item">
-    <div class="rounded-md border bg-popover text-popover-foreground overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border bg-popover text-popover-foreground overflow-hidden">
       <Command>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>

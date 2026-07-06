@@ -52,12 +52,12 @@ The provider is **window-scroll-only by design** (no `scrollRoot`, and it warns 
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">stack model · static illustration · top zone has two bars, bottom zone has one</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
-    <div class="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
+    <div class="flex items-center justify-between gap-3 border-b-hairline px-4 py-3">
       <span class="text-[22px] font-semibold leading-none">Customers</span>
       <span class="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-primary">order 0 · reveal always</span>
     </div>
-    <div class="flex items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-2">
+    <div class="flex items-center justify-between gap-3 border-b-hairline bg-muted/30 px-4 py-2">
       <Button size="sm" emphasis="outline">
         <FontAwesomeIcon :icon="faFilter" />
         Filters
@@ -70,7 +70,7 @@ The provider is **window-scroll-only by design** (no `scrollRoot`, and it warns 
       <span>As it scrolls down, the toolbar (scroll-up) slides up behind the pinned title; the title (always) stays.</span>
       <span>The pagination footer pins to the bottom of the viewport the whole time.</span>
     </div>
-    <div class="flex items-center justify-between gap-3 border-t border-border bg-muted/30 px-4 py-2">
+    <div class="flex items-center justify-between gap-3 border-t-hairline bg-muted/30 px-4 py-2">
       <span class="flex items-center gap-1">
         <Button size="icon-sm" emphasis="outline" aria-label="Previous page"><FontAwesomeIcon :icon="faChevronLeft" /></Button>
         <span class="px-2 text-xs font-medium text-foreground">Page 1 of 36</span>
@@ -121,7 +121,7 @@ Theme keys: {@api theme-key:StickyBar}.
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">sticky bar · standalone · submit pattern</header>
   <ClientOnly>
-    <div ref="stickyViewport" class="rounded-vueda-card border border-border bg-card overflow-y-auto max-h-[20rem]">
+    <div ref="stickyViewport" class="rounded-vueda-card hairline hairline-border bg-card overflow-y-auto max-h-[20rem]">
       <StickyBar :scroll-root="stickyViewport">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">

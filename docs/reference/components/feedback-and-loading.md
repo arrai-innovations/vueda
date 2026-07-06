@@ -131,7 +131,7 @@ Theme keys: {@api theme-key:Alert}, {@api theme-key:AlertTitle},
       <span>icon column only when direct SVG child exists</span>
     </template>
   </DemoCard>
-  <section class="grid gap-3 rounded-vueda-card border border-border p-4 lg:grid-cols-2">
+  <section class="grid gap-3 rounded-vueda-card hairline hairline-border p-4 lg:grid-cols-2">
     <div class="flex flex-col gap-3">
       <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         no icon
@@ -237,20 +237,20 @@ Theme key: {@api theme-key:Badge}. Token surface:
     </template>
   </DemoCard>
   <DemoCard title="table context" class="lg:col-span-2">
-    <div class="overflow-x-auto rounded-vueda-control border border-border">
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] border-b border-border bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div class="overflow-x-auto rounded-vueda-control hairline hairline-border">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] border-b-hairline bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         <span>ID</span>
         <span>Customer</span>
         <span>Amount</span>
         <span>Status</span>
       </div>
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b border-border px-3 py-2 text-sm last:border-b-0">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b-hairline px-3 py-2 text-sm last:border-b-0">
         <span class="font-mono text-xs">INV-0419</span>
         <span>Granger Holdings</span>
         <span class="font-mono text-xs">$12,840.00</span>
         <span><Badge><FontAwesomeIcon :icon="faCircleCheck" /> Paid</Badge></span>
       </div>
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b border-border px-3 py-2 text-sm last:border-b-0">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b-hairline px-3 py-2 text-sm last:border-b-0">
         <span class="font-mono text-xs">INV-0420</span>
         <span>Bannerman &amp; Co.</span>
         <span class="font-mono text-xs">$4,210.50</span>
@@ -459,7 +459,7 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
     </div>
   </DemoCard>
   <DemoCard title="card footprint">
-    <div class="grid gap-3 rounded-vueda-card border border-border bg-card p-3">
+    <div class="grid gap-3 rounded-vueda-card hairline hairline-border bg-card p-3">
       <Skeleton class="h-28 w-full rounded-vueda-card" />
       <Skeleton class="h-4 w-2/3" />
       <Skeleton class="h-3 w-full" />
@@ -471,20 +471,20 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
     </div>
   </DemoCard>
   <DemoCard title="table rows" class="lg:col-span-2">
-    <div class="overflow-x-auto rounded-vueda-control border border-border">
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] border-b border-border bg-muted/50 px-3 py-2">
+    <div class="overflow-x-auto rounded-vueda-control hairline hairline-border">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] border-b-hairline bg-muted/50 px-3 py-2">
         <Skeleton class="h-3 w-12" />
         <Skeleton class="h-3 w-24" />
         <Skeleton class="h-3 w-16" />
         <Skeleton class="h-3 w-14" />
       </div>
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b border-border px-3 py-2 last:border-b-0">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b-hairline px-3 py-2 last:border-b-0">
         <Skeleton class="h-3 w-16" />
         <Skeleton class="h-3 w-4/5" />
         <Skeleton class="h-3 w-20" />
         <Skeleton class="h-5 w-14" />
       </div>
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b border-border px-3 py-2 last:border-b-0">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b-hairline px-3 py-2 last:border-b-0">
         <Skeleton class="h-3 w-16" />
         <Skeleton class="h-3 w-3/5" />
         <Skeleton class="h-3 w-20" />

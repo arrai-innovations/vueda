@@ -78,7 +78,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="archive" · 4 records selected · default info tone</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Archive 4 customers">
       <template #button>
         <Button size="sm" emphasis="ghost">Cancel</Button>
@@ -100,11 +100,11 @@ Generic action confirmation view. An info-toned banner explains what the action 
     <!-- body -->
     <div class="px-6 py-5">
       <div class="mb-4">
-        <div class="mb-3 flex items-baseline justify-between border-b border-border pb-2">
+        <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
           <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Records to archive</h3>
           <span class="text-xs text-muted-foreground">4 of 4 selected</span>
         </div>
-        <div class="divide-y divide-border rounded-vueda-control border border-border">
+        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
           <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
             <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
             <span>Pemberton &amp; Vale</span>
@@ -133,7 +133,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
       </div>
     </div>
     <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
+    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
       <Button emphasis="ghost">Cancel</Button>
       <Button tone="primary">
         <FontAwesomeIcon :icon="faBoxArchive" />
@@ -148,15 +148,15 @@ Generic action confirmation view. An info-toned banner explains what the action 
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>banner: <code>bg-info/8 border-info/25</code> strip; grounds the action before the buttons</span>
     <span>banner meta row: action · scope · side-effects — always populate what you know</span>
-    <span>object list: <code>divide-y divide-border rounded-vueda-control border</code> with icon + label + pk</span>
+    <span>object list: <code>divide-y divide-border rounded-vueda-control hairline hairline-border</code> with icon + label + pk</span>
     <span>prompt panel: <code>border-l-4 border-border bg-muted/8</code> left-rule treatment</span>
-    <span>actions strip: <code>border-t border-border</code> hairline; hint text pushed right with <code>ml-auto</code></span>
+    <span>actions strip: <code>border-t-hairline</code>; hint text pushed right with <code>ml-auto</code></span>
   </footer>
 </VuedaDemo>
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="duplicate" · 1 record · single-object variant with extra fields</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Duplicate quote">
       <template #button>
         <Button size="sm" emphasis="ghost">Cancel</Button>
@@ -173,10 +173,10 @@ Generic action confirmation view. An info-toned banner explains what the action 
     <!-- body -->
     <div class="px-6 py-5">
       <div class="mb-5">
-        <div class="mb-3 flex items-baseline border-b border-border pb-2">
+        <div class="mb-3 flex items-baseline border-b-hairline pb-2">
           <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Source</h3>
         </div>
-        <div class="divide-y divide-border rounded-vueda-control border border-border">
+        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
           <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
             <FontAwesomeIcon :icon="faFileLines" class="shrink-0 text-muted-foreground" />
             <span>Q-2026-0418 — Northwind Logistics · annual renewal</span>
@@ -204,7 +204,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
       </div>
     </div>
     <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
+    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
       <Button emphasis="ghost">Cancel</Button>
       <Button tone="primary">
         <FontAwesomeIcon :icon="faClone" />
@@ -226,7 +226,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="bill-now" · 3 records · dry-run failed · warning tone</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Bill now (3 subscriptions)">
       <template #button>
         <Button size="sm" emphasis="ghost">Cancel</Button>
@@ -253,11 +253,11 @@ Generic action confirmation view. An info-toned banner explains what the action 
           </ul>
         </AlertDescription>
       </Alert>
-      <div class="mb-3 flex items-baseline justify-between border-b border-border pb-2">
+      <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
         <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Records</h3>
         <span class="text-xs text-muted-foreground">3 selected · 1 will run</span>
       </div>
-      <div class="divide-y rounded-vueda-control border border-border" style="border-color: var(--border)">
+      <div class="divide-y rounded-vueda-control hairline hairline-border" style="border-color: var(--border)">
         <!-- eligible row -->
         <div class="flex items-center gap-3 px-3 py-2.5 text-sm" style="border-color: color-mix(in oklab, var(--success) 35%, var(--border))">
           <FontAwesomeIcon :icon="faCircleCheck" class="shrink-0 text-success" />
@@ -278,7 +278,7 @@ Generic action confirmation view. An info-toned banner explains what the action 
       </div>
     </div>
     <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
+    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
       <Button emphasis="ghost">Cancel</Button>
       <Button emphasis="outline">
         <FontAwesomeIcon :icon="faArrowRotateRight" />
@@ -308,7 +308,7 @@ Same recipe as ViewAction with the banner switched to a success tone. Establishe
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="activate" · 1 record · success-toned banner</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Reactivate user">
       <template #button>
         <Button size="sm" emphasis="ghost">Cancel</Button>
@@ -330,10 +330,10 @@ Same recipe as ViewAction with the banner switched to a success tone. Establishe
     <!-- body -->
     <div class="px-6 py-5">
       <div class="mb-5">
-        <div class="mb-3 flex items-baseline border-b border-border pb-2">
+        <div class="mb-3 flex items-baseline border-b-hairline pb-2">
           <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">User</h3>
         </div>
-        <div class="divide-y divide-border rounded-vueda-control border border-border">
+        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
           <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
             <FontAwesomeIcon :icon="faUser" class="shrink-0 text-muted-foreground" />
             <span>Jordan Reyes — jordan.reyes@example.com</span>
@@ -357,7 +357,7 @@ Same recipe as ViewAction with the banner switched to a success tone. Establishe
       </div>
     </div>
     <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
+    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
       <Button emphasis="ghost">Cancel</Button>
       <Button tone="primary">
         <FontAwesomeIcon :icon="faCircleCheck" />
@@ -382,14 +382,14 @@ The current state is surfaced in a tinted strip below the title bar so there is 
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="invoice" · current_state="draft" · 3 transitions available · interactive</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Move invoice to next state">
       <template #button>
         <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <!-- current state strip -->
-    <div class="flex items-center gap-3 border-b border-border bg-muted/15 px-6 py-3">
+    <div class="flex items-center gap-3 border-b-hairline bg-muted/15 px-6 py-3">
       <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Currently</span>
       <span class="inline-flex items-center gap-1.5 rounded-full border border-info/25 bg-info/8 px-2.5 py-1 text-xs font-semibold text-info">
         <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
@@ -473,7 +473,7 @@ The current state is surfaced in a tinted strip below the title bar so there is 
       </div>
     </div>
     <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
+    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
       <Button emphasis="ghost">Cancel</Button>
       <Button tone="primary">
         <FontAwesomeIcon :icon="faArrowRight" />
@@ -497,14 +497,14 @@ The current state is surfaced in a tinted strip below the title bar so there is 
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="invoice" · current_state="paid" · terminal state · no transitions available</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Move invoice to next state">
       <template #button>
         <Button size="sm" emphasis="ghost">Back to invoice</Button>
       </template>
     </PageTitle>
     <!-- current state strip -->
-    <div class="flex items-center gap-3 border-b border-border bg-muted/15 px-6 py-3">
+    <div class="flex items-center gap-3 border-b-hairline bg-muted/15 px-6 py-3">
       <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Currently</span>
       <span class="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
         <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
@@ -519,7 +519,7 @@ The current state is surfaced in a tinted strip below the title bar so there is 
       <p class="max-w-sm text-sm text-muted-foreground">This is a terminal state in the invoice workflow. To make changes, issue a credit note or refund from the invoice page instead.</p>
     </div>
     <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t border-border px-6 py-4">
+    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
       <Button emphasis="ghost">Back to invoice</Button>
       <span class="ml-auto"></span>
       <Button emphasis="outline">
@@ -541,7 +541,7 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=1024 · 4 revisions · 9 changes · table layout</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Audit trail · Northwind Logistics">
       <template #button>
         <Button size="sm" emphasis="outline">
@@ -559,7 +559,7 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
       </template>
     </PageTitle>
     <!-- filter / layout bar -->
-    <div class="flex items-center gap-0 border-b border-border bg-muted/10 px-6 py-2 text-sm">
+    <div class="flex items-center gap-0 border-b-hairline bg-muted/10 px-6 py-2 text-sm">
       <span class="mr-4 text-muted-foreground"><strong class="text-foreground">Range</strong> last 90 days</span>
       <span class="mr-4 text-muted-foreground"><strong class="text-foreground">Type</strong> all</span>
       <span class="text-muted-foreground"><strong class="text-foreground">User</strong> any</span>
@@ -733,7 +733,7 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · same data · cards layout · includes "restored" revision type</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Audit trail · Hightower Mfg.">
       <template #button>
         <Button size="sm" emphasis="outline">
@@ -743,7 +743,7 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
       </template>
     </PageTitle>
     <!-- filter / layout bar -->
-    <div class="flex items-center gap-4 border-b border-border bg-muted/10 px-6 py-2 text-sm">
+    <div class="flex items-center gap-4 border-b-hairline bg-muted/10 px-6 py-2 text-sm">
       <span class="text-muted-foreground"><strong class="text-foreground">Range</strong> all time</span>
       <span class="text-muted-foreground"><strong class="text-foreground">3 revisions</strong></span>
       <div class="ml-auto flex overflow-clip rounded-vueda-control border border-border">
@@ -833,7 +833,7 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=2099 · no history yet (just created)</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Audit trail · Foxglove &amp; Kettle" />
     <div class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
       <FontAwesomeIcon :icon="faClock" class="text-3xl text-muted-foreground/40" />

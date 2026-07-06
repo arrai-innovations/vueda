@@ -86,7 +86,7 @@ Seven additional keys cover the inner elements:
 
 <VuedaDemo class="flex flex-col gap-6">
   <DemoCard title="full anatomy — header · body · footer · caption">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Table>
         <TableCaption>Recent invoices · all amounts in USD.</TableCaption>
         <TableHeader>
@@ -110,14 +110,14 @@ Seven additional keys cover the inner elements:
             <TableCell class="font-mono text-[11px]">INV-2026-00481</TableCell>
             <TableCell>Acme Coffee Roasters</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-11</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Paid</span></TableCell>
+            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-success/10 text-success border-success/50">Paid</span></TableCell>
             <TableCell class="text-right tabular-nums">$2,440.00</TableCell>
           </TableRow>
           <TableRow>
             <TableCell class="font-mono text-[11px]">INV-2026-00480</TableCell>
             <TableCell>Hightower Mfg.</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-09</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30">Overdue</span></TableCell>
+            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-warning/10 text-warning border-warning/50">Overdue</span></TableCell>
             <TableCell class="text-right tabular-nums">$8,915.20</TableCell>
           </TableRow>
           <TableRow>
@@ -143,7 +143,7 @@ Seven additional keys cover the inner elements:
     </template>
   </DemoCard>
   <DemoCard title="selected row — data-[state=selected]:bg-muted">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -194,7 +194,7 @@ level, or by patching the theme keys for a given context. The demos below use
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-3">
   <DemoCard title="default — 32 px rows">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -227,7 +227,7 @@ level, or by patching the theme keys for a given context. The demos below use
     </template>
   </DemoCard>
   <DemoCard title="compact — 28 px rows">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -260,7 +260,7 @@ level, or by patching the theme keys for a given context. The demos below use
     </template>
   </DemoCard>
   <DemoCard title="condensed — 24 px rows">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -309,7 +309,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="empty — first-run, primary CTA">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -339,7 +339,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
     </template>
   </DemoCard>
   <DemoCard title="loading — spinner + message">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -362,7 +362,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
     </template>
   </DemoCard>
   <DemoCard title="error — destructive icon, retry CTA">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -391,7 +391,7 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
     </template>
   </DemoCard>
   <DemoCard title="filtered-empty — no matches, clear CTA">
-    <div class="rounded-md border border-border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -434,7 +434,7 @@ by default and revealed on row hover, focus, or selected state; the selection
 bar appears at accent tint to signal a system-level state distinct from hover.
 
 <VuedaDemo>
-  <div class="flex flex-col gap-2.5 p-3 rounded-md border border-border bg-card">
+  <div class="flex flex-col gap-2.5 p-3 rounded-vueda-card hairline hairline-border bg-card">
     <!-- toolbar -->
     <div class="flex items-center gap-2 flex-wrap">
       <div class="relative flex-[0_1_280px] min-w-[160px]">
@@ -497,7 +497,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
       </Button>
     </div>
     <!-- table -->
-    <div class="rounded border border-border overflow-auto max-h-[340px]">
+    <div class="rounded-vueda-card hairline hairline-border overflow-auto max-h-[340px]">
       <Table>
         <TableHeader>
           <TableRow>
@@ -561,7 +561,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
             <TableCell class="font-mono text-[11px]">INV-2026-00480</TableCell>
             <TableCell>Hightower Mfg.</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-09</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30">Overdue</span></TableCell>
+            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-warning/10 text-warning border-warning/50">Overdue</span></TableCell>
             <TableCell class="text-right tabular-nums">$8,915.20</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -576,7 +576,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
             <TableCell class="font-mono text-[11px]">INV-2026-00481</TableCell>
             <TableCell>Acme Coffee Roasters</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-11</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Paid</span></TableCell>
+            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-success/10 text-success border-success/50">Paid</span></TableCell>
             <TableCell class="text-right tabular-nums">$2,440.00</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -606,7 +606,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
             <TableCell class="font-mono text-[11px]">INV-2026-00477</TableCell>
             <TableCell>Riverbend Builders</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-04</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Paid</span></TableCell>
+            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-success/10 text-success border-success/50">Paid</span></TableCell>
             <TableCell class="text-right tabular-nums">$11,240.00</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
