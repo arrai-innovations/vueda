@@ -19,7 +19,7 @@ patchTheme({
             class: [
                 // Surface and nested fieldset treatment.
                 "bg-card border-hairline rounded-vueda-card overflow-clip",
-                "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
+                "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_var(--vueda-hairline-width)_var(--border)]",
             ],
         },
         /** Unpadded vertical stack so the embedded grid can merge with the card edge. */

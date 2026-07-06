@@ -12,7 +12,7 @@ describe("lib/controls/command/CommandShortcut.vue", () => {
         const group = wrapper.get("[data-slot='kbd-group']");
         const keycaps = group.findAll("kbd");
         expect(keycaps.map((kbd) => kbd.text())).toEqual(["⌘", "⇧", "S"]);
-        expect(keycaps.every((kbd) => kbd.classes().includes("border-hairline"))).toBe(true);
+        expect(keycaps.every((kbd) => kbd.classes().includes("hairline"))).toBe(true);
     });
 
     scopedIt("keeps custom classes on the alignment wrapper", () => {

@@ -13,7 +13,7 @@ describe("lib/display/kbd/Kbd.vue", () => {
         scopedIt("applies base classes", () => {
             const wrapper = mount(Kbd);
             expect(wrapper.classes()).toContain("rounded-vueda-checkbox");
-            expect(wrapper.classes()).toContain("border-hairline");
+            expect(wrapper.classes()).toContain("hairline");
             expect(wrapper.classes()).toContain("font-mono");
             expect(wrapper.classes()).toContain("text-[length:var(--vueda-text-micro)]");
             expect(wrapper.classes()).toContain("font-semibold");

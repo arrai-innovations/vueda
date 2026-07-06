@@ -20,7 +20,7 @@ describe("lib/navigation menu shortcut components", () => {
         const group = wrapper.get("[data-slot='kbd-group']");
         const keycaps = group.findAll("kbd");
         expect(keycaps.map((kbd) => kbd.text())).toEqual(["⇧", "⌘", "L"]);
-        expect(keycaps.every((kbd) => kbd.classes().includes("border-hairline"))).toBe(true);
+        expect(keycaps.every((kbd) => kbd.classes().includes("hairline"))).toBe(true);
     });
 
     scopedIt.each(cases)("%s keeps custom classes on the alignment wrapper", (_name, component) => {

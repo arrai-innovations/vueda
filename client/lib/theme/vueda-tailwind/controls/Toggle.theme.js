@@ -14,7 +14,7 @@ patchTheme({
      * CTA (`--primary`).
      */
     Toggle: {
-        /** The on/off button shell. Reads as a Button shape (control radius, `text-sm font-medium`, 16px icon) but the pressed state (`data-state=on`) paints `--accent` instead of `--primary` so a pressed toggle does not compete with a CTA on the same surface. Two variants (default, `outline`) and three size tiers ride the shared `h-vueda-control*` scale; the `outline` variant wears the same explicit `border-foreground` true-outline edge as {@api theme-key:_ButtonOutline.root}, and `min-w-vueda-control*` keeps a single-icon toggle square. */
+        /** The on/off button shell. Reads as a Button shape (control radius, `text-sm font-medium`, 16px icon) but the pressed state (`data-state=on`) paints `--accent` instead of `--primary` so a pressed toggle does not compete with a CTA on the same surface. Two variants (default, `outline`) and three size tiers ride the shared `h-vueda-control*` scale; the `outline` variant wears the same `hairline hairline-foreground` true-outline edge as {@api theme-key:_ButtonOutline.root} (an inset box-shadow, not a layout border, so it DPR-tracks and matches intrinsic width), and `min-w-vueda-control*` keeps a single-icon toggle square. */
         root: ({ variant, size }) => ({
             class: [
                 // Layout and type.
@@ -30,11 +30,11 @@ patchTheme({
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive whitespace-nowrap",
 
                 // Variant classes. Default is transparent by absence of a fill; only
-                // outline adds a border + explicit bg-transparent. (A default-variant
+                // outline adds a hairline edge + explicit bg-transparent. (A default-variant
                 // bg-transparent key here would be cleared by the outline key anyway,
                 // since combineClasses is last-write-wins.)
                 {
-                    "border border-foreground bg-transparent shadow-vueda-control": variant === "outline",
+                    "hairline hairline-foreground bg-transparent shadow-vueda-control": variant === "outline",
                 },
 
                 // Size classes.

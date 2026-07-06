@@ -523,10 +523,6 @@ kept deliberately:
   `border-*-hairline` for exactly this.
 - **Overlapping seams** (InputOTPSlot). Cells pull together by one device
   pixel to read as a single painted line, which needs a real border.
-- **Inline keycaps** (`Kbd`, CommandFooter hints). Keycaps sit
-  inside text, button, menu, and tooltip rows; `border-hairline` keeps
-  the chip edge inside inline box sizing and lets nested surfaces retint
-  the edge with normal border-colour utilities.
 - **2px accent rails** (`border-l-2` dirty / selected / timeline rails).
   2px already distributes colour across subpixels, so it does not fringe.
 - **Transparent rest edges** used only to reserve layout space
