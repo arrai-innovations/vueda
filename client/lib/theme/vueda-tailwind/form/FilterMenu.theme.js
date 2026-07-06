@@ -22,7 +22,7 @@ patchTheme({
         },
         /** Hairline separator between the back row and the drill-in form. */
         separator: {
-            class: ["bg-border -mx-1 my-1 h-px"],
+            class: ["bg-border -mx-1 my-1 h-hairline"],
         },
         /** Drill-in body padding around the embedded filter form. */
         drillIn: {

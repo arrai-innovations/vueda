@@ -18,13 +18,13 @@ patchTheme({
         root: {
             class: [
                 // Base track and hit area.
-                "bg-border relative flex w-px items-center justify-center after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2",
+                "bg-border relative flex w-hairline items-center justify-center after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2",
 
                 // Focus state.
                 "focus-visible:focus-ring",
 
                 // Vertical orientation.
-                "data-[orientation=vertical]:h-px data-[orientation=vertical]:w-full data-[orientation=vertical]:after:left-0 data-[orientation=vertical]:after:h-1 data-[orientation=vertical]:after:w-full data-[orientation=vertical]:after:-translate-y-1/2 data-[orientation=vertical]:after:translate-x-0",
+                "data-[orientation=vertical]:h-hairline data-[orientation=vertical]:w-full data-[orientation=vertical]:after:left-0 data-[orientation=vertical]:after:h-1 data-[orientation=vertical]:after:w-full data-[orientation=vertical]:after:-translate-y-1/2 data-[orientation=vertical]:after:translate-x-0",
 
                 // Vertical handle icon.
                 "[&[data-orientation=vertical]>div]:rotate-90",

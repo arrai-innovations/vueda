@@ -115,7 +115,7 @@ patchTheme({
         },
         /** Vertical hairline separator between meta items. 12 px tall, `var(--border)` fill; sized to match the meta-row x-height so the divider aligns with the text baseline. */
         metaDivider: {
-            class: ["mx-2 h-3 w-px bg-border"],
+            class: ["mx-2 h-3 w-hairline bg-border"],
         },
         /** Flexible filler that pushes the layout toggle to the right end of the meta strip. */
         metaSpacer: {

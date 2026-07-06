@@ -177,6 +177,19 @@
     border-width: var(--vueda-hairline-width);
 }
 
+/* Filled-rule thickness keyed to `--vueda-hairline-width`. Use on a filled
+ * `bg-border` (or tinted) element that IS the line rather than an edge of some
+ * other box: a Separator, an `<hr>`, an inline vertical divider between chips.
+ * Keeps that rule's thickness DPR-tracking in lockstep with the box-shadow and
+ * border hairlines. `h-hairline` for a horizontal rule (pair with `w-full`);
+ * `w-hairline` for a vertical rule (pair with a height). */
+@utility h-hairline {
+    height: var(--vueda-hairline-width);
+}
+@utility w-hairline {
+    width: var(--vueda-hairline-width);
+}
+
 /* `focus-ring` paints the canonical focus outline at the DPR-keyed
  * `--vueda-focus-ring-width` and `--vueda-focus-ring-offset`. The ring width
  * is always 2x `--vueda-hairline-width` (4px down to 2px across DPR 1.0 to

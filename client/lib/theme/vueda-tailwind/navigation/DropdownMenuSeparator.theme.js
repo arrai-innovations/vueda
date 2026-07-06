@@ -14,7 +14,7 @@ patchTheme({
     DropdownMenuSeparator: {
         /** Full-width menu divider that bleeds through the content padding. */
         root: {
-            class: "bg-border -mx-1 my-1 h-px",
+            class: "bg-border -mx-1 my-1 h-hairline",
         },
     },
 });

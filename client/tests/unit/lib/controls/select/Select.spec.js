@@ -224,10 +224,10 @@ describe("lib/controls/select/Select.vue", () => {
             expect(wrapper.attributes("data-slot")).toBe("select-separator");
         });
 
-        scopedIt("applies bg-border and h-px classes", () => {
+        scopedIt("applies bg-border and h-hairline classes", () => {
             const wrapper = mount(SelectSeparator);
             expect(wrapper.classes()).toContain("bg-border");
-            expect(wrapper.classes()).toContain("h-px");
+            expect(wrapper.classes()).toContain("h-hairline");
         });
 
         scopedIt("merges custom class", () => {

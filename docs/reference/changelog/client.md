@@ -14,6 +14,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Separators and inline rules now DPR-track; two edge bugs fixed (Separator, the Command / Context / Dropdown / Menubar / Select / Combobox / Filter separators, ConstraintsBar, SortChip, WidgetHtml, SuggestionList, ResizableHandle, ViewHistoryList, ViewSetupDevice, SidebarMenuButtonChild, SystemMessageCard)**:
+    - Filled 1px rules (`h-px` / `w-px` on a `bg-border` element) did not track device-pixel ratio, so they drifted against the theme's box-shadow and border hairlines, and vertical rules fringed on integer-DPR displays. New `h-hairline` / `w-hairline` utilities key a filled rule's thickness to `--vueda-hairline-width`; every separator and inline divider now uses them, and `SuggestionList` row rules move to a DPR-tracked `divide-y`.
+    - `SidebarMenuButtonChild`'s `outline` variant painted its ring through `hsl(var(--sidebar-border))`, an invalid wrap of an OKLCH token, so the edge did not render. It now uses the `hairline` utility with the sidebar tokens.
+    - `SystemMessageCard` dropped a stray card `box-shadow` that collided with its own hairline border (only one could paint).
+      _No action required; visual fixes. Custom filled rules should use `h-hairline` / `w-hairline` instead of `h-px` / `w-px` so they DPR-track._
 - **Breaking: `@vueda/components/` and `@vueda/fields/` are dissolved into the family folders (all components formerly under those paths; removes DetailedView)**:
     - Every component under `@vueda/components/` and `@vueda/fields/` moved into the family folders used by the rest of the library (`display/`, `form/`, `objects-grid/`, `shell/`, `navigation/`, `views/`, `support/`). Component names, props, slots, events, and theme keys are unchanged; only import paths moved. The deprecated `DetailedView` alias is removed; import `@vueda/views/DetailView.vue` instead. `form/` and `objects-grid/` are new top-level folders; `support/` holds renderless utilities.
     - New import paths, grouped by destination:

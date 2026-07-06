@@ -493,6 +493,13 @@ their thickness DPR-tracks with the canon edge. The 4-sided
 `border` (see § 7.5) but should still DPR-track rather than sit at a raw
 1px.
 
+For a filled element that _is_ the rule rather than an edge of another box
+(a `Separator`, an inline vertical divider between chips), `h-hairline` and
+`w-hairline` set that rule's thickness from the same `--vueda-hairline-width`
+token: `h-hairline` for a horizontal rule (with `w-full`), `w-hairline` for a
+vertical one. So `bg-border` separators DPR-track in lockstep with the
+box-shadow and border hairlines instead of sitting at a raw `h-px` / `w-px`.
+
 ### 7.4 Floating-surface edges: `overlay-hairline`
 
 A floating surface needs an edge _and_ an elevation, but `hairline` and a

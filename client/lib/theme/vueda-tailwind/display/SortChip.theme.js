@@ -59,7 +59,7 @@ patchTheme({
         },
         /** Hairline divider between the label and the remove control. */
         divider: {
-            class: ["h-4 w-px bg-border"],
+            class: ["h-4 w-hairline bg-border"],
         },
         /** Remove segment (the trailing dismiss control). Carries the right pill radius; stretches to full pill height to match the label hover target. */
         remove: {

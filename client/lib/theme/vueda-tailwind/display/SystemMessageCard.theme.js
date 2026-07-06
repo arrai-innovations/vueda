@@ -20,7 +20,6 @@ patchTheme({
                 "flex flex-col gap-5",
                 "rounded-vueda-card hairline hairline-border bg-card",
                 "px-8 pt-8 pb-7",
-                "shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_4%,transparent)]",
             ],
         },
         /** Header row containing the icon tile, meta column, and optional status code, separated from the body by a bottom rule. */

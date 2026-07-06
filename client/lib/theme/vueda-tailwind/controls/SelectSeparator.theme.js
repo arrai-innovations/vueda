@@ -14,7 +14,7 @@ patchTheme({
     SelectSeparator: {
         /** A 1px horizontal divider between sections inside {@api theme-key:SelectContent.viewport}. See also: {@api theme-key:ComboboxSeparator.root}; delta is a vertical 4px margin (`my-1`) so the divider breathes against the surrounding 4px viewport padding, plus `pointer-events-none` so the hairline never intercepts a click meant for a neighbouring row. */
         root: {
-            class: ["bg-border pointer-events-none -mx-1 my-1 h-px"],
+            class: ["bg-border pointer-events-none -mx-1 my-1 h-hairline"],
         },
     },
 });

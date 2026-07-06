@@ -35,7 +35,7 @@ patchTheme({
         },
         /** Hairline divider between the filters group and the sort group; shown only when both are active. */
         divider: {
-            class: ["h-5 w-px self-center bg-border"],
+            class: ["h-5 w-hairline self-center bg-border"],
         },
     },
 });
