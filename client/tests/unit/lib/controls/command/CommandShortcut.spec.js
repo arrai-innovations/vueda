@@ -3,15 +3,16 @@ import { mount } from "@vue/test-utils";
 import CommandShortcut from "@vueda/controls/command/CommandShortcut.vue";
 
 describe("lib/controls/command/CommandShortcut.vue", () => {
-    scopedIt("renders a shortcut wrapper with a Kbd child", () => {
-        const wrapper = mount(CommandShortcut, { slots: { default: "⌘ K" } });
+    scopedIt("renders a shortcut wrapper with grouped Kbd children", () => {
+        const wrapper = mount(CommandShortcut, { slots: { default: "⌘ ⇧ S" } });
 
         expect(wrapper.attributes("data-slot")).toBe("command-shortcut");
         expect(wrapper.element.tagName).toBe("SPAN");
 
-        const kbd = wrapper.get("kbd");
-        expect(kbd.text()).toBe("⌘ K");
-        expect(kbd.classes()).toContain("border-hairline");
+        const group = wrapper.get("[data-slot='kbd-group']");
+        const keycaps = group.findAll("kbd");
+        expect(keycaps.map((kbd) => kbd.text())).toEqual(["⌘", "⇧", "S"]);
+        expect(keycaps.every((kbd) => kbd.classes().includes("border-hairline"))).toBe(true);
     });
 
     scopedIt("keeps custom classes on the alignment wrapper", () => {
@@ -21,6 +22,6 @@ describe("lib/controls/command/CommandShortcut.vue", () => {
         });
 
         expect(wrapper.classes()).toContain("my-shortcut");
-        expect(wrapper.get("kbd").classes()).not.toContain("my-shortcut");
+        expect(wrapper.get("[data-slot='kbd-group']").classes()).not.toContain("my-shortcut");
     });
 });

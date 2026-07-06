@@ -304,7 +304,7 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       <span>content: bg <code>--popover</code>, min-w-48, rounded, <code>overlay-hairline</code></span>
       <span>item hover/focus: bg <code>--accent</code></span>
       <span>indicator: size-3.5, absolute left-2</span>
-      <span>shortcut: <code>MenubarShortcut</code> with nested <code>Kbd</code></span>
+      <span>shortcut: <code>MenubarShortcut</code> with parsed <code>KbdGroup</code></span>
       <span>disabled: opacity-50 pointer-events-none</span>
     </template>
   </DemoCard>

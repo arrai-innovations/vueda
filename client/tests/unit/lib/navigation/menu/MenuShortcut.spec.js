@@ -11,15 +11,16 @@ const cases = [
 ];
 
 describe("lib/navigation menu shortcut components", () => {
-    scopedIt.each(cases)("%s renders a shortcut wrapper with a Kbd child", (_name, component, slotName) => {
-        const wrapper = mount(component, { slots: { default: "⌘S" } });
+    scopedIt.each(cases)("%s renders a shortcut wrapper with grouped Kbd children", (_name, component, slotName) => {
+        const wrapper = mount(component, { slots: { default: "⇧⌘L" } });
 
         expect(wrapper.attributes("data-slot")).toBe(slotName);
         expect(wrapper.element.tagName).toBe("SPAN");
 
-        const kbd = wrapper.get("kbd");
-        expect(kbd.text()).toBe("⌘S");
-        expect(kbd.classes()).toContain("border-hairline");
+        const group = wrapper.get("[data-slot='kbd-group']");
+        const keycaps = group.findAll("kbd");
+        expect(keycaps.map((kbd) => kbd.text())).toEqual(["⇧", "⌘", "L"]);
+        expect(keycaps.every((kbd) => kbd.classes().includes("border-hairline"))).toBe(true);
     });
 
     scopedIt.each(cases)("%s keeps custom classes on the alignment wrapper", (_name, component) => {
@@ -29,6 +30,6 @@ describe("lib/navigation menu shortcut components", () => {
         });
 
         expect(wrapper.classes()).toContain("my-shortcut");
-        expect(wrapper.get("kbd").classes()).not.toContain("my-shortcut");
+        expect(wrapper.get("[data-slot='kbd-group']").classes()).not.toContain("my-shortcut");
     });
 });

@@ -12,11 +12,15 @@ patchTheme({
      * Inline keyboard-shortcut hint on the trailing edge of a CommandItem.
      */
     CommandShortcut: {
-        /** Alignment wrapper for the trailing keyboard hint on a {@api theme-key:CommandItem.root}. `ml-auto` pushes the hint flush right while the nested {@api theme-key:Kbd.root} owns the visible keycap. */
+        /** Alignment wrapper for the trailing keyboard hint on a {@api theme-key:CommandItem.root}. `ml-auto` pushes the hint flush right while the nested {@api theme-key:KbdGroup.root} owns the chord. */
         root: {
             class: "ml-auto inline-flex items-center pl-2",
         },
-        /** Local sizing for the nested {@api theme-key:Kbd.root} inside command rows. */
+        /** Local grouping for parsed shortcut chords inside command rows. */
+        group: {
+            class: "",
+        },
+        /** Local sizing for nested {@api theme-key:Kbd.root} chips inside command rows. */
         kbd: {
             class: "h-[18px] min-w-[18px] px-1 text-[10px]",
         },

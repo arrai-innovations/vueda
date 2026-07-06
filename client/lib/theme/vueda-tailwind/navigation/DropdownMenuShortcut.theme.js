@@ -12,11 +12,15 @@ patchTheme({
      * DropdownMenuShortcut aligns keyboard shortcut keycaps inside dropdown menu items.
      */
     DropdownMenuShortcut: {
-        /** Alignment wrapper for the trailing keyboard hint. The nested {@api theme-key:Kbd.root} owns the visible keycap. */
+        /** Alignment wrapper for the trailing keyboard hint. The nested {@api theme-key:KbdGroup.root} owns the chord. */
         root: {
             class: "ml-auto inline-flex items-center pl-2",
         },
-        /** Local sizing for the nested {@api theme-key:Kbd.root} inside menu rows. */
+        /** Local grouping for parsed shortcut chords inside menu rows. */
+        group: {
+            class: "",
+        },
+        /** Local sizing for nested {@api theme-key:Kbd.root} chips inside menu rows. */
         kbd: {
             class: "h-[18px] min-w-[18px] px-1 text-[10px]",
         },

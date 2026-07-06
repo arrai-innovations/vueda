@@ -16,7 +16,11 @@ patchTheme({
         root: {
             class: "ml-auto inline-flex items-center pl-2",
         },
-        /** Local sizing for the nested {@api theme-key:Kbd.root} inside menubar rows. */
+        /** Local grouping for parsed shortcut chords inside menubar rows. */
+        group: {
+            class: "",
+        },
+        /** Local sizing for nested {@api theme-key:Kbd.root} chips inside menubar rows. */
         kbd: {
             class: "h-[18px] min-w-[18px] px-1 text-[10px]",
         },

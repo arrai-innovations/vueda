@@ -431,7 +431,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
     <template #footer>
       <span>command bg <code>--popover</code></span>
       <span>highlighted bg <code>--accent</code></span>
-      <span>shortcut: nested <code>Kbd</code> keycap aligned to row end</span>
+      <span>shortcut: parsed <code>KbdGroup</code> chord aligned to row end</span>
       <span>separator <code>--border</code>, -mx-1</span>
     </template>
   </DemoCard>

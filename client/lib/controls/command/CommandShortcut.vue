@@ -1,7 +1,10 @@
 <script setup>
 import Kbd from "@vueda/display/kbd/Kbd.vue";
+import KbdGroup from "@vueda/display/kbd/KbdGroup.vue";
+import { shortcutKeysFromVNodes } from "@vueda/display/kbd/shortcutKeys.js";
 import "@vueda/theme/vueda-tailwind/controls/CommandShortcut.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { useSlots } from "vue";
 
 /**
  * Displays a keyboard shortcut hint aligned to the right of a CommandItem.
@@ -18,12 +21,17 @@ const props = defineProps({
 });
 
 const theme = useTheme("CommandShortcut", props);
+const slots = useSlots();
+const getKeys = () => shortcutKeysFromVNodes(slots.default?.() ?? []);
 </script>
 
 <template>
     <span data-slot="command-shortcut" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
-        <Kbd :class="theme('kbd')">
-            <slot />
-        </Kbd>
+        <KbdGroup v-if="getKeys().length" :class="theme('group')">
+            <Kbd v-for="(key, index) in getKeys()" :key="`${key}-${index}`" :class="theme('kbd')">
+                {{ key }}
+            </Kbd>
+        </KbdGroup>
+        <slot v-else />
     </span>
 </template>
