@@ -10,17 +10,25 @@ import { defineAsyncComponent, markRaw } from "vue";
 
 /** @type {{[fieldComponentName:string]: FieldComponent}} */
 export const availableFields = {
-    FormField: markRaw(defineAsyncComponent(async () => (await import("@vueda/fields/FormField.vue")).default)),
-    FieldSetMany: markRaw(defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetMany.vue")).default)),
-    FieldSetRange: markRaw(defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetRange.vue")).default)),
+    FormField: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/form/form-model/FormField.vue")).default),
+    ),
+    FieldSetMany: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/form/field-set/FieldSetMany.vue")).default),
+    ),
+    FieldSetRange: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/form/field-set/FieldSetRange.vue")).default),
+    ),
     FieldSetSingularStackedInline: markRaw(
-        defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetSingularStackedInline.vue")).default),
+        defineAsyncComponent(
+            async () => (await import("@vueda/form/field-set/FieldSetSingularStackedInline.vue")).default,
+        ),
     ),
     FieldSetStackedInline: markRaw(
-        defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetStackedInline.vue")).default),
+        defineAsyncComponent(async () => (await import("@vueda/form/field-set/FieldSetStackedInline.vue")).default),
     ),
     FieldSetTabularInline: markRaw(
-        defineAsyncComponent(async () => (await import("@vueda/fields/FieldSetTabularInline.vue")).default),
+        defineAsyncComponent(async () => (await import("@vueda/form/field-set/FieldSetTabularInline.vue")).default),
     ),
 };
 

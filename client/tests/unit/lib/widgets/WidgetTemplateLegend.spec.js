@@ -16,7 +16,7 @@ const ClickToCopyTextStub = defineComponent({
         return () => h("span", { "data-qa": "click-to-copy", "data-text": props.text });
     },
 });
-vi.mock("@vueda/components/ClickToCopyText.vue", () => ({ default: ClickToCopyTextStub }));
+vi.mock("@vueda/display/click-to-copy-text/ClickToCopyText.vue", () => ({ default: ClickToCopyTextStub }));
 
 describe("lib/widgets/WidgetTemplateLegend.vue", () => {
     let WidgetTemplateLegend;

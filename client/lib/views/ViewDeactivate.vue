@@ -1,8 +1,8 @@
 <script setup>
-import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
-import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
-import TypedConfirmField from "@vueda/components/TypedConfirmField.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import ConsequencesBullets from "@vueda/display/consequences-bullets/ConsequencesBullets.vue";
+import SystemMessageCard from "@vueda/display/system-message/SystemMessageCard.vue";
+import TypedConfirmField from "@vueda/form/confirm/TypedConfirmField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewDeactivate.theme.js";
 import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";

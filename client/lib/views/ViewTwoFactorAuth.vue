@@ -1,16 +1,16 @@
 <script setup>
-import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import InputOTP from "@vueda/controls/input-otp/InputOTP.vue";
 import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
 import InputOTPSlot from "@vueda/controls/input-otp/InputOTPSlot.vue";
-import FormField from "@vueda/fields/FormField.vue";
+import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewTwoFactorAuth.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";

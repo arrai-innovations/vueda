@@ -12,7 +12,7 @@ import AlertActions from "@vueda/feedback/alert/AlertActions.vue";
 import AlertClose from "@vueda/feedback/alert/AlertClose.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import Progress from "@vueda/feedback/progress/Progress.vue";
 import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
 import Sonner from "@vueda/feedback/toast/Sonner.vue";

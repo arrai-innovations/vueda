@@ -1,7 +1,7 @@
 <script setup>
-import LoadingHeartbeatStrip from "@vueda/components/LoadingHeartbeatStrip.vue";
-import LoadingSkeletonGhost from "@vueda/components/LoadingSkeletonGhost.vue";
-import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
+import LoadingHeartbeatStrip from "@vueda/display/loading/LoadingHeartbeatStrip.vue";
+import LoadingSkeletonGhost from "@vueda/display/loading/LoadingSkeletonGhost.vue";
+import SystemMessageCard from "@vueda/display/system-message/SystemMessageCard.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewLoading.theme.js";
 import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";

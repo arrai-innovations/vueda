@@ -1,12 +1,12 @@
 <script setup>
-import ConsequencesBullets from "@vueda/components/ConsequencesBullets.vue";
-import LoadingSpinnerBlock from "@vueda/components/LoadingSpinnerBlock.vue";
-import ModelActionForm from "@vueda/components/ModelActionForm.vue";
+import ConsequencesBullets from "@vueda/display/consequences-bullets/ConsequencesBullets.vue";
+import LoadingSpinnerBlock from "@vueda/display/loading/LoadingSpinnerBlock.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewDestroy.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
+import ModelActionForm from "@vueda/views/ModelActionForm.vue";
 import isEmpty from "lodash-es/isEmpty.js";
 import { computed, useSlots } from "vue";
 

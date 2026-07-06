@@ -59,6 +59,7 @@ import "./ItemMedia.theme.js";
 import "./ItemSeparator.theme.js";
 import "./ItemTitle.theme.js";
 import "./Label.theme.js";
+import "./PageTitle.theme.js";
 import "./PopoverContent.theme.js";
 import "./ResizableHandle.theme.js";
 import "./ResizablePanelGroup.theme.js";
@@ -189,4 +190,6 @@ export default {
     // ---------- Sticky Bar ----------
     StickyBar: {},
     StickyStackProvider: {},
+    // ---------- Page chrome ----------
+    PageTitle: {},
 };

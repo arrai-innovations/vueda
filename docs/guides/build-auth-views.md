@@ -61,9 +61,9 @@ Define form initial values and a submit handler that calls the user store:
 
 ```vue
 <script setup>
-import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import FormField from "@vueda/fields/FormField.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import { reactive } from "vue";
 
@@ -122,9 +122,9 @@ Build a two-factor authentication view following the same pattern, but calling `
 
 ```vue
 <script setup>
-import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import FormField from "@vueda/fields/FormField.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import { reactive } from "vue";
 
@@ -166,9 +166,9 @@ Some operations require proof that the user logged in recently (not just that th
 
 ```vue
 <script setup>
-import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import FormField from "@vueda/fields/FormField.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import { reactive } from "vue";
 
@@ -208,9 +208,9 @@ Change-password is another hand-authored form variant. It uses `AuthForm` (a sim
 
 ```vue
 <script setup>
-import AuthForm from "@vueda/components/AuthForm.vue";
-import FormField from "@vueda/fields/FormField.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import AuthForm from "@vueda/views/AuthForm.vue";
 import WidgetInput from "@vueda/widgets/WidgetInput.vue";
 import { reactive } from "vue";
 

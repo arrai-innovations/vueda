@@ -1,5 +1,5 @@
 <script setup>
-import FormModel from "@vueda/components/FormModel.vue";
+import FormModel from "@vueda/form/form-model/FormModel.vue";
 import { useForm } from "@vueda/use/useForm.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 

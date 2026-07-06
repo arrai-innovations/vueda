@@ -246,7 +246,7 @@ Complete type annotations also position the codebase for future `.d.ts` generati
 
 - Use `scopedIt(...)` from `@tests/unit/utils.js` in place of `it(...)` for all tests involving Vue components, reactivity, lifecycle hooks, or injections. This runs tests in a fresh `effectScope()` to prevent state leakage.
 
-- Wrap all test files in a root `describe("<source file path>", ...)` block (e.g. `describe("lib/components/ActionForm.vue", ...)`) to clearly associate tests with their source. This improves readability, traceability in CI, and allows behavioral grouping inside without losing context.
+- Wrap all test files in a root `describe("<source file path>", ...)` block (e.g. `describe("lib/views/ActionForm.vue", ...)`) to clearly associate tests with their source. This improves readability, traceability in CI, and allows behavioral grouping inside without losing context.
 
 - If a spec intentionally covers a set of source files, use a source-like pseudo-glob in the root `describe(...)` block (e.g. `describe("lib/**/*.vue", ...)`). Put the contract or behavior name in a nested `describe(...)` block.
 
@@ -259,7 +259,7 @@ Complete type annotations also position the codebase for future `.d.ts` generati
 For fast feedback during development, run only the spec file you are currently working on:
 
 ```bash
-pnpm -C client test run tests/unit/lib/components/MyComponent.spec.js
+pnpm -C client test run tests/unit/lib/views/MyComponent.spec.js
 ```
 
 Multiple files or a glob may be passed if the feature spans more than one spec.
@@ -276,7 +276,7 @@ For a compact summary, use `--reporter=dot` (one character per test) or `--repor
 
 ```bash
 pnpm -C client test run --reporter=dot
-pnpm -C client test run tests/unit/lib/components/MyComponent.spec.js --reporter=basic
+pnpm -C client test run tests/unit/lib/views/MyComponent.spec.js --reporter=basic
 ```
 
 To stop on the first failure, add `--bail=1`:

@@ -287,7 +287,7 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
  * ```vue
  * <script setup>
  * import { useObjectInstance } from '@arrai-innovations/reactive-helpers';
- * import FormConfirmDialog from '@vueda/components/FormConfirmDialog.vue';
+ * import FormConfirmDialog from '@vueda/form/confirm/FormConfirmDialog.vue';
  * import { useForm } from '@vueda/use/useForm.js';
  * import { useObjectForm } from '@vueda/use/useObjectForm.js';
  * import { reactive } from 'vue';

@@ -50,7 +50,7 @@ const ModelActionFormStub = defineComponent({
             );
     },
 });
-vi.mock("@vueda/components/ModelActionForm.vue", () => ({
+vi.mock("@vueda/views/ModelActionForm.vue", () => ({
     default: ModelActionFormStub,
 }));
 
@@ -77,7 +77,7 @@ const PageActionsStub = defineComponent({
         return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
     },
 });
-vi.mock("@vueda/components/PageActions.vue", () => ({
+vi.mock("@vueda/shell/page-title/PageActions.vue", () => ({
     default: PageActionsStub,
 }));
 

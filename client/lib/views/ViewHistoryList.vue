@@ -1,10 +1,10 @@
 <script setup>
 import { loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
-import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
-import PageActions from "@vueda/components/PageActions.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
 import PaginationFooter from "@vueda/navigation/pagination/PaginationFooter.vue";
+import ObjectsGrid from "@vueda/objects-grid/ObjectsGrid.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewHistoryList.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";

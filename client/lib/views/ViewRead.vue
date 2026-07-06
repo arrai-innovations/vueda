@@ -1,9 +1,9 @@
 <script setup>
-import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
-import FormModel from "@vueda/components/FormModel.vue";
-import LinkModelView from "@vueda/components/LinkModelView.vue";
-import PageActions from "@vueda/components/PageActions.vue";
-import StickyBar from "@vueda/components/StickyBar.vue";
+import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
+import FormModel from "@vueda/form/form-model/FormModel.vue";
+import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
+import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewRead.theme.js";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useForm } from "@vueda/use/useForm.js";

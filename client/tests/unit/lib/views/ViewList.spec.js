@@ -272,16 +272,16 @@ const SelectItemStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
-vi.mock("@vueda/components/FilterGroup.vue", () => ({ default: FilterGroupStub }));
-vi.mock("@vueda/components/FormMessage.vue", () => ({ default: FormMessageStub }));
-vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
-vi.mock("@vueda/components/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
-vi.mock("@vueda/components/SortControl.vue", () => ({ default: SortControlStub }));
-vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
+vi.mock("@vueda/display/error-display/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
+vi.mock("@vueda/form/filter/FilterGroup.vue", () => ({ default: FilterGroupStub }));
+vi.mock("@vueda/form/form-model/FormMessage.vue", () => ({ default: FormMessageStub }));
+vi.mock("@vueda/navigation/link-model-view/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
+vi.mock("@vueda/objects-grid/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
+vi.mock("@vueda/display/sort/SortControl.vue", () => ({ default: SortControlStub }));
+vi.mock("@vueda/shell/page-title/PageActions.vue", () => ({ default: PageActionsStub }));
 vi.mock("@vueda/navigation/pagination/PaginationFooter.vue", () => ({ default: PaginationComponentStub }));
-vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
-vi.mock("@vueda/components/StickyChrome.vue", () => ({ default: StickyChromeStub }));
+vi.mock("@vueda/shell/sticky/StickyBar.vue", () => ({ default: StickyBarStub }));
+vi.mock("@vueda/shell/sticky/StickyChrome.vue", () => ({ default: StickyChromeStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/controls/checkbox/Checkbox.vue", () => ({ default: CheckboxStub }));
 vi.mock("@vueda/controls/input-group/InputGroup.vue", () => ({ default: InputGroupStub }));

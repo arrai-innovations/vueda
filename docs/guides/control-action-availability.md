@@ -76,7 +76,7 @@ Rendered action controls in views use two additional filtering layers beyond rou
 
 **Group-based filtering** uses `useFilteredActions` to read the model config's `config.actions` setting. When defined, only actions listed in `config.actions` are included in the rendered set. This filtering applies across all views for the model and is typically used for role-based or product-based UX customization.
 
-**Object-level intersection** applies in detail-style views. `DetailedView` intersects the config-filtered action set with the object's `available_actions` before rendering action buttons. An action must pass both filters to appear as a rendered control. This means the same model can show different action buttons for different objects; reflecting per-object permission outcomes without any client-side permission logic.
+**Object-level intersection** applies in detail-style views. `DetailView` intersects the config-filtered action set with the object's `available_actions` before rendering action buttons. An action must pass both filters to appear as a rendered control. This means the same model can show different action buttons for different objects; reflecting per-object permission outcomes without any client-side permission logic.
 
 `list` views use config-filtered actions for toolbar controls (like bulk delete) but do not intersect with per-object availability, since `list` views do not have a single target object.
 

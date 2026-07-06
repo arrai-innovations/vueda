@@ -11,7 +11,7 @@
  * @example Basic shell setup
  * ```vue
  * <script setup>
- * import FormConfirmDialog from "@vueda/components/FormConfirmDialog.vue";
+ * import FormConfirmDialog from "@vueda/form/confirm/FormConfirmDialog.vue";
  * import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
  * import { provide } from "vue";
  * import { FormContextSymbol } from "@vueda/utils/symbols.js";

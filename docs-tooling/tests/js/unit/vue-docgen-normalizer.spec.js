@@ -1053,7 +1053,7 @@ export const FORM_HIDDEN_FEEDBACK_SLOTS = [
 // ---------------------------------------------------------------------------
 
 describe("VueDocgenNormalizer — @vueda-slot-forward", () => {
-    const DETAIL_PATH = "/fake/client/lib/components/DetailView.vue";
+    const DETAIL_PATH = "/fake/client/lib/views/DetailView.vue";
     const VIEW_PATH = "/fake/client/lib/views/ViewRead.vue";
 
     const detailPayloadSlots = [
@@ -1078,7 +1078,7 @@ defineOptions({ name: "ViewRead" });
             sourceDir: "client/lib",
             files: [
                 {
-                    filePath: "client/lib/components/DetailView.vue",
+                    filePath: "client/lib/views/DetailView.vue",
                     components: [{ displayName: "DetailView", props: [], events: [], slots: detailPayloadSlots }],
                 },
                 {
@@ -1106,7 +1106,7 @@ defineOptions({ name: "ViewRead" });
             sourceDir: "client/lib",
             files: [
                 {
-                    filePath: "client/lib/components/DetailView.vue",
+                    filePath: "client/lib/views/DetailView.vue",
                     components: [{ displayName: "DetailView", props: [], events: [], slots: detailPayloadSlots }],
                 },
                 {
@@ -1137,13 +1137,13 @@ defineOptions({ name: "AuthorizingForm" });
         const normalizer = makeNormalizerWithFiles({
             "/fake/client/lib/views/AuthorizingForm.vue": multiForwardSource,
             [DETAIL_PATH]: "<script></script>",
-            "/fake/client/lib/components/ActionForm.vue": "<script></script>",
+            "/fake/client/lib/views/ActionForm.vue": "<script></script>",
         });
         const payload = {
             sourceDir: "client/lib",
             files: [
                 {
-                    filePath: "client/lib/components/DetailView.vue",
+                    filePath: "client/lib/views/DetailView.vue",
                     components: [
                         {
                             displayName: "DetailView",
@@ -1154,7 +1154,7 @@ defineOptions({ name: "AuthorizingForm" });
                     ],
                 },
                 {
-                    filePath: "client/lib/components/ActionForm.vue",
+                    filePath: "client/lib/views/ActionForm.vue",
                     components: [
                         {
                             displayName: "ActionForm",

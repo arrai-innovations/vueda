@@ -6,7 +6,7 @@ type: reference
 ---
 
 <script setup>
-import StickyBar from "@vueda/components/StickyBar.vue";
+import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Input from "@vueda/controls/input/Input.vue";
 import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";

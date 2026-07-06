@@ -7,7 +7,6 @@ import "./AuthForm.theme.js";
 import "./AuthorizingForm.theme.js";
 import "./DetailView.theme.js";
 import "./ModelActionForm.theme.js";
-import "./PageTitle.theme.js";
 import "./ViewAction.theme.js";
 import "./ViewActionNotFound.theme.js";
 import "./ViewActivate.theme.js";
@@ -26,8 +25,6 @@ import "./ViewUpdate.theme.js";
 import "./ViewWorkflowTransition.theme.js";
 
 export default {
-    // ---------- Page chrome ----------
-    PageTitle: {},
     // ---------- Action forms ----------
     ActionForm: {},
     ModelActionForm: {},

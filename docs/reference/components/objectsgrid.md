@@ -6,7 +6,7 @@ type: reference
 ---
 
 <script setup>
-import ObjectsGrid from "@vueda/components/ObjectsGrid.vue";
+import ObjectsGrid from "@vueda/objects-grid/ObjectsGrid.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faEllipsis, faPen } from "@fortawesome/free-solid-svg-icons";
