@@ -87,7 +87,7 @@ class BaseAddedGroup:
         )
 
 
-class TestManagementCommandGroupTests(BaseTestMigrations, BaseTestCallCommand):
+class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTestCallCommand):
     """
     This test doesn't use --import-instead, so we can verify that
     the noqa comments are stripped from the generated migration.
@@ -143,7 +143,7 @@ class TestManagementCommandGroupTests(BaseTestMigrations, BaseTestCallCommand):
         assert "No group changes detected.\n" in results
 
 
-class TestManagementCommandGroupAdded(BaseTestMigrations, BaseTestCallCommand):
+class TestManagementCommandGroupAdded(BaseAddedGroup, BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
             "group_added": "tests.group_added",
