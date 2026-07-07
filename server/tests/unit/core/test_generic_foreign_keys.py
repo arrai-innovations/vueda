@@ -407,3 +407,22 @@ class TestViewSetNoteStaticOmitContentObjectExpand(BaseTestAssertResponseMixin, 
             # Static FIELDS_PARAM ["id", "name"] narrows the result; available_actions is absent
             # because it was already in static_omit, so extra was empty (if extra: not taken).
             assert set(co.keys()) == {"id", "name", "app_label", "model", "formatted_name"}
+
+    def test_unregistered_content_object_expands_to_null(self, reader_client, notes, product):
+        # Register only Product; Distributor stays unregistered, so the
+        # distributor-backed note's content_object has no serializer.
+        info.registration.get_empty_registry()
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+
+        response = reader_client.get(
+            reverse("store.note-list"),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,text,content_object.*",
+            },
+        )
+
+        self.assert_response(response, HTTPStatus.OK)
+        expanded = {r["text"]: r["content_object"] for r in response.data["results"]}
+        assert expanded["Note on a distributor."] is None
+        assert expanded["Note on a product."]["id"] == product.pk
