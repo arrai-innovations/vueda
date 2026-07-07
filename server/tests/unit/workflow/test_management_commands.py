@@ -1945,6 +1945,214 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
 
     @override_settings(
         MIGRATION_MODULES={
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        },
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.workflow_updating",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_updating_direct_runpython_import(self):
+        with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
+            migration_filepath = os.path.join(migration_dir, "0002_workflow_migrations_2026_06_29.py")
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # Untouched
+            assert (
+                'history_change_reason = "Workflow Migration - 0002_workflow_migrations_2026_06_29"'
+                in migration_content
+            )
+            assert 'migration_app_label = "workflow_updating"' in migration_content
+            assert "changed_data = [" in migration_content
+
+            # Original
+            assert "def forwards_migrate_workflow(apps, schema_editor):" in migration_content
+            assert "def backwards_migrate_workflow(apps, schema_editor):" in migration_content
+            assert "def make_sure_permissions_exist(apps, schema_editor):" in migration_content
+            assert "def handle_workflow(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_workflow_permission(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_state(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_state_permission(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_initial_state(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_transition(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" in migration_content
+            assert "def handle_transition_source(apps, changed_item, *, reversing=False):" in migration_content
+            assert (
+                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
+                in migration_content
+            )
+            assert "code=make_sure_permissions_exist," in migration_content
+            assert "code=forwards_migrate_workflow," in migration_content
+            assert "reverse_code=backwards_migrate_workflow," in migration_content
+
+            # Unchanged
+            assert "def apply_and_save_changes(obj, data, *, reversing=False):" in migration_content
+            assert "def get_id_values_from_item(values, reversing=False):" in migration_content
+            assert "def get_id_values_from_dict(id_data, reversing=False):" in migration_content
+
+            # New
+            assert (
+                "def forwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover"
+                not in migration_content
+            )
+            assert (
+                "def backwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover"
+                not in migration_content
+            )
+            assert (
+                "def make_sure_permissions_exist_through_imports(apps, schema_editor):  # pragma: no cover"
+                not in migration_content
+            )
+            assert "class WorkflowChangeTypes(enum.Enum):" not in migration_content
+            assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def make_sure_permissions_exist(app_label):" not in migration_content
+            assert (
+                "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" not in migration_content
+            )
+            assert (
+                "def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=False):"
+                not in migration_content
+            )
+            assert "def handle_state(apps, changed_item, change_reason, *, reversing=False):" not in migration_content
+            assert (
+                "def handle_state_permission(apps, changed_item, change_reason, *, reversing=False):"
+                not in migration_content
+            )
+            assert (
+                "def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):"
+                not in migration_content
+            )
+            assert (
+                "def handle_transition(apps, changed_item, change_reason, *, reversing=False):" not in migration_content
+            )
+            assert (
+                "def handle_transition_permission(apps, changed_item, change_reason, *, reversing=False):"
+                not in migration_content
+            )
+            assert (
+                "def handle_transition_source(apps, changed_item, change_reason, *, reversing=False):"
+                not in migration_content
+            )
+            assert "def handle_state_objects(apps, *, reversing=False):" not in migration_content
+            assert (
+                """def manage_state_objects(
+    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
+):"""
+                not in migration_content
+            )
+            assert (
+                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
+                not in migration_content
+            )
+            assert "code=make_sure_permissions_exist_through_imports," not in migration_content
+            assert "code=forwards_migrate_workflow_through_imports," not in migration_content
+            assert "reverse_code=backwards_migrate_workflow_through_imports," not in migration_content
+
+            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # Untouched
+            assert (
+                'history_change_reason = "Workflow Migration - 0002_workflow_migrations_2026_06_29"'
+                in migration_content
+            )
+            assert 'migration_app_label = "workflow_updating"' in migration_content
+            assert "changed_data = [" in migration_content
+
+            # Removed Original
+            assert "def forwards_migrate_workflow(apps, schema_editor):" not in migration_content
+            assert "def backwards_migrate_workflow(apps, schema_editor):" not in migration_content
+            assert "def make_sure_permissions_exist(apps, schema_editor):" not in migration_content
+            assert "def handle_workflow(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_workflow_permission(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_state(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_state_permission(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_initial_state(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_transition(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" not in migration_content
+            assert "def handle_transition_source(apps, changed_item, *, reversing=False):" not in migration_content
+            assert (
+                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
+                not in migration_content
+            )
+            assert "code=make_sure_permissions_exist," not in migration_content
+            assert "code=forwards_migrate_workflow," not in migration_content
+            assert "reverse_code=backwards_migrate_workflow," not in migration_content
+
+            # Unchanged
+            assert "def apply_and_save_changes(obj, data, *, reversing=False):" in migration_content
+            assert "def get_id_values_from_item(values, reversing=False):" in migration_content
+            assert "def get_id_values_from_dict(id_data, reversing=False):" in migration_content
+
+            # Added New
+            assert (
+                "def forwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover"
+                in migration_content
+            )
+            assert (
+                "def backwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover"
+                in migration_content
+            )
+            assert (
+                "def make_sure_permissions_exist_through_imports(apps, schema_editor):  # pragma: no cover"
+                in migration_content
+            )
+            assert "class WorkflowChangeTypes(enum.Enum):" in migration_content
+            assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def make_sure_permissions_exist(app_label):" in migration_content
+            assert "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" in migration_content
+            assert (
+                "def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=False):"
+                in migration_content
+            )
+            assert "def handle_state(apps, changed_item, change_reason, *, reversing=False):" in migration_content
+            assert (
+                "def handle_state_permission(apps, changed_item, change_reason, *, reversing=False):"
+                in migration_content
+            )
+            assert (
+                "def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):" in migration_content
+            )
+            assert "def handle_transition(apps, changed_item, change_reason, *, reversing=False):" in migration_content
+            assert (
+                "def handle_transition_permission(apps, changed_item, change_reason, *, reversing=False):"
+                in migration_content
+            )
+            assert (
+                "def handle_transition_source(apps, changed_item, change_reason, *, reversing=False):"
+                in migration_content
+            )
+            assert "def handle_state_objects(apps, *, reversing=False):" in migration_content
+            assert (
+                """def manage_state_objects(
+    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
+):"""
+                in migration_content
+            )
+            assert (
+                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
+                in migration_content
+            )
+            assert "code=make_sure_permissions_exist_through_imports," in migration_content
+            assert "code=forwards_migrate_workflow_through_imports," in migration_content
+            assert "reverse_code=backwards_migrate_workflow_through_imports," in migration_content
+
+    @override_settings(
+        MIGRATION_MODULES={
             "workflow_updating_bad_migrations": "tests.workflow_updating_bad_migrations",
         },
     )

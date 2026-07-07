@@ -10,21 +10,19 @@ from django.conf import settings
 from django.core.management import BaseCommand
 from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 
+from vueda.user.management.commands.utils import NoRenamesError
+from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.workflow.management.commands.makeworkflowmigrations import MIGRATION_MODIFIED_COMMENT
 from vueda.workflow.management.commands.makeworkflowmigrations import NEWLINE
 from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_imports
 from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_sources
 
 
-class NoRenamesError(Exception):
-    pass
-
-
 _WORKFLOW_MIGRATION_COMMENT_MARKER = MIGRATION_MODIFIED_COMMENT.strip()
 _IMPORT_INSTEAD_MARKER = "from vueda.workflow.management.commands.makeworkflowmigrations import"
 
 # Old function names (without _through_imports) that must be renamed in the operations block.
-_OPERATION_FUNCTION_RENAMES = {
+OPERATION_FUNCTION_RENAMES = {
     "make_sure_permissions_exist": "make_sure_permissions_exist_through_imports",
     "forwards_migrate_workflow": "forwards_migrate_workflow_through_imports",
     "backwards_migrate_workflow": "backwards_migrate_workflow_through_imports",
@@ -109,40 +107,6 @@ class Command(BaseCommand):
         return False
 
     @staticmethod
-    def _update_operation_function_names(class_migration_block):
-        tree = ast.parse(class_migration_block)
-
-        # Collect (lineno, col_offset, old_name) for Name nodes inside RunPython calls only,
-        # so string literals in dependencies are never touched.
-        renames = []
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.Call):
-                continue
-            func = node.func
-            if not (isinstance(func, ast.Attribute) and func.attr == "RunPython"):
-                continue
-            for arg in node.args:
-                if isinstance(arg, ast.Name) and arg.id in _OPERATION_FUNCTION_RENAMES:
-                    renames.append((arg.lineno, arg.col_offset, arg.id))
-            for kw in node.keywords:
-                if (
-                    kw.arg in ("code", "reverse_code")
-                    and isinstance(kw.value, ast.Name)
-                    and kw.value.id in _OPERATION_FUNCTION_RENAMES
-                ):
-                    renames.append((kw.value.lineno, kw.value.col_offset, kw.value.id))
-
-        if not renames:
-            raise NoRenamesError()
-
-        lines = class_migration_block.splitlines(keepends=True)
-        for lineno, col_offset, old_name in sorted(renames, reverse=True):
-            new_name = _OPERATION_FUNCTION_RENAMES[old_name]
-            line = lines[lineno - 1]
-            lines[lineno - 1] = line[:col_offset] + new_name + line[col_offset + len(old_name) :]
-        return "".join(lines)
-
-    @staticmethod
     def _find_changed_data_end(lines, changed_data_index, class_migration_index):
         # Either we find the end of changed_data, or we get a syntax error when we call parse.
         segment = "".join(lines[changed_data_index:class_migration_index])
@@ -198,7 +162,9 @@ class Command(BaseCommand):
         # Preserve the class Migration block, updating any stale function names in operations.
         class_migration_block = "".join(lines[class_migration_index:])
         try:
-            class_migration_block = self._update_operation_function_names("".join(lines[class_migration_index:]))
+            class_migration_block = update_operation_function_names(
+                "".join(lines[class_migration_index:]), OPERATION_FUNCTION_RENAMES
+            )
         except SyntaxError as e:
             self.stderr.write(
                 self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")

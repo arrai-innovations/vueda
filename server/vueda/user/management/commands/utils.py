@@ -5,6 +5,8 @@ __all__ = (
     "get_matching_record",
 )
 
+import ast
+
 
 def get_matching_record(change, group_change_model):
     """Return GroupChange.pk if a record matching this change exists, None otherwise."""
@@ -37,3 +39,45 @@ def create_group_change(change, group_change_model):
     obj.when = change["when"]
     obj.save()
     return obj.pk
+
+
+class NoRenamesError(Exception):
+    pass
+
+
+def update_operation_function_names(class_migration_block, operation_function_renames):
+    tree = ast.parse(class_migration_block)
+
+    # Collect (lineno, col_offset, old_name) for Name nodes inside RunPython calls only,
+    # so string literals in dependencies are never touched.
+    renames = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+
+        is_attribute_call = isinstance(func, ast.Attribute) and func.attr == "RunPython"
+        is_direct_call = isinstance(func, ast.Name) and func.id == "RunPython"
+        if not (is_attribute_call or is_direct_call):
+            continue
+
+        for arg in node.args:
+            if isinstance(arg, ast.Name) and arg.id in operation_function_renames:
+                renames.append((arg.lineno, arg.col_offset, arg.id))
+        for kw in node.keywords:
+            if (
+                kw.arg in ("code", "reverse_code")
+                and isinstance(kw.value, ast.Name)
+                and kw.value.id in operation_function_renames
+            ):
+                renames.append((kw.value.lineno, kw.value.col_offset, kw.value.id))
+
+    if not renames:
+        raise NoRenamesError()
+
+    lines = class_migration_block.splitlines(keepends=True)
+    for lineno, col_offset, old_name in sorted(renames, reverse=True):
+        new_name = operation_function_renames[old_name]
+        line = lines[lineno - 1]
+        lines[lineno - 1] = line[:col_offset] + new_name + line[col_offset + len(old_name) :]
+    return "".join(lines)
