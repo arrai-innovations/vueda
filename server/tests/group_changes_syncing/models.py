@@ -22,6 +22,6 @@ class GroupChangesSyncingUser(AbstractVUEDAUser):
     class Meta(AbstractVUEDAUser.Meta):
         default_related_name = "group_changes_syncing_users"
         indexes = [
-            GinIndex(fields=["email"], name="gin_email_group_changes_syncing_idx", opclasses=["gin_trgm_ops"]),
-            GinIndex(fields=["name"], name="gin_name_group_changes_syncing_idx", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["email"], name="gin_email_group_chgs_sync_idx", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["name"], name="gin_name_group_chgs_sync_idx", opclasses=["gin_trgm_ops"]),
         ]

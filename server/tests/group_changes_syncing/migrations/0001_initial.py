@@ -75,10 +75,10 @@ class Migration(migrations.Migration):
                 "default_related_name": "group_changes_syncing_users",
                 "indexes": [
                     django.contrib.postgres.indexes.GinIndex(
-                        fields=["email"], name="gin_email_group_changes_syncing_idx", opclasses=["gin_trgm_ops"]
+                        fields=["email"], name="gin_email_group_chgs_sync_idx", opclasses=["gin_trgm_ops"]
                     ),
                     django.contrib.postgres.indexes.GinIndex(
-                        fields=["name"], name="gin_name_group_changes_syncing_idx", opclasses=["gin_trgm_ops"]
+                        fields=["name"], name="gin_name_group_chgs_sync_idx", opclasses=["gin_trgm_ops"]
                     ),
                 ],
             },
