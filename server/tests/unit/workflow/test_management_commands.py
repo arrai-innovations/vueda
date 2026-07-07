@@ -12,6 +12,7 @@ from django.test import override_settings
 from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
 from tests.utils import info_register_aware_modify_settings
+from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.workflow import models
 
 
@@ -2225,3 +2226,38 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         results = err.read()
 
         assert "No installed app with label 'app_that_does_not_exist'.\n" in results
+
+
+class TestManagementCommandUtils:
+    def test_workflow_update_operation_function_name_with_conflicting_dependency_names(self):
+        from vueda.workflow.management.commands.updateworkflowmigrations import OPERATION_FUNCTION_RENAMES
+
+        results = update_operation_function_names(
+            """
+class Migration(migrations.Migration):
+    dependencies = [
+        ("test", "0001_make_sure_permissions_exist"),
+        ("test", "0002_forwards_migrate_workflow"),
+        ("test", "0003_backwards_migrate_workflow"),
+    ]
+
+    operations = [
+        migrations.RunPython(
+            code=make_sure_permissions_exist,
+            reverse_code=migrations.RunPython.noop,
+        ),
+        migrations.RunPython(
+            code=forwards_migrate_workflow,
+            reverse_code=backwards_migrate_workflow,
+        ),
+    ]
+""",
+            OPERATION_FUNCTION_RENAMES,
+        )
+
+        assert "code=make_sure_permissions_exist_through_imports," in results
+        assert "code=forwards_migrate_workflow_through_imports," in results
+        assert "reverse_code=backwards_migrate_workflow_through_imports," in results
+        assert '("test", "0001_make_sure_permissions_exist"),' in results
+        assert '("test", "0002_forwards_migrate_workflow"),' in results
+        assert '("test", "0003_backwards_migrate_workflow"),' in results

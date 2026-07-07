@@ -13,6 +13,7 @@ from django.test import override_settings
 from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
 from tests.utils import info_register_aware_modify_settings
+from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.user.models import GroupChange
 
 
@@ -750,3 +751,38 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
                 "historical_permission_content_type_app_label": "auth",
                 "historical_permission_content_type_model_name": "permission",
             }
+
+
+class TestManagementCommandUtils:
+    def test_group_update_operation_function_name_with_conflicting_dependency_names(self):
+        from vueda.user.management.commands.updategroupmigrations import OPERATION_FUNCTION_RENAMES
+
+        results = update_operation_function_names(
+            """
+class Migration(migrations.Migration):
+    dependencies = [
+        ("test", "0001_make_sure_permissions_exist"),
+        ("test", "0002_forwards_migrate_groups"),
+        ("test", "0003_backwards_migrate_groups"),
+    ]
+
+    operations = [
+        migrations.RunPython(
+            code=make_sure_permissions_exist,
+            reverse_code=migrations.RunPython.noop,
+        ),
+        migrations.RunPython(
+            code=forwards_migrate_groups,
+            reverse_code=backwards_migrate_groups,
+        ),
+    ]
+""",
+            OPERATION_FUNCTION_RENAMES,
+        )
+
+        assert "code=make_sure_permissions_exist," in results
+        assert "code=forwards_migrate_groups_through_imports," in results
+        assert "reverse_code=backwards_migrate_groups_through_imports," in results
+        assert '("test", "0001_make_sure_permissions_exist"),' in results
+        assert '("test", "0002_forwards_migrate_groups"),' in results
+        assert '("test", "0003_backwards_migrate_groups"),' in results
