@@ -45,7 +45,231 @@ def strip_registered_info_from_stderr(stderr):
     return stderr
 
 
-class TestManagementCommandWorkflowTests(BaseTestMigrations, BaseTestCallCommand):
+class BaseAddedWorkflow:
+    def continue_added_workflow_test(self, migration_dir, results):
+        # Reload 0003, because we rewrote it after it would have imported it.
+        assert results, "No results were captured when makeworkflowmigrations was called."
+        self.reload_module(results, migration_dir)
+
+        results = frozenset([line.strip() for line in results if line.strip()])
+        assert "Creating empty migration for workflow changes." in results
+        assert (
+            f"Modified migration '0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py' "
+            f"to migrate workflow for workflow_added." in results
+        )
+
+        # Roll back 0002.
+        succeeded, results = self.call_command("migrate", "workflow_added", "0001")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        # Did the migrations roll back?
+        assert not models.Workflow.objects.filter(code="added_workflow").exists(), (
+            "'added_workflow' appears to exist when it should not."
+        )
+
+        # We should have run migration 0001.
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 1
+
+        # Fake 0002, so we can run 0003 instead.
+        succeeded, results = self.call_command("migrate", "workflow_added", "0002", "--fake")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        # We should have run migration 0001 and 0002 (faked).
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 2  # noqa: PLR2004
+
+        # Run migration 0003 forwards.
+        succeeded, results = self.call_command("migrate", "workflow_added", "0003")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        # We should have run migration 0001, 0002 (faked), and 0003.
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 3  # noqa: PLR2004
+
+        # Verify the data is correct.
+        data = convert_data_to_list_of_dicts_without_id_fields(
+            models.Workflow.objects.filter(code="added_workflow").values()
+        )
+        assert data == [
+            {
+                "code": "added_workflow",
+                "historical_app_label": "workflow_added",
+                "historical_model": "workflowadded",
+                "name": "Added Workflow",
+            },
+        ]
+
+        # If the assert above passes, then we definitely have a workflow id.
+        workflow_pk = models.Workflow.objects.filter(code="added_workflow").first().id
+
+        data = convert_data_to_list_of_dicts_without_id_fields(
+            models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
+        )
+        assert data == [
+            {
+                "historical_permission_codename": "can_do_something",
+                "historical_permission_content_type_app_label": "workflow_added",
+                "historical_permission_content_type_model_name": "workflowadded",
+            },
+            {
+                "historical_permission_codename": "can_do_something_else",
+                "historical_permission_content_type_app_label": "workflow_added",
+                "historical_permission_content_type_model_name": "workflowadded",
+            },
+        ]
+
+        data = convert_data_to_list_of_dicts_without_id_fields(
+            models.InitialState.objects.filter(workflow_id=workflow_pk).values("state__code", "state__name")
+        )
+        assert data == [
+            {"state__code": "state_1", "state__name": "State 1"},
+        ]
+
+        data = convert_data_to_list_of_dicts_without_id_fields(
+            models.State.objects.filter(workflow_id=workflow_pk).values()
+        )
+        assert data == [
+            {
+                "code": "state_1",
+                "name": "State 1",
+            },
+            {
+                "code": "state_2",
+                "name": "State 2",
+            },
+            {
+                "code": "state_3",
+                "name": "State 3",
+            },
+        ]
+
+        data = convert_data_to_list_of_dicts_without_id_fields(
+            models.StatePermission.objects.filter(state__workflow_id=workflow_pk).values()
+        )
+        assert data == [
+            {
+                "grant_or_deny": False,
+                "historical_group_name": "WorkflowAddedAdmin",
+                "historical_permission_codename": "can_do_something",
+                "historical_permission_content_type_app_label": "workflow_added",
+                "historical_permission_content_type_model_name": "workflowadded",
+            },
+            {
+                "grant_or_deny": True,
+                "historical_group_name": "WorkflowAddedWorker",
+                "historical_permission_codename": "can_do_something_else",
+                "historical_permission_content_type_app_label": "workflow_added",
+                "historical_permission_content_type_model_name": "workflowadded",
+            },
+            {
+                "grant_or_deny": True,
+                "historical_group_name": "WorkflowAddedAdmin",
+                "historical_permission_codename": "update_workflowadded",
+                "historical_permission_content_type_app_label": "workflow_added",
+                "historical_permission_content_type_model_name": "workflowadded",
+            },
+        ]
+
+        # Converting the data uses id, so it is stripped from the data.
+        data = convert_data_to_list_of_dicts_without_id_fields(
+            models.Transition.objects.filter(workflow_id=workflow_pk).values("id", "code", "name", "target__code")
+        )
+        assert data == [
+            {
+                "code": "go_to_state_1",
+                "name": "Go To State 1",
+                "target__code": "state_1",
+            },
+            {
+                "code": "go_to_state_2",
+                "name": "Go To State 2",
+                "target__code": "state_2",
+            },
+            {
+                "code": "go_to_state_3",
+                "name": "Go To State 3",
+                "target__code": "state_3",
+            },
+        ]
+
+        data = convert_data_to_list_of_dicts_without_id_fields(
+            models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).values()
+        )
+        assert data == [
+            {
+                "historical_permission_codename": "can_do_something",
+                "historical_permission_content_type_app_label": "workflow_added",
+                "historical_permission_content_type_model_name": "workflowadded",
+            },
+            {
+                "historical_permission_codename": "can_do_something_else",
+                "historical_permission_content_type_app_label": "workflow_added",
+                "historical_permission_content_type_model_name": "workflowadded",
+            },
+            {
+                "historical_permission_codename": "update_workflowadded",
+                "historical_permission_content_type_app_label": "workflow_added",
+                "historical_permission_content_type_model_name": "workflowadded",
+            },
+        ]
+
+        data = convert_data_to_list_of_dicts_without_id_fields(
+            models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).values(
+                "transition__code", "source__code"
+            )
+        )
+        assert data == [
+            {
+                "source__code": "state_1",
+                "transition__code": "go_to_state_2",
+            },
+            {
+                "source__code": "state_2",
+                "transition__code": "go_to_state_1",
+            },
+            {
+                "source__code": "state_3",
+                "transition__code": "go_to_state_1",
+            },
+        ]
+
+        # Run migration 0003 backwards
+        succeeded, results = self.call_command("migrate", "workflow_added", "0002")
+        if not succeeded:
+            pytest.fail("".join(results), pytrace=False)
+
+        # We should have run migration 0001 and 0002 (faked).
+        assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 2  # noqa: PLR2004
+
+        # Verify the data is back in the original state.
+        assert models.Workflow.objects.filter(code="added_workflow").first() is None, models.Workflow.objects.filter(
+            code="added_workflow"
+        ).values()
+        assert models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).first() is None, (
+            models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
+        )
+        assert models.InitialState.objects.filter(workflow_id=workflow_pk).first() is None, (
+            models.InitialState.objects.filter(workflow_id=workflow_pk).values()
+        )
+        assert models.State.objects.filter(workflow_id=workflow_pk).first() is None, models.State.objects.filter(
+            workflow_id=workflow_pk
+        ).values()
+        assert models.StatePermission.objects.filter(state__workflow_id=workflow_pk).first() is None, (
+            models.StatePermission.objects.filter(state__workflow_id=workflow_pk).values()
+        )
+        assert models.Transition.objects.filter(workflow_id=workflow_pk).first() is None, (
+            models.Transition.objects.filter(workflow_id=workflow_pk).values()
+        )
+        assert models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).first() is None, (
+            models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).values()
+        )
+        assert models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).first() is None, (
+            models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).values()
+        )
+
+
+class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
             "no_migrations": None,
@@ -139,6 +363,8 @@ class TestManagementCommandWorkflowTests(BaseTestMigrations, BaseTestCallCommand
             )
             assert "    make_sure_permissions_exist(migration_app_label)\n" in migration_content
 
+            self.continue_added_workflow_test(migration_dir, results)
+
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_dry_run_no_changes(self):
@@ -149,7 +375,7 @@ class TestManagementCommandWorkflowTests(BaseTestMigrations, BaseTestCallCommand
         assert "No workflow changes detected.\n" in results
 
 
-class TestManagementCommandWorkflowAdded(BaseTestMigrations, BaseTestCallCommand):
+class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, BaseTestCallCommand):
     @override_settings(
         MIGRATION_MODULES={
             "no_migrations": None,
@@ -183,226 +409,7 @@ class TestManagementCommandWorkflowAdded(BaseTestMigrations, BaseTestCallCommand
             if not succeeded:
                 pytest.fail("".join(results))
 
-            # Reload 0003, because we rewrote it after it would have imported it.
-            assert results, "No results were captured when makeworkflowmigrations was called."
-            self.reload_module(results, migration_dir)
-
-            results = frozenset([line.strip() for line in results if line.strip()])
-            assert "Creating empty migration for workflow changes." in results
-            assert (
-                f"Modified migration '0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py' "
-                f"to migrate workflow for workflow_added." in results
-            )
-
-            # Roll back 0002.
-            succeeded, results = self.call_command("migrate", "workflow_added", "0001")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            # Did the migrations roll back?
-            assert not models.Workflow.objects.filter(code="added_workflow").exists(), (
-                "'added_workflow' appears to exist when it should not."
-            )
-
-            # We should have run migration 0001.
-            assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 1
-
-            # Fake 0002, so we can run 0003 instead.
-            succeeded, results = self.call_command("migrate", "workflow_added", "0002", "--fake")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            # We should have run migration 0001 and 0002 (faked).
-            assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 2  # noqa: PLR2004
-
-            # Run migration 0003 forwards.
-            succeeded, results = self.call_command("migrate", "workflow_added", "0003")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            # We should have run migration 0001, 0002 (faked), and 0003.
-            assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 3  # noqa: PLR2004
-
-            # Verify the data is correct.
-            data = convert_data_to_list_of_dicts_without_id_fields(
-                models.Workflow.objects.filter(code="added_workflow").values()
-            )
-            assert data == [
-                {
-                    "code": "added_workflow",
-                    "historical_app_label": "workflow_added",
-                    "historical_model": "workflowadded",
-                    "name": "Added Workflow",
-                },
-            ]
-
-            # If the assert above passes, then we definitely have a workflow id.
-            workflow_pk = models.Workflow.objects.filter(code="added_workflow").first().id
-
-            data = convert_data_to_list_of_dicts_without_id_fields(
-                models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
-            )
-            assert data == [
-                {
-                    "historical_permission_codename": "can_do_something",
-                    "historical_permission_content_type_app_label": "workflow_added",
-                    "historical_permission_content_type_model_name": "workflowadded",
-                },
-                {
-                    "historical_permission_codename": "can_do_something_else",
-                    "historical_permission_content_type_app_label": "workflow_added",
-                    "historical_permission_content_type_model_name": "workflowadded",
-                },
-            ]
-
-            data = convert_data_to_list_of_dicts_without_id_fields(
-                models.InitialState.objects.filter(workflow_id=workflow_pk).values("state__code", "state__name")
-            )
-            assert data == [
-                {"state__code": "state_1", "state__name": "State 1"},
-            ]
-
-            data = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
-            )
-            assert data == [
-                {
-                    "code": "state_1",
-                    "name": "State 1",
-                },
-                {
-                    "code": "state_2",
-                    "name": "State 2",
-                },
-                {
-                    "code": "state_3",
-                    "name": "State 3",
-                },
-            ]
-
-            data = convert_data_to_list_of_dicts_without_id_fields(
-                models.StatePermission.objects.filter(state__workflow_id=workflow_pk).values()
-            )
-            assert data == [
-                {
-                    "grant_or_deny": False,
-                    "historical_group_name": "WorkflowAddedAdmin",
-                    "historical_permission_codename": "can_do_something",
-                    "historical_permission_content_type_app_label": "workflow_added",
-                    "historical_permission_content_type_model_name": "workflowadded",
-                },
-                {
-                    "grant_or_deny": True,
-                    "historical_group_name": "WorkflowAddedWorker",
-                    "historical_permission_codename": "can_do_something_else",
-                    "historical_permission_content_type_app_label": "workflow_added",
-                    "historical_permission_content_type_model_name": "workflowadded",
-                },
-                {
-                    "grant_or_deny": True,
-                    "historical_group_name": "WorkflowAddedAdmin",
-                    "historical_permission_codename": "update_workflowadded",
-                    "historical_permission_content_type_app_label": "workflow_added",
-                    "historical_permission_content_type_model_name": "workflowadded",
-                },
-            ]
-
-            # Converting the data uses id, so it is stripped from the data.
-            data = convert_data_to_list_of_dicts_without_id_fields(
-                models.Transition.objects.filter(workflow_id=workflow_pk).values("id", "code", "name", "target__code")
-            )
-            assert data == [
-                {
-                    "code": "go_to_state_1",
-                    "name": "Go To State 1",
-                    "target__code": "state_1",
-                },
-                {
-                    "code": "go_to_state_2",
-                    "name": "Go To State 2",
-                    "target__code": "state_2",
-                },
-                {
-                    "code": "go_to_state_3",
-                    "name": "Go To State 3",
-                    "target__code": "state_3",
-                },
-            ]
-
-            data = convert_data_to_list_of_dicts_without_id_fields(
-                models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).values()
-            )
-            assert data == [
-                {
-                    "historical_permission_codename": "can_do_something",
-                    "historical_permission_content_type_app_label": "workflow_added",
-                    "historical_permission_content_type_model_name": "workflowadded",
-                },
-                {
-                    "historical_permission_codename": "can_do_something_else",
-                    "historical_permission_content_type_app_label": "workflow_added",
-                    "historical_permission_content_type_model_name": "workflowadded",
-                },
-                {
-                    "historical_permission_codename": "update_workflowadded",
-                    "historical_permission_content_type_app_label": "workflow_added",
-                    "historical_permission_content_type_model_name": "workflowadded",
-                },
-            ]
-
-            data = convert_data_to_list_of_dicts_without_id_fields(
-                models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).values(
-                    "transition__code", "source__code"
-                )
-            )
-            assert data == [
-                {
-                    "source__code": "state_1",
-                    "transition__code": "go_to_state_2",
-                },
-                {
-                    "source__code": "state_2",
-                    "transition__code": "go_to_state_1",
-                },
-                {
-                    "source__code": "state_3",
-                    "transition__code": "go_to_state_1",
-                },
-            ]
-
-            # Run migration 0003 backwards
-            succeeded, results = self.call_command("migrate", "workflow_added", "0002")
-            if not succeeded:
-                pytest.fail("".join(results), pytrace=False)
-
-            # We should have run migration 0001 and 0002 (faked).
-            assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 2  # noqa: PLR2004
-
-            # Verify the data is back in the original state.
-            assert models.Workflow.objects.filter(code="added_workflow").first() is None, (
-                models.Workflow.objects.filter(code="added_workflow").values()
-            )
-            assert models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).first() is None, (
-                models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
-            )
-            assert models.InitialState.objects.filter(workflow_id=workflow_pk).first() is None, (
-                models.InitialState.objects.filter(workflow_id=workflow_pk).values()
-            )
-            assert models.State.objects.filter(workflow_id=workflow_pk).first() is None, models.State.objects.filter(
-                workflow_id=workflow_pk
-            ).values()
-            assert models.StatePermission.objects.filter(state__workflow_id=workflow_pk).first() is None, (
-                models.StatePermission.objects.filter(state__workflow_id=workflow_pk).values()
-            )
-            assert models.Transition.objects.filter(workflow_id=workflow_pk).first() is None, (
-                models.Transition.objects.filter(workflow_id=workflow_pk).values()
-            )
-            assert models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).first() is None, (
-                models.TransitionPermission.objects.filter(transition__workflow_id=workflow_pk).values()
-            )
-            assert models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).first() is None, (
-                models.TransitionSource.objects.filter(transition__workflow_id=workflow_pk).values()
-            )
+            self.continue_added_workflow_test(migration_dir, results)
 
 
 class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallCommand):

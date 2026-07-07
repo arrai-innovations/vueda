@@ -16,6 +16,77 @@ from tests.utils import info_register_aware_modify_settings
 from vueda.user.models import GroupChange
 
 
+class BaseAddedGroup:
+    def continue_added_group_test(self, migration_dir, results):
+        # Reload 0003, because we rewrote it after it would have imported it.
+        assert results, "No results were captured when makegroupmigrations was called."
+        self.reload_module(results, migration_dir)
+
+        results_set = frozenset([line.strip() for line in results if line.strip()])
+        assert "Creating empty migration for group permission changes." in results_set
+        assert any(
+            f"group_permission_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py" in r for r in results_set
+        )
+
+        # GroupAddedWorkers should not exist before running the generated migration.
+        assert not Group.objects.filter(name="GroupAddedWorkers").exists()
+
+        # Delete the GroupChange objects.  Running the migration should create them.
+        GroupChange.objects.all().delete()
+
+        # Run the generated migration forwards.
+        succeeded, results = self.call_command("migrate", "group_added", "0003")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        group = Group.objects.filter(name="GroupAddedWorkers").first()
+        assert group is not None, "'GroupAddedWorkers' was not created."
+
+        assert group.permissions.filter(
+            codename="read_groupaddeduser",
+            content_type__app_label="group_added",
+            content_type__model="groupaddeduser",
+        ).exists(), "'read_groupaddeduser' not associated with 'GroupAddedWorkers'."
+
+        assert group.permissions.filter(
+            codename="list_groupaddeduser",
+            content_type__app_label="group_added",
+            content_type__model="groupaddeduser",
+        ).exists(), "'list_groupaddeduser' not associated with 'GroupAddedWorkers'."
+
+        # Verify the GroupChange objects got recreated.
+        assert GroupChange.objects.count() == 2  # noqa PLR2004
+
+        assert GroupChange.objects.filter(
+            group_name="GroupAddedWorkers",
+            change_type="added",
+            historical_permission_codename="list_groupaddeduser",
+            historical_permission_content_type_app_label="group_added",
+            historical_permission_content_type_model_name="groupaddeduser",
+        ).exists(), (
+            f"GroupChange object wasn't created while running the group migration: {GroupChange.objects.values()}"
+        )
+
+        assert GroupChange.objects.filter(
+            group_name="GroupAddedWorkers",
+            change_type="associated",
+            historical_permission_codename="read_groupaddeduser",
+            historical_permission_content_type_app_label="group_added",
+            historical_permission_content_type_model_name="groupaddeduser",
+        ).exists(), (
+            f"GroupChange object wasn't created while running the group migration: {GroupChange.objects.values()}"
+        )
+
+        # Run the generated migration backwards.
+        succeeded, results = self.call_command("migrate", "group_added", "0002")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert not Group.objects.filter(name="GroupAddedWorkers").exists(), (
+            "'GroupAddedWorkers' still exists after rolling back."
+        )
+
+
 class TestManagementCommandGroupTests(BaseTestMigrations, BaseTestCallCommand):
     """
     This test doesn't use --import-instead, so we can verify that
@@ -59,6 +130,8 @@ class TestManagementCommandGroupTests(BaseTestMigrations, BaseTestCallCommand):
 
             assert "    forwards_migrate_groups(apps, copy.deepcopy(changed_data))\n" in migration_content
             assert "    backwards_migrate_groups(apps, copy.deepcopy(changed_data))\n" in migration_content
+
+            self.continue_added_group_test(migration_dir, results)
 
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
@@ -105,73 +178,7 @@ class TestManagementCommandGroupAdded(BaseTestMigrations, BaseTestCallCommand):
             if not succeeded:
                 pytest.fail("".join(results))
 
-            # Reload 0003, because we rewrote it after it would have imported it.
-            assert results, "No results were captured when makegroupmigrations was called."
-            self.reload_module(results, migration_dir)
-
-            results_set = frozenset([line.strip() for line in results if line.strip()])
-            assert "Creating empty migration for group permission changes." in results_set
-            assert any(
-                f"group_permission_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py" in r for r in results_set
-            )
-
-            # GroupAddedWorkers should not exist before running the generated migration.
-            assert not Group.objects.filter(name="GroupAddedWorkers").exists()
-
-            # Delete the GroupChange objects.  Running the migration should create them.
-            GroupChange.objects.all().delete()
-
-            # Run the generated migration forwards.
-            succeeded, results = self.call_command("migrate", "group_added", "0003")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            group = Group.objects.filter(name="GroupAddedWorkers").first()
-            assert group is not None, "'GroupAddedWorkers' was not created."
-
-            assert group.permissions.filter(
-                codename="read_groupaddeduser",
-                content_type__app_label="group_added",
-                content_type__model="groupaddeduser",
-            ).exists(), "'read_groupaddeduser' not associated with 'GroupAddedWorkers'."
-
-            assert group.permissions.filter(
-                codename="list_groupaddeduser",
-                content_type__app_label="group_added",
-                content_type__model="groupaddeduser",
-            ).exists(), "'list_groupaddeduser' not associated with 'GroupAddedWorkers'."
-
-            # Verify the GroupChange objects got recreated.
-            assert GroupChange.objects.count() == 2  # noqa PLR2004
-
-            assert GroupChange.objects.filter(
-                group_name="GroupAddedWorkers",
-                change_type="added",
-                historical_permission_codename="list_groupaddeduser",
-                historical_permission_content_type_app_label="group_added",
-                historical_permission_content_type_model_name="groupaddeduser",
-            ).exists(), (
-                f"GroupChange object wasn't created while running the group migration: {GroupChange.objects.values()}"
-            )
-
-            assert GroupChange.objects.filter(
-                group_name="GroupAddedWorkers",
-                change_type="associated",
-                historical_permission_codename="read_groupaddeduser",
-                historical_permission_content_type_app_label="group_added",
-                historical_permission_content_type_model_name="groupaddeduser",
-            ).exists(), (
-                f"GroupChange object wasn't created while running the group migration: {GroupChange.objects.values()}"
-            )
-
-            # Run the generated migration backwards.
-            succeeded, results = self.call_command("migrate", "group_added", "0002")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            assert not Group.objects.filter(name="GroupAddedWorkers").exists(), (
-                "'GroupAddedWorkers' still exists after rolling back."
-            )
+            self.continue_added_group_test(migration_dir, results)
 
 
 class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand):
