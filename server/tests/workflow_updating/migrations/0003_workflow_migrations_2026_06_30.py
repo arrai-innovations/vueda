@@ -11,7 +11,7 @@ from django.db import migrations
 from django.db.migrations import RunPython
 
 
-history_change_reason = "Workflow Migration - 0002_workflow_migrations_2026_06_29"
+history_change_reason = "Workflow Migration - 0003_workflow_migrations_2026_06_30"
 migration_app_label = "workflow_updating"
 changed_data = [
     {
