@@ -241,8 +241,8 @@ class Migration(migrations.Migration):
             reverse_code=migrations.RunPython.noop,
         ),
         migrations.RunPython(
-            code=forwards_migrate_groups,
-            reverse_code=backwards_migrate_groups,
+            forwards_migrate_groups,
+            backwards_migrate_groups,
         ),
     ]
 
