@@ -58,6 +58,7 @@ from django.db.models import Count
 from django.db.transaction import atomic
 from django.utils import timezone
 
+from vueda.user.management.commands.utils import get_import_line_range
 from vueda.workflow import models
 
 
@@ -1041,99 +1042,117 @@ def apply_and_save_changes(obj, data, *, reversing=False):
     obj.save()
 
 
-def get_migration_imports(import_instead=False):
-    """Return the import lines inserted into a workflow migration file."""
-    result = [
-        MIGRATION_MODIFIED_COMMENT,
-        "import copy",
-        f"{NEWLINE}import datetime",
-        "" if import_instead else f"{NEWLINE}import enum",
-        f"{NEWLINE}{NEWLINE}",
-        "" if import_instead else f"from django.apps import apps as django_apps{NEWLINE}",
-        f"from django.conf import settings{NEWLINE}",
-        "" if import_instead else f"from django.contrib.auth.management import create_permissions{NEWLINE}",
-    ]
+def get_migration_imports(import_instead=False, direct_runpython_import=False, as_mapping=False):
+    """Return the full, ordered set of import lines a workflow migration file's import section is replaced with.
+
+    ``direct_runpython_import`` adds a direct ``from django.db.migrations import RunPython`` import, needed
+    when the class Migration block being preserved calls ``RunPython(...)`` directly instead of
+    ``migrations.RunPython(...)``.
+
+    When ``as_mapping`` is True, an ordered mapping is returned instead: keys are single-name tuples (an
+    import only ever binds one name, per this project's force-single-line isort convention) and values are
+    the current import line, each ending in its own newline and prefixed with a blank line where it opens
+    a new isort group. This is used by ``updateworkflowmigrations`` to update or insert only the imports
+    it recognizes in an existing migration, leaving any hand-added imports (or comments) around them
+    untouched.
+    """
+    result_mapping = {
+        ("copy",): f"import copy{NEWLINE}",
+        ("datetime",): f"import datetime{NEWLINE}",
+    }
+    if not import_instead:
+        result_mapping[("enum",)] = f"import enum{NEWLINE}"
 
     if import_instead:
-        result.extend(
-            [
-                f"{NEWLINE}from vueda.workflow.management.commands.makeworkflowmigrations "
-                f"import backwards_migrate_workflow{NEWLINE}",
-                "from vueda.workflow.management.commands.makeworkflowmigrations "
-                f"import forwards_migrate_workflow{NEWLINE}",
-                f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_workflow{NEWLINE}",
-                "from vueda.workflow.management.commands.makeworkflowmigrations "
-                f"import handle_workflow_permission{NEWLINE}",
-                f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_state{NEWLINE}",
-                "from vueda.workflow.management.commands.makeworkflowmigrations "
-                f"import handle_state_permission{NEWLINE}",
-                f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_initial_state{NEWLINE}",
-                f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_transition{NEWLINE}",
-                "from vueda.workflow.management.commands.makeworkflowmigrations "
-                f"import handle_transition_permission{NEWLINE}",
-                "from vueda.workflow.management.commands.makeworkflowmigrations "
-                f"import handle_transition_source{NEWLINE}",
-                f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_state_objects{NEWLINE}",
-                f"from vueda.workflow.management.commands.makeworkflowmigrations import manage_state_objects{NEWLINE}",
-                "from vueda.workflow.management.commands.makeworkflowmigrations "
-                f"import make_sure_permissions_exist{NEWLINE}",
-            ]
+        result_mapping[("settings",)] = f"{NEWLINE}from django.conf import settings{NEWLINE}"
+    else:
+        result_mapping[("django_apps",)] = f"{NEWLINE}from django.apps import apps as django_apps{NEWLINE}"
+        result_mapping[("settings",)] = f"from django.conf import settings{NEWLINE}"
+        result_mapping[("create_permissions",)] = (
+            f"from django.contrib.auth.management import create_permissions{NEWLINE}"
+        )
+
+    result_mapping[("migrations",)] = f"from django.db import migrations{NEWLINE}"
+
+    if direct_runpython_import:
+        result_mapping[("RunPython",)] = f"from django.db.migrations import RunPython{NEWLINE}"
+
+    if import_instead:
+        result_mapping[("backwards_migrate_workflow",)] = (
+            f"{NEWLINE}from vueda.workflow.management.commands.makeworkflowmigrations "
+            f"import backwards_migrate_workflow{NEWLINE}"
+        )
+        result_mapping[("forwards_migrate_workflow",)] = (
+            f"from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow{NEWLINE}"
+        )
+        result_mapping[("make_sure_permissions_exist",)] = (
+            "from vueda.workflow.management.commands.makeworkflowmigrations "
+            f"import make_sure_permissions_exist{NEWLINE}"
         )
     else:
-        result.extend(
-            [
-                f"from django.db.models import Count{NEWLINE}",
-                "from django.utils import timezone",
-            ]
-        )
+        result_mapping[("Count",)] = f"from django.db.models import Count{NEWLINE}"
+        result_mapping[("timezone",)] = f"from django.utils import timezone{NEWLINE}"
 
-    return result
+    if as_mapping:
+        return result_mapping
+
+    return [MIGRATION_MODIFIED_COMMENT, *result_mapping.values()]
 
 
-def get_migration_sources(import_instead=False):
-    """Return the source-code strings that follow changed_data in a workflow migration file."""
+def get_migration_sources(import_instead=False, as_mapping=False):
+    """Return the source-code strings that follow changed_data in a workflow migration file.
+
+    When ``as_mapping`` is True, an ordered mapping is returned instead: keys are tuples of every name
+    (old and current) that identifies a given function/class across versions of this command, and values
+    are the current source for it. This is used by ``updateworkflowmigrations`` to replace only the
+    functions it recognizes in an existing migration, leaving any hand-added code around them untouched.
+    """
     noqa_removal_regex = r"\s*#\s*noqa:\s*F821[^\n]*"  # Removes 'noqa: F821' from these functions.
 
-    forwards_migrate_workflow_source = re.sub(
-        noqa_removal_regex, "", inspect.getsource(forwards_migrate_workflow_through_imports)
-    )
-    backwards_migrate_workflow_source = re.sub(
-        noqa_removal_regex, "", inspect.getsource(backwards_migrate_workflow_through_imports)
-    )
-    make_sure_permissions_exist_source = re.sub(
-        noqa_removal_regex, "", inspect.getsource(make_sure_permissions_exist_through_imports)
-    )
+    def cleaned_source(func):
+        return re.sub(noqa_removal_regex, "", inspect.getsource(func))
 
-    result = [
-        f"{NEWLINE}{NEWLINE}{forwards_migrate_workflow_source}",
-        f"{NEWLINE}{NEWLINE}{backwards_migrate_workflow_source}",
-        f"{NEWLINE}{NEWLINE}{make_sure_permissions_exist_source}",
-    ]
+    forwards_migrate_workflow_source = cleaned_source(forwards_migrate_workflow_through_imports)
+    backwards_migrate_workflow_source = cleaned_source(backwards_migrate_workflow_through_imports)
+    make_sure_permissions_exist_source = cleaned_source(make_sure_permissions_exist_through_imports)
 
+    result_mapping = {
+        ("forwards_migrate_workflow_through_imports", "forwards_migrate_workflow"): (forwards_migrate_workflow_source),
+        ("backwards_migrate_workflow_through_imports", "backwards_migrate_workflow"): (
+            backwards_migrate_workflow_source
+        ),
+        ("make_sure_permissions_exist_through_imports", "make_sure_permissions_exist"): (
+            make_sure_permissions_exist_source
+        ),
+    }
     if not import_instead:
-        result.extend(
-            [
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(WorkflowChangeTypes)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(forwards_migrate_workflow)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(backwards_migrate_workflow)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(make_sure_permissions_exist)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(handle_workflow)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(handle_workflow_permission)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(handle_state)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(handle_state_permission)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(handle_initial_state)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(handle_transition)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(handle_transition_permission)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(handle_transition_source)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(handle_state_objects)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(manage_state_objects)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(add_history_to_data)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(apply_and_save_changes)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(get_id_values_from_item)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(get_id_values_from_dict)}",
-            ]
+        result_mapping.update(
+            {
+                ("WorkflowChangeTypes",): inspect.getsource(WorkflowChangeTypes),
+                ("forwards_migrate_workflow",): inspect.getsource(forwards_migrate_workflow),
+                ("backwards_migrate_workflow",): inspect.getsource(backwards_migrate_workflow),
+                ("make_sure_permissions_exist",): inspect.getsource(make_sure_permissions_exist),
+                ("handle_workflow",): inspect.getsource(handle_workflow),
+                ("handle_workflow_permission",): inspect.getsource(handle_workflow_permission),
+                ("handle_state",): inspect.getsource(handle_state),
+                ("handle_state_permission",): inspect.getsource(handle_state_permission),
+                ("handle_initial_state",): inspect.getsource(handle_initial_state),
+                ("handle_transition",): inspect.getsource(handle_transition),
+                ("handle_transition_permission",): inspect.getsource(handle_transition_permission),
+                ("handle_transition_source",): inspect.getsource(handle_transition_source),
+                ("handle_state_objects",): inspect.getsource(handle_state_objects),
+                ("manage_state_objects",): inspect.getsource(manage_state_objects),
+                ("add_history_to_data",): inspect.getsource(add_history_to_data),
+                ("apply_and_save_changes",): inspect.getsource(apply_and_save_changes),
+                ("get_id_values_from_item",): inspect.getsource(get_id_values_from_item),
+                ("get_id_values_from_dict",): inspect.getsource(get_id_values_from_dict),
+            }
         )
 
+    if as_mapping:
+        return result_mapping
+
+    result = [f"{NEWLINE}{NEWLINE}{value}" for value in result_mapping.values()]
     result.append(f"{NEWLINE}{NEWLINE}")
 
     return result
@@ -2242,17 +2261,11 @@ class Command(BaseCommand):
 
     def _rewrite_migration(self, migration_file, changed_data, app_label, migration_name, dependencies):
         with open(migration_file, "r+", encoding="utf-8") as f:
-            generated_index = class_index = dependencies_index = p_forwards_index = p_reverse_index = forwards_index = (
-                reverse_index
-            ) = 0
+            class_index = dependencies_index = p_forwards_index = p_reverse_index = forwards_index = reverse_index = 0
 
             lines = f.readlines()
             for line_no, line in enumerate(lines):
-                if line.find("Generated by Django") != -1:
-                    # Should be the first line, but we shouldn't assume that.
-                    generated_index = line_no
-
-                elif line.startswith("class Migration"):
+                if line.startswith("class Migration"):
                     class_index = line_no
 
                 elif line.find("dependencies = [") != -1:
@@ -2301,7 +2314,9 @@ class Command(BaseCommand):
             lines[class_index - 1 : class_index] = copied_code
 
             # Migration Modified Comment - Used to find the latest migration we modified using this management command.
-            lines[generated_index + 1 : generated_index + 1] = get_migration_imports(self.import_instead)
+            # Replace Django's generated import rather than inserting alongside it, so we control the order.
+            import_start, import_end, direct_runpython_import = get_import_line_range(lines)
+            lines[import_start : import_end + 1] = get_migration_imports(self.import_instead, direct_runpython_import)
 
             f.seek(0)
             f.writelines(lines)

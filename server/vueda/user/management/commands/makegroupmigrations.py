@@ -41,6 +41,7 @@ from django.db.transaction import atomic
 
 from vueda.user import models as vueda_models
 from vueda.user.management.commands.utils import create_group_change
+from vueda.user.management.commands.utils import get_import_line_range
 from vueda.user.management.commands.utils import get_matching_record
 
 
@@ -217,62 +218,98 @@ def make_sure_permissions_exist(apps, schema_editor):
         create_permissions(app, interactive=False)
 
 
-def get_group_migration_imports(import_instead=False):
-    """Return the import lines inserted into a group migration file."""
+def get_group_migration_imports(import_instead=False, direct_runpython_import=False, as_mapping=False):
+    """Return the full, ordered set of import lines a group migration file's import section is replaced with.
+
+    ``direct_runpython_import`` adds a direct ``from django.db.migrations import RunPython`` import, needed
+    when the class Migration block being preserved calls ``RunPython(...)`` directly instead of
+    ``migrations.RunPython(...)``.
+
+    When ``as_mapping`` is True, an ordered mapping is returned instead: keys are single-name tuples (an
+    import only ever binds one name, per this project's force-single-line isort convention) and values are
+    the current import line, each ending in its own newline and prefixed with a blank line where it opens
+    a new isort group. This is used by ``updategroupmigrations`` to update or insert only the imports it
+    recognizes in an existing migration, leaving any hand-added imports (or comments) around them
+    untouched.
+    """
     if import_instead:
-        return [
-            MIGRATION_MODIFIED_COMMENT,
-            "import copy",
-            f"{NEWLINE}import datetime",
-            f"{NEWLINE}{NEWLINE}from django.conf import settings",
-            f"{NEWLINE}{NEWLINE}from vueda.user.management.commands.makegroupmigrations import backwards_migrate_groups",
-            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import forwards_migrate_groups",
-            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import make_sure_permissions_exist",
-        ]
-    return [
-        MIGRATION_MODIFIED_COMMENT,
-        "import copy",
-        f"{NEWLINE}import datetime",
-        f"{NEWLINE}import enum",
-        f"{NEWLINE}{NEWLINE}from django.apps import apps as django_apps",
-        f"{NEWLINE}from django.conf import settings",
-        f"{NEWLINE}from django.contrib.auth.management import create_permissions",
-    ]
-
-
-def get_group_migration_sources(import_instead=False):
-    """Return the source-code strings inserted into a group migration file."""
-    noqa_removal_regex = r"\s*#\s*noqa:\s*F821[^\n]*"  # Removes 'noqa: F821' from these functions.
-
-    forwards_through_imports_source = re.sub(
-        noqa_removal_regex, "", inspect.getsource(forwards_migrate_groups_through_imports)
-    )
-    backwards_through_imports_source = re.sub(
-        noqa_removal_regex, "", inspect.getsource(backwards_migrate_groups_through_imports)
-    )
-
-    result = [
-        f"{NEWLINE}{NEWLINE}{forwards_through_imports_source}",
-        f"{NEWLINE}{NEWLINE}{backwards_through_imports_source}",
-    ]
-
-    if not import_instead:
-        forwards_migrate_groups_source = re.sub(noqa_removal_regex, "", inspect.getsource(forwards_migrate_groups))
-        backwards_migrate_groups_source = re.sub(noqa_removal_regex, "", inspect.getsource(backwards_migrate_groups))
-
-        result.extend(
-            [
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(create_group_change)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(get_matching_record)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(GroupChangeTypes)}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(migrate_step)}",
-                f"{NEWLINE}{NEWLINE}{forwards_migrate_groups_source}",
-                f"{NEWLINE}{NEWLINE}{backwards_migrate_groups_source}",
-                f"{NEWLINE}{NEWLINE}{inspect.getsource(make_sure_permissions_exist)}",
-            ]
+        result_mapping = {
+            ("copy",): f"import copy{NEWLINE}",
+            ("datetime",): f"import datetime{NEWLINE}",
+            ("settings",): f"{NEWLINE}from django.conf import settings{NEWLINE}",
+            ("migrations",): f"from django.db import migrations{NEWLINE}",
+        }
+        if direct_runpython_import:
+            result_mapping[("RunPython",)] = f"from django.db.migrations import RunPython{NEWLINE}"
+        result_mapping[("backwards_migrate_groups",)] = (
+            f"{NEWLINE}from vueda.user.management.commands.makegroupmigrations import backwards_migrate_groups{NEWLINE}"
+        )
+        result_mapping[("forwards_migrate_groups",)] = (
+            f"from vueda.user.management.commands.makegroupmigrations import forwards_migrate_groups{NEWLINE}"
+        )
+        result_mapping[("make_sure_permissions_exist",)] = (
+            f"from vueda.user.management.commands.makegroupmigrations import make_sure_permissions_exist{NEWLINE}"
         )
 
+    else:
+        result_mapping = {
+            ("copy",): f"import copy{NEWLINE}",
+            ("datetime",): f"import datetime{NEWLINE}",
+            ("enum",): f"import enum{NEWLINE}",
+            ("django_apps",): f"{NEWLINE}from django.apps import apps as django_apps{NEWLINE}",
+            ("settings",): f"from django.conf import settings{NEWLINE}",
+            ("create_permissions",): f"from django.contrib.auth.management import create_permissions{NEWLINE}",
+            ("migrations",): f"from django.db import migrations{NEWLINE}",
+        }
+        if direct_runpython_import:
+            result_mapping[("RunPython",)] = f"from django.db.migrations import RunPython{NEWLINE}"
+
+    if as_mapping:
+        return result_mapping
+
+    return [MIGRATION_MODIFIED_COMMENT, *result_mapping.values()]
+
+
+def get_group_migration_sources(import_instead=False, as_mapping=False):
+    """Return the source-code strings inserted into a group migration file.
+
+    When ``as_mapping`` is True, an ordered mapping is returned instead: keys are tuples of every name
+    (old and current) that identifies a given function/class across versions of this command, and values
+    are the current source for it. This is used by ``updategroupmigrations`` to replace only the functions
+    it recognizes in an existing migration, leaving any hand-added code around them untouched.
+    """
+    noqa_removal_regex = r"\s*#\s*noqa:\s*F821[^\n]*"  # Removes 'noqa: F821' from these functions.
+
+    def cleaned_source(func):
+        return re.sub(noqa_removal_regex, "", inspect.getsource(func))
+
+    forwards_through_imports_source = cleaned_source(forwards_migrate_groups_through_imports)
+    backwards_through_imports_source = cleaned_source(backwards_migrate_groups_through_imports)
+
+    result_mapping = {
+        ("forwards_migrate_groups_through_imports", "forwards_migrate_groups"): forwards_through_imports_source,
+        ("backwards_migrate_groups_through_imports", "backwards_migrate_groups"): backwards_through_imports_source,
+    }
+
+    if not import_instead:
+        result_mapping.update(
+            {
+                ("create_group_change",): inspect.getsource(create_group_change),
+                ("get_matching_record",): inspect.getsource(get_matching_record),
+                ("GroupChangeTypes",): inspect.getsource(GroupChangeTypes),
+                ("migrate_step",): inspect.getsource(migrate_step),
+                ("forwards_migrate_groups",): cleaned_source(forwards_migrate_groups),
+                ("backwards_migrate_groups",): cleaned_source(backwards_migrate_groups),
+                ("make_sure_permissions_exist",): inspect.getsource(make_sure_permissions_exist),
+            }
+        )
+
+    if as_mapping:
+        return result_mapping
+
+    result = [f"{NEWLINE}{NEWLINE}{value}" for value in result_mapping.values()]
     result.append(f"{NEWLINE}{NEWLINE}")
+
     return result
 
 
@@ -406,17 +443,11 @@ class Command(BaseCommand):
 
     def _rewrite_migration(self, migration_file, changes, migration_name, dependencies):
         with open(migration_file, "r+", encoding="utf-8") as f:
-            generated_index = class_index = dependencies_index = p_forwards_index = p_reverse_index = forwards_index = (
-                reverse_index
-            ) = 0
+            class_index = dependencies_index = p_forwards_index = p_reverse_index = forwards_index = reverse_index = 0
 
             lines = f.readlines()
             for line_no, line in enumerate(lines):
-                if line.find("Generated by Django") != -1:
-                    # Should be the first line, but we shouldn't assume that.
-                    generated_index = line_no
-
-                elif line.startswith("class Migration"):
+                if line.startswith("class Migration"):
                     class_index = line_no
 
                 elif line.find("dependencies = [") != -1:
@@ -456,7 +487,11 @@ class Command(BaseCommand):
 
             # Migration Modified Comment and Imports
             # The comment is used to find the latest migration we modified using this management command.
-            lines[generated_index + 1 : generated_index + 1] = get_group_migration_imports(self.import_instead)
+            # Replace Django's generated import rather than inserting alongside it, so we control the order.
+            import_start, import_end, direct_runpython_import = get_import_line_range(lines)
+            lines[import_start : import_end + 1] = get_group_migration_imports(
+                self.import_instead, direct_runpython_import
+            )
 
             f.seek(0)
             f.writelines(lines)
