@@ -763,7 +763,7 @@ const docsSidebar = timeSync("config:sidebar", () => ({
 const breadcrumbContentDirs = ["tutorials", "guides", "core-concepts", "reference"];
 const isExcludedFromBreadcrumbs = (rel) => {
     const base = path.posix.basename(rel);
-    if (base === "AGENTS.md" || base === "CONTENT_PLAN.md" || base === "README.md") {
+    if (base === "AGENTS.md" || base === "CLAUDE.md" || base === "CONTENT_PLAN.md" || base === "README.md") {
         return true;
     }
     return rel.startsWith("temp/") || rel.includes("/node_modules/") || rel.startsWith("node_modules/");
@@ -835,7 +835,7 @@ export default defineConfig({
     metaChunk: true,
     buildConcurrency:
         Number.isFinite(docsBuildConcurrency) && docsBuildConcurrency > 0 ? docsBuildConcurrency : undefined,
-    srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md", "**/README.md", "temp/**"],
+    srcExclude: ["**/AGENTS.md", "**/CLAUDE.md", "**/CONTENT_PLAN.md", "**/README.md", "temp/**"],
     head: [
         ["link", { rel: "icon", href: `${base}assets/logo-cube-solid.svg` }],
         [
