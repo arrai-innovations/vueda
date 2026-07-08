@@ -1961,20 +1961,21 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
     @pytest.mark.django_db
     def test_workflow_updating_direct_runpython_import(self):
         with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
-            migration_filepath = os.path.join(migration_dir, "0002_workflow_migrations_2026_06_29.py")
+            migration_filepath = os.path.join(migration_dir, "0003_workflow_migrations_2026_06_30.py")
 
             with open(migration_filepath, encoding="utf-8") as f:
                 migration_content = f.read()
 
             # Untouched
             assert (
-                'history_change_reason = "Workflow Migration - 0002_workflow_migrations_2026_06_29"'
+                'history_change_reason = "Workflow Migration - 0003_workflow_migrations_2026_06_30"'
                 in migration_content
             )
             assert 'migration_app_label = "workflow_updating"' in migration_content
             assert "changed_data = [" in migration_content
 
             # Original
+
             assert "def forwards_migrate_workflow(apps, schema_editor):" in migration_content
             assert "def backwards_migrate_workflow(apps, schema_editor):" in migration_content
             assert "def make_sure_permissions_exist(apps, schema_editor):" in migration_content
@@ -1995,6 +1996,8 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "reverse_code=backwards_migrate_workflow," in migration_content
 
             # Unchanged
+            assert "from django.db.migrations import RunPython" in migration_content
+
             assert "def apply_and_save_changes(obj, data, *, reversing=False):" in migration_content
             assert "def get_id_values_from_item(values, reversing=False):" in migration_content
             assert "def get_id_values_from_dict(id_data, reversing=False):" in migration_content
@@ -2067,7 +2070,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
 
             # Untouched
             assert (
-                'history_change_reason = "Workflow Migration - 0002_workflow_migrations_2026_06_29"'
+                'history_change_reason = "Workflow Migration - 0003_workflow_migrations_2026_06_30"'
                 in migration_content
             )
             assert 'migration_app_label = "workflow_updating"' in migration_content
@@ -2094,6 +2097,8 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "reverse_code=backwards_migrate_workflow," not in migration_content
 
             # Unchanged
+            assert "from django.db.migrations import RunPython" in migration_content
+
             assert "def apply_and_save_changes(obj, data, *, reversing=False):" in migration_content
             assert "def get_id_values_from_item(values, reversing=False):" in migration_content
             assert "def get_id_values_from_dict(id_data, reversing=False):" in migration_content
@@ -2154,6 +2159,87 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
 
     @override_settings(
         MIGRATION_MODULES={
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        },
+    )
+    @info_register_aware_modify_settings(
+        INSTALLED_APPS={
+            "append": [
+                "tests.workflow_updating",
+            ],
+        }
+    )
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_updating_no_changes(self):
+        with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
+            migration_filepath = os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # Untouched
+            assert (
+                'history_change_reason = "Workflow Migration - 0004_workflow_migrations_2026_07_01"'
+                in migration_content
+            )
+            assert 'migration_app_label = "workflow_updating"' in migration_content
+            assert "changed_data = [" in migration_content
+
+            # Unchanged
+            assert (
+                "from vueda.workflow.management.commands.makeworkflowmigrations import backwards_migrate_workflow"
+                in migration_content
+            )
+            assert (
+                "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow"
+                in migration_content
+            )
+            assert (
+                "from vueda.workflow.management.commands.makeworkflowmigrations import make_sure_permissions_exist"
+                in migration_content
+            )
+
+            assert "def forwards_migrate_workflow_through_imports(apps, schema_editor):" in migration_content
+            assert "def backwards_migrate_workflow_through_imports(apps, schema_editor):" in migration_content
+            assert "def make_sure_permissions_exist_through_imports(apps, schema_editor):" in migration_content
+
+            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # Untouched
+            assert (
+                'history_change_reason = "Workflow Migration - 0004_workflow_migrations_2026_07_01"'
+                in migration_content
+            )
+            assert 'migration_app_label = "workflow_updating"' in migration_content
+            assert "changed_data = [" in migration_content
+
+            # Unchanged
+            assert (
+                "from vueda.workflow.management.commands.makeworkflowmigrations import backwards_migrate_workflow"
+                in migration_content
+            )
+            assert (
+                "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow"
+                in migration_content
+            )
+            assert (
+                "from vueda.workflow.management.commands.makeworkflowmigrations import make_sure_permissions_exist"
+                in migration_content
+            )
+
+            assert "def forwards_migrate_workflow_through_imports(apps, schema_editor):" in migration_content
+            assert "def backwards_migrate_workflow_through_imports(apps, schema_editor):" in migration_content
+            assert "def make_sure_permissions_exist_through_imports(apps, schema_editor):" in migration_content
+
+    @override_settings(
+        MIGRATION_MODULES={
             "workflow_updating_bad_migrations": "tests.workflow_updating_bad_migrations",
         },
     )
@@ -2185,7 +2271,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             ) in results
             assert (
                 f"  Unable to parse migration at {migration_dir}/0003_workflow_migrations_2026_06_29.py"
-                " due to syntax error '[' was never closed (<unknown>, line 1), skipping.\n"
+                " due to syntax error '[' was never closed"
             ) in results
 
             out.seek(0)

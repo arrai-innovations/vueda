@@ -413,12 +413,17 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
 
             # Untouched
             assert "changed_data = [" in migration_content
+            assert "# Stray comment for testing." in migration_content
+            assert "# Stray import 1 for testing." in migration_content
+            assert "# Stray import 2 for testing." in migration_content
+            assert "import os" in migration_content
+            assert "import sys" in migration_content
 
             # Original
             assert "def forwards_migrate_groups(apps, schema_editor):" in migration_content
             assert "def backwards_migrate_groups(apps, schema_editor):" in migration_content
-            assert "code=forwards_migrate_groups," in migration_content
-            assert "reverse_code=backwards_migrate_groups," in migration_content
+            assert "            forwards_migrate_groups," in migration_content
+            assert "            backwards_migrate_groups," in migration_content
 
             # Unchanged
             assert "def create_group_change(change, group_change_model):" in migration_content
@@ -453,8 +458,8 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
             )
             assert "def forwards_migrate_groups(apps, changed_items):" not in migration_content
             assert "def backwards_migrate_groups(apps, changed_items):" not in migration_content
-            assert "code=forwards_migrate_groups_through_imports," not in migration_content
-            assert "reverse_code=backwards_migrate_groups_through_imports," not in migration_content
+            assert "            forwards_migrate_groups_through_imports," not in migration_content
+            assert "            backwards_migrate_groups_through_imports," not in migration_content
 
             succeeded, results = self.call_command("updategroupmigrations")
             if not succeeded:
@@ -464,13 +469,18 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
                 migration_content = f.read()
 
             # Untouched
+            assert "# Stray comment for testing." in migration_content
+            assert "# Stray import 1 for testing." in migration_content
+            assert "# Stray import 2 for testing." in migration_content
             assert "changed_data = [" in migration_content
+            assert "import os" in migration_content
+            assert "import sys" in migration_content
 
             # Removed Original
             assert "def forwards_migrate_groups(apps, schema_editor):" not in migration_content
             assert "def backwards_migrate_groups(apps, schema_editor):" not in migration_content
-            assert "code=forwards_migrate_groups," not in migration_content
-            assert "reverse_code=backwards_migrate_groups," not in migration_content
+            assert "            forwards_migrate_groups," not in migration_content
+            assert "            backwards_migrate_groups," not in migration_content
 
             # Unchanged
             assert "def create_group_change(change, group_change_model):" in migration_content
@@ -505,8 +515,8 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
             )
             assert "def forwards_migrate_groups(apps, changed_items):" in migration_content
             assert "def backwards_migrate_groups(apps, changed_items):" in migration_content
-            assert "code=forwards_migrate_groups_through_imports," in migration_content
-            assert "reverse_code=backwards_migrate_groups_through_imports," in migration_content
+            assert "            forwards_migrate_groups_through_imports," in migration_content
+            assert "            backwards_migrate_groups_through_imports," in migration_content
 
     @override_settings(
         MIGRATION_MODULES={
@@ -628,6 +638,13 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
             assert "code=forwards_migrate_groups_through_imports," in migration_content
             assert "reverse_code=backwards_migrate_groups_through_imports," in migration_content
 
+            # Run update again.  There should be no renames.
+            succeeded, results = self.call_command("updategroupmigrations")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            assert f"  Nothing to rename found in {migration_filepath}.\n" in results
+
     @override_settings(
         MIGRATION_MODULES={
             "group_updating_bad_migrations": "tests.group_updating_bad_migrations",
@@ -661,7 +678,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
             ) in results
             assert (
                 f"  Unable to parse migration at {migration_dir}/0003_group_permission_migrations_2026_06_29.py"
-                " due to syntax error '[' was never closed (<unknown>, line 1), skipping.\n"
+                " due to syntax error '[' was never closed"
             ) in results
 
             out.seek(0)
