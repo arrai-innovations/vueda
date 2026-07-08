@@ -193,7 +193,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
                         from django.db.models import Exists
                         from django.db.models import OuterRef
 
-                        codename = perm.split(".")[-1]
+                        codename = perm.rsplit(".", maxsplit=1)[-1]
                         content_type = ContentType.objects.get_for_model(model)
                         user = self.request.user
 
