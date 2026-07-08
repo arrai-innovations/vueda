@@ -890,7 +890,6 @@ class Migration(migrations.Migration):
         ("auth", "0012_alter_user_first_name_max_length"),
         ("confirmation", "0002_gadget"),
         ("erring", "0002_workflow_migrations_2026_03_24"),
-        ("group_updating", "0001_initial"),
         ("logging", "0001_initial"),
         ("store", "0008_order_item_formatted_name"),
         ("vueda_release", "0001_initial"),

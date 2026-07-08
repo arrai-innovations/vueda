@@ -5,6 +5,7 @@ import copy
 import datetime
 import enum
 
+# Stray comment for testing.
 from django.apps import apps as django_apps
 from django.conf import settings
 from django.contrib.auth.management import create_permissions
@@ -33,6 +34,9 @@ changed_data = [
         "when": datetime.datetime(2026, 6, 29, 20, 49, 37, 102038, tzinfo=datetime.timezone.utc),
     },
 ]
+
+# Stray import 1 for testing.
+import os  # noqa: E402, F401
 
 
 def get_matching_record(change, group_change_model):
@@ -242,3 +246,7 @@ class Migration(migrations.Migration):
             reverse_code=backwards_migrate_groups,
         ),
     ]
+
+
+# Stray import 2 for testing.
+import sys  # noqa: E402, F401

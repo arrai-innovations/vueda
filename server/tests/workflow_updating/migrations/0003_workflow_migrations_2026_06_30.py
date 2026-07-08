@@ -29,6 +29,8 @@ changed_data = [
     },
 ]
 
+import os  # noqa: E402, F401
+
 
 def forwards_migrate_workflow(apps, schema_editor):
     for changed_item in copy.deepcopy(changed_data):  # Copied, so tests can migrate forwards and backwards.
