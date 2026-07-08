@@ -92,6 +92,7 @@ Changes are written in the same order they occurred in history. When migrating b
 
 The migration is a standard Django migration file. After Django generates the empty shell, `makeworkflowmigrations` edits the file to add:
 
+- A replaced import block. Django's generated import is replaced rather than left in place, so the full set of imports the generated code needs is written in a controlled order.
 - A `changed_data` variable containing the list of recorded changes.
 - A `history_change_reason` variable used to identify history records created by the migration.
 - A `migration_app_label` variable identifying the app whose permissions must exist before the migration runs.
@@ -160,6 +161,10 @@ The following are preserved exactly as written in each migration file:
 - `migration_app_label` — the app label used to ensure permissions exist before the migration runs.
 - `changed_data` — the recorded list of workflow changes the migration applies.
 - The `class Migration` block (dependencies and `operations` list), aside from updating any function names within it.
+
+Only the imports and functions listed above are replaced, matched by name. Any other hand-added imports or helper functions elsewhere in the file are left exactly where they are, so custom code is never lost.
+
+That said, any changes you make inside the listed functions themselves are overwritten the next time `updateworkflowmigrations` runs, since each one is replaced wholesale with the current implementation. If you need a workflow migration to do something beyond what `makeworkflowmigrations` generates, add your logic as an additional, self-contained function referenced from the `class Migration` `operations` list, rather than editing `forwards_migrate_workflow`, `backwards_migrate_workflow`, or the other recognized functions directly.
 
 ### Command Options
 

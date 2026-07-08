@@ -100,6 +100,7 @@ Changes are applied in the same order they were recorded. When migrating backwar
 
 The migration is a standard Django migration file. Django generates an empty shell with placeholder values that are used to locate specific lines in the file. `makegroupmigrations` then rewrites the file to add:
 
+- A replaced import block. Django's generated import is replaced rather than left in place, so the full set of imports the generated code needs is written in a controlled order.
 - A `changed_data` variable containing the list of recorded changes.
 - A `GroupChangeTypes` enum with the five change types.
 - A `migrate_step` function that applies a single change by inspecting the change type and performing the appropriate create, associate, rename, unassociate, or delete operation.
@@ -164,6 +165,10 @@ python manage.py updategroupmigrations
 - Replaces the import block with the current imports from `makegroupmigrations.py`.
 - Replaces the embedded function implementations (`GroupChangeTypes`, `migrate_step`, `forwards_migrate_groups`, `backwards_migrate_groups`, and `make_sure_permissions_exist`) with the current versions.
 - Preserves the `changed_data` variable and the `class Migration` block unchanged.
+
+Only these specific imports and functions, matched by name, are replaced. Any other hand-added imports or helper functions elsewhere in the file are left exactly where they are, so custom code is never lost.
+
+That said, any changes you make inside the listed functions themselves are overwritten the next time `updategroupmigrations` runs, since each one is replaced wholesale with the current implementation. If you need a group migration to do something beyond what `makegroupmigrations` generates, add your logic as an additional, self-contained function referenced from the `class Migration` `operations` list, rather than editing `forwards_migrate_groups`, `backwards_migrate_groups`, or the other recognized functions directly.
 
 ### Command Options
 
