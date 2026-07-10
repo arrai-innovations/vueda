@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **All-pages list loading clears stale rows immediately (listCrud)**:
+    - `allPagePaginatedListCrudAdaptor` now clears the existing list when a replacement request starts. It previously checked a literal `page` parameter instead of VUEDA's configured `p` parameter, then left stale rows visible until the first response arrived. Column totals are also applied once from the first response because they aggregate the full filtered queryset and do not vary by page.
+      _No action required._
 - **Separators and inline rules now DPR-track; two edge bugs fixed (Separator, the Command / Context / Dropdown / Menubar / Select / Combobox / Filter separators, ConstraintsBar, SortChip, WidgetHtml, SuggestionList, ResizableHandle, ViewHistoryList, ViewSetupDevice, SidebarMenuButtonChild, SystemMessageCard)**:
     - Filled 1px rules (`h-px` / `w-px` on a `bg-border` element) did not track device-pixel ratio, so they drifted against the theme's box-shadow and border hairlines, and vertical rules fringed on integer-DPR displays. New `h-hairline` / `w-hairline` utilities key a filled rule's thickness to `--vueda-hairline-width`; every separator and inline divider now uses them, and `SuggestionList` row rules move to a DPR-tracked `divide-y`.
     - `SidebarMenuButtonChild`'s `outline` variant painted its ring through `hsl(var(--sidebar-border))`, an invalid wrap of an OKLCH token, so the edge did not render. It now uses the `hairline` utility with the sidebar tokens.

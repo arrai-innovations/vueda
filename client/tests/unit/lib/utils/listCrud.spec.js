@@ -95,8 +95,20 @@ describe("lib/utils/listCrud.js", () => {
         const response2 = { status: 200 };
         global.fetch = vi.fn().mockResolvedValueOnce(response1).mockResolvedValueOnce(response2);
         getJsonOrText
-            .mockResolvedValueOnce({ items: ["a"], totalRecords: 2, totalPages: 2, perPage: 1 })
-            .mockResolvedValueOnce({ items: ["b"], totalRecords: 2, totalPages: 2, perPage: 1 });
+            .mockResolvedValueOnce({
+                items: ["a"],
+                totalRecords: 2,
+                totalPages: 2,
+                perPage: 1,
+                columnTotals: { hours: 3 },
+            })
+            .mockResolvedValueOnce({
+                items: ["b"],
+                totalRecords: 2,
+                totalPages: 2,
+                perPage: 1,
+                columnTotals: { hours: 999 },
+            });
         const pushObjects = vi.fn();
         const clearObjects = vi.fn();
         const setPaginateInfo = vi.fn();
@@ -118,6 +130,38 @@ describe("lib/utils/listCrud.js", () => {
         expect(pushObjects).toHaveBeenNthCalledWith(2, ["b"]);
         expect(setPaginateInfo).toHaveBeenNthCalledWith(1, { totalRecords: 2, totalPages: 2, perPage: 1, page: 1 });
         expect(setPaginateInfo).toHaveBeenNthCalledWith(2, { totalRecords: 2, totalPages: 2, perPage: 1, page: 2 });
+        expect(setColumnTotals).toHaveBeenCalledExactlyOnceWith({ hours: 3 });
+    });
+
+    scopedIt("allPagePaginatedListCrudAdaptor clears objects before fetching", async () => {
+        const { allPagePaginatedListCrudAdaptor } = listCrud;
+        const target = { app: "blog", model: "post", resultsKey: "items" };
+        getListUrl.mockReturnValue("/list");
+        const response = { status: 200 };
+        let resolveFetch;
+        global.fetch = vi.fn(
+            () =>
+                new Promise((resolve) => {
+                    resolveFetch = resolve;
+                }),
+        );
+        getJsonOrText.mockResolvedValue({ items: ["a"], totalRecords: 1, totalPages: 1, perPage: 1 });
+        const clearObjects = vi.fn();
+
+        const request = allPagePaginatedListCrudAdaptor({
+            target,
+            params: { [PAGE_PARAM]: 1 },
+            pushObjects: vi.fn(),
+            clearObjects,
+            isCancelled: { value: false },
+            setPaginateInfo: vi.fn(),
+            setColumnTotals: vi.fn(),
+        });
+
+        expect(clearObjects).toHaveBeenCalledOnce();
+        resolveFetch(response);
+        await request;
+        expect(clearObjects).toHaveBeenCalledOnce();
     });
 
     scopedIt("defaultObjectsDelete uses cancellableFetch with csrf", async () => {
