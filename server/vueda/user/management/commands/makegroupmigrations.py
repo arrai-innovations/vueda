@@ -492,6 +492,20 @@ class Command(BaseCommand):
                         elif keyword.arg == "reverse_code" and value.id == "int":
                             reverse_index = value.lineno - 1
 
+            if any(
+                (
+                    class_index is None,
+                    dependencies_index is None,
+                    p_forwards_index is None,
+                    p_reverse_index is None,
+                    forwards_index is None,
+                    reverse_index is None,
+                    import_start is None,
+                    import_end is None,
+                )
+            ):
+                raise RuntimeError("Unable to determine the line numbers of key components in the created migration.")
+
             # We write lines starting from the bottom to the top, so our line numbers are correct through the process.
             lines[reverse_index] = lines[reverse_index].replace("int", "backwards_migrate_groups_through_imports")
             lines[forwards_index] = lines[forwards_index].replace("str", "forwards_migrate_groups_through_imports")
