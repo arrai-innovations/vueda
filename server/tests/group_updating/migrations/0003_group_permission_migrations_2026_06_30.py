@@ -227,7 +227,6 @@ class Migration(migrations.Migration):
         ("store", "0008_order_item_formatted_name"),
         ("vueda_release", "0001_initial"),
         ("vueda_user", "0005_sync_group_changes"),
-        ("vueda_vdq", "0006_alter_sentitem_options"),
         ("vueda_workflow", "0006_rename_fail_with_silent_historicaltransitionsource_ignored_and_more"),
         ("tests", "0001_initial"),
         ("workflow_updating", "0002_workflow_migrations_2026_06_29"),

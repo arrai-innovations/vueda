@@ -232,7 +232,6 @@ class Migration(migrations.Migration):
         ("tests", "0001_initial"),
         ("vueda_release", "0001_initial"),
         ("vueda_user", "0004_alter_totpdevice_options"),
-        ("vueda_vdq", "0006_alter_sentitem_options"),
         ("vueda_workflow", "0006_rename_fail_with_silent_historicaltransitionsource_ignored_and_more"),
         ("group_changed", "0002_create_group_changed_changes"),
     ]
