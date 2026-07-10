@@ -1,16 +1,13 @@
 """Management command for updating existing workflow migrations with current function implementations."""
 
-import ast
-import importlib
 import os
 import sys
 
 from django.apps import apps as django_apps
-from django.conf import settings
 from django.core.management import BaseCommand
-from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 
 from vueda.user.management.commands.utils import NoRenamesError
+from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.management.commands.utils import has_direct_runpython_import
 from vueda.user.management.commands.utils import merge_migration_imports
 from vueda.user.management.commands.utils import merge_migration_sources
@@ -54,23 +51,6 @@ class Command(BaseCommand):
             help="Show which migrations would be updated without writing any changes.",
         )
 
-    def _get_migrations_path(self, app_config):
-        app_label = app_config.label
-        if app_label in settings.MIGRATION_MODULES:
-            module_name = settings.MIGRATION_MODULES[app_label]
-        else:
-            module_name = f"{app_config.name}.{MIGRATIONS_MODULE_NAME}"
-
-        if module_name is None:
-            return None
-
-        try:
-            module = importlib.import_module(module_name)
-        except ModuleNotFoundError:
-            return None
-
-        return module.__path__[0] if module.__path__ else None
-
     def _find_workflow_migration_files(self, selected_apps=()):
         result = []
 
@@ -81,7 +61,7 @@ class Command(BaseCommand):
             if selected_apps and app_label not in selected_apps:
                 continue
 
-            migrations_path = self._get_migrations_path(app_config)
+            migrations_path = get_migrations_path(app_config)
             if migrations_path is None or not os.path.isdir(migrations_path):
                 continue
 
@@ -108,17 +88,6 @@ class Command(BaseCommand):
             if line_no > 30:  # noqa: PLR2004
                 break
         return False
-
-    @staticmethod
-    def _find_changed_data_end(lines, changed_data_index, class_migration_index):
-        # Either we find the end of changed_data, or we get a syntax error when we call parse.
-        segment = "".join(lines[changed_data_index:class_migration_index])
-        tree = ast.parse(segment)
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if isinstance(target, ast.Name) and target.id == "changed_data":
-                        return changed_data_index + node.end_lineno - 1
 
     def _update_migration_file(self, filepath):
         with open(filepath, encoding="utf-8") as f:
