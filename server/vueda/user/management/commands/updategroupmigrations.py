@@ -15,14 +15,14 @@ from vueda.user.management.commands.makegroupmigrations import NEWLINE
 from vueda.user.management.commands.makegroupmigrations import get_group_migration_imports
 from vueda.user.management.commands.makegroupmigrations import get_group_migration_sources
 from vueda.user.management.commands.utils import NoRenamesError
-from vueda.user.management.commands.utils import get_import_line_range
+from vueda.user.management.commands.utils import has_direct_runpython_import
 from vueda.user.management.commands.utils import merge_migration_imports
 from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.management.commands.utils import update_operation_function_names
 
 
-_GROUP_MIGRATION_COMMENT_MARKER = MIGRATION_MODIFIED_COMMENT.strip()
-_IMPORT_INSTEAD_MARKER = "from vueda.user.management.commands.makegroupmigrations import make_sure_permissions_exist"
+GROUP_MIGRATION_COMMENT_MARKER = MIGRATION_MODIFIED_COMMENT.strip()
+IMPORT_INSTEAD_MARKER = "from vueda.user.management.commands.makegroupmigrations import make_sure_permissions_exist"
 
 # Old function names (without _through_imports) that must be renamed in the operations block.
 OPERATION_FUNCTION_RENAMES = {
@@ -77,7 +77,7 @@ class Command(BaseCommand):
                 filepath = os.path.join(migrations_path, filename)
                 with open(filepath, encoding="utf-8") as f:
                     for line_no, line in enumerate(f):
-                        if line.startswith(_GROUP_MIGRATION_COMMENT_MARKER):
+                        if line.startswith(GROUP_MIGRATION_COMMENT_MARKER):
                             result.append(filepath)
                             break
                         if line_no > 20:  # noqa: PLR2004
@@ -88,7 +88,7 @@ class Command(BaseCommand):
     @staticmethod
     def _is_import_instead(lines):
         for line_no, line in enumerate(lines):
-            if _IMPORT_INSTEAD_MARKER in line:
+            if IMPORT_INSTEAD_MARKER in line:
                 return True
             if line_no > 30:  # noqa: PLR2004
                 break
@@ -109,20 +109,19 @@ class Command(BaseCommand):
         with open(filepath, encoding="utf-8") as f:
             lines = f.readlines()
 
-        changed_data_index = class_migration_index = None
-        for i, line in enumerate(lines):
-            if line.startswith("changed_data = ") and changed_data_index is None:
-                changed_data_index = i
-            elif line.startswith("class Migration(migrations.Migration):") and class_migration_index is None:
-                class_migration_index = i
+        changed_data_exists = False
+        for line in lines:
+            if line.startswith("changed_data = "):
+                changed_data_exists = True
+                break
 
-        if None in (changed_data_index, class_migration_index):
+        if not changed_data_exists:
             self.stderr.write(self.style.ERROR(f"  Could not parse required sections in {filepath}, skipping."))
             return False
 
-        # A migration must have at least one import, or it can't be a migration.
+        # A migration must be valid Python, or it can't be a migration.
         try:
-            import_start, import_end, direct_runpython_import = get_import_line_range(lines)
+            direct_runpython_import = has_direct_runpython_import(lines)
         except SyntaxError as e:
             self.stderr.write(
                 self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
@@ -130,24 +129,11 @@ class Command(BaseCommand):
             return False
 
         import_instead = self._is_import_instead(lines)
-        try:
-            changed_data_end_index = self._find_changed_data_end(lines, changed_data_index, class_migration_index)
-        except SyntaxError as e:
-            self.stderr.write(
-                self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
-            )
-            return False
-
-        # Every section below is replaced in `lines` itself via slice assignment, working from the
-        # bottom of the file upward so the indices collected above stay valid for the next
-        # replacement. Anything not explicitly replaced (changed_data, hand-added code between
-        # sections, etc.) simply stays where it is and is written back unchanged.
+        lines_string = "".join(lines)
 
         # Preserve the class Migration block, updating any stale function names in operations.
         try:
-            class_migration_lines = update_operation_function_names(
-                "".join(lines[class_migration_index:]), OPERATION_FUNCTION_RENAMES
-            ).splitlines(keepends=True)
+            lines_string = update_operation_function_names(lines_string, OPERATION_FUNCTION_RENAMES)
         except SyntaxError as e:
             self.stderr.write(
                 self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
@@ -156,38 +142,25 @@ class Command(BaseCommand):
         except NoRenamesError:
             # Nothing to change, but continue with the update.
             self.stdout.write(self.style.ERROR(f"  Nothing to rename found in {filepath}."))
-            class_migration_lines = lines[class_migration_index:]
-        lines[class_migration_index:] = class_migration_lines
 
         # Replace only the functions/enum we recognize, so any hand-added code between them
         # (e.g. a stray import) is preserved in place instead of being wiped out.
-        existing_sources = "".join(lines[changed_data_end_index + 1 : class_migration_index])
         try:
             source_map = get_group_migration_sources(import_instead, as_mapping=True)
-            fresh_sources = merge_migration_sources(existing_sources, source_map)
+            lines_string = merge_migration_sources(lines_string, source_map)
         except SyntaxError as e:
             self.stderr.write(
                 self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
             )
             return False
-        lines[changed_data_end_index + 1 : class_migration_index] = fresh_sources.splitlines(keepends=True)
 
         # Update/insert only the imports we recognize, leaving any hand-added ones in place.
-        existing_imports = "".join(lines[import_start : import_end + 1])
         import_map = get_group_migration_imports(import_instead, direct_runpython_import, as_mapping=True)
-        fresh_imports = merge_migration_imports(existing_imports, import_map)
-        lines[import_start : import_end + 1] = fresh_imports.splitlines(keepends=True)
-
-        # Drop the stale modified-comment marker from the preamble (everything before the import
-        # block) and add a fresh one right before the import block.
-        filtered_preamble = [
-            line for line in lines[:import_start] if not line.startswith(_GROUP_MIGRATION_COMMENT_MARKER)
-        ]
-        lines[:import_start] = filtered_preamble + MIGRATION_MODIFIED_COMMENT.splitlines(keepends=True)
+        lines_string = merge_migration_imports(lines_string, import_map)
 
         if not self.dry_run:
             with open(filepath, "w", encoding="utf-8") as f:
-                f.writelines(lines)
+                f.writelines(lines_string.splitlines(keepends=True))
 
         return True
 

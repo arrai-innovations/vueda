@@ -16,6 +16,7 @@ __all__ = (
     "migrate_step",
 )
 
+import ast
 import contextlib
 import copy
 import datetime
@@ -41,7 +42,6 @@ from django.db.transaction import atomic
 
 from vueda.user import models as vueda_models
 from vueda.user.management.commands.utils import create_group_change
-from vueda.user.management.commands.utils import get_import_line_range
 from vueda.user.management.commands.utils import get_matching_record
 
 
@@ -443,29 +443,54 @@ class Command(BaseCommand):
 
     def _rewrite_migration(self, migration_file, changes, migration_name, dependencies):
         with open(migration_file, "r+", encoding="utf-8") as f:
-            class_index = dependencies_index = p_forwards_index = p_reverse_index = forwards_index = reverse_index = 0
-
             lines = f.readlines()
-            for line_no, line in enumerate(lines):
-                if line.startswith("class Migration"):
-                    class_index = line_no
 
-                elif line.find("dependencies = [") != -1:
-                    dependencies_index = line_no
+            # Use ast to locate the lines we need to change, rather than scanning text, so the
+            # substitutions below can't accidentally match unrelated code that happens to contain the
+            # same text (e.g. a hand-added `dependencies = [...]` list elsewhere in the file).
+            tree = ast.parse("".join(lines))
+            class_index = dependencies_index = None
+            p_forwards_index = p_reverse_index = forwards_index = reverse_index = None
+            import_start = import_end = None
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef) and node.name == "Migration":
+                    class_index = node.lineno - 1
 
-                # Separate tests, so code=dict and reverse_code=type are fine if they are on the same line.
-                if line.find("code=dict") != -1:
-                    p_forwards_index = line_no
+                elif isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name) and target.id == "dependencies":
+                            dependencies_index = node.lineno - 1
 
-                if line.find("reverse_code=type") != -1:
-                    p_reverse_index = line_no
+                elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                    # This is a freshly generated, empty migration, so its imports are a single
+                    # contiguous block at the top of the file, never a direct RunPython import.
+                    if import_start is None:
+                        import_start = node.lineno - 1
+                    import_end = node.end_lineno - 1
 
-                # Separate tests, so code=str and reverse_code=str are fine if they are on the same line.
-                if line.find("code=str") != -1:
-                    forwards_index = line_no
+                elif isinstance(node, ast.Call):
+                    func = node.func
+                    is_run_python = (isinstance(func, ast.Attribute) and func.attr == "RunPython") or (
+                        isinstance(func, ast.Name) and func.id == "RunPython"
+                    )
+                    if not is_run_python:
+                        continue
 
-                if line.find("reverse_code=int") != -1:
-                    reverse_index = line_no
+                    # Separate tests, so code=dict/reverse_code=type and code=str/reverse_code=int are
+                    # fine whether or not they are on the same line as each other.
+                    for keyword in node.keywords:
+                        value = keyword.value
+                        if not isinstance(value, ast.Name):
+                            continue
+
+                        if keyword.arg == "code" and value.id == "dict":
+                            p_forwards_index = value.lineno - 1
+                        elif keyword.arg == "reverse_code" and value.id == "type":
+                            p_reverse_index = value.lineno - 1
+                        elif keyword.arg == "code" and value.id == "str":
+                            forwards_index = value.lineno - 1
+                        elif keyword.arg == "reverse_code" and value.id == "int":
+                            reverse_index = value.lineno - 1
 
             # We write lines starting from the bottom to the top, so our line numbers are correct through the process.
             lines[reverse_index] = lines[reverse_index].replace("int", "backwards_migrate_groups_through_imports")
@@ -488,10 +513,7 @@ class Command(BaseCommand):
             # Migration Modified Comment and Imports
             # The comment is used to find the latest migration we modified using this management command.
             # Replace Django's generated import rather than inserting alongside it, so we control the order.
-            import_start, import_end, direct_runpython_import = get_import_line_range(lines)
-            lines[import_start : import_end + 1] = get_group_migration_imports(
-                self.import_instead, direct_runpython_import
-            )
+            lines[import_start : import_end + 1] = get_group_migration_imports(self.import_instead)
 
             f.seek(0)
             f.writelines(lines)

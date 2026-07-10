@@ -2,8 +2,8 @@
 
 __all__ = (
     "create_group_change",
-    "get_import_line_range",
     "get_matching_record",
+    "has_direct_runpython_import",
 )
 
 import ast
@@ -46,54 +46,20 @@ def create_group_change(change, group_change_model):
     return obj.pk
 
 
-def get_import_line_range(lines):
-    """Return the (start, end, direct_runpython_import) for a file's main import block.
+def has_direct_runpython_import(lines):
+    """Return True if ``lines`` imports RunPython directly, e.g. ``from django.db.migrations import RunPython``,
+    rather than only accessing it via ``migrations.RunPython``.
 
-    ``start`` and ``end`` are the 0-indexed, inclusive line range spanning the import block. ``lines`` is
-    a list of strings, as returned by ``readlines()``. Only module-level ``import`` and ``from ... import``
-    statements are considered, so imports nested inside copied function sources are never matched. Imports
-    are grouped into consecutive imports; anything else (blank lines, comments, code) ends the current
-    group. The largest range of imports, measured by lineno to end_lineno span, is returned. This means a
-    stray import placed after other top-level code (e.g. functions) is ignored. Returns None, None, False
-    if the file has no top-level imports.
-
-    ``direct_runpython_import`` is True if the file imports RunPython directly, e.g.
-    ``from django.db.migrations import RunPython``, rather than only accessing it via ``migrations.RunPython``.
+    ``lines`` is a list of strings, as returned by ``readlines()``. Only module-level ``from ... import``
+    statements are considered, so a RunPython import nested inside a copied function source is never matched.
     """
     tree = ast.parse("".join(lines))
-    groups = []
-    current_group = []
-    direct_runpython_import = False
-
-    for node in tree.body:
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            current_group.append(node)
-            if (
-                isinstance(node, ast.ImportFrom)
-                and node.module == "django.db.migrations"
-                and any(alias.name == "RunPython" for alias in node.names)
-            ):
-                direct_runpython_import = True
-        elif current_group:
-            groups.append(current_group)
-            current_group = []
-
-    if current_group:
-        groups.append(current_group)
-
-    group_length = -1
-    group_start = group_end = None
-    for group in groups:
-        start = group[0].lineno
-        end = group[-1].end_lineno
-        length = end - start
-        if length > group_length:
-            group_length = length
-            # Convert to 0 base.
-            group_start = start - 1
-            group_end = end - 1
-
-    return group_start, group_end, direct_runpython_import
+    return any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == "django.db.migrations"
+        and any(alias.name == "RunPython" for alias in node.names)
+        for node in tree.body
+    )
 
 
 class NoRenamesError(Exception):
