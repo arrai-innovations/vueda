@@ -441,7 +441,7 @@ class Command(BaseCommand):
 
         return return_value
 
-    def _rewrite_migration(self, migration_file, changes, migration_name, dependencies):
+    def _rewrite_migration(self, migration_file, changes, dependencies):
         with open(migration_file, "r+", encoding="utf-8") as f:
             lines = f.readlines()
 
@@ -670,7 +670,7 @@ class Command(BaseCommand):
             auth_migration_names = self._get_migration_names_from_show_migrations("auth")
             dependencies = [f'{INDENT8}("auth", "{auth_migration_names[-1]}"),{NEWLINE}']
             dependencies += self._get_project_dependency_migration_names_from_show_migrations(exclude=migration_name)
-            self._rewrite_migration(migration_file, changes, migration_name, dependencies)
+            self._rewrite_migration(migration_file, changes, dependencies)
 
         self.stdout.write(
             self.style.SUCCESS(
