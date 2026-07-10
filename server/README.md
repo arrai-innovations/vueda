@@ -242,6 +242,10 @@ For full instructions, see [Use the Permissions and Workflow Overview](https://g
 
 ### Set up Dispatch Queue
 
+VDQ (`vueda.vdq`) is optional — only follow this section if your project needs
+queued, asynchronous email/SMS dispatch. VDQ requires `vueda.workflow` to be
+installed, since every queue item is tracked through a workflow state machine.
+
 The dispatch queue uses celery to run tasks.
 Celery can be used with a number of different [backends](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html).
 You will need to select the backend you want to you and then configure the `CELERY_BROKER_URL` in your environment, for example:
