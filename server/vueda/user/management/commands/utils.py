@@ -323,17 +323,24 @@ def resolve_replacements(existing_segment, entry_map, get_entries):
     for name, start, end in get_entries(existing_segment):
         available_by_name.setdefault(name, []).append((start, end))
 
+    # Match in passes by alias position, not by entry_map order: every entry's own current (first-listed)
+    # name gets first claim on its match before any entry falls back to a shared legacy alias. Otherwise a
+    # migration that predates a later rename (e.g. a `_through_imports` wrapper split out of a function
+    # that used to do both jobs) could have its still-current, unrenamed function stolen by another
+    # entry's alias tuple, which only knows that same name as one of several historical fallbacks.
     claimed_names = set()
-    resolved = []
-    for names, source in entry_map.items():
-        match = None
-        for name in names:
+    entries = list(entry_map.items())
+    resolved = [{"source": source, "range": None} for _names, source in entries]
+    max_names = max((len(names) for names, _source in entries), default=0)
+    for name_index in range(max_names):
+        for index, (names, _source) in enumerate(entries):
+            if resolved[index]["range"] is not None or name_index >= len(names):
+                continue
+            name = names[name_index]
             occurrences = available_by_name.get(name)
             if occurrences and name not in claimed_names:
-                match = occurrences.pop(0)
+                resolved[index]["range"] = occurrences.pop(0)
                 claimed_names.add(name)
-                break
-        resolved.append({"source": source, "range": match})
 
     for index, item in enumerate(resolved):
         if item["range"] is not None:
@@ -377,6 +384,12 @@ def merge_migration_sources(existing_segment, source_map):
     lines = existing_segment.splitlines(keepends=True)
     resolved = resolve_replacements(existing_segment, source_map, get_top_level_defs)
 
+    # An entry only ends up with no anchor at all when nothing else in `resolved` matched either before or
+    # after it -- i.e. nothing in `source_map` matched the file. Land those just before `class Migration`
+    # instead of at the very end, so a freshly inserted function is still defined before the
+    # `operations = [...]` list in the class body can reference it.
+    fallback_anchor = find_class_migration_line(lines)
+
     replace_at = {}
     insert_after = {}
     insert_before = {}
@@ -389,6 +402,8 @@ def merge_migration_sources(existing_segment, source_map):
             insert_after.setdefault(item["anchor"], []).append(item["source"])
         elif item["anchor_side"] == "before":
             insert_before.setdefault(item["anchor"], []).append(item["source"])
+        elif fallback_anchor is not None:
+            insert_before.setdefault(fallback_anchor, []).append(item["source"])
         else:
             trailing.append(item["source"])
 
@@ -435,6 +450,11 @@ def merge_migration_imports(existing_segment, import_map):
     lines = existing_segment.splitlines(keepends=True)
     resolved = resolve_replacements(existing_segment, import_map, get_top_level_imports)
 
+    # An entry only ends up with no anchor at all when nothing else in `resolved` matched either before or
+    # after it -- i.e. nothing in `import_map` matched the file. Land those just before `class Migration`
+    # instead of at the very end, so a freshly inserted import still precedes the code that uses it.
+    fallback_anchor = find_class_migration_line(lines)
+
     replace_at = {}
     insert_after = {}
     insert_before = {}
@@ -449,6 +469,8 @@ def merge_migration_imports(existing_segment, import_map):
             insert_after.setdefault(item["anchor"], []).append(item["source"])
         elif item["anchor_side"] == "before":
             insert_before.setdefault(item["anchor"], []).append(item["source"])
+        elif fallback_anchor is not None:
+            insert_before.setdefault(fallback_anchor, []).append(item["source"])
         else:
             trailing.append(item["source"])
 
