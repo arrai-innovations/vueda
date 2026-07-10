@@ -59,7 +59,7 @@ On the client, transition codes are extracted from the permitted-transitions res
 
 `ViewActionRouter` resolves views by searching both the actions array and the transitions array. When the normalized action name matches a transition code, the router renders the transition view for the workflow. When an action name with the literal value `transition` is encountered, it renders the workflow transition view directly. This parallel lookup means transitions and standard actions share a single resolution path.
 
-Detail and `list` views render transition buttons alongside standard action buttons. `DetailedView` extracts transition codes from the workflow store and renders them as available transitions. `ViewList` creates a set of transition codes and unions them with bulk actions for model-level rendering. In both cases, transitions appear in the same button area as CRUDL actions.
+Detail and `list` views render transition buttons alongside standard action buttons. `DetailView` extracts transition codes from the workflow store and renders them as available transitions. `ViewList` creates a set of transition codes and unions them with bulk actions for model-level rendering. In both cases, transitions appear in the same button area as CRUDL actions.
 
 Transition availability is model-scoped for route admission but can be object-scoped for execution. A route may be permitted for a transition code (because the transition appears in permitted transitions for the model), but execution on a specific object may fail if that object is not in a valid source state for the transition. This failure surfaces as a `400` validation error from `execute_transition`, not as a route rejection.
 

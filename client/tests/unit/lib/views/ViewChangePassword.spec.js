@@ -33,8 +33,8 @@ const WidgetTextInputStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/AuthForm.vue", () => ({ default: AuthFormStub }));
-vi.mock("@vueda/fields/FormField.vue", () => ({ default: FormFieldStub }));
+vi.mock("@vueda/views/AuthForm.vue", () => ({ default: AuthFormStub }));
+vi.mock("@vueda/form/form-model/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => ({ changePassword: changePasswordMock }) }));
 

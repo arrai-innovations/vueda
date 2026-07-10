@@ -1,9 +1,9 @@
 <script setup>
-import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
-import FormModel from "@vueda/components/FormModel.vue";
-import LinkModelView from "@vueda/components/LinkModelView.vue";
-import PageActions from "@vueda/components/PageActions.vue";
-import StickyBar from "@vueda/components/StickyBar.vue";
+import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
+import FormModel from "@vueda/form/form-model/FormModel.vue";
+import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
+import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewRead.theme.js";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useForm } from "@vueda/use/useForm.js";
@@ -38,6 +38,11 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    /** Action names promoted to the filled hero CTA in the action bar; defaults to the `update` action. */
+    primaryActions: {
+        type: Array,
+        default: undefined,
+    },
 });
 
 const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object", "form-context"]);
@@ -52,6 +57,7 @@ const internalOptions = reactive({
     model: toRef(props, "model"),
     viewName: "read",
     pk: toRef(props, "pk"),
+    primaryActions: toRef(props, "primaryActions"),
 });
 
 const { instanceObject, instance, actions } = useDetailView(internalOptions, formContextProps.initialValues);
@@ -97,13 +103,14 @@ onMounted(() => {
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
+                        emphasis="outline"
                     />
                 </slot>
             </template>
             <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
             <slot name="extra-buttons" />
         </page-actions>
-        <sticky-bar class="w-full">
+        <sticky-bar zone="top" reveal="scroll-up-or-idle">
             <template #primary>
                 <div class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max" data-qa="read-action-buttons">
                     <template v-for="actionName in actions.detailActions" :key="actionName">
@@ -123,6 +130,8 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="actionName"
+                                emphasis="outline"
+                                :primary="actions.primaryActions.has(actionName)"
                             />
                         </slot>
                     </template>
@@ -143,6 +152,7 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="transition"
+                                emphasis="outline"
                             />
                         </slot>
                     </template>

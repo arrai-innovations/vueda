@@ -12,9 +12,17 @@ patchTheme({
      * Inline keyboard-shortcut hint on the trailing edge of a CommandItem.
      */
     CommandShortcut: {
-        /** The inline keyboard-shortcut hint on the trailing edge of a {@api theme-key:CommandItem.root}. `ml-auto` pushes the hint flush right; renders as xs muted text with `tracking-widest` so a multi-character chord stays scannable inside a single row. Not a kbd shell: the visible glyph box is owned by an inner `<kbd>`. */
+        /** Alignment wrapper for the trailing keyboard hint on a {@api theme-key:CommandItem.root}. `ml-auto` pushes the hint flush right while the nested {@api theme-key:KbdGroup.root} owns the chord. */
         root: {
-            class: ["text-muted-foreground ml-auto text-xs tracking-widest"],
+            class: "ml-auto inline-flex items-center pl-2",
+        },
+        /** Local grouping for parsed shortcut chords inside command rows. */
+        group: {
+            class: "",
+        },
+        /** Local sizing for nested {@api theme-key:Kbd.root} chips inside command rows. */
+        kbd: {
+            class: "h-[18px] min-w-[18px] px-1 text-[10px]",
         },
     },
 });

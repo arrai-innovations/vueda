@@ -121,7 +121,7 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
       <Field>
         <FieldLabel for="req-b">
           Email
-          <span class="rounded-vueda-control border border-border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Required</span>
+          <span class="rounded-vueda-control hairline hairline-border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Required</span>
         </FieldLabel>
         <FieldContent>
           <Input id="req-b" type="email" placeholder="ar@granger.example" />
@@ -376,17 +376,17 @@ Theme key: {@api theme-key:FormMessage}. Token surface: {@api css-token:destruct
 Section headers and a 2-column grid compose multi-section forms. A `vk-form-section-title` header groups related fields, and a divider separates sections. Repeating contact rows (FieldSet machinery) belong with the ObjectsGrid pass.
 
 <VuedaDemo>
-  <div class="rounded-vueda-card border border-border bg-card p-6">
+  <div class="rounded-vueda-card hairline hairline-border bg-card p-6">
     <header class="mb-6 flex flex-wrap items-baseline justify-between gap-3">
       <div>
         <h3 class="text-lg font-semibold leading-snug text-foreground">New customer</h3>
         <p class="mt-1 text-sm text-muted-foreground">Required fields marked with <span class="text-destructive" aria-hidden="true">*</span>.</p>
       </div>
-      <span class="rounded-vueda-control border border-border bg-muted/50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Unsaved</span>
+      <span class="rounded-vueda-control hairline hairline-border bg-muted/50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Unsaved</span>
     </header>
     <!-- Identity section -->
     <section class="mb-6">
-      <div class="mb-4 flex items-baseline gap-3 border-b border-border pb-2">
+      <div class="mb-4 flex items-baseline gap-3 border-b-hairline pb-2">
         <h4 class="text-sm font-semibold text-foreground">Identity</h4>
         <span class="text-xs text-muted-foreground">How this customer appears in lists and on documents.</span>
       </div>
@@ -426,7 +426,7 @@ Section headers and a 2-column grid compose multi-section forms. A `vk-form-sect
     </section>
     <!-- Billing address section -->
     <section class="mb-6">
-      <div class="mb-4 flex items-baseline gap-3 border-b border-border pb-2">
+      <div class="mb-4 flex items-baseline gap-3 border-b-hairline pb-2">
         <h4 class="text-sm font-semibold text-foreground">Billing address</h4>
         <span class="text-xs text-muted-foreground">Used on invoices and statements.</span>
       </div>
@@ -472,7 +472,7 @@ Section headers and a 2-column grid compose multi-section forms. A `vk-form-sect
     </section>
     <!-- Primary contact section -->
     <section class="mb-6">
-      <div class="mb-4 flex items-baseline gap-3 border-b border-border pb-2">
+      <div class="mb-4 flex items-baseline gap-3 border-b-hairline pb-2">
         <h4 class="text-sm font-semibold text-foreground">Primary contact</h4>
         <span class="text-xs text-muted-foreground">A FieldSet of additional contacts ships with the ObjectsGrid pass.</span>
       </div>
@@ -506,11 +506,11 @@ Section headers and a 2-column grid compose multi-section forms. A `vk-form-sect
       </FieldGroup>
     </section>
     <!-- Form actions -->
-    <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
-      <Button type="submit">Create customer</Button>
-      <Button variant="outline">Save as draft</Button>
+    <div class="flex flex-wrap items-center gap-2 pt-2 border-t-hairline">
+      <Button type="submit" tone="primary">Create customer</Button>
+      <Button emphasis="outline">Save as draft</Button>
       <span class="flex-1"></span>
-      <Button variant="ghost">Cancel</Button>
+      <Button emphasis="ghost">Cancel</Button>
     </div>
   </div>
   <template #footer>
@@ -527,7 +527,7 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
   <DemoCard title="login — email + password + remember + SSO">
     <div class="flex items-start justify-center bg-muted/30 p-6 rounded-vueda-card">
-      <div class="w-full max-w-sm rounded-vueda-card border border-border bg-card p-8">
+      <div class="w-full max-w-sm rounded-vueda-card hairline hairline-border bg-card p-8">
         <h1 class="text-xl font-semibold leading-snug text-foreground">Sign in</h1>
         <p class="mt-1.5 text-sm text-muted-foreground">Use your VUEDA workspace credentials. Need access? Ask your administrator to send you an invite.</p>
         <FieldGroup class="mt-5 gap-4">
@@ -558,14 +558,14 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
           </label>
         </FieldGroup>
         <div class="mt-5">
-          <Button type="submit" class="w-full justify-center">Sign in</Button>
+          <Button type="submit" tone="primary" class="w-full justify-center">Sign in</Button>
         </div>
         <div class="relative my-5 flex items-center gap-3">
           <div class="h-px flex-1 bg-border"></div>
           <span class="text-xs text-muted-foreground">or</span>
           <div class="h-px flex-1 bg-border"></div>
         </div>
-        <Button variant="outline" class="w-full justify-center">
+        <Button emphasis="outline" class="w-full justify-center">
           <FontAwesomeIcon :icon="faMicrosoft" />
           Continue with single sign-on
         </Button>
@@ -582,7 +582,7 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
   </DemoCard>
   <DemoCard title="2FA — OTP slot row + recovery link">
     <div class="flex items-start justify-center bg-muted/30 p-6 rounded-vueda-card">
-      <div class="w-full max-w-sm rounded-vueda-card border border-border bg-card p-8 text-center">
+      <div class="w-full max-w-sm rounded-vueda-card hairline hairline-border bg-card p-8 text-center">
         <h1 class="text-xl font-semibold leading-snug text-foreground">Verify it's you</h1>
         <p class="mt-1.5 text-sm text-muted-foreground">We sent a 6-digit code to your authenticator app. Codes expire after 60 seconds.</p>
         <div class="mt-5 flex justify-center">
@@ -601,8 +601,8 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
           </InputOTP>
         </div>
         <div class="mt-5 flex gap-2">
-          <Button type="submit" class="flex-1 justify-center">Verify</Button>
-          <Button variant="ghost">Resend code</Button>
+          <Button type="submit" tone="primary" class="flex-1 justify-center">Verify</Button>
+          <Button emphasis="ghost">Resend code</Button>
         </div>
         <p class="mt-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
           <span>Lost your authenticator?</span>
@@ -617,7 +617,7 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
   </DemoCard>
   <DemoCard title="change password — current / new / confirm with error" class="lg:col-span-2">
     <div class="flex items-start justify-center bg-muted/30 p-6 rounded-vueda-card">
-      <div class="w-full max-w-sm rounded-vueda-card border border-border bg-card p-8">
+      <div class="w-full max-w-sm rounded-vueda-card hairline hairline-border bg-card p-8">
         <h1 class="text-xl font-semibold leading-snug text-foreground">Change your password</h1>
         <p class="mt-1.5 text-sm text-muted-foreground">Your administrator has required you to set a new password before continuing.</p>
         <FieldGroup class="mt-5 gap-4">
@@ -652,8 +652,8 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
           </Field>
         </FieldGroup>
         <div class="mt-5 flex gap-2">
-          <Button type="submit" class="flex-1 justify-center">Update password</Button>
-          <Button variant="ghost">Sign out</Button>
+          <Button type="submit" tone="primary" class="flex-1 justify-center">Update password</Button>
+          <Button emphasis="ghost">Sign out</Button>
         </div>
       </div>
     </div>
@@ -670,8 +670,8 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
   <DemoCard title="send 4 invoices — confirm step">
-    <div class="overflow-hidden rounded-vueda-card border border-border bg-card">
-      <header class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border bg-muted/30 px-4 py-3">
+    <div class="overflow-hidden rounded-vueda-card hairline hairline-border bg-card">
+      <header class="flex flex-wrap items-baseline justify-between gap-2 border-b-hairline bg-muted/30 px-4 py-3">
         <h3 class="text-sm font-semibold text-foreground">
           <span class="text-primary">Send</span> 4 invoices to customers
         </h3>
@@ -679,7 +679,7 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
       </header>
       <div class="px-4 py-3">
         <p class="text-sm text-muted-foreground">Each invoice will be emailed to the customer's billing contact. Sent invoices are locked and can no longer be edited. This action cannot be undone.</p>
-        <ul class="mt-3 divide-y divide-border overflow-hidden rounded-vueda-control border border-border text-sm" aria-label="Selected invoices">
+        <ul class="mt-3 divide-y divide-border overflow-hidden rounded-vueda-control hairline hairline-border text-sm" aria-label="Selected invoices">
           <li class="flex items-center justify-between gap-4 px-3 py-2">
             <span class="font-medium text-foreground">INV-2026-00482 · Granger Holdings</span>
             <span class="font-mono text-xs text-muted-foreground">$14,820.00 · CAD</span>
@@ -698,11 +698,11 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
           </li>
         </ul>
         <div class="mt-4 flex flex-wrap gap-2">
-          <Button type="submit">
+          <Button type="submit" tone="primary">
             <FontAwesomeIcon :icon="faPaperPlane" />
             Yes, send all 4
           </Button>
-          <Button variant="ghost">Cancel, go back</Button>
+          <Button emphasis="ghost">Cancel, go back</Button>
         </div>
       </div>
     </div>
@@ -712,8 +712,8 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
     </template>
   </DemoCard>
   <DemoCard title="with form-level error · dry-run failed">
-    <div class="overflow-hidden rounded-vueda-card border border-border bg-card">
-      <header class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border bg-muted/30 px-4 py-3">
+    <div class="overflow-hidden rounded-vueda-card hairline hairline-border bg-card">
+      <header class="flex flex-wrap items-baseline justify-between gap-2 border-b-hairline bg-muted/30 px-4 py-3">
         <h3 class="text-sm font-semibold text-foreground">
           <span class="text-primary">Void</span> 2 invoices
         </h3>
@@ -732,8 +732,8 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
         </Alert>
         <p class="text-sm text-muted-foreground">Resolve the listed problems and try again, or remove the affected invoices from your selection.</p>
         <div class="mt-4 flex flex-wrap gap-2">
-          <Button type="submit" disabled>Yes, void all 2</Button>
-          <Button variant="ghost">Cancel, go back</Button>
+          <Button type="submit" tone="primary" disabled>Yes, void all 2</Button>
+          <Button emphasis="ghost">Cancel, go back</Button>
         </div>
       </div>
     </div>

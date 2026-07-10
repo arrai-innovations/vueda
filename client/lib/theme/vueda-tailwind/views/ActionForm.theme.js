@@ -34,7 +34,7 @@ patchTheme({
             class: [
                 "flex flex-row flex-wrap items-center gap-2",
                 "px-4 py-3 mt-2",
-                "border-t bg-muted/25",
+                "border-t-hairline bg-muted/25",
                 "rounded-b-vueda-card",
             ],
         },
@@ -62,7 +62,7 @@ patchTheme({
         validation: {
             class: [
                 "flex items-start gap-3 p-3 mb-2",
-                "rounded-vueda-card border border-destructive/40",
+                "rounded-vueda-card hairline [--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
                 "bg-[color-mix(in_oklab,var(--destructive)_6%,transparent)]",
             ],
         },

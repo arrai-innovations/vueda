@@ -1,5 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/NumberFieldDecrement.theme.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { NumberFieldDecrement, useForwardProps } from "reka-ui";
@@ -11,6 +12,7 @@ import { NumberFieldDecrement, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -25,10 +27,11 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 const forwarded = useForwardProps(delegatedProps);
 
 const theme = useTheme("NumberFieldDecrement", props);
+const icon = useIcons("NumberFieldDecrement", props);
 </script>
 
 <template>
@@ -39,7 +42,13 @@ const theme = useTheme("NumberFieldDecrement", props);
         :style="theme.hideStyle?.value"
     >
         <slot>
-            <span aria-hidden="true" class="select-none">−</span>
+            <component
+                :is="icon('minus').component"
+                v-if="icon('minus')"
+                v-bind="icon('minus').props"
+                aria-hidden="true"
+            />
+            <span v-else aria-hidden="true" class="select-none">−</span>
         </slot>
     </NumberFieldDecrement>
 </template>

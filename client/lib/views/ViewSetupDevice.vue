@@ -1,16 +1,16 @@
 <script setup>
-import AuthForm from "@vueda/components/AuthForm.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import InputOTP from "@vueda/controls/input-otp/InputOTP.vue";
 import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
 import InputOTPSlot from "@vueda/controls/input-otp/InputOTPSlot.vue";
-import FormField from "@vueda/fields/FormField.vue";
+import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewSetupDevice.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import AuthForm from "@vueda/views/AuthForm.vue";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, reactive, ref, toRef } from "vue";
@@ -25,6 +25,7 @@ import { toast } from "vue-sonner";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Django app label for the model that represents the 2FA device. */
     app: {
@@ -50,7 +51,7 @@ const formProps = reactive({
 const router = useRouter();
 const userStore = storeUser();
 const theme = useTheme("ViewSetupDevice", props);
-const icon = useIcons("ViewSetupDevice");
+const icon = useIcons("ViewSetupDevice", props);
 
 const totpSvgDataUri = ref("");
 const totpSecret = ref("");
@@ -249,12 +250,13 @@ const doAfterSuccess = async (response) => {
                 <Button
                     v-if="step === STEPS.DONE"
                     type="button"
+                    tone="primary"
                     data-qa="view-setup-device-continue"
                     @click="handleContinue"
                 >
                     Continue
                 </Button>
-                <Button v-else :disabled="loading || form.values?.method == null" type="submit">
+                <Button v-else :disabled="loading || form.values?.method == null" type="submit" tone="primary">
                     <LoadingSpinnerInline v-if="loading" />
                     {{ step !== STEPS.CHOOSE ? "Verify Device" : "Choose Device" }}
                 </Button>

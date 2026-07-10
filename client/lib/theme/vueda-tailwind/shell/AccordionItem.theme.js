@@ -16,7 +16,7 @@ patchTheme({
          * The wrapper for one disclosure row. It paints the simple bottom divider and removes it from the final item, keeping accordion chrome owned by items rather than the root.
          */
         root: {
-            class: "border-b last:border-b-0",
+            class: "border-b-hairline last:border-b-0",
         },
     },
 });

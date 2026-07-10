@@ -18,27 +18,27 @@ patchTheme({
         /** Pill container. Primary tint at rest; destructive tint flags a value the server rejected. */
         root: {
             class: ({ errored }) => [
-                "inline-flex items-center rounded-full border text-xs font-semibold",
+                "inline-flex items-center rounded-full hairline text-xs font-semibold",
                 errored
-                    ? "border-destructive/40 bg-destructive/10 text-destructive"
-                    : "border-primary/30 bg-primary/10 text-primary",
+                    ? "[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)] bg-destructive/10 text-destructive"
+                    : "[--vueda-hairline-color:color-mix(in_oklab,var(--primary)_30%,transparent)] bg-primary/10 text-primary",
             ],
         },
-        /** Label segment: clicking it opens the edit popover. Carries the left pill radius. */
+        /** Label segment: clicking it opens the edit popover. Carries the left pill radius. Stretches to the chip's full height so the hover target covers the full pill height. */
         label: {
             class: ({ errored }) => [
-                "inline-flex items-center gap-1.5 rounded-l-full py-0.5 pl-2.5 pr-2",
+                "inline-flex items-center self-stretch gap-1.5 rounded-l-full py-1 pl-2.5 pr-2",
                 errored ? "hover:bg-destructive/15" : "hover:bg-primary/15",
             ],
         },
         /** Hairline divider between the label and the remove control. */
         divider: {
-            class: ({ errored }) => ["h-3.5 w-px", errored ? "bg-destructive/30" : "bg-primary/30"],
+            class: ({ errored }) => ["h-4 w-hairline", errored ? "bg-destructive/30" : "bg-primary/30"],
         },
-        /** Remove segment (the trailing dismiss control). Carries the right pill radius. */
+        /** Remove segment (the trailing dismiss control). Carries the right pill radius. Stretches to the chip's full height so the hover target matches the label segment. */
         remove: {
             class: ({ errored }) => [
-                "inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:opacity-100",
+                "inline-flex items-center self-stretch rounded-r-full px-1.5 py-1 opacity-70 hover:opacity-100",
                 errored ? "hover:bg-destructive/15" : "hover:bg-primary/15",
             ],
         },

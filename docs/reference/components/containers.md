@@ -114,7 +114,7 @@ Token surface: {@api css-token:card} (fill),
         <CardTitle>Payment reminders</CardTitle>
         <CardDescription>Automated emails sent to overdue customers.</CardDescription>
         <CardAction>
-          <Button size="sm" variant="outline">Configure</Button>
+          <Button size="sm" emphasis="outline">Configure</Button>
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -139,17 +139,17 @@ Token surface: {@api css-token:card} (fill),
         </p>
       </CardContent>
       <CardFooter class="justify-end gap-2">
-        <Button size="sm" variant="ghost">Cancel</Button>
-        <Button size="sm">Archive</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
+        <Button size="sm" tone="primary">Archive</Button>
       </CardFooter>
     </Card>
     <template #footer>
       <span>CardFooter is a flex row; consumer aligns it</span>
     </template>
   </DemoCard>
-  <DemoCard title="border-b on header — tight grouping">
+  <DemoCard title="border-b-hairline on header — tight grouping">
     <Card>
-      <CardHeader class="border-b">
+      <CardHeader class="border-b-hairline">
         <CardTitle>Transactions</CardTitle>
         <CardDescription>Last 3 days, from all connected feeds.</CardDescription>
       </CardHeader>
@@ -180,7 +180,7 @@ Token surface: {@api css-token:card} (fill),
       <span>consumer adds <code>border-b</code> on the header</span>
     </template>
   </DemoCard>
-  <DemoCard title="border-t on footer — danger zone">
+  <DemoCard title="border-t-hairline on footer — danger zone">
     <Card>
       <CardHeader>
         <CardTitle>Danger zone</CardTitle>
@@ -191,8 +191,8 @@ Token surface: {@api css-token:card} (fill),
           Deleting a customer removes all linked invoices, payments, and contact records.
         </p>
       </CardContent>
-      <CardFooter class="border-t justify-end">
-        <Button size="sm" variant="destructive">Delete customer…</Button>
+      <CardFooter class="border-t-hairline justify-end">
+        <Button size="sm" tone="destructive">Delete customer…</Button>
       </CardFooter>
     </Card>
     <template #footer>
@@ -419,8 +419,8 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
           <ItemDescription>CSV, Parquet, JSON · 3 destinations.</ItemDescription>
         </ItemContent>
         <ItemActions>
-          <Button size="sm" variant="ghost">Rename</Button>
-          <Button size="sm" variant="outline">Run</Button>
+          <Button size="sm" emphasis="ghost">Rename</Button>
+          <Button size="sm" emphasis="outline">Run</Button>
         </ItemActions>
       </Item>
       <Item variant="outline">
@@ -430,7 +430,7 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
           <ItemDescription>https://webhook.site/abc-123 · last ping 2 h ago</ItemDescription>
         </ItemContent>
         <ItemActions>
-          <Button size="sm" variant="ghost" aria-label="More">
+          <Button size="sm" emphasis="ghost" aria-label="More">
             <FontAwesomeIcon :icon="faEllipsis" />
           </Button>
         </ItemActions>
@@ -438,7 +438,7 @@ to `bg-accent/50` on hover via `[a]:hover:bg-accent/50` on the root.
     </ItemGroup>
   </DemoCard>
   <DemoCard title="ItemGroup + ItemSeparator — divider rows" class="sm:col-span-2">
-    <ItemGroup class="rounded-md border overflow-hidden">
+    <ItemGroup class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Item>
         <ItemMedia variant="icon"><FontAwesomeIcon :icon="faUser" /></ItemMedia>
         <ItemContent>
@@ -577,7 +577,7 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="vertical">
-    <div class="rounded-md border overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <ScrollArea style="height: 200px;" class="p-3">
         <ul class="m-0 list-none p-0 text-sm leading-relaxed">
           <li>01. Draft a new invoice</li>
@@ -606,7 +606,7 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
   </DemoCard>
   <DemoCard title="inside a Card">
     <Card class="py-0">
-      <CardHeader class="border-b py-4">
+      <CardHeader class="border-b-hairline py-4">
         <CardTitle class="text-sm">Activity</CardTitle>
         <CardDescription class="text-xs">Last 30 events</CardDescription>
       </CardHeader>
@@ -646,7 +646,7 @@ one.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="horizontal — section break">
-    <div class="rounded-md border p-4">
+    <div class="rounded-vueda-card hairline hairline-border p-4">
       <div class="text-sm font-medium">Account</div>
       <p class="mt-1 text-xs text-muted-foreground">Change the email and password used to sign in.</p>
       <Separator class="my-3" />
@@ -658,7 +658,7 @@ one.
     </template>
   </DemoCard>
   <DemoCard title="vertical — inline items">
-    <div class="inline-flex w-fit items-center gap-3 rounded-md border px-3 py-2 text-sm font-medium">
+    <div class="inline-flex w-fit items-center gap-3 rounded-vueda-card hairline hairline-border px-3 py-2 text-sm font-medium">
       <span>Overview</span>
       <Separator orientation="vertical" class="h-4" />
       <span>Transactions</span>

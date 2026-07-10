@@ -5,14 +5,16 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactive, toRef } from "vue";
 
 /**
- * A sized button variant designed for inline placement within an input group.
+ * A sized button emphasis designed for inline placement within an input group.
  */
 defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** The button style variant. */
-    variant: { type: String, default: "ghost" },
+    /** The button color axis. */
+    tone: { type: String, default: undefined },
+    /** The button structure axis. */
+    emphasis: { type: String, default: "ghost" },
     /** The size variant for the button within the input group. */
     size: { type: String, default: "xs" },
     /** Additional CSS classes to apply to the button. */
@@ -31,7 +33,8 @@ const theme = useTheme(
 <template>
     <Button
         :data-size="props.size"
-        :variant="props.variant"
+        :tone="props.tone"
+        :emphasis="props.emphasis"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
     >

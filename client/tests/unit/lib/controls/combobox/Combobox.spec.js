@@ -237,10 +237,10 @@ describe("lib/controls/combobox/Combobox.vue", () => {
             expect(wrapper.attributes("data-slot")).toBe("combobox-separator");
         });
 
-        scopedIt("applies bg-border and h-px classes", () => {
+        scopedIt("applies bg-border and h-hairline classes", () => {
             const wrapper = mount(ComboboxSeparator);
             expect(wrapper.classes()).toContain("bg-border");
-            expect(wrapper.classes()).toContain("h-px");
+            expect(wrapper.classes()).toContain("h-hairline");
         });
 
         scopedIt("merges custom class", () => {

@@ -17,10 +17,10 @@ patchTheme({
         /** Bordered row card with dirty and selected-for-destroy state chrome. */
         root: {
             class: [
-                "flex items-start gap-3 border rounded-vueda-card p-2.5",
+                "flex items-start gap-3 hairline hairline-border rounded-vueda-card p-2.5",
                 // Data attribute states.
                 "data-[state=dirty]:border-l-2 data-[state=dirty]:border-l-primary",
-                "data-[state=selected-for-destroy]:bg-destructive/5 data-[state=selected-for-destroy]:border-destructive/40",
+                "data-[state=selected-for-destroy]:bg-destructive/5 data-[state=selected-for-destroy]:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
             ],
         },
         /** Fixed leading hook before row fields, commonly used for drag handles or markers. */

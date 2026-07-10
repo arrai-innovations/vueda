@@ -1,16 +1,16 @@
 <script setup>
-import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import InputOTP from "@vueda/controls/input-otp/InputOTP.vue";
 import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
 import InputOTPSlot from "@vueda/controls/input-otp/InputOTPSlot.vue";
-import FormField from "@vueda/fields/FormField.vue";
+import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewTwoFactorAuth.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";
@@ -25,7 +25,7 @@ import { toast } from "vue-sonner";
  */
 defineOptions({});
 
-const props = defineProps({ ...THEME_OVERRIDE_PROPS });
+const props = defineProps({ ...THEME_OVERRIDE_PROPS, ...ICON_OVERRIDE_PROPS });
 
 const formProps = reactive({
     initialValues: {
@@ -110,7 +110,7 @@ watch([isActive, toRef(userStore, "loggedIn")], async ([newActive, newloggedIn])
     }
 });
 const theme = useTheme("ViewTwoFactorAuth", props);
-const icon = useIcons("ViewTwoFactorAuth");
+const icon = useIcons("ViewTwoFactorAuth", props);
 const sendCodeMethods = ["sms", "email"];
 const toggleRecovery = () => {
     useRecoveryCode.value = !useRecoveryCode.value;
@@ -186,7 +186,7 @@ onBeforeUnmount(clearCooldownTimer);
                 <div :class="theme('buttons')" data-qa="view-two-factor-auth-buttons">
                     <Button
                         v-if="!useRecoveryCode && sendCodeMethods.includes(form.values?.method)"
-                        variant="ghost"
+                        emphasis="ghost"
                         :disabled="loading || timer"
                         :data-state="timer ? 'cooldown' : undefined"
                         data-qa="view-two-factor-auth-resend"
@@ -209,12 +209,12 @@ onBeforeUnmount(clearCooldownTimer);
                             {{ cooldownSeconds }}s
                         </span>
                     </Button>
-                    <Button :disabled="loading || !form.values?.code" type="submit">
+                    <Button :disabled="loading || !form.values?.code" type="submit" tone="primary">
                         <LoadingSpinnerInline v-if="loading" />
                         Verify
                     </Button>
                     <Button
-                        variant="ghost"
+                        emphasis="ghost"
                         type="button"
                         :class="theme('recoveryToggle')"
                         data-qa="view-two-factor-auth-recovery-toggle"

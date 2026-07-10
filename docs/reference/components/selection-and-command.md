@@ -35,6 +35,8 @@ import CommandList from "@vueda/controls/command/CommandList.vue";
 import CommandSeparator from "@vueda/controls/command/CommandSeparator.vue";
 import CommandShortcut from "@vueda/controls/command/CommandShortcut.vue";
 import CommandFooter from "@vueda/controls/command/CommandFooter.vue";
+import Kbd from "@vueda/display/kbd/Kbd.vue";
+import KbdGroup from "@vueda/display/kbd/KbdGroup.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faBuilding, faCheck, faChartBar, faChevronDown, faFileLines, faMagnifyingGlass, faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { ref } from "vue";
@@ -220,7 +222,7 @@ Token surface: {@api css-token:border} (trigger stroke),
       </div>
       <div class="flex flex-col gap-2">
         <StateLabel>content panel · static anatomy</StateLabel>
-        <div class="bg-popover text-popover-foreground rounded-vueda-control border shadow-vueda-popover p-1 w-52 text-sm">
+        <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline p-1 w-52 text-sm">
           <div class="text-muted-foreground px-2 py-1.5 text-xs">Standard</div>
           <div class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 bg-accent text-accent-foreground">
             Net 30
@@ -329,8 +331,8 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
     <div class="flex flex-col gap-4">
       <div>
         <div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">filtered results</div>
-        <div class="bg-popover text-popover-foreground rounded-vueda-control border shadow-vueda-popover overflow-hidden w-64">
-          <div class="flex h-9 items-center gap-2 border-b px-3">
+        <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline overflow-hidden w-64">
+          <div class="flex h-9 items-center gap-2 border-b-hairline px-3">
             <FontAwesomeIcon :icon="faMagnifyingGlass" class="size-4 opacity-50 shrink-0" />
             <input class="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground" value="acme" readonly />
           </div>
@@ -355,8 +357,8 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
       </div>
       <div>
         <div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">empty state</div>
-        <div class="bg-popover text-popover-foreground rounded-vueda-control border shadow-vueda-popover overflow-hidden w-64">
-          <div class="flex h-9 items-center gap-2 border-b px-3">
+        <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline overflow-hidden w-64">
+          <div class="flex h-9 items-center gap-2 border-b-hairline px-3">
             <FontAwesomeIcon :icon="faMagnifyingGlass" class="size-4 opacity-50 shrink-0" />
             <input class="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground" value="zzqq" readonly />
           </div>
@@ -366,7 +368,7 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
     </div>
     <template #footer>
       <span>list bg <code>--popover</code></span>
-      <span>search row <code>h-9 border-b</code> separates from items</span>
+      <span>search row <code>h-9 border-b-hairline</code> separates from items</span>
       <span>highlighted bg <code>--accent</code></span>
       <span>empty <code>py-6 text-center text-sm</code></span>
     </template>
@@ -395,7 +397,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="inline palette — groups, shortcuts, separator; type to filter live">
-    <div class="rounded-md border bg-popover text-popover-foreground overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border bg-popover text-popover-foreground overflow-hidden">
       <Command>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
@@ -403,12 +405,12 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
             <CommandItem value="new-invoice">
               <FontAwesomeIcon :icon="faFileLines" />
               New invoice
-              <CommandShortcut>⌘ N</CommandShortcut>
+              <CommandShortcut :keys="['⌘', 'N']" />
             </CommandItem>
             <CommandItem value="send-statement">
               <FontAwesomeIcon :icon="faPaperPlane" />
               Send statement
-              <CommandShortcut>⌘ ⇧ S</CommandShortcut>
+              <CommandShortcut :keys="['⌘', '⇧', 'S']" />
             </CommandItem>
           </CommandGroup>
           <CommandSeparator />
@@ -416,12 +418,12 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
             <CommandItem value="go-receivables">
               <FontAwesomeIcon :icon="faChartBar" />
               Go to receivables
-              <CommandShortcut>G R</CommandShortcut>
+              <CommandShortcut :keys="['G', 'R']" />
             </CommandItem>
             <CommandItem value="find-customer">
               <FontAwesomeIcon :icon="faBuilding" />
               Find customer
-              <CommandShortcut>⌘ K</CommandShortcut>
+              <CommandShortcut :keys="['⌘', 'K']" />
             </CommandItem>
           </CommandGroup>
         </CommandList>
@@ -430,12 +432,12 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
     <template #footer>
       <span>command bg <code>--popover</code></span>
       <span>highlighted bg <code>--accent</code></span>
-      <span>shortcut fg <code>--muted-foreground</code>, text-xs tracking-widest</span>
+      <span>shortcut: parsed <code>KbdGroup</code> chord aligned to row end</span>
       <span>separator <code>--border</code>, -mx-1</span>
     </template>
   </DemoCard>
   <DemoCard title="footer chin — keyboard hints below CommandList">
-    <div class="rounded-md border bg-popover text-popover-foreground overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border bg-popover text-popover-foreground overflow-hidden">
       <Command>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
@@ -443,22 +445,22 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
             <CommandItem value="footer-new-invoice">
               <FontAwesomeIcon :icon="faFileLines" />
               New invoice
-              <CommandShortcut>⌘ N</CommandShortcut>
+              <CommandShortcut :keys="['⌘', 'N']" />
             </CommandItem>
             <CommandItem value="footer-find-customer">
               <FontAwesomeIcon :icon="faBuilding" />
               Find customer
-              <CommandShortcut>⌘ K</CommandShortcut>
+              <CommandShortcut :keys="['⌘', 'K']" />
             </CommandItem>
           </CommandGroup>
         </CommandList>
         <CommandFooter>
           <template #start>
-            <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
-            <span><kbd>↵</kbd> select</span>
+            <span><KbdGroup><Kbd>↑</Kbd><Kbd>↓</Kbd></KbdGroup> navigate</span>
+            <span><Kbd>↵</Kbd> select</span>
           </template>
           <template #end>
-            <span><kbd>Esc</kbd> close</span>
+            <span><Kbd>Esc</Kbd> close</span>
           </template>
         </CommandFooter>
       </Command>
@@ -466,11 +468,11 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
     <template #footer>
       <span>chin height <code>--vueda-cmd-footer-height</code> (32px)</span>
       <span>chin bg <code>--muted</code>, top border <code>--border</code></span>
-      <span>kbd 18px, mono 10px, 1px border, 2px radius</span>
+      <span>hints use canonical <code>Kbd</code> / <code>KbdGroup</code> keycaps</span>
     </template>
   </DemoCard>
   <DemoCard title="empty state — no items match; disabled item">
-    <div class="rounded-md border bg-popover text-popover-foreground overflow-hidden">
+    <div class="rounded-vueda-card hairline hairline-border bg-popover text-popover-foreground overflow-hidden">
       <Command>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
@@ -483,7 +485,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
             <CommandItem value="send-statement-b" disabled>
               <FontAwesomeIcon :icon="faPaperPlane" />
               Send statement
-              <CommandShortcut>⌘ ⇧ S</CommandShortcut>
+              <CommandShortcut :keys="['⌘', '⇧', 'S']" />
             </CommandItem>
             <CommandItem value="find-customer-b">
               <FontAwesomeIcon :icon="faBuilding" />
@@ -513,7 +515,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
         >
           <FontAwesomeIcon :icon="faMagnifyingGlass" />
           Search or run a command
-          <span class="ml-auto font-mono text-xs opacity-70">⌘ K</span>
+          <KbdGroup class="ml-auto opacity-70"><Kbd>⌘</Kbd><Kbd>K</Kbd></KbdGroup>
         </button>
         <CommandDialog
           v-model:open="commandOpen"
@@ -527,7 +529,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
               <CommandItem value="cdlg-new-invoice" @select="commandOpen = false">
                 <FontAwesomeIcon :icon="faFileLines" />
                 New invoice
-                <CommandShortcut>⌘ N</CommandShortcut>
+                <CommandShortcut :keys="['⌘', 'N']" />
               </CommandItem>
               <CommandItem value="cdlg-send-statement" @select="commandOpen = false">
                 <FontAwesomeIcon :icon="faPaperPlane" />
@@ -536,7 +538,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
               <CommandItem value="cdlg-find-customer" @select="commandOpen = false">
                 <FontAwesomeIcon :icon="faBuilding" />
                 Find customer
-                <CommandShortcut>⌘ K</CommandShortcut>
+                <CommandShortcut :keys="['⌘', 'K']" />
               </CommandItem>
             </CommandGroup>
           </CommandList>

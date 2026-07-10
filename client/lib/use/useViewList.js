@@ -39,19 +39,18 @@
  * />
  * ```
  *
- * @example Wiring PaginationComponent
+ * @example Wiring PaginationFooter
  * ```html
- * <pagination-component
+ * <pagination-footer
  *     v-if="pagination.paginateInfo?.totalRecords > 0"
  *     v-model:current-page="list.listState.currentPage"
+ *     v-model:per-page="list.listState.perPage"
  *     :loading="list.instanceList.state.loading"
  *     :rows="pagination.paginateInfo?.perPage"
  *     :total-records="pagination.paginateInfo?.totalRecords"
  *     :is-table="sort.isTable"
- *     :showing-all-pages="pagination.computedShowAllPages"
- *     :allow-show-all-pages="modelConfig.config?.allowShowAllPages && allowShowAllPages"
+ *     :page-size-options="pageSizeOptions"
  *     :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
- *     @update:showing-all-pages="pagination.showingAllPages = $event"
  * />
  * ```
  *
@@ -110,19 +109,6 @@
  *     </SelectContent>
  * </Select>
  * ```
- *
- * @example Wiring MobileSortComponent
- * ```html
- * <mobile-sort-component
- *     v-if="sort.canShowMobileSorter"
- *     v-model:visible="sort.mobileSortDrawerVisible"
- *     :header="`Sort ${memoizedStartCase(modelConfig.config?.verboseNamePlural || 'items')}`"
- *     :field-details="modelConfig.config?.fieldDetails || {}"
- *     :sortables="sort.sortablesList"
- *     :sorted="sort.sorting.state.sorted"
- *     @update:sorted="sort.sorting.updateSorted"
- * />
- * ```
  */
 import { assignReactiveObject, keyDiff, loadingCombine, union, useList } from "@arrai-innovations/reactive-helpers";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
@@ -133,7 +119,17 @@ import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
-import { EXPAND_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import {
+    ALL_PAGES,
+    DEFAULT_PAGE_SIZE,
+    DEFAULT_PAGE_SIZE_OPTIONS,
+    EXPAND_PARAM,
+    FIELDS_PARAM,
+    ORDERING_PARAM,
+    PAGE_PARAM,
+    PAGE_SIZE_PARAM,
+    SEARCH_PARAM,
+} from "@vueda/utils/constants.js";
 import { ListFilterError } from "@vueda/utils/errors.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
@@ -169,13 +165,17 @@ const VIEW_NAME = "list";
  * @property {import('vue').Ref<object> | object} [params] - Extra query parameters merged into every API request.
  *
  * Pagination behaviour.
- * @property {import('vue').Ref<boolean> | boolean} [alwaysShowAllPages] - When true, always fetches and displays all pages.
+ * @property {(number|string)} [defaultPageSize] - Initial rows-per-page when no preference is stored (a number, or `"all"`). Defaults to `DEFAULT_PAGE_SIZE`.
+ * @property {(number|string)[]} [pageSizeOptions] - Rows-per-page options offered by the footer; the final `"all"` entry loads every page. Defaults to `DEFAULT_PAGE_SIZE_OPTIONS`.
+ *
+ * Action styling.
+ * @property {import('vue').Ref<string[]> | string[]} [primaryActions] - Targetless action names promoted to the filled hero CTA; defaults to `["create"]`.
  */
 
 /**
  * @typedef {object} ViewListListGroup
  * @property {object} instanceList - The `useList` result; exposes `.state.objectsInOrder`, `.state.relatedObjects`, `.state.calculatedObjects`, `.state.loading`, `.state.error`, `.state.paginateInfo`, etc.
- * @property {import('vue').UnwrapNestedRefs<{currentPage: number, search: string, params: object, filterArgs: object}>} listState - Mutable reactive list state; `currentPage` and `filterArgs` are the primary mutation points.
+ * @property {import('vue').UnwrapNestedRefs<{currentPage: number, perPage: (number|string), search: string, params: object, filterArgs: object}>} listState - Mutable reactive list state; `currentPage`, `perPage`, and `filterArgs` are the primary mutation points.
  * @property {string} pkKey - The primary key field name (auto-unwrapped).
  * @property {object[]} computedFieldObjects - Ordered field descriptors for the grid, with column visibility applied.
  * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to exclude them from generic slot forwarding.
@@ -194,6 +194,7 @@ const VIEW_NAME = "list";
  * @property {Set<string>} bulkActions - Action names that operate on selected objects.
  * @property {Set<string>} targetlessActions - Action names that require no selected objects.
  * @property {Set<string>} availableTransitions - Workflow transition codes available to the current user.
+ * @property {Set<string>} primaryActions - Targetless action names promoted to the filled hero CTA.
  * @property {{[actionName: string]: object}} buttonSlotProps - Ready-to-spread slot props for each action button; keyed by action name. Does not include a `class` property — shells supply their own.
  * @property {import('vue').Ref<(string|number)[]>} selectedObjects - Array of selected primary keys (auto-unwrapped in templates).
  * @property {(pk: string|number) => void} toggleSelectedObject - Adds or removes a primary key from the selection.
@@ -225,7 +226,7 @@ const VIEW_NAME = "list";
 /**
  * @typedef {object} ViewListPaginationGroup
  * @property {boolean} computedShowAllPages - True when all pages should be loaded at once.
- * @property {boolean} showingAllPages - Whether the user has toggled "show all" on (auto-unwrapped ref; can be assigned via `@update:showing-all-pages`).
+ * @property {boolean} showingAllPages - Whether the `"all"` page-size option is active (auto-unwrapped ref; driven by `list.listState.perPage`).
  * @property {object|undefined} paginateInfo - Shortcut to `instanceList.state.paginateInfo`; exposes `.totalRecords`, `.perPage`, `.totalPages`.
  */
 
@@ -336,14 +337,23 @@ export function useViewList(options) {
         }
     });
 
-    const showingAllPages = ref(false);
-    const computedShowAllPages = computed(() =>
-        modelConfig.config?.alwaysShowAllPages || options.alwaysShowAllPages ? true : showingAllPages.value,
-    );
+    // Seed rows-per-page: a stored preference (when not deep-linked) wins, else the configured
+    // default, validated against the offered option list so the displayed value always matches an option.
+    const configuredDefaultPageSize = options.defaultPageSize ?? DEFAULT_PAGE_SIZE;
+    const pageSizeOptionList = options.pageSizeOptions?.length ? options.pageSizeOptions : DEFAULT_PAGE_SIZE_OPTIONS;
+    const storedPerPage = restoreStoredPreferences ? listPreferenceStore.getPerPage(preferenceArgs()) : null;
+    const seededPerPage = pageSizeOptionList.includes(storedPerPage) ? storedPerPage : configuredDefaultPageSize;
 
-    const alwaysParamsKeys = [ORDERING_PARAM, FIELDS_PARAM, EXPAND_PARAM];
+    // "All" is a rows-per-page selection that drives the all-pages fetch path rather than a `ps` value.
+    const showingAllPages = ref(seededPerPage === ALL_PAGES);
+    const computedShowAllPages = computed(() => showingAllPages.value);
+
+    // The page-size param is framework-managed (seeded here, updated by the perPage watch), so it must
+    // survive the consumer-`params` reconciliation below the same way ordering, fields, and expand do.
+    const alwaysParamsKeys = [ORDERING_PARAM, FIELDS_PARAM, EXPAND_PARAM, PAGE_SIZE_PARAM];
     const listState = reactive({
         currentPage: 1,
+        perPage: seededPerPage,
         search: "",
         params: {
             [ORDERING_PARAM]: toRef(sorting.state, "sorted"),
@@ -352,6 +362,10 @@ export function useViewList(options) {
         },
         filterArgs: {},
     });
+    // Always send `ps` for a numeric page size so the server's `perPage` response matches the selection.
+    if (seededPerPage !== ALL_PAGES) {
+        listState.params[PAGE_SIZE_PARAM] = seededPerPage;
+    }
 
     const instanceListProps = reactive({
         target: {
@@ -385,6 +399,21 @@ export function useViewList(options) {
     watch(toRef(listState, "search"), (newSearch, oldSearch) => {
         if (newSearch !== oldSearch) {
             listState.currentPage = 1;
+        }
+    });
+    // Rows-per-page selection: persist it, then either drive the all-pages path ("All") or send `ps`.
+    watch(toRef(listState, "perPage"), (newPerPage, oldPerPage) => {
+        if (newPerPage === oldPerPage) {
+            return;
+        }
+        listPreferenceStore.setPerPage(preferenceArgs(), newPerPage);
+        if (newPerPage === ALL_PAGES) {
+            delete listState.params[PAGE_SIZE_PARAM];
+            showingAllPages.value = true;
+        } else {
+            showingAllPages.value = false;
+            listState.currentPage = 1;
+            listState.params[PAGE_SIZE_PARAM] = newPerPage;
         }
     });
     watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, newSearch]) => {
@@ -576,6 +605,14 @@ export function useViewList(options) {
         const actionDetails = modelConfig.config?.actionDetails || {};
         return new Set(actions.filter((name) => actionDetails[name]?.bulk));
     });
+    // The list view's hero action: the one promoted to a filled CTA in the page
+    // title. By convention that is `create`; a consumer can override the set via
+    // the `primaryActions` prop. Intersected with the rendered targetless set so
+    // an override naming an unavailable action is simply inert.
+    const primaryActions = computed(() => {
+        const candidates = options.primaryActions ?? ["create"];
+        return new Set(candidates.filter((name) => targetlessActions.value.has(name)));
+    });
 
     const buttonSlotProps = reactive({});
     const bspEffectScope = effectScope();
@@ -764,6 +801,7 @@ export function useViewList(options) {
             bulkActions,
             targetlessActions,
             availableTransitions,
+            primaryActions,
             buttonSlotProps,
             selectedObjects,
             toggleSelectedObject,

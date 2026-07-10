@@ -93,6 +93,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * Optional form overrides.
  * @property {object} [formProps] - Extra props merged into the FormModel component.
  * @property {object} [widgetProps] - Extra props forwarded to every widget component inside the form.
+ * @property {string[]} [primaryActions] - Detail-level action names promoted to the filled hero CTA; defaults to `["update"]`.
  *
  * Optional submit state (needed when the view has a submit button, e.g. update).
  * @property {{ state: { loading: boolean, submitErrored: boolean, error: Error|null } }} [objectForm] - The `useObjectForm` result; used to suppress re-fetching during submission and to surface submit errors.
@@ -118,6 +119,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {string[]} nonDetailActions - Action names that appear in the page-title button area (not detail-level, not the current view).
  * @property {string[]} detailActions - Action names that appear in the sticky bar alongside the submit button (detail-level, not the current view).
  * @property {string[]} availableTransitions - Workflow transition codes available for the current instance.
+ * @property {Set<string>} primaryActions - Detail action names promoted to the filled hero CTA.
  */
 
 /**
@@ -269,6 +271,17 @@ export function useDetailView(options, formInitialValue) {
         }),
     );
 
+    // The detail view's hero action: the one promoted to a filled CTA in the
+    // action bar. By convention that is `update` (the edit affordance on a read
+    // view); a consumer can override the set via `primaryActions`. Intersected
+    // with the rendered detail actions so it never double-promotes (on an update
+    // view `update` is the current view and not a detail action) and an override
+    // naming an unavailable action is simply inert.
+    const primaryActions = computed(() => {
+        const candidates = options.primaryActions ?? ["update"];
+        return new Set(candidates.filter((name) => detailActions.value.includes(name)));
+    });
+
     return {
         modelConfig,
         instanceObject,
@@ -287,6 +300,7 @@ export function useDetailView(options, formInitialValue) {
             nonDetailActions,
             detailActions,
             availableTransitions,
+            primaryActions,
         }),
     };
 }

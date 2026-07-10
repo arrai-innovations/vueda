@@ -24,7 +24,7 @@ patchTheme({
                 : [
                       // Centered modal layout.
                       "top-[50%] left-[50%] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4",
-                      "rounded-vueda-modal border p-6 shadow-vueda-overlay sm:max-w-lg",
+                      "rounded-vueda-modal overlay-hairline overlay-hairline-elevated p-6 sm:max-w-lg",
                   ];
             return {
                 class: [

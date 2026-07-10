@@ -48,7 +48,7 @@ patchTheme({
             class: [
                 "flex flex-col items-center justify-center gap-2",
                 "py-12 px-6 text-center",
-                "rounded-vueda-card border bg-card",
+                "rounded-vueda-card hairline hairline-border bg-card",
             ],
         },
         /** 40 px circular icon tile leading the empty state (typically a clock or history glyph). Muted-50 fill on muted-foreground keeps the tile from competing with the title beneath it. */
@@ -86,28 +86,28 @@ patchTheme({
         /** History-type pill ("Created", "Updated", "Deleted", "Restored") rendered in the history-type column. `data-kind` selects the tonal recipe (created = success, updated = info, deleted = destructive, restored = warning); unknown values fall back to the raw display value via the slot fallback in the consumer, not this recipe. Small uppercase label with a 12 px leading icon so the pill reads as a category tag, not a button. */
         typePill: {
             class: [
-                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5",
+                "inline-flex items-center gap-1 rounded-full hairline px-2 py-0.5",
                 "text-[10.5px] font-semibold uppercase tracking-wide leading-none",
                 "[&>svg]:size-3",
 
                 // Data attribute states.
-                "data-[kind=created]:border-success/30",
+                "data-[kind=created]:[--vueda-hairline-color:color-mix(in_oklab,var(--success)_30%,transparent)]",
                 "data-[kind=created]:bg-[color-mix(in_oklab,var(--success)_10%,transparent)]",
                 "data-[kind=created]:text-success",
-                "data-[kind=updated]:border-info/25",
+                "data-[kind=updated]:[--vueda-hairline-color:color-mix(in_oklab,var(--info)_25%,transparent)]",
                 "data-[kind=updated]:bg-[color-mix(in_oklab,var(--info)_8%,transparent)]",
                 "data-[kind=updated]:text-info",
-                "data-[kind=deleted]:border-destructive/25",
+                "data-[kind=deleted]:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_25%,transparent)]",
                 "data-[kind=deleted]:bg-[color-mix(in_oklab,var(--destructive)_8%,transparent)]",
                 "data-[kind=deleted]:text-destructive",
-                "data-[kind=restored]:border-warning/30",
+                "data-[kind=restored]:[--vueda-hairline-color:color-mix(in_oklab,var(--warning)_30%,transparent)]",
                 "data-[kind=restored]:bg-[color-mix(in_oklab,var(--warning)_10%,transparent)]",
                 "data-[kind=restored]:text-warning",
             ],
         },
         /** Meta strip above the grid: filter slot on the left, layout toggle on the right. Muted-10 wash and a bottom hairline so the strip reads as supporting chrome rather than its own band; kept light because the history view surfaces only a filter slot and a layout toggle, not a full control strip. */
         meta: {
-            class: ["flex items-center gap-3 flex-wrap", "border-b bg-muted/10", "px-4 py-2 text-sm"],
+            class: ["flex items-center gap-3 flex-wrap", "border-b-hairline bg-muted/10", "px-4 py-2 text-sm"],
         },
         /** Inline item inside the meta strip (e.g. an active filter chip). Muted-foreground colour and a 4 px gap between icon and label so the item reads as supporting metadata. */
         metaItem: {
@@ -115,7 +115,7 @@ patchTheme({
         },
         /** Vertical hairline separator between meta items. 12 px tall, `var(--border)` fill; sized to match the meta-row x-height so the divider aligns with the text baseline. */
         metaDivider: {
-            class: ["mx-2 h-3 w-px bg-border"],
+            class: ["mx-2 h-3 w-hairline bg-border"],
         },
         /** Flexible filler that pushes the layout toggle to the right end of the meta strip. */
         metaSpacer: {
@@ -123,14 +123,14 @@ patchTheme({
         },
         /** Outer chassis of the segmented Table / Cards button pair. `overflow-clip` lets the inner buttons render their own internal hairline (`first:border-r`) without poking past the chassis radius. */
         layoutToggle: {
-            class: ["flex overflow-clip rounded-vueda-control border"],
+            class: ["flex overflow-clip rounded-vueda-control hairline hairline-border"],
         },
         /** One button inside the layout toggle. Transparent / muted-foreground in the default state and tinted accent at `data-active="true"`; the leading icon is sized at 12 px so it sits with the label baseline. Focus uses the canon `focus-ring` utility so it follows the DPR-keyed system focus recipe alongside the rest of the kit. */
         layoutButton: {
             class: [
                 "inline-flex items-center gap-1.5 px-2 py-1 text-xs",
                 "text-muted-foreground bg-transparent",
-                "first:border-r",
+                "first:border-r-hairline",
                 "hover:bg-accent hover:text-accent-foreground",
                 "active:bg-accent-active active:text-accent-foreground",
                 "data-[active=true]:bg-accent data-[active=true]:text-foreground",

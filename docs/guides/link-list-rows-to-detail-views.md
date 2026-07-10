@@ -39,7 +39,7 @@ A synthetic action column is a column named after the action (`update` or `read`
 
 ```vue
 <script setup>
-import LinkModelView from "@vueda/components/LinkModelView.vue";
+import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
 import ViewList from "@vueda/views/ViewList.vue";
 
 defineProps({
@@ -103,7 +103,7 @@ When a model wants more than the shared default, add `View<Action><App><Model>.v
 
 ```vue
 <script setup>
-import LinkModelView from "@vueda/components/LinkModelView.vue";
+import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
 
 import DefaultViewList from "@/views/DefaultViewList.vue";
 

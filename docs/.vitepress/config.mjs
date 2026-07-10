@@ -1,3 +1,4 @@
+import { formatApiMemberTitle, memberNameFromId } from "../../docs-tooling/js/utils/reference-index.js";
 import {
     normalizeTerm,
     parseApiRef,
@@ -280,22 +281,6 @@ const pathForFile = (filePath, root, urlPrefix) => {
     return `${urlPrefix}${rel}`;
 };
 
-const memberNameFromId = (memberId) => {
-    const restResponseMatch = memberId.match(/^rest:endpoint:.*:response:([^:]+)$/);
-    if (restResponseMatch) {
-        return restResponseMatch[1];
-    }
-    if (memberId.startsWith("theme-key:") && !memberId.includes(".")) {
-        return "";
-    }
-    const qualName = memberId.replace(/^[^:]+:[^:]+:/, "");
-    const hashName = qualName.includes("#") ? qualName.split("#").pop() : qualName;
-    if (hashName.includes(".")) {
-        return hashName.split(".").pop();
-    }
-    return hashName;
-};
-
 const buildApiIndex = () => {
     const index = new Map();
     let fileCount = 0;
@@ -330,7 +315,7 @@ const buildApiIndex = () => {
                     const anchor = slugify(memberName);
                     index.set(memberId, {
                         href: anchor ? `${pageHref}#${anchor}` : pageHref,
-                        title: `${title}.${memberName}`,
+                        title: formatApiMemberTitle(title, memberName),
                         filePath,
                     });
                 }
@@ -778,7 +763,7 @@ const docsSidebar = timeSync("config:sidebar", () => ({
 const breadcrumbContentDirs = ["tutorials", "guides", "core-concepts", "reference"];
 const isExcludedFromBreadcrumbs = (rel) => {
     const base = path.posix.basename(rel);
-    if (base === "AGENTS.md" || base === "CONTENT_PLAN.md" || base === "README.md") {
+    if (base === "AGENTS.md" || base === "CLAUDE.md" || base === "CONTENT_PLAN.md" || base === "README.md") {
         return true;
     }
     return rel.startsWith("temp/") || rel.includes("/node_modules/") || rel.startsWith("node_modules/");
@@ -850,7 +835,7 @@ export default defineConfig({
     metaChunk: true,
     buildConcurrency:
         Number.isFinite(docsBuildConcurrency) && docsBuildConcurrency > 0 ? docsBuildConcurrency : undefined,
-    srcExclude: ["**/AGENTS.md", "**/CONTENT_PLAN.md", "**/README.md", "temp/**"],
+    srcExclude: ["**/AGENTS.md", "**/CLAUDE.md", "**/CONTENT_PLAN.md", "**/README.md", "temp/**"],
     head: [
         ["link", { rel: "icon", href: `${base}assets/logo-cube-solid.svg` }],
         [
@@ -918,7 +903,20 @@ export default defineConfig({
                 "@internationalized/date": fileURLToPath(
                     new URL("../../client/node_modules/@internationalized/date", import.meta.url),
                 ),
+                // vue-router is a client dependency, not a docs one. The auth-view demos
+                // (AuthDemo) need it, but declaring it as a direct docs dependency changes
+                // vite's SSR externalization globally and breaks the production build with a
+                // CJS/ESM "vue has no default export" error. Alias to the client's copy (as
+                // with @internationalized/date) so it resolves without being a docs dep;
+                // AuthDemo only imports it via a client-only dynamic import.
+                "vue-router": fileURLToPath(new URL("../../client/node_modules/vue-router", import.meta.url)),
             },
+        },
+        ssr: {
+            // Bundle vue-router as ESM for the SSR build instead of externalizing its CJS
+            // entry, which does `require("vue")` and breaks Node ESM instantiation with a
+            // "vue has no default export" error. Pairs with the vue-router resolve alias.
+            noExternal: ["vue-router"],
         },
         server: {
             host: true,

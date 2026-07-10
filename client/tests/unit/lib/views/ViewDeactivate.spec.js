@@ -7,10 +7,10 @@ import { defineComponent, h, reactive } from "vue";
 const SystemMessageCardStub = defineComponent({
     name: "SystemMessageCardStub",
     inheritAttrs: false,
-    props: ["tone"],
+    props: ["tone", "iconName", "iconOverride"],
     setup(props, { slots }) {
         return () =>
-            h("div", { "data-qa": "system-message-card", "data-tone": props.tone }, [
+            h("div", { "data-qa": "system-message-card", "data-tone": props.tone, "data-icon-name": props.iconName }, [
                 slots["crest-eyebrow"] ? h("div", { "data-slot": "crest-eyebrow" }, slots["crest-eyebrow"]()) : null,
                 slots["crest-kind"] ? h("div", { "data-slot": "crest-kind" }, slots["crest-kind"]()) : null,
                 ...(slots.default ? slots.default() : []),
@@ -18,7 +18,7 @@ const SystemMessageCardStub = defineComponent({
             ]);
     },
 });
-vi.mock("@vueda/components/SystemMessageCard.vue", () => ({ default: SystemMessageCardStub }));
+vi.mock("@vueda/display/system-message/SystemMessageCard.vue", () => ({ default: SystemMessageCardStub }));
 
 const ConsequencesBulletsStub = defineComponent({
     name: "ConsequencesBulletsStub",
@@ -28,7 +28,7 @@ const ConsequencesBulletsStub = defineComponent({
         return () => h("ul", { "data-qa": "consequences-bullets", "data-item-count": props.items?.length });
     },
 });
-vi.mock("@vueda/components/ConsequencesBullets.vue", () => ({ default: ConsequencesBulletsStub }));
+vi.mock("@vueda/display/consequences-bullets/ConsequencesBullets.vue", () => ({ default: ConsequencesBulletsStub }));
 
 const TypedConfirmFieldStub = defineComponent({
     name: "TypedConfirmFieldStub",
@@ -44,16 +44,16 @@ const TypedConfirmFieldStub = defineComponent({
             });
     },
 });
-vi.mock("@vueda/components/TypedConfirmField.vue", () => ({ default: TypedConfirmFieldStub }));
+vi.mock("@vueda/form/confirm/TypedConfirmField.vue", () => ({ default: TypedConfirmFieldStub }));
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["variant", "disabled"],
+    props: ["tone", "emphasis", "disabled"],
     setup(props, { slots, attrs }) {
         return () =>
             h(
                 "button",
-                { "data-variant": props.variant, disabled: props.disabled, ...attrs },
+                { "data-tone": props.tone, "data-emphasis": props.emphasis, disabled: props.disabled, ...attrs },
                 slots.default ? slots.default() : null,
             );
     },
@@ -62,8 +62,11 @@ vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 
 // --- composable mocks ----------------------------------------------------
 
-const mockedUseIcons = vi.fn();
-vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: mockedUseIcons }));
+const mockedUseIconsOverride = vi.fn();
+vi.mock("@vueda/use/useIcons.js", () => ({
+    ICON_OVERRIDE_PROPS: { iconOverride: { type: Object, default: null } },
+    useIconsOverride: mockedUseIconsOverride,
+}));
 
 const mockedUseRouter = vi.fn();
 vi.mock("vue-router", () => ({ useRouter: mockedUseRouter }));
@@ -95,7 +98,7 @@ beforeEach(async () => {
     mockRouter = { back: vi.fn() };
     mockedUseRouter.mockReturnValue(mockRouter);
 
-    mockedUseIcons.mockReturnValue(() => null);
+    mockedUseIconsOverride.mockReturnValue(null);
 
     mockedGetDetailUrl.mockReturnValue("/api/myapp/mymodel/deactivate/");
 
@@ -115,6 +118,19 @@ describe("lib/views/ViewDeactivate.vue", () => {
         scopedIt("renders a warning-toned SystemMessageCard", () => {
             const wrapper = mount(ViewDeactivate, { props: { app: "myapp", model: "mymodel", pk: "1" } });
             expect(wrapper.find('[data-qa="system-message-card"]').attributes("data-tone")).toBe("warning");
+        });
+
+        scopedIt("passes the warning icon name to SystemMessageCard", () => {
+            const wrapper = mount(ViewDeactivate, { props: { app: "myapp", model: "mymodel", pk: "1" } });
+            expect(wrapper.findComponent(SystemMessageCardStub).props("iconName")).toBe("warning");
+        });
+
+        scopedIt("passes iconOverride through to SystemMessageCard", () => {
+            const iconOverride = { Default: {} };
+            const wrapper = mount(ViewDeactivate, {
+                props: { app: "myapp", model: "mymodel", pk: "1", iconOverride },
+            });
+            expect(wrapper.findComponent(SystemMessageCardStub).props("iconOverride")).toEqual(iconOverride);
         });
 
         scopedIt("crest-eyebrow contains the model name", () => {

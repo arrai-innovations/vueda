@@ -17,7 +17,7 @@ describe("lib/controls/calendar/CalendarFooter.vue", () => {
         expect(classes).toContain("gap-2");
         expect(classes).toContain("mt-2");
         expect(classes).toContain("pt-2");
-        expect(classes).toContain("border-t");
+        expect(classes).toContain("border-t-hairline");
     });
 
     scopedIt("renders the summary span with mono / slashed-zero classes by default", () => {

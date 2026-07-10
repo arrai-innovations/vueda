@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/SelectTrigger.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { SelectIcon, SelectTrigger, useForwardProps } from "reka-ui";
@@ -11,6 +11,7 @@ import { SelectIcon, SelectTrigger, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -30,12 +31,12 @@ const props = defineProps({
     asChild: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "size", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "size", "themeOverride");
 
 const forwardedProps = useForwardProps(delegatedProps);
 
 const theme = useTheme("SelectTrigger", props);
-const icon = useIcons("SelectTrigger");
+const icon = useIcons("SelectTrigger", props);
 </script>
 
 <template>
@@ -48,16 +49,13 @@ const icon = useIcons("SelectTrigger");
     >
         <slot />
         <SelectIcon as-child>
-            <!-- Replaces the dropdown chevron icon; receives no slot props. -->
-            <slot name="icon">
-                <component
-                    :is="icon('caretDown').component"
-                    v-if="icon('caretDown')"
-                    v-bind="icon('caretDown').props"
-                    aria-hidden="true"
-                    class="size-4 opacity-50"
-                />
-            </slot>
+            <component
+                :is="icon('caretDown').component"
+                v-if="icon('caretDown')"
+                v-bind="icon('caretDown').props"
+                aria-hidden="true"
+                class="size-4 opacity-50"
+            />
         </SelectIcon>
     </SelectTrigger>
 </template>

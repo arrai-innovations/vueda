@@ -41,16 +41,28 @@ patchTheme({
         objectsGrid: {
             class: ["w-full border-0 rounded-none"],
         },
-        /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with the title row above and the {@api theme-key:ViewList.paginationWrapper} below, so the chrome reads as a matched frame around the grid. */
+        /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with the title row above and the {@api theme-key:NavigationPaginationBar} below, so the chrome reads as a matched frame around the grid. */
         underActionsBar: {
-            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3", "border-b bg-card text-foreground"],
+            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-3", "border-b-hairline bg-card text-foreground"],
         },
-        /** Bulk-actions strip that surfaces once one or more rows are selected. 6 %-mix primary fill and 12 px / 500 type so it reads as an active selection band, not a passive section; sits between the under-actions strip and the filter strip. */
+        /** Bulk-actions strip that surfaces once one or more rows are selected. 6 %-mix primary fill and 12 px / 500 type so it reads as an active selection band, not a passive section. Sits in the sticky-stack bottom zone just above the {@api theme-key:PaginationFooter}; the top hairline separates it from the grid above, mirroring the pagination strip's rhythm so the chrome below the grid reads as a matched pair. */
         bulkActionsBar: {
             class: [
                 "w-full flex items-center flex-wrap gap-[10px] px-5 py-[10px]",
-                "border-b bg-primary/[0.06] text-foreground text-[12px] font-medium",
+                "border-t-hairline bg-primary/[0.06] text-foreground text-[12px] font-medium",
             ],
+        },
+        /** Selection read-out at the leading edge of the bulk-actions strip ("✓ N selected"). Inline flex row that holds the check glyph, the count, and the trailing word; sits before {@api theme-key:ViewList.actionButtonGroupBar} so the count anchors the band. */
+        selectionCount: {
+            class: ["flex items-center gap-2"],
+        },
+        /** Check glyph leading the selection read-out. Tinted `--primary` so the confirm mark carries the accent while the surrounding count text stays in the strip's `--foreground` tone. */
+        selectionCountIcon: {
+            class: ["text-primary"],
+        },
+        /** The numeric count inside the selection read-out. `font-semibold` lifts it one weight above the strip's 500 body so the figure reads first; `tabular-nums` keeps its width stable as the selection grows. */
+        selectionCountValue: {
+            class: ["font-semibold tabular-nums"],
         },
         /** Button cluster inside the bulk-actions strip. Wraps so a large action menu folds across rows rather than overflowing the strip; `sm:w-fit sm:max-w-max` snaps the cluster to its content width once the viewport can hold all buttons inline. */
         actionButtonGroupBar: {
@@ -63,10 +75,6 @@ patchTheme({
         /** Cell class for the column-totals row appended below the body rows when any column declares a total. The 2 px top border separates the totals row from the data rows above it; the cell otherwise inherits {@api theme-key:ObjectsGridBodyCell} chrome. */
         columnTotalCell: {
             class: "border-t-2",
-        },
-        /** Pagination strip beneath the grid. Card-toned with a top hairline; mirrors the {@api theme-key:ViewList.underActionsBar} rhythm so the chrome above and below the grid read as a matched pair. */
-        paginationWrapper: {
-            class: ["w-full flex items-center flex-wrap gap-3 px-5 py-[10px]", "border-t bg-card text-foreground"],
         },
     },
 });

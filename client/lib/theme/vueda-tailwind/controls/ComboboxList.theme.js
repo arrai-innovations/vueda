@@ -12,11 +12,11 @@ patchTheme({
      * The floating popover surface that holds the Combobox results.
      */
     ComboboxList: {
-        /** The floating popover surface that holds the {@api theme-key:ComboboxItem.root} rows. Reads as a popover: 2px control radius, `--popover` fill, 1px border, and `shadow-vueda-popover` elevation, with the standard side-aware enter / exit transforms anchored on `--reka-combobox-content-transform-origin` so the surface scales out of the corner closest to the trigger. Fixed 200px width matches {@api theme-key:ComboboxAnchor.root}; the inner {@api theme-key:ComboboxViewport.root} owns scrolling. */
+        /** The floating popover surface that holds the {@api theme-key:ComboboxItem.root} rows. Reads as a popover: 2px control radius, `--popover` fill, and a hairline edge with popover elevation (`overlay-hairline`), with the standard side-aware enter / exit transforms anchored on `--reka-combobox-content-transform-origin` so the surface scales out of the corner closest to the trigger. Fixed 200px width matches {@api theme-key:ComboboxAnchor.root}; the inner {@api theme-key:ComboboxViewport.root} owns scrolling. */
         root: {
             class: [
                 // Positioning, surface, and shape.
-                "z-50 w-[200px] rounded-vueda-control border bg-popover text-popover-foreground origin-(--reka-combobox-content-transform-origin) overflow-hidden shadow-vueda-popover outline-none",
+                "z-50 w-[200px] rounded-vueda-control overlay-hairline bg-popover text-popover-foreground origin-(--reka-combobox-content-transform-origin) overflow-hidden outline-none",
 
                 // Motion and side states.
                 "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",

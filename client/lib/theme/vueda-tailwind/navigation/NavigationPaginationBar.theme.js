@@ -12,14 +12,14 @@ patchTheme({
      * NavigationPaginationBar styles a pagination bar anchored below a navigation surface.
      */
     NavigationPaginationBar: {
-        /** Footer bar for table and objects-grid pagination, seated against the bottom of card-like data surfaces. */
+        /** Footer bar for table and objects-grid pagination, seated against the bottom of card-like data surfaces. The `px-5 py-3` padding matches the list chrome rhythm (e.g. {@api theme-key:ViewList.underActionsBar}) so the chrome above and below the grid read as a matched frame. */
         root: {
             class: [
                 // Layout and spacing.
                 "flex w-full items-center justify-between gap-3",
 
                 // Shape and surface.
-                "rounded-b-vueda-card border-t bg-card text-foreground px-3 py-2",
+                "rounded-b-vueda-card border-t-hairline bg-card text-foreground px-5 py-3",
             ],
         },
     },

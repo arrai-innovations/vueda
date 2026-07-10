@@ -18,10 +18,11 @@ import { effectScope, reactive, toRef } from "vue";
 
 setTheme(vuedaTailwind);
 
-const makeButtonProps = () => reactive({ themeOverride: null, variant: "default", size: "default" });
+const makeButtonProps = () => reactive({ themeOverride: null, tone: "primary", emphasis: "fill", size: "default" });
 const makeButtonContext = (props) =>
     reactive({
-        variant: toRef(props, "variant"),
+        tone: toRef(props, "tone"),
+        emphasis: toRef(props, "emphasis"),
         size: toRef(props, "size"),
     });
 
@@ -107,15 +108,16 @@ describe("useTheme: at-scale (per-page instance counts)", () => {
 });
 
 describe("useTheme: reactive invalidation", () => {
-    bench("Button.root re-resolves on variant change (default -> outline -> ghost)", () => {
+    bench("Button.root re-resolves on tone/emphasis change", () => {
         const scope = effectScope();
         scope.run(() => {
             const props = makeButtonProps();
             const theme = useTheme("Button", props, makeButtonContext(props));
             theme("root");
-            props.variant = "outline";
+            props.tone = "neutral";
+            props.emphasis = "outline";
             theme("root");
-            props.variant = "ghost";
+            props.emphasis = "ghost";
             theme("root");
         });
         scope.stop();

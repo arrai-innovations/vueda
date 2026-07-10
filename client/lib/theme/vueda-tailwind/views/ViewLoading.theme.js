@@ -17,11 +17,11 @@ patchTheme({
         root: {
             class: ["flex min-h-full items-center justify-center p-8"],
         },
-        /** 20 px `LoadingSpinnerBlock` forwarded into the card's `crest-icon` slot on the normal (non-slow) path. Sized to read as a glyph beside the crest label, not as the dominant figure in the card. */
+        /** 20 px icon classes passed through {@api theme-key:SystemMessageCard} `iconProps` on the normal, non-slow path. Sized to read as a glyph beside the crest label, not as the dominant figure in the card. */
         crest: {
             class: ["w-5 h-5"],
         },
-        /** Hourglass span forwarded into the card's `crest-icon` slot once the slow-path tone activates. 18 px so the swap reads as a deliberate state change against the 20 px spinner it replaces. */
+        /** Hourglass icon classes passed through {@api theme-key:SystemMessageCard} `iconProps` once the slow-path tone activates. 18 px so the swap reads as a deliberate state change against the 20 px loading icon it replaces. */
         slowCrest: {
             class: ["text-[18px] leading-none"],
         },

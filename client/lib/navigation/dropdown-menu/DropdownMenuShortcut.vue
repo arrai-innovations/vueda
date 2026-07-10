@@ -1,6 +1,10 @@
 <script setup>
+import Kbd from "@vueda/display/kbd/Kbd.vue";
+import KbdGroup from "@vueda/display/kbd/KbdGroup.vue";
+import { normalizeShortcutKeys, shortcutKeysFromVNodes } from "@vueda/display/kbd/shortcutKeys.js";
 import "@vueda/theme/vueda-tailwind/navigation/DropdownMenuShortcut.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { useSlots } from "vue";
 
 /**
  * Displays a keyboard shortcut hint within a dropdown menu item.
@@ -14,13 +18,25 @@ const props = defineProps({
      * @type {import('vue').HTMLAttributes['class']}
      */
     class: { type: [String, Array, Object], default: undefined },
+    /** Structured shortcut key labels. Prefer this over slot text so each physical key renders as a Kbd chip. */
+    keys: { type: [String, Array], default: undefined },
 });
 
 const theme = useTheme("DropdownMenuShortcut", props);
+const slots = useSlots();
+const getKeys = () =>
+    props.keys === undefined || props.keys === null
+        ? shortcutKeysFromVNodes(slots.default?.() ?? [])
+        : normalizeShortcutKeys(props.keys);
 </script>
 
 <template>
     <span data-slot="dropdown-menu-shortcut" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
-        <slot />
+        <KbdGroup v-if="getKeys().length" :class="theme('group')">
+            <Kbd v-for="(key, index) in getKeys()" :key="`${key}-${index}`" :class="theme('kbd')">
+                {{ key }}
+            </Kbd>
+        </KbdGroup>
+        <slot v-else />
     </span>
 </template>

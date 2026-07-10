@@ -52,7 +52,7 @@ patchTheme({
         option: {
             class: [
                 "relative flex flex-col gap-1 px-4 py-3",
-                "rounded-vueda-card border cursor-pointer",
+                "rounded-vueda-card border-hairline cursor-pointer",
                 "hover:border-primary/50 hover:bg-accent/30 active:bg-accent/50",
                 "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
                 "data-[selected=true]:border-primary data-[selected=true]:bg-primary/5",

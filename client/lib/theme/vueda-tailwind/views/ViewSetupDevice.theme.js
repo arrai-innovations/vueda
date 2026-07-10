@@ -49,11 +49,14 @@ patchTheme({
         },
         /** 1 px hairline rendered between consecutive step badges. `flex-1` lets the divider claim the remaining row width so all dividers stretch to the same length regardless of label length. */
         stepDivider: {
-            class: ["flex-1 h-px bg-border"],
+            class: ["flex-1 h-hairline bg-border"],
         },
         /** Manual-key strip rendered beneath the TOTP QR code so the operator can transcribe the secret when scanning is not an option. Card-toned with a hairline border and 10 px vertical padding; sits one row below the QR with a 8 px top inset so the two read as a pair. */
         manualKey: {
-            class: ["flex items-center gap-2 px-3 py-[10px] mt-2", "rounded-vueda-control border bg-background"],
+            class: [
+                "flex items-center gap-2 px-3 py-[10px] mt-2",
+                "rounded-vueda-control hairline hairline-border bg-background",
+            ],
         },
         /** "Manual key" eyebrow inside the strip. 10 px / 600 / `0.06em` uppercase, one tier smaller than the page-level eyebrows so it reads as a strip-local label; `shrink-0` keeps the eyebrow from collapsing when the secret pushes wider than the row. */
         manualKeyLabel: {

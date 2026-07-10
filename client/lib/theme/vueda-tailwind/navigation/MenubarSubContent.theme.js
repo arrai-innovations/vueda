@@ -28,7 +28,7 @@ patchTheme({
                 "z-50 min-w-[8rem] origin-(--reka-menubar-content-transform-origin)",
 
                 // Shape and border.
-                "overflow-hidden rounded-vueda-control border p-1 shadow-vueda-popover",
+                "overflow-hidden rounded-vueda-control overlay-hairline p-1",
             ],
         },
     },

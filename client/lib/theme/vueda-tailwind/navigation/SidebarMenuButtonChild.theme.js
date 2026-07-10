@@ -44,9 +44,9 @@ patchTheme({
 
                 // Variant classes. The neutral hover (bg / text) is applied
                 // unconditionally above, so only the outline-specific surface and
-                // shadow-hover need to be expressed per-variant here.
+                // hairline edge (with its hover recolour) are expressed per-variant here.
                 {
-                    "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]":
+                    "bg-background hairline [--vueda-hairline-color:var(--sidebar-border)] hover:[--vueda-hairline-color:var(--sidebar-accent)]":
                         variant === "outline",
                 },
 

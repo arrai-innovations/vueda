@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/shell/AccordionTrigger.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { AccordionHeader, AccordionTrigger } from "reka-ui";
@@ -11,6 +11,7 @@ import { AccordionHeader, AccordionTrigger } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -25,25 +26,23 @@ const props = defineProps({
     asChild: { type: Boolean, default: false },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "themeOverride");
 const theme = useTheme("AccordionTrigger", props);
-const icon = useIcons("AccordionTrigger");
+const icon = useIcons("AccordionTrigger", props);
 </script>
 
 <template>
     <AccordionHeader :class="theme('header')" :style="theme.hideStyle?.value">
         <AccordionTrigger data-slot="accordion-trigger" v-bind="delegatedProps" :class="[theme('root'), props.class]">
             <slot />
-            <slot name="icon">
-                <span :class="theme('icon')">
-                    <component
-                        :is="icon('caretDown').component"
-                        v-if="icon('caretDown')"
-                        v-bind="icon('caretDown').props"
-                        aria-hidden="true"
-                    />
-                </span>
-            </slot>
+            <span :class="theme('icon')">
+                <component
+                    :is="icon('caretDown').component"
+                    v-if="icon('caretDown')"
+                    v-bind="icon('caretDown').props"
+                    aria-hidden="true"
+                />
+            </span>
         </AccordionTrigger>
     </AccordionHeader>
 </template>

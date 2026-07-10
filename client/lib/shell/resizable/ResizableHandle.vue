@@ -1,6 +1,7 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/shell/ResizableHandle.theme.js";
 import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { SplitterResizeHandle } from "reka-ui";
@@ -11,6 +12,7 @@ import { SplitterResizeHandle } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -29,9 +31,10 @@ const emits = defineEmits({
     dragging: null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "withHandle", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "withHandle", "themeOverride");
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
 const theme = useTheme("ResizableHandle", props);
+const icon = useIcons("ResizableHandle", props);
 </script>
 
 <template>
@@ -44,7 +47,14 @@ const theme = useTheme("ResizableHandle", props);
         <template v-if="props.withHandle">
             <div :class="theme('handle')">
                 <slot>
-                    <span aria-hidden="true" class="select-none text-[10px] leading-none">⠿</span>
+                    <component
+                        :is="icon('gripVertical').component"
+                        v-if="icon('gripVertical')"
+                        v-bind="icon('gripVertical').props"
+                        aria-hidden="true"
+                        class="select-none text-[10px] leading-none"
+                    />
+                    <span v-else aria-hidden="true" class="select-none text-[10px] leading-none">⠿</span>
                 </slot>
             </div>
         </template>

@@ -1,14 +1,14 @@
 <script setup>
-import DiagnosticStrip from "@vueda/components/DiagnosticStrip.vue";
-import SuggestionList from "@vueda/components/SuggestionList.vue";
-import SystemMessageCard from "@vueda/components/SystemMessageCard.vue";
-import TriedUrlCallout from "@vueda/components/TriedUrlCallout.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import DiagnosticStrip from "@vueda/display/system-message/DiagnosticStrip.vue";
+import SuggestionList from "@vueda/display/system-message/SuggestionList.vue";
+import SystemMessageCard from "@vueda/display/system-message/SystemMessageCard.vue";
+import TriedUrlCallout from "@vueda/display/system-message/TriedUrlCallout.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewNotFound.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { useSuggestRoutes } from "@vueda/use/useSuggestRoute.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed } from "vue";
+import { computed, toRef } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -22,6 +22,7 @@ import { useRouter } from "vue-router";
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Maximum number of suggested routes to display.
@@ -44,7 +45,7 @@ const props = defineProps({
 const router = useRouter();
 const suggestedRoutes = useSuggestRoutes({ limit: props.suggestionLimit });
 const theme = useTheme("ViewNotFound", props);
-const icon = useIcons("ViewNotFound");
+useIconsOverride(toRef(props, "iconOverride"));
 
 const currentPath = computed(() => router.currentRoute.value.path);
 
@@ -85,15 +86,12 @@ function handleHome() {
 
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value" v-bind="$attrs" data-qa="view-not-found-root">
-        <system-message-card tone="info" data-qa="view-not-found-card">
-            <template #crest-icon>
-                <component
-                    :is="icon('notFound').component"
-                    v-if="icon('notFound')"
-                    v-bind="icon('notFound').props"
-                    aria-hidden="true"
-                />
-            </template>
+        <system-message-card
+            tone="info"
+            icon-name="notFound"
+            :icon-override="props.iconOverride"
+            data-qa="view-not-found-card"
+        >
             <template #crest-eyebrow>Route not found</template>
             <template #crest-kind>{{ currentPath }}</template>
             <template #crest-code>404</template>
@@ -121,8 +119,10 @@ function handleHome() {
             <template #actions>
                 <!-- @slot actions Override the default Back / Go to home button row. -->
                 <slot name="actions">
-                    <Button variant="outline" data-qa="view-not-found-back" @click="handleBack">Back</Button>
-                    <Button class="ml-auto" data-qa="view-not-found-home" @click="handleHome">Go to home</Button>
+                    <Button emphasis="ghost" data-qa="view-not-found-back" @click="handleBack">Back</Button>
+                    <Button tone="primary" class="ml-auto" data-qa="view-not-found-home" @click="handleHome"
+                        >Go to home</Button
+                    >
                 </slot>
             </template>
         </system-message-card>

@@ -29,7 +29,7 @@ patchTheme({
                 "relative mt-1.5 h-[var(--reka-navigation-menu-viewport-height)] w-full overflow-hidden",
 
                 // Shape and responsive placement.
-                "rounded-vueda-control border shadow-vueda-popover md:w-[var(--reka-navigation-menu-viewport-width)] left-[var(--reka-navigation-menu-viewport-left)]",
+                "rounded-vueda-control overlay-hairline md:w-[var(--reka-navigation-menu-viewport-width)] left-[var(--reka-navigation-menu-viewport-left)]",
             ],
         },
     },

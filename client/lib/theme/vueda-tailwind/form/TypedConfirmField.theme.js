@@ -16,7 +16,7 @@ patchTheme({
         /** Muted confirmation box that groups the label and input before a destructive action. */
         root: {
             class: [
-                "flex flex-col gap-1.5 px-3.5 py-3 rounded-vueda-card border",
+                "flex flex-col gap-1.5 px-3.5 py-3 rounded-vueda-card hairline hairline-border",
                 "bg-[color-mix(in_oklab,var(--muted)_40%,var(--background))]",
             ],
         },
@@ -28,7 +28,7 @@ patchTheme({
         expectedChip: {
             class: [
                 "inline-flex items-center px-1.5 py-0.5 mx-0.5",
-                "rounded-[3px] border bg-background",
+                "rounded-[3px] hairline hairline-border bg-background",
                 "font-mono text-[12px] font-semibold leading-none text-foreground",
             ],
         },

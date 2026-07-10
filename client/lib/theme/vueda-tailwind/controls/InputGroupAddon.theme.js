@@ -33,8 +33,10 @@ patchTheme({
                     "w-full justify-start px-3": align === "block-start" || align === "block-end",
                     "pl-3 has-[>button]:ml-[-0.45rem] has-[>kbd]:ml-[-0.35rem]": !align || align === "inline-start",
                     "pr-3 has-[>button]:mr-[-0.45rem] has-[>kbd]:mr-[-0.35rem]": align === "inline-end",
-                    "pt-3 [.border-b]:pb-3 group-has-[>input]/input-group:pt-2.5": align === "block-start",
-                    "pb-3 [.border-t]:pt-3 group-has-[>input]/input-group:pb-2.5": align === "block-end",
+                    "pt-3 [.border-b]:pb-3 [.border-b-hairline]:pb-3 group-has-[>input]/input-group:pt-2.5":
+                        align === "block-start",
+                    "pb-3 [.border-t]:pt-3 [.border-t-hairline]:pt-3 group-has-[>input]/input-group:pb-2.5":
+                        align === "block-end",
                 },
             ],
         }),

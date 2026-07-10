@@ -17,7 +17,7 @@ patchTheme({
          * The `<thead>` section wrapper. It paints the row-level divider under header rows so sticky {@api theme-key:TableHead.root} cells retain a clear boundary above scrolling body content.
          */
         root: {
-            class: "[&_tr]:border-b",
+            class: "[&_tr]:border-b-hairline",
         },
     },
 });

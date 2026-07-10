@@ -19,7 +19,7 @@ patchTheme({
         },
         /** Header row that pairs the title slot with optional aside metadata. */
         head: {
-            class: "flex items-baseline justify-between gap-2 pb-1.5 border-b",
+            class: "flex items-baseline justify-between gap-2 pb-1.5 border-b-hairline",
         },
         /** Mono trailing metadata such as required or optional hints. */
         aside: {

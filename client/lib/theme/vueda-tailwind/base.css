@@ -109,6 +109,12 @@
 @utility hairline-ring {
     --vueda-hairline-color: var(--ring);
 }
+@utility hairline-primary {
+    --vueda-hairline-color: var(--primary);
+}
+@utility hairline-foreground {
+    --vueda-hairline-color: var(--foreground);
+}
 @utility hairline-destructive {
     --vueda-hairline-color: var(--destructive);
 }
@@ -117,6 +123,29 @@
 }
 @utility hairline-border-strong {
     --vueda-hairline-color: var(--border-strong);
+}
+
+/* `overlay-hairline` gives a floating surface a painted edge without a real
+ * `border`: a DPR-keyed inset hairline (so it dodges the integer-DPR chromatic
+ * fringing a saturated 1px `border` shows on rich colours) composed with a
+ * floating elevation in a single box-shadow. Colour the edge via
+ * `--vueda-hairline-color` (default `--border`); the elevation defaults to the
+ * popover shadow and swaps to the heavier overlay shadow via the paired
+ * `overlay-hairline-elevated` modifier (dialogs, sheets). Because it writes
+ * `box-shadow`, it cannot be combined with a `shadow-*` utility on the same
+ * element — the elevation is already folded in. */
+@utility overlay-hairline {
+    box-shadow:
+        inset 0 0 0 var(--vueda-hairline-width) var(--vueda-hairline-color, var(--border)),
+        var(--vueda-overlay-elevation, var(--vueda-shadow-popover));
+    @media (forced-colors: active) {
+        border: 1px solid ButtonBorder;
+    }
+}
+/* Pair with `overlay-hairline` to swap the popover elevation for the heavier
+ * overlay drop used by viewport-covering surfaces (dialog, sheet, drawer). */
+@utility overlay-hairline-elevated {
+    --vueda-overlay-elevation: var(--vueda-shadow-overlay);
 }
 
 /* Directional border-width utilities keyed to `--vueda-hairline-width`. Use
@@ -146,6 +175,19 @@
 }
 @utility border-hairline {
     border-width: var(--vueda-hairline-width);
+}
+
+/* Filled-rule thickness keyed to `--vueda-hairline-width`. Use on a filled
+ * `bg-border` (or tinted) element that IS the line rather than an edge of some
+ * other box: a Separator, an `<hr>`, an inline vertical divider between chips.
+ * Keeps that rule's thickness DPR-tracking in lockstep with the box-shadow and
+ * border hairlines. `h-hairline` for a horizontal rule (pair with `w-full`);
+ * `w-hairline` for a vertical rule (pair with a height). */
+@utility h-hairline {
+    height: var(--vueda-hairline-width);
+}
+@utility w-hairline {
+    width: var(--vueda-hairline-width);
 }
 
 /* `focus-ring` paints the canonical focus outline at the DPR-keyed
@@ -245,12 +287,26 @@
     --font-mono: var(--vueda-font-mono);
 
     /* Typography role aliases (generates text-* utilities for VUEDA scale).
-     * Pairs font-size with the role's canonical line-height so consumers can
-     * write `text-body` instead of `text-[length:var(--vueda-text-body)] leading-[1.4]`.
-     * Other roles keep referencing the raw `--vueda-text-*` tokens via arbitrary
-     * values until their migration sweep lands. */
+     * Pairs font-size with the role's canonical line-height (and, for the
+     * semibold heading roles, weight) so consumers can write `text-body`
+     * instead of `text-[length:var(--vueda-text-body)] leading-[1.4]`.
+     * Remaining roles (reading, label, micro) keep referencing the raw
+     * `--vueda-text-*` tokens via arbitrary values until their migration
+     * sweep lands. */
     --text-body: var(--vueda-text-body);
     --text-body--line-height: 1.4;
+
+    --text-heading: var(--vueda-text-heading);
+    --text-heading--line-height: 1.2;
+    --text-heading--font-weight: var(--vueda-font-weight-label);
+
+    --text-title: var(--vueda-text-title);
+    --text-title--line-height: 1.2;
+    --text-title--font-weight: var(--vueda-font-weight-label);
+
+    --text-display: var(--vueda-text-display);
+    --text-display--line-height: 1.2;
+    --text-display--font-weight: var(--vueda-font-weight-label);
 
     /* Control sizing (generates h-vueda-control-*, px-vueda-control-px-* utilities).
      * Mapped through --spacing-* so the values are available to any spacing-family
@@ -670,6 +726,59 @@
 }
 [data-sonner-toast][data-styled="true"] [data-description] {
     color: var(--muted-foreground);
+}
+
+/* Drag-to-dismiss affordance. vue-sonner only sets `user-select: none` once a
+ * swipe is already underway (after `[data-swiped="true"]`), so starting a
+ * mouse drag on top of toast text triggers native text selection instead of
+ * the swipe gesture. Suppress selection from pointer-down and show a grab
+ * cursor on any dismissible toast so the drag is discoverable up front. */
+[data-sonner-toast][data-dismissible="true"] {
+    cursor: grab;
+    user-select: none;
+}
+[data-sonner-toast][data-dismissible="true"][data-swiping="true"] {
+    cursor: grabbing;
+}
+
+/* Close button: vue-sonner's default is a circular badge on the toast's
+ * corner, deliberately straddling the border (its `--toast-close-button-
+ * transform` shifts it 35% outside the box). Restyle to a plain contained
+ * icon button that reads like the rest of the theme (Alert's dismiss
+ * button) instead of a floating badge. `!important` guards the override:
+ * this selector ties vue-sonner's own rule in specificity, so it would
+ * otherwise depend on which stylesheet the bundler happens to emit last. */
+[data-sonner-toast][data-styled="true"] [data-close-button] {
+    top: 12px !important;
+    right: 12px !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    color: var(--muted-foreground) !important;
+}
+[data-sonner-toast][data-styled="true"] [data-close-button]:hover {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--foreground) !important;
+}
+
+/* Toast motion: vue-sonner's stock transform/opacity/height/box-shadow
+ * transition runs at 400ms (200ms for box-shadow), well past VUEDA's
+ * canonical interaction duration. Hovering the stack expands it and
+ * dismissing a toast can collapse it again (vue-sonner auto-collapses once
+ * one toast remains); at 400ms a stray mousemove is easily caught mid-
+ * transition and re-expands it, fighting the collapse. This is vue-sonner's
+ * own state logic, not ours to fix, but resolving on the shorter canonical
+ * duration shrinks that window by more than 3x. */
+[data-sonner-toast] {
+    transition:
+        transform var(--vueda-duration-interaction) var(--vueda-ease-interaction),
+        opacity var(--vueda-duration-interaction) var(--vueda-ease-interaction),
+        height var(--vueda-duration-interaction) var(--vueda-ease-interaction),
+        box-shadow var(--vueda-duration-interaction) var(--vueda-ease-interaction) !important;
 }
 
 /* ---------- Color palette: dark (primary target for operators) ----------

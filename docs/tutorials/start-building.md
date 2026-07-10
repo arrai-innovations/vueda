@@ -632,10 +632,10 @@ The scaffolded router's `authRedirect` points to a `sign-in` route that does not
 
 ```vue
 <script setup>
-import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
 import { ControlButton } from "@vueda/controls/button";
-import FormField from "@vueda/fields/FormField.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
+import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 
 const userStore = storeUser();

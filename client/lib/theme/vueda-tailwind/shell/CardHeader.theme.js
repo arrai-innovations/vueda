@@ -20,8 +20,10 @@ patchTheme({
                 // Layout and spacing.
                 "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6",
 
-                // Slot and border states.
-                "has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
+                // Slot and border states. The divider padding fires for a raw `border-b`
+                // or the DPR-tracked `border-b-hairline`; prefer the hairline form so the
+                // divider matches the rest of the system (see README § 7.3).
+                "has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 [.border-b-hairline]:pb-6",
             ],
         },
     },

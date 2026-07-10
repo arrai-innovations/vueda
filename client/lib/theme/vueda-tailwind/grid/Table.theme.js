@@ -20,7 +20,7 @@ patchTheme({
         container: {
             class: [
                 "relative w-full overflow-auto",
-                "rounded-vueda-card border bg-card",
+                "rounded-vueda-card hairline hairline-border bg-card",
                 "data-[sticky]:overflow-y-auto data-[sticky]:max-h-[var(--vueda-tbl-max-h,30rem)]",
             ],
         },

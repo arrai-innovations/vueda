@@ -1,12 +1,12 @@
 <script setup>
-import ErrorDisplay from "@vueda/components/ErrorDisplay.vue";
-import FormConfirmDialog from "@vueda/components/FormConfirmDialog.vue";
-import FormModel from "@vueda/components/FormModel.vue";
-import LinkModelView from "@vueda/components/LinkModelView.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
-import PageActions from "@vueda/components/PageActions.vue";
-import StickyBar from "@vueda/components/StickyBar.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
+import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import FormConfirmDialog from "@vueda/form/confirm/FormConfirmDialog.vue";
+import FormModel from "@vueda/form/form-model/FormModel.vue";
+import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
+import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewUpdate.theme.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -176,13 +176,14 @@ onMounted(() => {
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
+                        emphasis="outline"
                     />
                 </slot>
             </template>
             <!-- @slot [extra-buttons] Additional action buttons appended in the page title action area. -->
             <slot name="extra-buttons" />
         </page-actions>
-        <sticky-bar class="w-full">
+        <sticky-bar zone="top" reveal="scroll-up-or-idle">
             <template #primary>
                 <div
                     class="flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"
@@ -197,7 +198,12 @@ onMounted(() => {
                         name="submit-button"
                         type="submit"
                     >
-                        <Button :form="instance.formId" :disabled="objectForm.state.loading" type="submit">
+                        <Button
+                            :form="instance.formId"
+                            :disabled="objectForm.state.loading"
+                            type="submit"
+                            tone="primary"
+                        >
                             <LoadingSpinnerInline v-if="objectForm.state.loading" />
                             Submit
                         </Button>
@@ -219,6 +225,7 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="actionName"
+                                emphasis="outline"
                             />
                         </slot>
                     </template>
@@ -239,6 +246,7 @@ onMounted(() => {
                                 :model="model"
                                 :pk="pk"
                                 :view="transition"
+                                emphasis="outline"
                             />
                         </slot>
                     </template>

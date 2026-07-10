@@ -78,18 +78,18 @@ const ClickToCopyTextStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/AuthForm.vue", () => ({ default: AuthFormStub }));
-vi.mock("@vueda/components/ClickToCopyText.vue", () => ({ default: ClickToCopyTextStub }));
+vi.mock("@vueda/views/AuthForm.vue", () => ({ default: AuthFormStub }));
+vi.mock("@vueda/display/click-to-copy-text/ClickToCopyText.vue", () => ({ default: ClickToCopyTextStub }));
 vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive: () => useIsActiveMock() }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));
 vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: makeUseThemeMock({ slotResolver: (part) => part }),
     THEME_OVERRIDE_PROPS: {},
 }));
-vi.mock("@vueda/use/useIcons.js", () => ({ useIcons: () => () => null }));
+vi.mock("@vueda/use/useIcons.js", () => ({ ICON_OVERRIDE_PROPS: {}, useIcons: () => () => null }));
 vi.mock("@vueuse/core", () => ({ useClipboard: () => useClipboardMock() }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
-vi.mock("@vueda/components/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("@vueda/display/loading/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
 vi.mock("@vueda/feedback/alert/Alert.vue", () => ({ default: FeedbackAlertStub }));
 vi.mock("@vueda/feedback/alert/AlertDescription.vue", () => ({ default: FeedbackAlertDescriptionStub }));
 vi.mock("@vueda/feedback/alert/AlertTitle.vue", () => ({ default: FeedbackAlertTitleStub }));

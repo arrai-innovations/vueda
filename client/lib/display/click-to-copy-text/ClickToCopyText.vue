@@ -1,0 +1,59 @@
+<script setup>
+import Button from "@vueda/controls/button/Button.vue";
+import "@vueda/theme/vueda-tailwind/display/ClickToCopyText.theme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { useClipboard } from "@vueuse/core";
+import { toast as sonnerToast } from "vue-sonner";
+
+/**
+ * Displays a text value alongside a button that copies it to the clipboard and shows a toast notification on success.
+ */
+defineOptions({});
+
+const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
+    /** The text value to display and copy to the clipboard. */
+    text: {
+        type: String,
+        required: true,
+    },
+    /** Toast message shown after copying. Defaults to `"<text> copied"`. */
+    toast: {
+        type: String,
+        default: null,
+    },
+});
+
+const { copied, copy } = useClipboard();
+
+const onClick = () => {
+    copy(props.text);
+    sonnerToast.success(props.toast || `${props.text} copied`);
+};
+
+const slotProps = {
+    onClick,
+    label: "copy",
+    emphasis: "ghost",
+    size: "sm",
+    text: props.text,
+    copied,
+};
+
+const theme = useTheme("ClickToCopyText", props);
+</script>
+
+<template>
+    <div :class="theme('root')" :style="theme.hideStyle?.value">
+        <!-- Renders the text value; receives `text` as a slot prop. -->
+        <slot name="text" :text="text">
+            {{ text }}
+        </slot>
+        <!-- Renders the copy button; receives `onClick`, `label`, `emphasis`, `size`, `text`, and `copied` as slot props. -->
+        <slot name="copy-button" v-bind="slotProps">
+            <Button :emphasis="slotProps.emphasis" :size="slotProps.size" @click="slotProps.onClick">
+                {{ slotProps.label }}
+            </Button>
+        </slot>
+    </div>
+</template>

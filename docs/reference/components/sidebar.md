@@ -7,6 +7,7 @@ aside: false
 ---
 
 <script setup>
+import Button from "@vueda/controls/button/Button.vue";
 import Sidebar from "@vueda/navigation/sidebar/Sidebar.vue";
 import SidebarContent from "@vueda/navigation/sidebar/SidebarContent.vue";
 import SidebarFooter from "@vueda/navigation/sidebar/SidebarFooter.vue";
@@ -57,6 +58,16 @@ import {
     faHandshake,
     faRectangleList,
 } from "@fortawesome/free-regular-svg-icons";
+import { markRaw } from "vue";
+
+const sidebarTriggerIconOverride = {
+    SidebarTrigger: {
+        toggle: {
+            component: markRaw(FontAwesomeIcon),
+            props: { icon: faRectangleList },
+        },
+    },
+};
 </script>
 
 # Sidebar
@@ -83,20 +94,16 @@ Theme keys: {@api theme-key:SidebarProvider}, {@api theme-key:Sidebar},
 Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body groups are 11 px uppercase eyebrow labels. Active item shows `bg-sidebar-accent` + `font-medium`. Badge counts sit at the right edge. Sub-menu indents under the open parent.
 
 <VuedaDemo>
-  <div class="h-[540px] overflow-hidden rounded-vueda-card border border-border">
+  <div class="h-[540px] overflow-hidden rounded-vueda-card hairline hairline-border">
     <SidebarProvider>
-      <Sidebar collapsible="none" class="shrink-0 border-r border-border">
+      <Sidebar collapsible="none" class="shrink-0 border-r-hairline">
         <SidebarHeader>
           <div class="flex items-center justify-between px-1">
             <a class="flex items-center gap-2" href="#" aria-label="VUEDA home" @click.prevent>
               <img src="/assets/logo-cube-solid.svg" alt="" class="h-5 w-5 shrink-0" />
               <span class="font-semibold text-sm tracking-tight">vueda</span>
             </a>
-            <SidebarTrigger>
-              <template #icon>
-                <FontAwesomeIcon :icon="faRectangleList" />
-              </template>
-            </SidebarTrigger>
+            <SidebarTrigger :icon-override="sidebarTriggerIconOverride" />
           </div>
           <SidebarInput placeholder="Search…" type="search" />
         </SidebarHeader>
@@ -198,21 +205,21 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header class="flex h-8 shrink-0 items-center gap-2 border-b border-border px-3">
+        <header class="flex h-8 shrink-0 items-center gap-2 border-b-hairline px-3">
           <nav class="flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
             <span>Operations</span>
             <FontAwesomeIcon :icon="faChevronRight" class="size-2.5" />
             <span class="text-foreground font-medium">Invoices</span>
           </nav>
           <div class="ml-auto flex items-center gap-2">
-            <button type="button" class="flex h-7 items-center gap-1.5 rounded-vueda-control border border-border bg-background px-2.5 text-xs hover:bg-accent hover:text-accent-foreground">
+            <Button size="sm" emphasis="outline">
               <FontAwesomeIcon :icon="faFileInvoiceDollar" class="size-3" />
               Export
-            </button>
-            <button type="button" class="flex h-7 items-center gap-1.5 rounded-vueda-control bg-primary px-2.5 text-xs text-primary-foreground hover:bg-primary/90">
+            </Button>
+            <Button size="sm" tone="primary">
               <FontAwesomeIcon :icon="faPlus" class="size-3" />
               New invoice
-            </button>
+            </Button>
           </div>
         </header>
         <div class="flex-1 overflow-auto p-3">
@@ -220,10 +227,10 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
             <h2 class="text-base font-semibold leading-tight">Invoices</h2>
             <p class="text-xs text-muted-foreground">48 invoices · 3 overdue</p>
           </div>
-          <div class="overflow-hidden rounded-vueda-card border border-border">
+          <div class="overflow-hidden rounded-vueda-card hairline hairline-border">
             <table class="w-full text-xs">
               <thead>
-                <tr class="border-b border-border bg-muted/40">
+                <tr class="border-b-hairline bg-muted/40">
                   <th class="px-3 py-1.5 text-left font-medium text-muted-foreground">Number</th>
                   <th class="px-3 py-1.5 text-left font-medium text-muted-foreground">Customer</th>
                   <th class="px-3 py-1.5 text-right font-medium text-muted-foreground">Amount</th>
@@ -231,19 +238,19 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
                 </tr>
               </thead>
               <tbody>
-                <tr class="border-b border-border">
+                <tr class="border-b-hairline">
                   <td class="px-3 py-1.5 font-mono">INV-2026-00482</td>
                   <td class="px-3 py-1.5">Northbeam Industrial</td>
                   <td class="px-3 py-1.5 text-right font-mono">$14,028.50</td>
                   <td class="px-3 py-1.5">Open</td>
                 </tr>
-                <tr class="border-b border-border">
+                <tr class="border-b-hairline">
                   <td class="px-3 py-1.5 font-mono">INV-2026-00481</td>
                   <td class="px-3 py-1.5">Solana Bay Logistics</td>
                   <td class="px-3 py-1.5 text-right font-mono">$3,240.00</td>
                   <td class="px-3 py-1.5">Open</td>
                 </tr>
-                <tr class="border-b border-border">
+                <tr class="border-b-hairline">
                   <td class="px-3 py-1.5 font-mono">INV-2026-00478</td>
                   <td class="px-3 py-1.5">Hartwell Mfg</td>
                   <td class="px-3 py-1.5 text-right font-mono">$22,910.00</td>
@@ -276,9 +283,9 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
 48 px rail. Group labels, badges, sub-menus, search, and user identity meta all hide. Only icons remain. Active item retains the `bg-sidebar-accent` fill so location is readable without a tooltip.
 
 <VuedaDemo>
-  <div class="h-[360px] overflow-hidden rounded-vueda-card border border-border">
+  <div class="h-[360px] overflow-hidden rounded-vueda-card hairline hairline-border">
     <SidebarProvider>
-      <Sidebar collapsible="none" class="group shrink-0 border-r border-border" data-collapsible="icon" style="--sidebar-width: var(--vueda-sidebar-width-icon);">
+      <Sidebar collapsible="none" class="group shrink-0 border-r-hairline" data-collapsible="icon" style="--sidebar-width: var(--vueda-sidebar-width-icon);">
         <SidebarHeader>
           <div class="flex items-center justify-center py-1">
             <img src="/assets/logo-cube-solid.svg" alt="VUEDA" class="h-5 w-5 shrink-0" />
@@ -350,17 +357,17 @@ Full 224 px rail. Header carries the brand mark and sidebar trigger. Nav body gr
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header class="flex h-8 shrink-0 items-center gap-2 border-b border-border px-3">
+        <header class="flex h-8 shrink-0 items-center gap-2 border-b-hairline px-3">
           <nav class="flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
             <span>Operations</span>
             <FontAwesomeIcon :icon="faChevronRight" class="size-2.5" />
             <span class="text-foreground font-medium">Invoices</span>
           </nav>
           <div class="ml-auto flex items-center gap-2">
-            <button type="button" class="flex h-7 items-center gap-1.5 rounded-vueda-control bg-primary px-2.5 text-xs text-primary-foreground hover:bg-primary/90">
+            <Button size="sm" tone="primary">
               <FontAwesomeIcon :icon="faPlus" class="size-3" />
               New invoice
-            </button>
+            </Button>
           </div>
         </header>
         <div class="flex-1 overflow-auto p-3">
@@ -388,7 +395,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
     <div class="grid w-full items-start gap-6 sm:grid-cols-2">
       <DemoCard title="SidebarMenuButton — states">
         <p class="text-xs text-muted-foreground">idle / hover / active / disabled · <code>isActive</code>, <code>aria-disabled</code></p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton as="a" href="#" @click.prevent>
@@ -426,7 +433,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarMenuButton — sizes">
         <p class="text-xs text-muted-foreground">sm 28 px / default 32 px / lg 48 px · <code>size</code> prop</p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton as="a" href="#" size="sm" @click.prevent>
@@ -456,7 +463,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarMenuButton — outline variant">
         <p class="text-xs text-muted-foreground">org / tenant switcher · <code>variant="outline"</code></p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarMenuButton as="a" href="#" variant="outline" @click.prevent>
             <FontAwesomeIcon :icon="faBuilding" class="size-4 shrink-0" />
             <span>Acme Co.</span>
@@ -471,7 +478,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarMenuBadge">
         <p class="text-xs text-muted-foreground">count badge at right edge · absolute-positioned peer of menu-button</p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton as="a" href="#" @click.prevent>
@@ -504,7 +511,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarMenuAction — show-on-hover">
         <p class="text-xs text-muted-foreground">kebab fades in on parent hover · <code>show-on-hover</code> prop</p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton as="a" href="#" @click.prevent>
@@ -533,7 +540,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarMenuSub — indent rail">
         <p class="text-xs text-muted-foreground">left border rail under open parent · active dot on current item</p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton as="a" href="#" @click.prevent>
@@ -563,7 +570,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarGroupLabel + SidebarGroupAction">
         <p class="text-xs text-muted-foreground">11 px uppercase eyebrow + 20 px ghost action</p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarGroup class="p-0">
             <SidebarGroupLabel>Workspace</SidebarGroupLabel>
             <SidebarGroupAction as="button" aria-label="Add">
@@ -579,7 +586,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarSeparator">
         <p class="text-xs text-muted-foreground">full-bleed 1 px hairline · <code>bg-sidebar-border</code></p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton as="a" href="#" @click.prevent>
@@ -605,7 +612,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarMenuSkeleton">
         <p class="text-xs text-muted-foreground">icon + variable-width text bar · <code>show-icon</code> prop</p>
-        <div class="w-[var(--vueda-sidebar-width)] max-w-full rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="w-[var(--vueda-sidebar-width)] max-w-full rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarMenu>
             <SidebarMenuItem><SidebarMenuSkeleton :show-icon="true" /></SidebarMenuItem>
             <SidebarMenuItem><SidebarMenuSkeleton :show-icon="true" /></SidebarMenuItem>
@@ -619,7 +626,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarInput">
         <p class="text-xs text-muted-foreground">h-8 search field · <code>bg-background</code> on <code>bg-sidebar</code></p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarInput placeholder="Search…" type="search" />
         </div>
         <template #footer>
@@ -629,7 +636,7 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
       </DemoCard>
       <DemoCard title="SidebarUserBlock">
         <p class="text-xs text-muted-foreground">32 px UserAvatar (sidebar tone) · name + role · #kebab slot</p>
-        <div class="w-[var(--vueda-sidebar-width)] max-w-full rounded-vueda-card border border-border bg-sidebar p-2">
+        <div class="w-[var(--vueda-sidebar-width)] max-w-full rounded-vueda-card hairline hairline-border bg-sidebar p-2">
           <SidebarFooter class="p-0">
             <SidebarUserBlock name="Jess Rivera" role="Admin · Acme Co." class="rounded-vueda-control p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
               <template #kebab>
@@ -645,18 +652,14 @@ Individual pieces of the sidebar surface. All cells share a single `SidebarProvi
         </template>
       </DemoCard>
       <DemoCard title="SidebarTrigger">
-        <p class="text-xs text-muted-foreground">28 px ghost · default icon is Unicode placeholder ◫ · override via <code>#icon</code> slot</p>
-        <div class="rounded-vueda-card border border-border bg-sidebar p-2 flex items-center gap-2">
+        <p class="text-xs text-muted-foreground">28 px ghost · icon from registry · override via <code>iconOverride</code></p>
+        <div class="rounded-vueda-card hairline hairline-border bg-sidebar p-2 flex items-center gap-2">
           <SidebarTrigger />
-          <SidebarTrigger>
-            <template #icon>
-              <FontAwesomeIcon :icon="faRectangleList" />
-            </template>
-          </SidebarTrigger>
+          <SidebarTrigger :icon-override="sidebarTriggerIconOverride" />
         </div>
         <template #footer>
-          <span>left: default Unicode ◫ glyph</span>
-          <span>right: <code>fa-regular fa-rectangle-list</code> via #icon slot</span>
+          <span>left: registry default</span>
+          <span>right: <code>fa-regular fa-rectangle-list</code> via <code>iconOverride</code></span>
           <span>h-7 w-7 ghost button</span>
         </template>
       </DemoCard>

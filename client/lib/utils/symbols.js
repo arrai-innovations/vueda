@@ -18,6 +18,9 @@ export const FilterModelSymbol = Symbol("filterModel");
 /** @type {symbol} Injection key for the page-title context shared between a layout display and the active view. */
 export const PageTitleContextSymbol = Symbol("pageTitleContext");
 
+/** @type {symbol} Injection key for the sticky-stack context shared between the provider and the active view's chrome. */
+export const StickyStackContextSymbol = Symbol("stickyStackContext");
+
 /** @type {symbol} Injection key for the lookup (searchable-select) context. */
 export const LookupContextSymbol = Symbol("lookupContext");
 

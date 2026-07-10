@@ -60,6 +60,8 @@ const createListPreferenceStoreMock = () => ({
     getFilters: vi.fn(),
     setHiddenColumns: vi.fn(),
     getHiddenColumns: vi.fn(),
+    setPerPage: vi.fn(),
+    getPerPage: vi.fn(),
 });
 const listPreferenceStoreMock = createListPreferenceStoreMock();
 const storeListPreferenceMock = vi.fn(() => listPreferenceStoreMock);
@@ -105,8 +107,8 @@ let objectsGridProps;
 let columnSlotProps = {};
 const ObjectsGridStub = defineComponent({
     name: "ObjectsGridStub",
-    props: ["fields", "sorted"],
-    emits: ["update:isTable", "update:sorted"],
+    props: ["fields"],
+    emits: ["update:isTable"],
     setup(props, { slots, attrs }) {
         objectsGridProps = props;
         return () =>
@@ -148,7 +150,7 @@ const PageActionsStub = defineComponent({
 });
 const PaginationComponentStub = defineComponent({
     name: "PaginationComponentStub",
-    emits: ["update:showing-all-pages"],
+    emits: ["update:currentPage", "update:perPage"],
     setup(_, { attrs }) {
         return () => h("div", { "data-qa": "pagination-component", ...attrs });
     },
@@ -157,6 +159,23 @@ const StickyBarStub = defineComponent({
     name: "StickyBarStub",
     setup(_, { slots, attrs }) {
         return () => h("div", { "data-qa": "sticky-bar", ...attrs }, slots.default ? slots.default() : null);
+    },
+});
+const StickyChromeStub = defineComponent({
+    name: "StickyChromeStub",
+    props: ["zone", "reveal", "order"],
+    setup(props, { slots }) {
+        return () =>
+            h(
+                "div",
+                {
+                    "data-qa": "sticky-chrome",
+                    "data-zone": props.zone,
+                    "data-reveal": props.reveal,
+                    "data-order": props.order,
+                },
+                slots.default ? slots.default() : null,
+            );
     },
 });
 const InputGroupStub = defineComponent({
@@ -190,8 +209,8 @@ const InputGroupButtonStub = defineComponent({
 const ButtonStub = defineComponent({
     name: "ButtonStub",
     emits: ["click"],
-    setup(_, { emit, slots }) {
-        return () => h("button", { "data-qa": "button", onClick: () => emit("click") }, slots.default?.());
+    setup(_, { emit, slots, attrs }) {
+        return () => h("button", { "data-qa": "button", ...attrs, onClick: () => emit("click") }, slots.default?.());
     },
 });
 const CheckboxStub = defineComponent({
@@ -253,15 +272,16 @@ const SelectItemStub = defineComponent({
     },
 });
 
-vi.mock("@vueda/components/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
-vi.mock("@vueda/components/FilterGroup.vue", () => ({ default: FilterGroupStub }));
-vi.mock("@vueda/components/FormMessage.vue", () => ({ default: FormMessageStub }));
-vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
-vi.mock("@vueda/components/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
-vi.mock("@vueda/components/SortControl.vue", () => ({ default: SortControlStub }));
-vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
-vi.mock("@vueda/components/PaginationComponent.vue", () => ({ default: PaginationComponentStub }));
-vi.mock("@vueda/components/StickyBar.vue", () => ({ default: StickyBarStub }));
+vi.mock("@vueda/display/error-display/ErrorDisplay.vue", () => ({ default: ErrorDisplayStub }));
+vi.mock("@vueda/form/filter/FilterGroup.vue", () => ({ default: FilterGroupStub }));
+vi.mock("@vueda/form/form-model/FormMessage.vue", () => ({ default: FormMessageStub }));
+vi.mock("@vueda/navigation/link-model-view/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
+vi.mock("@vueda/objects-grid/ObjectsGrid.vue", () => ({ default: ObjectsGridStub }));
+vi.mock("@vueda/display/sort/SortControl.vue", () => ({ default: SortControlStub }));
+vi.mock("@vueda/shell/page-title/PageActions.vue", () => ({ default: PageActionsStub }));
+vi.mock("@vueda/navigation/pagination/PaginationFooter.vue", () => ({ default: PaginationComponentStub }));
+vi.mock("@vueda/shell/sticky/StickyBar.vue", () => ({ default: StickyBarStub }));
+vi.mock("@vueda/shell/sticky/StickyChrome.vue", () => ({ default: StickyChromeStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/controls/checkbox/Checkbox.vue", () => ({ default: CheckboxStub }));
 vi.mock("@vueda/controls/input-group/InputGroup.vue", () => ({ default: InputGroupStub }));
@@ -299,9 +319,12 @@ const resetListPreferenceStoreMock = () => {
     listPreferenceStoreMock.getFilters.mockReset();
     listPreferenceStoreMock.setHiddenColumns.mockReset();
     listPreferenceStoreMock.getHiddenColumns.mockReset();
+    listPreferenceStoreMock.setPerPage.mockReset();
+    listPreferenceStoreMock.getPerPage.mockReset();
     listPreferenceStoreMock.getHiddenColumns.mockReturnValue([]);
     listPreferenceStoreMock.getFilters.mockReturnValue(undefined);
     listPreferenceStoreMock.getSorting.mockReturnValue(null);
+    listPreferenceStoreMock.getPerPage.mockReturnValue(null);
 };
 
 beforeEach(async () => {
@@ -409,22 +432,31 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("allows toggling show all pages", async () => {
+        scopedIt("reloads via the all-pages path when perPage is set to all", async () => {
             mockedInject.mockReturnValueOnce({});
-            modelConfig.config.allowShowAllPages = true;
             instanceList.state.paginateInfo.totalRecords = 5;
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
-            const pagination = wrapper.get('[data-qa="pagination-component"]');
-            expect(pagination.attributes("allow-show-all-pages")).toBe("true");
+            const pagination = wrapper.get('[data-qa="view-list-pagination"]');
+            expect(pagination.attributes("per-page")).toBe("25");
 
             const initialClearListCalls = instanceList.clearList.mock.calls.length;
             const initialListCalls = instanceList.list.mock.calls.length;
-            wrapper.findComponent(PaginationComponentStub).vm.$emit("update:showing-all-pages", true);
+            wrapper.findComponent(PaginationComponentStub).vm.$emit("update:perPage", "all");
             await vue.nextTick();
 
             expect(instanceList.clearList.mock.calls.length).toBe(initialClearListCalls + 1);
             expect(instanceList.list.mock.calls.length).toBe(initialListCalls + 1);
+            wrapper.unmount();
+        });
+
+        scopedIt("sends the seeded page size as `ps` on the initial request", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+
+            expect(listProps.params.ps).toBe(25);
             wrapper.unmount();
         });
         scopedIt("hides pagination when there are no records", async () => {
@@ -441,15 +473,15 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("wraps pagination in a footer-strip when records exist", async () => {
+        scopedIt("renders the pagination footer when records exist", async () => {
             mockedInject.mockReturnValueOnce({});
             instanceList.state.paginateInfo.totalRecords = 5;
 
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
 
-            const footer = wrapper.get('[data-qa="view-list-pagination"]');
-            expect(footer.find('[data-qa="pagination-component"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="view-list-pagination"]').exists()).toBe(true);
+            expect(wrapper.findComponent(PaginationComponentStub).exists()).toBe(true);
 
             wrapper.unmount();
         });
@@ -460,7 +492,7 @@ describe("lib/views/ViewList.vue", () => {
             instanceList.state.paginateInfo.totalRecords = 42;
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
-            const pagination = wrapper.get('[data-qa="pagination-component"]');
+            const pagination = wrapper.get('[data-qa="view-list-pagination"]');
             expect(pagination.attributes("show-total-record-num")).toBe("true");
             expect(pagination.attributes("total-records")).toBe("42");
             wrapper.unmount();
@@ -616,10 +648,10 @@ describe("lib/views/ViewList.vue", () => {
                 query: { status: "active", [ORDERING_PARAM]: "field1,field2" },
             });
             expect(route.query).toEqual({ status: "active", [ORDERING_PARAM]: "field1,field2" });
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(storedSorting);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(storedSorting);
             wrapper.unmount();
         });
-        scopedIt("applies stored sorting to ObjectsGrid on mount", async () => {
+        scopedIt("applies stored sorting to the sort control on mount", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.sortables = ["created_at", "name"];
             const storedSorting = ["-created_at"];
@@ -629,7 +661,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             await vue.nextTick();
 
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(storedSorting);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(storedSorting);
             wrapper.unmount();
         });
         scopedIt("propagates sort control updates to preferences and params", async () => {
@@ -662,7 +694,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             await vue.nextTick();
 
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(["-name", "created_at"]);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-name", "created_at"]);
             expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
             expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
             wrapper.unmount();
@@ -678,7 +710,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             await vue.nextTick();
 
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual([]);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual([]);
             expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
             expect(routerReplace).not.toHaveBeenCalled();
             wrapper.unmount();
@@ -693,7 +725,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             await vue.nextTick();
 
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual(["-name", "created_at"]);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-name", "created_at"]);
             expect(routerReplace).toHaveBeenCalledWith({
                 query: { [ORDERING_PARAM]: "-name,created_at" },
             });
@@ -711,7 +743,7 @@ describe("lib/views/ViewList.vue", () => {
             route.query = { status: "active" };
             await vue.nextTick();
 
-            expect(wrapper.findComponent(ObjectsGridStub).props("sorted")).toEqual([]);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual([]);
             expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
             wrapper.unmount();
         });
@@ -742,7 +774,7 @@ describe("lib/views/ViewList.vue", () => {
             expect(routerPush).toHaveBeenCalledWith({
                 query: { [ORDERING_PARAM]: "-name", filter: "status" },
             });
-            expect(objectsGridProps.sorted).toEqual(["-name"]);
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-name"]);
             wrapper.unmount();
         });
 
@@ -787,7 +819,7 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("removes sorting from the URL when Clear all is used", async () => {
+        scopedIt("removes sorting from the URL when Clear sort is used", async () => {
             mockedInject.mockReturnValueOnce({});
             route.query = { [ORDERING_PARAM]: "-name", status: "active" };
             modelConfig.config.sortables = ["name"];
@@ -814,6 +846,37 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(wrapper.find('[data-qa="sort-control"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+    });
+
+    describe("Constraints band", () => {
+        scopedIt("keeps the sticky constraints band collapsed with no active constraint", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name"];
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.find('[data-qa="view-list-constraints-toggle"]').exists()).toBe(false);
+            expect(wrapper.get('[data-qa="constraints-bar"]').attributes("data-open")).toBe("false");
+            const constraintsChrome = wrapper
+                .findAll('[data-qa="sticky-chrome"][data-zone="top"][data-reveal="scroll-up"]')
+                .find((chrome) => chrome.find('[data-qa="constraints-bar"]').exists());
+            expect(constraintsChrome).toBeTruthy();
+            wrapper.unmount();
+        });
+
+        scopedIt("opens the sticky constraints band once a sort is active", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name"];
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["-name"]);
+            await vue.nextTick();
+
+            expect(wrapper.find('[data-qa="view-list-constraints-toggle"]').exists()).toBe(false);
+            expect(wrapper.get('[data-qa="constraints-bar"]').attributes("data-open")).toBe("true");
             wrapper.unmount();
         });
     });
@@ -907,6 +970,38 @@ describe("lib/views/ViewList.vue", () => {
             const cell = wrapper.find('[data-column="field__name"]');
             expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
             expect(cell.find('[data-qa="config-column"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+    });
+
+    describe("Bulk selection read-out", () => {
+        // A bulk action makes the `selected_` checkbox column render; toggling that checkbox
+        // drives actions.selectedObjects, which the bulk-actions strip and its count read.
+        const configureBulkAction = () => {
+            modelConfig.config.actionDetails = { delete: { bulk: true } };
+            mockedUseFilteredActions.mockReturnValue(vue.reactive({ actions: ["delete"] }));
+        };
+
+        scopedIt("omits the selection strip when nothing is selected", async () => {
+            mockedInject.mockReturnValueOnce({});
+            configureBulkAction();
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.find('[data-qa="view-list-bulk-actions"]').exists()).toBe(false);
+            expect(wrapper.find('[data-qa="view-list-selection-count"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+
+        scopedIt("shows the selected-row count once a row is selected", async () => {
+            mockedInject.mockReturnValueOnce({});
+            configureBulkAction();
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await wrapper.find('[data-qa="checkbox"]').trigger("change");
+            await vue.nextTick();
+            const readout = wrapper.find('[data-qa="view-list-selection-count"]');
+            expect(readout.exists()).toBe(true);
+            expect(readout.text()).toContain("1 selected");
             wrapper.unmount();
         });
     });

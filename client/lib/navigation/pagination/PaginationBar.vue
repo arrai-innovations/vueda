@@ -23,7 +23,12 @@ const theme = useTheme("NavigationPaginationBar", props);
 </script>
 
 <template>
-    <div data-slot="pagination-bar" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
+    <div
+        data-slot="pagination-bar"
+        data-qa="pagination-bar"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+    >
         <slot />
     </div>
 </template>

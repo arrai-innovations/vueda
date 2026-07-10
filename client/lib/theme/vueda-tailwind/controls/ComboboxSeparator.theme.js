@@ -14,7 +14,7 @@ patchTheme({
     ComboboxSeparator: {
         /** A 1px horizontal divider between groups inside {@api theme-key:ComboboxList.root}. Renders as a flat `--border` hairline rather than the DPR-aware `hairline` utility because the separator sits inside a popover that already paints its own border at the same width, so the visual seam never reads as a doubled line. `-mx-1` extends the divider to the popover edge past the group's 4px inner padding. */
         root: {
-            class: ["bg-border -mx-1 h-px"],
+            class: ["bg-border -mx-1 h-hairline"],
         },
     },
 });

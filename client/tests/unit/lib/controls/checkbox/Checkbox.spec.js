@@ -20,6 +20,10 @@ describe("lib/controls/checkbox/Checkbox.vue", () => {
             const root = wrapper.find('[data-slot="checkbox"]');
             expect(root.classes()).toContain("size-6");
             expect(root.classes()).toContain("rounded-vueda-checkbox");
+            // Rest edge is a hairline; dark mode strengthens it to --border-strong so the
+            // box stays visible against the row-hover accent band (see theme file rationale).
+            expect(root.classes()).toContain("hairline");
+            expect(root.classes()).toContain("dark:hairline-border-strong");
         });
 
         scopedIt("merges custom class on the root", () => {

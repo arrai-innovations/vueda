@@ -24,7 +24,7 @@ patchTheme({
                 "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
 
                 // Positioning and shape.
-                "z-50 w-64 rounded-vueda-control border p-4 shadow-vueda-popover outline-hidden",
+                "z-50 w-64 rounded-vueda-control overlay-hairline p-4 outline-hidden",
             ],
         },
     },

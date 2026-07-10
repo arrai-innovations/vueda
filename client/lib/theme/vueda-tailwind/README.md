@@ -253,9 +253,10 @@ Two recipes:
 Menu surfaces (DropdownMenu, ContextMenu, Menubar, Combobox) use a mono
 variant of the same recipe for group labels; the sans/mono split is
 intentional and tracks the surface (selection vs menu). Keyboard shortcut
-slots inside menus (`*MenuShortcut`) render as 11px mono at weight 500,
-muted-foreground, no tracking: the keycap-sibling form of the same
-micro-text idiom.
+components inside menus (`*MenuShortcut`) and command rows render structured
+`keys` as `KbdGroup` chords. The shortcut component owns row-end alignment; `Kbd`
+owns the visual shortcut cue so users learn one keyboard-hint shape across
+buttons, menus, command palettes, tooltips, and action strips.
 
 ## 4. Layout
 
@@ -354,6 +355,50 @@ Dialog only. Protection / fade gradients beneath floating UI are not used,
 with no exceptions: not under the pinned PageTitle header, not under
 StickyBar. If text would collide with content, redesign the layout.
 
+### 5.1 Stacking order (z-index)
+
+Elevation is borders, not shadow; depth is `z-index`, not shadow either.
+VUEDA has no z-index _tokens_ (the values are Tailwind `z-*` utilities in
+the theme files), so the scale below is the contract: a band per concern,
+ordered so the right thing wins when two surfaces overlap. New chrome
+joins an existing band rather than inventing a value between bands.
+
+| Band         | Concern                             | Members today                                                                                                    |
+| ------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **< 10**     | Component-local micro-stacking      | NavigationMenuIndicator (`z-[1]`), sticky `TableHead` cell (`z-2`)                                               |
+| **10**       | Intra-component focus promotion     | OTP active slot, ToggleGroup / ButtonGroup focus, Resizable grip                                                 |
+| **20**       | Intra-component focus-within / rail | Calendar + RangeCalendar focused day, SidebarRail                                                                |
+| **30 to 39** | Sticky page chrome (the stack)      | PageTitle (sticky), standalone StickyBar; StickyStackProvider bars                                               |
+| **40**       | Fixed shell chrome                  | Sidebar desktop panel                                                                                            |
+| **50**       | Floating overlays                   | every Reka portal surface: dialog, sheet, drawer, popover, dropdown, tooltip, menu, select, combobox, hover-card |
+| **> 50**     | Toasts                              | Sonner (set by `vue-sonner` internally, **not** by VUEDA)                                                        |
+
+Rules that keep the scale legible:
+
+- **Below 10 is local, not global.** `z-[1]` and `z-2` order siblings
+  inside a single component's own stacking context (the nav pointer behind
+  its panel, the sticky header cell above scrolling body cells). They do
+  not participate in page-level layering; ignore them when reasoning about
+  what floats over what.
+- **The sticky stack reserves 30 to 39, and it is dynamic.**
+  `StickyStackProvider` does not pin every bar at a flat `z-30`; it applies
+  `Z_BASE` (30) plus the per-bar order from `resolveStickyStack`, so a
+  stack of _N_ bars occupies `31` through `30 + N` (bars nearer the pinned
+  edge sit higher, so a hiding bar slides _behind_ the ones that stay). A
+  typical page (title + toolbar + action bar) uses `31` to `33`. The band
+  has headroom to the shell at 40 only while fewer than ~9 bars stack; treat
+  30 to 39 as owned by sticky chrome and do not place other chrome there.
+- **Shell chrome sits below overlays, above the stack.** The Sidebar
+  (`40`) outranks the sticky stack so a pinned toolbar cannot cover the
+  nav, but yields to every floating overlay (`50`) so a dialog covers the
+  nav. On mobile the Sidebar becomes a Sheet and joins the `50` band.
+- **Toasts always win.** Sonner's toaster carries `vue-sonner`'s own very
+  high z-index, which VUEDA neither sets nor overrides. An integrator who
+  raises the overlay band must remember confirmations still stack on top.
+
+The integrator-facing restatement of the reserved bands lives in
+`docs/core-concepts/theming-and-customization.md`.
+
 ## 6. Shapes: radius scale
 
 Five semantic radius tokens generate matching `rounded-vueda-*`
@@ -433,16 +478,68 @@ colour must be opaque (a transparent gap layer does not mask the ring
 shadow behind it). Default gap colour is `--background`; override per
 surface via `[--vueda-focus-ring-gap-color:var(--card)]` etc.
 
-`hairline-destructive` swaps the painted edge to destructive on
-`aria-invalid` controls. `aria-invalid` is the cross-cutting trigger
-(see § 8).
+`hairline-primary` and `hairline-foreground` cover accented and
+high-contrast button outlines. `hairline-destructive` swaps the painted
+edge to destructive on `aria-invalid` controls. `aria-invalid` is the
+cross-cutting trigger (see § 8).
 
 ### 7.3 Directional `border-*-hairline` utilities
 
 `border-t-hairline`, `border-b-hairline`, etc. are realized for surfaces
 that need only one painted edge (toolbar bottom hairline, sidebar
 separator, table head bottom). They consume `--vueda-hairline-width` so
-their thickness DPR-tracks with the canon edge.
+their thickness DPR-tracks with the canon edge. The 4-sided
+`border-hairline` is the same tool for elements that must keep a real
+`border` (see § 7.5) but should still DPR-track rather than sit at a raw
+1px.
+
+For a filled element that _is_ the rule rather than an edge of another box
+(a `Separator`, an inline vertical divider between chips), `h-hairline` and
+`w-hairline` set that rule's thickness from the same `--vueda-hairline-width`
+token: `h-hairline` for a horizontal rule (with `w-full`), `w-hairline` for a
+vertical one. So `bg-border` separators DPR-track in lockstep with the
+box-shadow and border hairlines instead of sitting at a raw `h-px` / `w-px`.
+
+### 7.4 Floating-surface edges: `overlay-hairline`
+
+A floating surface needs an edge _and_ an elevation, but `hairline` and a
+`shadow-*` utility both write `box-shadow` and cannot coexist on one
+element. `overlay-hairline` folds both into a single declaration: an inset
+hairline (coloured via `--vueda-hairline-color`, default `--border`) plus
+the popover shadow. Pair it with `overlay-hairline-elevated` to swap the
+popover shadow for the heavier overlay drop on viewport-covering surfaces.
+Popover, HoverCard, the dropdown / context / menubar menus, the
+combobox / select lists, and the toast surface use `overlay-hairline`;
+Dialog, Sheet, and AlertDialog add `overlay-hairline-elevated`.
+
+### 7.5 When a real `border` is still correct
+
+The edge-as-box-shadow rule has principled exceptions, where a real
+`border` (or the DPR-tracked `border-hairline` / `border-*-hairline`) is
+kept deliberately:
+
+- **Curved edges** (Slider knob, Switch pill, UserAvatar, circular step
+  badges). A `rounded-full` edge is browser-anti-aliased, so it shows no
+  axis-aligned subpixel fringing; these also compose ring halos through
+  `box-shadow`, which `hairline` would collide with.
+- **Dashed edges** (FileUpload dropzone, empty-state panels). `box-shadow`
+  cannot render dashes.
+- **Joined-segment seams** (ButtonGroup, ToggleGroup outline, the
+  layout-toggle pair). Adjacent items share a real directional border at
+  the seam; a 4-sided inset shadow would double the line. base.css sizes
+  `border-*-hairline` for exactly this.
+- **Overlapping seams** (InputOTPSlot). Cells pull together by one device
+  pixel to read as a single painted line, which needs a real border.
+- **2px accent rails** (`border-l-2` dirty / selected / timeline rails).
+  2px already distributes colour across subpixels, so it does not fringe.
+- **Transparent rest edges** used only to reserve layout space
+  (Item, ScrollBar gutter, dense action buttons). A transparent border is
+  invisible and cannot fringe.
+
+Surfaces that pair a coloured edge with a `box-shadow` ring (the
+`ModelActionForm` / `ViewDestroy` tone cards, the workflow-transition
+option) keep a `border-hairline` real edge so the ring keeps its own
+`box-shadow`.
 
 ## 8. Cross-cutting attributes
 
@@ -531,6 +628,44 @@ VUEDA-original primitives (net-new, no shadcn lineage) include the
 `LoadingSkeletonGhost`, `DiagnosticStrip`, `SuggestionList`, and
 `TriedUrlCallout`. Per-primitive behaviour and slot contracts are in
 the auto-generated reference.
+
+### 9.2 Button tone and emphasis: placement vs meaning
+
+Button resolves on two axes (`tone`: `neutral` / `primary` / `destructive`;
+`emphasis`: `fill` / `outline` / `ghost` / `link`). They answer two
+independent questions, and the canon keeps them independent:
+
+- **emphasis is placement.** How loud the control is and what chrome it sits
+  in. `fill` is the one earned action in a context (form submit, dialog
+  confirm, page-title hero); `outline` is a genuine alternative that still
+  deserves a chip (secondary form action, toolbar trigger, pagination,
+  error-recovery retry); `ghost` is a dismiss or a dense-strip action (cancel,
+  clear, bulk-bar actions); `link` is inline within running prose only.
+- **tone is meaning, set once.** A delete reads `destructive` whether it is a
+  page hero or a quiet row glyph; the tone does not change as the action moves
+  between contexts, only the emphasis does. `neutral` is the resting default,
+  so a bare `<Button>` is a neutral fill, not a CTA.
+- **`primary` is the one earned action.** Exactly one control per context
+  carries the accent. Promotion sets `emphasis` to `fill` and lifts a neutral
+  action's tone to `primary`; a promoted destructive action stays a
+  `destructive` fill. This is the §2.2 rule (`--primary` is the CTA, not a
+  passive surface) expressed on the control: do not spread `primary` across a
+  cluster.
+
+Mark a destructive action with `tone="destructive"`, never a one-off
+`text-destructive` class: the tone composes the matching `_ButtonDestructive*`
+primitive for whichever emphasis the placement chose (a destructive ghost for a
+row glyph, a destructive fill for a confirm hero), so the hover / active steps
+and focus ring come through with it.
+
+For model-action buttons this resolves at one chokepoint: `LinkModelView`
+reads the action's intrinsic tone (delete / destroy → `destructive`, else
+`neutral`, overridable via `actionDetail.tone`), applies the placement
+`emphasis` the view passes, and promotes the view's hero action to a fill (see
+`utils/actionVariant.js`). Hand-authored buttons should follow the same
+placement-to-axis mapping so resolved and hand-placed buttons read
+identically; the full placement table lives in the buttons reference
+(`docs/reference/components/buttons.md`).
 
 ## 10. Copy voice
 

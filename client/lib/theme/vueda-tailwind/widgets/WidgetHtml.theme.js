@@ -45,7 +45,7 @@ patchTheme({
         },
         /** Separators divide toolbar command groups with a muted vertical rule. */
         toolbarSeparator: {
-            class: ["mx-0.5 h-5 w-px bg-border"],
+            class: ["mx-0.5 h-5 w-hairline bg-border"],
         },
     },
 });

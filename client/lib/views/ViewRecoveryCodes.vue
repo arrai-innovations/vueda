@@ -1,15 +1,15 @@
 <script setup>
-import AuthForm from "@vueda/components/AuthForm.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import Alert from "@vueda/feedback/alert/Alert.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import "@vueda/theme/vueda-tailwind/views/ViewRecoveryCodes.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import AuthForm from "@vueda/views/AuthForm.vue";
 import { useClipboard } from "@vueuse/core";
 import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
@@ -22,7 +22,7 @@ import { toast } from "vue-sonner";
  */
 defineOptions({});
 
-const props = defineProps({ ...THEME_OVERRIDE_PROPS });
+const props = defineProps({ ...THEME_OVERRIDE_PROPS, ...ICON_OVERRIDE_PROPS });
 
 const userStore = storeUser();
 const isActive = useIsActive();
@@ -74,7 +74,7 @@ const goToSetupDevice = async () => {
 
 const { copied, copy } = useClipboard();
 const theme = useTheme("ViewRecoveryCodes", props);
-const icon = useIcons("ViewRecoveryCodes");
+const icon = useIcons("ViewRecoveryCodes", props);
 </script>
 
 <template>
@@ -113,7 +113,7 @@ const icon = useIcons("ViewRecoveryCodes");
                 </div>
 
                 <div :class="theme('savingOptionButtons')" data-qa="view-recovery-codes-saving-options">
-                    <Button :class="theme('savingOptionButton')" variant="outline" size="sm" @click="downloadCodes">
+                    <Button :class="theme('savingOptionButton')" emphasis="outline" size="sm" @click="downloadCodes">
                         <component
                             :is="icon('floppyDisk').component"
                             v-if="icon('floppyDisk')"
@@ -122,7 +122,7 @@ const icon = useIcons("ViewRecoveryCodes");
                         />
                         Download
                     </Button>
-                    <Button :class="theme('savingOptionButton')" variant="outline" size="sm" @click="printPage">
+                    <Button :class="theme('savingOptionButton')" emphasis="outline" size="sm" @click="printPage">
                         <component
                             :is="icon('print').component"
                             v-if="icon('print')"
@@ -131,7 +131,7 @@ const icon = useIcons("ViewRecoveryCodes");
                         />
                         Print
                     </Button>
-                    <Button :class="theme('savingOptionButton')" variant="outline" size="sm" @click="copy(codesText)">
+                    <Button :class="theme('savingOptionButton')" emphasis="outline" size="sm" @click="copy(codesText)">
                         <component
                             :is="icon('copy').component"
                             v-if="icon('copy')"
@@ -156,21 +156,21 @@ const icon = useIcons("ViewRecoveryCodes");
                     When you generate new recovery codes, you must download or print the new codes. Your old codes won't
                     work anymore.
                 </div>
-                <Button :disabled="loading" type="submit">
+                <Button :disabled="loading" type="submit" tone="primary">
                     <LoadingSpinnerInline v-if="loading" />
                     Generate new recovery codes
                 </Button>
-                <Button variant="ghost" :disabled="loading" @click="handleCancelClick">
+                <Button emphasis="ghost" :disabled="loading" @click="handleCancelClick">
                     <LoadingSpinnerInline v-if="loading" />
                     Go Back
                 </Button>
             </div>
             <div v-else :class="theme('emptyActions')" data-qa="view-recovery-codes-form-action-bar-invalid">
-                <Button :disabled="loading" @click="goToSetupDevice">
+                <Button tone="primary" :disabled="loading" @click="goToSetupDevice">
                     <LoadingSpinnerInline v-if="loading" />
                     Set up a device
                 </Button>
-                <Button variant="ghost" :disabled="loading" @click="handleCancelClick">
+                <Button emphasis="ghost" :disabled="loading" @click="handleCancelClick">
                     <LoadingSpinnerInline v-if="loading" />
                     Go Back
                 </Button>

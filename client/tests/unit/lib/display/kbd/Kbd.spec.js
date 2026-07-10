@@ -12,15 +12,17 @@ describe("lib/display/kbd/Kbd.vue", () => {
 
         scopedIt("applies base classes", () => {
             const wrapper = mount(Kbd);
-            expect(wrapper.classes()).toContain("rounded-sm");
-            expect(wrapper.classes()).toContain("font-medium");
-            expect(wrapper.classes()).toContain("text-xs");
+            expect(wrapper.classes()).toContain("rounded-vueda-checkbox");
+            expect(wrapper.classes()).toContain("hairline");
+            expect(wrapper.classes()).toContain("font-mono");
+            expect(wrapper.classes()).toContain("text-[length:var(--vueda-text-micro)]");
+            expect(wrapper.classes()).toContain("font-semibold");
         });
 
         scopedIt("merges custom class while preserving base classes", () => {
             const wrapper = mount(Kbd, { props: { class: "my-custom-class" } });
             expect(wrapper.classes()).toContain("my-custom-class");
-            expect(wrapper.classes()).toContain("rounded-sm");
+            expect(wrapper.classes()).toContain("rounded-vueda-checkbox");
         });
 
         scopedIt("renders slot content", () => {
@@ -30,9 +32,9 @@ describe("lib/display/kbd/Kbd.vue", () => {
     });
 
     describe("KbdGroup", () => {
-        scopedIt("renders as a <kbd> element", () => {
+        scopedIt("renders as a non-keycap grouping element", () => {
             const wrapper = mount(KbdGroup);
-            expect(wrapper.element.tagName).toBe("KBD");
+            expect(wrapper.element.tagName).toBe("SPAN");
         });
 
         scopedIt("always has data-slot=kbd-group", () => {
@@ -43,8 +45,9 @@ describe("lib/display/kbd/Kbd.vue", () => {
         scopedIt("applies base classes", () => {
             const wrapper = mount(KbdGroup);
             expect(wrapper.classes()).toContain("inline-flex");
+            expect(wrapper.classes()).toContain("w-fit");
             expect(wrapper.classes()).toContain("items-center");
-            expect(wrapper.classes()).toContain("gap-1");
+            expect(wrapper.classes()).toContain("gap-0.5");
         });
 
         scopedIt("merges custom class while preserving base classes", () => {

@@ -56,7 +56,7 @@ const LinkModelViewStub = defineComponent({
             );
     },
 });
-vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
+vi.mock("@vueda/navigation/link-model-view/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 
 const PageActionsStub = defineComponent({
     name: "PageActionsStub",
@@ -64,7 +64,7 @@ const PageActionsStub = defineComponent({
         return () => h("div", { "data-qa": "page-actions", ...attrs }, slots.default ? slots.default() : null);
     },
 });
-vi.mock("@vueda/components/PageActions.vue", () => ({ default: PageActionsStub }));
+vi.mock("@vueda/shell/page-title/PageActions.vue", () => ({ default: PageActionsStub }));
 
 const fetchWorkflowTransition = vi.fn();
 const fetchObjectTransitions = vi.fn();

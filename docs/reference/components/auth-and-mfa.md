@@ -6,7 +6,7 @@ type: reference
 ---
 
 <script setup>
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageTitle from "@vueda/shell/page-title/PageTitle.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Input from "@vueda/controls/input/Input.vue";
 import Field from "@vueda/shell/field/Field.vue";
@@ -42,12 +42,16 @@ import {
   faLifeRing,
 } from "@fortawesome/free-regular-svg-icons";
 import { ref } from "vue";
+import { LOGGED_OUT, formError } from "../../.vitepress/theme/fixtures/authUser.js";
 
 const tfaMethod = ref("totp");
 const setupMethod = ref("totp");
 const otpPartial = ref("4829");
 const otpSmsPartial = ref("391");
 const otpSetup = ref("298");
+
+const signInAccepts = { login: (payload, store) => { store.loggedIn = true; } };
+const signInRejects = { login: () => { throw formError({ non_field_errors: ["Incorrect email or password."] }); } };
 </script>
 
 # Auth & MFA Views
@@ -64,15 +68,15 @@ Token surface: `--card`, `--border`, `--muted-foreground`, `--ring`, `--destruct
   <DemoCard title="AuthForm — column-aligned">
     <div class="flex flex-col gap-3">
       <div class="border-b border-dashed border-border pb-2 text-center text-xs text-muted-foreground">PageTitle (page-level sibling, not inside card)</div>
-      <div class="flex flex-col gap-4 rounded-vueda-card border border-border bg-card p-5">
+      <div class="flex flex-col gap-4 rounded-vueda-card hairline hairline-border bg-card p-5">
         <div>
           <p class="text-[15px] font-semibold leading-tight">Form title</p>
           <p class="mt-1 text-sm text-muted-foreground">Subtitle describing what the form does.</p>
         </div>
         <div class="flex h-8 items-center justify-center rounded border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">fields</div>
         <div class="flex gap-2">
-          <Button size="sm">Primary action</Button>
-          <Button size="sm" variant="ghost">Cancel</Button>
+          <Button size="sm" tone="primary">Primary action</Button>
+          <Button size="sm" emphasis="ghost">Cancel</Button>
         </div>
       </div>
     </div>
@@ -83,21 +87,46 @@ Token surface: `--card`, `--border`, `--muted-foreground`, `--ring`, `--destruct
   </DemoCard>
   <DemoCard title="AuthorizingForm — centered">
     <div class="flex min-h-44 items-center justify-center rounded-vueda-card border border-dashed border-border bg-muted/10">
-      <div class="flex w-60 flex-col gap-4 rounded-vueda-card border border-border bg-card p-5">
+      <div class="flex w-60 flex-col gap-4 rounded-vueda-card hairline hairline-border bg-card p-5">
         <div>
           <p class="text-[15px] font-semibold leading-tight">Form title</p>
           <p class="mt-1 text-sm text-muted-foreground">No PageTitle. Card is the whole page.</p>
         </div>
         <div class="flex h-8 items-center justify-center rounded border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">fields</div>
-        <Button size="sm">Verify</Button>
+        <Button size="sm" tone="primary">Verify</Button>
       </div>
     </div>
     <template #footer>
-      <span>theme key: <code>AuthorizingForm</code> · <code>theme.root</code>: <code>flex min-h-full justify-center items-center</code></span>
+      <span>theme key: <code>AuthorizingForm</code> · <code>theme.root</code>: <code>flex min-h-svh justify-center items-center</code></span>
       <span>used by: TwoFactorAuth</span>
     </template>
   </DemoCard>
 </VuedaDemo>
+
+## SignIn
+
+`ViewSignIn` is the default sign-in view: an email and password form in an `AuthorizingForm` card. Post-login routing and MFA pending-flow detection come from `AuthorizingForm` (via `useSignInFlow`); submission, loading, and server-side validation mapping come from the inner `ActionForm`. Unlike the cards above, these demos render the **live component** through the `AuthDemo` harness, so submitting exercises the real loading, toast, and error paths. The first demo hosts a single `Sonner`; because the toast store is global, every demo on this page surfaces its toasts through that one corner overlay, as in a real app.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Default · credentials accepted — submit to see the loading state then the "Signed In" success toast</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewSignIn.vue')" :state="LOGGED_OUT" route-name="sign-in" :mocks="signInAccepts" toasts />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>AuthorizingForm centers the card; <code>ViewSignIn</code> supplies the email and password fields plus a single "Sign In" submit</span>
+    <span>theme key: <code>AuthorizingForm</code> · source: <code>ViewSignIn.vue</code></span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Invalid credentials — submit to see the form-scope error and the failure toast</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewSignIn.vue')" :state="LOGGED_OUT" route-name="sign-in" :mocks="signInRejects" />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>a server <code>non_field_errors</code> response maps to the ActionForm form-scope error; <code>action-error-summary</code> drives the toast</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
 
 ## ChangePassword
 
@@ -105,7 +134,7 @@ Three password fields in an AuthForm card. Two states: ready to submit and confi
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Default · ready to submit — all three fields entered, primary enabled</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Change password">
       <template #subtitle>Pick a strong, unique password. You'll stay signed in on this device.</template>
     </PageTitle>
@@ -130,8 +159,8 @@ Three password fields in an AuthForm card. Two states: ready to submit and confi
         </FieldContent>
       </Field>
       <div class="flex gap-3 pt-1">
-        <Button type="submit">Update password</Button>
-        <Button variant="ghost">Cancel</Button>
+        <Button type="submit" tone="primary">Update password</Button>
+        <Button emphasis="ghost">Cancel</Button>
       </div>
     </div>
   </div>
@@ -144,7 +173,7 @@ Three password fields in an AuthForm card. Two states: ready to submit and confi
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Error · confirm mismatch — FieldMessage on invalid field + form-scope Alert above actions</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Change password">
       <template #subtitle>Pick a strong, unique password. You'll stay signed in on this device.</template>
     </PageTitle>
@@ -174,8 +203,8 @@ Three password fields in an AuthForm card. Two states: ready to submit and confi
         <AlertDescription>Fix the field above and try again.</AlertDescription>
       </Alert>
       <div class="flex gap-3">
-        <Button type="submit" disabled aria-disabled="true">Update password</Button>
-        <Button variant="ghost">Cancel</Button>
+        <Button type="submit" tone="primary" disabled aria-disabled="true">Update password</Button>
+        <Button emphasis="ghost">Cancel</Button>
       </div>
     </div>
   </div>
@@ -192,8 +221,8 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Method picker · TOTP selected — 3 verified methods, interactive picker; OTP entry below</header>
-  <div class="flex items-center justify-center overflow-clip rounded-vueda-card border border-border bg-muted/10 px-4 py-10">
-    <div class="flex w-full max-w-sm flex-col gap-5 rounded-vueda-card border border-border bg-card p-6">
+  <div class="flex items-center justify-center overflow-clip rounded-vueda-card hairline hairline-border bg-muted/10 px-4 py-10">
+    <div class="flex w-full max-w-sm flex-col gap-5 rounded-vueda-card hairline hairline-border bg-card p-6">
       <div>
         <p class="text-[15px] font-semibold leading-tight">Two-factor authentication</p>
         <p class="mt-1 text-sm text-muted-foreground">Choose a verified method to confirm it's you.</p>
@@ -242,8 +271,8 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
         </Field>
       </div>
       <div class="flex flex-wrap gap-2">
-        <Button>Verify</Button>
-        <Button variant="ghost">
+        <Button tone="primary">Verify</Button>
+        <Button emphasis="ghost">
           <FontAwesomeIcon :icon="faLifeRing" />
           Use a recovery code
         </Button>
@@ -261,8 +290,8 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SMS · cooldown active — code dispatched, resend disabled; masked destination in subtitle</header>
-  <div class="flex items-center justify-center overflow-clip rounded-vueda-card border border-border bg-muted/10 px-4 py-10">
-    <div class="flex w-full max-w-sm flex-col gap-5 rounded-vueda-card border border-border bg-card p-6">
+  <div class="flex items-center justify-center overflow-clip rounded-vueda-card hairline hairline-border bg-muted/10 px-4 py-10">
+    <div class="flex w-full max-w-sm flex-col gap-5 rounded-vueda-card hairline hairline-border bg-card p-6">
       <div>
         <p class="text-[15px] font-semibold leading-tight">Enter your code</p>
         <p class="mt-1 text-sm text-muted-foreground">We sent a 6-digit code to <strong>(•••) ••• 0413</strong>. It expires in 5 minutes.</p>
@@ -283,13 +312,13 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
         </FieldContent>
       </Field>
       <div class="flex flex-wrap gap-2">
-        <Button disabled aria-disabled="true">Verify</Button>
-        <Button variant="ghost" disabled aria-disabled="true">
+        <Button tone="primary" disabled aria-disabled="true">Verify</Button>
+        <Button emphasis="ghost" disabled aria-disabled="true">
           <FontAwesomeIcon :icon="faClock" />
           Send sms again
-          <span class="rounded border border-border bg-muted/40 px-1 font-mono text-xs">0:47</span>
+          <span class="rounded hairline hairline-border bg-muted/40 px-1 font-mono text-xs">0:47</span>
         </Button>
-        <Button variant="ghost">
+        <Button emphasis="ghost">
           <FontAwesomeIcon :icon="faLifeRing" />
           Use a recovery code
         </Button>
@@ -298,15 +327,15 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>cooldown: resend button disabled with an inline mono countdown chip — state is visual, not just textual</span>
-    <span>cooldown chip: <code>rounded border border-border bg-muted/40 px-1 font-mono text-xs</code></span>
+    <span>cooldown chip: <code>rounded hairline hairline-border bg-muted/40 px-1 font-mono text-xs</code></span>
     <span>primary disabled until all 6 slots are filled; destination masked to last 4 digits</span>
   </footer>
 </VuedaDemo>
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recovery code path — single text input with mono style; back link to verified methods</header>
-  <div class="flex items-center justify-center overflow-clip rounded-vueda-card border border-border bg-muted/10 px-4 py-10">
-    <div class="flex w-full max-w-sm flex-col gap-5 rounded-vueda-card border border-border bg-card p-6">
+  <div class="flex items-center justify-center overflow-clip rounded-vueda-card hairline hairline-border bg-muted/10 px-4 py-10">
+    <div class="flex w-full max-w-sm flex-col gap-5 rounded-vueda-card hairline hairline-border bg-card p-6">
       <div>
         <p class="text-[15px] font-semibold leading-tight">Use a recovery code</p>
         <p class="mt-1 text-sm text-muted-foreground">Enter one of the codes you saved when you set up two-factor auth. Each code works once.</p>
@@ -318,8 +347,8 @@ AuthorizingForm layout. The user holds a session token but the server demands a 
         </FieldContent>
       </Field>
       <div class="flex gap-2">
-        <Button>Verify</Button>
-        <Button variant="ghost">
+        <Button tone="primary">Verify</Button>
+        <Button emphasis="ghost">
           <FontAwesomeIcon :icon="faArrowLeft" />
           Back to verified methods
         </Button>
@@ -340,11 +369,11 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Step 1 · Choose method — interactive picker; email option disabled (no verified address)</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Set up a verification device">
       <template #subtitle>Pick how you want to receive verification codes when signing in.</template>
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <div class="flex max-w-md flex-col gap-5 px-6 py-5">
@@ -393,8 +422,8 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
         </FieldContent>
       </Field>
       <div class="flex gap-3">
-        <Button>Continue</Button>
-        <Button variant="ghost">Cancel</Button>
+        <Button tone="primary">Continue</Button>
+        <Button emphasis="ghost">Cancel</Button>
       </div>
     </div>
   </div>
@@ -408,18 +437,18 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Step 2 · Verify TOTP — step 1 done; QR placeholder + inline manual key; OTP entry</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Verify your authenticator">
       <template #subtitle>Scan this code with 1Password, Authy, or any TOTP app.</template>
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <div class="flex max-w-md flex-col gap-5 px-6 py-5">
       <!-- step track: step 1 done -->
       <div class="flex items-start">
         <div class="flex flex-col items-center gap-1">
-          <div class="flex h-6 w-6 items-center justify-center rounded-full bg-success text-xs font-semibold text-white">
+          <div class="flex h-6 w-6 items-center justify-center rounded-full bg-success text-xs font-semibold text-success-foreground">
             <FontAwesomeIcon :icon="faCheck" class="text-[10px]" />
           </div>
           <span class="text-xs text-muted-foreground">Choose</span>
@@ -439,7 +468,7 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
       <Field orientation="vertical">
         <FieldLabel>Setup code</FieldLabel>
         <FieldContent>
-          <div class="flex gap-4 rounded-vueda-control border border-border bg-muted/10 p-3">
+          <div class="flex gap-4 rounded-vueda-control hairline hairline-border bg-muted/10 p-3">
             <div class="shrink-0">
               <svg viewBox="0 0 80 80" class="h-20 w-20" aria-label="QR code placeholder">
                 <rect width="80" height="80" fill="white" />
@@ -468,10 +497,10 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
             <div class="flex min-w-0 flex-col justify-center gap-2">
               <p class="text-sm font-semibold">Scan to add</p>
               <p class="text-xs text-muted-foreground">Or enter the manual key below if you can't scan.</p>
-              <div class="flex items-center gap-1.5 rounded border border-border bg-muted/20 px-2 py-1">
+              <div class="flex items-center gap-1.5 rounded hairline hairline-border bg-muted/20 px-2 py-1">
                 <span class="text-xs text-muted-foreground">Key</span>
                 <span class="flex-1 truncate font-mono text-xs tracking-wide">JBSWY3DP-EHPK3PXP</span>
-                <Button size="sm" variant="ghost" class="h-5 w-5 shrink-0 p-0" aria-label="Copy manual key">
+                <Button size="sm" emphasis="ghost" class="h-5 w-5 shrink-0 p-0" aria-label="Copy manual key">
                   <FontAwesomeIcon :icon="faCopy" class="text-xs" />
                 </Button>
               </div>
@@ -496,8 +525,8 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
         </FieldContent>
       </Field>
       <div class="flex gap-3">
-        <Button disabled aria-disabled="true">Verify and finish</Button>
-        <Button variant="ghost">
+        <Button tone="primary" disabled aria-disabled="true">Verify and finish</Button>
+        <Button emphasis="ghost">
           <FontAwesomeIcon :icon="faArrowLeft" />
           Back
         </Button>
@@ -505,7 +534,7 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
     </div>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>done step: <code>bg-success text-white</code> filled circle with checkmark; connector between done and active steps: <code>bg-primary</code></span>
+    <span>done step: <code>bg-success text-success-foreground</code> filled circle with checkmark; connector between done and active steps: <code>bg-primary</code></span>
     <span>manual key inline: short content fits below the QR without a dialog — removes a click; source hides it behind a sheet</span>
     <span>QR is a placeholder SVG; real implementation renders a PNG from the server</span>
     <span>primary disabled until all 6 slots filled</span>
@@ -514,18 +543,18 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Step 2 · Verify SMS — code dispatched; OTP entry; cooldown on resend; back to change number</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Verify your phone">
       <template #subtitle>We sent a code to +1 (415) 555-0413. It expires in 5 minutes.</template>
       <template #button>
-        <Button size="sm" variant="ghost">Cancel</Button>
+        <Button size="sm" emphasis="ghost">Cancel</Button>
       </template>
     </PageTitle>
     <div class="flex max-w-md flex-col gap-5 px-6 py-5">
       <!-- step track: step 1 done -->
       <div class="flex items-start">
         <div class="flex flex-col items-center gap-1">
-          <div class="flex h-6 w-6 items-center justify-center rounded-full bg-success text-xs font-semibold text-white">
+          <div class="flex h-6 w-6 items-center justify-center rounded-full bg-success text-xs font-semibold text-success-foreground">
             <FontAwesomeIcon :icon="faCheck" class="text-[10px]" />
           </div>
           <span class="text-xs text-muted-foreground">Choose</span>
@@ -557,13 +586,13 @@ Source (`ViewSetupDevice.vue`) advances by mutating `currentStep` with no visibl
         </FieldContent>
       </Field>
       <div class="flex flex-wrap gap-2">
-        <Button disabled aria-disabled="true">Verify and finish</Button>
-        <Button variant="ghost" disabled aria-disabled="true">
+        <Button tone="primary" disabled aria-disabled="true">Verify and finish</Button>
+        <Button emphasis="ghost" disabled aria-disabled="true">
           <FontAwesomeIcon :icon="faClock" />
           Send sms again
-          <span class="rounded border border-border bg-muted/40 px-1 font-mono text-xs">0:32</span>
+          <span class="rounded hairline hairline-border bg-muted/40 px-1 font-mono text-xs">0:32</span>
         </Button>
-        <Button variant="ghost">
+        <Button emphasis="ghost">
           <FontAwesomeIcon :icon="faArrowLeft" />
           Change number
         </Button>
@@ -583,7 +612,7 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Default · 8 codes, none used — view right after generation; saving options as outline buttons</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Recovery codes" />
     <div class="flex max-w-md flex-col gap-5 px-6 py-5">
       <p class="text-sm text-muted-foreground">Save these somewhere safe. You can use any of them in place of a verification code if you lose your device.</p>
@@ -592,7 +621,7 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
         <AlertTitle>Each code works once</AlertTitle>
         <AlertDescription>After you use a code it becomes invalid. Generate a new set if you run low or think someone else has seen them.</AlertDescription>
       </Alert>
-      <ol class="grid grid-cols-2 gap-x-6 gap-y-1 rounded-vueda-control border border-border bg-muted/10 p-3">
+      <ol class="grid grid-cols-2 gap-x-6 gap-y-1 rounded-vueda-control hairline hairline-border bg-muted/10 p-3">
         <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">1.</span>rt3m-9kdq-pzn4</li>
         <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">2.</span>4j2s-bvxm-twc8</li>
         <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">3.</span>h8nq-zd7r-yfa1</li>
@@ -603,22 +632,22 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
         <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">8.</span>xb9c-uea4-vhk2</li>
       </ol>
       <div class="flex flex-wrap gap-2">
-        <Button variant="outline">
+        <Button emphasis="outline">
           <FontAwesomeIcon :icon="faFloppyDisk" />
           Download .txt
         </Button>
-        <Button variant="outline">
+        <Button emphasis="outline">
           <FontAwesomeIcon :icon="faPrint" />
           Print
         </Button>
-        <Button variant="outline">
+        <Button emphasis="outline">
           <FontAwesomeIcon :icon="faCopy" />
           Copy all
         </Button>
       </div>
-      <div class="flex items-start justify-between gap-3 rounded-vueda-control border border-border p-3">
+      <div class="flex items-start justify-between gap-3 rounded-vueda-control hairline hairline-border p-3">
         <p class="text-sm text-muted-foreground"><strong class="text-foreground">Need a new set?</strong> Regenerating invalidates these codes immediately. You'll need somewhere safe to put the new ones.</p>
-        <Button variant="ghost" class="shrink-0">
+        <Button emphasis="ghost" class="shrink-0">
           <FontAwesomeIcon :icon="faRotate" />
           Generate new codes
         </Button>
@@ -635,12 +664,12 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">In-use · 3 of 8 redeemed — used codes struck through and muted; 5 remaining; regenerate escalates to primary</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Recovery codes">
       <template #subtitle>5 codes remaining. We'll prompt you to regenerate at 2.</template>
     </PageTitle>
     <div class="flex max-w-md flex-col gap-5 px-6 py-5">
-      <ol class="grid grid-cols-2 gap-x-6 gap-y-1 rounded-vueda-control border border-border bg-muted/10 p-3">
+      <ol class="grid grid-cols-2 gap-x-6 gap-y-1 rounded-vueda-control hairline hairline-border bg-muted/10 p-3">
         <li class="flex items-center gap-2 font-mono text-sm text-muted-foreground line-through"><span class="w-4 shrink-0 text-right text-xs">1.</span>rt3m-9kdq-pzn4</li>
         <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">2.</span>4j2s-bvxm-twc8</li>
         <li class="flex items-center gap-2 font-mono text-sm text-muted-foreground line-through"><span class="w-4 shrink-0 text-right text-xs">3.</span>h8nq-zd7r-yfa1</li>
@@ -650,9 +679,9 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
         <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">7.</span>w0fy-72ng-srt6</li>
         <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">8.</span>xb9c-uea4-vhk2</li>
       </ol>
-      <div class="flex items-start justify-between gap-3 rounded-vueda-control border border-border p-3">
+      <div class="flex items-start justify-between gap-3 rounded-vueda-control hairline hairline-border p-3">
         <p class="text-sm text-muted-foreground"><strong class="text-foreground">Generate a fresh set</strong> The codes above stop working as soon as you do. Print or download the new ones immediately.</p>
-        <Button class="shrink-0">
+        <Button tone="primary" class="shrink-0">
           <FontAwesomeIcon :icon="faRotate" />
           Generate new codes
         </Button>
@@ -668,7 +697,7 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Empty · no 2FA configured — Alert + concrete CTA; source only shows Alert</header>
-  <div class="rounded-vueda-card border border-border bg-card overflow-clip">
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
     <PageTitle title="Recovery codes" />
     <div class="flex max-w-md flex-col gap-5 px-6 py-5">
       <p class="text-sm text-muted-foreground">Recovery codes are an emergency fallback for when you lose access to your two-factor device.</p>
@@ -678,11 +707,11 @@ Three states: fresh set of 8 codes right after generation, a set with 3 of 8 alr
         <AlertDescription>You'll be able to generate recovery codes once you have at least one verified device on your account.</AlertDescription>
       </Alert>
       <div class="flex gap-3">
-        <Button>
+        <Button tone="primary">
           <FontAwesomeIcon :icon="faShieldHalved" />
           Set up a device
         </Button>
-        <Button variant="ghost">Learn more about recovery codes</Button>
+        <Button emphasis="ghost">Learn more about recovery codes</Button>
       </div>
     </div>
   </div>
@@ -707,7 +736,7 @@ AuthForm and AuthorizingForm expose dedicated theme keys. All inner form content
 | OTP slot active highlight     | `InputOTPSlot` theme key · `data-active` attribute drives focus ring                              |
 | Method picker selected card   | `--primary` via `border-primary bg-primary/5`                                                     |
 | Step indicator active         | `--primary` via `bg-primary border-primary text-primary-foreground`                               |
-| Step indicator done           | `--success` via `bg-success`; `text-white` for the checkmark                                      |
+| Step indicator done           | `--success` via `bg-success`; `text-success-foreground` for the checkmark                         |
 | Step connector active-to-done | `--primary` via `bg-primary`                                                                      |
 | Step connector pending        | `--border` via `bg-border`                                                                        |
 | Recovery code grid            | `--muted`, `--border` — same bordered content block as other panels                               |

@@ -12,10 +12,12 @@ import AlertActions from "@vueda/feedback/alert/AlertActions.vue";
 import AlertClose from "@vueda/feedback/alert/AlertClose.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
-import LoadingSpinnerInline from "@vueda/components/LoadingSpinnerInline.vue";
+import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import Progress from "@vueda/feedback/progress/Progress.vue";
 import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
+import Sonner from "@vueda/feedback/toast/Sonner.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import { toast } from "vue-sonner";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
   faBell,
@@ -28,13 +30,21 @@ import {
   faTriangleExclamation,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+
+function fireLoadingToast() {
+  toast.promise(new Promise((resolve) => setTimeout(resolve, 2500)), {
+    loading: "Generating export",
+    description: "Reconciling ledger.",
+    success: () => ({ message: "Export ready", description: "Available in Downloads." }),
+  });
+}
 </script>
 
 # Feedback + Loading
 
 The feedback family covers the surfaces that report state to the operator:
-alerts, badges, loading icons, progress bars, skeleton placeholders, the toast
-container, and the hover card popover. They share the status token surface
+alerts, badges, loading icons, progress bars, skeleton placeholders, and the
+toast container. They share the status token surface
 ({@api css-token:destructive}, {@api css-token:warning},
 {@api css-token:info}, {@api css-token:success}) and the popover surface
 ({@api css-token:popover}, {@api css-token:popover-foreground},
@@ -58,7 +68,9 @@ state recipes) belong in [theme keys](../theming/keys.md).
 
 Alert is the canonical boxed status message. The default variant is neutral;
 destructive, warning, info, and success all use the same recipe: status text,
-status border at 50%, status background at 10%. The icon column collapses
+a status hairline at 50%, status background at 10%. The edge is a `hairline`
+(inset box-shadow), not a `border`, so the saturated status colors do not
+fringe at integer DPR. The icon column collapses
 when no direct SVG child is present, so consumers never align icon and text
 manually: the grid template selects between `[16px_1fr]` and `[0_1fr]` based
 on `has-[>svg]`.
@@ -115,11 +127,11 @@ Theme keys: {@api theme-key:Alert}, {@api theme-key:AlertTitle},
     </div>
     <template #footer>
       <span>status bg <code>/10</code></span>
-      <span>status border <code>/50</code></span>
+      <span>status hairline <code>/50</code></span>
       <span>icon column only when direct SVG child exists</span>
     </template>
   </DemoCard>
-  <section class="grid gap-3 rounded-vueda-card border border-border p-4 lg:grid-cols-2">
+  <section class="grid gap-3 rounded-vueda-card hairline hairline-border p-4 lg:grid-cols-2">
     <div class="flex flex-col gap-3">
       <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         no icon
@@ -148,8 +160,8 @@ Theme keys: {@api theme-key:Alert}, {@api theme-key:AlertTitle},
         Renew the table or configure manual rates before 2026-05-01.
       </AlertDescription>
       <AlertActions>
-        <Button variant="ghost" size="sm">Dismiss</Button>
-        <Button variant="outline" size="sm">Renew</Button>
+        <Button emphasis="ghost" size="sm">Dismiss</Button>
+        <Button emphasis="outline" size="sm">Renew</Button>
       </AlertActions>
     </Alert>
     <template #footer>
@@ -225,20 +237,20 @@ Theme key: {@api theme-key:Badge}. Token surface:
     </template>
   </DemoCard>
   <DemoCard title="table context" class="lg:col-span-2">
-    <div class="overflow-x-auto rounded-vueda-control border border-border">
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] border-b border-border bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div class="overflow-x-auto rounded-vueda-control hairline hairline-border">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] border-b-hairline bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         <span>ID</span>
         <span>Customer</span>
         <span>Amount</span>
         <span>Status</span>
       </div>
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b border-border px-3 py-2 text-sm last:border-b-0">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b-hairline px-3 py-2 text-sm last:border-b-0">
         <span class="font-mono text-xs">INV-0419</span>
         <span>Granger Holdings</span>
         <span class="font-mono text-xs">$12,840.00</span>
         <span><Badge><FontAwesomeIcon :icon="faCircleCheck" /> Paid</Badge></span>
       </div>
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b border-border px-3 py-2 text-sm last:border-b-0">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b-hairline px-3 py-2 text-sm last:border-b-0">
         <span class="font-mono text-xs">INV-0420</span>
         <span>Bannerman &amp; Co.</span>
         <span class="font-mono text-xs">$4,210.50</span>
@@ -275,7 +287,7 @@ the classes it expects.
       </div>
       <div class="flex min-w-16 flex-col items-center gap-2">
         <span class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">button</span>
-        <Button disabled>
+        <Button tone="primary" disabled>
           <LoadingSpinnerInline />
           Saving
         </Button>
@@ -447,7 +459,7 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
     </div>
   </DemoCard>
   <DemoCard title="card footprint">
-    <div class="grid gap-3 rounded-vueda-card border border-border bg-card p-3">
+    <div class="grid gap-3 rounded-vueda-card hairline hairline-border bg-card p-3">
       <Skeleton class="h-28 w-full rounded-vueda-card" />
       <Skeleton class="h-4 w-2/3" />
       <Skeleton class="h-3 w-full" />
@@ -459,20 +471,20 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
     </div>
   </DemoCard>
   <DemoCard title="table rows" class="lg:col-span-2">
-    <div class="overflow-x-auto rounded-vueda-control border border-border">
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] border-b border-border bg-muted/50 px-3 py-2">
+    <div class="overflow-x-auto rounded-vueda-control hairline hairline-border">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] border-b-hairline bg-muted/50 px-3 py-2">
         <Skeleton class="h-3 w-12" />
         <Skeleton class="h-3 w-24" />
         <Skeleton class="h-3 w-16" />
         <Skeleton class="h-3 w-14" />
       </div>
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b border-border px-3 py-2 last:border-b-0">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b-hairline px-3 py-2 last:border-b-0">
         <Skeleton class="h-3 w-16" />
         <Skeleton class="h-3 w-4/5" />
         <Skeleton class="h-3 w-20" />
         <Skeleton class="h-5 w-14" />
       </div>
-      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b border-border px-3 py-2 last:border-b-0">
+      <div class="grid min-w-[620px] grid-cols-[96px_1fr_120px_120px] items-center border-b-hairline px-3 py-2 last:border-b-0">
         <Skeleton class="h-3 w-16" />
         <Skeleton class="h-3 w-3/5" />
         <Skeleton class="h-3 w-20" />
@@ -490,10 +502,31 @@ Theme key: {@api theme-key:Skeleton}. Token surface:
 
 ## Sonner: variant matrix
 
-Sonner is the toast container. The component supplies VUEDA colors and renders
-registered icons for its named icon slots (`success-icon`, `info-icon`,
-`warning-icon`, `error-icon`, `loading-icon`, `close-icon`). Consumers can
-override any slot with an icon component.
+Sonner is the toast container. Like Button, it resolves on two axes: `type`
+(info, success, warning, error, loading -- the tone) and a surface treatment,
+normal vs `richColors`. The normal surface reads against the popover token;
+`richColors` reuses Alert's status recipe (status text, a status hairline at
+50%, background at 10%, mixed against `--popover` rather than `transparent` so
+the filled surface stays opaque like every other floating overlay) instead
+of a bold fill, so re-toning stays consistent with Alert's already-
+established status language. Loading and the default type have no semantic
+tone to fill, so they only appear on the normal-surface cards. Every toast,
+normal or rich, carries the same edge and elevation as Popover and HoverCard:
+an inset `hairline` (so the saturated rich edges do not fringe at integer DPR)
+composed with {@api css-token:vueda-shadow-popover}. The live toasts override
+vue-sonner's own border and drop shadow to match. Toasts are also dismissible
+by dragging; a grab cursor and suppressed text selection make that
+discoverable from the first pointer-down, rather than only once a drag is
+already underway.
+
+Each row below has a static pair (the intended target, hand-authored) and a
+live pair (a real `Sonner` firing real `toast()` calls, so animation,
+stacking, drag-dismiss, and timing behave exactly as they do in a consuming
+app).
+
+Icons come from the `check`, `info`, `triangleExclamation`, `close`, and
+`loading` registry keys via `useIcons`; override them with `setIcons()` or
+per-instance `iconOverride`.
 Toasts read against the popover surface, the same one used by Popover and
 HoverCard, so re-toning the popover token shifts all three in lockstep.
 
@@ -501,11 +534,11 @@ Theme key: {@api theme-key:Sonner}. Token surface:
 {@api css-token:popover}, {@api css-token:popover-foreground},
 {@api css-token:border}, and {@api css-token:vueda-control-radius}.
 
-<VuedaDemo class="grid gap-6">
-  <DemoCard title="types with default glyphs">
+<VuedaDemo class="grid gap-6 lg:grid-cols-2">
+  <DemoCard title="static — normal surface">
     <div class="grid gap-2 lg:grid-cols-2">
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <span class="mt-0.5 font-mono text-sm leading-none">ℹ</span>
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
+        <FontAwesomeIcon :icon="faCircleInfo" class="mt-0.5" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">New records imported</div>
           <div class="text-xs leading-snug text-muted-foreground">248 entries added by the Stripe connector.</div>
@@ -514,8 +547,8 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <span class="mt-0.5 font-mono text-sm leading-none text-success">✓</span>
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
+        <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5 text-success" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Invoice posted · A-0419</div>
           <div class="text-xs leading-snug text-muted-foreground">Payment of $12,840.00 applied.</div>
@@ -524,17 +557,18 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <span class="mt-0.5 font-mono text-sm leading-none text-warning">⚠</span>
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
+        <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5 text-warning" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Session expires in 5 minutes</div>
+          <div class="text-xs leading-snug text-muted-foreground">Save your work to avoid losing changes.</div>
         </div>
         <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <span class="mt-0.5 font-mono text-sm leading-none text-destructive">✕</span>
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
+        <FontAwesomeIcon :icon="faCircleExclamation" class="mt-0.5 text-destructive" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Sync failed · Stripe</div>
           <div class="text-xs leading-snug text-muted-foreground">HTTP 502, will retry in 60s.</div>
@@ -543,17 +577,14 @@ Theme key: {@api theme-key:Sonner}. Token surface:
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
         <span class="mt-0.5 size-4"><LoadingSpinnerInline /></span>
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Generating export</div>
           <div class="text-xs leading-snug text-muted-foreground">Reconciling ledger.</div>
         </div>
-        <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
-          <FontAwesomeIcon :icon="faXmark" />
-        </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline bg-popover p-3 text-popover-foreground">
         <FontAwesomeIcon :icon="faBell" class="mt-0.5 text-muted-foreground" />
         <div class="grid gap-1">
           <div class="text-sm font-medium leading-tight">Draft saved</div>
@@ -567,27 +598,64 @@ Theme key: {@api theme-key:Sonner}. Token surface:
     <template #footer>
       <span>bg <code>--popover</code></span>
       <span>fg <code>--popover-foreground</code></span>
-      <span>border <code>--border</code></span>
-      <span>icons from <code>useIcons</code></span>
+      <span>hairline edge <code>--border</code> + <code>--vueda-shadow-popover</code></span>
+      <span>loading omits the dismiss button: it tracks a pending promise</span>
     </template>
   </DemoCard>
-  <DemoCard title="Font Awesome override">
+  <DemoCard title="live — normal surface" description="fires real toast() calls against the actual Sonner component">
+    <div class="flex flex-wrap gap-2">
+      <Button size="sm" @click="toast.info('New records imported', { description: '248 entries added by the Stripe connector.', duration: Infinity })">Info</Button>
+      <Button size="sm" @click="toast.success('Invoice posted · A-0419', { description: 'Payment of $12,840.00 applied.', duration: Infinity })">Success</Button>
+      <Button size="sm" @click="toast.warning('Session expires in 5 minutes', { description: 'Save your work to avoid losing changes.', duration: Infinity })">Warning</Button>
+      <Button size="sm" @click="toast.error('Sync failed · Stripe', { description: 'HTTP 502, will retry in 60s.', duration: Infinity })">Error</Button>
+      <Button size="sm" @click="fireLoadingToast">Loading</Button>
+      <Button size="sm" @click="toast('Draft saved', { description: 'Last change 2s ago, autosave every 30s.', duration: Infinity })">Default</Button>
+      <Button size="sm" @click="toast.success('Copied to clipboard', { description: 'Share link copied.', duration: 2000 })">Short duration</Button>
+    </div>
+    <template #footer>
+      <span>info/success/warning/error/default use <code>duration: Infinity</code></span>
+      <span>loading uses <code>toast.promise()</code> and resolves to success after 2.5s</span>
+      <span>"short duration" auto-dismisses after 2s</span>
+      <span>drag any toast to dismiss it early -- cursor shows grab/grabbing</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="static — rich colors">
     <div class="grid gap-2 lg:grid-cols-2">
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5 text-success" />
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline [--vueda-hairline-color:color-mix(in_oklab,var(--info)_50%,var(--popover))] bg-info/10 p-3 text-info">
+        <FontAwesomeIcon :icon="faCircleInfo" class="mt-0.5" />
         <div class="grid gap-1">
-          <div class="text-sm font-medium leading-tight">Reconciliation complete</div>
-          <div class="text-xs leading-snug text-muted-foreground">All 247 entries matched.</div>
+          <div class="text-sm font-medium leading-tight">New records imported</div>
+          <div class="text-xs leading-snug text-info/90">248 entries added by the Stripe connector.</div>
         </div>
         <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
           <FontAwesomeIcon :icon="faXmark" />
         </button>
       </div>
-      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control border border-border bg-popover p-3 text-popover-foreground shadow-vueda-popover">
-        <FontAwesomeIcon :icon="faCircleExclamation" class="mt-0.5 text-destructive" />
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline [--vueda-hairline-color:color-mix(in_oklab,var(--success)_50%,var(--popover))] bg-success/10 p-3 text-success">
+        <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5" />
         <div class="grid gap-1">
-          <div class="text-sm font-medium leading-tight">Upload rejected</div>
-          <div class="text-xs leading-snug text-muted-foreground">File exceeds 50MB limit.</div>
+          <div class="text-sm font-medium leading-tight">Invoice posted · A-0419</div>
+          <div class="text-xs leading-snug text-success/90">Payment of $12,840.00 applied.</div>
+        </div>
+        <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
+          <FontAwesomeIcon :icon="faXmark" />
+        </button>
+      </div>
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline [--vueda-hairline-color:color-mix(in_oklab,var(--warning)_50%,var(--popover))] bg-warning/10 p-3 text-warning">
+        <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5" />
+        <div class="grid gap-1">
+          <div class="text-sm font-medium leading-tight">Session expires in 5 minutes</div>
+          <div class="text-xs leading-snug text-warning/90">Save your work to avoid losing changes.</div>
+        </div>
+        <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
+          <FontAwesomeIcon :icon="faXmark" />
+        </button>
+      </div>
+      <div class="grid grid-cols-[16px_1fr_auto] items-start gap-3 rounded-vueda-control overlay-hairline [--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_50%,var(--popover))] bg-destructive/10 p-3 text-destructive">
+        <FontAwesomeIcon :icon="faCircleExclamation" class="mt-0.5" />
+        <div class="grid gap-1">
+          <div class="text-sm font-medium leading-tight">Sync failed · Stripe</div>
+          <div class="text-xs leading-snug text-destructive/90">HTTP 502, will retry in 60s.</div>
         </div>
         <button class="mt-0.5 rounded-vueda-control text-muted-foreground hover:text-foreground" type="button" aria-label="Dismiss">
           <FontAwesomeIcon :icon="faXmark" />
@@ -595,71 +663,26 @@ Theme key: {@api theme-key:Sonner}. Token surface:
       </div>
     </div>
     <template #footer>
-      <span>slot names <code>success-icon</code>, <code>info-icon</code>, <code>warning-icon</code>, <code>error-icon</code>, <code>loading-icon</code>, <code>close-icon</code></span>
+      <span>bg <code>--{type}</code>/10</span>
+      <span>hairline edge <code>--{type}</code>/50</span>
+      <span>elevation <code>--vueda-shadow-popover</code></span>
+      <span>mirrors Alert's status recipe</span>
+      <span>loading and the default type have no semantic tone to fill, so they stay off this card</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="live — rich colors" description="same buttons, richColors: true on each toast() call">
+    <div class="flex flex-wrap gap-2">
+      <Button size="sm" @click="toast.info('New records imported', { description: '248 entries added by the Stripe connector.', duration: Infinity, richColors: true })">Info</Button>
+      <Button size="sm" @click="toast.success('Invoice posted · A-0419', { description: 'Payment of $12,840.00 applied.', duration: Infinity, richColors: true })">Success</Button>
+      <Button size="sm" @click="toast.warning('Session expires in 5 minutes', { description: 'Save your work to avoid losing changes.', duration: Infinity, richColors: true })">Warning</Button>
+      <Button size="sm" @click="toast.error('Sync failed · Stripe', { description: 'HTTP 502, will retry in 60s.', duration: Infinity, richColors: true })">Error</Button>
+    </div>
+    <template #footer>
+      <span><code>richColors</code> is a per-toast option, not just a Toaster-level prop</span>
+      <span>description inherits the tone automatically; the close button stays neutral, matching the static preview</span>
     </template>
   </DemoCard>
 </VuedaDemo>
-
-## HoverCard: composition matrix
-
-HoverCard is a glance-weight summary popover, lighter than Popover. The
-content panel is `w-64` (256 px) with {@api css-token:vueda-control-radius},
-deliberately tighter than the popover surface used for actionable Popover
-content; HoverCard is for read-only summaries (a profile by hovering a
-username, a record summary by hovering an ID), Popover is for actions.
-
-Theme key: {@api theme-key:HoverCardContent}. Token surface:
-{@api css-token:popover}, {@api css-token:popover-foreground},
-{@api css-token:border}, and {@api css-token:vueda-control-radius}. The
-elevation comes from {@api css-token:vueda-shadow-popover}.
-
-<VuedaDemo class="grid gap-6 lg:grid-cols-2">
-  <DemoCard title="profile summary">
-    <div class="w-64 rounded-vueda-control border border-border bg-popover p-4 text-popover-foreground shadow-vueda-popover">
-      <div class="flex items-center gap-3">
-        <div class="flex size-10 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">JO</div>
-        <div class="grid gap-0.5">
-          <div class="text-sm font-medium leading-tight">Jadesola Okafor</div>
-          <div class="text-xs text-muted-foreground">j.okafor · Accounts</div>
-        </div>
-      </div>
-      <p class="mt-3 text-xs leading-snug text-muted-foreground">
-        Senior AR specialist. Posts to GL-4100 and GL-4105 only.
-      </p>
-      <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-        <dt class="text-muted-foreground">Role</dt>
-        <dd class="font-mono">AR.Specialist</dd>
-        <dt class="text-muted-foreground">Last login</dt>
-        <dd>today, 13:52</dd>
-        <dt class="text-muted-foreground">Posted</dt>
-        <dd>1,284 invoices</dd>
-      </dl>
-    </div>
-    <template #footer>
-      <span>width <code>w-64</code></span>
-      <span>padding <code>p-4</code></span>
-      <span>radius <code>--vueda-control-radius</code></span>
-    </template>
-  </DemoCard>
-  <DemoCard title="record summary">
-    <div class="w-64 rounded-vueda-control border border-border bg-popover p-4 text-popover-foreground shadow-vueda-popover">
-      <div class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Customer</div>
-      <div class="mt-1 text-sm font-medium leading-tight">Granger Holdings</div>
-      <div class="text-xs text-muted-foreground">CUST-3487 · Net 30</div>
-      <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-        <dt class="text-muted-foreground">Balance</dt>
-        <dd class="font-mono">$24,108.50</dd>
-        <dt class="text-muted-foreground">Open INV</dt>
-        <dd class="font-mono">3</dd>
-        <dt class="text-muted-foreground">DSO</dt>
-        <dd class="font-mono">42d</dd>
-        <dt class="text-muted-foreground">Credit</dt>
-        <dd class="font-mono">$50,000</dd>
-      </dl>
-    </div>
-    <template #footer>
-      <span>summary, not actionable</span>
-      <span>use Popover when the panel needs buttons</span>
-    </template>
-  </DemoCard>
-</VuedaDemo>
+<ClientOnly>
+  <Sonner />
+</ClientOnly>

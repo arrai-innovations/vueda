@@ -13,20 +13,13 @@ import BreadcrumbLink from "@vueda/navigation/breadcrumb/BreadcrumbLink.vue";
 import BreadcrumbList from "@vueda/navigation/breadcrumb/BreadcrumbList.vue";
 import BreadcrumbPage from "@vueda/navigation/breadcrumb/BreadcrumbPage.vue";
 import BreadcrumbSeparator from "@vueda/navigation/breadcrumb/BreadcrumbSeparator.vue";
-import Pagination from "@vueda/navigation/pagination/Pagination.vue";
-import PaginationContent from "@vueda/navigation/pagination/PaginationContent.vue";
-import PaginationEllipsis from "@vueda/navigation/pagination/PaginationEllipsis.vue";
-import PaginationFirst from "@vueda/navigation/pagination/PaginationFirst.vue";
-import PaginationItem from "@vueda/navigation/pagination/PaginationItem.vue";
-import PaginationLast from "@vueda/navigation/pagination/PaginationLast.vue";
-import PaginationNext from "@vueda/navigation/pagination/PaginationNext.vue";
-import PaginationPrevious from "@vueda/navigation/pagination/PaginationPrevious.vue";
 import NavigationMenu from "@vueda/navigation/menu/NavigationMenu.vue";
 import NavigationMenuItem from "@vueda/navigation/menu/NavigationMenuItem.vue";
 import NavigationMenuList from "@vueda/navigation/menu/NavigationMenuList.vue";
 import NavigationMenuTrigger from "@vueda/navigation/menu/NavigationMenuTrigger.vue";
 import Menubar from "@vueda/navigation/menubar/Menubar.vue";
 import MenubarMenu from "@vueda/navigation/menubar/MenubarMenu.vue";
+import MenubarShortcut from "@vueda/navigation/menubar/MenubarShortcut.vue";
 import MenubarTrigger from "@vueda/navigation/menubar/MenubarTrigger.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faCheck, faCircle } from "@fortawesome/free-solid-svg-icons";
@@ -34,9 +27,10 @@ import { faCheck, faCircle } from "@fortawesome/free-solid-svg-icons";
 
 # Navigation
 
-The navigation family covers wayfinding primitives: Breadcrumb trails, Pagination controls,
-NavigationMenu flyout menus, and Menubar application menus. All share the same 32px control
-sizing baseline ({@api css-token:vueda-control-height}) and focus treatment.
+The navigation family covers wayfinding primitives: Breadcrumb trails, NavigationMenu flyout
+menus, and Menubar application menus. All share the same 32px control sizing baseline
+({@api css-token:vueda-control-height}) and focus treatment. Pagination shares that baseline but
+has outgrown this page; it lives on [Pagination](./pagination.md).
 
 This page is the visual contract the default theme guarantees. Use it as the target spec when
 you re-skin: every cell shown here should still read as the same control after a customization.
@@ -136,76 +130,6 @@ Theme keys: {@api theme-key:BreadcrumbList}, {@api theme-key:BreadcrumbItem},
   </DemoCard>
 </VuedaDemo>
 
-## Pagination
-
-Pagination renders a `<nav>` landmark with Previous/Next navigation buttons and numbered page
-items. Page items compose from `_ButtonGhost` (inactive) or `_ButtonOutline` (active).
-Navigation buttons compose from `_ButtonGhost` and show a text label (`Previous` / `Next`)
-visible at the `sm` breakpoint and above.
-
-Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
-{@api theme-key:PaginationItem}, {@api theme-key:NavigationPaginationNavButton},
-{@api theme-key:PaginationEllipsis}.
-
-<VuedaDemo class="grid gap-6">
-  <DemoCard title="default" description="(sibling-count=1, page 5 of 10)">
-    <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="5">
-      <PaginationContent v-slot="{ items }">
-        <PaginationPrevious />
-        <template v-for="(item, idx) in items" :key="idx">
-          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === 5">
-            {{ item.value }}
-          </PaginationItem>
-          <PaginationEllipsis v-else-if="item.type === 'ellipsis'" />
-        </template>
-        <PaginationNext />
-      </PaginationContent>
-    </Pagination>
-    <template #footer>
-      <span>active item composes <code>_ButtonOutline</code></span>
-      <span>inactive items compose <code>_ButtonGhost</code></span>
-      <span>nav buttons: gap-1, px-2.5, show label at sm+</span>
-    </template>
-  </DemoCard>
-  <DemoCard title="show-edges" description="(first/last buttons + edge page numbers)">
-    <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="5" :show-edges="true">
-      <PaginationContent v-slot="{ items }">
-        <PaginationFirst />
-        <PaginationPrevious />
-        <template v-for="(item, idx) in items" :key="idx">
-          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === 5">
-            {{ item.value }}
-          </PaginationItem>
-          <PaginationEllipsis v-else-if="item.type === 'ellipsis'" />
-        </template>
-        <PaginationNext />
-        <PaginationLast />
-      </PaginationContent>
-    </Pagination>
-    <template #footer>
-      <span>PaginationFirst / PaginationLast share NavigationPaginationNavButton key</span>
-      <span>show-edges always includes page 1 and last page in the number list</span>
-    </template>
-  </DemoCard>
-  <DemoCard title="disabled">
-    <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="5" disabled>
-      <PaginationContent v-slot="{ items }">
-        <PaginationPrevious />
-        <template v-for="(item, idx) in items" :key="idx">
-          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === 5">
-            {{ item.value }}
-          </PaginationItem>
-          <PaginationEllipsis v-else-if="item.type === 'ellipsis'" />
-        </template>
-        <PaginationNext />
-      </PaginationContent>
-    </Pagination>
-    <template #footer>
-      <span>disabled: pointer-events-none, opacity-50 on all items</span>
-    </template>
-  </DemoCard>
-</VuedaDemo>
-
 ## NavigationMenu
 
 NavigationMenu renders a horizontal list of triggers that open flyout content panels through a
@@ -276,7 +200,7 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
     </template>
   </DemoCard>
   <DemoCard title="content anatomy" description="(static panel)">
-    <div class="bg-popover text-popover-foreground rounded-vueda-control border shadow overflow-hidden p-2 flex flex-col gap-0.5">
+    <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline overflow-hidden p-2 flex flex-col gap-0.5">
       <a href="#" class="flex flex-col gap-1 rounded-sm p-2 text-sm hover:bg-accent hover:text-accent-foreground">
         <span class="font-medium leading-none">Components</span>
         <span class="text-muted-foreground text-xs leading-snug">Browse the component library</span>
@@ -291,7 +215,7 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
       </a>
     </div>
     <template #footer>
-      <span>viewport: bg <code>--popover</code>, rounded, border, shadow</span>
+      <span>viewport: bg <code>--popover</code>, rounded, <code>overlay-hairline</code></span>
       <span>link: flex-col, gap-1, p-2, rounded-sm, text-sm</span>
       <span>active link: bg <code>--accent/50</code></span>
       <span>hover/focus link: bg <code>--accent</code></span>
@@ -329,31 +253,31 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       <StateLabel>hover / focus / open</StateLabel>
       <div></div>
       <div>
-        <div class="bg-background flex h-9 w-fit items-center gap-1 rounded-vueda-control border p-1 shadow-vueda-control">
+        <div class="bg-background flex h-9 w-fit items-center gap-1 rounded-vueda-control hairline hairline-border p-1 shadow-vueda-control">
           <div class="flex items-center rounded-sm px-2 py-1 text-sm font-medium bg-accent text-accent-foreground select-none">File</div>
         </div>
       </div>
     </div>
     <template #footer>
-      <span>bar: bg <code>--background</code>, h-9, rounded, border, shadow</span>
+      <span>bar: bg <code>--background</code>, h-9, rounded, <code>hairline hairline-border</code>, shadow</span>
       <span>trigger hover/focus/open: bg <code>--accent</code>, fg <code>--accent-foreground</code></span>
     </template>
   </DemoCard>
   <DemoCard title="content anatomy" description="(static panel)">
-    <div class="bg-popover text-popover-foreground min-w-48 rounded-vueda-control border p-1 shadow-vueda-popover">
+    <div class="bg-popover text-popover-foreground min-w-48 rounded-vueda-control overlay-hairline p-1">
       <div class="px-2 py-1.5 text-sm font-medium">File</div>
       <div class="bg-border -mx-1 my-1 h-px"></div>
       <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none">
         New Window
-        <span class="text-muted-foreground ml-auto text-xs tracking-widest">&#8984;N</span>
+        <MenubarShortcut :keys="['⌘', 'N']" />
       </div>
       <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none bg-accent text-accent-foreground">
         Open...
-        <span class="ml-auto text-xs tracking-widest opacity-70">&#8984;O</span>
+        <MenubarShortcut :keys="['⌘', 'O']" />
       </div>
       <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none opacity-50">
         Close
-        <span class="text-muted-foreground ml-auto text-xs tracking-widest">&#8984;W</span>
+        <MenubarShortcut :keys="['⌘', 'W']" />
       </div>
       <div class="bg-border -mx-1 my-1 h-px"></div>
       <div class="relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm select-none">
@@ -377,10 +301,10 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       </div>
     </div>
     <template #footer>
-      <span>content: bg <code>--popover</code>, min-w-48, rounded, border, shadow</span>
+      <span>content: bg <code>--popover</code>, min-w-48, rounded, <code>overlay-hairline</code></span>
       <span>item hover/focus: bg <code>--accent</code></span>
       <span>indicator: size-3.5, absolute left-2</span>
-      <span>shortcut: text-xs tracking-widest ml-auto</span>
+      <span>shortcut: <code>MenubarShortcut</code> with parsed <code>KbdGroup</code></span>
       <span>disabled: opacity-50 pointer-events-none</span>
     </template>
   </DemoCard>

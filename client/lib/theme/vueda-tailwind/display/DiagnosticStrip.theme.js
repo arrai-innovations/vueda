@@ -16,7 +16,7 @@ patchTheme({
         root: {
             class: [
                 "grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1",
-                "rounded-vueda-card border bg-muted/35",
+                "rounded-vueda-card hairline hairline-border bg-muted/35",
                 "px-3 py-2",
             ],
         },

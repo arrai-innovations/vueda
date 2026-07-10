@@ -1,5 +1,14 @@
 # VUEDA Monorepo Justfile
 
+# Treat recipe lines starting with `#` as justfile comments: don't echo them to
+# stderr or pass them to the shell.
+set ignore-comments := true
+
+# Load machine-specific env (gitignored) if present. Used for local-dev knobs
+# like HTTPS_CERT_PATH / HTTPS_KEY_PATH that enable HTTPS in docs-serve.
+set dotenv-load := true
+set dotenv-filename := ".env.local"
+
 bootstrap: # for development environment setup
   # not concurrently for clarity in output
   cd {{justfile_directory()}} && pnpm install

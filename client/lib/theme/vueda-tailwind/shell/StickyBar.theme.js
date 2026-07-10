@@ -36,7 +36,7 @@ patchTheme({
             class: [
                 // Surface and spacing. Background defaults to `--card`; a wrapper sets
                 // `--vueda-sticky-bar-surface` to retint the strip without class clobbering.
-                "bg-[var(--vueda-sticky-bar-surface,var(--card))] border-b px-5 py-[10px]",
+                "bg-[var(--vueda-sticky-bar-surface,var(--card))] border-b-hairline px-5 py-[10px]",
 
                 // Layout.
                 "flex items-center flex-wrap gap-2",

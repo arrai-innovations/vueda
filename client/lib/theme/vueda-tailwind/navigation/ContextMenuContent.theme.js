@@ -28,7 +28,7 @@ patchTheme({
                 "z-50 max-h-(--reka-context-menu-content-available-height) min-w-[8rem]",
 
                 // Shape and border.
-                "overflow-x-hidden overflow-y-auto rounded-vueda-control border p-1 shadow-vueda-popover",
+                "overflow-x-hidden overflow-y-auto rounded-vueda-control overlay-hairline p-1",
             ],
         },
     },

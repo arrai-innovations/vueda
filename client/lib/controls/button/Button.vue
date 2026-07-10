@@ -1,11 +1,16 @@
 <script setup>
+import { resolveButtonVariant } from "@vueda/controls/button/buttonVariant.js";
 import "@vueda/theme/vueda-tailwind/controls/Button.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { Primitive } from "reka-ui";
-import { reactive, toRef } from "vue";
+import { computed, reactive, toRef } from "vue";
 
 /**
- * @typedef {'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'} ButtonVariant
+ * @typedef {'neutral' | 'primary' | 'destructive'} ButtonTone
+ */
+
+/**
+ * @typedef {'fill' | 'outline' | 'ghost' | 'link'} ButtonEmphasis
  */
 
 /**
@@ -13,19 +18,27 @@ import { reactive, toRef } from "vue";
  */
 
 /**
- * A button control built on Reka UI's Primitive, supporting variant and size styles via the theme system.
+ * A button control built on Reka UI's Primitive. Its look resolves on two axes,
+ * `tone` (color) and `emphasis` (structure). A bare button rests at neutral fill;
+ * the primary fill is opt-in with `tone="primary"`. Size styles also resolve via
+ * the theme system.
  */
 defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
     /**
-     * Visual style variant.
-     * @type {'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'}
+     * Color axis.
+     * @type {'neutral' | 'primary' | 'destructive'}
      */
-    variant: { type: String, default: undefined },
+    tone: { type: String, default: undefined },
     /**
-     * Size variant.
+     * Structure axis.
+     * @type {'fill' | 'outline' | 'ghost' | 'link'}
+     */
+    emphasis: { type: String, default: undefined },
+    /**
+     * Size axis.
      * @type {'default' | 'sm' | 'lg' | 'icon' | 'icon-sm' | 'icon-lg'}
      */
     size: { type: String, default: undefined },
@@ -44,16 +57,22 @@ const theme = useTheme(
     "Button",
     props,
     reactive({
-        variant: toRef(props, "variant"),
+        tone: toRef(props, "tone"),
+        emphasis: toRef(props, "emphasis"),
         size: toRef(props, "size"),
     }),
 );
+
+// Resolved axes for the `data-tone` / `data-emphasis` attributes; the theme
+// resolves the same pair independently for the composed primitive.
+const resolved = computed(() => resolveButtonVariant(props));
 </script>
 
 <template>
     <Primitive
         data-slot="button"
-        :data-variant="variant"
+        :data-tone="resolved.tone"
+        :data-emphasis="resolved.emphasis"
         :data-size="size"
         :as="as"
         :as-child="asChild"

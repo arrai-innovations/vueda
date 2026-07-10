@@ -21,7 +21,7 @@ patchTheme({
                 "bg-border shrink-0",
 
                 // Orientation sizing.
-                "data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
+                "data-[orientation=horizontal]:h-hairline data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-hairline",
             ],
         },
     },

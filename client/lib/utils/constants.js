@@ -65,6 +65,19 @@ export const PAGE_PARAM = "p";
 export const PAGE_SIZE_PARAM = "ps";
 
 /**
+ * Sentinel page-size value meaning "load every page at once" rather than a fixed
+ * number of rows. Selected from the rows-per-page control; drives the all-pages
+ * fetch path instead of sending a `ps` query param.
+ */
+export const ALL_PAGES = "all";
+
+/** Default rows-per-page used when no preference is stored and no override is given. */
+export const DEFAULT_PAGE_SIZE = 25;
+
+/** Default rows-per-page option list offered by the pagination footer (last entry loads all pages). */
+export const DEFAULT_PAGE_SIZE_OPTIONS = [25, 50, 100, 200, ALL_PAGES];
+
+/**
  * Internal CRUD identifier used to match detail view requests.
  */
 export const DETAIL_VIEW_CRUD_NAME = "actionrouter.detailview";

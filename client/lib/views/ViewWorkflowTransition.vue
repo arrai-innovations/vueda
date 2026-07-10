@@ -1,10 +1,10 @@
 <script setup>
-import LinkModelView from "@vueda/components/LinkModelView.vue";
-import PageActions from "@vueda/components/PageActions.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import "@vueda/theme/vueda-tailwind/views/ViewWorkflowTransition.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
@@ -24,6 +24,7 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /** Django app label that owns the model. */
     app: {
@@ -50,7 +51,7 @@ const workflow = storeWorkflow();
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const theme = useTheme("ViewWorkflowTransition", props);
-const icon = useIcons("ViewWorkflowTransition");
+const icon = useIcons("ViewWorkflowTransition", props);
 
 if (!inject(LookupContextSymbol, null)) {
     useLookupContext();
@@ -191,7 +192,7 @@ const handleSubmit = async () => {
                             >
                         </label>
                     </div>
-                    <Button :disabled="!selectedAction" type="submit">execute transition</Button>
+                    <Button :disabled="!selectedAction" type="submit" tone="primary">execute transition</Button>
                 </form>
             </div>
             <div v-else :class="theme('empty')" data-qa="view-workflow-transition-empty">
@@ -204,7 +205,7 @@ const handleSubmit = async () => {
                     {{ memoizedStartCase(modelConfig.info?.verbose_name) }}.
                 </p>
                 <div :class="theme('emptyAction')">
-                    <Button variant="ghost" @click="router.back()">Back to detail view</Button>
+                    <Button emphasis="ghost" @click="router.back()">Back to detail view</Button>
                 </div>
             </div>
         </div>

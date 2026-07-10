@@ -12,7 +12,7 @@ const ConsequencesBulletsStub = defineComponent({
         return () => h("ul", { "data-qa": "view-destroy-cascade", "data-item-count": props.items?.length });
     },
 });
-vi.mock("@vueda/components/ConsequencesBullets.vue", () => ({ default: ConsequencesBulletsStub }));
+vi.mock("@vueda/display/consequences-bullets/ConsequencesBullets.vue", () => ({ default: ConsequencesBulletsStub }));
 
 vi.mock("@vueda/use/useViewDestroy.js", () => ({
     useViewDestroy: mockedUseViewDestroy,
@@ -43,10 +43,10 @@ const LoadingSpinnerStub = defineComponent({
         return () => h("div", { "data-qa": "spinner" });
     },
 });
-vi.mock("@vueda/components/ModelActionForm.vue", () => ({
+vi.mock("@vueda/views/ModelActionForm.vue", () => ({
     default: ModelActionFormStub,
 }));
-vi.mock("@vueda/components/LoadingSpinnerBlock.vue", () => ({ default: LoadingSpinnerStub }));
+vi.mock("@vueda/display/loading/LoadingSpinnerBlock.vue", () => ({ default: LoadingSpinnerStub }));
 
 let ViewDestroy;
 

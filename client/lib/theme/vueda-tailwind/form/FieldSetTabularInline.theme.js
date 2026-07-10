@@ -18,8 +18,8 @@ patchTheme({
         root: {
             class: [
                 // Surface and nested fieldset treatment.
-                "bg-card border rounded-vueda-card overflow-clip",
-                "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_1px_var(--border)]",
+                "bg-card border-hairline rounded-vueda-card overflow-clip",
+                "[[data-vueda-fieldset]_&]:border-0 [[data-vueda-fieldset]_&]:shadow-[inset_0_0_0_var(--vueda-hairline-width)_var(--border)]",
             ],
         },
         /** Unpadded vertical stack so the embedded grid can merge with the card edge. */
@@ -33,7 +33,7 @@ patchTheme({
         /** Eyebrow title bar for tabular inline fieldsets. See also: {@api theme-key:FieldSetStackedInline.titleBar}. */
         titleBar: {
             class: [
-                "flex items-center gap-2 2xs:gap-3 px-3 py-2 border-b",
+                "flex items-center gap-2 2xs:gap-3 px-3 py-2 border-b-hairline",
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none",
                 "text-muted-foreground",
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
@@ -116,7 +116,7 @@ patchTheme({
         /** Fieldset-level help and validation panel below the embedded grid. */
         choresPanel: {
             class: [
-                "px-3 py-2 border-t",
+                "px-3 py-2 border-t-hairline",
                 "bg-[color-mix(in_oklab,var(--muted)_15%,var(--card))]",
                 "flex flex-col gap-1",
             ],

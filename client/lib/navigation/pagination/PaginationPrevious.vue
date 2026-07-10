@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/navigation/NavigationPaginationNavButton.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
 import { PaginationPrev, useForwardProps } from "reka-ui";
@@ -11,6 +11,7 @@ import { PaginationPrev, useForwardProps } from "reka-ui";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Size variant for the button.
@@ -30,15 +31,16 @@ const props = defineProps({
     disabled: { type: Boolean, default: undefined },
 });
 
-const delegatedProps = reactiveOmit(props, "class", "size", "themeOverride");
+const delegatedProps = reactiveOmit(props, "iconOverride", "class", "size", "themeOverride");
 const forwarded = useForwardProps(delegatedProps);
 const theme = useTheme("NavigationPaginationNavButton", props);
-const icon = useIcons("PaginationPrevious");
+const icon = useIcons("PaginationPrevious", props);
 </script>
 
 <template>
     <PaginationPrev
         data-slot="pagination-previous"
+        data-qa="pagination-previous"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
         v-bind="forwarded"
@@ -50,7 +52,7 @@ const icon = useIcons("PaginationPrevious");
                 v-bind="icon('chevronLeft').props"
                 aria-hidden="true"
             />
-            <span class="hidden sm:block">Previous</span>
+            <span class="sr-only">Previous</span>
         </slot>
     </PaginationPrev>
 </template>

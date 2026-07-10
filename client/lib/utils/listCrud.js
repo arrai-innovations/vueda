@@ -135,9 +135,7 @@ export function allPagePaginatedListCrudAdaptor({
 }) {
     const { app, model, pk, action, resultsKey = "results" } = target;
     const baseUrl = pk ? getDetailUrl({ app, model, pk, action }) : getListUrl({ app, model, action });
-    if (params.page === 1) {
-        clearObjects();
-    }
+    clearObjects();
     const controller = new AbortController();
     const limit = pLimit(4);
     const running = [];
@@ -165,7 +163,6 @@ export function allPagePaginatedListCrudAdaptor({
         if (isCancelled.value) {
             return;
         }
-        clearObjects();
         pushObjects(firstData[resultsKey]);
 
         const totalPages = firstData.totalPages ?? 1;
@@ -200,7 +197,6 @@ export function allPagePaginatedListCrudAdaptor({
                                 perPage: data.perPage,
                                 page,
                             });
-                            setColumnTotals(firstData.columnTotals);
                         }
                     }),
                 );

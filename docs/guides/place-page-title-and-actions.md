@@ -30,7 +30,7 @@ Call `usePageTitle()` once in your root layout's `<script setup>`, then render {
 ```vue
 <!-- TheApp.vue -->
 <script setup>
-import PageTitle from "@vueda/components/PageTitle.vue";
+import PageTitle from "@vueda/shell/page-title/PageTitle.vue";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 
 // Establish the context above both the title display and the routed views,
@@ -78,8 +78,8 @@ Wrap a view's action buttons in {@api vue:component:PageActions}. It teleports t
 
 ```vue
 <script setup>
-import PageActions from "@vueda/components/PageActions.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
 </script>
 
 <template>
@@ -125,7 +125,7 @@ page.bindActionZone(actionZone);
 Place your custom display in the same position as `PageTitle` (above `<RouterView>`, under the layout that establishes the context). You can keep using VUEDA's `PageTitle`, replace it with your own, or render both in different layouts; they all read the one context the layout established.
 
 ::: tip
-The built-in `PageTitle` is the worked reference for this composable. If you want a starting point closer to the default look, copy its source (`@vueda/components/PageTitle.vue`) and edit from there rather than starting blank.
+The built-in `PageTitle` is the worked reference for this composable. If you want a starting point closer to the default look, copy its source (`@vueda/shell/page-title/PageTitle.vue`) and edit from there rather than starting blank.
 :::
 
 ## Restyle the default display

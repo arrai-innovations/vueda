@@ -13,11 +13,15 @@ patchTheme({
      * slots paint the SVG circle dot inside the ring.
      */
     RadioGroupItem: {
-        /** The individual radio chit inside a {@api theme-key:RadioGroup.root}. 24px circle, paired with the 24px {@api theme-key:Checkbox.root} square so the two single-select families share a row height. `hairline` edge on an input-tinted surface (`dark:bg-input/30`) with the standard focus + `aria-invalid` ring contract. Selected state is carried by the inner {@api theme-key:RadioGroupItem.dot} via `text-primary` on the root (the dot inherits the colour through `bg-current`); `aria-invalid` recolours the dot to `--destructive` the same way. */
+        /** The individual radio chit inside a {@api theme-key:RadioGroup.root}. 24px circle, paired with the 24px {@api theme-key:Checkbox.root} square so the two single-select families share a row height. `hairline` edge on an input-tinted surface (`dark:bg-input/30`) with the standard focus + `aria-invalid` ring contract; the dark rest edge uses `--border-strong` (parity with {@api theme-key:Checkbox.root}) so the ring stays visible on hovered list rows. Selected state is carried by the inner {@api theme-key:RadioGroupItem.dot} via `text-primary` on the root (the dot inherits the colour through `bg-current`); `aria-invalid` recolours the dot to `--destructive` the same way. */
         root: {
             class: [
                 // Surface and shape.
                 "text-primary dark:bg-input/30 hairline aspect-square size-6 shrink-0 rounded-full shadow-vueda-control transition-shadow",
+
+                // Dark-mode rest edge, parity with Checkbox: --border-strong so the ring
+                // clears the row-hover accent band that opaque --input sinks into.
+                "dark:hairline-border-strong",
 
                 // Disabled, focus, and invalid states.
                 "disabled:cursor-not-allowed disabled:opacity-50",

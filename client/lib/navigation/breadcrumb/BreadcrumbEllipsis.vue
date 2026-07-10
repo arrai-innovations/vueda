@@ -1,6 +1,6 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/navigation/BreadcrumbEllipsis.theme.js";
-import { useIcons } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactive, toRef } from "vue";
 
@@ -12,6 +12,7 @@ import { reactive, toRef } from "vue";
 defineOptions({});
 
 const props = defineProps({
+    ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
     /**
      * Additional CSS classes to apply to the root element.
@@ -27,7 +28,7 @@ const props = defineProps({
 });
 
 const theme = useTheme("BreadcrumbEllipsis", props, reactive({ interactive: toRef(props, "interactive") }));
-const icon = useIcons("BreadcrumbEllipsis");
+const icon = useIcons("BreadcrumbEllipsis", props);
 </script>
 
 <template>
@@ -40,9 +41,7 @@ const icon = useIcons("BreadcrumbEllipsis");
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
     >
-        <slot name="icon">
-            <component :is="icon('ellipsis').component" v-if="icon('ellipsis')" v-bind="icon('ellipsis').props" />
-        </slot>
+        <component :is="icon('ellipsis').component" v-if="icon('ellipsis')" v-bind="icon('ellipsis').props" />
         <span :class="theme('label')">More</span>
     </component>
 </template>

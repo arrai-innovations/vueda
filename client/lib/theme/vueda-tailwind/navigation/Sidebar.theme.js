@@ -53,7 +53,7 @@ patchTheme({
                 {
                     "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]":
                         variant === "floating" || variant === "inset",
-                    "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l":
+                    "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r-hairline group-data-[side=right]:border-l-hairline":
                         variant !== "floating" && variant !== "inset",
                 },
             ],
