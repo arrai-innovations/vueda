@@ -59,6 +59,7 @@ from django.db.models import Count
 from django.db.transaction import atomic
 from django.utils import timezone
 
+from vueda.user.management.commands.utils import NEWLINE
 from vueda.workflow import models
 
 
@@ -111,7 +112,6 @@ class WorkflowChangeTypes(enum.Enum):
     DELETED = "deleted"
 
 
-NEWLINE = os.linesep
 INDENT8 = "        "
 
 

@@ -7,10 +7,12 @@ __all__ = (
 )
 
 import ast
-import os
 
 
-NEWLINE = os.linesep
+# The read path already normalizes everything to \n.
+# The write path already auto-translates \n → the platform's native ending exactly once.
+# So, there's no reason to pre-translate with os.linesep
+NEWLINE = "\n"  # no longer os.linesep
 
 
 def get_matching_record(change, group_change_model):

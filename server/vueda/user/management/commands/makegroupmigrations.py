@@ -41,11 +41,11 @@ from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 from django.db.transaction import atomic
 
 from vueda.user import models as vueda_models
+from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import create_group_change
 from vueda.user.management.commands.utils import get_matching_record
 
 
-NEWLINE = os.linesep
 INDENT8 = "        "
 
 
