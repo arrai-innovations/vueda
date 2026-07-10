@@ -156,7 +156,13 @@ class Command(BaseCommand):
 
         # Update/insert only the imports we recognize, leaving any hand-added ones in place.
         import_map = get_group_migration_imports(import_instead, direct_runpython_import, as_mapping=True)
-        lines_string = merge_migration_imports(lines_string, import_map)
+        try:
+            lines_string = merge_migration_imports(lines_string, import_map)
+        except SyntaxError as e:
+            self.stderr.write(
+                self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
+            )
+            return False
 
         if not self.dry_run:
             with open(filepath, "w", encoding="utf-8") as f:
