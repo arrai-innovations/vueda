@@ -7,7 +7,6 @@ from django.db import models
 class Migration(migrations.Migration):
     dependencies = [
         ("vueda_workflow", "0004_alter_statepermission_options_and_more"),
-        ("vueda_vdq", "0002_workflow_migrations_2025_09_22"),
     ]
 
     operations = [

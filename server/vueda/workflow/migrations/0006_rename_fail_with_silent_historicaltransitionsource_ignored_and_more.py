@@ -6,7 +6,6 @@ from django.db import migrations
 class Migration(migrations.Migration):
     dependencies = [
         ("vueda_workflow", "0005_historicaltransitionsource_fail_with_silent_and_more"),
-        ("vueda_vdq", "0005_workflow_migrations_2025_11_21"),
     ]
 
     operations = [
