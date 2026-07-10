@@ -515,10 +515,10 @@ class PackingBoxSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
-class InvoiceLineSerializer(VuedaSerializer):
-    class Meta(VuedaSerializer.Meta):
+class InvoiceLineSerializer(VuedaHistorySerializer):
+    class Meta(VuedaHistorySerializer.Meta):
         model = models.InvoiceLine
-        fields = ["id", "name", "amount"] + VuedaSerializer.Meta.fields
+        fields = ["id", "name", "amount"] + VuedaHistorySerializer.Meta.fields
 
 
 class InvoiceSerializer(VuedaSerializer):

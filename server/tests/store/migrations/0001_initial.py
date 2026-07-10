@@ -1045,4 +1045,61 @@ class Migration(migrations.Migration):
                 );""",
             reverse_sql=migrations.RunSQL.noop,
         ),
+        migrations.CreateModel(
+            name="HistoricalInvoiceLine",
+            fields=[
+                ("id", models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID")),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=12)),
+                ("history_id", models.AutoField(primary_key=True, serialize=False)),
+                ("history_date", models.DateTimeField(db_index=True)),
+                ("history_change_reason", models.CharField(max_length=100, null=True)),
+                (
+                    "history_type",
+                    models.CharField(choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")], max_length=1),
+                ),
+                (
+                    "history_relation",
+                    models.ForeignKey(
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="history_records",
+                        to="store.invoiceline",
+                    ),
+                ),
+                (
+                    "history_user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "invoice",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to="store.invoice",
+                    ),
+                ),
+            ],
+            options={
+                "verbose_name": "historical invoice line",
+                "verbose_name_plural": "historical invoice lines",
+                "ordering": ("-history_date", "-history_id"),
+                "get_latest_by": ("history_date", "history_id"),
+            },
+            bases=(simple_history.models.HistoricalChanges, models.Model),
+        ),
     ]
