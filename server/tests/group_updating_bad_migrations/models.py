@@ -24,6 +24,6 @@ class GroupUpdatingBadMigrationsUser(AbstractVUEDAUser):
     class Meta(AbstractVUEDAUser.Meta):
         default_related_name = "group_updating_bad_migrations_users"
         indexes = [
-            GinIndex(fields=["email"], name="gin_email_group_updating_bad_migrations_idx", opclasses=["gin_trgm_ops"]),
-            GinIndex(fields=["name"], name="gin_name_group_updating_bad_migrations_idx", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["email"], name="gin_email_grp_updt_bd_mig_idx", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["name"], name="gin_name_grp_updt_bd_mig_idx", opclasses=["gin_trgm_ops"]),
         ]

@@ -75,10 +75,10 @@ class Migration(migrations.Migration):
                 "default_related_name": "group_updating_bad_migrations_users",
                 "indexes": [
                     django.contrib.postgres.indexes.GinIndex(
-                        fields=["email"], name="gin_email_group_updating_bad_migrations_idx", opclasses=["gin_trgm_ops"]
+                        fields=["email"], name="gin_email_grp_updt_bd_mig_idx", opclasses=["gin_trgm_ops"]
                     ),
                     django.contrib.postgres.indexes.GinIndex(
-                        fields=["name"], name="gin_name_group_updating_bad_migrations_idx", opclasses=["gin_trgm_ops"]
+                        fields=["name"], name="gin_name_grp_updt_bd_mig_idx", opclasses=["gin_trgm_ops"]
                     ),
                 ],
             },
