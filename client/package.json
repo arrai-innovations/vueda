@@ -65,7 +65,7 @@
     "vue-docgen-api": "^4.79.2"
   },
   "peerDependencies": {
-    "@arrai-innovations/reactive-helpers": "^21.1.2",
+    "@arrai-innovations/reactive-helpers": "^22.0.0",
     "@sentry/vue": "^9.5.0",
     "@vueuse/core": "^13.9.0",
     "lodash-es": "^4.17.21",
