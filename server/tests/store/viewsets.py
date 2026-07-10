@@ -15,6 +15,7 @@ from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import VuedaHistoryViewSet
+from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
 from vueda.workflow.views import HasWorkflowViewMixin
 
@@ -27,6 +28,12 @@ class CustomerViewSet(VuedaHistoryViewSet):
     def get_allowed_extra_actions(self, request, *, instance=None):
         # Make 'current' and 'history-list' not allowed for admin or customer.
         return frozenset()
+
+
+class CustomerDataViewSet(VuedaReadOnlyViewSet):
+    queryset = my_models.CustomerData.objects.all()
+    serializer_class = my_serializers.CustomerDataSerializer
+    ordering_fields = ["formatted_name"]
 
 
 class DistributorViewSet(VuedaHistoryViewSet):

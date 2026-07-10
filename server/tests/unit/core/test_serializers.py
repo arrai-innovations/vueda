@@ -3,6 +3,7 @@ from typing import ClassVar
 
 import pytest
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import override_settings
 from rest_framework.exceptions import ValidationError
 
@@ -13,6 +14,7 @@ from tests.models import Employee
 from tests.models import Timesheet
 from tests.serializers import TimesheetSerializer
 from tests.serializers import TimesheetSerializerExclude
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.test_model_info import VuedaTestData
@@ -20,6 +22,7 @@ from tests.utils import FakeRequest
 from tests.utils import FakeView
 from vueda import info
 from vueda.core.serializers import PrimaryKeyListSerializer
+from vueda.core.serializers import VuedaReadonlyListSerializer
 from vueda.core.viewsets import get_recursive_expands_and_fields
 
 
@@ -675,3 +678,90 @@ class TestVuedaSerializerFieldMapping:
         from vueda.core.fields.serializers import ImageField as VuedaImageField
 
         assert self._lookup(models.ImageField) is VuedaImageField
+
+
+@pytest.mark.django_db
+class TestVuedaReadonlySerializer:
+    @pytest.fixture
+    def customer(self):
+        user = get_user_model().objects.create(email="readonly-serializer@domain.invalid", name="Readonly Test User")
+        return store_models.Customer.objects.create(user=user)
+
+    @staticmethod
+    def _context(customer_data):
+        request = FakeRequest(method="GET")
+        view = FakeView(
+            request,
+            store_serializers.CustomerDataSerializer,
+            "retrieve",
+            queryset=store_models.CustomerData.objects.filter(pk=customer_data.pk),
+        )
+        return {"request": request, "view": view}
+
+    def test_serializes_view_backed_fields(self, customer):
+        serializer = store_serializers.CustomerDataSerializer(customer.data, context=self._context(customer.data))
+
+        assert serializer.data == {
+            "id": customer.pk,
+            "customer": customer.pk,
+            "formatted_name": customer.user.email,
+        }
+
+    def test_all_fields_are_forced_read_only(self, customer):
+        serializer = store_serializers.CustomerDataSerializer(customer.data, context=self._context(customer.data))
+
+        assert {field.read_only for field in serializer.fields.values()} == {True}
+        assert set(store_serializers.CustomerDataSerializer.Meta.read_only_fields) == set(serializer.fields.keys())
+
+    def test_list_serializer_class_is_readonly_variant(self):
+        assert store_serializers.CustomerDataSerializer.Meta.list_serializer_class is VuedaReadonlyListSerializer
+
+    def test_create_and_update_are_hidden(self, customer):
+        serializer = store_serializers.CustomerDataSerializer()
+
+        assert not hasattr(serializer, "create")
+        assert not hasattr(serializer, "update")
+
+        with pytest.raises(AttributeError):
+            serializer.create({})
+        with pytest.raises(AttributeError):
+            serializer.update(customer.data, {})
+
+    def test_save_is_hidden(self, customer):
+        serializer = store_serializers.CustomerDataSerializer(
+            instance=customer.data, data={"formatted_name": "attempted@domain.invalid"}
+        )
+        serializer.is_valid()
+
+        with pytest.raises(AttributeError):
+            serializer.save()
+
+    def test_list_save_is_hidden(self, customer):
+        serializer = store_serializers.CustomerDataSerializer(
+            instance=[customer.data], data=[{"formatted_name": "attempted@domain.invalid"}], many=True
+        )
+        serializer.is_valid()
+
+        with pytest.raises(AttributeError):
+            serializer.save()
+
+    def test_validation_always_succeeds_without_processing_input(self):
+        # No context/view is needed: validate_empty_values() short-circuits before any
+        # field validation, request, or writable-nested machinery is touched.
+        serializer = store_serializers.CustomerDataSerializer(
+            data={"formatted_name": "attempted@domain.invalid", "customer": 999999}
+        )
+
+        assert serializer.is_valid()
+        assert serializer.validated_data == {}
+        assert serializer.errors == {}
+
+    def test_expandable_field_metadata_marks_readonly(self):
+        class _ParentSerializer(store_serializers.CustomerSerializer):
+            class Meta(store_serializers.CustomerSerializer.Meta):
+                expandable_fields = {"data": (store_serializers.CustomerDataSerializer, {})}
+
+        expand_items = _ParentSerializer().get_expandable_fields()
+        data_expand_item = next(item for item in expand_items if item["name"] == "data")
+
+        assert data_expand_item["read_only"] is True
