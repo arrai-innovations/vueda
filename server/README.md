@@ -222,11 +222,15 @@ VUEDA includes browser-based management tools and matching management commands t
 
 The permission overview screen at `/routes/vueda.user/permissions/overview/` lets you view, add, rename, and remove groups for any permission in the project. When you are ready to roll those changes out to other environments, run `makegroupmigrations` to produce a migration with the changes.
 
+If you create a migration and then upgrade VUEDA, you can run `updategroupmigrations` to update the imports and function implementations embedded in the migration before it is deployed anywhere. Changed data is preserved.
+
 For full instructions, see [Manage Groups and Generate Group Migrations](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/manage-groups.md).
 
 #### Workflow Management
 
 The workflow overview screen at `/routes/vueda.workflow/overview/` lets you create and configure workflows with states, transitions, and permissions. When you are ready to roll those changes out to other environments, run `makeworkflowmigrations` to produce a migration with the changes.
+
+If you create a migration and then upgrade VUEDA, you can run `updateworkflowmigrations` to update the imports and function implementations embedded in the migration before it is deployed anywhere. Changed data and other variables are preserved.
 
 For full instructions, see [Manage Workflows and Generate Workflow Migrations](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/manage-workflows.md).
 
@@ -237,6 +241,10 @@ The permissions and workflow overview at `/vueda.info/overview/` provides a read
 For full instructions, see [Use the Permissions and Workflow Overview](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/permissions-workflow-overview.md).
 
 ### Set up Dispatch Queue
+
+VDQ (`vueda.vdq`) is optional — only follow this section if your project needs
+queued, asynchronous email/SMS dispatch. VDQ requires `vueda.workflow` to be
+installed, since every queue item is tracked through a workflow state machine.
 
 The dispatch queue uses celery to run tasks.
 Celery can be used with a number of different [backends](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html).

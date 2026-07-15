@@ -76,5 +76,5 @@ allowBuilds:
   protobufjs: false
 
 minimumReleaseAgeExclude:
-  - '@arrai-innovations/reactive-helpers@21.1.2'
+  - '@arrai-innovations/reactive-helpers@22.0.0'
   - '@arrai-innovations/vue-sonner@2.0.10'

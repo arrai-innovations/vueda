@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from pprint import pformat
 from typing import ClassVar
 
 import pytest
@@ -8,6 +7,7 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.expected_results_model_info import EXPECTED_RESULTS
@@ -53,6 +53,11 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "InventoryRecordReason", "list"),
             ("store", "InventoryRecordReason", "read"),
             ("store", "InventoryRecordReason", "update"),
+            ("store", "Note", "create"),
+            ("store", "Note", "delete"),
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
+            ("store", "Note", "update"),
             ("store", "OptionType", "create"),
             ("store", "OptionType", "delete"),
             ("store", "OptionType", "list"),
@@ -134,6 +139,8 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Distributor", "read"),
             ("store", "DistributorProxy", "list"),
             ("store", "DistributorProxy", "read"),
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
             ("store", "OptionType", "list"),
             ("store", "OptionType", "read"),
             ("store", "OrderItem", "create"),
@@ -207,6 +214,7 @@ class TestModelInfoSerializer:
         info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
         info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)
+        info.register(store_serializers.NoteSerializer, store_viewsets.NoteViewSet)
         info.register(store_serializers.OrderCompositePKSerializer, store_viewsets.OrderCompositePKViewSet)
         info.register(store_serializers.OrderItemCompositePKSerializer, store_viewsets.OrderItemCompositePKViewSet)
         info.register(
@@ -312,8 +320,8 @@ class TestModelInfoSerializer:
 
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
-        assert response.status_code == HTTPStatus.OK, str(response.data)
-        assert response.data["totalRecords"] == 16  # noqa: PLR2004
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 17  # noqa: PLR2004
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",
@@ -353,7 +361,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == HTTPStatus.OK, pformat(response.data)
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
         self.check_model_actions_data(response, kwargs["expected_actions_admin"], app_label, model_name)
@@ -401,7 +409,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == HTTPStatus.OK, pformat(response.data)
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
         self.check_model_actions_data(response, kwargs["expected_actions_customer"], app_label, model_name)

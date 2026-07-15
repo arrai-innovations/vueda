@@ -96,7 +96,6 @@ class Migration(migrations.Migration):
             ],
             options={
                 "ordering": ("-date_joined",),
-                "permissions": [("list_permission", "Can list permissions")],
                 "abstract": False,
                 "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "group_deleted_users",

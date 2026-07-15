@@ -4,6 +4,7 @@ __all__ = (
     "get_all_registrations",
     "get_registered_content_types",
     "get_registration",
+    "get_serializer_for_model",
     "register",
     "register_serializer",
 )
@@ -131,6 +132,17 @@ def get_registration(content_type):
 
     # this deepcopy is defensive to prevent inadvertent modification of the registry
     return deepcopy(_registry[key])
+
+
+def get_serializer_for_model(model):
+    """
+    Return the canonical serializer class registered for ``model``, or ``None`` if the
+    model has not been registered. Uses the in-process registry directly, avoiding the
+    ContentType database query required by :func:`get_registration`.
+    """
+    key = f"{model._meta.app_label}.{model._meta.model_name}"
+    entry = _registry.get(key)
+    return entry["serializer"] if entry else None
 
 
 def get_all_registrations():

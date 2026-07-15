@@ -13,3 +13,4 @@ class RelatedObjectsAreMissingDataViewSet(VuedaViewSet):
     queryset = my_models.RelatedObjectsAreMissingData.objects.all()
     serializer_class = my_serializers.RelatedObjectsAreMissingDataSerializer
     filterset_class = my_filtersets.RelatedObjectsAreMissingDataFilterSet
+    permit_list_expands = ["no_name"]

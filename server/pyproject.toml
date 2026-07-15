@@ -119,6 +119,9 @@ omit = [
     "*/schema.py",
 ]
 
+[tool.coverage.html]
+directory = "../htmlcov/"
+
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",

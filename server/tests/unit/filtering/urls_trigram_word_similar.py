@@ -15,10 +15,6 @@ urlpatterns = [
             [
                 path("tests/store/", include(store_router.urls)),
                 path("", include("vueda.info.urls")),
-                path("", include("vueda.user.urls")),
-                path("", include("vueda.workflow.urls")),
-                path("", include("vueda.release.urls")),
-                path("", include("vueda.vdq.urls")),
             ]
         ),
     )

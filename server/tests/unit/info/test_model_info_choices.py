@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from pprint import pformat
 from typing import ClassVar
 
 import pytest
@@ -7,6 +6,7 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.expected_results_model_info_choices import EXPECTED_RESULTS
@@ -166,13 +166,13 @@ class TestModelInfoChoices:
                 | ("store", "inventoryrecord", "order_item")
                 | ("store", "cartitem", "cart")
             ):
-                assert response.status_code == HTTPStatus.FORBIDDEN, pformat(response.data)
+                assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
 
             case _:
                 assert response.status_code == HTTPStatus.OK, (
-                    f"{(app_label, model_name, field_name)}\n\n{pformat(response.data)}"
+                    f"{(app_label, model_name, field_name)}",
+                    response_body(response),
                 )
-
                 assert frozenset(result["label"] for result in response.data["results"]) == frozenset(expected_choices)
 
     @pytest.mark.parametrize(
@@ -207,7 +207,8 @@ class TestModelInfoChoices:
         )
 
         assert response.status_code == HTTPStatus.OK, (
-            f"{(app_label, model_name, field_name)}\n\n{pformat(response.data)}"
+            f"{(app_label, model_name, field_name)}",
+            response_body(response),
         )
 
         match (app_label, model_name, field_name):
@@ -239,7 +240,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert (
             response.data["detail"]
             == "Invalid field 'name'. Valid fields with choices are special_care, tangible_type."
@@ -263,7 +264,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert response.data["detail"] == "Invalid field 'name'. No choice fields found on store.Distributor."
 
     def test_info_choices_list_invalid_field_on_model_with_choice_fields(self, test_data, api_client):
@@ -284,7 +285,7 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert (
             response.data["detail"]
             == "Invalid field 'named'. Valid fields with choices are special_care, tangible_type."
@@ -308,5 +309,5 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert response.data["detail"] == "Invalid field 'named'. No choice fields found on store.Distributor."

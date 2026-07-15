@@ -28,6 +28,7 @@ from simple_history.models import HistoricalRecords
 
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.models import BaseModelMeta
+from vueda.core.models import FormattedNameBaseModel
 from vueda.core.models import VuedaModel
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.mixins import VUEDAPermissionsMixin
@@ -88,16 +89,13 @@ class AbstractVUEDAUserMeta(BaseModelMeta):
 
     ordering = ("-date_joined",)
     default_related_name = "users"
-    permissions = [
-        ("list_permission", "Can list permissions"),
-    ]
     indexes = [
         GinIndex(fields=["email"], name="gin_email_idx", opclasses=["gin_trgm_ops"]),
         GinIndex(fields=["name"], name="gin_name_idx", opclasses=["gin_trgm_ops"]),
     ]
 
 
-class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, VUEDAPermissionsMixin):
+class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, FormattedNameBaseModel, VUEDAPermissionsMixin):
     """
     Default user for VUEDA
 

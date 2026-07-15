@@ -106,8 +106,8 @@ importers:
   client:
     dependencies:
       '@arrai-innovations/reactive-helpers':
-        specifier: ^21.1.2
-        version: 21.1.2(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+        specifier: ^22.0.0
+        version: 22.0.0(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
       '@codemirror/lang-json':
         specifier: ^6.0.2
         version: 6.0.2
@@ -477,14 +477,14 @@ packages:
     resolution: {integrity: sha512-+sgs7R5aV7TcVZrw9297OEIcTANSCGOlzFCkAmfLlgtxK1UIm6lIFBEtB3hzat6qzmy4pzVe1rgSKP7r3dquyQ==}
 
   '@arrai-innovations/reactive-helpers@21.1.0':
-    resolution: {integrity: sha512-TJPoReGG+AiDamFkV49Xq/1CcZ43VDEpaQEtqRRhGTHPa5ZCtqhlElzpul0Zmc4eJdD+0au2PI5zToqgCn88og==}
+    resolution: {integrity: sha512-fIuDS6dkxOyhK5njocHC+HKDESXrlaRrYwqInRSfCfQR6Nc54ZQ/ObszcwxQoqRBNXEgoaaI5xAcNxk2TzYqxA==}
     peerDependencies:
       '@vueuse/core': ^13.0.0
       lodash-es: '>=4.17.24'
       vue: ^3.5.13
 
-  '@arrai-innovations/reactive-helpers@21.1.2':
-    resolution: {integrity: sha512-1uoj6PMYebCM2LxENs9KdTwNyYOt9RjkH6G0XEQSFIRgX46jmcA36lLVLUmv5rx/fyFbZ5bhw9i+I7B5fp/ybw==}
+  '@arrai-innovations/reactive-helpers@22.0.0':
+    resolution: {integrity: sha512-3PhVfg+5e3abVlC+uUz0fxAEerXvC7B3uLkddXwr1W7xUdSMbo8mZCrIaz8hJBNIqxtFj+Qi05xe2wEHlpBzww==}
     peerDependencies:
       '@vueuse/core': ^13.0.0
       lodash-es: '>=4.17.24'
@@ -5922,7 +5922,7 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@arrai-innovations/reactive-helpers@21.1.2(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
+  '@arrai-innovations/reactive-helpers@22.0.0(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@jcoreio/async-throttle': 1.7.0
       '@vueuse/core': 13.9.0(vue@3.5.27(typescript@5.9.3))

@@ -8,6 +8,7 @@ from django.urls import reverse
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.models import Employee
 from tests.models import Timesheet
 
@@ -111,13 +112,13 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                 response = api_client.get(url, format="json")
                 self.assert_response(response, 200)
                 if "lister" in email:
-                    assert len(response.data["results"]) == 1
-                    assert response.data["results"][0]["id"] == t1.pk
+                    assert len(response.data["results"]) == 1, response_body(response)
+                    assert response.data["results"][0]["id"] == t1.pk, response_body(response)
                 else:
-                    assert response.data["id"] == t1.pk
-                    assert response.data["employee"] == e1.pk
-                    assert response.data["period_start"] == "2024-02-15"
-                    assert response.data["period_end"] == "2024-02-29"
+                    assert response.data["id"] == t1.pk, response_body(response)
+                    assert response.data["employee"] == e1.pk, response_body(response)
+                    assert response.data["period_start"] == "2024-02-15", response_body(response)
+                    assert response.data["period_end"] == "2024-02-29", response_body(response)
             case "POST":
                 response = api_client.post(
                     list_url,
@@ -129,10 +130,10 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                     },
                 )
                 self.assert_response(response, 201)
-                assert response.data["employee"] == e1.pk
-                assert response.data["period_start"] == "2024-03-01"
-                assert response.data["period_end"] == "2024-03-15"
-                assert response.data["id"]
+                assert response.data["employee"] == e1.pk, response_body(response)
+                assert response.data["period_start"] == "2024-03-01", response_body(response)
+                assert response.data["period_end"] == "2024-03-15", response_body(response)
+                assert response.data["id"], response_body(response)
             case "PUT":
                 response = api_client.put(
                     detail_url,
@@ -144,10 +145,10 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                     },
                 )
                 self.assert_response(response, 200)
-                assert response.data["employee"] == e1.pk
-                assert response.data["period_start"] == "2024-02-16"
-                assert response.data["period_end"] == "2024-03-01"
-                assert response.data["id"] == t1.pk
+                assert response.data["employee"] == e1.pk, response_body(response)
+                assert response.data["period_start"] == "2024-02-16", response_body(response)
+                assert response.data["period_end"] == "2024-03-01", response_body(response)
+                assert response.data["id"] == t1.pk, response_body(response)
             case "PATCH":
                 response = api_client.patch(
                     detail_url,
@@ -157,15 +158,15 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                     },
                 )
                 self.assert_response(response, 200)
-                assert response.data["employee"] == e1.pk
-                assert response.data["period_start"] == "2024-02-17"
-                assert response.data["period_end"] == "2024-02-29"
-                assert response.data["id"] == t1.pk
+                assert response.data["employee"] == e1.pk, response_body(response)
+                assert response.data["period_start"] == "2024-02-17", response_body(response)
+                assert response.data["period_end"] == "2024-02-29", response_body(response)
+                assert response.data["id"] == t1.pk, response_body(response)
             case "DELETE":
                 response = api_client.delete(detail_url, format="json")
                 self.assert_response(response, 204)
                 assert not Timesheet.objects.filter(pk=t1.pk).exists()
-                assert response.data is None
+                assert response.data is None, response_body(response)
             case _:
                 raise ValueError(f"Invalid http_method: {http_method}")
 

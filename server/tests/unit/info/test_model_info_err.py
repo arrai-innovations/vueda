@@ -1,21 +1,19 @@
 # Contains tests that we don't want to register routes/urls
 # for by default, because they are designed to have issues.
 from http import HTTPStatus
-from pprint import pformat
 from typing import ClassVar
 
 import pytest
 from django.conf import settings
-from django.urls import include
-from django.urls import path
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.erring import models as err_models
 from tests.erring import serializers as err_serializers
 from tests.erring import viewsets as err_viewsets
-from tests.urls import urlpatterns
+from tests.utils import use_test_router
 from vueda import info
 from vueda.core.routers import IncludeAppInRouteNameRouter
 
@@ -39,164 +37,79 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
 
 
 @pytest.mark.django_db
-class TestModelInfoErrs:
+class TestModelInfoInvalidChoices:
     @pytest.fixture
     def test_data(self):
         return VuedaTestData()
 
     @staticmethod
-    def setup_router_and_registry():
-        erring_router = IncludeAppInRouteNameRouter()
-        erring_router.register("no_expandable_fields_data", err_viewsets.NoExpandableFieldsDataViewSet)
-        erring_router.register("related_objects_are_missing_data", err_viewsets.RelatedObjectsAreMissingDataViewSet)
-
-        urlpatterns.append(
-            path("erring/", include(erring_router.urls)),
-        )
-
+    def setup_registry():
         info.registration.get_empty_registry()
         info.register(err_serializers.NoExpandableFieldsDataSerializer, err_viewsets.NoExpandableFieldsDataViewSet)
         info.register(
             err_serializers.RelatedObjectsAreMissingDataSerializer, err_viewsets.RelatedObjectsAreMissingDataViewSet
         )
 
-    def test_property_formatted_name_system_check_error(self):
-        """PropertyFormattedName decorates get_formatted_name with @property; check must flag it as E003."""
-        from django.core.checks import Error
-
-        from vueda.info.checks import check_formatted_name_configuration
-
-        info.registration.get_empty_registry()
-        info.register_serializer(err_serializers.PropertyFormattedNameSerializer)
-
-        errors = check_formatted_name_configuration(app_configs=None)
-
-        assert errors == [
-            Error(
-                "PropertyFormattedName.get_formatted_name is decorated with @property.",
-                hint="Remove the @property decorator; get_formatted_name() must be a plain method.",
-                obj=err_models.PropertyFormattedName,
-                id="vueda_info.E003",
-            )
-        ]
-
-    def test_both_formatted_name_options_system_check_error(self):
-        """BothFormattedNameConfigured has both a lookup expression and get_formatted_name(); check must flag it."""
-        from django.core.checks import Error
-
-        from vueda.info.checks import check_formatted_name_configuration
-
-        info.registration.get_empty_registry()
-        info.register_serializer(err_serializers.BothFormattedNameConfiguredSerializer)
-
-        errors = check_formatted_name_configuration(app_configs=None)
-
-        assert errors == [
-            Error(
-                "BothFormattedNameConfigured defines both formatted_name_lookup_expression and get_formatted_name().",
-                hint=(
-                    "Use formatted_name_lookup_expression for DB field lookups, "
-                    "or get_formatted_name() for computed values — not both."
-                ),
-                obj=err_models.BothFormattedNameConfigured,
-                id="vueda_info.E002",
-            )
-        ]
-
-    def test_no_name_field_system_check_error(self):
-        """NoNameField has formatted_name = None with no lookup expression or get_formatted_name(); check must flag it."""
-        from django.core.checks import Error
-
-        from vueda.info.checks import check_formatted_name_configuration
-
-        info.registration.get_empty_registry()
-        info.register_serializer(err_serializers.NoNameFieldSerializer)
-
-        errors = check_formatted_name_configuration(app_configs=None)
-
-        assert errors == [
-            Error(
-                "NoNameField sets formatted_name = None but provides no alternative.",
-                hint=(
-                    "Set formatted_name_lookup_expression to a DB field name, "
-                    "or define get_formatted_name() on the model."
-                ),
-                obj=err_models.NoNameField,
-                id="vueda_info.E001",
-            )
-        ]
-
-    def test_no_formatted_name(self, test_data, api_client):
-        user = test_data.users["test_customer_1@domain.invalid"]
-        api_client.force_authenticate(user=user)
-
-        related_obj = err_models.RelatedObjectsAreMissingData.objects.create()
-
-        obj1 = err_models.NoNameField.objects.create(the_name_field="Test1")
-        related_obj.no_name.add(obj1)
-
-        obj2 = err_models.NoNameField.objects.create(the_name_field="Test2")
-        related_obj.no_name.add(obj2)
-
-        self.setup_router_and_registry()
-
-        response = api_client.get(
-            reverse(
-                "info.model_info_filterset_choices-list",
-                args=("erring", "relatedobjectsaremissingdata", "no_name"),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_expands",
-                ],
-            },
-        )
-
-        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, pformat(response.data)
-        assert (
-            "Cannot resolve keyword "
-            "'formatted_name' into field. Choices are: id, "
-            "relatedobjectsaremissingdata, the_name_field"
-        ) in response.data["serverStack"]
-
     def test_invalid_choices_model(self, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
-        self.setup_router_and_registry()
-
-        response = api_client.get(
-            "/routes/vueda.info/model_info_choices/store/pets/tangible_type/",
-            data={},
-        )
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        with use_test_router(
+            IncludeAppInRouteNameRouter,
+            "erring/",
+            (
+                ("no_expandable_fields_data", err_viewsets.NoExpandableFieldsDataViewSet),
+                ("related_objects_are_missing_data", err_viewsets.RelatedObjectsAreMissingDataViewSet),
+            ),
+        ):
+            self.setup_registry()
+            response = api_client.get(
+                reverse("info.model_info_choices-list", args=("store", "pets", "tangible_type")),
+                data={},
+            )
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert 'Unable to find the content type "store.pets".' == response.data["detail"]
 
     def test_invalid_filter_choices_model(self, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
-        self.setup_router_and_registry()
-
-        response = api_client.get(
-            "/routes/vueda.info/model_info_filter_choices/store/pets/tangible_type/",
-            data={},
-        )
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        with use_test_router(
+            IncludeAppInRouteNameRouter,
+            "erring/",
+            (
+                ("no_expandable_fields_data", err_viewsets.NoExpandableFieldsDataViewSet),
+                ("related_objects_are_missing_data", err_viewsets.RelatedObjectsAreMissingDataViewSet),
+            ),
+        ):
+            self.setup_registry()
+            response = api_client.get(
+                reverse("info.model_info_filterset_choices-list", args=("store", "pets", "tangible_type")),
+                data={},
+            )
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert 'Unable to find the content type "store.pets".' == response.data["detail"]
 
     def test_invalid_choices_field(self, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
-        self.setup_router_and_registry()
-
-        response = api_client.get(
-            "/routes/vueda.info/model_info_choices/erring/relatedobjectsaremissingdata/tangible_type/",
-            data={},
-        )
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        with use_test_router(
+            IncludeAppInRouteNameRouter,
+            "erring/",
+            (
+                ("no_expandable_fields_data", err_viewsets.NoExpandableFieldsDataViewSet),
+                ("related_objects_are_missing_data", err_viewsets.RelatedObjectsAreMissingDataViewSet),
+            ),
+        ):
+            self.setup_registry()
+            response = api_client.get(
+                reverse(
+                    "info.model_info_choices-list", args=("erring", "relatedobjectsaremissingdata", "tangible_type")
+                ),
+                data={},
+            )
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert (
             "Invalid field 'tangible_type'. No choice fields found on erring.RelatedObjectsAreMissingData."
             == response.data["detail"]
@@ -206,13 +119,23 @@ class TestModelInfoErrs:
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
-        self.setup_router_and_registry()
-
-        response = api_client.get(
-            "/routes/vueda.info/model_info_filter_choices/erring/relatedobjectsaremissingdata/tangible_type/",
-            data={},
-        )
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        with use_test_router(
+            IncludeAppInRouteNameRouter,
+            "erring/",
+            (
+                ("no_expandable_fields_data", err_viewsets.NoExpandableFieldsDataViewSet),
+                ("related_objects_are_missing_data", err_viewsets.RelatedObjectsAreMissingDataViewSet),
+            ),
+        ):
+            self.setup_registry()
+            response = api_client.get(
+                reverse(
+                    "info.model_info_filterset_choices-list",
+                    args=("erring", "relatedobjectsaremissingdata", "tangible_type"),
+                ),
+                data={},
+            )
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert "Invalid filter 'tangible_type'. Valid filters are id, no_name." == response.data["detail"]
 
 
@@ -265,29 +188,7 @@ class TestModelInfoWorkflowConfigurationErrs:
     def test_data(self):
         return VuedaWorkflowTestData()
 
-    def setup_router_and_registry(self):
-        erring_router = IncludeAppInRouteNameRouter()
-        erring_router.register("mo_so_vo_wo", err_viewsets.MoSoVoWoViewSet)
-        erring_router.register("mx_so_vo_wo", err_viewsets.MxSoVoWoViewSet)
-        erring_router.register("mo_sx_vo_wo", err_viewsets.MoSxVoWoViewSet)
-        erring_router.register("mx_sx_vo_wo", err_viewsets.MxSxVoWoViewSet)
-        erring_router.register("mo_so_vx_wo", err_viewsets.MoSoVxWoViewSet)
-        erring_router.register("mx_so_vx_wo", err_viewsets.MxSoVxWoViewSet)
-        erring_router.register("mo_sx_vx_wo", err_viewsets.MoSxVxWoViewSet)
-        erring_router.register("mx_sx_vx_wo", err_viewsets.MxSxVxWoViewSet)
-        erring_router.register("mo_so_vo_wx", err_viewsets.MoSoVoWxViewSet)
-        erring_router.register("mx_so_vo_wx", err_viewsets.MxSoVoWxViewSet)
-        erring_router.register("mo_sx_vo_wx", err_viewsets.MoSxVoWxViewSet)
-        erring_router.register("mx_sx_vo_wx", err_viewsets.MxSxVoWxViewSet)
-        erring_router.register("mo_so_vx_wx", err_viewsets.MoSoVxWxViewSet)
-        erring_router.register("mx_so_vx_wx", err_viewsets.MxSoVxWxViewSet)
-        erring_router.register("mo_sx_vx_wx", err_viewsets.MoSxVxWxViewSet)
-        erring_router.register("mx_sx_vx_wx", err_viewsets.MxSxVxWxViewSet)
-
-        urlpatterns.append(
-            path("erring/", include(erring_router.urls)),
-        )
-
+    def setup_registry(self):
         info.registration.get_empty_registry()
         info.register(err_serializers.MoSoVoWoSerializer, err_viewsets.MoSoVoWoViewSet)
         info.register(err_serializers.MxSoVoWoSerializer, err_viewsets.MxSoVoWoViewSet)
@@ -476,25 +377,154 @@ class TestModelInfoWorkflowConfigurationErrs:
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
-        self.setup_router_and_registry()
-
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    "erring",
-                    model._meta.model_name,
-                ),
+        with use_test_router(
+            IncludeAppInRouteNameRouter,
+            "erring/",
+            (
+                ("mo_so_vo_wo", err_viewsets.MoSoVoWoViewSet),
+                ("mx_so_vo_wo", err_viewsets.MxSoVoWoViewSet),
+                ("mo_sx_vo_wo", err_viewsets.MoSxVoWoViewSet),
+                ("mx_sx_vo_wo", err_viewsets.MxSxVoWoViewSet),
+                ("mo_so_vx_wo", err_viewsets.MoSoVxWoViewSet),
+                ("mx_so_vx_wo", err_viewsets.MxSoVxWoViewSet),
+                ("mo_sx_vx_wo", err_viewsets.MoSxVxWoViewSet),
+                ("mx_sx_vx_wo", err_viewsets.MxSxVxWoViewSet),
+                ("mo_so_vo_wx", err_viewsets.MoSoVoWxViewSet),
+                ("mx_so_vo_wx", err_viewsets.MxSoVoWxViewSet),
+                ("mo_sx_vo_wx", err_viewsets.MoSxVoWxViewSet),
+                ("mx_sx_vo_wx", err_viewsets.MxSxVoWxViewSet),
+                ("mo_so_vx_wx", err_viewsets.MoSoVxWxViewSet),
+                ("mx_so_vx_wx", err_viewsets.MxSoVxWxViewSet),
+                ("mo_sx_vx_wx", err_viewsets.MoSxVxWxViewSet),
+                ("mx_sx_vx_wx", err_viewsets.MxSxVxWxViewSet),
             ),
-        )
+        ):
+            self.setup_registry()
+            response = api_client.get(
+                reverse(
+                    "info.model_info-detail",
+                    args=(
+                        "erring",
+                        model._meta.model_name,
+                    ),
+                ),
+            )
 
         if will_err:
             data = response.json()
-            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, pformat(data)
+            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response_body(response)
             assert expected_error == frozenset(response.data["detail"])
 
         else:
             data = response.json()
-            assert response.status_code == HTTPStatus.OK, pformat(data)
+            assert response.status_code == HTTPStatus.OK, response_body(response)
             # In this case the expected error is actually the results.
             assert expected_error == frozenset(data)
+
+
+class VuedaFormattedNameTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Customer": [
+            ("erring", "RelatedObjectsAreMissingData", "list"),
+            ("erring", "RelatedObjectsAreMissingData", "read"),
+            ("erring", "NoNameField", "list"),
+            ("erring", "NoNameField", "read"),
+        ]
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+            "groups": ["Customer"],
+        },
+    }
+
+
+@pytest.mark.django_db
+class TestFormattedName:
+    @pytest.fixture
+    def test_data(self):
+        return VuedaFormattedNameTestData()
+
+    def test_no_formatted_name(self, test_data, api_client):
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        related_obj = err_models.RelatedObjectsAreMissingData.objects.create()
+
+        obj1 = err_models.NoNameField.objects.create(the_name_field="Test1")
+        related_obj.no_name.add(obj1)
+
+        obj2 = err_models.NoNameField.objects.create(the_name_field="Test2")
+        related_obj.no_name.add(obj2)
+
+        with use_test_router(
+            IncludeAppInRouteNameRouter,
+            "erring/",
+            (("related_objects_are_missing_data", err_viewsets.RelatedObjectsAreMissingDataViewSet),),
+        ):
+            info.registration.get_empty_registry()
+            info.register(
+                err_serializers.RelatedObjectsAreMissingDataSerializer, err_viewsets.RelatedObjectsAreMissingDataViewSet
+            )
+            response = api_client.get(
+                reverse(
+                    "info.model_info_filterset_choices-list",
+                    args=("erring", "relatedobjectsaremissingdata", "no_name"),
+                ),
+                format="json",
+                data={
+                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                        "model_expands",
+                    ],
+                },
+            )
+
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response_body(response)
+        assert (
+            "Cannot resolve keyword "
+            "'formatted_name' into field. Choices are: id, "
+            "relatedobjectsaremissingdata, the_name_field"
+        ) in response.data["serverStack"]
+
+    def test_expand_model_with_no_formatted_name_returns_null(self, test_data, api_client):
+        """Expanding a model that has formatted_name = None and no alternatives returns null for formatted_name rather than crashing."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        related_obj = err_models.RelatedObjectsAreMissingData.objects.create()
+        no_name_obj = err_models.NoNameField.objects.create(the_name_field="Test1")
+        related_obj.no_name.add(no_name_obj)
+
+        with use_test_router(
+            IncludeAppInRouteNameRouter,
+            "erring/",
+            (("related_objects_are_missing_data", err_viewsets.RelatedObjectsAreMissingDataViewSet),),
+        ):
+            info.registration.get_empty_registry()
+            info.register(
+                err_serializers.RelatedObjectsAreMissingDataSerializer, err_viewsets.RelatedObjectsAreMissingDataViewSet
+            )
+            response = api_client.get(
+                reverse("erring.relatedobjectsaremissingdata-list"),
+                data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "no_name"},
+            )
+
+        assert response.status_code == HTTPStatus.OK, response.content
+        results = response.data["results"]
+        assert len(results) == 1
+        assert results[0]["formatted_name"] is None
+        expanded = results[0]["no_name"]
+        assert len(expanded) == 1
+        assert expanded[0]["formatted_name"] is None
+
+    def test_non_string_lookup_expression_returns_none(self):
+        """_get_formatted_name returns None when formatted_name_lookup_expression is not a string."""
+        instance = err_models.FormattedNameExpressionNotString()
+        assert instance._get_formatted_name() is None
+
+    def test_string_lookup_expression_returns_field_value(self):
+        """_get_formatted_name returns the looked-up field value when formatted_name_lookup_expression is a string."""
+        instance = err_models.ValidLookupExpression(the_name_field="Test Name")
+        assert instance._get_formatted_name() == "Test Name"

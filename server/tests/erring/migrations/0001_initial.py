@@ -732,4 +732,69 @@ class Migration(migrations.Migration):
                 "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
+        migrations.CreateModel(
+            name="FormattedNameExpressionNotString",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Formatted name expression not string",
+                "verbose_name_plural": "Formatted name expression not string",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="NonVuedaFormattedName",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("some_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "managed": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="ValidGetFormattedName",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Valid get formatted name",
+                "verbose_name_plural": "Valid get formatted name",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="ValidLookupExpression",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Valid lookup expression",
+                "verbose_name_plural": "Valid lookup expression",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="FalseyFormattedNamesLookup",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("description", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "falsey formatted names lookup",
+                "verbose_name_plural": "falsey formatted names lookups",
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
     ]

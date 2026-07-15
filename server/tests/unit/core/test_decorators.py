@@ -5,6 +5,7 @@ from django.db import transaction
 from django.urls import reverse
 from rest_framework import status
 
+from tests.conftest import response_body
 from tests.store.models import Distributor
 from tests.store.viewsets import CartViewSet
 
@@ -23,7 +24,7 @@ class TestActionDecoratorDryRun:
             with transaction.atomic():
                 response = api_client.post(reverse("store.cart-dry-run-outer"), HTTP_DRY_RUN="true")
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         set_rollback.assert_called_once_with(True)
         assert not Distributor.objects.filter(name="Dry Run").exists()
 
@@ -31,5 +32,5 @@ class TestActionDecoratorDryRun:
         with transaction.atomic():
             response = api_client.post(reverse("store.cart-dry-run-outer"), HTTP_DRY_RUN="true", data={"fail": True})
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
         assert not Distributor.objects.filter(name="Dry Run").exists()

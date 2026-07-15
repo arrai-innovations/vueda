@@ -3,8 +3,9 @@ import contextlib
 import hashlib
 import importlib
 import io
-from collections import OrderedDict
+from collections.abc import Iterable
 from http import HTTPStatus
+from pprint import pformat
 from typing import ClassVar
 
 import pytest
@@ -24,6 +25,20 @@ from rest_framework.test import APIClient
 
 
 POSTGRES_MAX_DB_NAME_LENGTH = 63
+
+
+def response_body(response):
+    """Return the best available representation of a response body for assertion messages."""
+    if hasattr(response, "data"):
+        if isinstance(response.data, str) and "Traceback" in response.data:
+            return response.data
+        return pformat(response.data)
+    try:
+        return response.json()
+    except (ValueError, AttributeError):
+        return response.content
+
+
 pytest_plugins = ["celery.contrib.pytest"]
 
 # Avoid truncating the test database between after each transactional tests, we'll handle it ourselves in suffix_each_test.
@@ -118,13 +133,13 @@ class BaseTestAssertResponseMixin:
                     )
                 else:
                     print(
-                        f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response.data}"
+                        f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response_body(response)}"
                     )
             except ValueError:
                 print(
-                    f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response.data}"
+                    f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response_body(response)}"
                 )
-        assert response.status_code == expected_status_code, str(response.data)
+        assert response.status_code == expected_status_code, response_body(response)
 
 
 class BaseTestGroupMixin:
@@ -225,9 +240,9 @@ class BaseTestCommonModelViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin,
 
     @staticmethod
     def convert_response(response):
-        # the response.data nested serializers can be OrderedDicts, since tests skip JSON serialization.
+        # the response.data nested serializers can be OrderedDicts or ReturnDict, since tests skip JSON serialization
         # we need to convert them to dicts
-        return {k: dict(v) if isinstance(v, OrderedDict) else v for k, v in response.data.items()}
+        return {k: dict(v) if isinstance(v, dict) else v for k, v in response.data.items()}
 
     def get_default_response(self, arguments):
         return {key: arguments[key] for key in arguments}
@@ -254,11 +269,35 @@ class BaseTestListModelViewSet:
             )
 
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
-        response_info = {x: y for x, y in response.data.items() if x == "results"}
-        current_history_id = response_info["results"][0]["current_history_id"]
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        # Get the index of the record we are trying to validate, so we know it has a current_history_id.
+        # The only reason this worked before, was because there was no object
+        # with a name alphabetically before 'Distributor A'.  There is now.
+        response_info = response.json()
+        index_of_page_data_arguments_item = None
+        for index, result in enumerate(response_info["results"]):
+            if index_of_page_data_arguments_item is not None:
+                break
+            if not self.page_data_arguments:
+                index_of_page_data_arguments_item = 0
+            else:
+                all_match = set()
+                for key, value in self.page_data_arguments[0].items():
+                    # Make sure iterables are the same type.
+                    if isinstance(value, Iterable) and not isinstance(value, str):
+                        value = tuple(value)
+                    if isinstance(result[key], Iterable) and not isinstance(result[key], str):
+                        result[key] = tuple(result[key])
+                    all_match.add(result[key] == value)
+                if all(all_match):
+                    index_of_page_data_arguments_item = index
+
+        # If the index is still none, then we need the results to figure out why.
+        assert index_of_page_data_arguments_item is not None, response_info["results"]
+
+        current_history_id = response_info["results"][index_of_page_data_arguments_item]["current_history_id"]
         assert current_history_id is not None
-        assert keys == set(response_info["results"][0].keys())
+        assert keys == set(response_info["results"][index_of_page_data_arguments_item].keys())
         assert {x["id"] for x in response_info["results"]} == set(list_querystring["id"])
 
 
@@ -306,9 +345,7 @@ class BaseTestCreateModelViewSet:
         status_code = self.expected_create_status_code
         response = authenticated_client.post(self.list_url(detail_querystring), data=create_arguments, format="json")
         new_instance = self.model.objects.latest("pk")
-        assert response.status_code == status_code, (
-            f"{response.status_code} != {status_code}, response.data: {response.data}"
-        )
+        assert response.status_code == status_code, response_body(response)
         assert new_instance is not None
         self.update_expected_create_response(expected_create_response, new_instance)
         if status_code == HTTPStatus.CREATED:
@@ -335,7 +372,7 @@ class BaseTestRetrieveModelViewSet:
         instance = page_data.first()
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
-        assert response.status_code == HTTPStatus.OK, f"{response.status_code} != 200, response.data: {response.data}"
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data == expected_retrieve_response
 
 
@@ -344,14 +381,10 @@ class BaseTestDestroyModelViewSet:
         pk = page_data.first().id
         response = authenticated_client.delete(self.detail_url(pk))
         if self.has_delete_permission:
-            assert response.status_code == HTTPStatus.NO_CONTENT, (
-                f"{response.status_code} != 204, response.data: {response.data}"
-            )
+            assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
             assert not self.model.objects.filter(pk=pk).exists()
         else:
-            assert response.status_code == HTTPStatus.FORBIDDEN, (
-                f"{response.status_code} != 403, response.data: {response.data}"
-            )
+            assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
             assert self.model.objects.filter(pk=pk).exists()
 
 
@@ -398,9 +431,7 @@ class BaseTestUpdateModelViewSet:
             self.detail_url(page_data.first().id, detail_querystring), data=update_arguments, format="json"
         )
         updated_instance = self.model.objects.first()
-        assert response.status_code == status_code, (
-            f"{response.status_code} != {status_code}, response.data: {response.data}"
-        )
+        assert response.status_code == status_code, response_body(response)
         assert updated_instance is not None
         self.update_expected_update_response(expected_update_response, updated_instance)
         if status_code == HTTPStatus.OK:
@@ -421,7 +452,7 @@ class BaseTestModelViewSet(
 
 
 class BaseTestCallCommand:
-    def call_command(self, *args):
+    def call_command(self, *args, stdout=None, stderr=None):
         """
         Call a management command and capture the results.
 
@@ -433,8 +464,8 @@ class BaseTestCallCommand:
                 boolean: False if erred calling the command, True otherwise.
                 string: The captured results or error text.
         """
-        err = io.StringIO()
-        out = io.StringIO()
+        err = io.StringIO() if stderr is None else stderr
+        out = io.StringIO() if stdout is None else stdout
 
         # If we don't do this, sometimes we can't import a newly created migration.
         # Do it here, so we don't need to know which calls require it, and which don't.

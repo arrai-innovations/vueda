@@ -282,17 +282,3 @@ class HistoricalModelSerializerMixin(drf_serializers.Serializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-    @classmethod
-    def get_historical_fields(cls):
-        """
-        Returns a list of historical fields added by the mixin.
-        """
-        return [
-            "history_id",
-            "history_date",
-            "history_change_reason",
-            "history_type",
-            "history_user",
-            "history_relation",
-        ]

@@ -17,6 +17,7 @@ def create_distributors(apps, schema_editor):
             "description": "A Sprinkle Of Vibrant Colour In Your Life. Expect The Best Vibrant Looks Available.",
         },
         {"name": "Treat King LLC.", "description": "Treat Yourself And Get Some Sugary Goodness."},
+        {"name": "Awesome Music Co.", "description": "Listen To The Future Of Music."},
     ):
         Distributor.objects.create(**data)
 

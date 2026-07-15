@@ -1,13 +1,11 @@
 """Management command for generating workflow state and transition migrations from change history."""
 
 __all__ = (
-    "ADDED",
-    "CHANGED",
-    "DELETED",
     "INDENT8",
     "MIGRATION_MODIFIED_COMMENT",
     "NEWLINE",
     "Command",
+    "WorkflowChangeTypes",
     "add_history_to_data",
     "apply_and_save_changes",
     "backwards_migrate_workflow",
@@ -16,6 +14,8 @@ __all__ = (
     "get_history_diff",
     "get_id_values_from_dict",
     "get_id_values_from_item",
+    "get_migration_imports",
+    "get_migration_sources",
     "handle_initial_state",
     "handle_state",
     "handle_state_objects",
@@ -29,26 +29,24 @@ __all__ = (
     "manage_state_objects",
 )
 
-import contextlib
 import copy
 import datetime
+import enum
 import importlib
 import inspect
-import io
 import os
+import re
 import sys
 from pathlib import Path
 from pprint import pformat
 
 from django.apps import apps as django_apps
-from django.conf import settings
 from django.contrib.auth.management import create_permissions
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management import BaseCommand
-from django.core.management import call_command
 from django.db import migrations
 from django.db.migrations import operations
 from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
@@ -56,6 +54,13 @@ from django.db.models import Count
 from django.db.transaction import atomic
 from django.utils import timezone
 
+from vueda.user.management.commands.utils import NEWLINE
+from vueda.user.management.commands.utils import call_management_command
+from vueda.user.management.commands.utils import get_migration_names_from_show_migrations
+from vueda.user.management.commands.utils import get_migrations_path
+from vueda.user.management.commands.utils import locate_empty_migration_slots
+from vueda.user.management.commands.utils import parse_date_from_django_comment
+from vueda.user.management.commands.utils import parse_migrations_from_show_migrations
 from vueda.workflow import models
 
 
@@ -102,11 +107,12 @@ from vueda.workflow import models
 # The only downside here is that you may have to wait for Person A to get their stuff pushed.
 
 
-ADDED = "added"
-CHANGED = "changed"
-DELETED = "deleted"
+class WorkflowChangeTypes(enum.Enum):
+    ADDED = "added"
+    CHANGED = "changed"
+    DELETED = "deleted"
 
-NEWLINE = os.linesep
+
 INDENT8 = "        "
 
 
@@ -117,86 +123,92 @@ MIGRATION_MODIFIED_COMMENT = (
     f"# Modified using VUEDA makeworkflowmigrations command.  Please do not delete this comment.{NEWLINE}"
 )
 
-# We don't run the functions that get copied into migrations, but, so flake8 doesn't complain, define some variables.
-# This is less work than finding all the places that use them and adding noqa comments.
-changed_data = ()
-history_change_reason = ""
-migration_app_label = "vueda_workflow"
-
 
 #############################################################################
 # Functions we use when rewriting the empty migration we created.
 # We write the source code using inspect.get_source(...) into the migration.
 #############################################################################
-def forwards_migrate_workflow(apps, schema_editor):
-    for changed_item in copy.deepcopy(changed_data):  # Copied, so tests can migrate forwards and backwards.
+def forwards_migrate_workflow(apps, changed_items, change_reason):
+    for changed_item in changed_items:
         match changed_item["model_name"]:
             case "workflow":
-                handle_workflow(apps, changed_item)
+                handle_workflow(apps, changed_item, change_reason)
 
             case "workflowpermission":
-                handle_workflow_permission(apps, changed_item)
+                handle_workflow_permission(apps, changed_item, change_reason)
 
             case "state":
-                handle_state(apps, changed_item)
+                handle_state(apps, changed_item, change_reason)
 
             case "statepermission":
-                handle_state_permission(apps, changed_item)
+                handle_state_permission(apps, changed_item, change_reason)
 
             case "initialstate":
-                handle_initial_state(apps, changed_item)
+                handle_initial_state(apps, changed_item, change_reason)
 
             case "transition":
-                handle_transition(apps, changed_item)
+                handle_transition(apps, changed_item, change_reason)
 
             case "transitionpermission":
-                handle_transition_permission(apps, changed_item)
+                handle_transition_permission(apps, changed_item, change_reason)
 
             case "transitionsource":
-                handle_transition_source(apps, changed_item)
+                handle_transition_source(apps, changed_item, change_reason)
 
     handle_state_objects(apps)
 
 
-def backwards_migrate_workflow(apps, schema_editor):
+# Migration-only entry point; its existence makes the underlying function testable.
+def forwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover
+    # Copied changed_data, so tests can migrate forwards and backwards.
+    forwards_migrate_workflow(apps, copy.deepcopy(changed_data), history_change_reason)  # noqa: F821
+
+
+def backwards_migrate_workflow(apps, changed_items, change_reason):
     handle_state_objects(apps, reversing=True)
 
-    # Make sure we go through the changed_data in reverse order, so we undo things correctly.
-    for changed_item in reversed(copy.deepcopy(changed_data)):  # Copied, so tests can migrate forwards and backwards.
+    # Make sure we go through the changed_items in reverse order, so we undo things correctly.
+    for changed_item in reversed(changed_items):
         match changed_item["history_type"]:
-            case "added":
-                changed_item["history_type"] = "deleted"
+            case WorkflowChangeTypes.ADDED.value:
+                changed_item["history_type"] = WorkflowChangeTypes.DELETED.value
 
-            case "deleted":
-                changed_item["history_type"] = "added"
+            case WorkflowChangeTypes.DELETED.value:
+                changed_item["history_type"] = WorkflowChangeTypes.ADDED.value
 
         match changed_item["model_name"]:
             case "workflow":
-                handle_workflow(apps, changed_item, reversing=True)
+                handle_workflow(apps, changed_item, change_reason, reversing=True)
 
             case "workflowpermission":
-                handle_workflow_permission(apps, changed_item, reversing=True)
+                handle_workflow_permission(apps, changed_item, change_reason, reversing=True)
 
             case "state":
-                handle_state(apps, changed_item, reversing=True)
+                handle_state(apps, changed_item, change_reason, reversing=True)
 
             case "statepermission":
-                handle_state_permission(apps, changed_item, reversing=True)
+                handle_state_permission(apps, changed_item, change_reason, reversing=True)
 
             case "initialstate":
-                handle_initial_state(apps, changed_item, reversing=True)
+                handle_initial_state(apps, changed_item, change_reason, reversing=True)
 
             case "transition":
-                handle_transition(apps, changed_item, reversing=True)
+                handle_transition(apps, changed_item, change_reason, reversing=True)
 
             case "transitionpermission":
-                handle_transition_permission(apps, changed_item, reversing=True)
+                handle_transition_permission(apps, changed_item, change_reason, reversing=True)
 
             case "transitionsource":
-                handle_transition_source(apps, changed_item, reversing=True)
+                handle_transition_source(apps, changed_item, change_reason, reversing=True)
 
 
-def handle_workflow(apps, changed_item, *, reversing=False):
+# Migration-only entry point; its existence makes the underlying function testable.
+def backwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: no cover
+    # Copied changed_data, so tests can migrate forwards and backwards.
+    backwards_migrate_workflow(apps, copy.deepcopy(changed_data), history_change_reason)  # noqa: F821
+
+
+def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
     historical_workflow = apps.get_model("vueda_workflow", "HistoricalWorkflow")
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -204,7 +216,7 @@ def handle_workflow(apps, changed_item, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             content_type = model_content_type.objects.get(**data["content_type_id"])
             data["content_type_id"] = content_type.pk
 
@@ -217,10 +229,11 @@ def handle_workflow(apps, changed_item, *, reversing=False):
                 workflow,
                 "+",
                 changed_item["history_date"],
+                change_reason,
             )
             historical_workflow.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**get_id_values_from_dict(data["id"], reversing=reversing))
 
             del data["id"]
@@ -231,6 +244,7 @@ def handle_workflow(apps, changed_item, *, reversing=False):
                 workflow,
                 "~",
                 changed_item["history_date"],
+                change_reason,
                 fields=(
                     "id",
                     "code",
@@ -242,7 +256,7 @@ def handle_workflow(apps, changed_item, *, reversing=False):
             )
             historical_workflow.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             content_type = model_content_type.objects.get(**data["content_type_id"])
             data["content_type_id"] = content_type.pk
 
@@ -250,12 +264,12 @@ def handle_workflow(apps, changed_item, *, reversing=False):
 
             del data["id"]
 
-            add_history_to_data(data, workflow, "-", changed_item["history_date"])
+            add_history_to_data(data, workflow, "-", changed_item["history_date"], change_reason)
             historical_workflow.objects.create(**data)
             workflow.delete()
 
 
-def handle_workflow_permission(apps, changed_item, *, reversing=False):
+def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=False):
     historical_workflow_permission = apps.get_model("vueda_workflow", "HistoricalWorkflowPermission")
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_permission = apps.get_model("auth", "Permission")
@@ -265,7 +279,7 @@ def handle_workflow_permission(apps, changed_item, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
             permission = model_permission.objects.get(**data["permission_id"])
@@ -277,10 +291,10 @@ def handle_workflow_permission(apps, changed_item, *, reversing=False):
 
             workflow_permission = model_workflow_permission.objects.create(**data)
 
-            add_history_to_data(data, workflow_permission, "+", changed_item["history_date"])
+            add_history_to_data(data, workflow_permission, "+", changed_item["history_date"], change_reason)
             historical_workflow_permission.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
 
@@ -306,6 +320,7 @@ def handle_workflow_permission(apps, changed_item, *, reversing=False):
                 workflow_permission,
                 "~",
                 changed_item["history_date"],
+                change_reason,
                 fields=(
                     "id",
                     "historical_permission_codename",
@@ -317,7 +332,7 @@ def handle_workflow_permission(apps, changed_item, *, reversing=False):
             )
             historical_workflow_permission.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
             permission = model_permission.objects.get(**data["permission_id"])
@@ -330,12 +345,12 @@ def handle_workflow_permission(apps, changed_item, *, reversing=False):
 
             del data["id"]
 
-            add_history_to_data(data, workflow_permission, "-", changed_item["history_date"])
+            add_history_to_data(data, workflow_permission, "-", changed_item["history_date"], change_reason)
             historical_workflow_permission.objects.create(**data)
             workflow_permission.delete()
 
 
-def handle_state(apps, changed_item, *, reversing=False):
+def handle_state(apps, changed_item, change_reason, *, reversing=False):
     historical_state = apps.get_model("vueda_workflow", "HistoricalState")
     model_state = apps.get_model("vueda_workflow", "State")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -343,7 +358,7 @@ def handle_state(apps, changed_item, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             workflow = model_workflow.objects.get(**data["workflow_id"])
             data["workflow_id"] = workflow.pk
 
@@ -351,10 +366,10 @@ def handle_state(apps, changed_item, *, reversing=False):
 
             state = model_state.objects.create(**data)
 
-            add_history_to_data(data, state, "+", changed_item["history_date"])
+            add_history_to_data(data, state, "+", changed_item["history_date"], change_reason)
             historical_state.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**get_id_values_from_dict(data["id"], reversing=reversing))
@@ -367,6 +382,7 @@ def handle_state(apps, changed_item, *, reversing=False):
                 state,
                 "~",
                 changed_item["history_date"],
+                change_reason,
                 fields=(
                     "id",
                     "code",
@@ -376,7 +392,7 @@ def handle_state(apps, changed_item, *, reversing=False):
             )
             historical_state.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
             data["workflow_id"] = workflow.pk
@@ -385,12 +401,12 @@ def handle_state(apps, changed_item, *, reversing=False):
 
             del data["id"]
 
-            add_history_to_data(data, state, "-", changed_item["history_date"])
+            add_history_to_data(data, state, "-", changed_item["history_date"], change_reason)
             historical_state.objects.create(**data)
             state.delete()
 
 
-def handle_state_permission(apps, changed_item, *, reversing=False):
+def handle_state_permission(apps, changed_item, change_reason, *, reversing=False):
     historical_state_permission = apps.get_model("vueda_workflow", "HistoricalStatePermission")
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_group = apps.get_model("auth", "Group")
@@ -402,7 +418,7 @@ def handle_state_permission(apps, changed_item, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             workflow = model_workflow.objects.get(**data["state_id"]["workflow_id"])
             data["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["state_id"])
@@ -418,10 +434,10 @@ def handle_state_permission(apps, changed_item, *, reversing=False):
 
             state_permission = model_state_permission.objects.create(**data)
 
-            add_history_to_data(data, state_permission, "+", changed_item["history_date"])
+            add_history_to_data(data, state_permission, "+", changed_item["history_date"], change_reason)
             historical_state_permission.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["id"]["state_id"])
@@ -458,6 +474,7 @@ def handle_state_permission(apps, changed_item, *, reversing=False):
                 state_permission,
                 "~",
                 changed_item["history_date"],
+                change_reason,
                 fields=(
                     "id",
                     "grant_or_deny",
@@ -470,7 +487,7 @@ def handle_state_permission(apps, changed_item, *, reversing=False):
             )
             historical_state_permission.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
             data["state_id"]["workflow_id"] = workflow.pk
@@ -489,12 +506,12 @@ def handle_state_permission(apps, changed_item, *, reversing=False):
 
             del data["id"]
 
-            add_history_to_data(data, state_permission, "-", changed_item["history_date"])
+            add_history_to_data(data, state_permission, "-", changed_item["history_date"], change_reason)
             historical_state_permission.objects.create(**data)
             state_permission.delete()
 
 
-def handle_initial_state(apps, changed_item, *, reversing=False):
+def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
     historical_initial_state = apps.get_model("vueda_workflow", "HistoricalInitialState")
     model_initial_state = apps.get_model("vueda_workflow", "InitialState")
     model_state = apps.get_model("vueda_workflow", "State")
@@ -503,7 +520,7 @@ def handle_initial_state(apps, changed_item, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             workflow = model_workflow.objects.get(**data["state_id"]["workflow_id"])
             data["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["state_id"])
@@ -515,10 +532,10 @@ def handle_initial_state(apps, changed_item, *, reversing=False):
 
             initial_state = model_initial_state.objects.create(**data)
 
-            add_history_to_data(data, initial_state, "+", changed_item["history_date"])
+            add_history_to_data(data, initial_state, "+", changed_item["history_date"], change_reason)
             historical_initial_state.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             data["id"]["state_id"] = get_id_values_from_item(data["id"]["state_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
@@ -547,6 +564,7 @@ def handle_initial_state(apps, changed_item, *, reversing=False):
                 initial_state,
                 "~",
                 changed_item["history_date"],
+                change_reason,
                 fields=(
                     "id",
                     "state_id",
@@ -555,7 +573,7 @@ def handle_initial_state(apps, changed_item, *, reversing=False):
             )
             historical_initial_state.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
             data["state_id"]["workflow_id"] = workflow.pk
@@ -569,12 +587,12 @@ def handle_initial_state(apps, changed_item, *, reversing=False):
 
             del data["id"]
 
-            add_history_to_data(data, initial_state, "-", changed_item["history_date"])
+            add_history_to_data(data, initial_state, "-", changed_item["history_date"], change_reason)
             historical_initial_state.objects.create(**data)
             initial_state.delete()
 
 
-def handle_transition(apps, changed_item, *, reversing=False):
+def handle_transition(apps, changed_item, change_reason, *, reversing=False):
     historical_transition = apps.get_model("vueda_workflow", "HistoricalTransition")
     model_state = apps.get_model("vueda_workflow", "State")
     model_transition = apps.get_model("vueda_workflow", "Transition")
@@ -583,7 +601,7 @@ def handle_transition(apps, changed_item, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             workflow = model_workflow.objects.get(**data["workflow_id"])
             data["workflow_id"] = workflow.pk
             data["target_id"]["workflow_id"] = workflow.pk
@@ -594,10 +612,10 @@ def handle_transition(apps, changed_item, *, reversing=False):
 
             transition = model_transition.objects.create(**data)
 
-            add_history_to_data(data, transition, "+", changed_item["history_date"])
+            add_history_to_data(data, transition, "+", changed_item["history_date"], change_reason)
             historical_transition.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
 
@@ -622,6 +640,7 @@ def handle_transition(apps, changed_item, *, reversing=False):
                 transition,
                 "~",
                 changed_item["history_date"],
+                change_reason,
                 fields=(
                     "id",
                     "code",
@@ -632,7 +651,7 @@ def handle_transition(apps, changed_item, *, reversing=False):
             )
             historical_transition.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
             data["workflow_id"] = workflow.pk
@@ -644,12 +663,12 @@ def handle_transition(apps, changed_item, *, reversing=False):
 
             del data["id"]
 
-            add_history_to_data(data, transition, "-", changed_item["history_date"])
+            add_history_to_data(data, transition, "-", changed_item["history_date"], change_reason)
             historical_transition.objects.create(**data)
             transition.delete()
 
 
-def handle_transition_permission(apps, changed_item, *, reversing=False):
+def handle_transition_permission(apps, changed_item, change_reason, *, reversing=False):
     historical_transition_permission = apps.get_model("vueda_workflow", "HistoricalTransitionPermission")
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_permission = apps.get_model("auth", "Permission")
@@ -660,7 +679,7 @@ def handle_transition_permission(apps, changed_item, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
             permission = model_permission.objects.get(**data["permission_id"])
@@ -674,10 +693,10 @@ def handle_transition_permission(apps, changed_item, *, reversing=False):
 
             transition_permission = model_transition_permission.objects.create(**data)
 
-            add_history_to_data(data, transition_permission, "+", changed_item["history_date"])
+            add_history_to_data(data, transition_permission, "+", changed_item["history_date"], change_reason)
             historical_transition_permission.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
             data["id"]["transition_id"]["workflow_id"] = workflow.pk
 
@@ -717,6 +736,7 @@ def handle_transition_permission(apps, changed_item, *, reversing=False):
                 transition_permission,
                 "~",
                 changed_item["history_date"],
+                change_reason,
                 fields=(
                     "id",
                     "historical_permission_codename",
@@ -728,7 +748,7 @@ def handle_transition_permission(apps, changed_item, *, reversing=False):
             )
             historical_transition_permission.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
             permission = model_permission.objects.get(**data["permission_id"])
@@ -744,12 +764,12 @@ def handle_transition_permission(apps, changed_item, *, reversing=False):
 
             del data["id"]
 
-            add_history_to_data(data, transition_permission, "-", changed_item["history_date"])
+            add_history_to_data(data, transition_permission, "-", changed_item["history_date"], change_reason)
             historical_transition_permission.objects.create(**data)
             transition_permission.delete()
 
 
-def handle_transition_source(apps, changed_item, *, reversing=False):
+def handle_transition_source(apps, changed_item, change_reason, *, reversing=False):
     historical_transition_source = apps.get_model("vueda_workflow", "HistoricalTransitionSource")
     model_state = apps.get_model("vueda_workflow", "State")
     model_transition = apps.get_model("vueda_workflow", "Transition")
@@ -759,7 +779,7 @@ def handle_transition_source(apps, changed_item, *, reversing=False):
     data = changed_item["changes"]
 
     match changed_item["history_type"]:
-        case "added":
+        case WorkflowChangeTypes.ADDED.value:
             workflow = model_workflow.objects.get(**data["source_id"]["workflow_id"])
             data["source_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["source_id"])
@@ -773,10 +793,10 @@ def handle_transition_source(apps, changed_item, *, reversing=False):
 
             transition_source = model_transition_source.objects.create(**data)
 
-            add_history_to_data(data, transition_source, "+", changed_item["history_date"])
+            add_history_to_data(data, transition_source, "+", changed_item["history_date"], change_reason)
             historical_transition_source.objects.create(**data)
 
-        case "changed":
+        case WorkflowChangeTypes.CHANGED.value:
             data["id"]["source_id"] = get_id_values_from_item(data["id"]["source_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["source_id"]["workflow_id"])
             data["id"]["source_id"]["workflow_id"] = workflow.pk
@@ -820,6 +840,7 @@ def handle_transition_source(apps, changed_item, *, reversing=False):
                 transition_source,
                 "~",
                 changed_item["history_date"],
+                change_reason,
                 fields=(
                     "id",
                     "source_id",
@@ -829,7 +850,7 @@ def handle_transition_source(apps, changed_item, *, reversing=False):
             )
             historical_transition_source.objects.create(**data)
 
-        case "deleted":
+        case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["source_id"]["workflow_id"])
             data["id"]["source_id"]["workflow_id"] = workflow.pk
             data["source_id"]["workflow_id"] = workflow.pk
@@ -847,7 +868,7 @@ def handle_transition_source(apps, changed_item, *, reversing=False):
 
             del data["id"]
 
-            add_history_to_data(data, transition_source, "-", changed_item["history_date"])
+            add_history_to_data(data, transition_source, "-", changed_item["history_date"], change_reason)
             historical_transition_source.objects.create(**data)
             transition_source.delete()
 
@@ -918,13 +939,13 @@ def handle_state_objects(apps, *, reversing=False):
         )
 
 
-def add_history_to_data(history_data, obj, history_type, history_date, fields=()):
+def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):
     # For changed history
     for field_name in fields:
         history_data[field_name] = getattr(obj, field_name)
 
     # For all history
-    history_data["history_change_reason"] = history_change_reason
+    history_data["history_change_reason"] = change_reason
     history_data["history_date"] = history_date
     history_data["history_relation_id"] = obj.pk
     history_data["history_type"] = history_type
@@ -949,9 +970,14 @@ def get_id_values_from_dict(id_data, reversing=False):
     return results
 
 
-def make_sure_permissions_exist(apps, schema_editor):
-    app = django_apps.get_app_config(migration_app_label)
+def make_sure_permissions_exist(app_label):
+    app = django_apps.get_app_config(app_label)
     create_permissions(app, interactive=False)
+
+
+# Migration-only entry point; its existence makes the underlying function testable.
+def make_sure_permissions_exist_through_imports(apps, schema_editor):  # pragma: no cover
+    make_sure_permissions_exist(migration_app_label)  # noqa: F821
 
 
 #############################################################################
@@ -983,7 +1009,7 @@ def get_attr_names_for_workflow_models():
 def get_history_diff(old_history_record, new_history_record):
     if old_history_record is None:
         empty_record = type(new_history_record)()
-        return ADDED, new_history_record.diff_against(empty_record)
+        return WorkflowChangeTypes.ADDED.value, new_history_record.diff_against(empty_record)
 
     elif old_history_record and old_history_record.history_type == "-":
         # If we don't have an old history record, then this workflow
@@ -992,10 +1018,10 @@ def get_history_diff(old_history_record, new_history_record):
             return None, None
 
         empty_record = type(old_history_record)()
-        return DELETED, empty_record.diff_against(old_history_record)
+        return WorkflowChangeTypes.DELETED.value, empty_record.diff_against(old_history_record)
 
     else:  # old_history_record is not None
-        return CHANGED, new_history_record.diff_against(old_history_record)
+        return WorkflowChangeTypes.CHANGED.value, new_history_record.diff_against(old_history_record)
 
 
 def apply_and_save_changes(obj, data, *, reversing=False):
@@ -1015,6 +1041,122 @@ def apply_and_save_changes(obj, data, *, reversing=False):
             setattr(obj, key, new_value)
 
     obj.save()
+
+
+def get_migration_imports(import_instead=False, direct_runpython_import=False, as_mapping=False):
+    """Return the full, ordered set of import lines a workflow migration file's import section is replaced with.
+
+    ``direct_runpython_import`` adds a direct ``from django.db.migrations import RunPython`` import, needed
+    when the class Migration block being preserved calls ``RunPython(...)`` directly instead of
+    ``migrations.RunPython(...)``.
+
+    When ``as_mapping`` is True, an ordered mapping is returned instead: keys are single-name tuples (an
+    import only ever binds one name, per this project's force-single-line isort convention) and values are
+    the current import line, each ending in its own newline and prefixed with a blank line where it opens
+    a new isort group. This is used by ``updateworkflowmigrations`` to update or insert only the imports
+    it recognizes in an existing migration, leaving any hand-added imports (or comments) around them
+    untouched.
+    """
+    result_mapping = {
+        ("copy",): f"import copy{NEWLINE}",
+        ("datetime",): f"import datetime{NEWLINE}",
+    }
+    if not import_instead:
+        result_mapping[("enum",)] = f"import enum{NEWLINE}"
+
+    if import_instead:
+        result_mapping[("settings",)] = f"{NEWLINE}from django.conf import settings{NEWLINE}"
+    else:
+        result_mapping[("django_apps",)] = f"{NEWLINE}from django.apps import apps as django_apps{NEWLINE}"
+        result_mapping[("settings",)] = f"from django.conf import settings{NEWLINE}"
+        result_mapping[("create_permissions",)] = (
+            f"from django.contrib.auth.management import create_permissions{NEWLINE}"
+        )
+
+    result_mapping[("migrations",)] = f"from django.db import migrations{NEWLINE}"
+
+    if direct_runpython_import:
+        result_mapping[("RunPython",)] = f"from django.db.migrations import RunPython{NEWLINE}"
+
+    if import_instead:
+        result_mapping[("backwards_migrate_workflow",)] = (
+            f"{NEWLINE}from vueda.workflow.management.commands.makeworkflowmigrations "
+            f"import backwards_migrate_workflow{NEWLINE}"
+        )
+        result_mapping[("forwards_migrate_workflow",)] = (
+            f"from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow{NEWLINE}"
+        )
+        result_mapping[("make_sure_permissions_exist",)] = (
+            "from vueda.workflow.management.commands.makeworkflowmigrations "
+            f"import make_sure_permissions_exist{NEWLINE}"
+        )
+    else:
+        result_mapping[("Count",)] = f"from django.db.models import Count{NEWLINE}"
+        result_mapping[("timezone",)] = f"from django.utils import timezone{NEWLINE}"
+
+    if as_mapping:
+        return result_mapping
+
+    return [MIGRATION_MODIFIED_COMMENT, *result_mapping.values()]
+
+
+def get_migration_sources(import_instead=False, as_mapping=False):
+    """Return the source-code strings that follow changed_data in a workflow migration file.
+
+    When ``as_mapping`` is True, an ordered mapping is returned instead: keys are tuples of every name
+    (old and current) that identifies a given function/class across versions of this command, and values
+    are the current source for it. This is used by ``updateworkflowmigrations`` to replace only the
+    functions it recognizes in an existing migration, leaving any hand-added code around them untouched.
+    """
+    noqa_removal_regex = r"\s*#\s*noqa:\s*F821[^\n]*"  # Removes 'noqa: F821' from these functions.
+
+    def cleaned_source(func):
+        return re.sub(noqa_removal_regex, "", inspect.getsource(func))
+
+    forwards_migrate_workflow_source = cleaned_source(forwards_migrate_workflow_through_imports)
+    backwards_migrate_workflow_source = cleaned_source(backwards_migrate_workflow_through_imports)
+    make_sure_permissions_exist_source = cleaned_source(make_sure_permissions_exist_through_imports)
+
+    result_mapping = {
+        ("forwards_migrate_workflow_through_imports", "forwards_migrate_workflow"): (forwards_migrate_workflow_source),
+        ("backwards_migrate_workflow_through_imports", "backwards_migrate_workflow"): (
+            backwards_migrate_workflow_source
+        ),
+        ("make_sure_permissions_exist_through_imports", "make_sure_permissions_exist"): (
+            make_sure_permissions_exist_source
+        ),
+    }
+    if not import_instead:
+        result_mapping.update(
+            {
+                ("WorkflowChangeTypes",): inspect.getsource(WorkflowChangeTypes),
+                ("forwards_migrate_workflow",): inspect.getsource(forwards_migrate_workflow),
+                ("backwards_migrate_workflow",): inspect.getsource(backwards_migrate_workflow),
+                ("make_sure_permissions_exist",): inspect.getsource(make_sure_permissions_exist),
+                ("handle_workflow",): inspect.getsource(handle_workflow),
+                ("handle_workflow_permission",): inspect.getsource(handle_workflow_permission),
+                ("handle_state",): inspect.getsource(handle_state),
+                ("handle_state_permission",): inspect.getsource(handle_state_permission),
+                ("handle_initial_state",): inspect.getsource(handle_initial_state),
+                ("handle_transition",): inspect.getsource(handle_transition),
+                ("handle_transition_permission",): inspect.getsource(handle_transition_permission),
+                ("handle_transition_source",): inspect.getsource(handle_transition_source),
+                ("handle_state_objects",): inspect.getsource(handle_state_objects),
+                ("manage_state_objects",): inspect.getsource(manage_state_objects),
+                ("add_history_to_data",): inspect.getsource(add_history_to_data),
+                ("apply_and_save_changes",): inspect.getsource(apply_and_save_changes),
+                ("get_id_values_from_item",): inspect.getsource(get_id_values_from_item),
+                ("get_id_values_from_dict",): inspect.getsource(get_id_values_from_dict),
+            }
+        )
+
+    if as_mapping:
+        return result_mapping
+
+    result = [f"{NEWLINE}{NEWLINE}{value}" for value in result_mapping.values()]
+    result.append(f"{NEWLINE}{NEWLINE}")
+
+    return result
 
 
 class Command(BaseCommand):
@@ -1074,60 +1216,6 @@ class Command(BaseCommand):
             help=("Print debug information about an apps model and specified workflow model."),
         )
 
-    def _call_command(self, *args):
-        err = io.StringIO()
-        out = io.StringIO()
-
-        if self.dry_run and args[0] == "makemigrations":
-            args = args + ("--dry-run",)
-
-        # If we don't do this, sometimes we can't import a newly created migration.
-        # Do it here, so we don't need to know which calls require it, and which don't.
-        importlib.invalidate_caches()
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            try:
-                call_command(*args)
-            except SystemExit:
-                pass
-
-        # Did an error occur?
-        if err.tell():
-            err.seek(0)
-            self.stdout.write(self.style.ERROR(err.read()))
-            sys.exit(2)
-
-        # Return the results.
-        out.seek(0)
-        return out.readlines()
-
-    @staticmethod
-    def _parse_migrations_from_show_migrations(lines):
-        migrations = []
-
-        for line in lines:
-            line = line.strip()
-            if line.startswith("["):
-                line = line.replace("[ ]", "").replace("[X]", "").strip()
-                migrations.append(line)
-
-        return migrations
-
-    @staticmethod
-    def _parse_date_from_django_comment(django_comment):
-        # Generated by Django 5.0.3 on 2024-03-26 19:08
-        date_string = django_comment.split(" on ")[-1].strip()
-        # The date in the migration is in UTC.  Make sure it acquires the UTC timezone.
-        created_date = datetime.datetime.strptime(f"{date_string}:00 +0000", "%Y-%m-%d %H:%M:%S %z")
-        return created_date.astimezone()
-
-    def _get_migration_names_from_show_migrations(self, app_label):
-        show_migration_results = self._call_command("showmigrations", app_label)
-
-        if not show_migration_results:  # Erred.  The reason will be printed to the console via the command.
-            return None
-
-        return self._parse_migrations_from_show_migrations(show_migration_results)
-
     def _get_generated_date_for_vueda_generated_migration(self, migration_path):
         # Return the date created in the django comment.
         django_comment = None
@@ -1147,23 +1235,9 @@ class Command(BaseCommand):
                     break
 
         if is_modified_by_us:
-            return self._parse_date_from_django_comment(django_comment)
+            return parse_date_from_django_comment(django_comment)
 
         return False
-
-    def _get_migrations_path(self, app_config):
-        app_label = app_config.label
-        if app_label in settings.MIGRATION_MODULES:
-            module_name = settings.MIGRATION_MODULES[app_label]
-        else:
-            module_name = f"{app_config.name}.{MIGRATIONS_MODULE_NAME}"
-
-        try:
-            module = importlib.import_module(module_name)
-        except ModuleNotFoundError:
-            return None
-
-        return module.__path__[0] if module.__path__ else None
 
     def _get_apps_with_workflow(self, selected_apps=()):
         apps_with_workflow = {}
@@ -1181,7 +1255,7 @@ class Command(BaseCommand):
 
             if issubclass(model, models.HasWorkflowModelMixin):
                 app_config = django_apps.get_app_config(app_label)
-                migrations_path = self._get_migrations_path(app_config)
+                migrations_path = get_migrations_path(app_config)
 
                 if app_label not in apps_with_workflow:
                     apps_with_workflow[app_label] = {
@@ -1341,55 +1415,55 @@ class Command(BaseCommand):
         match model_name:
             case "initialstate":
                 query = changed_item["state_id"]["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "state":
                 query = changed_item["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "statepermission":
                 query = changed_item["state_id"]["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "transition":
                 query = changed_item["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "transitionpermission":
                 query = changed_item["transition_id"]["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "transitionsource":
                 query = changed_item["source_id"]["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "workflow":
                 query = changed_item["content_type_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 return ContentType.objects.filter(**query).first()
 
             case "workflowpermission":
                 query = changed_item["workflow_id"]
-                if history_type == "changed":
+                if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.HistoricalWorkflow.objects.filter(**query).last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
@@ -1489,11 +1563,11 @@ class Command(BaseCommand):
         history_type_text = changed_item["history_type"]
         history_date = changed_item["history_date"]
         match history_type_text:
-            case "added":
+            case WorkflowChangeTypes.ADDED.value:
                 history_type = "+"
-            case "changed":
+            case WorkflowChangeTypes.CHANGED.value:
                 history_type = "~"
-            case "deleted":
+            case WorkflowChangeTypes.DELETED.value:
                 history_type = "-"
         historical_queryset = historical_queryset.filter(history_type=history_type)
 
@@ -1623,7 +1697,7 @@ class Command(BaseCommand):
         return historical_obj
 
     def add_renamed_fields_and_models_to_attr_names(self, workflow_model_field_names_to_attname):
-        for migration_name in self._get_migration_names_from_show_migrations("vueda_workflow"):
+        for migration_name in get_migration_names_from_show_migrations(self, "vueda_workflow"):
             module_name = f"vueda.workflow.{MIGRATIONS_MODULE_NAME}.{migration_name}"
 
             try:
@@ -1713,11 +1787,11 @@ class Command(BaseCommand):
             app_name = model_data["app_name"]
             migrations_path = model_data["migrations_path"]
 
-            show_migration_results = self._call_command("showmigrations", app_label)
+            show_migration_results = call_management_command(self, "showmigrations", app_label)
             if not show_migration_results:  # Erred.  The reason will be printed to the console via the command.
                 return None
 
-            migration_names = self._parse_migrations_from_show_migrations(show_migration_results)
+            migration_names = parse_migrations_from_show_migrations(show_migration_results)
 
             migration_data = {
                 "app_label": app_label,
@@ -1972,17 +2046,17 @@ class Command(BaseCommand):
             )
 
             match historical_type:
-                case "added":
+                case WorkflowChangeTypes.ADDED.value:
                     current_changes[field_name] = new
 
-                case "changed":
+                case WorkflowChangeTypes.CHANGED.value:
                     current_changes[field_name] = (old, new)
 
-                case "deleted":
+                case WorkflowChangeTypes.DELETED.value:
                     current_changes[field_name] = old
 
         # Getting the additional information for 'id' will be easier if we have all the data.
-        if historical_type == "changed":
+        if historical_type == WorkflowChangeTypes.CHANGED.value:
             _, extra_data_diff = get_history_diff(None, historical_diff.new_record)
 
             for change in extra_data_diff.changes:
@@ -2094,8 +2168,8 @@ class Command(BaseCommand):
         ]
 
         date_string = datetime.datetime.now().date().isoformat().replace("-", "_")
-        results = self._call_command(
-            "makemigrations", app_label, "--empty", f"--name=workflow_migrations_{date_string}", "--noinput"
+        results = call_management_command(
+            self, "makemigrations", app_label, "--empty", f"--name=workflow_migrations_{date_string}", "--noinput"
         )
         migrations.Migration.operations = []  # Reset the operations in the class.
 
@@ -2117,141 +2191,49 @@ class Command(BaseCommand):
 
     def _rewrite_migration(self, migration_file, changed_data, app_label, migration_name, dependencies):
         with open(migration_file, "r+", encoding="utf-8") as f:
-            generated_index = class_index = dependencies_index = p_forwards_index = p_reverse_index = forwards_index = (
-                reverse_index
-            ) = 0
-
             lines = f.readlines()
-            for line_no, line in enumerate(lines):
-                if line.find("Generated by Django") != -1:
-                    # Should be the first line, but we shouldn't assume that.
-                    generated_index = line_no
 
-                elif line.startswith("class Migration"):
-                    class_index = line_no
-
-                elif line.find("dependencies = [") != -1:
-                    dependencies_index = line_no
-
-                # Separate tests, so code=dict and reverse_code=type are fine if they are on the same line.
-                if line.find("code=dict") != -1:
-                    p_forwards_index = line_no
-
-                if line.find("reverse_code=type") != -1:
-                    p_reverse_index = line_no
-
-                # Separate tests, so code=str and reverse_code=str are fine if they are on the same line.
-                if line.find("code=str") != -1:
-                    forwards_index = line_no
-
-                if line.find("reverse_code=int") != -1:
-                    reverse_index = line_no
+            # Use ast to locate the lines we need to change, rather than scanning text, so the
+            # substitutions below can't accidentally match unrelated code that happens to contain the
+            # same text (e.g. a hand-added `dependencies = [...]` list elsewhere in the file).
+            slots = locate_empty_migration_slots(lines)
 
             # We write lines starting from the bottom to the top, so our line numbers are correct through the process.
-            lines[reverse_index] = lines[reverse_index].replace("int", "backwards_migrate_workflow")
-            lines[forwards_index] = lines[forwards_index].replace("str", "forwards_migrate_workflow")
-            lines[p_reverse_index] = lines[p_reverse_index].replace("type", "migrations.RunPython.noop")
-            lines[p_forwards_index] = lines[p_forwards_index].replace("dict", "make_sure_permissions_exist")
-
-            forwards = inspect.getsource(forwards_migrate_workflow)
-            backwards = inspect.getsource(backwards_migrate_workflow)
+            lines[slots["reverse_index"]] = lines[slots["reverse_index"]].replace(
+                "int", "backwards_migrate_workflow_through_imports"
+            )
+            lines[slots["forwards_index"]] = lines[slots["forwards_index"]].replace(
+                "str", "forwards_migrate_workflow_through_imports"
+            )
+            lines[slots["p_reverse_index"]] = lines[slots["p_reverse_index"]].replace(
+                "type", "migrations.RunPython.noop"
+            )
+            lines[slots["p_forwards_index"]] = lines[slots["p_forwards_index"]].replace(
+                "dict", "make_sure_permissions_exist_through_imports"
+            )
 
             # Add Dependencies
-
             dependency_data = [
                 f"{INDENT8}migrations.swappable_dependency(settings.AUTH_USER_MODEL),{NEWLINE}",
             ]
             for app_name, app_migration_name in dependencies.items():
                 dependency_data.append(f'{INDENT8}("{app_name}", "{app_migration_name}"),{NEWLINE}')
 
-            lines[dependencies_index + 1 : dependencies_index + 1] = dependency_data
+            lines[slots["dependencies_index"] + 1 : slots["dependencies_index"] + 1] = dependency_data
 
+            # Changed data and forwards/reverse functions.
+            # Pretty Print is not formatted as nice as black.  At least a small width is better than nothing.
             copied_code = [
                 f'''{NEWLINE}history_change_reason = "Workflow Migration - {migration_name.replace(".py", "")}"''',
                 f'{NEWLINE}migration_app_label = "{app_label}"',
-                # Pretty Print is not formatted as nice as black.  At least a small width is better than nothing.
-                f"{NEWLINE}changed_data = {pformat(changed_data, width=20)}{NEWLINE}{NEWLINE}",
-                f"{forwards}{NEWLINE}{NEWLINE}",
-                f"{backwards}{NEWLINE}{NEWLINE}",
+                f"{NEWLINE}changed_data = {pformat(changed_data, width=20)}{NEWLINE}",
+                *get_migration_sources(self.import_instead),
             ]
-
-            if not self.import_instead:
-                copied_code.extend(
-                    [
-                        f"{inspect.getsource(make_sure_permissions_exist)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(handle_workflow)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(handle_workflow_permission)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(handle_state)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(handle_state_permission)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(handle_initial_state)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(handle_transition)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(handle_transition_permission)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(handle_transition_source)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(handle_state_objects)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(manage_state_objects)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(add_history_to_data)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(apply_and_save_changes)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(get_id_values_from_item)}{NEWLINE}{NEWLINE}",
-                        f"{inspect.getsource(get_id_values_from_dict)}{NEWLINE}{NEWLINE}",
-                    ]
-                )
-
-            # Changed data and forwards/reverse functions.
-            lines[class_index - 1 : class_index] = copied_code
+            lines[slots["class_index"] - 1 : slots["class_index"]] = copied_code
 
             # Migration Modified Comment - Used to find the latest migration we modified using this management command.
-
-            copied_imports = [
-                MIGRATION_MODIFIED_COMMENT,
-                "import copy",
-                f"{NEWLINE}import datetime",
-                f"{NEWLINE}import os",
-                f"{NEWLINE}{NEWLINE}",
-                "" if self.import_instead else f"from django.apps import apps as django_apps{NEWLINE}",
-                f"from django.conf import settings{NEWLINE}",
-                (
-                    ""
-                    if self.import_instead
-                    else f"from django.contrib.auth.management import create_permissions{NEWLINE}"
-                ),
-            ]
-
-            if self.import_instead:
-                copied_imports.extend(
-                    [
-                        f"{NEWLINE}from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import handle_workflow{NEWLINE}",
-                        "from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import handle_workflow_permission{NEWLINE}",
-                        f"from vueda.workflow.management.commands.makeworkflowmigrations import handle_state{NEWLINE}",
-                        "from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import handle_state_permission{NEWLINE}",
-                        "from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import handle_initial_state{NEWLINE}",
-                        "from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import handle_transition{NEWLINE}",
-                        "from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import handle_transition_permission{NEWLINE}",
-                        "from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import handle_transition_source{NEWLINE}",
-                        "from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import handle_state_objects{NEWLINE}",
-                        "from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import manage_state_objects{NEWLINE}",
-                        "from vueda.workflow.management.commands.makeworkflowmigrations "
-                        f"import make_sure_permissions_exist{NEWLINE}",
-                    ]
-                )
-
-            else:
-                copied_imports.extend(
-                    [
-                        f"from django.db.models import Count{NEWLINE}",
-                        "from django.utils import timezone",
-                    ]
-                )
-
-            lines[generated_index + 1 : generated_index + 1] = copied_imports
+            # Replace Django's generated import rather than inserting alongside it, so we control the order.
+            lines[slots["import_start"] : slots["import_end"] + 1] = get_migration_imports(self.import_instead)
 
             f.seek(0)
             f.writelines(lines)
@@ -2273,7 +2255,7 @@ class Command(BaseCommand):
 
             if not self.dry_run:
                 # Get the last vueda workflow migration name, for dependencies.
-                dependency_names = self._get_migration_names_from_show_migrations("vueda_workflow")
+                dependency_names = get_migration_names_from_show_migrations(self, "vueda_workflow")
                 dependencies = {"vueda_workflow": dependency_names[-1]}
                 self._rewrite_migration(migration_file, changes, app_label, migration_name, dependencies)
 

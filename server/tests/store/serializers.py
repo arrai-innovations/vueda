@@ -7,6 +7,7 @@ from rest_framework import serializers
 from tests.fields import RangeField
 from tests.store import models
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import VuedaHistorySerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.user.serializers import UserSerializer
@@ -635,3 +636,52 @@ class DistributorProxySerializer(VuedaHistorySerializer):
             "name",
             "description",
         ] + VuedaHistorySerializer.Meta.fields
+
+
+class NoteSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "content_object": (
+                GenericForeignKeySerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        # Model targetted specifiers.
+                        "_store__distributor__*",
+                        "_store__product__description",
+                        "_store__product__id",
+                        "_store__product__name",
+                        # quantity isn't defined on ProductSerializer, so adding it here won't cause it to be returned.
+                        "_store__product__quantity",
+                    ],
+                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
+                        "_store__distributor__description",
+                    ],
+                },
+            ),
+        }
+
+
+class AnotherNoteSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "content_object": GenericForeignKeySerializer,
+        }
+
+
+class NoteStaticOmitSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "content_object": (
+                GenericForeignKeySerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["id", "name"],
+                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: ["available_actions"],
+                },
+            ),
+        }

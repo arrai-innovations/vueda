@@ -52,6 +52,32 @@ The nested `f` metadata is what makes expansion an explicit embedded contract ra
 
 When sparse field selection (`f`) is applied to an expanded serializer's fields, the primary key of the nested serializer is always preserved even if not explicitly requested. This ensures that expanded objects are always identifiable regardless of which subset of their fields the client selects.
 
+## Generic Foreign Key Expands
+
+When a model has a Django `GenericForeignKey` field, the related model is not known at serializer definition time. `GenericForeignKeySerializer` handles this case: it declares no fields at class definition time and resolves the related model's canonical registered serializer in `to_representation()` by calling `get_serializer_for_model`. This means the expand only produces output when the concrete type of the related object is registered in the VUEDA registry.
+
+Generic foreign key expands are always read-only. There is no write path through `GenericForeignKeySerializer`, so `read_only: true` is unconditionally reported for these expands in model-info metadata.
+
+The model-info `model_expands` entry for a generic foreign key expand carries distinct type identifiers:
+
+- `type_db`: `null` — no single database column type applies, because a generic foreign key is a compound relationship backed by two separate columns: a `content_type` column that stores the related model type and an `object_id` column that stores the related object's primary key.
+- `type_model`: `"GenericForeignKey"` — identifies this expand as a polymorphic relationship.
+- `type_serializer`: `"GenericForeignKeySerializer"` — the serializer class name that handles the expand.
+
+Because the related type is not known until representation time, no nested `f` field metadata is available for generic foreign key expands in model-info. The client cannot pre-resolve a fixed field schema for these expands the way it can for concrete foreign key expands.
+
+All possible related models that could appear through the generic foreign key must be registered via `register` or `register_serializer` for the expand to return non-null output. If the concrete type of the related object is not registered, `GenericForeignKeySerializer` returns `null` for that expand.
+
+### Model-targeted field filtering
+
+The `FIELDS_PARAM` and `OMIT_PARAM` options passed through `expandable_fields` support model-targeted specifiers that apply only when the related object is an instance of a specific model. This is useful when different related model types expose different fields and you want to omit or select fields selectively per type.
+
+A model-targeted specifier has the form `_<app_label>__<model_name>__<field_name>`. The leading `_` distinguishes it from plain field names. At representation time, `GenericForeignKeySerializer` resolves each specifier against the concrete type of the related object: matching specifiers are replaced with the bare field name and passed to the concrete serializer; non-matching specifiers are dropped. Plain field names and wildcards are passed through unchanged and apply to every related model.
+
+This resolution happens entirely server-side, before the concrete serializer is instantiated. Client-submitted `f` and `e` query parameters continue to use plain field names and wildcards; model-targeted specifiers are not valid in query parameters.
+
+The field selection passed to the concrete serializer is still bounded by what that serializer declares. A field that exists on the Django model but is not listed in the registered serializer's `Meta.fields` will not appear in the output even if it is requested by name via a model-targeted specifier. The registered serializer's field declarations are the authoritative source of what each model type can return.
+
 ## {@term Action-Scoped Expand} Authority
 
 Expandable fields declared on a serializer are not automatically available on every viewset action. The viewset can restrict which expands are permitted per action using {@term Action-Scoped Expand} controls (`permit_{action}_expands` attributes); for example, `permit_list_expands` and `permit_retrieve_expands`. When these attributes are defined, the viewset injects the permitted set as `permitted_expands` in the serializer context, and the serializer's flex-field machinery respects it.
@@ -108,6 +134,8 @@ Specifying both fields and wildcards is allowed, like `id,available_actions,*` i
 - {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_fields}
 - {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_expands}
 - {@api py:class:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin}
+- {@api py:class:vueda.core.serializers.GenericForeignKeySerializer}
+- {@api py:function:vueda.info.registration.get_serializer_for_model}
 - {@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}
 - {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
 - {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}

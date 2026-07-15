@@ -1,10 +1,14 @@
 line-length = 120
 target-version = "py311"
-exclude = [
+# Adds to the defaults excludes.
+extend-exclude = [
     ".circleci",
     ".git",
     ".github",
+    "server/tests/group_updating_bad_migrations/migrations/0003_group_permission_migrations_2026_06_29.py",
+    "server/tests/workflow_updating_bad_migrations/migrations/0003_workflow_migrations_2026_06_29.py",
 ]
+force-exclude = true
 
 [lint]
 select = [

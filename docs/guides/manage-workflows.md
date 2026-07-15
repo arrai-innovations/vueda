@@ -92,8 +92,10 @@ Changes are written in the same order they occurred in history. When migrating b
 
 The migration is a standard Django migration file. After Django generates the empty shell, `makeworkflowmigrations` edits the file to add:
 
+- A replaced import block. Django's generated import is replaced rather than left in place, so the full set of imports the generated code needs is written in a controlled order.
 - A `changed_data` variable containing the list of recorded changes.
 - A `history_change_reason` variable used to identify history records created by the migration.
+- A `migration_app_label` variable identifying the app whose permissions must exist before the migration runs.
 - A `forwards_migrate_workflow` function that iterates through `changed_data` in order and applies each change by dispatching to the appropriate `handle_*` function (`handle_workflow`, `handle_state`, `handle_transition`, etc.).
 - A `backwards_migrate_workflow` function that iterates through `changed_data` in reverse and undoes each change.
 - Comments that allow the command to identify and parse previously created workflow migrations.
@@ -130,3 +132,52 @@ When two developers are making workflow changes in the same branch at the same t
 3. The second developer then runs `makeworkflowmigrations` to capture only their additional changes.
 
 Merging workflow migrations created in parallel branches is not straightforward and can produce conflicts. Sequential, coordinated workflow changes are much easier to manage.
+
+## Updating Existing Workflow Migrations
+
+When the function implementations embedded in a workflow migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere, or if you are squashing migrations — run `updateworkflowmigrations` to bring all existing workflow migrations in line with the current implementations from `makeworkflowmigrations.py`.
+
+```console
+python manage.py updateworkflowmigrations
+```
+
+To limit the update to a specific app:
+
+```console
+python manage.py updateworkflowmigrations myapp
+```
+
+### What the Command Updates
+
+`updateworkflowmigrations` scans all installed apps for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). For each file it finds, the command:
+
+- Replaces the import block with the current imports from `makeworkflowmigrations.py`.
+- Replaces the embedded function implementations (`forwards_migrate_workflow`, `backwards_migrate_workflow`, `handle_*`, and related helpers) with the current versions.
+- Updates any stale function names referenced in the `operations` list.
+
+The following are preserved exactly as written in each migration file:
+
+- `history_change_reason` — the change reason text stored in the migration.
+- `migration_app_label` — the app label used to ensure permissions exist before the migration runs.
+- `changed_data` — the recorded list of workflow changes the migration applies.
+- The `class Migration` block (dependencies and `operations` list), aside from updating any function names within it.
+
+Only the imports and functions listed above are replaced, matched by name. Any other hand-added imports or helper functions elsewhere in the file are left exactly where they are, so custom code is never lost.
+
+That said, any changes you make inside the listed functions themselves are overwritten the next time `updateworkflowmigrations` runs, since each one is replaced wholesale with the current implementation. If you need a workflow migration to do something beyond what `makeworkflowmigrations` generates, add your logic as an additional, self-contained function referenced from the `class Migration` `operations` list, rather than editing `forwards_migrate_workflow`, `backwards_migrate_workflow`, or the other recognized functions directly.
+
+### Command Options
+
+`--dry-run`
+
+Shows which migration files would be updated without writing any changes to disk.
+
+```console
+python manage.py updateworkflowmigrations --dry-run
+```
+
+### When to Run It
+
+Workflow migrations are self-contained: they carry everything they need to run, so you do not have to update them after every VUEDA upgrade. Running `updateworkflowmigrations` is optional.
+
+If a bug is found in the embedded functions, the VUEDA release notes will describe the issue and state that running `updateworkflowmigrations` is needed to apply the fix to your existing migrations. Outside of that, running the command when nothing has changed is safe — the function bodies are rewritten with the same current implementations, so migration behavior is unchanged.

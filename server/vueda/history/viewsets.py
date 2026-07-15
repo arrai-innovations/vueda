@@ -13,16 +13,6 @@ from vueda.history.serializers import DynamicHistoricalSerializer
 
 
 class SimpleHistoryViewSetMixin:
-    def get_historical_fields(self):
-        return [
-            "history_id",
-            "history_date",
-            "history_change_reason",
-            "history_type",
-            "history_user",
-            "history_relation",
-        ]
-
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.annotate(
@@ -40,21 +30,6 @@ class SimpleHistoryViewSetMixin:
         is_current = self.get_queryset().filter(pk=pk, current_history_id=history_id).exists()
         return Response({"current": is_current})
 
-    def diff_fields(self, previous_entry, entry):
-        from django.forms import model_to_dict
-
-        different_fields = []
-        previous_entry_dict = model_to_dict(previous_entry)
-        entry_dict = model_to_dict(entry)
-        for name, old_value in previous_entry_dict.items():
-            if name in self.get_historical_fields():
-                continue
-            new_value = entry_dict[name]
-            if old_value != new_value:
-                different_fields.append(name)
-
-        return different_fields
-
     @action(detail=True, methods=["get"])
     def history_list(self, request, pk=None):
         # if it is slow then we should try making postgres do it.
@@ -66,7 +41,7 @@ class SimpleHistoryViewSetMixin:
         if self.paginator.page.has_next():
             next_page_number = self.paginator.page.next_page_number()
             next_page = self.paginator.page.paginator.page(next_page_number)
-            previous_entry = history_queryset[next_page.start_index()]
+            previous_entry = history_queryset[next_page.start_index() - 1]
         else:
             previous_entry = None
         serializer_class = self.get_serializer_class()

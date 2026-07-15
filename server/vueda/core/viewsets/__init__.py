@@ -42,6 +42,7 @@ from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.utils import sort_by_dot_count_alphabetically
 from vueda.history.viewsets import SimpleHistoryViewSetMixin
@@ -192,7 +193,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
                         from django.db.models import Exists
                         from django.db.models import OuterRef
 
-                        codename = perm.split(".")[-1]
+                        codename = perm.rsplit(".", maxsplit=1)[-1]
                         content_type = ContentType.objects.get_for_model(model)
                         user = self.request.user
 
@@ -297,10 +298,7 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
             if (
                 "formatted_name" not in valid_fields
                 and hasattr(serializer.Meta, "model")
-                and (
-                    isinstance(getattr(serializer.Meta.model, "formatted_name_lookup_expression", None), str)
-                    or callable(getattr(serializer.Meta.model, "get_formatted_name", None))
-                )
+                and serializer.Meta.model._has_formatted_name_field()
             ):
                 valid_fields.add("formatted_name")
 
@@ -343,6 +341,10 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                         child_valid_fields,
                         child_valid_wildcard_fields,
                     ) = get_recursive_expands_and_fields(child_serializer, depth + 1, max_depth)
+
+                    if isinstance(child_serializer, GenericForeignKeySerializer):
+                        for value in WILDCARD_VALUES:
+                            child_valid_wildcard_fields.add(value)
 
                     add_valid_child_names(valid_expands, field_name, child_valid_expands)
                     add_valid_child_names(valid_wildcard_expands, field_name, child_valid_wildcard_expands)
@@ -397,6 +399,19 @@ class NoExtraFieldsForViewSetMixin:
 
         if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
             extra_keys = submitted_fields - (valid_fields | valid_wildcard_fields)
+
+            # GFK expandable fields can resolve to any model, so sub-field specifiers like
+            # "content_object.id" cannot be pre-validated without knowing the concrete instance type.
+            # Filter them out here; the GFK serializer enforces field-level filtering at representation time.
+            if extra_keys and hasattr(serializer, "Meta"):
+                gfk_fields = {
+                    name
+                    for name, data in getattr(serializer.Meta, "expandable_fields", {}).items()
+                    if (data[0] if isinstance(data, tuple) else data) is GenericForeignKeySerializer
+                }
+                if gfk_fields:
+                    extra_keys = frozenset(k for k in extra_keys if k.split(".")[0] not in gfk_fields)
+
             if extra_keys:
                 errors = {}
                 for extra_key in extra_keys:

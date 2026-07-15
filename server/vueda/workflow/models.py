@@ -629,7 +629,7 @@ class HasWorkflowModelMixin(models.Model):
         # If multiple group rules match, deny takes precedence over grant.
         matching_rules = StatePermission.objects.filter(
             state=self.workflow_state,
-            permission__codename=perm.split(".")[-1],
+            permission__codename=perm.rsplit(".", maxsplit=1)[-1],
             permission__content_type=self.get_content_type(),
             group__in=groups,
         ).values_list("grant_or_deny", flat=True)

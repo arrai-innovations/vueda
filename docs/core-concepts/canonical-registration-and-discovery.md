@@ -97,6 +97,7 @@ The client does not distinguish between "unregistered" and "nonexistent." Both p
     - {@api py:function:vueda.info.registration.register}
     - {@api py:function:vueda.info.registration.register_serializer}
     - {@api py:function:vueda.info.registration.get_registration}
+    - {@api py:function:vueda.info.registration.get_serializer_for_model}
     - {@api py:function:vueda.info.registration.get_all_registrations}
     - {@api py:function:vueda.info.registration.get_registered_content_types}
     - {@api py:class:vueda.info.viewsets.ModelInfoViewSet}

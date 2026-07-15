@@ -20,6 +20,7 @@ from rest_framework import status
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import models as store_models
 
 
@@ -56,7 +57,7 @@ class TestCreateIssueExpectedFailure:
             },
             format="multipart",
         )
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert store_models.InvoiceLine.objects.filter(invoice=invoice).count() == 2  # noqa: PLR2004
 
 
@@ -118,5 +119,5 @@ class TestCreateIssue(BaseTestUserMixin, BaseTestGroupMixin):
             },
             format="multipart",
         )
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert store_models.InvoiceLine.objects.filter(invoice=invoice).count() == 2  # noqa: PLR2004

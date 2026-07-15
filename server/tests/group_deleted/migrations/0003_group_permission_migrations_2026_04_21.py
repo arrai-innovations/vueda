@@ -34,12 +34,18 @@ changed_data = [
 ]
 
 
-def create_group_change(change, group_change_model=None):
-    # Provide a way to use the model through a migration.
-    if group_change_model is None:
-        from vueda.user.models import GroupChange
+def forwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover
+    # Copied changed_data, so tests can migrate forwards and backwards.
+    forwards_migrate_groups(apps, copy.deepcopy(changed_data))
 
-        group_change_model = GroupChange
+
+def backwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover
+    # Copied changed_data, so tests can migrate forwards and backwards.
+    backwards_migrate_groups(apps, copy.deepcopy(changed_data))
+
+
+def create_group_change(change, group_change_model):
+    # Need group_change_model since we could be running from a migration.
     obj = group_change_model.objects.create(
         group_name=change["group_name"],
         group_name_old=change["group_name_old"],
@@ -55,13 +61,9 @@ def create_group_change(change, group_change_model=None):
     return obj.pk
 
 
-def get_matching_record(change, group_change_model=None):
-    """Return True if a GroupChange record matching this change exists, False otherwise."""
-    # Provide a way to use the model through a migration.
-    if group_change_model is None:
-        from vueda.user.models import GroupChange
-
-        group_change_model = GroupChange
+def get_matching_record(change, group_change_model):
+    """Return GroupChange.pk if a record matching this change exists, None otherwise."""
+    # Need group_change_model since we could be running from a migration.
     obj = group_change_model.objects.filter(
         group_name=change["group_name"],
         group_name_old=change["group_name_old"],
@@ -138,14 +140,13 @@ def migrate_step(
                 group.delete()
 
 
-def forwards_migrate_groups(apps, schema_editor):
+def forwards_migrate_groups(apps, changed_items):
     content_types = apps.get_model("contenttypes", "ContentType")
     group_changes = apps.get_model("vueda_user", "GroupChange")
     groups = apps.get_model("auth", "Group")
     permissions = apps.get_model("auth", "Permission")
 
-    # Copied, so tests can migrate forwards and then backwards.
-    for changed_item in copy.deepcopy(changed_data):
+    for changed_item in changed_items:
         group_name = changed_item["group_name"]
         group_name_old = changed_item["group_name_old"]
         change_type = changed_item["change_type"]
@@ -172,13 +173,12 @@ def forwards_migrate_groups(apps, schema_editor):
             create_group_change(changed_item, group_change_model=group_changes)
 
 
-def backwards_migrate_groups(apps, schema_editor):
+def backwards_migrate_groups(apps, changed_items):
     content_types = apps.get_model("contenttypes", "ContentType")
     groups = apps.get_model("auth", "Group")
     permissions = apps.get_model("auth", "Permission")
 
-    # Copied and reversed, so tests can migrate backwards and then forwards.
-    for changed_item in reversed(copy.deepcopy(changed_data)):
+    for changed_item in reversed(changed_items):
         group_name = changed_item["group_name"]
         group_name_old = changed_item["group_name_old"]
         change_type = changed_item["change_type"]
@@ -232,7 +232,6 @@ class Migration(migrations.Migration):
         ("store", "0008_order_item_formatted_name"),
         ("vueda_release", "0001_initial"),
         ("vueda_user", "0005_sync_group_changes"),
-        ("vueda_vdq", "0006_alter_sentitem_options"),
         ("vueda_workflow", "0006_rename_fail_with_silent_historicaltransitionsource_ignored_and_more"),
         ("tests", "0001_initial"),
     ]
@@ -243,7 +242,7 @@ class Migration(migrations.Migration):
             reverse_code=migrations.RunPython.noop,
         ),
         migrations.RunPython(
-            code=forwards_migrate_groups,
-            reverse_code=backwards_migrate_groups,
+            code=forwards_migrate_groups_through_imports,
+            reverse_code=backwards_migrate_groups_through_imports,
         ),
     ]

@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 
 
 @pytest.mark.django_db
@@ -31,7 +32,7 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
         url = reverse("who-is")
         response = api_client.get(url, format="json")
 
-        assert response.status_code == HTTPStatus.OK
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert set(response.data) == {
             "id",
             "email",

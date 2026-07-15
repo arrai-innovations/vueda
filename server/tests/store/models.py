@@ -1,6 +1,8 @@
 # Models to use with info.
 
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres import fields as postgres_fields
 from django.core import validators
 from django.core.validators import StepValueValidator
@@ -358,3 +360,13 @@ class DistributorProxy(Distributor):
         proxy = True
         verbose_name = "distributor proxy"
         verbose_name_plural = "distributor proxies"
+
+
+class Note(VuedaModel):
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
+    text = models.TextField()
+
+    formatted_name = None
+    formatted_name_lookup_expression = "text"

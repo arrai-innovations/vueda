@@ -39,7 +39,7 @@ The default mapping translates Django's vocabulary to CRUDL:
 
 `delete` is not in the mapping because the codename does not change.
 
-`list` is an additional VUEDA permission declared in `BaseModelMeta.default_permissions` and is not part of the mapping; it is generated directly as `list_*` by the base model meta.
+`list` is an additional permission not part of the mapping; it is generated directly as `list_*`. VUEDA's base model meta declares `list` in `default_permissions` for VUEDA models. Additionally, `patch_django` patches `Options.__init__` to inject `list` into `default_permissions` for any Django model that does not already declare it, including third-party models. This means every model in the project — including Django's own `auth.Permission`, `auth.Group`, and `contenttypes.ContentType` — has a `list_*` permission row after migration.
 
 If your project needs to use the opposite mapping direction (such as mapping VUEDA names back to Django names for compatibility with third-party apps that expect `add`, `change`, or `view`), set `PERMISSION_NAMES_MAPPING` to match that need. Be aware that reverse mappings activate a code path in `patch_django` that rewrites the `perms_map` on `ObjectPermissions` and `WorkflowObjectPermissions`. This ensures HTTP-method-to-codename resolution stays consistent with the mapping, but it also means the `perms_map` at runtime may differ from what the source code declares. Validate explicitly if you use a non-default mapping.
 

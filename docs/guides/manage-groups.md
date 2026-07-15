@@ -24,7 +24,7 @@ The `vueda.user` app must be in `INSTALLED_APPS`. The group management URLs beco
 
 ### Navigating to the Permission Overview
 
-Open the permission overview page at `/routes/vueda.user/permissions/overview/`. On a local development server this is typically `http://localhost:8000/routes/vueda.user/permissions/overview/`. This page lists every permission in the project, grouped by app.
+Open the permission overview page at `/routes/vueda.user/permissions/overview/`. On a local development server this is typically `http://localhost:8000/routes/vueda.user/permissions/overview/`. This page lists the permissions in the project, grouped by app. Some permissions are intentionally excluded from the page: create, update, and delete permissions for system-managed models (such as `auth.Group`, `auth.Permission`, `contenttypes.ContentType`, VDQ queue models, and other internal models) are hidden because those objects should not be created or modified directly through group management. Read and list permissions for those models remain visible so groups can be granted read access.
 
 If you are not authenticated, you will be redirected to the login form. Log in before proceeding.
 
@@ -100,6 +100,7 @@ Changes are applied in the same order they were recorded. When migrating backwar
 
 The migration is a standard Django migration file. Django generates an empty shell with placeholder values that are used to locate specific lines in the file. `makegroupmigrations` then rewrites the file to add:
 
+- A replaced import block. Django's generated import is replaced rather than left in place, so the full set of imports the generated code needs is written in a controlled order.
 - A `changed_data` variable containing the list of recorded changes.
 - A `GroupChangeTypes` enum with the five change types.
 - A `migrate_step` function that applies a single change by inspecting the change type and performing the appropriate create, associate, rename, unassociate, or delete operation.
@@ -148,3 +149,39 @@ python manage.py sync_group_changes
 ```
 
 This command scans all project migrations for those created by `makegroupmigrations`, reads the `changed_data` from each, and creates any missing `GroupChange` records. This ensures `makegroupmigrations` can correctly identify which changes have already been captured when you run it next.
+
+## Updating Existing Group Migrations
+
+When the function implementations embedded in a group migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere — run `updategroupmigrations` to bring all existing group migrations in line with the current implementations from `makegroupmigrations.py`.
+
+```console
+python manage.py updategroupmigrations
+```
+
+### What the Command Updates
+
+`updategroupmigrations` scans all installed apps for migrations created by `makegroupmigrations` (identified by a comment marker near the top of each file). For each file it finds, the command:
+
+- Replaces the import block with the current imports from `makegroupmigrations.py`.
+- Replaces the embedded function implementations (`GroupChangeTypes`, `migrate_step`, `forwards_migrate_groups`, `backwards_migrate_groups`, and `make_sure_permissions_exist`) with the current versions.
+- Preserves the `changed_data` variable and the `class Migration` block unchanged.
+
+Only these specific imports and functions, matched by name, are replaced. Any other hand-added imports or helper functions elsewhere in the file are left exactly where they are, so custom code is never lost.
+
+That said, any changes you make inside the listed functions themselves are overwritten the next time `updategroupmigrations` runs, since each one is replaced wholesale with the current implementation. If you need a group migration to do something beyond what `makegroupmigrations` generates, add your logic as an additional, self-contained function referenced from the `class Migration` `operations` list, rather than editing `forwards_migrate_groups`, `backwards_migrate_groups`, or the other recognized functions directly.
+
+### Command Options
+
+`--dry-run`
+
+Shows which migration files would be updated without writing any changes to disk.
+
+```console
+python manage.py updategroupmigrations --dry-run
+```
+
+### When to Run It
+
+Group migrations are self-contained: they carry everything they need to run, so you do not have to update them after every VUEDA upgrade. Running `updategroupmigrations` is optional.
+
+If a bug is found in the embedded functions, the VUEDA release notes will describe the issue and state that running `updategroupmigrations` is needed to apply the fix to your existing migrations. Outside of that, running the command when nothing has changed is safe — the function bodies are rewritten with the same current implementations, so migration behavior is unchanged.

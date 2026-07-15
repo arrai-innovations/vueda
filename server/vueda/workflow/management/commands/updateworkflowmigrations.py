@@ -1,0 +1,196 @@
+"""Management command for updating existing workflow migrations with current function implementations."""
+
+import os
+import sys
+
+from django.apps import apps as django_apps
+from django.core.management import BaseCommand
+
+from vueda.user.management.commands.utils import NoRenamesError
+from vueda.user.management.commands.utils import get_migrations_path
+from vueda.user.management.commands.utils import has_direct_runpython_import
+from vueda.user.management.commands.utils import merge_migration_imports
+from vueda.user.management.commands.utils import merge_migration_sources
+from vueda.user.management.commands.utils import update_operation_function_names
+from vueda.workflow.management.commands.makeworkflowmigrations import MIGRATION_MODIFIED_COMMENT
+from vueda.workflow.management.commands.makeworkflowmigrations import NEWLINE
+from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_imports
+from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_sources
+
+
+WORKFLOW_MIGRATION_COMMENT_MARKER = MIGRATION_MODIFIED_COMMENT.strip()
+IMPORT_INSTEAD_MARKER = "from vueda.workflow.management.commands.makeworkflowmigrations import"
+
+# Old function names (without _through_imports) that must be renamed in the operations block.
+OPERATION_FUNCTION_RENAMES = {
+    "make_sure_permissions_exist": "make_sure_permissions_exist_through_imports",
+    "forwards_migrate_workflow": "forwards_migrate_workflow_through_imports",
+    "backwards_migrate_workflow": "backwards_migrate_workflow_through_imports",
+}
+
+
+class Command(BaseCommand):
+    help = (
+        "Scan all installed apps for workflow migrations created by makeworkflowmigrations and rewrite "
+        "their import and function sections with the current implementations from makeworkflowmigrations.py. "
+        "The history_change_reason, migration_app_label, and changed_data variables are preserved unchanged. "
+        "The class Migration block is also preserved, with stale operation function names updated to their "
+        "current _through_imports equivalents."
+    )
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "args",
+            metavar="app_label",
+            nargs="*",
+            help="Specify the app label(s) to update workflow migrations for.",
+        )
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Show which migrations would be updated without writing any changes.",
+        )
+
+    def _find_workflow_migration_files(self, selected_apps=()):
+        result = []
+
+        for app_config in django_apps.get_app_configs():
+            app_label = app_config.label
+
+            # If you specify apps, skip models not in your app.
+            if selected_apps and app_label not in selected_apps:
+                continue
+
+            migrations_path = get_migrations_path(app_config)
+            if migrations_path is None or not os.path.isdir(migrations_path):
+                continue
+
+            for filename in sorted(os.listdir(migrations_path)):
+                if not filename.endswith(".py") or filename == "__init__.py":
+                    continue
+
+                filepath = os.path.join(migrations_path, filename)
+                with open(filepath, encoding="utf-8") as f:
+                    for line_no, line in enumerate(f):
+                        if line.startswith(WORKFLOW_MIGRATION_COMMENT_MARKER):
+                            result.append(filepath)
+                            break
+                        if line_no > 20:  # noqa: PLR2004
+                            break
+
+        return result
+
+    @staticmethod
+    def _is_import_instead(lines):
+        for line_no, line in enumerate(lines):
+            if IMPORT_INSTEAD_MARKER in line:
+                return True
+            if line_no > 30:  # noqa: PLR2004
+                break
+        return False
+
+    def _update_migration_file(self, filepath):
+        with open(filepath, encoding="utf-8") as f:
+            lines = f.readlines()
+
+        history_change_reason_exists = changed_data_exists = False
+        for line in lines:
+            if line.startswith("history_change_reason = "):
+                history_change_reason_exists = True
+            elif line.startswith("changed_data = "):
+                changed_data_exists = True
+        if not (history_change_reason_exists and changed_data_exists):
+            self.stderr.write(self.style.ERROR(f"  Could not parse required sections in {filepath}, skipping."))
+            return False
+
+        # A migration must be valid Python, or it can't be a migration.
+        try:
+            direct_runpython_import = has_direct_runpython_import(lines)
+        except SyntaxError as e:
+            self.stderr.write(
+                self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
+            )
+            return False
+
+        import_instead = self._is_import_instead(lines)
+        lines_string = "".join(lines)
+
+        # Preserve the class Migration block, updating any stale function names in operations.
+        try:
+            lines_string = update_operation_function_names(lines_string, OPERATION_FUNCTION_RENAMES)
+        except SyntaxError as e:
+            self.stderr.write(
+                self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
+            )
+            return False
+        except NoRenamesError:
+            # Nothing to change, but continue with the update.
+            self.stdout.write(self.style.ERROR(f"  Nothing to rename found in {filepath}."))
+
+        # Replace only the functions/enum we recognize, so any hand-added code between them
+        # (e.g. a stray import) is preserved in place instead of being wiped out.
+        try:
+            source_map = get_migration_sources(import_instead, as_mapping=True)
+            lines_string = merge_migration_sources(lines_string, source_map)
+        except SyntaxError as e:
+            self.stderr.write(
+                self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
+            )
+            return False
+
+        # Update/insert only the imports we recognize, leaving any hand-added ones in place.
+        import_map = get_migration_imports(import_instead, direct_runpython_import, as_mapping=True)
+        try:
+            lines_string = merge_migration_imports(lines_string, import_map)
+        except SyntaxError as e:
+            self.stderr.write(
+                self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
+            )
+            return False
+
+        if not self.dry_run:
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.writelines(lines_string.splitlines(keepends=True))
+
+        return True
+
+    def handle(self, *app_labels, **options):
+        self.dry_run = options["dry_run"]
+
+        # If you pass in a specific app, validate that it exists.
+        app_labels = set(app_labels)
+        has_bad_labels = False
+        for app_label in app_labels:
+            try:
+                django_apps.get_app_config(app_label)
+            except LookupError as err:
+                self.stderr.write(str(err))
+                has_bad_labels = True
+        if has_bad_labels:
+            sys.exit(2)
+
+        migration_files = self._find_workflow_migration_files(app_labels)
+
+        if not migration_files:
+            self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No workflow migrations found to update."))
+            return
+
+        failure_count = 0
+        updated_count = 0
+        for filepath in migration_files:
+            verb = "Would update" if self.dry_run else "Updating"
+            self.stdout.write(f"{verb}: {filepath}")
+            if self._update_migration_file(filepath):
+                updated_count += 1
+            else:
+                # Something went wrong, stderr will have printed what.
+                failure_count += 1
+
+        if updated_count:
+            verb = "Would update" if self.dry_run else "Updated"
+            self.stdout.write(self.style.SUCCESS(f"{NEWLINE}{verb} {updated_count} workflow migration(s).{NEWLINE}"))
+
+        if failure_count:
+            verb = "Would have failed updating" if self.dry_run else "Failed updating"
+            self.stdout.write(self.style.ERROR(f"{NEWLINE}{verb} {failure_count} workflow migration(s).{NEWLINE}"))
+            sys.exit(1)

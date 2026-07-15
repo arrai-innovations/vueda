@@ -4,6 +4,7 @@ __all__ = (
     "EmailSettingsBaseSerializer",
     "ExcludeFieldsSerializerMixin",
     "FlexFieldsWriteableNestedSerializerMixin",
+    "GenericForeignKeySerializer",
     "MakeReadonly",
     "NoExtraFieldsSerializerMixin",
     "PrimaryKeyListSerializer",
@@ -16,6 +17,7 @@ __all__ = (
     "VuedaSerializer",
 )
 
+import copy
 import inspect
 from typing import ClassVar
 
@@ -38,6 +40,7 @@ from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
+from vueda.info.registration import get_serializer_for_model
 
 
 class PrimaryKeyListSerializer(serializers.Serializer):
@@ -75,7 +78,7 @@ class NoExtraFieldsSerializerMixin:
                 if field_name.find("[") != -1:
                     field_name = field_name.split("[")[0]
 
-                # Handle data lik cart_items.quantity
+                # Handle data like cart_items.quantity
                 if "." in field_name:
                     field_name = field_name.split(".")[0]
 
@@ -83,12 +86,8 @@ class NoExtraFieldsSerializerMixin:
 
             if (
                 "formatted_name" not in initial_fields
-                and hasattr(self, "Meta")
-                and hasattr(self.Meta, "model")
-                and (
-                    isinstance(getattr(self.Meta.model, "formatted_name_lookup_expression", None), str)
-                    or callable(getattr(self.Meta.model, "get_formatted_name", None))
-                )
+                and hasattr(getattr(self, "Meta", None), "model")
+                and self.Meta.model._has_formatted_name_field()
             ):
                 initial_fields.add("formatted_name")
 
@@ -284,7 +283,7 @@ class VuedaExpandableFieldsSerializerMixin:
             if "many" in expand_options:
                 expand_item["many"] = expand_options["many"]
 
-            if issubclass(field_serializer, VuedaReadonlySerializer):
+            if issubclass(field_serializer, (GenericForeignKeySerializer, VuedaReadonlySerializer)):
                 expand_item["read_only"] = True
             elif "read_only" in expand_options:
                 expand_item["read_only"] = expand_options["read_only"]
@@ -402,6 +401,11 @@ class VuedaExpandableFieldsSerializerMixin:
         return expands_data
 
 
+class FormattedNameSerializerMixin:
+    def get_formatted_name(self, obj):
+        return obj._get_formatted_name()
+
+
 class VuedaListSerializer(serializers.ListSerializer):
     """
     List serializer for ``VuedaSerializer`` subclasses. Annotates the queryset with
@@ -415,7 +419,7 @@ class VuedaListSerializer(serializers.ListSerializer):
         child_model = getattr(getattr(self.child, "Meta", None), "model", None)
         if child_model and hasattr(data, "annotate"):
             lookup = getattr(child_model, "formatted_name_lookup_expression", None)
-            if isinstance(lookup, str):
+            if lookup is not None:
                 existing = getattr(getattr(data, "query", None), "annotations", {})
                 if "formatted_name" not in existing:
                     data = data.annotate(formatted_name=F(lookup))
@@ -426,6 +430,7 @@ class VuedaSerializer(
     NoExtraFieldsSerializerMixin,
     VuedaExpandableFieldsSerializerMixin,
     FlexFieldsWriteableNestedSerializerMixin,
+    FormattedNameSerializerMixin,
     serializers.ModelSerializer,
 ):
     """
@@ -583,3 +588,125 @@ class EmailSettingsBaseSerializer(VuedaSerializer):
             "bcc_email",
             "preview_tag_data",
         ]
+
+
+def _parse_model_targeted_field(field_name: str) -> tuple[str, str, str] | None:
+    """Parse a model-targeted field specifier like ``_store__distributor__description``.
+
+    Returns ``(app_label, model_name, field)`` for a well-formed specifier, or ``None``
+    for regular field names or malformed specifiers.
+
+    Syntax: leading ``_`` followed by ``app_label``, ``model_name``, and ``field_name``
+    separated by ``__``.  Single underscores within any component are allowed (e.g.
+    ``_my_app__my_model__first_name``); double underscores are not, which matches
+    Django's own restriction on field names.
+    """
+    if not field_name.startswith("_") or field_name.startswith("__"):
+        return None
+    parts = field_name[1:].split("__")
+    if len(parts) != 3 or not all(parts):  # noqa: PLR2004
+        return None
+    return parts[0], parts[1], parts[2]
+
+
+class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, serializers.Serializer):
+    """Serializer for GenericForeignKey expand fields.
+
+    Dynamically serializes the related object's concrete fields at to_representation
+    time, since the related model is unknown until then. Supports flex field filtering
+    (fields/omit) via rest_flex_fields options passed through expandable_fields.
+
+    The instance is not available at get_fields() time — for nested serializers DRF
+    passes the related value directly to to_representation(), never setting self.instance.
+    All dynamic field logic therefore lives in to_representation().
+
+    Always includes app_label, model, and formatted_name in the output regardless of
+    field filtering.
+
+    Model-targeted field specifiers (``_applabel__modelname__field``) may be used in
+    the ``FIELDS_PARAM`` and ``OMIT_PARAM`` lists inside ``expandable_fields`` to apply
+    filtering only when the related object is an instance of the named model.  Plain
+    field names and wildcards apply to every related model type.  If no static filtering
+    is needed, ``GenericForeignKeySerializer`` may be declared as a bare class without
+    options.
+    """
+
+    def get_fields(self):
+        # Fields are dynamic — resolved from the related instance in to_representation.
+        return {}
+
+    def to_representation(self, instance):
+        if instance is None:
+            return None
+
+        serializer_class = get_serializer_for_model(type(instance))
+        if serializer_class is None:
+            return None
+
+        # Flex options are lost when serializers are created, so we need to get the raw expandable data and process it.
+        field_options = self.parent._expandable_fields.get(self.field_name, ())
+        if isinstance(field_options, tuple):
+            serializer_settings = copy.deepcopy(field_options[1]) if len(field_options) > 1 else {}
+        else:
+            serializer_settings = {}
+
+        fields_param = settings.REST_FLEX_FIELDS["FIELDS_PARAM"]
+        omit_param = settings.REST_FLEX_FIELDS["OMIT_PARAM"]
+
+        # Resolve model-targeted field specifiers for the concrete instance type first, so the static
+        # declaration is in its final per-model form before we apply request-time selections on top.
+        # Specifiers matching the current model are replaced with their bare field name;
+        # specifiers targeting a different model are dropped.  Plain field names and
+        # wildcards pass through unchanged.
+        meta = instance._meta
+        for param in (fields_param, omit_param):
+            if param in serializer_settings:
+                resolved = []
+                for field in serializer_settings[param]:
+                    parsed = _parse_model_targeted_field(field)
+                    if parsed is None:
+                        resolved.append(field)
+                    elif parsed[0] == meta.app_label and parsed[1] == meta.model_name:
+                        resolved.append(parsed[2])
+                serializer_settings[param] = resolved
+
+        # Apply request-time field/omit selections (stored by flex-fields on self._flex_options_all).
+        # Runtime selections further restrict the static declaration — they cannot expand it:
+        # - fields: intersect with static (runtime can only narrow, not widen the allowed set)
+        # - omit: union with static (both sets of exclusions apply)
+        runtime_fields = self._flex_options_all["fields"]
+        runtime_omit = self._flex_options_all["omit"]
+
+        # runtime_fields will always be at least '*'.
+        static_fields = serializer_settings.get(fields_param, [])
+        if not static_fields:
+            serializer_settings[fields_param] = list(runtime_fields)
+        elif "*" in static_fields:
+            # Static allows all fields for this model; runtime narrows the set.
+            serializer_settings[fields_param] = list(runtime_fields)
+        elif "*" not in runtime_fields:
+            # Both sides are explicit: keep only fields the static declaration permits.
+            static_set = set(static_fields)
+            serializer_settings[fields_param] = [f for f in runtime_fields if f in static_set]
+        # else: runtime is a wildcard — the static restriction is already tighter; no change.
+
+        # runtime_omits will always be at least 'available_actions' because of
+        # 'VuedaExpandableFieldsSerializerMixin' > '_get_expanded_field_names'.
+        static_omit = serializer_settings.get(omit_param, [])
+        extra = [f for f in runtime_omit if f not in static_omit]
+        if extra:
+            serializer_settings[omit_param] = static_omit + extra
+
+        serializer_settings["context"] = self.context
+        serializer_settings["instance"] = instance
+
+        serializer = serializer_class(**serializer_settings)
+        results = serializer.data
+
+        # Always include GFK identity metadata regardless of field filtering.
+        results["app_label"] = meta.app_label
+        results["model"] = meta.model_name
+        if "formatted_name" not in results or results["formatted_name"] is None:
+            results["formatted_name"] = instance._get_formatted_name()
+
+        return results

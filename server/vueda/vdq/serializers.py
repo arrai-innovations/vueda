@@ -123,9 +123,6 @@ class DefaultQueueItemSerializer(HasWorkflowSerializerMixin, VuedaSerializer):
         qs = AnyMailQueueItemAttachment.objects.filter(anymail_queue_items=obj.anymail)
         return AnyMailQueueItemAttachmentSerializer(qs, many=True, context=self.context).data
 
-    def get_formatted_name(self, obj):
-        return obj.get_formatted_name() or None
-
 
 QueueItemSerializer = getattr(settings, "QUEUE_ITEM_SERIALIZER", DefaultQueueItemSerializer)
 
@@ -160,9 +157,6 @@ class DefaultSentItemSerializer(QueueItemSerializer):
             "receiver": (ReceiverSerializer, {}),
             "sms": (SMSQueueItemSerializer, {}),
         }
-
-    def get_formatted_name(self, obj):
-        return obj.get_formatted_name() or None
 
 
 SentItemSerializer = getattr(settings, "SENT_ITEM_SERIALIZER", DefaultSentItemSerializer)

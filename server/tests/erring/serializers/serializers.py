@@ -44,10 +44,49 @@ class NoNameFieldSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class FormattedNameExpressionNotStringSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.FormattedNameExpressionNotString
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class ValidGetFormattedNameSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.ValidGetFormattedName
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class ValidLookupExpressionSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.ValidLookupExpression
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class RelatedObjectsAreMissingDataSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.RelatedObjectsAreMissingData
         fields = [
             "id",
-            "no_name",
         ] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "no_name": (NoNameFieldSerializer, {"many": True}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class FalseyFormattedNamesLookupSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.FalseyFormattedNamesLookup
+        fields = ["id", "description"]
+
+
+class NonVuedaFormattedNameSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.NonVuedaFormattedName
+        fields = ["id", "some_field"] + VuedaSerializer.Meta.fields

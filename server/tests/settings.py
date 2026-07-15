@@ -36,6 +36,10 @@ LOCAL_APPS = [
     "django_view_manager.utils",
 ]
 
+MIGRATION_MODULES = {
+    "no_migrations": None,
+}
+
 # noinspection PyUnresolvedReferences
 INSTALLED_APPS = DJANGO_APPS + VUEDA_APPS + THIRD_PARTY_APPS + LOCAL_APPS  # noqa: F821
 

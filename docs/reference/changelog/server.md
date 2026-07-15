@@ -43,6 +43,25 @@ public-facing documentation baseline.
       _Warnings must be computable before the write, from the request input plus current database state; conditions discoverable only by performing the write are errors that abort the transaction, not warnings. Bulk/list-serializer create and update saves and workflow transitions remain ungated._
 - **`ImageField` serializer field**:
     - Added `vueda.core.fields.serializers.ImageField`, the image counterpart to the existing `FileField`. It shares the `{"name", "url"}` representation and subclasses `FileField` rather than DRF's `ImageField`, so it does not require Pillow; image content validation is left to the model field and upload pipeline.
+- **`updategroupmigrations` management command**:
+    - Added a new management command that scans all installed apps for group migrations created by `makegroupmigrations` and rewrites their import and function sections with the current implementations from `makegroupmigrations.py`.
+    - The `changed_data` variable and the `class Migration` block are preserved; only the embedded function bodies and imports are updated.
+    - Accepts a `--dry-run` flag to preview which files would be changed without writing anything.
+    - Run this command after any VUEDA upgrade that changes the function implementations in `makegroupmigrations.py`.
+- **`updateworkflowmigrations` management command**:
+    - Added a new management command that scans all installed apps for workflow migrations created by `makeworkflowmigrations` and rewrites their import and function sections with the current implementations from `makeworkflowmigrations.py`.
+    - The recorded change data (`changed_data`, `history_change_reason`, `migration_app_label`) and the `class Migration` block are preserved; only the embedded function bodies, imports, and any stale function names in `operations` are updated.
+    - Accepts an optional `app_label` argument to limit the update to a specific app, and a `--dry-run` flag to preview which files would be changed without writing anything.
+    - Run this command after any VUEDA upgrade that changes the function implementations in `makeworkflowmigrations.py`.
+- **`GenericForeignKeySerializer`**:
+    - Added `GenericForeignKeySerializer` to `vueda.core.serializers` for declaring `GenericForeignKey` expandable fields. Declare it in `expandable_fields` using the `GenericForeignKey` field name as the key. The serializer resolves the concrete related model's canonical registered serializer at representation time via `get_serializer_for_model`, so every model that can appear through the generic foreign key must be registered via `register` or `register_serializer`.
+    - Generic foreign key expands are always read-only. Model-info metadata for these expands reports `type_model: "GenericForeignKey"`, `type_serializer: "GenericForeignKeySerializer"`, and `type_db: null`.
+    - `FIELDS_PARAM` and `OMIT_PARAM` entries in the `expandable_fields` options now support model-targeted specifiers of the form `_<app_label>__<model_name>__<field_name>`. Specifiers matching the concrete type of the related object are resolved to their bare field name before the concrete serializer is instantiated; specifiers targeting a different model are silently dropped. Plain field names and wildcards continue to apply to every related model type.
+- **`get_serializer_for_model`**:
+    - Added `get_serializer_for_model` to the public API of `vueda.info.registration`. Returns the canonical serializer class registered for a given model by looking up the in-process registry directly, without a database query. Returns `None` if the model is not registered. Use this when you need the registered serializer class for a model and want to avoid the `ContentType` lookup required by `get_registration`.
+
+- **Django built-in model `formatted_name` support**:
+    - `InfoConfig.ready()` now patches Django's `Group`, `Permission`, and `ContentType` models with the `_has_formatted_name_field`, `_get_formatted_name`, and `formatted_name_lookup_expression` (or `get_formatted_name`) attributes that VUEDA's viewset and serializer layers require. `Group` and `Permission` use `name` as their display field; `ContentType` uses `app_labeled_name`. All three can now be used as expandable fields without any application-level configuration.
 
 ### Fixes
 

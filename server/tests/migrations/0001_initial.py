@@ -86,7 +86,6 @@ class Migration(migrations.Migration):
                 "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "users",
                 "ordering": ("-date_joined",),
-                "permissions": [("list_permission", "Can list permissions")],
             },
             managers=[
                 ("objects", vueda.user.models.VUEDAUserManager()),
