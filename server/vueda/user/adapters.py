@@ -11,8 +11,10 @@ __all__ = (
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.mfa.adapter import DefaultMFAAdapter
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.mail import EmailMultiAlternatives
 from django.db import models
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
@@ -22,10 +24,6 @@ from rest_framework.settings import api_settings
 
 from vueda.core.exceptions import VuedaValidationError
 from vueda.user.utils import is_twilio_configured
-from vueda.vdq.models import Receiver
-from vueda.vdq.models import Sender
-from vueda.vdq.schedulers import add_email
-from vueda.vdq.schedulers import add_sms
 
 
 class VuedaAllAuthHeadlessAdapter(DefaultHeadlessAdapter):
@@ -138,24 +136,44 @@ class DefaultUserAdapter:
             "site_name": settings.SITE_NAME,
         }
         ctx.update(context)
-        sender = Sender.objects.get_or_create(name="SYSTEM", email=settings.NO_REPLY_EMAIL)[0]
-        to = Receiver.objects.get_or_create(name=to_name, email=to_email)[0]
         if not template_prefix:
             template_prefix = self.template_prefix_mapping[code]
         msg = self.render_mail(template_prefix, ctx)
 
-        add_email(
-            sender=sender,
-            to=[to],
+        if apps.is_installed("vueda.vdq"):
+            from vueda.vdq.models import Receiver
+            from vueda.vdq.models import Sender
+            from vueda.vdq.schedulers import add_email
+
+            sender = Sender.objects.get_or_create(name="SYSTEM", email=settings.NO_REPLY_EMAIL)[0]
+            to = Receiver.objects.get_or_create(name=to_name, email=to_email)[0]
+            add_email(
+                sender=sender,
+                to=[to],
+                subject=msg["subject"],
+                text=msg["body"],
+                html=msg["html"],
+                origin=origin,
+                cc=cc,
+                bcc=bcc,
+                reply_to=reply_to,
+                attachments=attachments,
+            )
+            return
+
+        email = EmailMultiAlternatives(
             subject=msg["subject"],
-            text=msg["body"],
-            html=msg["html"],
-            origin=origin,
+            body=msg["body"],
+            from_email=settings.NO_REPLY_EMAIL,
+            to=[to_email],
             cc=cc,
             bcc=bcc,
             reply_to=reply_to,
             attachments=attachments,
         )
+        if msg["html"]:
+            email.attach_alternative(msg["html"], "text/html")
+        email.send()
 
     def send_sms(self, to_number, to_name, code, context) -> None:
         template_prefix = self.template_prefix_mapping[code]
@@ -173,13 +191,27 @@ class DefaultUserAdapter:
         if not to_number:
             raise VuedaValidationError("Phone number is required for sms method.")
 
-        sender = Sender.objects.get_or_create(name="SYSTEM", cell=settings.TWILIO_CALLER_ID)[0]
-        to = Receiver.objects.get_or_create(name=to_name, cell=to_number)[0]
+        if apps.is_installed("vueda.vdq"):
+            from vueda.vdq.models import Receiver
+            from vueda.vdq.models import Sender
+            from vueda.vdq.schedulers import add_sms
 
-        add_sms(
-            sender=sender,
-            receiver=to,
+            sender = Sender.objects.get_or_create(name="SYSTEM", cell=settings.TWILIO_CALLER_ID)[0]
+            to = Receiver.objects.get_or_create(name=to_name, cell=to_number)[0]
+            add_sms(
+                sender=sender,
+                receiver=to,
+                body=body,
+            )
+            return
+
+        from twilio.rest import Client
+
+        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        client.messages.create(
             body=body,
+            from_=settings.TWILIO_CALLER_ID,
+            to=to_number,
         )
 
 
