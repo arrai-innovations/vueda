@@ -68,6 +68,8 @@ public-facing documentation baseline.
 
 ### Fixes
 
+- **Optional VDQ notifications**:
+    - Applications can now install `vueda.user` without installing `vueda.vdq`. The default user adapter sends account email through Django's configured email backend and sends two-factor authentication SMS messages directly through Twilio when VDQ is absent; applications with VDQ installed continue to queue notifications.
 - **Writable nested history serializer responses**:
     - History-enabled objects created through a writable nested serializer now include their annotated `current_history_id` in the response. Nested serializers re-fetch the new object through its own model manager instead of the parent view's queryset.
 - **Dependency security floor**:
