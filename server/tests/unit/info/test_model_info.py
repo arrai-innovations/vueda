@@ -326,7 +326,7 @@ class TestModelInfoSerializer:
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert response.data["totalRecords"] == 17  # noqa: PLR2004
+        assert response.data["totalRecords"] == len(EXPECTED_RESULTS)
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",
