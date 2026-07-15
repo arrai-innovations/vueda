@@ -19,7 +19,6 @@ __all__ = (
 
 import copy
 import inspect
-import logging
 from typing import ClassVar
 
 import drf_writable_nested
@@ -42,9 +41,6 @@ from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
 from vueda.info.registration import get_serializer_for_model
-
-
-logger = logging.getLogger(__name__)
 
 
 class PrimaryKeyListSerializer(serializers.Serializer):
@@ -645,7 +641,6 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
 
         serializer_class = get_serializer_for_model(type(instance))
         if serializer_class is None:
-            logger.error("Unable to expand  %s. It is not a VuedaModel.", instance.__class__)
             return None
 
         # Flex options are lost when serializers are created, so we need to get the raw expandable data and process it.
