@@ -289,12 +289,12 @@ class Invoice(VuedaModel):
         pass
 
 
-class InvoiceLine(VuedaModel):
+class InvoiceLine(VuedaHistoryModel):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="invoice_lines")
     name = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
 
-    class Meta(VuedaModel.Meta):
+    class Meta(VuedaHistoryModel.Meta):
         pass
 
 
