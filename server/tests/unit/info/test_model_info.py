@@ -28,6 +28,8 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "CartItem", "read"),
             ("store", "Customer", "list"),
             ("store", "Customer", "read"),
+            ("store", "CustomerData", "list"),
+            ("store", "CustomerData", "read"),
             ("store", "CustomerOrder", "create"),
             ("store", "CustomerOrder", "delete"),
             ("store", "CustomerOrder", "list"),
@@ -133,6 +135,8 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "CartItem", "update"),
             ("store", "Customer", "read"),
             ("store", "Customer", "delete"),
+            ("store", "CustomerData", "list"),
+            ("store", "CustomerData", "read"),
             ("store", "CustomerOrder", "create"),
             ("store", "CustomerOrder", "read"),
             ("store", "Distributor", "list"),
@@ -203,6 +207,7 @@ class TestModelInfoSerializer:
     def register_viewsets():
         info.registration.get_empty_registry()
         info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
+        info.register(store_serializers.CustomerDataSerializer, store_viewsets.CustomerDataViewSet)
         info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
         info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
         info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
@@ -321,7 +326,7 @@ class TestModelInfoSerializer:
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert response.data["totalRecords"] == 17  # noqa: PLR2004
+        assert response.data["totalRecords"] == len(EXPECTED_RESULTS)
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",

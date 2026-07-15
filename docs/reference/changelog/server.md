@@ -21,6 +21,9 @@ public-facing documentation baseline.
 
 ### Breaking Changes
 
+- **Read-only serializer permission metadata**:
+    - Model-info `model_permissions` now exposes only the mapped `list` and `read` permissions when a model's canonical serializer subclasses `VuedaReadonlySerializer`. Other permission rows remain in Django's permission table, and the change does not alter server authorization.
+      _If an integration treated `model_permissions` as a complete database permission inventory, account for the filtered read-only surface or query Django's permission model directly._
 - **Filter choice empty options**:
     - `model_info_filter_choices` no longer prepends or returns empty-valued options. This removes the previous synthetic option driven by `empty_label`, `empty_value`, `EMPTY_CHOICE_LABEL`, and `EMPTY_CHOICE_VALUE`; it also omits blank values discovered by all-values filters. A missing filter query parameter now represents "no filter" in this endpoint's contract.
       _Render any clear, all, or no-selection affordance in the client outside the server-provided choices list._

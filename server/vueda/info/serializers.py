@@ -38,9 +38,14 @@ from rest_framework.filters import OrderingFilter
 from vueda.core.open_api import replace_refs_with_schema
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
+from vueda.core.serializers import VuedaReadonlySerializer
 from vueda.core.utils import AvailableActionsRequest
 from vueda.info import open_api_tracebacks
 from vueda.info.registration import get_registration
+from vueda.info.registration import get_serializer_for_model
+
+
+PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
 METHOD_MAPPING = {
@@ -154,9 +159,33 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     def get_model_permissions(self, instance):
         """
-        Get the permissions for a model.
+        Get the permissions for a model. Read-only serializers only ever expose list/retrieve
+        actions, so their create/update/delete permissions (which may still exist in the
+        database, since the model itself keeps the standard CRUDL permission set) are filtered
+        out here rather than restricted on the model.
         """
-        return list(Permission.objects.filter(content_type=instance).values("codename", "name"))
+        permissions = Permission.objects.filter(content_type=instance)
+
+        model = instance.model_class()
+        serializer = get_serializer_for_model(model) if model is not None else None
+
+        if serializer is not None and issubclass(serializer, VuedaReadonlySerializer):
+            permission_read_name = "read"
+            if "read" in PERMISSION_NAMES_MAPPING:
+                permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+
+            permission_list_name = "list"
+            if "list" in PERMISSION_NAMES_MAPPING:
+                permission_list_name = PERMISSION_NAMES_MAPPING["list"]
+
+            permissions = permissions.filter(
+                codename__in=(
+                    f"{permission_read_name}_{instance.model}",
+                    f"{permission_list_name}_{instance.model}",
+                )
+            )
+
+        return list(permissions.values("codename", "name"))
 
     def get_model_fields_min_data(self, field, model_field):
         if hasattr(model_field, "field"):

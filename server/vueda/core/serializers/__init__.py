@@ -496,7 +496,6 @@ class VuedaLookupSerializer(VuedaSerializer):
         fields = ["id", "code", "name", "formatted_name"] + VuedaSerializer.Meta.fields
 
 
-# TODO: Create a test that uses the readonly serializers
 class MakeReadonly(serializers.SerializerMetaclass):
     """
     Metaclass that hides ``create`` and ``update`` on any serializer class it is applied to.
@@ -531,7 +530,10 @@ class VuedaReadonlyListSerializer(VuedaListSerializer, metaclass=MakeReadonly):
     __excluded__ = ("create", "update")
 
     def validate_empty_values(self, data):
-        return True, None
+        # An empty list, not None: ListSerializer.save() iterates validated_data before ever
+        # reaching self.update/self.create, so None would raise TypeError instead of the
+        # intended AttributeError from the hidden methods.
+        return True, []
 
 
 class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
@@ -565,7 +567,10 @@ class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
         return fields
 
     def validate_empty_values(self, data):
-        return True, None
+        # An empty dict, not None: Serializer.save() unpacks validated_data before ever
+        # reaching self.update/self.create, so None would raise TypeError instead of the
+        # intended AttributeError from the hidden methods.
+        return True, {}
 
 
 class EmailSettingsBaseSerializer(VuedaSerializer):
