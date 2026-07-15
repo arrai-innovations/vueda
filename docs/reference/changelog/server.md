@@ -65,6 +65,8 @@ public-facing documentation baseline.
 
 ### Fixes
 
+- **Writable nested history serializer responses**:
+    - History-enabled objects created through a writable nested serializer now include their annotated `current_history_id` in the response. Nested serializers re-fetch the new object through its own model manager instead of the parent view's queryset.
 - **Dependency security floor**:
     - The server package now requires `cryptography` 48.0.1 or newer and `starlette` 1.3.1 or newer so installs resolve to versions with the published security fixes.
       _No action is required unless your application pins either dependency below those versions._
