@@ -236,6 +236,39 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert expected_retrieve_response == response.data
         assert first_history_entry == expected_retrieve_response
 
+    def test_retrieve_with_history_first_and_last_expands(self, page_data, authenticated_client, update_arguments):
+        instance = page_data.first()
+
+        # Create a second history entry so first_history_entry and last_history_entry can be
+        # distinguished from each other (a freshly created instance only has one history entry).
+        update_response = authenticated_client.put(self.detail_url(instance.id), data=update_arguments, format="json")
+        assert update_response.status_code == HTTPStatus.OK, response_body(update_response)
+
+        detail_querystring = {
+            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry,last_history_entry"
+        }
+        response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert "history" in response.data
+        assert "first_history_entry" in response.data
+        assert "last_history_entry" in response.data
+
+        history = response.data["history"]
+        assert len(history) == 2, f"history data: {history}"  # noqa: PLR2004
+
+        # history is ordered most-recent-first (history_date descending).
+        assert history[0]["history_id"] > history[1]["history_id"], f"history data: {history}"
+        assert response.data["last_history_entry"] == history[0], (
+            f"last_history_entry should be the most recent history entry: {response.data}"
+        )
+        assert response.data["first_history_entry"] == history[-1], (
+            f"first_history_entry should be the oldest history entry: {response.data}"
+        )
+        assert response.data["first_history_entry"] != response.data["last_history_entry"], (
+            f"first_history_entry and last_history_entry should differ after an update: {response.data}"
+        )
+
     def test_bulk_destroy_without_delete_permission(self, page_data, authenticated_client):
         pks = list(page_data.values_list("pk", flat=True))
 
@@ -1146,7 +1179,9 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
     def test_retrieve_with_history_expand(self, page_data, authenticated_client, expected_retrieve_response):
         instance = page_data.first()
 
-        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry"}
+        detail_querystring = {
+            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry,last_history_entry"
+        }
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
 
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
@@ -1154,4 +1189,17 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert "first_history_entry" in response.data
         assert "history" in response.data
-        assert response.data["history"][0] == response.data["first_history_entry"]
+        assert "last_history_entry" in response.data
+
+        history = response.data["history"]
+        # history is ordered most-recent-first (history_date descending).
+        assert history[0]["history_id"] > history[1]["history_id"], f"history data: {history}"
+        assert response.data["last_history_entry"] == history[0], (
+            f"last_history_entry should be the most recent history entry: {response.data}"
+        )
+        assert response.data["first_history_entry"] == history[-1], (
+            f"first_history_entry should be the oldest history entry: {response.data}"
+        )
+        assert response.data["first_history_entry"] != response.data["last_history_entry"], (
+            f"first_history_entry and last_history_entry should differ after an update: {response.data}"
+        )
