@@ -92,12 +92,39 @@ def _validate_expandable_field(serializer_class, field_name, field_data):
     return errors, field_serializer
 
 
-def check_expandable_fields_configuration(app_configs, **kwargs):
-    from vueda.info.registration import get_all_registrations
+def _get_routed_serializer_classes():
+    """Return the serializer classes used by ViewSets registered with a router, anywhere in the URL conf.
 
+    Walking the resolved URL conf (rather than vueda.info's registry) means this check covers any DRF
+    ViewSet with a router route, not just ones registered with VUEDA's meta-info system -- the
+    expandable_fields format being validated comes from rest_flex_fields, not VUEDA.
+    """
+    from django.urls import URLPattern
+    from django.urls import URLResolver
+    from django.urls import get_resolver
+
+    def walk(patterns, seen_viewsets):
+        serializer_classes = []
+        for pattern in patterns:
+            if isinstance(pattern, URLPattern):
+                viewset_class = getattr(pattern.callback, "cls", None)
+                if viewset_class is None or viewset_class in seen_viewsets:
+                    continue
+                seen_viewsets.add(viewset_class)
+                serializer_class = getattr(viewset_class, "serializer_class", None)
+                if serializer_class is not None:
+                    serializer_classes.append(serializer_class)
+            elif isinstance(pattern, URLResolver):
+                serializer_classes.extend(walk(pattern.url_patterns, seen_viewsets))
+        return serializer_classes
+
+    return walk(get_resolver().url_patterns, set())
+
+
+def check_expandable_fields_configuration(app_configs, **kwargs):
     errors = []
     checked_serializers = set()
-    pending = [registration["serializer"] for registration in get_all_registrations().values()]
+    pending = _get_routed_serializer_classes()
 
     while pending:
         serializer_class = pending.pop()
