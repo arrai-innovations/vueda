@@ -6,31 +6,31 @@ from django.urls import reverse
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
-from tests.models import Product
+from tests.product.models import Product
 
 
 @pytest.mark.django_db
 class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, BaseTestUserMixin):
     groups_to_create: ClassVar[dict] = {
         "Admin": [
-            ("tests", "Product", "read"),
-            ("tests", "Product", "list"),
-            ("tests", "Product", "manage"),
+            ("product", "Product", "read"),
+            ("product", "Product", "list"),
+            ("product", "Product", "manage"),
         ],
         "Customer": [
-            ("tests", "Product", "read"),
-            ("tests", "Product", "list"),
-            ("tests", "Product", "purchase"),
+            ("product", "Product", "read"),
+            ("product", "Product", "list"),
+            ("product", "Product", "purchase"),
         ],
         "Customer Deleter": [
-            ("tests", "Product", "read"),
-            ("tests", "Product", "list"),
-            ("tests", "Product", "delete"),
-            ("tests", "Product", "purchase"),
+            ("product", "Product", "read"),
+            ("product", "Product", "list"),
+            ("product", "Product", "delete"),
+            ("product", "Product", "purchase"),
         ],
         "Employee": [
-            ("tests", "Product", "read"),
-            ("tests", "Product", "list"),
+            ("product", "Product", "read"),
+            ("product", "Product", "list"),
         ],
     }
 
@@ -76,7 +76,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         product = Product.objects.get(name="Apple")
 
-        detail_url = reverse("tests.product-detail", args=(product.pk,))
+        detail_url = reverse("product.product-detail", args=(product.pk,))
 
         response = api_client.get(
             detail_url,
@@ -91,7 +91,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         product = Product.objects.get(name="Banana")  # Admin can access products that are not for sale.
 
-        detail_url = reverse("tests.product-detail", args=(product.pk,))
+        detail_url = reverse("product.product-detail", args=(product.pk,))
 
         response = api_client.get(
             detail_url,
@@ -107,7 +107,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         product = Product.objects.get(name="Apple")
 
-        detail_url = reverse("tests.product-detail", args=(product.pk,))
+        detail_url = reverse("product.product-detail", args=(product.pk,))
 
         response = api_client.get(
             detail_url,
@@ -123,7 +123,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         product = Product.objects.get(name="Banana")
 
-        detail_url = reverse("tests.product-detail", args=(product.pk,))
+        detail_url = reverse("product.product-detail", args=(product.pk,))
 
         response = api_client.get(
             detail_url,
@@ -138,7 +138,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         product = Product.objects.get(name="Apple")
 
-        detail_url = reverse("tests.product-detail", args=(product.pk,))
+        detail_url = reverse("product.product-detail", args=(product.pk,))
 
         response = api_client.get(
             detail_url,
@@ -152,7 +152,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
 
-        list_url = reverse("tests.product-list")
+        list_url = reverse("product.product-list")
         response = api_client.get(
             list_url,
             format="json",
@@ -165,7 +165,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
 
-        list_url = reverse("tests.product-list")
+        list_url = reverse("product.product-list")
         response = api_client.get(
             list_url,
             format="json",
@@ -179,7 +179,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
 
-        list_url = reverse("tests.product-list")
+        list_url = reverse("product.product-list")
 
         response = api_client.get(
             list_url,
@@ -194,7 +194,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
 
-        list_url = reverse("tests.product-list")
+        list_url = reverse("product.product-list")
 
         response = api_client.get(
             list_url,
@@ -210,7 +210,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         apple = Product.objects.get(name="Apple")
         banana = Product.objects.get(name="Banana")
 
-        list_url = reverse("tests.product-list")
+        list_url = reverse("product.product-list")
         response = api_client.delete(
             list_url,
             data={"pks": [apple.pk, banana.pk]},
@@ -232,7 +232,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         mango = Product.objects.get(name="Mango")
         banana = Product.objects.get(name="Banana")
 
-        list_url = reverse("tests.product-list")
+        list_url = reverse("product.product-list")
         response = api_client.delete(
             list_url,
             data={"pks": [apple.pk, mango.pk]},
@@ -250,7 +250,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         apple = Product.objects.get(name="Apple")
 
-        detail_url = reverse("tests.product-detail", args=(apple.pk,))
+        detail_url = reverse("product.product-detail", args=(apple.pk,))
         response = api_client.delete(detail_url, format="json")
 
         self.assert_response(response, 204)
@@ -262,7 +262,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
         banana = Product.objects.get(name="Banana")
 
-        detail_url = reverse("tests.product-detail", args=(banana.pk,))
+        detail_url = reverse("product.product-detail", args=(banana.pk,))
         response = api_client.delete(detail_url, format="json")
 
         self.assert_response(response, 404)

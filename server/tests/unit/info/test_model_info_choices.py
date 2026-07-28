@@ -48,8 +48,8 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "SpecialCare", "read"),
             ("store", "TangibleType", "list"),
             ("store", "TangibleType", "read"),
-            ("tests", "User", "list"),
-            ("tests", "User", "read"),
+            ("employee", "User", "list"),
+            ("employee", "User", "read"),
         ],
         "Customer": [
             ("contenttypes", "ContentType", "list"),
@@ -75,7 +75,7 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "SpecialCare", "read"),
             ("store", "TangibleType", "list"),
             ("store", "TangibleType", "read"),
-            ("tests", "User", "read"),
+            ("employee", "User", "read"),
         ],
     }
 

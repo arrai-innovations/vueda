@@ -9,7 +9,7 @@ SELECT
 FROM
     store_customer C
     JOIN
-        tests_user U
+        employee_user U
     ON
         C.user_id = U.id
 ;

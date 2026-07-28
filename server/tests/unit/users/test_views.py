@@ -13,7 +13,7 @@ from tests.conftest import response_body
 class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
-            ("tests", "Timesheet", "read"),
+            ("timesheet", "Timesheet", "read"),
         ],
     }
 

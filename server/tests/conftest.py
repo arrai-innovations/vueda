@@ -145,24 +145,24 @@ class BaseTestAssertResponseMixin:
 class BaseTestGroupMixin:
     groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
-            ("tests", "Timesheet", "read"),
-            ("tests", "TimesheetEntry", "read"),
+            ("timesheet", "Timesheet", "read"),
+            ("timesheet", "TimesheetEntry", "read"),
         ],
         "Timesheet Creator": [
-            ("tests", "Timesheet", "create"),
-            ("tests", "TimesheetEntry", "create"),
+            ("timesheet", "Timesheet", "create"),
+            ("timesheet", "TimesheetEntry", "create"),
         ],
         "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
-            ("tests", "TimesheetEntry", "update"),
+            ("timesheet", "Timesheet", "update"),
+            ("timesheet", "TimesheetEntry", "update"),
         ],
         "Timesheet Deleter": [
-            ("tests", "Timesheet", "delete"),
-            ("tests", "TimesheetEntry", "delete"),
+            ("timesheet", "Timesheet", "delete"),
+            ("timesheet", "TimesheetEntry", "delete"),
         ],
         "Timesheet Lister": [
-            ("tests", "Timesheet", "list"),
-            ("tests", "TimesheetEntry", "list"),
+            ("timesheet", "Timesheet", "list"),
+            ("timesheet", "TimesheetEntry", "list"),
         ],
     }
 

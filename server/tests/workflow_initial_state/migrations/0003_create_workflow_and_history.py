@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 SELECT
                     id
                 FROM
-                    tests_user
+                    employee_user
                 WHERE
                     is_system = TRUE
             )
@@ -166,7 +166,7 @@ class Migration(migrations.Migration):
                 SELECT
                     id
                 FROM
-                    tests_user
+                    employee_user
                 WHERE
                     is_system = TRUE
             )
@@ -283,7 +283,7 @@ class Migration(migrations.Migration):
                 SELECT
                     id
                 FROM
-                    tests_user
+                    employee_user
                 WHERE
                     is_system = TRUE
             )

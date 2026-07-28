@@ -9,10 +9,10 @@ from rest_framework import status
 
 from tests.conftest import BaseTestCommonModelViewSet
 from tests.conftest import response_body
-from tests.models import Employee
-from tests.models import Product
-from tests.models import Timesheet
-from tests.models import TimesheetEntry
+from tests.employee.models import Employee
+from tests.product.models import Product
+from tests.timesheet.models import Timesheet
+from tests.timesheet.models import TimesheetEntry
 from tests.utils import adjust_page_size
 from vueda.core.pagination import VUEDAPageNumberPagination
 
@@ -21,9 +21,9 @@ from vueda.core.pagination import VUEDAPageNumberPagination
 class TestPagination(BaseTestCommonModelViewSet):
     groups_to_create: ClassVar[dict] = {
         "Admin": [
-            ("tests", "Product", "read"),
-            ("tests", "Product", "list"),
-            ("tests", "Product", "manage"),
+            ("product", "Product", "read"),
+            ("product", "Product", "list"),
+            ("product", "Product", "manage"),
         ],
     }
 
@@ -65,7 +65,7 @@ class TestPagination(BaseTestCommonModelViewSet):
 
     def test_get_paginated_response(self, settings, authenticated_client, page_data):
         with adjust_page_size(settings, 5):
-            url = reverse("tests.product-list")
+            url = reverse("product.product-list")
             response = authenticated_client.get(url, format="json")
             response_data = {x: y for x, y in response.data.items() if x != "results"}
             assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -86,7 +86,7 @@ class TestPagination(BaseTestCommonModelViewSet):
             return page_size
 
         with patch.object(VUEDAPageNumberPagination, "get_page_size", get_page_size) as mocked_get_page_size:
-            url = reverse("tests.product-list")
+            url = reverse("product.product-list")
             authenticated_client.get(url, data={"our_ps": "151"}, format="json")
 
             assert mocked_get_page_size._returned_page_size == 151  # noqa: PLR2004
@@ -95,7 +95,7 @@ class TestPagination(BaseTestCommonModelViewSet):
         settings.PAGE_QUERY_PARAM = "our_p"
 
         with adjust_page_size(settings, 5):
-            url = reverse("tests.product-list")
+            url = reverse("product.product-list")
             response = authenticated_client.get(url, data={"our_p": 3}, format="json")
             response_data = {x: y for x, y in response.data.items() if x != "results"}
             assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -106,14 +106,14 @@ class TestPagination(BaseTestCommonModelViewSet):
 
     def test_page_beyond_last_returns_empty(self, settings, authenticated_client, page_data):
         with adjust_page_size(settings, 5):
-            url = reverse("tests.product-list")
+            url = reverse("product.product-list")
             response = authenticated_client.get(url, data={"p": 999}, format="json")
             assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
             assert "Invalid page." in response.data["detail"]
 
     def test_page_negative_returns_empty(self, settings, authenticated_client, page_data):
         with adjust_page_size(settings, 5):
-            url = reverse("tests.product-list")
+            url = reverse("product.product-list")
             response = authenticated_client.get(url, data={"p": -1}, format="json")
             assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
             assert "Invalid page." in response.data["detail"]
@@ -130,7 +130,7 @@ class TestPagination(BaseTestCommonModelViewSet):
             return page_size
 
         with patch.object(VUEDAPageNumberPagination, "get_page_size", get_page_size) as mocked_get_page_size:
-            url = reverse("tests.product-list")
+            url = reverse("product.product-list")
             authenticated_client.get(url, format="json")
             assert mocked_get_page_size._returned_page_size == 99  # noqa: PLR2004
 
@@ -166,7 +166,7 @@ class TestColumnTotals(BaseTestCommonModelViewSet):
         return api_client
 
     def test_column_totals(self, authenticated_client, page_data):
-        url = reverse("tests.timesheetentry-list")
+        url = reverse("timesheet.timesheetentry-list")
         response = authenticated_client.get(url, format="json")
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert str(response.data["columnTotals"]["hours"]) == "3.15"

@@ -808,7 +808,7 @@ EXPECTED_RESULTS = [
             "expected_expands": [
                 {
                     "name": "user",
-                    "app_label": "tests",
+                    "app_label": "employee",
                     "many": False,
                     "model": "user",
                     "read_only": False,
@@ -922,7 +922,7 @@ EXPECTED_RESULTS = [
                             "hidden": False,
                         },
                         "user": {
-                            "app_label": "tests",
+                            "app_label": "employee",
                             "label": "User",
                             "type_db": "OneToOneField",
                             "type_model": "OneToOneField",
@@ -1046,7 +1046,7 @@ EXPECTED_RESULTS = [
                             "hidden": False,
                         },
                         "user": {
-                            "app_label": "tests",
+                            "app_label": "employee",
                             "label": "User",
                             "type_db": "OneToOneField",
                             "type_model": "OneToOneField",
@@ -1172,7 +1172,7 @@ EXPECTED_RESULTS = [
                             "hidden": False,
                         },
                         "user": {
-                            "app_label": "tests",
+                            "app_label": "employee",
                             "label": "User",
                             "type_db": "OneToOneField",
                             "type_model": "OneToOneField",
@@ -1314,7 +1314,7 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                 },
                 "user": {
-                    "app_label": "tests",
+                    "app_label": "employee",
                     "label": "User",
                     "type_db": "OneToOneField",
                     "type_model": "OneToOneField",
@@ -1454,7 +1454,7 @@ EXPECTED_RESULTS = [
                             "hidden": False,
                         },
                         "user": {
-                            "app_label": "tests",
+                            "app_label": "employee",
                             "label": "User",
                             "type_db": "OneToOneField",
                             "type_model": "OneToOneField",
@@ -1890,7 +1890,7 @@ EXPECTED_RESULTS = [
                             "hidden": False,
                         },
                         "user": {
-                            "app_label": "tests",
+                            "app_label": "employee",
                             "label": "User",
                             "type_db": "OneToOneField",
                             "type_model": "OneToOneField",

@@ -2281,7 +2281,7 @@ class Migration(migrations.Migration):
         ("vueda_release", "0001_initial"),
         ("vueda_user", "0005_sync_group_changes"),
         ("vueda_workflow", "__latest__"),
-        ("tests", "0001_initial"),
+        ("employee", "0001_initial"),
         ("erring", "0001_initial"),
     ]
 

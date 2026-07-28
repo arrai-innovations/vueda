@@ -28,8 +28,8 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Distributor", "read"),
             ("store", "Product", "list"),
             ("store", "Product", "read"),
-            ("tests", "User", "list"),
-            ("tests", "User", "read"),
+            ("employee", "User", "list"),
+            ("employee", "User", "read"),
         ],
         "Customer": [  # Needed by create_test_data
             ("contenttypes", "ContentType", "list"),

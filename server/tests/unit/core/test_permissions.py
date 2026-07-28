@@ -9,27 +9,27 @@ from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
-from tests.models import Employee
-from tests.models import Timesheet
+from tests.employee.models import Employee
+from tests.timesheet.models import Timesheet
 
 
 @pytest.mark.django_db
 class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, BaseTestUserMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
-            ("tests", "Timesheet", "read"),
+            ("timesheet", "Timesheet", "read"),
         ],
         "Timesheet Creator": [
-            ("tests", "Timesheet", "create"),
+            ("timesheet", "Timesheet", "create"),
         ],
         "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
+            ("timesheet", "Timesheet", "update"),
         ],
         "Timesheet Deleter": [
-            ("tests", "Timesheet", "delete"),
+            ("timesheet", "Timesheet", "delete"),
         ],
         "Timesheet Lister": [
-            ("tests", "Timesheet", "list"),
+            ("timesheet", "Timesheet", "list"),
         ],
     }
 
@@ -99,13 +99,13 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
         )
         # add f= querystring to details, and only ask for certain fields
         detail_url = reverse(
-            "tests.timesheet-detail",
+            "timesheet.timesheet-detail",
             kwargs={"pk": t1.pk},
             query={
                 settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,employee,period_start,period_end",
             },
         )
-        list_url = reverse("tests.timesheet-list")
+        list_url = reverse("timesheet.timesheet-list")
         match http_method:
             case "GET":
                 url = list_url if "lister" in email else detail_url
@@ -201,8 +201,8 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
             period_start=date(2024, 2, 15),
             period_end=date(2024, 2, 29),
         )
-        detail_url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-        list_url = reverse("tests.timesheet-list")
+        detail_url = reverse("timesheet.timesheet-detail", kwargs={"pk": t1.pk})
+        list_url = reverse("timesheet.timesheet-list")
         match http_method:
             case "GET":
                 url = list_url if is_list else detail_url

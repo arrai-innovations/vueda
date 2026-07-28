@@ -14,14 +14,14 @@ from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestModelViewSet
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
-from tests.models import Employee
-from tests.models import Product
-from tests.models import Timesheet
+from tests.employee.models import Employee
+from tests.product.models import Product
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
+from tests.timesheet.models import Timesheet
+from tests.timesheet.viewsets import TimesheetViewSet
 from tests.unit.info.test_model_info import VuedaTestData
-from tests.viewsets import TimesheetViewSet
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.viewsets import VuedaReadOnlyViewSet
@@ -53,11 +53,11 @@ class TestProductViewSet(BaseTestModelViewSet):
 
     groups_to_create: ClassVar[dict] = {
         "Admin": [
-            ("tests", "Product", "read"),
-            ("tests", "Product", "list"),
-            ("tests", "Product", "create"),
-            ("tests", "Product", "update"),
-            ("tests", "Product", "manage"),
+            ("product", "Product", "read"),
+            ("product", "Product", "list"),
+            ("product", "Product", "create"),
+            ("product", "Product", "update"),
+            ("product", "Product", "manage"),
         ],
     }
 
@@ -479,12 +479,12 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
     groups_to_create: ClassVar[dict] = {
         "Admin": [
-            ("tests", "Timesheet", "read"),
-            ("tests", "Timesheet", "list"),
-            ("tests", "Timesheet", "create"),
-            ("tests", "Timesheet", "update"),
-            ("tests", "Timesheet", "delete"),
-            ("tests", "Timesheet", "manage"),
+            ("timesheet", "Timesheet", "read"),
+            ("timesheet", "Timesheet", "list"),
+            ("timesheet", "Timesheet", "create"),
+            ("timesheet", "Timesheet", "update"),
+            ("timesheet", "Timesheet", "delete"),
+            ("timesheet", "Timesheet", "manage"),
         ],
     }
 
@@ -753,7 +753,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
+            ("timesheet", "Timesheet", "update"),
         ]
     }
 
@@ -781,7 +781,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
 
         response = api_client.put(
             reverse(
-                "tests.timesheet-detail",
+                "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
                 query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
             ),
@@ -813,7 +813,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
 
         response = api_client.put(
             reverse(
-                "tests.timesheet-detail",
+                "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
                 query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,une"},
             ),
@@ -846,7 +846,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
 
         response = api_client.put(
             reverse(
-                "tests.timesheet-detail",
+                "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
                 query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,foo"},
             ),
@@ -881,7 +881,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
 
         response = api_client.put(
             reverse(
-                "tests.timesheet-detail",
+                "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
                 query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "foo,label10"},
             ),
@@ -912,7 +912,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
 
         response = api_client.put(
             reverse(
-                "tests.timesheet-detail",
+                "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
                 query={
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end,employee",
@@ -949,7 +949,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
 
         response = api_client.put(
             reverse(
-                "tests.timesheet-detail",
+                "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
                 query={
                     settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end,employee,invalid_field_name",
