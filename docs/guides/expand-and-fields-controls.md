@@ -50,6 +50,46 @@ Always merge the parent's `expandable_fields` at the end of the declaration. `Vu
 
 The `expandable_fields` declaration is the canonical source for `model_expands` in the metadata response. The client reads this metadata to determine its default expand configuration.
 
+### Value formats for expandable_fields entries
+
+Each entry in `expandable_fields` takes one of three forms.
+
+A tuple of `(SerializerClass, options_dict)` — the most common form, already shown above:
+
+```python
+expandable_fields = {
+    "category": (CategorySerializer, {}),
+}
+```
+
+A bare class, when the expansion needs no `rest_flex_fields` options:
+
+```python
+expandable_fields = {
+    "category": CategorySerializer,
+}
+```
+
+A **lazy string** — a dotted import path to the class, resolved the first time the field is expanded. Use this to avoid circular imports when two serializer modules need to expand into each other. It can stand alone or be the first element of a tuple:
+
+```python
+expandable_fields = {
+    "category": "myapp.serializers.CategorySerializer",
+    "tags": ("myapp.serializers.TagSerializer", {"many": True}),
+}
+```
+
+It must be a tuple, not a list:
+
+```python
+expandable_fields = {
+    "category": (CategorySerializer, {}),  # correct
+    "tags": [TagSerializer, {}],  # wrong -- rest_flex_fields does not accept lists here
+}
+```
+
+A Django system check validates `expandable_fields` against these rules and reports a specific error when a declaration doesn't match. It runs whenever `manage.py check` runs, including during OpenAPI schema generation — but not under `manage.py shell` or the test suite, so a mistake there can still reach a serializer that is never registered or checked directly.
+
 ### Declaring generic foreign key expands
 
 When a model has a `GenericForeignKey` field, use `GenericForeignKeySerializer` as the nested serializer. The key in `expandable_fields` must match the `GenericForeignKey` field name on the model:

@@ -33,6 +33,8 @@ public-facing documentation baseline.
 
 ### Features
 
+- **`expandable_fields` system check**:
+    - A new Django system check (`vueda_core.E001`-`E004`) validates each serializer's `Meta.expandable_fields` at `manage.py check` time. It flags list values (flex-fields only supports tuples), malformed `(serializer, options)` tuples, serializer strings that fail to resolve, and values that are not a serializer class, tuple, or serializer string — catching misconfiguration at startup instead of on first request.
 - **Read-only relation metadata (model info)**:
     - Model-info field metadata now includes `app_label` and `model` for read-only foreign-key and many-relation serializer fields when the related model can be resolved. This lets clients build relation-aware list columns without per-column fallback configuration, while still leaving `choices` disabled for read-only relation fields.
 - **Submit-time warning confirmation (`get_warnings`)**:
