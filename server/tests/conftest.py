@@ -143,28 +143,7 @@ class BaseTestAssertResponseMixin:
 
 
 class BaseTestGroupMixin:
-    groups_to_create: ClassVar[dict] = {
-        "Timesheet Reader": [
-            ("timesheet", "Timesheet", "read"),
-            ("timesheet", "TimesheetEntry", "read"),
-        ],
-        "Timesheet Creator": [
-            ("timesheet", "Timesheet", "create"),
-            ("timesheet", "TimesheetEntry", "create"),
-        ],
-        "Timesheet Updater": [
-            ("timesheet", "Timesheet", "update"),
-            ("timesheet", "TimesheetEntry", "update"),
-        ],
-        "Timesheet Deleter": [
-            ("timesheet", "Timesheet", "delete"),
-            ("timesheet", "TimesheetEntry", "delete"),
-        ],
-        "Timesheet Lister": [
-            ("timesheet", "Timesheet", "list"),
-            ("timesheet", "TimesheetEntry", "list"),
-        ],
-    }
+    groups_to_create: ClassVar[dict]
 
     @property
     def groups(self):
@@ -189,13 +168,7 @@ class BaseTestGroupMixin:
 
 
 class BaseTestUserMixin:
-    users_to_create: ClassVar[dict] = {
-        "testuser@domain.invalid": {
-            "name": "Test User",
-            "password": "testpass",
-            "groups": ["Timesheet Reader"],
-        }
-    }
+    users_to_create: ClassVar[dict]
 
     @property
     def users(self):

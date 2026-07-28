@@ -137,6 +137,13 @@ class TestPagination(BaseTestCommonModelViewSet):
 
 @pytest.mark.django_db
 class TestColumnTotals(BaseTestCommonModelViewSet):
+    groups_to_create: ClassVar[dict] = {
+        "Timesheet Lister": [
+            ("timesheet", "Timesheet", "list"),
+            ("timesheet", "TimesheetEntry", "list"),
+        ],
+    }
+
     users_to_create: ClassVar[dict] = {
         "test_admin@domain.invalid": {
             "name": "Test Admin",
