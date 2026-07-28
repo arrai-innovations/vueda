@@ -4,6 +4,7 @@ import inspect
 
 import rest_flex_fields.serializers as flex_serializers
 from django.core.checks import Error
+from rest_framework.fields import Field
 
 
 def _resolve_lazy_serializer_string(lazy_path):
@@ -57,7 +58,19 @@ def _validate_expandable_field(serializer_class, field_name, field_data):
         )
         return errors, None
 
-    field_serializer, _expand_options = _unwrap_expandable_field(field_data)
+    field_serializer, expand_options = _unwrap_expandable_field(field_data)
+
+    if isinstance(field_data, tuple) and not isinstance(expand_options, dict):
+        errors.append(
+            Error(
+                f"{serializer_class.__name__}.Meta.expandable_fields[{field_name!r}] has a "
+                f"{type(expand_options).__name__} options value.",
+                hint="A tuple value's second element must be a dict of flex-fields expand options.",
+                obj=serializer_class,
+                id="vueda_core.E005",
+            )
+        )
+        return errors, None
 
     if isinstance(field_serializer, str):
         resolved, error = _resolve_lazy_serializer_string(field_serializer)
@@ -85,6 +98,18 @@ def _validate_expandable_field(serializer_class, field_name, field_data):
                 ),
                 obj=serializer_class,
                 id="vueda_core.E004",
+            )
+        )
+        return errors, None
+
+    if not issubclass(field_serializer, Field):
+        errors.append(
+            Error(
+                f"{serializer_class.__name__}.Meta.expandable_fields[{field_name!r}] resolves to "
+                f"{field_serializer.__name__!r}, which is not a Serializer/Field subclass.",
+                hint=("The class must subclass rest_framework.serializers.Serializer or rest_framework.fields.Field."),
+                obj=serializer_class,
+                id="vueda_core.E006",
             )
         )
         return errors, None
