@@ -28,11 +28,13 @@ DATABASES["db_logging"]["ATOMIC_REQUESTS"] = False
 DATABASES["db_logging"]["CONN_MAX_AGE"] = 0
 
 LOCAL_APPS = [
-    "tests.apps.TestsConfig",
     "tests.confirmation.apps.ConfirmationConfig",
+    "tests.employee.apps.EmployeeConfig",
     "tests.erring.apps.ErringConfig",
     "tests.logging.apps.LoggingConfig",
+    "tests.product.apps.ProductConfig",
     "tests.store.apps.StoreConfig",
+    "tests.timesheet.apps.TimesheetConfig",
     "django_view_manager.utils",
 ]
 
@@ -43,7 +45,7 @@ MIGRATION_MODULES = {
 # noinspection PyUnresolvedReferences
 INSTALLED_APPS = DJANGO_APPS + VUEDA_APPS + THIRD_PARTY_APPS + LOCAL_APPS  # noqa: F821
 
-AUTH_USER_MODEL = "tests.User"
+AUTH_USER_MODEL = "employee.User"
 IN_TESTS = True
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 ROOT_URLCONF = "tests.root_urls"
