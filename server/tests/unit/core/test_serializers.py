@@ -10,13 +10,13 @@ from rest_framework.exceptions import ValidationError
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
-from tests.models import Employee
-from tests.models import Timesheet
-from tests.serializers import TimesheetSerializer
-from tests.serializers import TimesheetSerializerExclude
+from tests.employee.models import Employee
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
+from tests.timesheet.models import Timesheet
+from tests.timesheet.serializers import TimesheetSerializer
+from tests.timesheet.serializers import TimesheetSerializerExclude
 from tests.unit.info.test_model_info import VuedaTestData
 from tests.utils import FakeRequest
 from tests.utils import FakeView
@@ -281,7 +281,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
 class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
+            ("timesheet", "Timesheet", "update"),
         ]
     }
 
@@ -455,7 +455,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
 class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
+            ("timesheet", "Timesheet", "update"),
         ]
     }
 
@@ -583,7 +583,7 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
 class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
+            ("timesheet", "Timesheet", "update"),
         ]
     }
 

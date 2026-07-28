@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("auth", "0012_alter_user_first_name_max_length"),
-        ("tests", "0001_initial"),
+        ("employee", "0001_initial"),
     ]
 
     operations = [

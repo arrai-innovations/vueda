@@ -28,7 +28,7 @@ def test_expanding_groups_with_wildcard_works_after_patch(api_client):
     user.groups.add(group)
     api_client.force_authenticate(user=user)
 
-    response = api_client.get(reverse("tests.usergroup-list"), {"e": "groups"})
+    response = api_client.get(reverse("employee.usergroup-list"), {"e": "groups"})
     assert response.status_code == status.HTTP_200_OK, response_body(response)
 
 
@@ -43,7 +43,7 @@ def test_permission_formatted_name_patch(api_client):
     user = User.objects.create_user(email="expand-perm@domain.invalid", name="Expand Perm", password="testpass")
     api_client.force_authenticate(user=user)
 
-    response = api_client.get(reverse("tests.userpermission-list"), {"e": "user_permissions"})
+    response = api_client.get(reverse("employee.userpermission-list"), {"e": "user_permissions"})
     assert response.status_code == status.HTTP_200_OK, response_body(response)
 
 
@@ -58,7 +58,7 @@ def test_content_type_formatted_name_patch(api_client):
     user = User.objects.create_user(email="expand-ct@domain.invalid", name="Expand CT", password="testpass")
     api_client.force_authenticate(user=user)
 
-    response = api_client.get(reverse("tests.permission-list"), {"e": "content_type"})
+    response = api_client.get(reverse("employee.permission-list"), {"e": "content_type"})
     assert response.status_code == status.HTTP_200_OK, response_body(response)
 
 
@@ -66,10 +66,10 @@ def test_content_type_formatted_name_patch(api_client):
 class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
-            ("tests", "Timesheet", "read"),
+            ("timesheet", "Timesheet", "read"),
         ],
         "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
+            ("timesheet", "Timesheet", "update"),
         ],
     }
 

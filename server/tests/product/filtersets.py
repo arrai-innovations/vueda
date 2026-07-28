@@ -1,6 +1,6 @@
 from django_filters import rest_framework
 
-from tests import models
+from tests.product import models
 from vueda.core.filters import VuedaFilterSet
 
 

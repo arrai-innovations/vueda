@@ -464,7 +464,7 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         assert not check_instance_called, "check_instance should not be called when state denies"
 
     def test_has_perm_check_instance_workflow_not_called_without_workflow(self, workflow_user, monkeypatch):
-        from tests.models import Product
+        from tests.product.models import Product
 
         product = Product.objects.create(name="Test Product")
         check_instance_workflow_called = False
@@ -481,7 +481,7 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
                 return True
 
         monkeypatch.setattr(Product, "RowLevelPermissions", TestRowLevelPermissions)
-        workflow_user.has_perm("tests.read_product", obj=product)
+        workflow_user.has_perm("product.read_product", obj=product)
         assert not check_instance_workflow_called, (
             "check_instance_workflow should not be called for non-workflow models"
         )
