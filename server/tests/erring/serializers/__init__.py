@@ -1,4 +1,10 @@
 from .serializers import BothFormattedNameConfiguredSerializer  # noqa: F401
+from .serializers import ExpandableFieldsBadTupleLengthSerializer  # noqa: F401
+from .serializers import ExpandableFieldsListSerializer  # noqa: F401
+from .serializers import ExpandableFieldsNestedInvalidSerializer  # noqa: F401
+from .serializers import ExpandableFieldsNotClassSerializer  # noqa: F401
+from .serializers import ExpandableFieldsUnresolvableStringSerializer  # noqa: F401
+from .serializers import ExpandableFieldsValidStringSerializer  # noqa: F401
 from .serializers import FalseyFormattedNamesLookupSerializer  # noqa: F401
 from .serializers import FormattedNameExpressionNotStringSerializer  # noqa: F401
 from .serializers import NoExpandableFieldsDataSerializer  # noqa: F401
