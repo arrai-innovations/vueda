@@ -259,7 +259,6 @@ class VuedaExpandableFieldsSerializerMixin:
             #   get_expandable_fields hasn't been overridden on the serializer to return custom data.
             #   But, would an error here be good, or can it be figured out in a system check?
 
-            # TODO: Move this into a system check.
             if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
                 field_serializer, expand_options = field_data
             else:
@@ -272,7 +271,7 @@ class VuedaExpandableFieldsSerializerMixin:
             if type(field_serializer) == str:  # noqa E721
                 field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
 
-            # TODO: Move this into a system check.
+            # For ways that bypass system checks, validate that this is a class.
             if not inspect.isclass(field_serializer):
                 raise VuedaValidationError(
                     "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
@@ -360,7 +359,6 @@ class VuedaExpandableFieldsSerializerMixin:
                 "name": field_name,
             }
 
-            # TODO: Do a system check for the expandable fields syntax.
             if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
                 field_serializer, expand_options = field_data
             else:
@@ -371,14 +369,8 @@ class VuedaExpandableFieldsSerializerMixin:
             # https://github.com/rsinger86/drf-flex-fields/blob/9dd6a9140fd6d2ffe1baf9ab1ffc728540dea84d/
             #   rest_flex_fields/serializers.py#L127-L130
             if type(field_serializer) == str:  # noqa E721
+                # System checks are always run when the schema is generated, so this should always become a class.
                 field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
-
-            if not inspect.isclass(field_serializer):
-                raise VuedaValidationError(
-                    "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
-                    " class and options, or simply a Serializer/Field Class.",
-                    {"name": field_name},
-                )
 
             if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
                 app_label = field_serializer.Meta.model._meta.app_label
