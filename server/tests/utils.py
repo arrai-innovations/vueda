@@ -174,8 +174,8 @@ def use_test_router(router_class, url_path, registrations):
             path(url_path, include(router.urls)),
         )
         resolver = get_resolver()
-        resolver._populated = False  # Modified url patterns, so force _populate to refresh the resolvers cached data.
+        resolver._populated = False  # Modified url patterns, to force _populate to refresh the resolvers cached data.
         yield router
     finally:
         urlpatterns.pop()
-        resolver._populated = False  # Modified url patterns, so force _populate to refresh the resolvers cached data.
+        resolver._populated = False  # Modified url patterns, to force _populate to refresh the resolvers cached data.
