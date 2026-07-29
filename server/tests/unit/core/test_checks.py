@@ -8,18 +8,15 @@ from vueda.core.routers import IncludeAppInRouteNameRouter
 
 @pytest.mark.django_db
 class TestExpandableFieldsChecks:
-    def test_list_value_system_check_error(self):
+    def test_list_value_system_check_error(self, settings):
         """ExpandableFieldsListSerializer uses a list instead of a tuple; check must flag it as E001."""
         from django.core.checks import Error
 
         from vueda.core.checks import check_expandable_fields_configuration
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (("expandable_fields_list", err_viewsets.ExpandableFieldsListViewSet),),
-        ):
-            errors = check_expandable_fields_configuration(app_configs=None)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_list_value"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
 
         assert errors == [
             Error(
@@ -30,18 +27,15 @@ class TestExpandableFieldsChecks:
             )
         ]
 
-    def test_bad_tuple_length_system_check_error(self):
+    def test_bad_tuple_length_system_check_error(self, settings):
         """ExpandableFieldsBadTupleLengthSerializer has a 3-tuple; check must flag it as E002."""
         from django.core.checks import Error
 
         from vueda.core.checks import check_expandable_fields_configuration
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (("expandable_fields_bad_tuple_length", err_viewsets.ExpandableFieldsBadTupleLengthViewSet),),
-        ):
-            errors = check_expandable_fields_configuration(app_configs=None)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_bad_tuple_length"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
 
         assert errors == [
             Error(
@@ -52,16 +46,13 @@ class TestExpandableFieldsChecks:
             )
         ]
 
-    def test_unresolvable_serializer_string_system_check_error(self):
+    def test_unresolvable_serializer_string_system_check_error(self, settings):
         """ExpandableFieldsUnresolvableStringSerializer points at a class that doesn't exist; check must flag E003."""
         from vueda.core.checks import check_expandable_fields_configuration
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (("expandable_fields_unresolvable_string", err_viewsets.ExpandableFieldsUnresolvableStringViewSet),),
-        ):
-            errors = check_expandable_fields_configuration(app_configs=None)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_unresolvable_serializer_string"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
 
         assert len(errors) == 1
         assert errors[0].id == "vueda_core.E003"
@@ -71,18 +62,15 @@ class TestExpandableFieldsChecks:
             "serializer string" in errors[0].msg
         )
 
-    def test_not_a_class_system_check_error(self):
+    def test_not_a_class_system_check_error(self, settings):
         """ExpandableFieldsNotClassSerializer uses a plain int; check must flag it as E004."""
         from django.core.checks import Error
 
         from vueda.core.checks import check_expandable_fields_configuration
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (("expandable_fields_not_class", err_viewsets.ExpandableFieldsNotClassViewSet),),
-        ):
-            errors = check_expandable_fields_configuration(app_configs=None)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_not_a_class"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
 
         assert errors == [
             Error(
@@ -97,18 +85,15 @@ class TestExpandableFieldsChecks:
             )
         ]
 
-    def test_non_dict_options_system_check_error(self):
+    def test_non_dict_options_system_check_error(self, settings):
         """ExpandableFieldsNonDictOptionsSerializer's tuple has a list options value; check must flag it as E005."""
         from django.core.checks import Error
 
         from vueda.core.checks import check_expandable_fields_configuration
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (("expandable_fields_non_dict_options", err_viewsets.ExpandableFieldsNonDictOptionsViewSet),),
-        ):
-            errors = check_expandable_fields_configuration(app_configs=None)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_non_dict_options"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
 
         assert errors == [
             Error(
@@ -119,18 +104,15 @@ class TestExpandableFieldsChecks:
             )
         ]
 
-    def test_not_field_subclass_system_check_error(self):
+    def test_not_field_subclass_system_check_error(self, settings):
         """ExpandableFieldsNotFieldSubclassSerializer points at plain `int`; check must flag it as E006."""
         from django.core.checks import Error
 
         from vueda.core.checks import check_expandable_fields_configuration
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (("expandable_fields_not_field_subclass", err_viewsets.ExpandableFieldsNotFieldSubclassViewSet),),
-        ):
-            errors = check_expandable_fields_configuration(app_configs=None)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_not_field_subclass"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
 
         assert errors == [
             Error(
@@ -143,7 +125,12 @@ class TestExpandableFieldsChecks:
         ]
 
     def test_valid_serializer_string_passes_system_check(self):
-        """ExpandableFieldsValidStringSerializer's lazy string resolves cleanly; check must produce no errors."""
+        """Every serializer reachable through the real, fully-registered URL conf must pass the check cleanly.
+
+        Unlike the other tests in this class, this one deliberately does not swap in an isolated URL conf: the
+        point is to validate expandable_fields configuration across all serializers actually routed in the
+        application, not just a single serializer.
+        """
         from vueda.core.checks import check_expandable_fields_configuration
 
         with use_test_router(
@@ -155,20 +142,17 @@ class TestExpandableFieldsChecks:
 
         assert errors == []
 
-    def test_valid_tuple_passes_system_check(self):
+    def test_valid_tuple_passes_system_check(self, settings):
         """RelatedObjectsAreMissingDataSerializer's (Serializer, options) tuple is valid; check produces no errors."""
         from vueda.core.checks import check_expandable_fields_configuration
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (("related_objects_are_missing_data", err_viewsets.RelatedObjectsAreMissingDataViewSet),),
-        ):
-            errors = check_expandable_fields_configuration(app_configs=None)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_valid_tuple"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
 
         assert errors == []
 
-    def test_unregistered_serializer_reached_via_expandable_fields_is_checked(self):
+    def test_unregistered_serializer_reached_via_expandable_fields_is_checked(self, settings):
         """A serializer that is never routed through a viewset must still be walked and validated when it is
         only reachable through another (routed) serializer's expandable_fields.
 
@@ -180,12 +164,9 @@ class TestExpandableFieldsChecks:
 
         from vueda.core.checks import check_expandable_fields_configuration
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (("expandable_fields_points_at_unregistered", err_viewsets.ExpandableFieldsPointsAtUnregisteredViewSet),),
-        ):
-            errors = check_expandable_fields_configuration(app_configs=None)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_unregistered_expandable_child"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
 
         # UnregisteredExpandableChildSerializer has no viewset/route of its own; it's only reachable via
         # ExpandableFieldsPointsAtUnregisteredSerializer's "child" expandable_fields entry.
@@ -199,18 +180,15 @@ class TestExpandableFieldsChecks:
             )
         ]
 
-    def test_recurses_into_resolved_expand_serializer(self):
+    def test_recurses_into_resolved_expand_serializer(self, settings):
         """The check must also validate expandable_fields on serializers reached via another's expandable_fields."""
         from django.core.checks import Error
 
         from vueda.core.checks import check_expandable_fields_configuration
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (("expandable_fields_nested_invalid", err_viewsets.ExpandableFieldsNestedInvalidViewSet),),
-        ):
-            errors = check_expandable_fields_configuration(app_configs=None)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_nested_invalid"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
 
         # ExpandableFieldsNestedInvalidSerializer's own "bad_child" entry is valid, but it points at
         # ExpandableFieldsListSerializer, whose "no_name" entry is a list. Only that error should surface.
@@ -223,7 +201,7 @@ class TestExpandableFieldsChecks:
             )
         ]
 
-    def test_unregistered_non_vueda_non_dict_options_system_check_error(self):
+    def test_unregistered_non_vueda_non_dict_options_system_check_error(self, settings):
         """A plain (non-VuedaViewSet/non-VuedaSerializer) DRF ModelViewSet is checked too.
 
         UnregisteredNonVuedaExpandableFieldsNonDictOptionsSerializer's tuple has a list options value; check
@@ -234,17 +212,9 @@ class TestExpandableFieldsChecks:
 
         from vueda.core.checks import check_expandable_fields_configuration
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (
-                (
-                    "unregistered_non_vueda_expandable_fields_non_dict_options",
-                    err_viewsets.UnregisteredNonVuedaExpandableFieldsNonDictOptionsViewSet,
-                ),
-            ),
-        ):
-            errors = check_expandable_fields_configuration(app_configs=None)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_unregistered_non_vueda_non_dict_options"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
 
         assert errors == [
             Error(
