@@ -25,61 +25,6 @@ class Migration(migrations.Migration):
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("period_start", models.DateField()),
                 ("period_end", models.DateField()),
-                (
-                    "formatted_name",
-                    models.GeneratedField(
-                        db_persist=True,
-                        expression=django.db.models.functions.text.Concat(
-                            models.Value(" on "),
-                            django.db.models.functions.comparison.Cast(
-                                django.db.models.functions.datetime.Extract(models.F("period_start"), "year"),
-                                output_field=models.CharField(),
-                            ),
-                            models.Value("/"),
-                            django.db.models.functions.text.LPad(
-                                django.db.models.functions.comparison.Cast(
-                                    django.db.models.functions.datetime.Extract(models.F("period_start"), "month"),
-                                    output_field=models.CharField(),
-                                ),
-                                2,
-                                models.Value("0"),
-                            ),
-                            models.Value("/"),
-                            django.db.models.functions.text.LPad(
-                                django.db.models.functions.comparison.Cast(
-                                    django.db.models.functions.datetime.Extract(models.F("period_start"), "day"),
-                                    output_field=models.CharField(),
-                                ),
-                                2,
-                                models.Value("0"),
-                            ),
-                            models.Value(" to "),
-                            django.db.models.functions.comparison.Cast(
-                                django.db.models.functions.datetime.Extract(models.F("period_end"), "year"),
-                                output_field=models.CharField(),
-                            ),
-                            models.Value("/"),
-                            django.db.models.functions.text.LPad(
-                                django.db.models.functions.comparison.Cast(
-                                    django.db.models.functions.datetime.Extract(models.F("period_end"), "month"),
-                                    output_field=models.CharField(),
-                                ),
-                                2,
-                                models.Value("0"),
-                            ),
-                            models.Value("/"),
-                            django.db.models.functions.text.LPad(
-                                django.db.models.functions.comparison.Cast(
-                                    django.db.models.functions.datetime.Extract(models.F("period_end"), "day"),
-                                    output_field=models.CharField(),
-                                ),
-                                2,
-                                models.Value("0"),
-                            ),
-                        ),
-                        output_field=models.CharField(),
-                    ),
-                ),
                 ("employee", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="employee.employee")),
                 (
                     "supervisor",
@@ -104,61 +49,6 @@ class Migration(migrations.Migration):
                 ("id", models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID")),
                 ("period_start", models.DateField()),
                 ("period_end", models.DateField()),
-                (
-                    "formatted_name",
-                    models.GeneratedField(
-                        db_persist=True,
-                        expression=django.db.models.functions.text.Concat(
-                            models.Value(" on "),
-                            django.db.models.functions.comparison.Cast(
-                                django.db.models.functions.datetime.Extract(models.F("period_start"), "year"),
-                                output_field=models.CharField(),
-                            ),
-                            models.Value("/"),
-                            django.db.models.functions.text.LPad(
-                                django.db.models.functions.comparison.Cast(
-                                    django.db.models.functions.datetime.Extract(models.F("period_start"), "month"),
-                                    output_field=models.CharField(),
-                                ),
-                                2,
-                                models.Value("0"),
-                            ),
-                            models.Value("/"),
-                            django.db.models.functions.text.LPad(
-                                django.db.models.functions.comparison.Cast(
-                                    django.db.models.functions.datetime.Extract(models.F("period_start"), "day"),
-                                    output_field=models.CharField(),
-                                ),
-                                2,
-                                models.Value("0"),
-                            ),
-                            models.Value(" to "),
-                            django.db.models.functions.comparison.Cast(
-                                django.db.models.functions.datetime.Extract(models.F("period_end"), "year"),
-                                output_field=models.CharField(),
-                            ),
-                            models.Value("/"),
-                            django.db.models.functions.text.LPad(
-                                django.db.models.functions.comparison.Cast(
-                                    django.db.models.functions.datetime.Extract(models.F("period_end"), "month"),
-                                    output_field=models.CharField(),
-                                ),
-                                2,
-                                models.Value("0"),
-                            ),
-                            models.Value("/"),
-                            django.db.models.functions.text.LPad(
-                                django.db.models.functions.comparison.Cast(
-                                    django.db.models.functions.datetime.Extract(models.F("period_end"), "day"),
-                                    output_field=models.CharField(),
-                                ),
-                                2,
-                                models.Value("0"),
-                            ),
-                        ),
-                        output_field=models.CharField(),
-                    ),
-                ),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField(db_index=True)),
                 ("history_change_reason", models.CharField(max_length=100, null=True)),
@@ -336,5 +226,16 @@ class Migration(migrations.Migration):
                 "get_latest_by": ("history_date", "history_id"),
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
+        ),
+        migrations.CreateModel(
+            name="TimesheetData",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("formatted_name", models.CharField()),
+            ],
+            options={
+                "db_table": "timesheet_data",
+                "managed": False,
+            },
         ),
     ]

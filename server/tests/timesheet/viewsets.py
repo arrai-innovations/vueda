@@ -1,17 +1,21 @@
-from tests.timesheet.models import Timesheet
-from tests.timesheet.models import TimesheetEntry
-from tests.timesheet.serializers import TimesheetEntrySerializer
-from tests.timesheet.serializers import TimesheetSerializer
-from vueda.core.viewsets import VuedaHistoryViewSet
+from tests.timesheet import models
+from tests.timesheet import serializers
+from vueda.core import viewsets
 
 
-class TimesheetViewSet(VuedaHistoryViewSet):
-    queryset = Timesheet.objects.all()
-    serializer_class = TimesheetSerializer
+class TimesheetViewSet(viewsets.VuedaHistoryViewSet):
+    queryset = models.Timesheet.objects.all()
+    serializer_class = serializers.TimesheetSerializer
     permit_list_expands = ["employee", "supervisor"]
 
 
-class TimesheetEntryViewSet(VuedaHistoryViewSet):
-    queryset = TimesheetEntry.objects.all()
-    serializer_class = TimesheetEntrySerializer
+class TimesheetEntryViewSet(viewsets.VuedaHistoryViewSet):
+    queryset = models.TimesheetEntry.objects.all()
+    serializer_class = serializers.TimesheetEntrySerializer
     column_totals = ["hours"]
+
+
+class TimesheetDataViewSet(viewsets.VuedaReadOnlyViewSet):
+    queryset = models.TimesheetData.objects.all()
+    serializer_class = serializers.TimesheetDataSerializer
+    ordering_fields = ["formatted_name"]

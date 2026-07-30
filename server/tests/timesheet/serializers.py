@@ -1,21 +1,28 @@
 from rest_framework import serializers
 
 from tests.employee.serializers import EmployeeSerializer
-from tests.timesheet.models import Timesheet
-from tests.timesheet.models import TimesheetEntry
+from tests.timesheet import models
 from vueda.core.serializers import ExcludeFieldsSerializerMixin
 from vueda.core.serializers import VuedaHistorySerializer
+from vueda.core.serializers import VuedaReadonlySerializer
+from vueda.core.serializers import VuedaSerializer
 
 
 class TimesheetEntrySerializer(VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
-        model = TimesheetEntry
+        model = models.TimesheetEntry
         fields = ["id", "timesheet", "date", "hours"] + VuedaHistorySerializer.Meta.fields
+
+
+class TimesheetDataSerializer(VuedaReadonlySerializer):
+    class Meta(VuedaReadonlySerializer.Meta):
+        model = models.TimesheetData
+        fields = ["id", "timesheet"] + VuedaSerializer.Meta.fields
 
 
 class TimesheetSerializer(VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
-        model = Timesheet
+        model = models.Timesheet
         fields = ["id", "period_start", "period_end", "employee", "supervisor"] + VuedaHistorySerializer.Meta.fields
 
         expandable_fields = {
@@ -38,7 +45,7 @@ class TimesheetSerializer(VuedaHistorySerializer):
 
 class TimesheetSerializerExclude(ExcludeFieldsSerializerMixin, VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
-        model = Timesheet
+        model = models.Timesheet
         fields = [
             "id",
             "period_start",
