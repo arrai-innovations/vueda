@@ -84,16 +84,15 @@ class NoExtraFieldsSerializerMixin:
 
                 initial_fields.add(field_name)
 
-            if (
-                "formatted_name" not in initial_fields
-                and hasattr(getattr(self, "Meta", None), "model")
-                and self.Meta.model._has_formatted_name_field()
-            ):
-                initial_fields.add("formatted_name")
+            # formatted_name is a virtual, model-computed field. It's always a valid field to send
+            # back, even when FIELDS_PARAM has restricted self.fields down to a set that excludes it.
+            valid_fields = set(self.fields.keys())
+            if hasattr(getattr(self, "Meta", None), "model") and self.Meta.model._has_formatted_name_field():
+                valid_fields.add("formatted_name")
 
-            extra_keys_fields = initial_fields - set(self.fields.keys())
+            extra_keys_fields = initial_fields - valid_fields
             for extra_key in extra_keys_fields:
-                msg = f"Invalid field.  Valid fields are {', '.join(sorted(self.get_fields()))}."
+                msg = f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}."
                 if extra_key in errors:
                     errors[extra_key].append(msg)
                 else:
