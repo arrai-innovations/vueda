@@ -1,5 +1,3 @@
-import Layout from "./Layout.vue";
-import "./brand.css";
 import AuthDemo from "./components/AuthDemo.vue";
 import DemoCard from "./components/DemoCard.vue";
 import DemoFormModel from "./components/DemoFormModel.vue";
@@ -10,6 +8,7 @@ import VersionFooter from "./components/VersionFooter.vue";
 import VuedaDemo from "./components/VuedaDemo.vue";
 import { seedShowcaseModels } from "./fixtures/showcaseCustomer.js";
 import "./showcase-portals.css";
+import { createArraiTheme } from "@arrai-innovations/vitepress-theme";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import fontAwesomeFreeIcons from "@vueda/theme/vueda-tailwind/icons/fontAwesomeFree.js";
@@ -19,7 +18,6 @@ import { setTheme } from "@vueda/use/useTheme.js";
 import throttle from "lodash-es/throttle.js";
 import { createPinia } from "pinia";
 import { useData } from "vitepress";
-import DefaultTheme from "vitepress/theme";
 import { defineComponent, h, watch } from "vue";
 
 faConfig.autoAddCss = false;
@@ -45,20 +43,13 @@ const DarkModeTransitionGuard = defineComponent({
     },
 });
 
-const theme = {
-    ...DefaultTheme,
-    Layout() {
-        return h(Layout, null, {
-            "layout-top": () => h(DarkModeTransitionGuard),
-            "layout-bottom": () => h(VersionFooter),
-        });
+const theme = createArraiTheme({
+    layoutSlots: {
+        "layout-top": () => h(DarkModeTransitionGuard),
+        "layout-bottom": () => h(VersionFooter),
     },
     enhanceApp(ctx) {
         const { app } = ctx;
-
-        if (DefaultTheme.enhanceApp) {
-            DefaultTheme.enhanceApp(ctx);
-        }
 
         // Pinia backs the model-info/config stores the CRUDL demos render against.
         // Seeding the demo model lets <FormModel> resolve its config offline.
@@ -74,6 +65,6 @@ const theme = {
         app.component("StateLabel", StateLabel);
         app.component("VuedaDemo", VuedaDemo);
     },
-};
+});
 
 export default theme;
