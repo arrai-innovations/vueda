@@ -34,6 +34,7 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 
 - [Model Choices, Lookup Fields, and Dynamic Options](choices-and-lookups.md): Use model-info choices and choice endpoints correctly.
 - [Use Expand and Sparse Field Controls](expand-and-fields-controls.md): Control payload shape with `expand` and `fields`.
+- [Customize Model Info Field and Expand Metadata](customize-model-info-metadata.md): Correct generated `model_fields`/`model_expands` metadata for `SerializerMethodField`s with `get_field_model_info` and `get_expand_model_info`.
 - [Build Nested/Inlined Writes](nested-writable-inlines.md): Handle writable nested relations and server validation behavior.
 - [Customize Field and Widget Rendering](custom-field-widget-rendering.md): Override field/widget components and props in model config.
 - [Handle Form Validation and Server Errors](form-validation-and-errors.md): Map server validation responses into VUEDA form context.
