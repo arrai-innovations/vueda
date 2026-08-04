@@ -595,7 +595,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         period_start = new_instance.period_start
         period_end = new_instance.period_end
-        formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        formatted_name = f"{new_instance.employee.employee_number} on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
         expected_create_response["formatted_name"] = formatted_name
 
     def update_expected_retrieve_response(self, expected_retrieve_response, instance):
@@ -603,7 +603,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         period_start = instance.period_start
         period_end = instance.period_end
-        formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        formatted_name = f"{instance.employee.employee_number} on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
         expected_retrieve_response["formatted_name"] = formatted_name
 
     def update_expected_update_response(self, expected_update_response, updated_instance):
@@ -611,7 +611,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         period_start = updated_instance.period_start
         period_end = updated_instance.period_end
-        formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        formatted_name = f"{updated_instance.employee.employee_number} on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
         expected_update_response["formatted_name"] = formatted_name
 
     def test_list_with_valid_expands(self, page_data, authenticated_client, list_querystring):
@@ -676,7 +676,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         }
         period_start = instance.period_start
         period_end = instance.period_end
-        formatted_name = f" on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        formatted_name = f"{instance.employee.employee_number} on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
         expected_retrieve_response["formatted_name"] = formatted_name
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
