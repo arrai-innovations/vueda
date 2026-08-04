@@ -24,7 +24,6 @@ from typing import ClassVar
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.db.models import CompositePrimaryKey
 from django.db.models import F
 from django.db.models import FileField as ModelFileField
@@ -293,10 +292,10 @@ class VuedaExpandableFieldsSerializerMixin:
                 expand_item["app_label"] = field_meta.app_label
                 expand_item["model"] = field_meta.model_name
 
-                model_content_type = ContentType.objects.get_for_model(field_meta.model)
-                serializer = ModelInfoSerializer(model_content_type)
                 # Expandable fields don't need available actions.
-                fields = serializer.get_model_fields_data(field_serializer, excluded_fields={"available_actions"})
+                fields = ModelInfoSerializer().get_model_fields_data(
+                    field_serializer, excluded_fields={"available_actions"}
+                )
 
                 # Mirror ModelInfoSerializer.get_model_fields: this expand's own nested serializer may
                 # correct its generated field metadata (e.g. for a SerializerMethodField), and that
@@ -474,8 +473,7 @@ class VuedaExpandableFieldsSerializerMixin:
         if model is None:
             return {}
 
-        model_content_type = ContentType.objects.get_for_model(model)
-        fields = ModelInfoSerializer(model_content_type).get_model_fields_data(self.__class__)
+        fields = ModelInfoSerializer().get_model_fields_data(self.__class__)
         fields = self.get_field_model_info(fields)
 
         return self._reduce_field_model_info_for_schema(fields)
