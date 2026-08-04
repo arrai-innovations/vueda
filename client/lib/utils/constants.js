@@ -65,6 +65,19 @@ export const PAGE_PARAM = "p";
 export const PAGE_SIZE_PARAM = "ps";
 
 /**
+ * Sentinel page-size value meaning "load every page at once" rather than a fixed
+ * number of rows. Selected from the rows-per-page control; drives the all-pages
+ * fetch path instead of sending a `ps` query param.
+ */
+export const ALL_PAGES = "all";
+
+/** Default rows-per-page used when no preference is stored and no override is given. */
+export const DEFAULT_PAGE_SIZE = 25;
+
+/** Default rows-per-page option list offered by the pagination footer (last entry loads all pages). */
+export const DEFAULT_PAGE_SIZE_OPTIONS = [25, 50, 100, 200, ALL_PAGES];
+
+/**
  * Internal CRUD identifier used to match detail view requests.
  */
 export const DETAIL_VIEW_CRUD_NAME = "actionrouter.detailview";
@@ -73,3 +86,25 @@ export const DETAIL_VIEW_CRUD_NAME = "actionrouter.detailview";
  * Internal CRUD identifier used to match list view requests.
  */
 export const LIST_VIEW_CRUD_NAME = "actionrouter.listview";
+
+// ---------------------------------------------------------------------------
+// Sidebar constants
+// Based on the shadcn-vue sidebar implementation.
+// ---------------------------------------------------------------------------
+
+/**
+ * Name of the cookie used to persist the sidebar open/collapsed state across page loads.
+ * Read by `SidebarProvider` on mount to restore previous state.
+ */
+export const SIDEBAR_COOKIE_NAME = "sidebar_state";
+
+/**
+ * Max-age in seconds for the sidebar state cookie. Defaults to 7 days.
+ */
+export const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+
+/**
+ * Keyboard shortcut key that, combined with Ctrl/Cmd, toggles the sidebar.
+ * Listened for in `SidebarProvider`.
+ */
+export const SIDEBAR_KEYBOARD_SHORTCUT = "b";

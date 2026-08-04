@@ -1,34 +1,42 @@
 <script setup>
-import AuthorizingForm from "@vueda/components/AuthorizingForm.vue";
-import FieldString from "@vueda/fields/FieldString.vue";
+import Button from "@vueda/controls/button/Button.vue";
+import InputOTP from "@vueda/controls/input-otp/InputOTP.vue";
+import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
+import InputOTPSlot from "@vueda/controls/input-otp/InputOTPSlot.vue";
+import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
+import "@vueda/theme/vueda-tailwind/views/ViewTwoFactorAuth.theme.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
-import { useTheme } from "@vueda/use/useTheme.js";
-import WidgetInput from "@vueda/widgets/WidgetInput.vue";
-import { getWidgetSlotsComputed } from "@vueda/widgets/WidgetLabel.vue";
-import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
-import Button from "primevue/button";
-import { useToast } from "primevue/usetoast";
-import { computed, onBeforeUnmount, reactive, ref, toRef, useSlots, watch } from "vue";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
+import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
+import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
+import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
+import { toast } from "vue-sonner";
 
 /**
  * Two-factor authentication challenge view presented after initial login. Lets the user select an available
- * verification method (TOTP, SMS, email, or recovery code), request a code to be sent for applicable methods
- * (with a 60-second resend cooldown), and submit the code to complete authentication.
+ * verification method (TOTP, SMS, email), request a code to be sent for applicable methods (with a 60-second
+ * resend cooldown), and submit the code to complete authentication. A separate ghost CTA reveals a
+ * recovery-code path that swaps the form body to a single mono text input.
  */
 defineOptions({});
+
+const props = defineProps({ ...THEME_OVERRIDE_PROPS, ...ICON_OVERRIDE_PROPS });
 
 const formProps = reactive({
     initialValues: {
         code: "",
     },
 });
-const toast = useToast();
 const router = useRouter();
 const userStore = storeUser();
 const cooldownSeconds = ref(60);
 const timer = ref(null);
+const useRecoveryCode = ref(false);
 const clearCooldownTimer = () => {
     if (timer.value) {
         clearInterval(timer.value);
@@ -49,18 +57,17 @@ const handleSendCode = async () => {
     try {
         await userStore.sendTwoFactorAuthenticationCode(form.values);
         startCooldown();
-        toast.add({
-            severity: "success",
-            summary: `We have sent you a code via ${form.values?.method === "sms" ? "SMS" : form.values?.method === "email" ? "email" : form.values?.method}.`,
-            detail: "Please check your device to retrieve the code.",
-            life: 15000,
-        });
+        toast.success(
+            `We have sent you a code via ${form.values?.method === "sms" ? "SMS" : form.values?.method === "email" ? "email" : form.values?.method}.`,
+            {
+                description: "Please check your device to retrieve the code.",
+                duration: 15000,
+            },
+        );
     } catch (error) {
-        toast.add({
-            severity: "error",
-            summary: "Failed to send 2FA code",
-            detail: error.message,
-            life: 15000,
+        toast.error("Failed to send 2FA code", {
+            description: error.message,
+            duration: 15000,
         });
     }
 };
@@ -76,12 +83,10 @@ const form = reactive({
 const isActive = useIsActive();
 const methods = ref([]);
 const computedOptions = computed(() => {
-    const options = methods.value.map((method) => ({
+    return methods.value.map((method) => ({
         label: method.toUpperCase(),
         value: method,
     }));
-
-    return [...options, { label: "2FA Recovery Code", value: "recovery" }];
 });
 watch([isActive, toRef(userStore, "loggedIn")], async ([newActive, newloggedIn]) => {
     if (newActive && !newloggedIn) {
@@ -90,32 +95,36 @@ watch([isActive, toRef(userStore, "loggedIn")], async ([newActive, newloggedIn])
             methods.value = response?.methods;
         } catch (error) {
             if (error instanceof UnauthorizedError) {
-                toast.add({
-                    severity: "warn",
-                    summary: "Please verify your account again before proceeding",
-                    life: 10000,
+                toast.warning("Please verify your account again before proceeding", {
+                    duration: 10000,
                 });
                 await router.push({ name: "sign-in" });
                 return true;
             } else {
-                toast.add({
-                    severity: "error",
-                    summary: "Error fetching 2FA methods for the user",
-                    detail: error.message,
-                    life: 10000,
+                toast.error("Error fetching 2FA methods for the user", {
+                    description: error.message,
+                    duration: 10000,
                 });
             }
         }
     }
 });
-const slots = useSlots();
-const widgetLabelSlotNames = getWidgetSlotsComputed(slots);
-const theme = useTheme("ViewTwoFactorAuth");
+const theme = useTheme("ViewTwoFactorAuth", props);
+const icon = useIcons("ViewTwoFactorAuth", props);
 const sendCodeMethods = ["sms", "email"];
+const toggleRecovery = () => {
+    useRecoveryCode.value = !useRecoveryCode.value;
+    if (useRecoveryCode.value) {
+        form.values.method = "recovery";
+    } else {
+        form.values.method = undefined;
+    }
+};
 onBeforeUnmount(clearCooldownTimer);
 </script>
 
 <template>
+    <!-- TODO: theme.hideStyle requires a single themed root; root is a delegated <authorizing-form> child that owns its own hideStyle, this component only themes inner slots. -->
     <authorizing-form
         :run-action="handleSubmit"
         sub-title="Select a device/method to authorize through two-factor authentication:"
@@ -126,22 +135,40 @@ onBeforeUnmount(clearCooldownTimer);
         @form-object="form.values = $event"
     >
         <template #action-form-inner>
-            <slot name="action-form-inner" :options="computedOptions" :method="form.values?.method">
-                <field-string label="Method" name="method">
-                    <widget-select
-                        :required="true"
-                        autocapitalize="none"
-                        autocorrect="off"
-                        :options="computedOptions"
-                    />
-                </field-string>
-                <field-string v-if="form.values?.method" label="Code" name="code">
-                    <widget-input :required="true">
-                        <template v-for="slotName in widgetLabelSlotNames" :key="slotName" #[slotName]="slotProps">
-                            <slot :name="slotName" v-bind="slotProps" />
-                        </template>
-                    </widget-input>
-                </field-string>
+            <slot
+                name="action-form-inner"
+                :options="computedOptions"
+                :method="form.values?.method"
+                :use-recovery-code="useRecoveryCode"
+            >
+                <template v-if="useRecoveryCode">
+                    <FormField validation="text" label="Recovery code" name="code">
+                        <WidgetTextInput
+                            :required="true"
+                            autocapitalize="none"
+                            autocorrect="off"
+                            :class="theme('recoveryInput')"
+                            data-qa="view-two-factor-auth-recovery-input"
+                        />
+                    </FormField>
+                </template>
+                <template v-else>
+                    <FormField validation="text" label="Method" name="method">
+                        <WidgetSelectDropdown
+                            :required="true"
+                            autocapitalize="none"
+                            autocorrect="off"
+                            :options="computedOptions"
+                        />
+                    </FormField>
+                    <FormField v-if="form.values?.method" validation="text" label="Code" name="code">
+                        <InputOTP :maxlength="6" data-qa="view-two-factor-auth-otp">
+                            <InputOTPGroup>
+                                <InputOTPSlot v-for="i in 6" :key="i" :index="i - 1" />
+                            </InputOTPGroup>
+                        </InputOTP>
+                    </FormField>
+                </template>
             </slot>
         </template>
         <template #action-bar="{ loading }">
@@ -153,28 +180,54 @@ onBeforeUnmount(clearCooldownTimer);
                 :cooldown-seconds="cooldownSeconds"
                 :timer="timer"
                 :loading="loading"
+                :use-recovery-code="useRecoveryCode"
+                :toggle-recovery="toggleRecovery"
             >
                 <div :class="theme('buttons')" data-qa="view-two-factor-auth-buttons">
                     <Button
-                        v-if="sendCodeMethods.includes(form.values?.method)"
-                        text
-                        :label="
-                            timer
-                                ? `Send ${form.values?.method} again in ${cooldownSeconds}s`
-                                : `Send ${form.values?.method}`
-                        "
+                        v-if="!useRecoveryCode && sendCodeMethods.includes(form.values?.method)"
+                        emphasis="ghost"
                         :disabled="loading || timer"
-                        :loading="loading"
+                        :data-state="timer ? 'cooldown' : undefined"
+                        data-qa="view-two-factor-auth-resend"
                         @click="handleSendCode"
-                    />
+                    >
+                        <LoadingSpinnerInline v-if="loading" />
+                        <component
+                            :is="icon('clock').component"
+                            v-if="timer && icon('clock')"
+                            v-bind="icon('clock').props"
+                            aria-hidden="true"
+                        />
+                        Send {{ form.values?.method }}
+                        <span
+                            v-if="timer"
+                            :class="theme('cooldownChip')"
+                            data-qa="view-two-factor-auth-cooldown-chip"
+                            aria-live="polite"
+                        >
+                            {{ cooldownSeconds }}s
+                        </span>
+                    </Button>
+                    <Button :disabled="loading || !form.values?.code" type="submit" tone="primary">
+                        <LoadingSpinnerInline v-if="loading" />
+                        Verify
+                    </Button>
                     <Button
-                        verb="next"
-                        label="Verify"
-                        :disabled="loading || !form.values?.code"
-                        :loading="loading"
-                        severity="primary"
-                        type="submit"
-                    />
+                        emphasis="ghost"
+                        type="button"
+                        :class="theme('recoveryToggle')"
+                        data-qa="view-two-factor-auth-recovery-toggle"
+                        @click="toggleRecovery"
+                    >
+                        <component
+                            :is="icon('lifeRing').component"
+                            v-if="icon('lifeRing')"
+                            v-bind="icon('lifeRing').props"
+                            aria-hidden="true"
+                        />
+                        {{ useRecoveryCode ? "Back to verified methods" : "Use a recovery code" }}
+                    </Button>
                 </div>
             </slot>
         </template>

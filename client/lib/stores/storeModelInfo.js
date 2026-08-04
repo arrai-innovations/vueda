@@ -35,9 +35,9 @@ const modelInfoUrl = ({ app, model }) =>
 /**
  * A function to convert snake_case properties deeply on an object to be camelCase.
  *
- * @param {object} obj - The object to convert.
+ * @param {unknown} obj - The value to convert.
  * @param {string[]} [skipKeys=[]] - An array of keys to skip when converting.
- * @returns {object} The object with all snake_case properties converted to camelCase, except for the specified keys.
+ * @returns {unknown} The value with all snake_case object keys converted to camelCase, except for the specified keys.
  * @private
  */
 const camelCaseObject = (obj, skipKeys = []) => {
@@ -118,6 +118,8 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} name - The name of the expand field.
  * @property {string[]} [fields] - An array of field names that can be expanded.
  * @property {{[fieldName: string]: FieldInfo}} [f] - A mapping of field names to their respective `FieldInfo` objects for the expanded model.
+ * @property {string} [appLabel] - The app label of the expanded (related) model.
+ * @property {string} [model] - The model name of the expanded (related) model.
  * @property {boolean} [requiresPermission] - Indicates whether expanding this field requires special permissions.
  * @property {string} [description] - A brief description of what the expanded field represents.
  * @property {string[]} [hidden] - Names of child fields to hide in this expansion.
@@ -238,9 +240,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * Otherwise, it fetches from the server and caches the result.
  *
  * @function FetchModelInfo
- * @param {object} args - The arguments for fetching model info.
- * @param {string} args.app - The app label for the model.
- * @param {string} args.model - The model name.
+ * @param {{ app: string, model: string }} args - The arguments for fetching model info.
  * @returns {import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>} A promise that resolves to the model information.
  * @throws {ModelInfoError} Throws an error if the fetch operation fails.
  */
@@ -330,17 +330,25 @@ export const storeModelInfo = defineStore("modelInfo", {
                                     ];
                                 }
                                 if (key === "expand") {
-                                    // `expand.f` is also a mapping of field names to FieldInfo objects
+                                    // camelCase each expand descriptor's own keys
+                                    // (e.g. app_label -> appLabel) so they match
+                                    // field details. `f` is a mapping of field
+                                    // names to FieldInfo objects: preserve its
+                                    // field-name keys (server lookup keys) while
+                                    // camelCasing each FieldInfo value.
                                     return [
                                         key,
-                                        v.map((expand) => ({
-                                            ...expand,
-                                            [FIELDS_PARAM]: expand.f
-                                                ? Object.fromEntries(
-                                                      Object.entries(expand.f).map(([k, v]) => [k, camelCaseObject(v)]),
-                                                  )
-                                                : undefined,
-                                        })),
+                                        v.map((expand) => {
+                                            const { [FIELDS_PARAM]: f, ...rest } = expand;
+                                            return {
+                                                ...camelCaseObject(rest),
+                                                [FIELDS_PARAM]: f
+                                                    ? Object.fromEntries(
+                                                          Object.entries(f).map(([k, v]) => [k, camelCaseObject(v)]),
+                                                      )
+                                                    : undefined,
+                                            };
+                                        }),
                                     ];
                                 }
                                 return [key, camelCaseObject(v)];

@@ -541,9 +541,7 @@ class HasWorkflowModelMixin(models.Model):
                 workflow__content_type=self.get_content_type(),
             ).exists()
         ):
-            raise PermissionDenied(
-                f"User {user.get_username()!r} does not have workflow permissions for {self.get_content_type()!r}"
-            )
+            raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
         transitions = self.fast_available_transitions()
         return transitions.filter(pk__in=[t.id for t in transitions if self.check_transition_permission(t, user)])
 
@@ -631,7 +629,7 @@ class HasWorkflowModelMixin(models.Model):
         # If multiple group rules match, deny takes precedence over grant.
         matching_rules = StatePermission.objects.filter(
             state=self.workflow_state,
-            permission__codename=perm.split(".")[-1],
+            permission__codename=perm.rsplit(".", maxsplit=1)[-1],
             permission__content_type=self.get_content_type(),
             group__in=groups,
         ).values_list("grant_or_deny", flat=True)
@@ -755,10 +753,8 @@ class HasWorkflowModelMixin(models.Model):
         """
         Override this method to add custom logic on transition.
         """
-        pass
 
     def on_transition_ignored(self, transition: Transition, user: User | None = None):
         """
         Override this method to add custom logic when a transition is intentionally ignored.
         """
-        pass

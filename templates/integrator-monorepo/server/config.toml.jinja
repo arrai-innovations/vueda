@@ -1,0 +1,24 @@
+# Shared config (safe to commit).
+#
+# These defaults target a public deployment. Override in config.local.toml or
+# a deployment-specific config layer as needed.
+
+ALLOWED_HOSTS = ["{{ project_slug }}.example.com"]
+TIME_ZONE = "UTC"
+
+FRONTEND_DOMAIN = "https://{{ project_slug }}.example.com"
+FRONTEND_LOGIN_URL = "/login"
+
+SITE_NAME = "{{ project_name }}"
+SUPPORT_EMAIL = "support@{{ project_slug }}.example.com"
+
+AUTH_USER_MODEL = "users.User"
+LOCAL_APPS = ["{{ python_package }}.users"]
+
+STATIC_ROOT = "/tmp/static"
+STATICFILES_DIRS = []
+
+CSRF_TRUSTED_ORIGINS = ["https://{{ project_slug }}.example.com"]
+CORS_ALLOWED_ORIGINS = ["https://{{ project_slug }}.example.com"]
+
+DATABASE_BACKUP_DIR = "/tmp/db-backups"

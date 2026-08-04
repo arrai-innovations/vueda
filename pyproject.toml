@@ -8,4 +8,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [dependency-groups]
-dev = ["md-toc >=8.2.2", "ruff ==0.14.6"]
+dev = ["md-toc >=8.2.2", "ruff ==0.15.20"]
+
+[tool.uv]
+exclude-newer = "1 day"

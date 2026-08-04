@@ -1,7 +1,7 @@
 ---
 title: Handle Form Validation and Server Errors
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -17,14 +17,14 @@ Client-side normalization in this flow is centered on {@api js:class:@arrai-inno
 The objective is a form submission flow where:
 
 - HTTP 400 responses from the server are parsed into field-keyed and non-field feedback that appears in the correct form fields.
-- Server warnings (non-blocking) are visually distinguished from server errors (blocking) and do not prevent submission.
+- Server warnings (advisory) are visually distinguished from server errors (blocking) and gate the save behind a confirmation rather than failing it.
 - Blurring a field clears stale server feedback for that field and any configured dependents.
 - Local validation errors (required, custom validate) block submission, but server-only errors allow resubmission so the server can re-evaluate.
 - Non-field errors are rendered at the form level and participate in first-error scroll navigation.
 
 Before you begin, ensure the following are in place:
 
-The form uses `useForm` to create a form context and `useField` for each field (or a VUEDA field component that calls `useField` internally). The API endpoint follows VUEDA's server contract: validation failures return HTTP 400 with a payload that `VuedaValidationError` produces, and warnings use the `is_warning=True` flag. For standard CRUDL surfaces, `useObjectForm` provides the default submission pipeline described below. For custom forms, you will wire the equivalent logic manually.
+The form uses `useForm` to create a form context and `useField` for each field (or a VUEDA field component that calls `useField` internally). The API endpoint follows VUEDA's server contract: validation failures return HTTP 400 with a payload that `VuedaValidationError` produces, and advisory warnings are surfaced through the warning confirmation gate: the serializer's `get_warnings()` hook for create/update, the viewset-level hook and helpers for deletes, activate/deactivate, and custom actions (see [Warnings That Require Confirmation](#warnings-that-require-confirmation)). For standard CRUDL surfaces, `useObjectForm` provides the default submission pipeline described below. For custom forms, you will wire the equivalent logic manually.
 
 ## Request-Boundary Error Normalization
 
@@ -110,35 +110,36 @@ In this example, blurring the `sku` field within a line item clears server error
 
 ## Non-Field and Field Feedback Rendering
 
-Non-field errors; server validation that is not associated with a specific field; arrive under the key `non_field_errors` (the DRF convention, preserved as `NON_FIELD_ERRORS_KEY` on the client). These are rendered by `FormFeedback` when it is inside a form context but outside a field context:
+Non-field errors; server validation that is not associated with a specific field; arrive under the key `non_field_errors` (the DRF convention, preserved as `NON_FIELD_ERRORS_KEY` on the client). These are rendered by `FormMessage` placed inside the form context. Multiple messages collapse into a single Alert containing a list, rather than a stack of individual Alerts:
 
 ```vue
 <form @submit.prevent="submit">
-  <form-feedback type="error" />
-  <form-feedback type="message" />
+  <form-message type="error" />
+  <form-message type="message" />
   <!-- field components -->
 </form>
 ```
 
-Field-level feedback is rendered by `FormFeedback` (or `FormChores`, which composes help text with error and message feedback) when inside a field context:
+Field-level feedback is rendered automatically by `FormField` via `FieldMessage` (a muted line under the control). The same `FormField` also renders help text via `FieldDescription`, so a typical field requires no explicit feedback elements:
 
 ```vue
-<field-string name="email" label="Email" required>
+<form-field name="email" label="Email" required>
   <form-label>
     <widget-input />
   </form-label>
-  <form-chores />
-</field-string>
+</form-field>
 ```
 
-`FormChores` renders both error and message feedback for the field, using named slot conventions for customization. For non-field feedback with structured objects, the server must emit objects with a `detail` template property:
+### Structured Feedback Objects
+
+Most feedback entries are plain strings. When a single message needs to carry structured payload (e.g. a list of offending rows that should render as a bullet list), the server may emit an object instead of a string:
 
 ```python
 raise VuedaValidationError(
     {
         "non_field_errors": [
             {
-                "detail": "Some rows are invalid: ${rows}",
+                "detail": "Some rows are invalid:",
                 "rows": rows,
             }
         ]
@@ -146,7 +147,23 @@ raise VuedaValidationError(
 )
 ```
 
-The `FormFeedback` renderer replaces `${token}` placeholders with the corresponding properties from the object. Array-valued properties are rendered as HTML lists. This is a hard contract: structured objects without a `detail` property throw at render time, and the client does not provide a fallback renderer for them.
+The default `FormMessage` renderer has no opinion on object shape: it iterates the object's entries and renders each as a `name: value` line. That fallback is rarely what you want for a structured payload, so the expectation is that consumers override `FormMessage`'s default slot with a purpose-built component that pattern-matches on the shape and renders it appropriately:
+
+```vue
+<form-message type="error">
+  <template #default="{ message }">
+    <template v-if="message && typeof message === 'object' && Array.isArray(message.rows)">
+      <p>{{ message.detail }}</p>
+      <ul>
+        <li v-for="row in message.rows" :key="row">{{ row }}</li>
+      </ul>
+    </template>
+    <template v-else>{{ message }}</template>
+  </template>
+</form-message>
+```
+
+Each shape gets its own renderer. This keeps the formatting next to the UI and avoids stringly typed template payloads on the wire.
 
 ## Server Contract Expectations
 
@@ -154,25 +171,102 @@ For the validation pipeline to work correctly, the server must follow these conv
 
 **Use `VuedaValidationError` for validation failures.** This exception normalizes scalar details into `list` form, preserves dict/list structures recursively, and ensures the response is parseable by `FormValidationError` on the client. Standard DRF `ValidationError` also works for simple cases, but `VuedaValidationError` handles the warning channel and structured payloads.
 
-**Use `is_warning=True` for non-blocking feedback.** This wraps the detail in a `{"warnings": [...]}` structure that the client parser routes to `.messages` instead of `.errors`. Warning-only exceptions skip Sentry capture and database logging in production, treating them as informational rather than error-level events.
+**Use `get_warnings()` for advisory, confirm-before-save feedback.** Override `get_warnings()` on the serializer (see the next section) rather than raising `VuedaValidationError(..., is_warning=True)`. A raised warning still returns 400 and blocks the save like an error rendered in yellow; `get_warnings()` instead gates the save behind an explicit confirmation and then lets the same write proceed.
 
 **Prefer field-keyed payloads over aggregate strings.** A payload like `{"quantity": ["Must be positive"]}` maps to a specific field in the form. A payload like `{"detail": "Invalid request"}` maps to nothing and produces opaque feedback. For bulk actions, prefer `{pk: {field: [errors]}}` style maps so correction context stays per-object.
 
 **Keep `non_field_errors` for cross-field validation.** DRF's exception handler rewrites top-level list errors into `{non_field_errors: [...]}`. The client expects this key and renders it at the form level, not at any specific field.
 
-**Treat structured feedback objects as contract-bound.** If you emit object-valued feedback entries, include a `detail` template string on each object. Missing `detail` is treated as invalid payload shape and causes a render-time `TypeError` in `FormFeedback`.
+**Render structured feedback objects client-side.** Object-valued feedback entries do not have a wire-format template contract. The default renderer falls back to a `name: value` line per entry. If you emit structured objects, plan to render them with a purpose-built component that overrides `FormMessage`'s default slot and matches on the shape; see the structured feedback example above.
+
+## Warnings That Require Confirmation
+
+Use a warning when a create or update should succeed but the user ought to acknowledge something first (for example, "this will deactivate the last administrator"). Unlike a validation error, a warning does not fail the request; it pauses it for confirmation.
+
+**Server: override `get_warnings()`.** On the serializer, return advisory messages keyed by field (use `non_field_errors` for form-level):
+
+```python
+class WidgetSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = Widget
+        fields = ["id", "name", "count"] + VuedaSerializer.Meta.fields
+
+    def get_warnings(self):
+        warnings = {}
+        if self.validated_data.get("count", 0) < 0:
+            warnings["count"] = ["A negative count is unusual."]
+        return warnings
+```
+
+`get_warnings()` runs after validation succeeds, so `self.validated_data` and (on update) `self.instance` are available. It must not raise; blocking conditions belong in `validate()`. When it returns warnings that the request has not acknowledged, `VuedaViewSet` withholds the write and responds `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}`.
+
+**Client: confirm, then resubmit.** The create/update adaptor raises `ConfirmationRequiredError` on the 409. `useObjectForm` renders the warnings into `state.messages`, opens its `confirmation` controller, and (for `ViewCreate` and `ViewUpdate`) shows a `FormConfirmDialog`. Confirming resubmits once with the `Acknowledge-Warnings` header set to the response `digest`, which the server matches to let the write proceed; cancelling leaves the form unsaved with the warnings visible. A custom shell that calls `useObjectForm` directly should render a dialog bound to `objectForm.confirmation`, or override the `onSubmissionWarningsRequireConfirmation` hook. A custom dialog must call `confirmation.register()` on mount and `confirmation.unregister()` on unmount (`FormConfirmDialog` does this itself); when no dialog is registered, a warned save fails closed: it resolves as cancelled, the warnings stay rendered on the fields, and a console warning identifies the missing dialog.
+
+**Server: gate destroy, activate, and deactivate with the viewset hook.** These writes have no per-object serializer, so warnings come from the viewset instead. Override `get_warnings(action, objs)`, provided by {@api py:class:vueda.core.viewsets.WarningConfirmationMixin} (so any `VuedaViewSet`); `action` is the action name (`"destroy"`, `"activate"`, or `"deactivate"`) and `objs` is the affected instances, a one-element tuple for a single-object request or a queryset for a bulk request:
+
+```python
+class WidgetViewSet(VuedaViewSet):
+    serializer_class = WidgetSerializer
+
+    def get_warnings(self, action, objs):
+        if action == "destroy" and any(obj.is_published for obj in objs):
+            return {"non_field_errors": ["Published widgets disappear from the storefront when deleted."]}
+        return {}
+```
+
+Both the single and bulk variants call the hook after their own validation and before the write. Bulk gating is all-or-nothing: a 409 blocks the whole batch, and confirming runs all of it. The shape is the same aggregate `{field: [messages]}` mapping; there is no per-object attribution.
+
+**Server: gate a custom action body.** Custom `@action` bodies write directly, so they call the gate explicitly. Call `gate_warnings(request, warnings)` (from {@api py:module:vueda.core.exceptions}) after `serializer.is_valid(raise_exception=True)`, so blocking errors return 400 before the 409, and before any write or side effect:
+
+```python
+from vueda.core.decorators import action
+from vueda.core.exceptions import gate_warnings
+
+
+class InvoiceViewSet(VuedaViewSet):
+    @action(detail=True, methods=["post"])
+    def send(self, request, pk=None):
+        invoice = self.get_object()
+        serializer = SendInvoiceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)  # blocking errors 400 before the gate
+        warnings = {}
+        if invoice.customer.balance_overdue:
+            warnings["non_field_errors"] = ["This customer has an overdue balance."]
+        gate_warnings(request, warnings)
+        # Past the gate: there were no warnings, or the user confirmed them.
+        invoice.send()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+```
+
+**Server: always confirm an input-less action.** For a consequence action that takes no input, declare `@action(confirm=True)`. The first unacknowledged submit returns 409 without executing the body. The message comes from a `confirm_message` attribute set on the action function, with a framework default ("This action requires confirmation.") when unset:
+
+```python
+class InvoiceViewSet(VuedaViewSet):
+    @action(detail=True, methods=["post"], confirm=True)
+    def reissue(self, request, pk=None):
+        ...
+
+    reissue.confirm_message = "Reissuing voids the original invoice."
+```
+
+Because `confirm=True` gates before the body runs, any body-level validation error would only surface after the user confirms; actions that take input should call `gate_warnings` explicitly after validation instead.
+
+**Author warnings from pre-write state only.** A warning is a consent question, so it must be computable from the submitted input plus the current database state, before the write; every gate raises before anything is written. A condition you can only discover by performing the write (a protected foreign key, a constraint violation) is an error that aborts the transaction, not a warning. Two write paths are not gated: bulk/list-serializer create and update saves, and workflow transitions.
+
+**Client: actions and deletes confirm turnkey.** `useActionForm` handles the 409 the same way `useObjectForm` does: `ModelActionForm`'s `defaultRunAction` and `defaultObjectsDelete` raise `ConfirmationRequiredError`, the `confirmation` controller prompts, and a confirmed action reruns once with the `Acknowledge-Warnings` header set. Unlike object forms, `ActionForm` mounts the `FormConfirmDialog` itself, so `ViewAction`, `ViewDestroy`, and custom shells built on `ActionForm` need no extra markup. Only callers that use `useActionForm` without the `ActionForm` shell must render a dialog bound to the returned `confirmation` controller (or override its `onSubmissionWarningsRequireConfirmation` hook); without one, warned actions fail closed as cancelled with a console warning.
 
 ## Verification Checklist
 
 With the validation pipeline wired, verify these behaviors:
 
 - Submitting a form with invalid data produces field-level error messages under the correct fields.
-- Non-field errors appear at the form level (above or below the field list, depending on `FormFeedback` placement).
+- Non-field errors appear at the form level (above or below the field list, depending on `FormMessage` placement).
 - Blurring a field that had a server error clears the error message.
 - After clearing a server error by blur, resubmitting sends the request (server-only errors do not block).
 - Local validation errors (required fields left empty, custom validate failures) block submission with a "Pre-save Validation Failed" toast.
-- Server warnings (from `is_warning=True`) appear with warning severity (yellow) and do not block submission.
-- Structured non-field error objects render their `detail` template with token substitution.
+- A serializer that returns `get_warnings()` produces a 409 that opens the confirmation dialog; confirming saves, cancelling does not.
+- A viewset `get_warnings(action, objs)` override, a `gate_warnings` call in a custom action body, or `@action(confirm=True)` produces the same 409 confirm flow on delete, activate/deactivate, and action views (the dialog comes from `ActionForm`, no extra markup needed).
+- Structured non-field error objects render through `FormMessage`'s default slot override (or, without an override, as `name: value` fallback lines).
 - The first-error scroll navigates to `non_field_errors` first, then to the first displayed field with an error.
 
 ## Troubleshooting
@@ -185,7 +279,9 @@ With the validation pipeline wired, verify these behaviors:
 
 **Bulk action errors show as a single opaque message.** If the server returns a single aggregate error string for a bulk operation (instead of per-pk field-keyed errors), the client has no way to route the feedback to specific objects. Prefer `{pk: {field: [errors]}}` style maps from bulk action endpoints.
 
-**Warning-only response still prevents submission.** Verify that the server is using `VuedaValidationError(detail, is_warning=True)`, not just a string with "warning" in the text. The `is_warning` flag controls the wire-format wrapping (`{"warnings": [...]}`) that the client parser uses to route to `.messages` instead of `.errors`. Without it, the payload lands in `.errors` and blocks submission.
+**A warning blocks the save instead of asking for confirmation.** This happens when the warning is raised as `VuedaValidationError(detail, is_warning=True)`, which still returns 400 and blocks. For confirm-then-save behavior, move the check to the serializer's `get_warnings()` so the viewset returns a 409 the client can confirm.
+
+**The confirmation dialog never appears.** Confirm the server release implements the warning gate (responds 409, not 200/400), that the warnings source (serializer `get_warnings()`, viewset `get_warnings(action, objs)`, or a `gate_warnings` call) actually returns a non-empty mapping for the input, and that a `FormConfirmDialog` is bound to the confirmation controller. For object forms, the view shell renders the dialog (`ViewCreate` and `ViewUpdate` do; custom `useObjectForm` shells must add it themselves). For action and destroy views, `ActionForm` mounts the dialog itself; only standalone `useActionForm` callers must add one. When no dialog is registered on the controller, the submission resolves as cancelled and a console warning names the missing dialog; check the browser console.
 
 **Custom delete wrapper surfaces false failures.** If your endpoint uses a non-standard success status code (something other than 204 for delete), the default CRUDL wrapper may interpret the response as a failure. Adapt the wrapper to recognize the endpoint's success codes while preserving the `400 → FormValidationError` mapping.
 
@@ -196,6 +292,8 @@ With the validation pipeline wired, verify these behaviors:
     - {@api py:class:vueda.core.exceptions.VuedaValidationError}
     - {@api py:function:vueda.core.exceptions.debug_stack_exception_handler}
     - {@api py:class:vueda.core.viewsets.VuedaViewSet}
+    - {@api py:class:vueda.core.viewsets.WarningConfirmationMixin}
+    - {@api py:module:vueda.core.decorators}
     - {@api py:class:vueda.core.serializers.PrimaryKeyListSerializer}
 - JavaScript:
     - {@api js:module:@arrai-innovations/vueda/utils/errors}
@@ -203,12 +301,14 @@ With the validation pipeline wired, verify these behaviors:
     - {@api js:module:@arrai-innovations/vueda/use/useForm}
     - {@api js:module:@arrai-innovations/vueda/use/useField}
     - {@api js:module:@arrai-innovations/vueda/use/useObjectForm}
-    - {@api js:module:@arrai-innovations/vueda/use/useWarnings}
+    - {@api js:module:@arrai-innovations/vueda/use/useActionForm}
     - {@api js:module:@arrai-innovations/vueda/utils/objectCrud}
     - {@api js:module:@arrai-innovations/vueda/utils/listCrud}
     - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
 - Vue.js Components:
     - {@api vue:component:ActionForm}
     - {@api vue:component:ModelActionForm}
-    - {@api vue:component:FormChores}
-    - {@api vue:component:FormFeedback}
+    - {@api vue:component:FormConfirmDialog}
+    - {@api vue:component:FormMessage}
+    - {@api vue:component:FieldMessage}
+    - {@api vue:component:FieldDescription}

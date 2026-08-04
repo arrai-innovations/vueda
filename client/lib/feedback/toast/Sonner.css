@@ -1,0 +1,52 @@
+/*
+ * VUEDA overrides for vue-sonner's toast surface, imported by Sonner.vue.
+ *
+ * These bring the live toast in line with the VUEDA overlay canon on two axes:
+ *
+ * 1. Edge. vue-sonner paints a real `1px solid` border, which shows chromatic
+ *    fringing on saturated rich-colour edges at integer DPR (see base.css
+ *    § DPR-aware hairline). Replace it with a DPR-keyed inset hairline in the
+ *    same colour vue-sonner would have used for the border.
+ * 2. Elevation. vue-sonner ships a drop-only shadow; VUEDA floating overlays
+ *    carry `--vueda-shadow-popover` (1px ring + ambient drop), the same
+ *    elevation as Popover and HoverCard.
+ *
+ * The overriding rules are scoped under the `[data-sonner-toaster]` ancestor so
+ * they outrank vue-sonner's own `[data-sonner-toast][data-styled]` rules on
+ * specificity, not on stylesheet order — the import sorter is free to place
+ * this file before or after vue-sonner's stylesheet.
+ *
+ * The edge colour rides `--vueda-toast-edge`, defaulting to the neutral
+ * `--normal-border` and overridden per rich-colour type with the tint
+ * vue-sonner assigns that type (both are set on the toaster by Sonner.vue).
+ */
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+    border: 0;
+    box-shadow:
+        inset 0 0 0 var(--vueda-hairline-width) var(--vueda-toast-edge, var(--normal-border)),
+        var(--vueda-shadow-popover);
+}
+
+[data-rich-colors="true"][data-sonner-toast][data-type="success"] {
+    --vueda-toast-edge: var(--success-border);
+}
+[data-rich-colors="true"][data-sonner-toast][data-type="info"] {
+    --vueda-toast-edge: var(--info-border);
+}
+[data-rich-colors="true"][data-sonner-toast][data-type="warning"] {
+    --vueda-toast-edge: var(--warning-border);
+}
+[data-rich-colors="true"][data-sonner-toast][data-type="error"] {
+    --vueda-toast-edge: var(--error-border);
+}
+
+/* Keep the surface edge + elevation on keyboard focus, and add the VUEDA focus
+ * ring (WCAG 2.2 SC 2.4.13) in place of vue-sonner's neutral drop-ring. The gap
+ * is filled with the opaque popover surface so the ring reads as a ring. */
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"]:focus-visible {
+    box-shadow:
+        inset 0 0 0 var(--vueda-hairline-width) var(--vueda-toast-edge, var(--normal-border)),
+        var(--vueda-shadow-popover),
+        0 0 0 var(--vueda-focus-ring-offset) var(--popover),
+        0 0 0 calc(var(--vueda-focus-ring-offset) + var(--vueda-focus-ring-width)) var(--ring);
+}

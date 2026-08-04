@@ -23,18 +23,30 @@ __all__ = (
     "WorkflowPermissionFormSet",
 )
 
+import operator
+
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import Case
+from django.db.models import IntegerField
+from django.db.models import When
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalChanges
 
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.fields import form as core_form
 from vueda.workflow import models
+from vueda.workflow.globals import CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT
 
 
 def _workflow_content_type_queryset():
+    apps_without_migrations = set()
+    for app_label, model in settings.MIGRATION_MODULES.items():
+        if model is None:
+            apps_without_migrations.add(app_label)
+
     # Remove the historical content types, vueda.workflow, and django.contrib apps.
     excluded_ids = [
         content_type.pk
@@ -43,12 +55,28 @@ def _workflow_content_type_queryset():
         or content_type.model_class() is not None
         and (
             issubclass(content_type.model_class(), HistoricalChanges)
+            or issubclass(content_type.model_class(), CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT)
             or hasattr(content_type.model_class(), "pgh_tracked_model")
             or content_type.model_class()._meta.abstract
         )
-        or content_type.app_label in ("workflow", "auth", "contenttypes", "sessions", "sites")
+        or content_type.app_label
+        in ("workflow", "auth", "contenttypes", "sessions", "sites") + tuple(apps_without_migrations)
     ]
-    return ContentType.objects.exclude(pk__in=excluded_ids).order_by("app_label", "model")
+    content_types = ContentType.objects.exclude(pk__in=excluded_ids)
+
+    # Get the content type pks sorted by how they are displayed.
+    sorted_content_types = tuple(content_types)
+    for content_type in sorted_content_types:
+        model = content_type.model_class()
+        content_type.ordering_name = f"{model._meta.app_config.name} | {model._meta.verbose_name}"
+    sorted_content_types = sorted(content_types, key=operator.attrgetter("ordering_name"))
+
+    return content_types.order_by(
+        Case(
+            *[When(pk=pk, then=pos) for pos, pk in enumerate(x.pk for x in sorted_content_types)],
+            output_field=IntegerField(),
+        )
+    )
 
 
 class WorkflowAddForm(forms.ModelForm):

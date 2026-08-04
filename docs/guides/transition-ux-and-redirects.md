@@ -1,7 +1,7 @@
 ---
 title: Design Transition UX and Redirects
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -35,7 +35,7 @@ For workflow-enabled models, the guard includes permitted transition codes in th
 
 {@api vue:component:ViewActionRouter} resolves the permitted action to a view component. Standard CRUDL actions resolve to their built-in views. Transition codes resolve to `ViewWorkflowTransition`. When the action cannot be resolved, it passes the guard but has no corresponding view component; `ViewActionNotFound` is rendered.
 
-The guard requires transition objects to have a valid string `code`. If a transition lacks a `code` or the `code` is not a string, the guard throws an error (`requireModelInfo: workflow transition is missing a string code`) rather than silently treating it as unavailable. Check the workflow configuration if this error surfaces.
+The guard requires transition objects to have a valid string `code`. The server enforces this as a required, non-blank field, so the guard's check should not trigger in normal operation. If this error surfaces, it indicates a data integrity issue rather than a workflow misconfiguration.
 
 ## Action Form Submit, Dry-Run, and Cancel Flow
 
@@ -81,7 +81,11 @@ The server's workflow execute-transition endpoint ({@api rest:endpoint:PATCH:/vu
 
 **Dry-run execution** skips locking and state persistence. Use dry-run mode when the UX needs to preview or validate a transition without committing to it. The server evaluates transition validity and returns the result without modifying the object's state.
 
-**Bulk execution** sends `{ object_ids: [...] }` in the request body. Non-`list` payloads return `400`. Note that the bulk key name is endpoint-specific by design: generic model action execution uses `{ pks: [...] }`, while workflow execute-transition uses `{ object_ids: [...] }`. There is no automatic key translation between these APIs; client code must use the correct key for each endpoint.
+**Bulk execution** sends `{ object_ids: [...] }` in the request body. Non-`list` payloads return `400`.
+
+::: warning
+The bulk key name is endpoint-specific by design: generic model action execution uses `{ pks: [...] }`, while workflow execute-transition uses `{ object_ids: [...] }`. There is no automatic key translation between these APIs; client code must use the correct key for each endpoint.
+:::
 
 **Transition identification** uses `code` throughout. `ViewWorkflowTransition` submits the selected transition's `code` as `transition_code` in the request payload. The transition's `name` is display-only; it appears in UI labels and confirmation text but is not used for execution or routing. This distinction is important: a transition's display name can change without affecting routing or execution, but a `code` change requires updating route guard expectations and any client-side transition references.
 
@@ -100,8 +104,6 @@ After implementing transition UX, verify the following:
 - Locked-row transition attempt surfaces a user-friendly error message.
 
 ## Known Limitations
-
-**Transition objects without string codes cause hard errors.** The route guard throws rather than gracefully degrading when a transition lacks a valid string `code`. This surfaces as a runtime exception in the navigation flow, not as a toast or redirect.
 
 **`ViewWorkflowTransition` requires a valid transition code on submit.** If the selected transition is invalid or missing at submission time, the component throws rather than displaying a validation error. Ensure the transition selection UI only offers valid options.
 

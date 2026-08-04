@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("tests", "0005_alter_user_managers"),
+        ("employee", "0001_initial"),
     ]
 
     operations = [
@@ -35,6 +35,7 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("name", models.CharField(max_length=255)),
+                ("description", models.CharField(max_length=1024)),
                 (
                     "formatted_name",
                     models.GeneratedField(
@@ -87,14 +88,6 @@ class Migration(migrations.Migration):
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("code", models.CharField(db_index=True, max_length=255, unique=True)),
                 ("field_that_contains_the_name", models.CharField(blank=True, max_length=255)),
-                (
-                    "formatted_name",
-                    models.GeneratedField(
-                        db_persist=True,
-                        expression=models.F("field_that_contains_the_name"),
-                        output_field=models.CharField(),
-                    ),
-                ),
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
@@ -142,6 +135,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
+                "ordering": ["customer__user__name"],
             },
         ),
         migrations.CreateModel(
@@ -230,6 +224,7 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID")),
                 ("name", models.CharField(max_length=255)),
+                ("description", models.CharField(max_length=1024)),
                 ("history_id", models.AutoField(primary_key=True, serialize=False)),
                 ("history_date", models.DateTimeField(db_index=True)),
                 ("history_change_reason", models.CharField(max_length=100, null=True)),
@@ -414,6 +409,19 @@ class Migration(migrations.Migration):
                     models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.tangibletype"),
                 ),
                 (
+                    "condition",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("new", "New"),
+                            ("like_new", "Like New"),
+                            ("refurbished", "Refurbished"),
+                            ("used", "Used"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                (
                     "formatted_name",
                     models.GeneratedField(
                         db_persist=True, expression=models.F("name"), output_field=models.CharField()
@@ -422,6 +430,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
+                "ordering": ["name"],
                 "unique_together": {("distributor", "name")},
             },
         ),
@@ -508,6 +517,19 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
+                    "condition",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("new", "New"),
+                            ("like_new", "Like New"),
+                            ("refurbished", "Refurbished"),
+                            ("used", "Used"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                (
                     "formatted_name",
                     models.GeneratedField(
                         db_persist=True, expression=models.F("name"), output_field=models.CharField()
@@ -571,23 +593,10 @@ class Migration(migrations.Migration):
                     "product_option",
                     models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.productoption"),
                 ),
-                (
-                    "formatted_name",
-                    models.GeneratedField(
-                        db_persist=True,
-                        expression=django.db.models.functions.text.Concat(
-                            models.Value(" - "),
-                            django.db.models.functions.comparison.Cast(
-                                models.F("quantity"), output_field=models.CharField()
-                            ),
-                            models.Value("x "),
-                        ),
-                        output_field=models.CharField(),
-                    ),
-                ),
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
+                "default_related_name": "order_items",
                 "verbose_name": "ORDER item",
                 "verbose_name_plural": "ORDER items",
             },
@@ -626,21 +635,6 @@ class Migration(migrations.Migration):
                 (
                     "product_option",
                     models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.productoption"),
-                ),
-                (
-                    "formatted_name",
-                    models.GeneratedField(
-                        db_persist=True,
-                        expression=django.db.models.functions.text.Concat(
-                            models.Value(" - "),
-                            models.Value(" "),
-                            django.db.models.functions.comparison.Cast(
-                                models.F("quantity"), output_field=models.CharField()
-                            ),
-                            models.Value("x "),
-                        ),
-                        output_field=models.CharField(),
-                    ),
                 ),
             ],
             options={
@@ -731,23 +725,279 @@ class Migration(migrations.Migration):
                     "product_option",
                     models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.productoption"),
                 ),
+            ],
+            options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+                "default_related_name": "cart_items",
+            },
+        ),
+        migrations.CreateModel(
+            name="PackingBox",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=255)),
+                ("depth", models.DecimalField(decimal_places=4, max_digits=12)),
+                ("height", models.DecimalField(decimal_places=4, max_digits=12)),
+                ("width", models.DecimalField(decimal_places=4, max_digits=12)),
+                ("carrying_weight", models.DecimalField(decimal_places=4, max_digits=12)),
+                ("in_stock", models.BooleanField(db_default=False)),
+                ("number_in_stock", models.IntegerField(db_default=0)),
+            ],
+            options={
+                "verbose_name": "Packing Box",
+                "verbose_name_plural": "Packing Boxes",
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="Invoice",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 (
                     "formatted_name",
                     models.GeneratedField(
                         db_persist=True,
-                        expression=django.db.models.functions.text.Concat(
-                            django.db.models.functions.comparison.Cast(
-                                models.F("quantity"), output_field=models.CharField()
-                            ),
-                            models.Value("x "),
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="InvoiceLine",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=12)),
+                (
+                    "invoice",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="invoice_lines",
+                        to="store.invoice",
+                    ),
+                ),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="OrderCompositePK",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("order_number", models.DecimalField(decimal_places=0, max_digits=7)),
+                ("order_date", models.DateTimeField(auto_now_add=True, db_index=True)),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=django.db.models.functions.comparison.Cast(
+                            models.F("order_number"), output_field=models.CharField()
                         ),
                         output_field=models.CharField(),
                     ),
                 ),
             ],
             options={
+                "ordering": ["order_number"],
+                "abstract": False,
                 "default_permissions": ("create", "read", "update", "delete", "list"),
-                "default_related_name": "cart_items",
+            },
+        ),
+        migrations.CreateModel(
+            name="ProductCompositePK",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+            ],
+            options={
+                "ordering": ["name"],
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="OrderItemCompositePK",
+            fields=[
+                (
+                    "pk",
+                    models.CompositePrimaryKey(
+                        "order_id",
+                        "product_id",
+                        blank=True,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "quantity",
+                    models.IntegerField(
+                        db_default=0,
+                        validators=[
+                            django.core.validators.MinValueValidator(0),
+                            django.core.validators.MaxValueValidator(1000),
+                        ],
+                    ),
+                ),
+                (
+                    "order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="store.ordercompositepk",
+                    ),
+                ),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="store.productcompositepk",
+                    ),
+                ),
+            ],
+            options={
+                "verbose_name": "Order Items Composite PK",
+                "verbose_name_plural": "Order Items Composite PKs",
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+                "default_related_name": "order_items_composite_pks",
+            },
+        ),
+        migrations.CreateModel(
+            name="OrderItemAltCompositePK",
+            fields=[
+                (
+                    "pk",
+                    models.CompositePrimaryKey(
+                        "order_id",
+                        "product_id",
+                        blank=True,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "quantity",
+                    models.IntegerField(
+                        db_default=0,
+                        validators=[
+                            django.core.validators.MinValueValidator(0),
+                            django.core.validators.MaxValueValidator(1000),
+                        ],
+                    ),
+                ),
+                (
+                    "order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="store.ordercompositepk",
+                    ),
+                ),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="store.productcompositepk",
+                    ),
+                ),
+            ],
+            options={
+                "verbose_name": "Order Items Alt Composite PK",
+                "verbose_name_plural": "Order Items Alt Composite PKs",
+                "ordering": ["order", "product", "quantity"],
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+                "default_related_name": "order_items_alt_composite_pks",
+            },
+        ),
+        migrations.CreateModel(
+            name="DistributorProxy",
+            fields=[],
+            options={
+                "verbose_name": "distributor proxy",
+                "verbose_name_plural": "distributor proxies",
+                "abstract": False,
+                "proxy": True,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+                "indexes": [],
+                "constraints": [],
+            },
+            bases=("store.distributor",),
+        ),
+        migrations.CreateModel(
+            name="Note",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("object_id", models.PositiveIntegerField()),
+                ("text", models.TextField()),
+                (
+                    "content_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="contenttypes.contenttype",
+                    ),
+                ),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
         migrations.RunPython(make_sure_permissions_exist, reverse_code=migrations.RunPython.noop),
@@ -794,5 +1044,62 @@ class Migration(migrations.Migration):
                     )
                 );""",
             reverse_sql=migrations.RunSQL.noop,
+        ),
+        migrations.CreateModel(
+            name="HistoricalInvoiceLine",
+            fields=[
+                ("id", models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID")),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=12)),
+                ("history_id", models.AutoField(primary_key=True, serialize=False)),
+                ("history_date", models.DateTimeField(db_index=True)),
+                ("history_change_reason", models.CharField(max_length=100, null=True)),
+                (
+                    "history_type",
+                    models.CharField(choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")], max_length=1),
+                ),
+                (
+                    "history_relation",
+                    models.ForeignKey(
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="history_records",
+                        to="store.invoiceline",
+                    ),
+                ),
+                (
+                    "history_user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "invoice",
+                    models.ForeignKey(
+                        blank=True,
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        related_name="+",
+                        to="store.invoice",
+                    ),
+                ),
+            ],
+            options={
+                "verbose_name": "historical invoice line",
+                "verbose_name_plural": "historical invoice lines",
+                "ordering": ("-history_date", "-history_id"),
+                "get_latest_by": ("history_date", "history_id"),
+            },
+            bases=(simple_history.models.HistoricalChanges, models.Model),
         ),
     ]

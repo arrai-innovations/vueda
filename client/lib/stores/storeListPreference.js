@@ -29,6 +29,7 @@ const saveToLocalStorage = (data) => {
  * @property {string[]=} hiddenColumns           - Columns that should be hidden.
  * @property {object=} filters  - Filters keyed by field/param name.
  * @property {string[]=} sorting - Sorting configuration.
+ * @property {(number|string)=} perPage - Rows per page (a number, or the all-pages sentinel `"all"`).
  *
  * @typedef ListPreferenceState
  * @property {boolean} initialized
@@ -45,17 +46,21 @@ const saveToLocalStorage = (data) => {
  *     getFilters: (state: ListPreferenceState) =>
  *       (args: ListPreferenceArgs) => Record<string, unknown>,
  *     getSorting: (state: ListPreferenceState) =>
- *       (args: ListPreferenceArgs) => ListPreferenceSortingItem[] | null,
+ *       (args: ListPreferenceArgs) => string[] | null,
+ *     getPerPage: (state: ListPreferenceState) =>
+ *       (args: ListPreferenceArgs) => number | string | null,
  *   },
  *   {
  *     init: () => void,
  *     setHiddenColumns: (args: ListPreferenceArgs, hiddenColumns: string[]) => void,
  *     setFilters: (args: ListPreferenceArgs, filters: Record<string, unknown>) => void,
- *     setSorting: (args: ListPreferenceArgs, sorting: ListPreferenceSortingItem[]) => void,
+ *     setSorting: (args: ListPreferenceArgs, sorting: string[]) => void,
+ *     setPerPage: (args: ListPreferenceArgs, perPage: number | string) => void,
  *     clearPreferences: (args: ListPreferenceArgs) => void,
  *     clearHiddenColumns: (args: ListPreferenceArgs) => void,
  *     clearFilters: (args: ListPreferenceArgs) => void,
  *     clearSorting: (args: ListPreferenceArgs) => void,
+ *     clearPerPage: (args: ListPreferenceArgs) => void,
  *   }
  * >} ListPreferenceStore
  */
@@ -89,7 +94,14 @@ export const storeListPreference = defineStore("listPreference", {
         getSorting: (state) => (args) => {
             const key = getAppModelDotName(args);
             const prefs = state.preferences[key];
-            return prefs?.sorting ? { ...prefs.sorting } : null;
+            return Array.isArray(prefs?.sorting) ? [...prefs.sorting] : null;
+        },
+
+        getPerPage: (state) => (args) => {
+            const key = getAppModelDotName(args);
+            const prefs = state.preferences[key];
+            const perPage = prefs?.perPage;
+            return typeof perPage === "number" || typeof perPage === "string" ? perPage : null;
         },
     },
     actions: {
@@ -123,6 +135,12 @@ export const storeListPreference = defineStore("listPreference", {
             this._updatePreference(key, "sorting", hasValue ? sorting : undefined);
         },
 
+        setPerPage(args, perPage) {
+            const key = getAppModelDotName(args);
+            const hasValue = typeof perPage === "number" || typeof perPage === "string";
+            this._updatePreference(key, "perPage", hasValue ? perPage : undefined);
+        },
+
         clearPreferences(args) {
             const key = getAppModelDotName(args);
             if (!(key in this.preferences)) {
@@ -145,6 +163,11 @@ export const storeListPreference = defineStore("listPreference", {
 
         clearSorting(args) {
             this.setSorting(args, []);
+        },
+
+        clearPerPage(args) {
+            const key = getAppModelDotName(args);
+            this._updatePreference(key, "perPage", undefined);
         },
 
         _updatePreference(key, preferenceKey, value) {

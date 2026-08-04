@@ -3,11 +3,10 @@ import { useTheme } from "@vueda/use/useTheme.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { computed, isReactive, reactive } from "vue";
 
-vi.mock("@vueda/use/useTheme.js", async () => {
-    return {
-        useTheme: vi.fn(),
-    };
-});
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+vi.mock("@vueda/use/useTheme.js", () => ({
+    useTheme: makeUseThemeMock(),
+}));
 
 describe("lib/use/useWidgetTheme.js", () => {
     beforeEach(() => {

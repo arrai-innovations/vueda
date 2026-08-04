@@ -1,7 +1,7 @@
 ---
 title: Build Nested/Inlined Writes
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -56,7 +56,7 @@ When a relation is **not included** in `e`, the serializer expects a PK value fo
 
 This means write requests must include matching `e` parameters:
 
-```
+```text
 POST /api/orders/?e=items&e=customer
 Content-Type: application/json
 

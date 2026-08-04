@@ -1,14 +1,11 @@
 """Monkey-patches Django permission codenames to use CRUDL naming conventions."""
 
-__all__ = (
-    "get_builtin_permissions",
-    "get_permission_codename",
-    "permission_names_mapping",
-)
+__all__ = ()
 
-# Imported in vueda.core.__init__.py
+# Must be imported in your project settings.py in order for things
+# to get patched before they are used to create permissions.
 
-# Patch get_permission_codename, so that it converts add, view, and change into create, read and update respectably.
+# Patch get_permission_codename, so that it converts add, view, and change into create, read and update respectively.
 # This appears to be the only way we can change the history table permissions, without patching more things.
 from django.conf import settings
 from django.contrib import auth
@@ -35,7 +32,7 @@ def get_permission_codename(action, opts):
 auth.get_permission_codename = get_permission_codename
 
 
-# Patch get_builtin_permissions, so that it converts add, view, and change into create, read and update respectably.
+# Patch get_builtin_permissions, so that it converts add, view, and change into create, read and update respectively.
 # This appears to be the only way we can change the history table permissions, without patching more things.
 from django.contrib.auth import management  # noqa E402
 
@@ -68,6 +65,26 @@ def get_builtin_permissions(opts):
 
 
 management._get_builtin_permissions = get_builtin_permissions
+
+
+# Patch Options.__init__ to inject "list" into default_permissions for every model.
+# This runs before any model modules are imported (patch_django is imported from settings.py),
+# so it covers all models including third-party ones. Models that explicitly declare
+# default_permissions in their Meta override this via contribute_to_class, so VuedaModel
+# and any model that opts out of "list" are unaffected.
+from django.db.models.options import Options as _Options  # noqa E402
+
+_original_options_init = _Options.__init__
+
+
+def _patched_options_init(self, meta, app_label=None):
+    _original_options_init(self, meta, app_label)
+    if "list" not in self.default_permissions:
+        self.default_permissions = self.default_permissions + ("list",)
+
+
+_Options.__init__ = _patched_options_init
+
 
 # We also need to patch the perms_map in vueda\core\permissions.py and
 # vueda\workflow\permissions.py, if the permissions are not set to the default.

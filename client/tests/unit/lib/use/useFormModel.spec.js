@@ -1,4 +1,4 @@
-import { scopedIt } from "@tests/unit/utils.js";
+import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 
 describe("lib/use/useFormModel.js", () => {
@@ -75,7 +75,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
             await flushPromises();
@@ -122,7 +122,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -153,7 +153,7 @@ describe("lib/use/useFormModel.js", () => {
                 expandDetails: {},
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -183,7 +183,7 @@ describe("lib/use/useFormModel.js", () => {
                 expandDetails: {},
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -223,7 +223,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -252,7 +252,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -260,7 +260,7 @@ describe("lib/use/useFormModel.js", () => {
             expect(state.computedFields).toEqual([]);
             expect(state.fieldProps.name.contextless).toBe(false);
         });
-        scopedIt("uses FieldString for computed fields", async () => {
+        scopedIt("uses FormField for computed fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
             const { availableFields } = await import("@vueda/utils/formLookups.js");
 
@@ -278,12 +278,12 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
 
-            expect(state.fieldComponents.score).toStrictEqual(availableFields.FieldString);
+            expect(state.fieldComponents.score).toStrictEqual(availableFields.FormField);
         });
         scopedIt("uses prop.fields when both prop and config supply fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -301,7 +301,7 @@ describe("lib/use/useFormModel.js", () => {
             });
             modelConfig.config.fields = ["name"];
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -331,7 +331,7 @@ describe("lib/use/useFormModel.js", () => {
             });
             modelConfig.config.fieldProps = { code: { readOnly: true } };
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -375,7 +375,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -401,12 +401,12 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
 
-            expect(state.fieldProps.rating.maxFractionDigits).toBe(2);
+            expect(state.fieldProps.rating.validation).toBe("numeric");
         });
         scopedIt("defaults readOnly to false when field detail omits property", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -424,13 +424,60 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
 
             expect(state.fieldProps.name.readOnly).toBe(false);
             expect(state.widgetProps.name.readOnly).toBe(false);
+        });
+        scopedIt("sets orientation=read on fieldProps when view=read", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+            const props = makeBaseProps({
+                view: "read",
+                fields: ["name"],
+                fieldDetails: {
+                    name: {
+                        name: "name",
+                        typeSerializer: "CharField",
+                        typeModel: "CharField",
+                        many: false,
+                        readOnly: false,
+                    },
+                },
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
+            await flushPromises();
+
+            expect(state.fieldProps.name.orientation).toBe("read");
+        });
+        scopedIt("does not set orientation on fieldProps for non-read views", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+            const props = makeBaseProps({
+                fields: ["name"],
+                fieldDetails: {
+                    name: {
+                        name: "name",
+                        typeSerializer: "CharField",
+                        typeModel: "CharField",
+                        many: false,
+                        readOnly: false,
+                    },
+                },
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
+            await flushPromises();
+
+            expect(state.fieldProps.name.orientation).toBeUndefined();
         });
     });
     describe("expand field resolution", () => {
@@ -457,7 +504,7 @@ describe("lib/use/useFormModel.js", () => {
             });
             let errorThrown = null;
             try {
-                useFormModel(props);
+                await withSetup(() => useFormModel(props));
                 modelConfig.config.fieldDetails = props.fieldDetails;
                 await vue.nextTick();
             } catch (err) {
@@ -489,7 +536,7 @@ describe("lib/use/useFormModel.js", () => {
             });
             let errorThrown = null;
             try {
-                useFormModel(props);
+                await withSetup(() => useFormModel(props));
                 modelConfig.config.fieldDetails = props.fieldDetails;
                 modelConfig.config.expandDetails = props.expandDetails;
                 await vue.nextTick();
@@ -532,7 +579,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -564,7 +611,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -595,7 +642,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -606,7 +653,7 @@ describe("lib/use/useFormModel.js", () => {
         });
         scopedIt("maps GeneratedField using typeDb mapping", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
 
             const props = makeBaseProps({
                 fields: ["amount"],
@@ -622,17 +669,16 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
 
-            expect(state.fieldComponents.amount).toStrictEqual(
-                defaultFieldMappings.ModelField.GeneratedField.FloatField.component,
-            );
+            expect(state.fieldComponents.amount).toStrictEqual(availableFields.FormField);
         });
         scopedIt("uses default mapping when typeModel is missing", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
             const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
 
             const props = makeBaseProps({
@@ -647,16 +693,17 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
 
-            expect(state.fieldComponents.title).toStrictEqual(defaultFieldMappings.CharField.CharField.component);
+            expect(state.fieldComponents.title).toStrictEqual(availableFields.FormField);
             expect(state.widgetComponents.title).toStrictEqual(defaultFieldMappings.CharField.CharField.widget);
         });
-        scopedIt("throws when no field or widget mapping exists for typeModel", async () => {
+        scopedIt("resolves FormField for unknown typeModel but throws for widget", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
 
             const props = makeBaseProps({
                 fields: ["title"],
@@ -671,21 +718,19 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
 
-            expect(() => state.fieldComponents.title).toThrow(
-                'No field component found for field "title" in app "foo" model "bar"',
-            );
+            expect(state.fieldComponents.title).toStrictEqual(availableFields.FormField);
             expect(() => state.widgetComponents.title).toThrow(
                 'No widget component found for field "title" in app "foo" model "bar"',
             );
         });
         scopedIt("uses choice field component when choices provided", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
-            const { choiceFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
 
             const props = makeBaseProps({
                 fields: ["kind"],
@@ -701,12 +746,12 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
 
-            expect(state.fieldComponents.kind).toStrictEqual(choiceFieldMappings.ChoiceField.CharField.component);
+            expect(state.fieldComponents.kind).toStrictEqual(availableFields.FormField);
         });
         scopedIt("uses many field / widget mappings when many=true", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -724,7 +769,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -759,7 +804,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -787,7 +832,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -812,11 +857,11 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             await flushPromises();
 
-            expect(state.widgetComponents.status).toStrictEqual(availableWidgets.WidgetMultiSelect);
+            expect(state.widgetComponents.status).toStrictEqual(availableWidgets.WidgetCombobox);
         });
         scopedIt("infers FieldSetStackedInline for expanded many fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -839,7 +884,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -867,7 +912,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -894,7 +939,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
 
             await flushPromises();
@@ -921,7 +966,7 @@ describe("lib/use/useFormModel.js", () => {
                 },
             });
 
-            const state = useFormModel(props);
+            const state = await withSetup(() => useFormModel(props));
             modelConfig.config.fieldDetails = props.fieldDetails;
             modelConfig.config.expandDetails = props.expandDetails;
 
@@ -943,10 +988,10 @@ describe("lib/use/useFormModel.js", () => {
                 fieldDetails: {},
                 expandDetails: {},
             });
-            expect(() => useFormModel(props)).not.toThrow();
+            await withSetup(() => useFormModel(props));
             let errorThrown = null;
             try {
-                useFormModel(props);
+                await withSetup(() => useFormModel(props));
                 modelConfig.config.fieldDetails = { test: {} };
                 await vue.nextTick();
             } catch (err) {
@@ -1034,7 +1079,7 @@ describe("lib/use/useFormModel.js", () => {
             };
 
             const expandField = {
-                expandDetail: { app_label: "app", model: "Model" },
+                expandDetail: { appLabel: "app", model: "Model" },
                 expandFieldName: "title",
             };
 

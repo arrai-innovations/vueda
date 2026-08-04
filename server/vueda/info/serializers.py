@@ -16,9 +16,11 @@ import django_filters
 from django.conf import settings
 from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import RangeField
 from django.core import validators
+from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import StepValueValidator
 from django.db import connection
 from django.db.models import Expression
@@ -33,10 +35,16 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.fields import _UnvalidatedField
 
 from vueda.core.open_api import replace_refs_with_schema
+from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
+from vueda.core.serializers import VuedaReadonlySerializer
 from vueda.core.utils import AvailableActionsRequest
 from vueda.info import open_api_tracebacks
 from vueda.info.registration import get_registration
+from vueda.info.registration import get_serializer_for_model
+
+
+PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
 METHOD_MAPPING = {
@@ -56,9 +64,6 @@ FIELD_TYPE_MAPPING = {
     "BinaryField": "alpha",
     "BooleanField": "boolean",
     "CharField": "alpha",
-    "CICharField": "alpha",
-    "CIEmailField": "alpha",
-    "CITextField": "alpha",
     "DateField": "date",
     "DateTimeField": "datetime",
     "DecimalField": "numeric",
@@ -117,11 +122,69 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
     def get_verbose_name_plural(self, instance: object) -> str:
         return instance.model_class()._meta.verbose_name_plural
 
+    @property
+    def data(self):
+        # Local imports, because apps may not be set up.
+        from vueda.workflow.models import HasWorkflowModelMixin
+        from vueda.workflow.models import Workflow
+        from vueda.workflow.serializers import HasWorkflowSerializerMixin
+        from vueda.workflow.views import HasWorkflowViewMixin
+
+        serializer = self.canonical["serializer"]
+        viewset = self.canonical["viewset"]
+        model = serializer.Meta.model
+
+        errors = []
+
+        if not issubclass(model, HasWorkflowModelMixin):
+            errors.append(f"{model.__name__} is missing HasWorkflowModelMixin inheritance.")
+
+        if not issubclass(serializer, HasWorkflowSerializerMixin):
+            errors.append(f"{serializer.__name__} is missing HasWorkflowSerializerMixin inheritance.")
+
+        if viewset is not None and not issubclass(viewset, HasWorkflowViewMixin):
+            errors.append(f"{viewset.__name__} is missing HasWorkflowViewMixin inheritance.")
+
+        if not Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists():
+            errors.append(f"{model.__name__} has no workflow configured.")
+
+        # If the length of errors becomes 4 (everything errored) or 3 if no viewset,
+        # then workflow is not set up for this model.
+        if errors and len(errors) != (4 if viewset is not None else 3):
+            raise ImproperlyConfigured(errors)
+
+        ret = super().data
+        return ret
+
     def get_model_permissions(self, instance):
         """
-        Get the permissions for a model.
+        Get the permissions for a model. Read-only serializers only ever expose list/retrieve
+        actions, so their create/update/delete permissions (which may still exist in the
+        database, since the model itself keeps the standard CRUDL permission set) are filtered
+        out here rather than restricted on the model.
         """
-        return list(Permission.objects.filter(content_type=instance).values("codename", "name"))
+        permissions = Permission.objects.filter(content_type=instance)
+
+        model = instance.model_class()
+        serializer = get_serializer_for_model(model) if model is not None else None
+
+        if serializer is not None and issubclass(serializer, VuedaReadonlySerializer):
+            permission_read_name = "read"
+            if "read" in PERMISSION_NAMES_MAPPING:
+                permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+
+            permission_list_name = "list"
+            if "list" in PERMISSION_NAMES_MAPPING:
+                permission_list_name = PERMISSION_NAMES_MAPPING["list"]
+
+            permissions = permissions.filter(
+                codename__in=(
+                    f"{permission_read_name}_{instance.model}",
+                    f"{permission_list_name}_{instance.model}",
+                )
+            )
+
+        return list(permissions.values("codename", "name"))
 
     def get_model_fields_min_data(self, field, model_field):
         if hasattr(model_field, "field"):
@@ -272,7 +335,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
             effective_label = field.label or field_name.replace("_", " ").title()
 
-            model_field = getattr(serializer.Meta.model, field_name, None)
+            if isinstance(field, CompositePrimaryKeyField):
+                model_field = serializer.Meta.model._meta.get_field(field_name)
+
+            else:
+                model_field = getattr(serializer.Meta.model, field_name, None)
 
             lookup_expression = f"{field_name}_lookup_expression"
             if hasattr(serializer.Meta.model, lookup_expression):
@@ -291,6 +358,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
             field_data = {
                 "choices": False,
+                "hidden": field.style.get("hidden", False),
                 "label": effective_label,
                 "many": many,
                 "read_only": field.read_only,
@@ -308,26 +376,36 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 field_data["choices"] = choices
                 if extra_data:
                     field_data.update(extra_data)
-            if field.help_text is not None:
-                field_data["help_text"] = field.help_text
-            max_value = self.get_model_fields_max_data(field, model_field)
-            if max_value is not None:
-                field_data["max_value"] = max_value
-            min_value = self.get_model_fields_min_data(field, model_field)
-            if min_value is not None:
-                field_data["min_value"] = min_value
-            if hasattr(field, "max_length") and field.max_length:
-                field_data["max_length"] = field.max_length
-            if hasattr(field, "min_length") and field.min_length:
-                field_data["min_length"] = field.min_length
-            if hasattr(field, "max_digits") and field.max_digits:
-                field_data["max_digits"] = field.max_digits
-            if hasattr(field, "decimal_places") and field.decimal_places is not None:
-                field_data["decimal_places"] = field.decimal_places
-            if field_name == pk_field:
-                field_data["pk"] = True
+            elif isinstance(field, (serializers.RelatedField, serializers.ManyRelatedField)):
+                # For read-only relation fields, emit app_label + model without offering choices.
+                ro_meta = self._get_readonly_relation_meta(field, model_field)
+                if ro_meta is not None:
+                    field_data["app_label"] = ro_meta.app_label
+                    field_data["model"] = ro_meta.model_name
+            self._apply_field_constraints(field_data, field, model_field, field_name, pk_field)
             fields[field_name] = field_data
         return fields
+
+    def _apply_field_constraints(self, field_data, field, model_field, field_name, pk_field):
+        """Apply optional constraint metadata (help text, numeric limits, length, pk flag) to a field data dict."""
+        if field.help_text is not None:
+            field_data["help_text"] = field.help_text
+        max_value = self.get_model_fields_max_data(field, model_field)
+        if max_value is not None:
+            field_data["max_value"] = max_value
+        min_value = self.get_model_fields_min_data(field, model_field)
+        if min_value is not None:
+            field_data["min_value"] = min_value
+        if hasattr(field, "max_length") and field.max_length:
+            field_data["max_length"] = field.max_length
+        if hasattr(field, "min_length") and field.min_length:
+            field_data["min_length"] = field.min_length
+        if hasattr(field, "max_digits") and field.max_digits:
+            field_data["max_digits"] = field.max_digits
+        if hasattr(field, "decimal_places") and field.decimal_places is not None:
+            field_data["decimal_places"] = field.decimal_places
+        if field_name == pk_field:
+            field_data["pk"] = True
 
     # re: naming, we don't want to conflict with super's get_fields, we are unrelated to that method
     def get_model_fields(self, instance):
@@ -439,7 +517,23 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # Similar to actions, we'll need to have a canonical serializer to determine what expands are available
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
 
-        return serializer().get_expandable_fields()
+        expands = serializer().get_expandable_fields()
+        fields_param = settings.REST_FLEX_FIELDS["FIELDS_PARAM"]
+
+        generic_foreign_key_names = {
+            field.name for field in serializer.Meta.model._meta.private_fields if isinstance(field, GenericForeignKey)
+        }
+
+        for expand in expands:
+            if fields_param in expand:
+                for field in expand[fields_param].values():
+                    field.setdefault("hidden", False)
+            if expand["name"] in generic_foreign_key_names:
+                expand["type_db"] = None
+                expand["type_model"] = "GenericForeignKey"
+                expand["type_serializer"] = "GenericForeignKeySerializer"
+
+        return expands
 
     def get_ordering_data(self, model, order_by, *, include_ascending=True):
         ordering_data = {}
@@ -500,7 +594,6 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
         if viewset is None:
             model = instance.model_class()
-
         else:
             queryset = viewset().get_queryset()
             model = queryset.model
@@ -567,6 +660,45 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         elif hasattr(widget, "choices"):
             return widget.choices
         return False
+
+    @staticmethod
+    def _get_readonly_relation_meta(field, model_field):
+        """
+        Resolve the related-model ``_meta`` for a read-only relation field.
+
+        Tries three sources in order:
+
+        1. ``field.queryset.model._meta``: read-only PrimaryKeyRelatedField/SlugRelatedField
+           that still carries a queryset (rare but valid).
+        2. ``field.child_relation.queryset.model._meta``: read-only ManyRelatedField
+           whose child carries a queryset.
+        3. ``model_field.field.related_model._meta``: no queryset available; derive from
+           the underlying Django model field descriptor (ForwardManyToOneDescriptor etc.).
+
+        Returns ``None`` when no related model can be determined.
+
+        :param field: A read-only DRF field.
+        :type field: rest_framework.fields.Field
+        :param model_field: The model attribute retrieved via ``getattr(serializer.Meta.model, field_name, None)``.
+        :return: The ``Options`` (_meta) of the related model, or ``None``.
+        :rtype: Optional[django.db.models.options.Options]
+        """
+        # 1. Field carries its own queryset (e.g. PrimaryKeyRelatedField(read_only=True, queryset=...)).
+        if hasattr(field, "queryset") and field.queryset is not None:
+            return field.queryset.model._meta
+        # 2. ManyRelatedField with a child that has a queryset.
+        if (
+            hasattr(field, "child_relation")
+            and hasattr(field.child_relation, "queryset")
+            and field.child_relation.queryset is not None
+        ):
+            return field.child_relation.queryset.model._meta
+        # 3. Derive from the Django model field descriptor.
+        if model_field is not None and hasattr(model_field, "field") and hasattr(model_field.field, "related_model"):
+            related_model = model_field.field.related_model
+            if related_model is not None:
+                return related_model._meta
+        return None
 
     @staticmethod
     def get_choices_meta(field, obj, choices):

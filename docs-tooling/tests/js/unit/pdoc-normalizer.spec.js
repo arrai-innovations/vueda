@@ -95,4 +95,34 @@ describe("PdocNormalizer", () => {
         expect(output.roots).toEqual(["py:module:vueda.example"]);
         expect(output.nodes.some((node) => node.kind === "class")).toBe(true);
     });
+
+    it("maps @deprecated docstring tags to canonical lifecycle metadata", async () => {
+        const normalizer = new PdocNormalizer();
+        const payload = {
+            module_names: ["vueda.example"],
+            docs: [
+                {
+                    kind: "module",
+                    name: "example",
+                    fullname: "vueda.example",
+                    modulename: "vueda.example",
+                    qualname: "",
+                    docstring: "Example module.\n\n@deprecated Use vueda.new_example instead.",
+                    members: [],
+                    submodules: [],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+
+        await assertCanonical(output);
+
+        const moduleNode = output.nodes.find((node) => node.id === "py:module:vueda.example");
+        expect(moduleNode.description).toBe("Example module.");
+        expect(moduleNode.lifecycle).toEqual({
+            status: "deprecated",
+            description: "Use vueda.new_example instead.",
+        });
+    });
 });

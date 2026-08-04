@@ -6,6 +6,19 @@ commit-msg:
 pre-commit:
     parallel: false
     commands:
+        fix-file-modes:
+            glob: "**/*.{py,js,cjs,mjs,ts,tsx,vue,css,scss,less,json,yml,yaml,toml,md,html}"
+            run: |
+                for f in {staged_files}; do
+                    if [ "$(git ls-files --format '%(objectmode)' -- "$f")" = "100755" ]; then
+                        if git show :"$f" 2>/dev/null | head -1 | grep -q '^#!'; then
+                            continue
+                        fi
+                        git update-index --chmod=-x -- "$f"
+                        chmod -x "$f"
+                        echo "fix-file-modes: removed +x from $f"
+                    fi
+                done
         ruff-check:
             root: "."
             run: |
@@ -55,7 +68,6 @@ pre-commit:
                 - ".venv/**"
                 - "**/.venv/**"
                 - "**/node_modules/**"
-                - "server/**/migrations/**"
             run: |
                 uv run --group dev --no-sync ruff check --fix --show-fixes {staged_files}
                 uv run --group dev --no-sync ruff format {staged_files}
@@ -117,9 +129,14 @@ pre-commit:
                 - "docs/.vitepress/**"
                 - "**/AGENTS.md"
             run: docs-tooling/bin/docs-tooling.js validate --files {staged_files}
+        validate-doc-sources:
+            glob:
+                - "client/lib/theme/vueda-tailwind/**/*.js"
+            run: docs-tooling/bin/docs-tooling.js validate-sources --files {staged_files}
         circleci-config:
+            glob: ".circleci/*.yml"
             run: |
-                readarray -t files < <(git diff --name-only --cached -- '.circleci/*.yml')
-                for file in ${files[@]}; do
-                  circleci config validate ${file}
+                command -v circleci > /dev/null 2>&1 || exit 0
+                for file in {staged_files}; do
+                  circleci config validate "$file"
                 done

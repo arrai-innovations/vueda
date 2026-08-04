@@ -14,7 +14,9 @@ from vueda.history.fields import filter_fields_for_flexlike_on_historical_record
 
 
 class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
-    current_history_id = drf_serializers.IntegerField(read_only=True, label="Current History ID")
+    current_history_id = drf_serializers.IntegerField(
+        read_only=True, label="Current History ID", style={"hidden": True}
+    )
 
     class Meta:
         fields = ["current_history_id"]
@@ -226,21 +228,20 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
                         field["required"] = False
                     if "choices" not in field:
                         field["choices"] = False
+                    if "hidden" not in field:
+                        field["hidden"] = False
 
         return expandable_fields
 
     def get_schema_expandable_fields(self):  # pragma: no cover
         expandable_fields = super().get_schema_expandable_fields()
-
-        # TODO: Add first_history_entry, history, and last_history_entry to the list of expandable fields.
-
         return expandable_fields
 
     def get_first_history_entry(self, data):
         value_fields = filter_fields_for_flexlike_on_historical_records(self, "first_history_entry", data.__class__)
         if not value_fields:
             return {}
-        return data.history.values(*value_fields).first()
+        return data.history.values(*value_fields).last()
 
     def get_last_history_entry(self, data):
         value_fields = filter_fields_for_flexlike_on_historical_records(self, "last_history_entry", data.__class__)
@@ -249,11 +250,16 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
         return data.history.values(*value_fields).first()
 
     def return_annotated_instance(self, instance):
-        # return annotated instance for current_history_id
-        # todo: the instance won't get properly annotated if the field is nested.
-        annotated_instance = self.context["view"].get_queryset().filter(id=instance.id).first()
-        # nested writable reuses the same serializer class for creating and updating nested models.
-        return annotated_instance if type(annotated_instance) is type(instance) else instance
+        # Return the instance re-fetched through a queryset so current_history_id is populated
+        # (SimpleHistoryManager.get_queryset() annotates it; a bare create()/save() result won't have it).
+        # nested writable reuses the same serializer class for creating and updating nested models, so
+        # self.context["view"] may belong to a different (parent) model than `instance` -- in that case
+        # fall back to the instance's own model manager instead of the view's queryset.
+        view_queryset = self.context["view"].get_queryset()
+        model = type(instance)
+        queryset = view_queryset if view_queryset.model is model else model._default_manager
+        annotated_instance = queryset.filter(id=instance.id).first()
+        return annotated_instance if annotated_instance is not None else instance
 
     def create(self, validated_data):
         created_instance = super().create(validated_data)
@@ -278,17 +284,3 @@ class HistoricalModelSerializerMixin(drf_serializers.Serializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-    @classmethod
-    def get_historical_fields(cls):
-        """
-        Returns a list of historical fields added by the mixin.
-        """
-        return [
-            "history_id",
-            "history_date",
-            "history_change_reason",
-            "history_type",
-            "history_user",
-            "history_relation",
-        ]

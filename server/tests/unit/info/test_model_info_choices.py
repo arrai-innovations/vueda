@@ -1,11 +1,12 @@
 from http import HTTPStatus
-from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.expected_results_model_info_choices import EXPECTED_RESULTS
@@ -15,7 +16,7 @@ from vueda import info
 
 
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
             ("contenttypes", "ContentType", "read"),
@@ -47,8 +48,8 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "SpecialCare", "read"),
             ("store", "TangibleType", "list"),
             ("store", "TangibleType", "read"),
-            ("tests", "User", "list"),
-            ("tests", "User", "read"),
+            ("employee", "User", "list"),
+            ("employee", "User", "read"),
         ],
         "Customer": [
             ("contenttypes", "ContentType", "list"),
@@ -74,22 +75,22 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "SpecialCare", "read"),
             ("store", "TangibleType", "list"),
             ("store", "TangibleType", "read"),
-            ("tests", "User", "read"),
+            ("employee", "User", "read"),
         ],
     }
 
-    users_to_create = {
-        "test_admin@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer_1@example.com": {
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
         },
-        "test_customer_2@example.com": {
+        "test_customer_2@domain.invalid": {
             "name": "Test Customer 2",
             "password": "testpass",
             "groups": ["Customer"],
@@ -135,7 +136,7 @@ class TestModelInfoChoices:
         field_name,
         expected_choices,
     ):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -165,13 +166,13 @@ class TestModelInfoChoices:
                 | ("store", "inventoryrecord", "order_item")
                 | ("store", "cartitem", "cart")
             ):
-                assert response.status_code == HTTPStatus.FORBIDDEN, pformat(response.data)
+                assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
 
             case _:
                 assert response.status_code == HTTPStatus.OK, (
-                    f"{(app_label, model_name, field_name)}\n\n{pformat(response.data)}"
+                    f"{(app_label, model_name, field_name)}",
+                    response_body(response),
                 )
-
                 assert frozenset(result["label"] for result in response.data["results"]) == frozenset(expected_choices)
 
     @pytest.mark.parametrize(
@@ -188,7 +189,7 @@ class TestModelInfoChoices:
         field_name,
         expected_choices,
     ):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -206,7 +207,8 @@ class TestModelInfoChoices:
         )
 
         assert response.status_code == HTTPStatus.OK, (
-            f"{(app_label, model_name, field_name)}\n\n{pformat(response.data)}"
+            f"{(app_label, model_name, field_name)}",
+            response_body(response),
         )
 
         match (app_label, model_name, field_name):
@@ -221,7 +223,7 @@ class TestModelInfoChoices:
                 assert frozenset(result["label"] for result in response.data["results"]) == frozenset(expected_choices)
 
     def test_info_choices_list_non_choice_field_on_model_with_choice_fields(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -238,14 +240,14 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert (
             response.data["detail"]
             == "Invalid field 'name'. Valid fields with choices are special_care, tangible_type."
         )
 
     def test_info_choices_list_non_choice_field_on_model_with_no_choice_fields(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -262,11 +264,11 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert response.data["detail"] == "Invalid field 'name'. No choice fields found on store.Distributor."
 
     def test_info_choices_list_invalid_field_on_model_with_choice_fields(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -283,14 +285,14 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert (
             response.data["detail"]
             == "Invalid field 'named'. Valid fields with choices are special_care, tangible_type."
         )
 
     def test_info_choices_list_invalid_field_on_model_with_no_choice_fields(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -307,5 +309,5 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert response.data["detail"] == "Invalid field 'named'. No choice fields found on store.Distributor."

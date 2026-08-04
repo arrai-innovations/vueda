@@ -1,7 +1,7 @@
 ---
 title: Configure `list`/`read`/`create`/`update` Views
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -112,14 +112,14 @@ If an action is present in `actions` but missing from `actionDetails`, UI classi
 
 **`sortables`** controls which columns support sorting. The default is all ordering fields declared on the viewset. **`sorted`** sets the initial sort state; it defaults to empty, meaning no sort is applied until the user interacts.
 
-**Pagination flags:**
+**List controls:**
 
 - `showTotalRecordNum`: show the total record count in the list footer (default: `true`).
-- `allowShowAllPages`: allow the user to switch to an "all pages" view (default: `true`).
-- `alwaysShowAllPages`: force the "all pages" view without user toggle (default: `false`).
 - `allowColumnHiding`: allow the user to show/hide columns (default: `false`).
 
-List preferences (visible columns, sort state, page size) are persisted per-user when preference persistence is enabled. Config overrides set the initial defaults; user preferences take precedence after the first interaction.
+Configure the rows-per-page selector through the `ViewList` props `pageSizeOptions` and `defaultPageSize`. Include `"all"` in `pageSizeOptions` to let users load every page, or set `defaultPageSize="all"` to start in that mode.
+
+List preferences (visible columns, sort state, page size) are persisted per-user when preference persistence is enabled. Model config and `ViewList` prop overrides set the initial defaults; user preferences take precedence after the first interaction.
 
 ## Verification Checklist
 
@@ -132,7 +132,7 @@ With config overrides in place, verify the surface end-to-end:
 - Action buttons in `list` and `detail` views match the `actions` list. Detail actions, bulk actions, and targetless actions are classified correctly per `actionDetails`.
 - Navigating to an action excluded from `routeActions` produces an "Action Not Found" toast and redirects.
 - Filters and sort controls reflect the `filterables` and `sortables` overrides.
-- Pagination flags (`showTotalRecordNum`, `allowColumnHiding`, etc.) produce the expected UI behaviour.
+- List controls (`showTotalRecordNum`, `allowColumnHiding`, page-size options) produce the expected UI behaviour.
 
 ## Troubleshooting
 
@@ -140,7 +140,7 @@ With config overrides in place, verify the surface end-to-end:
 
 **Action button is missing from the view.** Check three things in order. First, confirm the action is present in the model-info response (`model_actions`); if not, the user may lack the permission. Second, check that the action is included in the `actions` config for that view. Third, verify that `actionDetails` has an entry for the action; a missing entry causes `useFilteredActions` to drop it.
 
-**"Action Not Found" toast on navigation.** `routeActions` is filtering the action out. Verify that `routeActions` uses server-canonical names (`retrieve`, `partial_update`, `destroy`) rather than client route names (`read`, `update`, `delete`).
+**"Action Not Found" toast on navigation.** `routeActions` is filtering the action out. Entries in `routeActions` are compared against the server action names from `model_actions` (`retrieve`, `update`, `partial_update`, `destroy`, and so on). The only client route name that differs from its server action name is `read`, which the guard normalizes to `retrieve`; every other route segment (`update`, `destroy`, etc.) already matches its server action name. Use `retrieve` rather than `read` in `routeActions`.
 
 **Create/update form rejects a field on submission.** `submitFields` includes a field that the server serializer does not accept for write operations (for example, a read-only field or a field not in the serializer's `fields` list). The server returns a 400 with a field-keyed validation error. Align `submitFields` with the server serializer's writable fields.
 

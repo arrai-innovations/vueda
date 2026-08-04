@@ -178,6 +178,49 @@ export class FormValidationError extends Error {
     }
 }
 /**
+ * Error thrown when the server responds 409 to a create/update because the change is valid but
+ * carries advisory warnings that have not been acknowledged. The form should surface the warnings,
+ * let the user confirm, and resubmit echoing `digest` so the server lets the write proceed.
+ *
+ * @extends {Error}
+ */
+export class ConfirmationRequiredError extends Error {
+    /**
+     * @param {object} responseData - The decoded 409 body: `{ confirmation_required, digest, warnings }`.
+     * @param {Response} response - The response object associated with the error.
+     */
+    constructor(responseData, response) {
+        super("Confirmation required");
+        this.name = "ConfirmationRequiredError";
+        /**
+         * The response object associated with the error.
+         * @type {Response}
+         */
+        this.response = response;
+        /**
+         * The decoded response body.
+         * @type {object}
+         */
+        this.responseData = responseData;
+        /**
+         * Digest of the warning set, echoed back to acknowledge it on resubmission.
+         * @type {string}
+         */
+        this.digest = responseData?.digest;
+        /**
+         * Warnings keyed by field path (with `non_field_errors` for form-level), shaped to feed
+         * `handleServerFormValidationError` so they render via `state.messages`.
+         * @type {{[path: string]: string[]}}
+         */
+        this.messages = responseData?.warnings ?? {};
+        /**
+         * A confirmation request carries no blocking errors.
+         * @type {{[path: string]: string[]}}
+         */
+        this.errors = {};
+    }
+}
+/**
  * Specific error class for responses interpreted as list filter errors from the server.
  *
  * @extends {Error}

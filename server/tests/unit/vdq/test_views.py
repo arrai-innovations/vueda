@@ -9,6 +9,7 @@ from django.core.files.base import ContentFile
 from django.test import override_settings
 from django.urls import reverse
 
+from tests.conftest import response_body
 from vueda.vdq.models import AnyMailQueueItem
 from vueda.vdq.models import AnyMailQueueItemAttachment
 from vueda.vdq.models import QueueItem
@@ -44,7 +45,7 @@ def test_twilio_webhook_updates_existing_queue_item(monkeypatch, api_client, sms
         HTTP_X_TWILIO_SIGNATURE="valid",
     )
 
-    assert response.status_code == HTTPStatus.NO_CONTENT
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
     assert len(handler_calls) == 1
     handler_queue_item, status_arg, kwargs = handler_calls[0]
     assert isinstance(handler_queue_item, QueueItem)
@@ -83,7 +84,7 @@ def test_twilio_webhook_queues_lookup_when_missing(monkeypatch, api_client):
         HTTP_X_TWILIO_SIGNATURE="valid",
     )
 
-    assert response.status_code == HTTPStatus.NO_CONTENT
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
     assert handler_created is False
     assert delay_calls == [("missing", "failed")]
 
@@ -120,7 +121,7 @@ def test_twilio_webhook_rejects_invalid_signature(monkeypatch, api_client):
         HTTP_X_TWILIO_SIGNATURE="bad-signature",
     )
 
-    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
     assert calls
     uri, data, signature = calls[0]
     assert signature == "bad-signature"
@@ -192,7 +193,7 @@ def test_twilio_webhook_fetches_twilio_message_for_error_code(monkeypatch, api_c
         HTTP_X_TWILIO_SIGNATURE="valid",
     )
 
-    assert response.status_code == HTTPStatus.NO_CONTENT
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
     assert calls
     assert fetched_messages == ["sid-123"]
     assert delay_calls == []
@@ -214,12 +215,12 @@ def test_private_attachment_view_returns_file(api_client, sender, receiver, tmp_
         )
         detail.attachments.add(attachment)
 
-        user = get_user_model().objects.create_user(email="user@example.com", password="pass", name="User")
+        user = get_user_model().objects.create_user(email="user@domain.invalid", password="pass", name="User")
         api_client.force_authenticate(user=user)
 
         response = api_client.get(reverse("private_attachment", kwargs={"pk": attachment.pk}))
 
-        assert response.status_code == HTTPStatus.OK
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response["Content-Type"] == "text/plain"
         content = b"".join(response.streaming_content)
         assert content == b"attachment-data"
@@ -229,14 +230,14 @@ def test_private_attachment_view_returns_file(api_client, sender, receiver, tmp_
 def test_private_attachment_view_requires_authentication(api_client):
     response = api_client.get(reverse("private_attachment", kwargs={"pk": 123}))
 
-    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
 
 
 @pytest.mark.django_db
 def test_private_attachment_view_handles_missing_file(api_client):
-    user = get_user_model().objects.create_user(email="user2@example.com", password="pass", name="User 2")
+    user = get_user_model().objects.create_user(email="user2@domain.invalid", password="pass", name="User 2")
     api_client.force_authenticate(user=user)
 
     response = api_client.get(reverse("private_attachment", kwargs={"pk": 9999}))
 
-    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)

@@ -2,24 +2,26 @@ from dateutil.relativedelta import relativedelta
 from django.db.models import F
 from django.http import Http404
 from django.utils.timezone import now
+from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
 
 import tests.store.filtersets as my_filtersets
 import tests.store.models as my_models
 import tests.store.serializers as my_serializers
-from tests.models import Product
 from tests.permissions import IsAdminUser
 from tests.permissions import IsCartOrOrderCreator
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import VuedaHistoryViewSet
+from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
 from vueda.workflow.views import HasWorkflowViewMixin
 
 
-class CustomerViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
+class CustomerViewSet(VuedaHistoryViewSet):
     queryset = my_models.Customer.objects.all()
     serializer_class = my_serializers.CustomerSerializer
     ordering_fields = ["user__email"]
@@ -27,6 +29,12 @@ class CustomerViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
     def get_allowed_extra_actions(self, request, *, instance=None):
         # Make 'current' and 'history-list' not allowed for admin or customer.
         return frozenset()
+
+
+class CustomerDataViewSet(VuedaReadOnlyViewSet):
+    queryset = my_models.CustomerData.objects.all()
+    serializer_class = my_serializers.CustomerDataSerializer
+    ordering_fields = ["formatted_name"]
 
 
 class DistributorViewSet(VuedaHistoryViewSet):
@@ -44,6 +52,22 @@ class DistributorViewSet(VuedaHistoryViewSet):
         return super().get_allowed_extra_actions(request, instance=instance)
 
 
+class DistributorTrigramSimilarViewSet(DistributorViewSet):
+    search_fields = ["#name"]
+
+
+class DistributorTrigramWordSimilarViewSet(DistributorViewSet):
+    search_fields = ["~name"]
+
+
+class DistributorRankedSearchViewSet(DistributorViewSet):
+    search_fields = ["V:name", "V:description"]
+
+
+class DistributorRankedDescriptionViewSet(DistributorViewSet):
+    search_fields = ["V:description"]
+
+
 class ProductViewSet(VuedaHistoryViewSet):
     queryset = my_models.Product.objects.all()
     serializer_class = my_serializers.ProductSerializer
@@ -54,7 +78,6 @@ class ProductViewSet(VuedaHistoryViewSet):
 class OptionTypeViewSet(VuedaViewSet):
     queryset = my_models.OptionType.objects.all()
     serializer_class = my_serializers.OptionTypeSerializer
-    ordering_fields = ["name"]
 
 
 class ProductOptionViewSet(VuedaHistoryViewSet):
@@ -83,7 +106,7 @@ class CartViewSet(VuedaViewSet):
         if request.data.get("fail"):
             raise VuedaValidationError({"detail": ["Action failed"]})
 
-        Product.objects.create(name="Dry Run Product", available_for_sale=True, buzz_words=[])
+        my_models.Distributor.objects.create(name="Dry Run", description="Dry Run Test")
         return Response({"created": True})
 
     @action(detail=True, methods=["post"], permission_classes=(IsCartOrOrderCreator,))
@@ -146,7 +169,90 @@ class InventoryRecordViewSet(VuedaViewSet):
     ordering_fields = ["when", "reason", "quantity"]
 
 
+class ProductM2MSearchViewSet(ProductViewSet):
+    search_fields = ["V:special_care__field_that_contains_the_name"]
+
+
+class DistributorMixedRankedAndWordSimilarViewSet(DistributorViewSet):
+    """Mixes V: (ranked) and ~ (trigram word similar) prefixes to expose a classification bug."""
+
+    search_fields = ["V:name", "~description"]
+
+
 class PackingBoxViewSet(VuedaViewSet):
     queryset = my_models.PackingBox.objects.all()
     serializer_class = my_serializers.PackingBoxSerializer
     ordering_fields = ["name"]
+
+
+class InvoiceViewSet(VuedaViewSet):
+    queryset = my_models.Invoice.objects.all()
+    serializer_class = my_serializers.InvoiceSerializer
+    ordering_fields = ["name"]
+
+
+class InvoiceBaseViewSet(ModelViewSet):
+    """Plain drf_writable_nested viewset — no vueda fixes applied."""
+
+    queryset = my_models.Invoice.objects.all()
+    serializer_class = my_serializers.InvoiceBaseSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+class OrderCompositePKViewSet(VuedaViewSet):
+    queryset = my_models.OrderCompositePK.objects.all()
+    serializer_class = my_serializers.OrderCompositePKSerializer
+    ordering_fields = ["order_number", "order_date"]
+
+
+class OrderItemCompositePKViewSet(VuedaViewSet):
+    queryset = my_models.OrderItemCompositePK.objects.all()
+    serializer_class = my_serializers.OrderItemCompositePKSerializer
+    filterset_class = my_filtersets.OrderItemCompositePKFilterSet
+    ordering_fields = ["order", "product", "quantity"]
+
+    @action(detail=False, methods=["post"], permission_classes=(), bulk=True)
+    def test_action(self, request):
+        return Response(status=204)
+
+
+class OrderItemAltCompositePKViewSet(VuedaViewSet):
+    queryset = my_models.OrderItemAltCompositePK.objects.all()
+    serializer_class = my_serializers.OrderItemAltCompositePKSerializer
+
+
+class DistributorProxyViewSet(VuedaHistoryViewSet):
+    queryset = my_models.DistributorProxy.objects.all()
+    serializer_class = my_serializers.DistributorProxySerializer
+    filterset_class = my_filtersets.DistributorProxyFilterSet
+    ordering_fields = ["name"]
+    ordering = ["name"]
+
+    def get_allowed_extra_actions(self, request, *, instance=None):
+        if "Customer" in request.user.groups.values_list("name", flat=True):
+            return frozenset()
+        return super().get_allowed_extra_actions(request, instance=instance)
+
+
+class NoteViewSet(VuedaViewSet):
+    queryset = my_models.Note.objects.all()
+    serializer_class = my_serializers.NoteSerializer
+    permit_list_expands = ["content_object"]
+    permit_retrieve_expands = ["content_object"]
+    ordering_fields = ["content_type", "object_id"]
+
+
+class AnotherNoteViewSet(VuedaViewSet):
+    queryset = my_models.Note.objects.all()
+    serializer_class = my_serializers.AnotherNoteSerializer
+    permit_list_expands = ["content_object"]
+    permit_retrieve_expands = ["content_object"]
+    ordering_fields = ["content_type", "object_id"]
+
+
+class NoteStaticOmitViewSet(VuedaViewSet):
+    queryset = my_models.Note.objects.all()
+    serializer_class = my_serializers.NoteStaticOmitSerializer
+    permit_list_expands = ["content_object"]
+    permit_retrieve_expands = ["content_object"]
+    ordering_fields = ["content_type", "object_id"]

@@ -1,7 +1,7 @@
 ---
 title: Permissions
 type: reference
-audience: implementor
+audience: integrator
 status: draft
 ---
 

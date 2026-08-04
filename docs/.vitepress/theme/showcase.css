@@ -1,0 +1,43 @@
+/* Tailwind utilities + vueda token layer for component showcases.
+ *
+ * VuedaDemo imports this file as inline CSS and injects it into each demo
+ * shadow root. That keeps VitePress default theme selectors out of component
+ * showcases while still loading the same Tailwind bundle and vueda token layer
+ * a consuming app would use.
+ */
+@import "tailwindcss";
+@import "@vueda/theme/vueda-tailwind/base.css";
+
+/* Scan docs-only content for class names. base.css already registers
+ * `@source "../../"` for the vueda client lib (resolved via the package
+ * realpath), so the client lib does not need re-scanning here. These two
+ * cover what base.css does not: authored reference markdown and this dir. */
+@source "../../reference/";
+@source "./";
+
+/* ---------- Forced-state shim (docs-only) ----------
+ * Paints hover / focus-visible / disabled visuals on real vueda components
+ * without real pointer interaction, so component state-matrix pages can
+ * show every state at a glance.
+ *
+ * Mirrors the variant rules in
+ *   client/lib/theme/vueda-tailwind/controls/index.js
+ * Keep selectors and color formulas in sync when those rules change.
+ *
+ * Convention: wrap showcase markup in <ForceState state="hover|focus|disabled">.
+ */
+
+/* Redefine the `hover` and `focus-visible` Tailwind variants so they match
+ * either the real pseudo-class OR a `.force-state-*` ancestor. Every existing
+ * `hover:` / `focus-visible:` utility in the vueda theme then responds to
+ * <ForceState> automatically, with no per-variant shim to maintain. */
+@custom-variant hover (&:hover, .force-state-hover &);
+@custom-variant focus-visible (&:focus-visible, .force-state-focus &);
+
+/* `disabled:` covers visuals like `disabled:opacity-50 disabled:pointer-events-none`,
+ * but not the actual disabled attribute. Buttons in the matrix that need the
+ * disabled treatment should pass the real `disabled` prop; this variant just
+ * keeps the visual side consistent if the wrapper is used on non-buttons. */
+@custom-variant disabled (&:disabled, .force-state-disabled &);
+
+@custom-variant active (&:active, .force-state-active &);

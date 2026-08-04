@@ -1,0 +1,16 @@
+{
+  "name": "{{ project_slug }}-monorepo",
+  "private": true{% if js_package_manager != "pnpm" %},
+  "workspaces": [
+    "client"
+  ]{% endif %},
+  "scripts": {
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@arrai-innovations/commitlint-config": "^2.1.0",
+    "@commitlint/cli": "^19.8.1",
+    "concurrently": "^9.2.1",
+    "lefthook": "^1.13.6"
+  }
+}

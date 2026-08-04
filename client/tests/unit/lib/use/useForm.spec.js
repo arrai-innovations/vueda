@@ -383,7 +383,7 @@ describe("lib/use/useForm.js", () => {
             });
         });
         describe("Ignored Fields & Reset Behavior", () => {
-            describe.skip("ignored", () => {});
+            describe.todo("ignored");
             describe("anyIgnored", () => {
                 scopedIt("should not allow updates directly", () => {
                     const { formContext } = getForm({});
@@ -424,6 +424,15 @@ describe("lib/use/useForm.js", () => {
                     expect(formContext.state.focused).toBeNull();
                     expect(formContext.state.anyTouched).toBe(false);
                     expect(formContext.state.anyError).toBe(false);
+                    expect(formContext.state.submitted).toBe(false);
+                });
+                scopedIt("should clear submitted flag when reset after a submission attempt", () => {
+                    const { formContext } = getForm({ initialValues: { a: 1 } });
+                    formContext.reset(); // flip hasInitialized
+                    formContext.setAllTouched();
+                    expect(formContext.state.submitted).toBe(true);
+                    formContext.reset();
+                    expect(formContext.state.submitted).toBe(false);
                 });
                 scopedIt("should clone initial values deeply on reset", () => {
                     const original = { nested: { a: 1 } };
@@ -1483,7 +1492,7 @@ describe("lib/use/useForm.js", () => {
                     const { formContext } = getForm({
                         initialValues: {
                             name: "John",
-                            email: "john@example.com",
+                            email: "john@domain.invalid",
                             profile: {
                                 age: 30,
                                 bio: "Dev",
@@ -1565,6 +1574,13 @@ describe("lib/use/useForm.js", () => {
                     } finally {
                         stop();
                     }
+                });
+
+                scopedIt("should set submitted to true", () => {
+                    const { formContext } = getForm({ initialValues: { a: 1 } });
+                    expect(formContext.state.submitted).toBe(false);
+                    formContext.setAllTouched();
+                    expect(formContext.state.submitted).toBe(true);
                 });
             });
             describe("clearTouched", () => {
@@ -1989,13 +2005,13 @@ describe("lib/use/useForm.js", () => {
                 });
             });
         });
-        describe.skip("Hook Registrations", () => {
-            describe.skip("registerIsModifiedHook", () => {});
-            describe.skip("unregisterIsModifiedHook", () => {});
-            describe.skip("registerIsRequiredHook", () => {});
-            describe.skip("unregisterIsRequiredHook", () => {});
-            describe.skip("registerIsValidHook", () => {});
-            describe.skip("unregisterIsValidHook", () => {});
+        describe("Hook Registrations", () => {
+            describe.todo("registerIsModifiedHook");
+            describe.todo("unregisterIsModifiedHook");
+            describe.todo("registerIsRequiredHook");
+            describe.todo("unregisterIsRequiredHook");
+            describe.todo("registerIsValidHook");
+            describe.todo("unregisterIsValidHook");
         });
     });
     describe("lifecycle", () => {

@@ -1,0 +1,26 @@
+<script setup>
+import "@vueda/theme/vueda-tailwind/grid/TableHead.theme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+
+/**
+ * A table header cell with fixed height, left-aligned text, and checkbox support.
+ */
+defineOptions({});
+
+const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
+    /**
+     * Additional CSS classes to apply to the root element.
+     * @type {import('vue').HTMLAttributes['class']}
+     */
+    class: { type: [String, Array, Object], default: undefined },
+});
+
+const theme = useTheme("TableHead", props);
+</script>
+
+<template>
+    <th data-slot="table-head" :class="[theme('root'), props.class]" :style="theme.hideStyle?.value">
+        <slot />
+    </th>
+</template>

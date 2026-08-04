@@ -1,4 +1,9 @@
+import os
+import subprocess
+import sys
+
 import pytest
+from django.core import mail
 from django.test import override_settings
 
 from vueda.core.exceptions import VuedaValidationError
@@ -13,11 +18,11 @@ def test_send_sms_requires_caller_id(monkeypatch):
     monkeypatch.setattr("vueda.user.adapters.render_to_string", lambda *args, **kwargs: "body")
 
     with pytest.raises(VuedaValidationError) as exc_info:
-        adapter.send_sms("+15551230000", "Test User", "totp_code", {"code": "123456"})
+        adapter.send_sms("+18005550100", "Test User", "totp_code", {"code": "123456"})
     assert [str(error) for error in exc_info.value.detail] == ["SMS sending is not configured."]
 
 
-@override_settings(TWILIO_ACCOUNT_SID="TESTSID", TWILIO_AUTH_TOKEN="TESTAUTH", TWILIO_CALLER_ID="+15551239999")
+@override_settings(TWILIO_ACCOUNT_SID="TESTSID", TWILIO_AUTH_TOKEN="TESTAUTH", TWILIO_CALLER_ID="+18005550100")
 def test_send_sms_requires_destination(monkeypatch):
     adapter = DefaultUserAdapter()
     monkeypatch.setattr("vueda.user.adapters.render_to_string", lambda *args, **kwargs: "body")
@@ -30,7 +35,7 @@ def test_send_sms_requires_destination(monkeypatch):
 @override_settings(
     TWILIO_ACCOUNT_SID="TESTSID",
     TWILIO_AUTH_TOKEN="TESTAUTH",
-    TWILIO_CALLER_ID="+15551239999",
+    TWILIO_CALLER_ID="+18005550100",
     SITE_NAME="VUEDA",
 )
 @pytest.mark.django_db
@@ -54,25 +59,25 @@ def test_send_sms_sends_message(monkeypatch):
         captured["body"] = body
 
     monkeypatch.setattr("vueda.user.adapters.render_to_string", fake_render_to_string)
-    monkeypatch.setattr("vueda.user.adapters.add_sms", fake_add_sms)
+    monkeypatch.setattr("vueda.vdq.schedulers.add_sms", fake_add_sms)
 
-    adapter.send_sms("+15551230000", "Test User", "totp_code", {"code": "123456"})
+    adapter.send_sms("+18005550199", "Test User", "totp_code", {"code": "123456"})
 
     sender = captured["sender"]
     receiver = captured["receiver"]
 
     assert captured["body"] == "Use code 123456"
     assert sender.name == "SYSTEM"
-    assert sender.cell == "+15551239999"
+    assert sender.cell == "+18005550100"
     assert receiver.name == "Test User"
-    assert receiver.cell == "+15551230000"
-    assert Sender.objects.filter(cell="+15551239999").count() == 1
-    assert Receiver.objects.filter(cell="+15551230000").count() == 1
+    assert receiver.cell == "+18005550199"
+    assert Sender.objects.filter(cell="+18005550100").count() == 1
+    assert Receiver.objects.filter(cell="+18005550199").count() == 1
 
 
 @override_settings(
     SITE_NAME="VUEDA",
-    NO_REPLY_EMAIL="no-reply@example.com",
+    NO_REPLY_EMAIL="no-reply@domain.invalid",
     EMAIL_SUBJECT_PREFIX="[VUEDA] ",
 )
 @pytest.mark.django_db
@@ -122,17 +127,17 @@ def test_send_mail_sends_message(monkeypatch):
         )
 
     monkeypatch.setattr("vueda.user.adapters.render_to_string", fake_render_to_string)
-    monkeypatch.setattr("vueda.user.adapters.add_email", fake_add_email)
+    monkeypatch.setattr("vueda.vdq.schedulers.add_email", fake_add_email)
 
-    adapter.send_mail("user@example.com", "Test User", "totp_code", {"code": "123456"})
+    adapter.send_mail("user@domain.invalid", "Test User", "totp_code", {"code": "123456"})
 
     sender = captured["sender"]
     receivers = captured["to"]
 
     assert sender.name == "SYSTEM"
-    assert sender.email == "no-reply@example.com"
+    assert sender.email == "no-reply@domain.invalid"
     assert receivers[0].name == "Test User"
-    assert receivers[0].email == "user@example.com"
+    assert receivers[0].email == "user@domain.invalid"
     assert captured["subject"] == "[VUEDA] Daily Code"
     assert captured["text"] == "Use code 123456"
     assert captured["html"] == "<p>Use code 123456</p>"
@@ -141,5 +146,83 @@ def test_send_mail_sends_message(monkeypatch):
     assert captured["bcc"] is None
     assert captured["reply_to"] is None
     assert captured["attachments"] is None
-    assert Sender.objects.filter(email="no-reply@example.com").count() == 1
-    assert Receiver.objects.filter(email="user@example.com").count() == 1
+    assert Sender.objects.filter(email="no-reply@domain.invalid").count() == 1
+    assert Receiver.objects.filter(email="user@domain.invalid").count() == 1
+
+
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    SITE_NAME="VUEDA",
+    NO_REPLY_EMAIL="no-reply@domain.invalid",
+    EMAIL_SUBJECT_PREFIX="[VUEDA] ",
+)
+def test_send_mail_without_vdq_sends_synchronously(monkeypatch):
+    adapter = DefaultUserAdapter()
+    monkeypatch.setattr("vueda.user.adapters.apps.is_installed", lambda app_name: False)
+
+    adapter.send_mail("user@domain.invalid", "Test User", "totp_code", {"code": "123456"})
+
+    assert len(mail.outbox) == 1
+    email = mail.outbox[0]
+    assert email.from_email == "no-reply@domain.invalid"
+    assert email.to == ["user@domain.invalid"]
+    assert email.subject == "[VUEDA] Automated Message: Two Factor Authentication Code"
+    assert email.body == "Your VUEDA authentication code is: 123456"
+
+
+@override_settings(
+    TWILIO_ACCOUNT_SID="TESTSID",
+    TWILIO_AUTH_TOKEN="TESTAUTH",
+    TWILIO_CALLER_ID="+18005550100",
+    SITE_NAME="VUEDA",
+)
+def test_send_sms_without_vdq_sends_synchronously(monkeypatch):
+    adapter = DefaultUserAdapter()
+    captured = {}
+
+    class FakeMessages:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+
+    class FakeClient:
+        messages = FakeMessages()
+
+        def __init__(self, account_sid, auth_token):
+            captured["account_sid"] = account_sid
+            captured["auth_token"] = auth_token
+
+    monkeypatch.setattr("vueda.user.adapters.apps.is_installed", lambda app_name: False)
+    monkeypatch.setattr("twilio.rest.Client", FakeClient)
+
+    adapter.send_sms("+18005550199", "Test User", "totp_code", {"code": "123456"})
+
+    assert captured == {
+        "account_sid": "TESTSID",
+        "auth_token": "TESTAUTH",
+        "body": "Your VUEDA authentication code is: 123456\n",
+        "from_": "+18005550100",
+        "to": "+18005550199",
+    }
+
+
+def test_django_starts_without_vdq():
+    command = """
+from django.conf import settings
+
+settings.INSTALLED_APPS = [app for app in settings.INSTALLED_APPS if app != "vueda.vdq"]
+
+import django
+
+django.setup()
+"""
+    env = {**os.environ, "DJANGO_SETTINGS_MODULE": "tests.settings"}
+
+    result = subprocess.run(
+        [sys.executable, "-c", command],
+        capture_output=True,
+        check=False,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr

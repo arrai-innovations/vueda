@@ -1,0 +1,46 @@
+{
+  "name": "{{ client_package_name }}",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host {{ bind_ip }} --port {{ client_port }}",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "lint": "eslint --no-warn-ignored .",
+    "format": "prettier --check .",
+    "eslint": "eslint --fix .",
+    "prettier": "prettier --write ."
+  },
+  "dependencies": {
+    "@arrai-innovations/vueda": "*",
+    "@arrai-innovations/reactive-helpers": "^21.1.0",
+    "@fortawesome/fontawesome-svg-core": "^7.2.0",
+    "@fortawesome/free-solid-svg-icons": "^7.2.0",
+    "@fortawesome/vue-fontawesome": "^3.2.0",
+    "@sentry/vue": "^9.5.0",
+    "@vueuse/core": "^13.0.0",
+    "lodash-es": "^4.17.21",
+    "luxon": "^3.5.0",
+    "pinia": "^3.0.1",
+    "vue": "^3.5.13",
+    "vue-draggable-next": "^2.3.0",
+    "vue-router": "^4.5.0",
+    "vue-sonner": "^2.0.9"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vitest/eslint-plugin": "^1.1.43",
+    "eslint": "^9.24.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-vue": "^10.0.0",
+    "globals": "^15.15.0",
+    "neostandard": "^0.12.2",
+    "prettier": "^3.2.5",
+    "tailwindcss": "^4.2.1",
+    "vite": "^6.3.3",
+    "vitest": "^3.1.2"
+  }
+}

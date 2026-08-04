@@ -52,4 +52,749 @@ class Migration(migrations.Migration):
                 "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
+        migrations.CreateModel(
+            name="MoSoVoWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSoVoWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSoVxWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSoVxWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSoVzWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSoVzWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSxVoWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSxVoWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSxVxWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSxVxWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSxVzWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MoSxVzWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSoVoWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSoVoWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSoVxWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSoVxWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSoVzWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSoVzWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSxVoWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSxVoWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSxVxWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSxVxWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSxVzWo",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MxSxVzWx",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=models.F("name"),
+                        output_field=models.CharField(),
+                    ),
+                ),
+                ("name", models.CharField()),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="BothFormattedNameConfigured",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Both formatted name configured",
+                "verbose_name_plural": "Both formatted name configured",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="PropertyFormattedName",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Property formatted name",
+                "verbose_name_plural": "Property formatted name",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="FormattedNameExpressionNotString",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Formatted name expression not string",
+                "verbose_name_plural": "Formatted name expression not string",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="NonVuedaFormattedName",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("some_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "managed": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="ValidGetFormattedName",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Valid get formatted name",
+                "verbose_name_plural": "Valid get formatted name",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="ValidLookupExpression",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Valid lookup expression",
+                "verbose_name_plural": "Valid lookup expression",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="FalseyFormattedNamesLookup",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("description", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "falsey formatted names lookup",
+                "verbose_name_plural": "falsey formatted names lookups",
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
     ]

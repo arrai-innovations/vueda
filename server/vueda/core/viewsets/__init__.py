@@ -15,12 +15,15 @@ __all__ = (
     "VuedaHistoryViewSet",
     "VuedaReadOnlyViewSet",
     "VuedaViewSet",
+    "WarningConfirmationMixin",
 )
 
 import warnings
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import CompositePrimaryKey
+from django.db.models import F
 from django.db.models import Q
 from django.db.models import Sum
 from rest_flex_fields import WILDCARD_VALUES
@@ -37,13 +40,68 @@ from rest_framework.serializers import ListSerializer
 from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.exceptions import gate_warnings
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.utils import sort_by_dot_count_alphabetically
 from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
 
 PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
+
+
+class WarningConfirmationMixin:
+    """
+    Gate writes behind an explicit confirmation when they report advisory warnings.
+
+    After validation succeeds (so blocking errors have already produced a 400) and before the
+    instance is written, the warnings source is consulted. If it returns warnings and the request
+    has not acknowledged them, a :class:`~vueda.core.exceptions.ConfirmationRequired` (HTTP 409) is
+    raised, withholding the save. The client surfaces the warnings, the user confirms, and the
+    resubmission carries the warnings digest in the ``Acknowledge-Warnings`` header, which matches
+    and lets the write proceed. A changed warning set yields a different digest and re-prompts.
+    The shared gate logic lives in :func:`~vueda.core.exceptions.gate_warnings`.
+
+    Raising before the write means nothing is committed, so this does not depend on the request
+    being wrapped in a transaction.
+
+    Warnings sources:
+
+    - Single-object ``create``/``update``: the serializer's ``get_warnings()``, consulted in
+      ``perform_create``/``perform_update``. A serializer without ``get_warnings`` (including a
+      ``ListSerializer`` wrapping a Vueda serializer, i.e. bulk writes) is skipped, so warnings on
+      bulk/list saves are not surfaced.
+    - ``destroy``, ``activate``, and ``deactivate`` (single and bulk): the viewset-level
+      ``get_warnings(action, objs)`` hook, called by ``VuedaViewSet.destroy`` and
+      ``DeactivateActionViewSetMixin``.
+    """
+
+    def get_warnings(self, action, objs):
+        """
+        Viewset-level warnings hook for actions that write without a per-object serializer.
+
+        ``action`` is the action name string (``"destroy"``, ``"activate"``, or ``"deactivate"``)
+        and ``objs`` is an iterable or queryset of the affected instances. Return the aggregate
+        ``{field: [messages]}`` warnings dict (the same shape the serializer-level
+        ``get_warnings()`` returns; use ``"non_field_errors"`` for warnings not tied to a field).
+        The default returns ``{}``, meaning no confirmation is required.
+        """
+        return {}
+
+    def _gate_warnings(self, serializer):
+        get_warnings = getattr(serializer, "get_warnings", None)
+        if get_warnings is None:
+            return
+        gate_warnings(self.request, get_warnings())
+
+    def perform_create(self, serializer):
+        self._gate_warnings(serializer)
+        super().perform_create(serializer)
+
+    def perform_update(self, serializer):
+        self._gate_warnings(serializer)
+        super().perform_update(serializer)
 
 
 class AtomicCreateModelViewSetMixin(drf_viewsets.mixins.CreateModelMixin):
@@ -75,8 +133,6 @@ class AtomicModelViewSetMixin(
 ):
     """Combines all three atomic write mixins: create, update, and destroy."""
 
-    pass
-
 
 class AtomicModelViewSet(
     AtomicCreateModelViewSetMixin,
@@ -89,8 +145,6 @@ class AtomicModelViewSet(
     """
     A Base ViewSet that wraps atomic transactions around create, update, and destroy.
     """
-
-    pass
 
 
 class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.GenericViewSet):
@@ -139,7 +193,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
                         from django.db.models import Exists
                         from django.db.models import OuterRef
 
-                        codename = perm.split(".")[-1]
+                        codename = perm.rsplit(".", maxsplit=1)[-1]
                         content_type = ContentType.objects.get_for_model(model)
                         user = self.request.user
 
@@ -215,6 +269,12 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         # end code from drf
 
 
+def add_valid_child_names(valid_set, field_name, child_names_list):
+    for child_name in child_names_list:
+        if child_name:
+            valid_set.add(f"{field_name}.{child_name}")
+
+
 def get_recursive_expands_and_fields(serializer, depth, max_depth):
     max_depth = min((max_depth, settings.REST_FLEX_FIELDS["MAXIMUM_EXPANSION_DEPTH"]))
 
@@ -231,59 +291,65 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
         if "permitted_expands" in serializer.context and hasattr(serializer, "_flex_options_rep_only"):
             permitted_expands = frozenset(serializer.context["permitted_expands"])
 
-        if hasattr(serializer, "Meta") and hasattr(serializer.Meta, "expandable_fields"):
-            if permitted_expands is not None and not permitted_expands:
-                return (
-                    valid_expands,
-                    valid_wildcard_expands,
-                    valid_fields,
-                    valid_wildcard_fields,
-                )  # No permitted expands
-
+        if hasattr(serializer, "Meta"):
             for value in WILDCARD_VALUES:
                 valid_wildcard_fields.add(value)
-                valid_wildcard_expands.add(value)
 
-            for field_name, serializer_data in serializer.Meta.expandable_fields.items():
-                if permitted_expands is not None and field_name not in permitted_expands:
-                    continue
+            if (
+                "formatted_name" not in valid_fields
+                and hasattr(serializer.Meta, "model")
+                and serializer.Meta.model._has_formatted_name_field()
+            ):
+                valid_fields.add("formatted_name")
 
-                valid_fields.add(field_name)
-                valid_expands.add(field_name)
+            if hasattr(serializer.Meta, "expandable_fields"):
+                if permitted_expands is not None and not permitted_expands:
+                    return (
+                        valid_expands,
+                        valid_wildcard_expands,
+                        valid_fields,
+                        valid_wildcard_fields,
+                    )  # No permitted expands
 
-                serializer_settings = {}
-                if isinstance(serializer_data, tuple):  # rest_flex_fields only tests for tuple.
-                    child_serializer, serializer_settings = serializer_data
-                else:
-                    child_serializer = serializer_data
+                for value in WILDCARD_VALUES:
+                    valid_wildcard_expands.add(value)
 
-                if isinstance(child_serializer, str):
-                    child_serializer = serializer._get_serializer_class_from_lazy_string(child_serializer)
+                for field_name, serializer_data in serializer.Meta.expandable_fields.items():
+                    if permitted_expands is not None and field_name not in permitted_expands:
+                        continue
 
-                child_serializer = child_serializer(**serializer_settings)
+                    valid_fields.add(field_name)
+                    valid_expands.add(field_name)
 
-                if isinstance(child_serializer, ListSerializer):
-                    child_serializer = child_serializer.child
+                    serializer_settings = {}
+                    if isinstance(serializer_data, tuple):  # rest_flex_fields only tests for tuple.
+                        child_serializer, serializer_settings = serializer_data
+                    else:
+                        child_serializer = serializer_data
 
-                child_valid_expands, child_valid_wildcard_expands, child_valid_fields, child_valid_wildcard_fields = (
-                    get_recursive_expands_and_fields(child_serializer, depth + 1, max_depth)
-                )
+                    if isinstance(child_serializer, str):
+                        child_serializer = serializer._get_serializer_class_from_lazy_string(child_serializer)
 
-                for child_expand in child_valid_expands:
-                    if child_expand:
-                        valid_expands.add(f"{field_name}.{child_expand}")
+                    child_serializer = child_serializer(**serializer_settings)
 
-                for child_expand in child_valid_wildcard_expands:
-                    if child_expand:
-                        valid_wildcard_expands.add(f"{field_name}.{child_expand}")
+                    if isinstance(child_serializer, ListSerializer):
+                        child_serializer = child_serializer.child
 
-                for child_field in child_valid_fields:
-                    if child_field:
-                        valid_fields.add(f"{field_name}.{child_field}")
+                    (
+                        child_valid_expands,
+                        child_valid_wildcard_expands,
+                        child_valid_fields,
+                        child_valid_wildcard_fields,
+                    ) = get_recursive_expands_and_fields(child_serializer, depth + 1, max_depth)
 
-                for child_field in child_valid_wildcard_fields:
-                    if child_field:
-                        valid_wildcard_fields.add(f"{field_name}.{child_field}")
+                    if isinstance(child_serializer, GenericForeignKeySerializer):
+                        for value in WILDCARD_VALUES:
+                            child_valid_wildcard_fields.add(value)
+
+                    add_valid_child_names(valid_expands, field_name, child_valid_expands)
+                    add_valid_child_names(valid_wildcard_expands, field_name, child_valid_wildcard_expands)
+                    add_valid_child_names(valid_fields, field_name, child_valid_fields)
+                    add_valid_child_names(valid_wildcard_fields, field_name, child_valid_wildcard_fields)
 
     return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
 
@@ -333,6 +399,19 @@ class NoExtraFieldsForViewSetMixin:
 
         if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
             extra_keys = submitted_fields - (valid_fields | valid_wildcard_fields)
+
+            # GFK expandable fields can resolve to any model, so sub-field specifiers like
+            # "content_object.id" cannot be pre-validated without knowing the concrete instance type.
+            # Filter them out here; the GFK serializer enforces field-level filtering at representation time.
+            if extra_keys and hasattr(serializer, "Meta"):
+                gfk_fields = {
+                    name
+                    for name, data in getattr(serializer.Meta, "expandable_fields", {}).items()
+                    if (data[0] if isinstance(data, tuple) else data) is GenericForeignKeySerializer
+                }
+                if gfk_fields:
+                    extra_keys = frozenset(k for k in extra_keys if k.split(".")[0] not in gfk_fields)
+
             if extra_keys:
                 errors = {}
                 for extra_key in extra_keys:
@@ -346,7 +425,7 @@ class NoExtraFieldsForViewSetMixin:
                         }
                     ]
 
-                return Response(errors, status=400)
+                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
             extra_keys = submitted_expand_fields - (valid_expands | valid_wildcard_expands)
@@ -368,7 +447,7 @@ class NoExtraFieldsForViewSetMixin:
                         }
                     ]
 
-                return Response(errors, status=400)
+                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, *args, **kwargs):
         serializer = self.get_serializer()
@@ -450,25 +529,29 @@ class PerActionSerializerMixin:
 class DeactivateActionViewSetMixin:
     """
     A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
+
+    Both actions consult the viewset-level ``get_warnings(action, objs)`` hook (provided by
+    ``WarningConfirmationMixin``, so any ``VuedaViewSet``) after validation and before the write,
+    gating the write behind a 409 confirmation when warnings are reported.
     """
 
     @action(detail=True, bulk=True, methods=["patch"])
-    def deactivate(self, request, **kwargs):
-        pk = kwargs.get("pk")
+    def deactivate(self, request, pk=None):
         if pk:
             instance = self.get_object()
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
                     {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
-                    status=405,
+                    status=status.HTTP_405_METHOD_NOT_ALLOWED,
                 )
             if not instance.is_active:
                 raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
+            gate_warnings(request, self.get_warnings("deactivate", (instance,)))
             instance.is_active = False
             instance.save()
             return Response(
                 {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been deactivated."},
-                status=200,
+                status=status.HTTP_200_OK,
             )
 
         serializer = PrimaryKeyListSerializer(data=request.data)
@@ -483,7 +566,7 @@ class DeactivateActionViewSetMixin:
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
                     {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
-                    status=405,
+                    status=status.HTTP_405_METHOD_NOT_ALLOWED,
                 )
 
             elif not instance.is_active:
@@ -495,29 +578,30 @@ class DeactivateActionViewSetMixin:
                 errors[pk] = [f"This {instance.__class__.__name__} is already deactivated"]
             raise VuedaValidationError(errors)
 
+        gate_warnings(request, self.get_warnings("deactivate", queryset))
         # Perform bulk deactivation in a single query
         queryset.update(is_active=False)
-        return Response({"detail": f"Successfully deactivated {len(pks)} objects."}, status=200)
+        return Response({"detail": f"Successfully deactivated {len(pks)} objects."}, status=status.HTTP_200_OK)
 
     @action(detail=True, bulk=True, methods=["patch"])
-    def activate(self, request, **kwargs):
-        pk = kwargs.get("pk")
+    def activate(self, request, pk=None):
         if pk:
             instance = self.get_object()
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
                     {"detail": f"Deactivate action is not supported for {instance.__class__.__name__}."},
-                    status=405,
+                    status=status.HTTP_405_METHOD_NOT_ALLOWED,
                 )
 
             if instance.is_active:
                 raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already activated"]})
 
+            gate_warnings(request, self.get_warnings("activate", (instance,)))
             instance.is_active = True
             instance.save()
             return Response(
                 {"detail": f"{instance.__class__.__name__} with id {instance.pk} has been activated."},
-                status=200,
+                status=status.HTTP_200_OK,
             )
 
         serializer = PrimaryKeyListSerializer(data=request.data)
@@ -532,7 +616,7 @@ class DeactivateActionViewSetMixin:
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
                     {"detail": f"Activate action is not supported for {instance.__class__.__name__}."},
-                    status=405,
+                    status=status.HTTP_405_METHOD_NOT_ALLOWED,
                 )
 
             elif instance.is_active:
@@ -542,13 +626,20 @@ class DeactivateActionViewSetMixin:
             for pk in already_activated:
                 errors[pk] = [f"This {instance.__class__.__name__} is already activated"]
             raise VuedaValidationError(errors)
+        gate_warnings(request, self.get_warnings("activate", queryset))
         # Perform bulk deactivation in a single query
         queryset.update(is_active=True)
 
-        return Response({"detail": f"Successfully activated {len(pks)} objects."}, status=200)
+        return Response({"detail": f"Successfully activated {len(pks)} objects."}, status=status.HTTP_200_OK)
 
 
-class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelViewSetMixin, viewsets.ModelViewSet):
+class VuedaViewSet(
+    WarningConfirmationMixin,
+    FlexFieldsMixin,
+    NoExtraFieldsForViewSetMixin,
+    ListRowLevelViewSetMixin,
+    viewsets.ModelViewSet,
+):
     """
     Full CRUD ViewSet for VUEDA models. Extends DRF's ``ModelViewSet`` with:
 
@@ -557,6 +648,9 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
     - Row-level and workflow-aware list filtering (``ListRowLevelViewSetMixin``)
     - Bulk delete with dry-run support
     - Override ``destroy_validation`` to add pre-delete business rules.
+    - Override ``get_warnings(action, objs)`` (from ``WarningConfirmationMixin``) to gate
+      single and bulk ``destroy`` (and ``activate``/``deactivate`` when
+      ``DeactivateActionViewSetMixin`` is mixed in) behind a 409 confirmation.
     """
 
     detail_args = ["pk"]
@@ -598,6 +692,7 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
         if pk:
             instance = self.get_object()
             self.destroy_validation((instance,))
+            gate_warnings(request, self.get_warnings("destroy", (instance,)))
             if dry_run:
                 return Response(status=status.HTTP_200_OK)
             self.perform_destroy(instance)
@@ -620,6 +715,7 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
             raise VuedaValidationError(errors)
 
         self.destroy_validation(queryset)
+        gate_warnings(request, self.get_warnings("destroy", queryset))
         if dry_run:
             return Response(status=status.HTTP_200_OK)
         queryset.delete()
@@ -636,11 +732,38 @@ class VuedaViewSet(FlexFieldsMixin, NoExtraFieldsForViewSetMixin, ListRowLevelVi
 
         return allowed_actions
 
+    def get_object(self):
+        """
+        Override this function to convert the pk kwarg to a list if the model has a composite primary key.
+        """
+        if hasattr(self, "kwargs") and "pk" in self.kwargs:
+            has_composite_primary_key = False
+            cpk_field = None
+            model = getattr(self.queryset, "model", None) or self.get_queryset().model
+            for field in model._meta.fields:
+                if isinstance(field, CompositePrimaryKey):
+                    has_composite_primary_key = True
+                    cpk_field = field
+
+            if has_composite_primary_key:
+                # 'CompositePrimaryKey' must be named 'pk'.
+                self.kwargs["pk"] = cpk_field.to_python(self.kwargs["pk"])
+
+        return super().get_object()
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        formatted_name = getattr(queryset.model, "formatted_name_lookup_expression", None)
+
+        if isinstance(formatted_name, str):
+            queryset = queryset.annotate(formatted_name=F(formatted_name))
+
+        return queryset
+
 
 class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
     """``VuedaViewSet`` extended with ``simple-history`` audit endpoints."""
-
-    pass
 
 
 class VuedaReadOnlyViewSet(

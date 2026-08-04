@@ -1,7 +1,7 @@
 ---
 title: Filtering and Ordering Semantics
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -13,7 +13,7 @@ This page explains the authority at each boundary, the metadata shapes that flow
 
 ## Contract Boundary and Authority
 
-The filtering and ordering contract begins at the canonical registered viewset. Model-info metadata does not derive filter and ordering information solely from serializer fields; it also reads `filterset_class` and `ordering_fields` from the registered viewset. If a model has no registered viewset (only a serializer), its `model_filtering` metadata is empty and `model_ordering` metadata will be retrieved from the model if a default ordering exists, otherwise it will also be empty.
+The filtering and ordering contract begins at the canonical registered viewset. Model-info metadata does not derive filter and ordering information solely from serializer fields; it also reads `filterset_class` and `ordering_fields` from the registered viewset. If a model has no registered viewset (only a serializer), its `model_filtering` and `model_ordering` metadata are empty.
 
 This authority boundary means that adding a field to the serializer does not automatically make it filterable. Filtering requires an entry in the viewset's `filterset_class`. Adding a field to the serializer can make it automatically sortable, providing no `ordering_fields` are defined on the viewset. This reflects the functionality in Django Rest Framework. If `ordering_fields` are defined, then an entry is required in `ordering_fields` to make that field sortable. The metadata projects what is declared; it does not infer capabilities from the data model.
 
@@ -21,23 +21,17 @@ This authority boundary means that adding a field to the serializer does not aut
 
 The {@term Model Info} endpoint projects viewset declarations into structured metadata that clients consume.
 
-Ordering metadata (`model_ordering`) is structured into three items (`model_default`, `viewset_default`, and `viewset_fields`). Every field that a model can be ordered by is contained within the `viewset_fields` metadata. If a default ordering is not set up on the model or viewset, or no orderable fields are set up on the viewset, then those items will contain an empty list. When no canonical viewset exists, `model_default` is the only item that can contain data. If any data does exist, each item in the list of metadata will contain:
+Ordering metadata (`model_ordering`) is a list of descriptors, each containing a `name` (the ordering field identifier) and a `type` (the field type classification). The list is derived from the canonical viewset's `ordering_fields`. When no canonical viewset exists, `model_ordering` is empty.
 
-- **`name`**: the name of the field that is orderable or is specified as part of the default ordering.
-- **`type`**: the field type classification, which is one of `alpha`, `boolean`, `date`, `datetime`, `numeric`, or `time`.
-- **`nulls_first`**: optionally in the data if the ordering is an expression and has nulls first.
-- **`nulls_last`**: optionally in the data if the ordering is an expression and has nulls last.
-- **`ascending`**: only contained in the model and viewset defaults, which can be true or false.
-
-Filtering metadata (`model_filtering`) is richer. Each filter entry includes the filter field name, its type, the list of `lookup_exprs` (lookup expressions such as `exact`, `icontains`, `gte`), and choice metadata when the filter field has a bounded value set. {@term Lookup} expressions are always presented as a list, even when only one expression is available. This consistent shape simplifies client parsing; consumers do not need to distinguish between single-expression and multi-expression filters.
+Filtering metadata (`model_filtering`) is richer. Each filter entry includes the filter field name, its type, the list of `lookup_exprs` (lookup expressions such as `in`, `exact`, `contains`), `suffixes` (such as `min` and `max` or `after` and `before`), and choice metadata when the filter field has a bounded value set. {@term Lookup} expressions are always presented as a list, even when only one expression is available. This consistent shape simplifies client parsing; consumers do not need to distinguish between single-expression and multi-expression filters.
 
 Filters that are excluded or disabled in the filterset class are omitted from the metadata projection. The metadata represents only the active, usable filter surface.
 
-Choice metadata for filters follows a two part shape. Static choices (enumeration values defined on the field or filter) are serialized as `{label, value}` entries with values normalized to strings. Queryset-based choices (choices backed by a related model's rows) are encoded as `choices: true` plus `app_label`, `model`, and `filterset_name` identifiers, which the client uses to fetch choices dynamically through a separate endpoint, due to the potential for a high volume of data.
+Choice metadata for filters follows a two part shape. Static choices (enumeration values defined on the field or filter) are serialized as `{label, value}` entries with values normalized to strings. Queryset-based choices are encoded as `choices: true` plus `app_label`, `model`, and `filterset_name` identifiers, which the client uses to fetch choices dynamically through a separate endpoint, due to the potential for a high volume of data.
 
 ## Query Namespace and Validation Boundary
 
-`list` endpoints enforce strict query parameter validation. The accepted query key namespace is the union of: declared filter field names, suffix-derived keys (filter field name plus lookup expression suffix), framework-level parameters (`s`, `o`, `p`, `ps`, `e`, `f`, `om`), and any keys derived from the filterset's lookup expression configuration. Any query key outside this namespace is rejected with an HTTP 400 response containing a field-keyed validation error: `"Invalid query parameter.  Valid filters are ..."`.
+`list` endpoints enforce strict query parameter validation. The accepted query key namespace is the union of: declared filter field names, suffix-derived keys (filter field name plus suffix), framework-level parameters (`s`, `o`, `p`, `ps`, `e`, `f`, `om`), and any keys derived from the filterset's lookup expression configuration. Any query key outside this namespace is rejected with an HTTP 400 response containing a field-keyed validation error: `"Invalid query parameter.  Valid filters are ..."`.
 
 This strict validation is a deliberate departure from upstream DRF, which typically ignores unknown query parameters. VUEDA treats unknown query keys as invalid contract usage rather than silently discarding them. The benefit is that typos and stale client code produce immediate, diagnosable errors rather than returning unfiltered results silently. The cost is that any query parameter not declared in the filterset or framework defaults is an error, which can be surprising when integrating with external tools that append their own query parameters.
 
@@ -65,7 +59,7 @@ Permission checking for filter choices is bifurcated by source. Static choices (
 
 When the related model permission check fails, the endpoint returns HTTP 403, even though the user has `read` permission on the current model and can view the model's list and `detail` views. This can be confusing because the user can see the model's data, but cannot populate a filter dropdown that references a related model.
 
-Queryset-based choice resolution assumes a `formatted_name` lookup path on the related model for display labels. If the related model does not define this path, the endpoint raises an HTTP 500 with `"Cannot resolve keyword 'formatted_name'..."`. This is a server-side error in the filter configuration, not a client issue, but it surfaces as a broken filter dropdown.
+Queryset-based choice resolution assumes a `formatted_name` lookup path on the related model for display labels. If the related model does not define this path, the endpoint raises an HTTP 500 with `"Cannot resolve keyword 'formatted_name'..."`. A system check (`vueda_info.E001`) catches this misconfiguration for registered models at startup, so the error should be visible in server output before any requests reach the endpoint. This is a server-side configuration error, not a client issue, but it surfaces as a broken filter dropdown.
 
 ## Client Normalization and Cache Semantics
 
@@ -77,6 +71,12 @@ Cached model-info errors are sticky. A failed model-info fetch for a given `app.
 
 The default filter UI uses only the first lookup expression (`lookupExprs[0]`) from each filter's metadata. Multi-lookup-expression selectors are not emitted by default. If a filter declares multiple lookup expressions (for example, `exact` and `icontains`), only the first is wired into the default filter component. A custom filter UI is needed to expose multiple lookup expressions for a single field.
 
+## Composite Primary Key Filtering
+
+Models that use a composite primary key cannot use `VuedaFilterSet` as a filterset base. `VuedaFilterSet` inherits from `IdInFilterSet`, which declares a default `id` filter. Composite primary key models have no `id` field; Django requires their primary key field to be named `pk`, and `id` is not a valid field name on such models.
+
+`VuedaCompositePrimaryKeyFilterSet` is the correct base class for filtersets on composite primary key models. It declares no default filters. Filters for the fields that form the composite key, and any other filterable model fields, must be declared explicitly on the filterset subclass.
+
 ## Observable Failure Modes
 
 **Unknown query parameter returns 400.** A typo in a `list` query key, or a stale client sending a filter key that no longer exists in the filterset, produces an HTTP 400 with the message `"Invalid query parameter.  Valid filters are ..."`. The error response includes the valid filter set, which aids diagnosis.
@@ -87,7 +87,7 @@ The default filter UI uses only the first lookup expression (`lookupExprs[0]`) f
 
 **Related model permission blocks filter choices.** Missing `list` permission on a related model causes the filter-choice endpoint to return 403, even when the user can read the current model. The symptom is a filter dropdown that fails to populate while the rest of the model's UI works normally.
 
-**Related model missing `formatted_name`.** If the related model referenced by a queryset-backed filter choice does not implement the `formatted_name` lookup path, the filter-choice endpoint returns 500. This is a configuration error that needs to be fixed on the related model.
+**Related model missing `formatted_name`.** If the related model referenced by a queryset-backed filter choice does not implement the `formatted_name` lookup path, the filter-choice endpoint returns 500. A system check (`vueda_info.E001`) catches this for registered models at startup. This is a configuration error on the related model.
 
 **Sticky model-info fetch errors.** A failed model-info fetch caches the error and blocks all subsequent access to that model's filtering and ordering metadata. Retrying the navigation does not trigger a re-fetch.
 
@@ -106,6 +106,7 @@ The default filter UI uses only the first lookup expression (`lookupExprs[0]`) f
 - {@api py:function:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet.validate_queryset}
 - {@api py:module:vueda.core.filters}
 - {@api py:class:vueda.core.filters.VuedaSearchFilterBackend}
+- {@api py:class:vueda.core.filters.VuedaCompositePrimaryKeyFilterSet}
 - {@api py:function:vueda.info.viewsets.ModelInfoChoicesBaseViewSet.check_permissions}
 - {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}
 - {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.list}
@@ -118,4 +119,7 @@ The default filter UI uses only the first lookup expression (`lookupExprs[0]`) f
 - {@api js:property:@arrai-innovations/vueda/utils/constants#ORDERING_PARAM}
 - {@api js:property:@arrai-innovations/vueda/utils/constants#SEARCH_PARAM}
 - {@api vue:component:ViewList}
-- {@api vue:component:FilterComponent}
+- {@api vue:component:FilterGroup}
+- {@api vue:component:FilterMenu}
+- {@api vue:component:FilterChip}
+- {@api vue:component:FilterFieldForm}

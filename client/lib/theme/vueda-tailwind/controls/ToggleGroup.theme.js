@@ -1,0 +1,20 @@
+/**
+ * @module theme/vueda-tailwind/controls/ToggleGroup.theme
+ *
+ * Per-component theme registration for ToggleGroup. Imported as a side effect by
+ * its consuming SFC, so a route chunk that pulls only that SFC drags only this
+ * component's theme entry, not the entire controls family.
+ */
+import { patchTheme } from "@vueda/use/themeRegistry.js";
+
+patchTheme({
+    /**
+     * Layout shell for a row of ToggleGroupItems.
+     */
+    ToggleGroup: {
+        /** The row layout for a set of {@api theme-key:ToggleGroupItem.root} children. The `--gap` custom property is driven by the consumer's `spacing` prop, which lets the same group render as a gapped row or (at `spacing=0`) as a segmented control where child items drop their outer radii and shared borders. The `group/toggle-group` Tailwind group label lets items react to group-level state. */
+        root: {
+            class: ["group/toggle-group flex w-fit items-center gap-[--spacing(var(--gap))] rounded-vueda-control"],
+        },
+    },
+});

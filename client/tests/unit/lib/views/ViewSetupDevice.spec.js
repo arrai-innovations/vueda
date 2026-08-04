@@ -2,6 +2,8 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h, reactive } from "vue";
 
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+
 const AuthFormStub = defineComponent({
     name: "AuthFormStub",
     emits: ["form-object"],
@@ -16,90 +18,110 @@ const AuthFormStub = defineComponent({
     },
 });
 
-const makeFieldStub = (qa) =>
-    defineComponent({
-        name: `${qa}Stub`,
-        props: ["label", "name"],
-        setup(props, { slots }) {
-            return () => h("div", { "data-qa": qa, "data-name": props.name }, slots.default ? slots.default() : null);
-        },
-    });
+const FormFieldStub = defineComponent({
+    name: "FormFieldStub",
+    props: ["label", "name", "validation", "hidden"],
+    setup(props, { slots }) {
+        return () =>
+            h("div", { "data-qa": "form-field", "data-name": props.name }, slots.default ? slots.default() : null);
+    },
+});
 
-const FieldStringStub = makeFieldStub("field-string");
-const FieldEmailStub = makeFieldStub("field-email");
-
-const WidgetSelectStub = defineComponent({
-    name: "WidgetSelectStub",
+const WidgetSelectDropdownStub = defineComponent({
+    name: "WidgetSelectDropdownStub",
     props: ["options"],
     setup(props, { slots }) {
         return () =>
             h(
                 "select",
-                { "data-qa": "widget-select", "data-options": JSON.stringify(props.options || []) },
+                { "data-qa": "widget-select-dropdown", "data-options": JSON.stringify(props.options || []) },
                 slots.default ? slots.default() : null,
             );
     },
 });
 
-const WidgetInputStub = defineComponent({
-    name: "WidgetInputStub",
+const WidgetTextInputStub = defineComponent({
+    name: "WidgetTextInputStub",
     setup(props, { slots }) {
-        return () => h("input", { "data-qa": "widget-input" }, slots.default ? slots.default() : null);
+        return () => h("input", { "data-qa": "widget-text-input" }, slots.default ? slots.default() : null);
     },
 });
 
 const ButtonStub = defineComponent({
     name: "ButtonStub",
-    props: ["label", "loading"],
+    props: ["loading"],
     emits: ["click"],
-    setup(props, { emit, slots }) {
+    setup(_, { emit, slots }) {
         return () =>
             h(
                 "button",
                 {
                     "data-qa": "prime-button",
-                    "data-label": props.label,
                     onClick: () => emit("click"),
                 },
-                slots.default ? slots.default() : props.label,
+                slots.default?.(),
             );
     },
 });
-
-const DialogStub = defineComponent({
-    name: "DialogStub",
-    props: ["visible"],
-    setup(props, { slots }) {
-        return () => (props.visible ? h("div", { "data-qa": "dialog" }, slots.default ? slots.default() : null) : null);
+const FeedbackSpinnerStub = defineComponent({
+    name: "FeedbackSpinnerStub",
+    setup() {
+        return () => h("div", { "data-qa": "feedback-spinner" });
     },
 });
 
-const ClickToCopyTextStub = defineComponent({
-    name: "ClickToCopyTextStub",
-    props: ["text"],
-    setup(props) {
-        return () => h("div", { "data-qa": "click-to-copy", "data-text": props.text });
+const InputOTPStub = defineComponent({
+    name: "InputOTPStub",
+    props: ["maxlength"],
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "input-otp" }, slots.default ? slots.default() : null);
+    },
+});
+
+const InputOTPGroupStub = defineComponent({
+    name: "InputOTPGroupStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "input-otp-group" }, slots.default ? slots.default() : null);
+    },
+});
+
+const InputOTPSlotStub = defineComponent({
+    name: "InputOTPSlotStub",
+    props: ["index"],
+    setup() {
+        return () => h("div", { "data-qa": "input-otp-slot" });
     },
 });
 
 const useModelConfigMock = vi.fn();
 const storeUserMock = vi.fn();
 
-vi.mock("@vueda/components/AuthForm.vue", () => ({ default: AuthFormStub }));
-vi.mock("@vueda/components/ClickToCopyText.vue", () => ({ default: ClickToCopyTextStub }));
-vi.mock("@vueda/fields/FieldString.vue", () => ({ default: FieldStringStub }));
-vi.mock("@vueda/fields/FieldEmail.vue", () => ({ default: FieldEmailStub }));
-vi.mock("@vueda/widgets/WidgetSelect.vue", () => ({ default: WidgetSelectStub }));
-vi.mock("@vueda/widgets/WidgetInput.vue", () => ({ default: WidgetInputStub }));
-vi.mock("@vueda/widgets/WidgetLabel.vue", () => ({ getWidgetSlotsComputed: () => [] }));
-vi.mock("primevue/button", () => ({ default: ButtonStub }));
-vi.mock("primevue/dialog", () => ({ default: DialogStub }));
-vi.mock("primevue/usetoast", () => ({ useToast: () => ({ add: toastAdd }) }));
+vi.mock("@vueda/views/AuthForm.vue", () => ({ default: AuthFormStub }));
+vi.mock("@vueda/form/form-model/FormField.vue", () => ({ default: FormFieldStub }));
+vi.mock("@vueda/widgets/WidgetSelectDropdown.vue", () => ({ default: WidgetSelectDropdownStub }));
+vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
+vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
+vi.mock("@vueda/controls/input-otp/InputOTP.vue", () => ({ default: InputOTPStub }));
+vi.mock("@vueda/controls/input-otp/InputOTPGroup.vue", () => ({ default: InputOTPGroupStub }));
+vi.mock("@vueda/controls/input-otp/InputOTPSlot.vue", () => ({ default: InputOTPSlotStub }));
+vi.mock("@vueda/display/loading/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
+vi.mock("vue-sonner", () => ({ toast: toastMock }));
+vi.mock("@vueda/use/useIcons.js", () => ({ ICON_OVERRIDE_PROPS: {}, useIcons: () => () => null }));
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => useModelConfigMock() }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));
-vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: () => (part) => part, THEME_OVERRIDE_PROPS: {} }));
+vi.mock("@vueda/use/useTheme.js", () => ({
+    useTheme: makeUseThemeMock({ slotResolver: (part) => part }),
+    THEME_OVERRIDE_PROPS: {},
+}));
 
-const toastAdd = vi.fn();
+const toastMock = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    message: vi.fn(),
+};
 const routerPush = vi.fn();
 const routeMock = reactive({ query: {} });
 
@@ -114,7 +136,7 @@ let userStore;
 
 describe("lib/views/ViewSetupDevice.vue", () => {
     beforeEach(async () => {
-        toastAdd.mockClear();
+        Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         useModelConfigMock.mockReset();
         storeUserMock.mockReset();
@@ -131,53 +153,109 @@ describe("lib/views/ViewSetupDevice.vue", () => {
         ViewSetupDevice = (await import("@vueda/views/ViewSetupDevice.vue")).default;
     });
 
-    scopedIt("runs setup action on first step", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.form.values = { method: "sms", destination: "123" };
-        const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
-        await runAction({ formValues: { method: "sms", destination: "123" } });
-        expect(userStore.setupTOTPDevice).toHaveBeenCalledWith({ destination: "123", method: "sms" });
+    describe("Submission actions", () => {
+        scopedIt("runs setup action on first step", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.form.values = { method: "sms", destination: "123" };
+            const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
+            await runAction({ formValues: { method: "sms", destination: "123" } });
+            expect(userStore.setupTOTPDevice).toHaveBeenCalledWith({ destination: "123", method: "sms" });
+        });
+
+        scopedIt("runs activation on verify step", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+            const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
+            await runAction({ formValues: { code: "654321" } });
+            expect(userStore.activateTOTPDevice).toHaveBeenCalledWith({ code: "654321" });
+        });
     });
 
-    scopedIt("runs activation on verify step", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
-        const runAction = wrapper.findComponent(AuthFormStub).props("runAction");
-        await runAction({ formValues: { code: "654321" } });
-        expect(userStore.activateTOTPDevice).toHaveBeenCalledWith({ code: "654321" });
+    describe("Step transitions and navigation", () => {
+        scopedIt("doAfterSuccess stores secrets and advances step", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.form.values = { method: "app" };
+            const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
+            await handler({ meta: { totp_svg_data_uri: "data:image", totp_secret: "secret" } });
+            expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.VERIFY);
+            expect(wrapper.vm.totpSvgDataUri).toBe("data:image");
+            expect(wrapper.vm.totpSecret).toBe("secret");
+        });
+
+        scopedIt("doAfterSuccess enqueues toast for email method", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.form.values = { method: "email" };
+            const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
+            await handler();
+            expect(toastMock.success).toHaveBeenCalledWith(
+                expect.stringContaining("Verification Code Sent"),
+                expect.any(Object),
+            );
+            expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.VERIFY);
+        });
+
+        scopedIt("navigates to return path after verification", async () => {
+            routeMock.query = { returnPath: "/dashboard" };
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+            const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
+            await handler();
+            expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.DONE);
+            expect(routerPush).toHaveBeenCalledWith("/dashboard");
+        });
+
+        scopedIt("renders DONE confirmation step when no return path is set", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+            const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
+            await handler();
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.DONE);
+            expect(wrapper.find("[data-qa=view-setup-device-done]").exists()).toBe(true);
+            expect(wrapper.find("[data-qa=view-setup-device-continue]").exists()).toBe(true);
+        });
+
+        scopedIt("Continue button on DONE pushes to returnPath when present", async () => {
+            routeMock.query = { returnPath: "/after" };
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.step = wrapper.vm.STEPS.DONE;
+            await wrapper.vm.$nextTick();
+            const continueBtn = wrapper.find("[data-qa=view-setup-device-continue]");
+            expect(continueBtn.exists()).toBe(true);
+            await continueBtn.trigger("click");
+            expect(routerPush).toHaveBeenCalledWith("/after");
+        });
     });
 
-    scopedIt("doAfterSuccess stores secrets and advances step", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.form.values = { method: "app" };
-        const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
-        await handler({ meta: { totp_svg_data_uri: "data:image", totp_secret: "secret" } });
-        expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.VERIFY);
-        expect(wrapper.vm.totpSvgDataUri).toBe("data:image");
-        expect(wrapper.vm.totpSecret).toBe("secret");
-    });
+    describe("Step rendering", () => {
+        scopedIt("renders InputOTP on VERIFY step", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+            await wrapper.vm.$nextTick();
+            expect(wrapper.find("[data-qa=view-setup-device-otp]").exists()).toBe(true);
+        });
 
-    scopedIt("doAfterSuccess enqueues toast for email method", async () => {
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.form.values = { method: "email" };
-        const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
-        await handler();
-        expect(toastAdd).toHaveBeenCalledWith(
-            expect.objectContaining({
-                severity: "success",
-                summary: expect.stringContaining("Verification Code Sent"),
-            }),
-        );
-        expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.VERIFY);
-    });
+        scopedIt("renders inline manual key when totp secret is present", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            wrapper.vm.totpSvgDataUri = "data:image";
+            wrapper.vm.totpSecret = "ABCDEFG";
+            await wrapper.vm.$nextTick();
+            const key = wrapper.find("[data-qa=view-setup-device-manual-key]");
+            expect(key.exists()).toBe(true);
+            expect(wrapper.find("[data-qa=view-setup-device-manual-key-value]").text()).toContain("ABCDEFG");
+        });
 
-    scopedIt("navigates to return path after verification", async () => {
-        routeMock.query = { returnPath: "/dashboard" };
-        const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
-        wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
-        const handler = wrapper.findComponent(AuthFormStub).props("onSubmissionSuccessHandler");
-        await handler();
-        expect(wrapper.vm.step).toBe(wrapper.vm.STEPS.DONE);
-        expect(routerPush).toHaveBeenCalledWith("/dashboard");
+        scopedIt("renders the step indicator with current state", async () => {
+            const wrapper = mount(ViewSetupDevice, { props: { app: "app", model: "model" } });
+            await wrapper.vm.$nextTick();
+            const choose = wrapper.find("[data-qa=view-setup-device-step-1]");
+            expect(choose.exists()).toBe(true);
+            expect(choose.attributes("data-state")).toBe("current");
+            expect(choose.attributes("aria-current")).toBe("step");
+            wrapper.vm.step = wrapper.vm.STEPS.VERIFY;
+            await wrapper.vm.$nextTick();
+            expect(wrapper.find("[data-qa=view-setup-device-step-1]").attributes("data-state")).toBe("done");
+            expect(wrapper.find("[data-qa=view-setup-device-step-2]").attributes("data-state")).toBe("current");
+        });
     });
 });

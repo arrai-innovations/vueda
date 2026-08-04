@@ -7,7 +7,9 @@ from django.contrib.postgres.fields.ranges import Range
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.exceptions import ValidationError
 
+from tests.store.serializers import OrderItemCompositePKSerializer
 from vueda.core.fields import serializers as core_fields_serializers
+from vueda.core.serializers import fields as core_serializers_fields
 
 
 @pytest.mark.django_db
@@ -110,3 +112,41 @@ class TestFileField:
         # Test when no file is provided
         result = self.field.to_representation(None)
         assert result is None
+
+
+class TestImageField:
+    def setup_method(self):
+        self.field = core_fields_serializers.ImageField()
+
+    def test_is_file_field_subclass(self):
+        # Shares FileField's {"name", "url"} representation rather than DRF's plain-URL ImageField.
+        assert issubclass(core_fields_serializers.ImageField, core_fields_serializers.FileField)
+
+    def test_to_representation(self):
+        mock_file = MagicMock()
+        mock_file.name = "test_image.png"
+        mock_file.url = "/media/test_image.png"
+
+        result = self.field.to_representation(mock_file)
+        expected_output = {"name": "test_image.png", "url": "/media/test_image.png"}
+        assert result == expected_output
+
+    def test_to_representation_no_file(self):
+        result = self.field.to_representation(None)
+        assert result is None
+
+
+class TestCompositePrimaryKeyField:
+    def test_to_representation(self):
+        serializer = OrderItemCompositePKSerializer()
+        field = core_serializers_fields.CompositePrimaryKeyField()
+        field.parent = serializer
+        result = field.to_representation((1, 2))
+        assert result == '["1", "2"]'
+
+    def test_to_internal_value(self):
+        serializer = OrderItemCompositePKSerializer()
+        field = core_serializers_fields.CompositePrimaryKeyField()
+        field.parent = serializer
+        result = field.to_internal_value('["1", "2"]')
+        assert result == [1, 2]

@@ -1,0 +1,22 @@
+/**
+ * @module theme/vueda-tailwind/shell/TabsContent.theme
+ *
+ * Per-component theme registration for TabsContent. Imported as a side effect by
+ * TabsContent.vue, so a route chunk that pulls only that SFC drags only this
+ * component's theme entry, not the entire shell family.
+ */
+import { patchTheme } from "@vueda/use/themeRegistry.js";
+
+patchTheme({
+    /**
+     * TabsContent styles the active panel area in a tabs set.
+     */
+    TabsContent: {
+        /**
+         * The active tab panel. It flexes to fill remaining space and removes default outline chrome so focus treatment can be handled by child content when needed.
+         */
+        root: {
+            class: "flex-1 outline-none",
+        },
+    },
+});

@@ -39,6 +39,7 @@ from django.db.models import Case
 from django.db.models import CharField
 from django.db.models import F
 from django.db.models import OuterRef
+from django.db.models import Q
 from django.db.models import Value
 from django.db.models import When
 from django.db.models.functions import Cast
@@ -55,7 +56,6 @@ from django.views.generic.detail import SingleObjectMixin
 from hashids import Hashids
 from rest_framework import serializers
 from rest_framework import status
-from rest_framework import status as drf_status
 from rest_framework.decorators import api_view
 from rest_framework.decorators import permission_classes
 from rest_framework.generics import GenericAPIView
@@ -75,6 +75,8 @@ from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.adapters import get_adapter
 from vueda.user.decorators import ensure_csrf_token
+from vueda.user.globals import APPS_MODELS_AND_PERMISSION_CODENAMES_TO_HIDE_FROM_PERMISSION_MANAGEMENT
+from vueda.user.globals import CUD_CODENAMES
 from vueda.user.mixins import LogoutMixin
 from vueda.user.models import GroupChange
 from vueda.user.permissions import Authenticating
@@ -99,7 +101,7 @@ class WhoIsView(RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         if isinstance(instance, AnonymousUser):
-            return Response({}, status=200)
+            return Response({}, status=status.HTTP_200_OK)
         return super().retrieve(request, *args, **kwargs)
 
     def get_object(self):
@@ -149,7 +151,7 @@ class VuedaForgotPasswordView(GenericAPIView):
             if cache.get(cache_key):
                 return Response(
                     {"detail": "You must wait before requesting another password reset."},
-                    status=drf_status.HTTP_429_TOO_MANY_REQUESTS,
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
                 )
 
             url = active_user.generate_reset_url()
@@ -160,9 +162,9 @@ class VuedaForgotPasswordView(GenericAPIView):
             get_adapter().send_mail(email, active_user.name, "forgot_password", context)
             cache.set(cache_key, True, timeout=60)
         else:
-            return Response({"email": ["Email not found or user is inactive. "]}, status=400)
+            return Response({"email": ["Email not found or user is inactive. "]}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(status=drf_status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @conditional_extend_schema_decorator(
@@ -201,7 +203,7 @@ class VuedaResetPasswordView(GenericAPIView):
         pk = request.query_params.get("pk")
         token = request.query_params.get("token")
         if not pk or not token:
-            return Response({"detail": "Missing parameters."}, status=drf_status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Missing parameters."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             uid = hashids.decode(pk)[0]
@@ -209,15 +211,15 @@ class VuedaResetPasswordView(GenericAPIView):
         except (IndexError, get_user_model().DoesNotExist):
             return Response(
                 {"detail": "This token is invalid or has already been used."},
-                status=drf_status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if token_validator.check_token(user, token):
-            return Response({"detail": "Token is valid."}, status=drf_status.HTTP_200_OK)
+            return Response({"detail": "Token is valid."}, status=status.HTTP_200_OK)
         else:
             return Response(
                 {"detail": "This token is invalid or has already been used."},
-                status=drf_status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
     @sensitive_variables("password", "token", "serializer.data")
@@ -239,7 +241,7 @@ class VuedaResetPasswordView(GenericAPIView):
             non_field_error_key = api_settings.NON_FIELD_ERRORS_KEY
             return Response(
                 {non_field_error_key: ["This token is invalid or has already been used."]},
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if token_validator.check_token(user, token):
@@ -253,10 +255,10 @@ class VuedaResetPasswordView(GenericAPIView):
 
             return Response(
                 {non_field_error_key: ["This token is invalid or has already been used."]},
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response(status=drf_status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @conditional_extend_schema_decorator(
@@ -272,12 +274,20 @@ class ResendWelcomeEmailView(SingleObjectMixin, APIView):
         try:
             user = self.get_object()
         except Exception as e:
-            return Response({"result": "error", "message": str(e)}, content_type="application/json", status=404)
+            return Response(
+                {"result": "error", "message": str(e)},
+                content_type="application/json",
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         try:
             user.send_welcome_email()
         except Exception as e:
-            return Response({"result": "error", "message": str(e)}, content_type="application/json", status=500)
+            return Response(
+                {"result": "error", "message": str(e)},
+                content_type="application/json",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return Response({"result": "success", "message": "Welcome email resent."}, content_type="application/json")
 
@@ -288,7 +298,7 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
     """
 
     template_name = "permissions/overview.jinja2"
-    permission_required = ("user.list_permission",)
+    permission_required = ("auth.list_permission",)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -305,65 +315,91 @@ class PermissionOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView)
         # we can group the historical and non-historical models together.
         index_after_historical = 11
 
-        permissions = Permission.objects.annotate(
-            underscore_index=StrIndex(F("codename"), Value("_")),
-            codename_type=Substr(F("codename"), 1, length=F("underscore_index") - 1),
-            is_historical=Case(
-                When(
-                    content_type__model__startswith="historical",
-                    then=True,
+        # Exclude certain models and permissions from being able to have groups added to them.
+        excluded = Q()
+        for app_label, model, codename in APPS_MODELS_AND_PERMISSION_CODENAMES_TO_HIDE_FROM_PERMISSION_MANAGEMENT:
+            match codename:
+                case "*":
+                    excluded |= Q(content_type__app_label=app_label, content_type__model=model)
+                case "CUD":
+                    for cud_codename in CUD_CODENAMES:
+                        excluded |= Q(
+                            content_type__app_label=app_label,
+                            content_type__model=model,
+                            codename__startswith=cud_codename,
+                            codename__endswith=f"_{model}",
+                        )
+                case _:
+                    excluded |= Q(
+                        content_type__app_label=app_label,
+                        content_type__model=model,
+                        codename__startswith=codename,
+                        codename__endswith=f"_{model}",
+                    )
+
+        permissions = (
+            Permission.objects.exclude(excluded)
+            .annotate(
+                underscore_index=StrIndex(F("codename"), Value("_")),
+                codename_type=Substr(F("codename"), 1, length=F("underscore_index") - 1),
+                is_historical=Case(
+                    When(
+                        content_type__model__startswith="historical",
+                        then=True,
+                    ),
+                    default=False,
                 ),
-                default=False,
-            ),
-            is_local_app=Case(
-                When(
-                    content_type__app_label__in=local_apps,
-                    then=True,
+                is_local_app=Case(
+                    When(
+                        content_type__app_label__in=local_apps,
+                        then=True,
+                    ),
+                    default=False,
                 ),
-                default=False,
-            ),
-            model_and_historical_model_group=Case(
-                When(
-                    is_historical=True,
-                    then=(
-                        ContentType.objects.filter(
-                            app_label=OuterRef("content_type__app_label"),
-                            model=Substr(OuterRef("content_type__model"), index_after_historical),
-                        ).values_list("model", flat=True)
+                model_and_historical_model_group=Case(
+                    When(
+                        is_historical=True,
+                        then=(
+                            ContentType.objects.filter(
+                                app_label=OuterRef("content_type__app_label"),
+                                model=Substr(OuterRef("content_type__model"), index_after_historical),
+                            ).values_list("model", flat=True)
+                        ),
+                    ),
+                    default=F("content_type__model"),
+                ),
+                crud_order_by=Case(
+                    When(
+                        codename_type__in=("create", "add"),
+                        then=0,
+                    ),
+                    When(
+                        codename_type__in=("read", "view"),
+                        then=1,
+                    ),
+                    When(
+                        codename_type__in=("update", "change"),
+                        then=2,
+                    ),
+                    When(
+                        codename_type="delete",
+                        then=3,
+                    ),
+                    When(
+                        codename_type="list",
+                        then=4,
+                    ),
+                    default=5,
+                ),
+                groups=ArrayAgg(
+                    Array(
+                        Cast("group__pk", output_field=CharField()),
+                        "group__name",
                     ),
                 ),
-                default=F("content_type__model"),
-            ),
-            crud_order_by=Case(
-                When(
-                    codename_type__in=("create", "add"),
-                    then=0,
-                ),
-                When(
-                    codename_type__in=("read", "view"),
-                    then=1,
-                ),
-                When(
-                    codename_type__in=("update", "change"),
-                    then=2,
-                ),
-                When(
-                    codename_type="delete",
-                    then=3,
-                ),
-                When(
-                    codename_type="list",
-                    then=4,
-                ),
-                default=5,
-            ),
-            groups=ArrayAgg(
-                Array(
-                    Cast("group__pk", output_field=CharField()),
-                    "group__name",
-                ),
-            ),
-        ).order_by("content_type__app_label", "model_and_historical_model_group", "is_historical", "crud_order_by")
+            )
+            .order_by("content_type__app_label", "model_and_historical_model_group", "is_historical", "crud_order_by")
+        )
 
         context.update(
             {
@@ -439,7 +475,7 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": ["Unable to find the permission for the group you want to delete."],
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         group = Group.objects.filter(pk=group_id).first()
@@ -449,7 +485,7 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": ["Unable to find the group to delete."],
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         group_name = group.name
@@ -487,7 +523,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": [str(e)],
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
     def _post(self, request, *args, **kwargs):
@@ -520,7 +556,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": errors,
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         permission = Permission.objects.filter(pk=permission_id).first()
@@ -530,7 +566,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": ["Unable to find the permission for the group you want to change."],
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if group_id is None:  # New Group
@@ -546,7 +582,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                             f"You already have an association between &quot;{group_name}&quot; and this permission."
                         ],
                     },
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             permission.group_set.add(group)
@@ -572,7 +608,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                     "state": "erred",
                     "errors": ["Unable to find the group to change."],
                 },
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
         group_name_old = group.name
         group.name = group_name
@@ -585,7 +621,7 @@ class PermissionSaveView(PermissionRequiredMixin, View):
                             f"You already have an association between &quot;{group_name}&quot; and this permission."
                         ],
                     },
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             group.save()

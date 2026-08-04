@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import ClassVar
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -11,25 +12,26 @@ from rest_framework import status
 from rest_framework.settings import api_settings
 
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import models as store_models
 from vueda.workflow.models import WorkflowPermission
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
 class TestWorkflowViewSet(BaseTestUserMixin):
-    groups_to_create = {}
-    users_to_create = {
-        "workflow-user@example.com": {
+    groups_to_create: ClassVar[dict] = {}
+    users_to_create: ClassVar[dict] = {
+        "workflow-user@domain.invalid": {
             "name": "Workflow User",
             "password": "password",
             "groups": ["Order Workflow Managers"],
         },
-        "workflow-reader@example.com": {
+        "workflow-reader@domain.invalid": {
             "name": "Workflow Reader",
             "password": "password",
             "groups": ["Order Workflow Readers"],
         },
-        "workflow-read-only@example.com": {
+        "workflow-read-only@domain.invalid": {
             "name": "Workflow Read Only",
             "password": "password",
             "groups": ["Workflow Read Only"],
@@ -38,15 +40,15 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
     @pytest.fixture
     def workflow_user(self):
-        return self.users["workflow-user@example.com"]
+        return self.users["workflow-user@domain.invalid"]
 
     @pytest.fixture
     def workflow_reader(self):
-        return self.users["workflow-reader@example.com"]
+        return self.users["workflow-reader@domain.invalid"]
 
     @pytest.fixture
     def workflow_read_only_user(self):
-        return self.users["workflow-read-only@example.com"]
+        return self.users["workflow-read-only@domain.invalid"]
 
     @property
     def groups(self):
@@ -83,7 +85,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
     @pytest.fixture
     def other_customer(self):
-        user = get_user_model().objects.create(email="workflow-user2@example.com", name="Workflow User 2")
+        user = get_user_model().objects.create(email="workflow-user2@domain.invalid", name="Workflow User 2")
         user.set_password("password")
         user.save()
         return store_models.Customer.objects.create(user=user)
@@ -117,7 +119,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         response = api_client.get(object_state_url, format="json")
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["state"] == {"code": "new", "name": "New"}
         assert "current_history_id" in response.data
 
@@ -130,7 +132,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         response = api_client.get(object_state_url, format="json")
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
         assert response.data["detail"] == "You do not have permission to perform this action."
 
     def test_permitted_transitions_returns_transitions_when_user_has_workflow_permissions(
@@ -148,7 +150,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         response = api_client.get(permitted_transitions_url, format="json")
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert isinstance(response.data, list)
         assert "pack_order" in {transition["code"] for transition in response.data}
 
@@ -161,8 +163,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         response = api_client.get(permitted_transitions_url, format="json")
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "does not have workflow permissions" in str(response.data["detail"])
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
+        assert "does not have workflow permissions" in response.data["detail"]
 
     def test_permitted_transitions_returns_403_when_workflow_has_no_permissions_configured(
         self, api_client, workflow_read_only_user, customer_order
@@ -176,8 +178,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         response = api_client.get(permitted_transitions_url, format="json")
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "does not have workflow permissions" in str(response.data["detail"])
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
+        assert "does not have workflow permissions" in response.data["detail"]
 
     def test_object_transitions_returns_state_scoped_transitions(self, api_client, workflow_user, customer_order):
         api_client.force_authenticate(workflow_user)
@@ -188,7 +190,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         response = api_client.get(object_transitions_url, format="json")
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert {transition["code"] for transition in response.data} == {"hold_order", "pack_order"}
 
     def test_execute_transition_dry_run_detail_skips_lock_and_state_change(
@@ -211,7 +213,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
                 HTTP_DRY_RUN="true",
             )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["new_state"]["code"] == "packed"
         assert len(response.data["new_transitions"]) == 1
         assert response.data["new_transitions"][0]["code"] == "ship_order"
@@ -237,7 +239,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
                 format="json",
                 HTTP_DRY_RUN="true",
             )
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data[customer_order.pk]["new_state"]["code"] == "packed"
         assert response.data[another_order.pk]["new_state"]["code"] == "packed"
         customer_order.refresh_from_db()
@@ -262,7 +264,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         ) as lock_spy:
             response = api_client.patch(detail_url, {"transition_code": "pack_order"}, format="json")
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         customer_order.refresh_from_db()
         assert customer_order.workflow_state.code == "packed"
         assert lock_spy.call_count == 1
@@ -283,7 +285,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         with patch.object(store_models.CustomerOrder.objects, "select_for_update", return_value=lock_mock):
             response = api_client.patch(detail_url, {"transition_code": "pack_order"}, format="json")
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
         assert (
             str(response.data[api_settings.NON_FIELD_ERRORS_KEY][0])
             == "This object cannot be updated right now. Please try again."
@@ -310,7 +312,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
                 format="json",
             )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         customer_order.refresh_from_db()
         another_order.refresh_from_db()
         assert customer_order.workflow_state.code == "packed"
@@ -338,7 +340,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
                 format="json",
             )
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
         message = "This object cannot be updated right now. Please try again."
 
         def get_errors(object_id):
@@ -363,5 +365,5 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             {"transition_code": "pack_order", "object_ids": "not-a-list"},
             format="json",
         )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
         assert "object_ids" in response.data

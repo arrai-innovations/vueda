@@ -51,8 +51,6 @@ import { defineStore } from "pinia";
  * @property {string[]} filterables - filters to display in list view
  * @property {boolean} allowColumnHiding - whether to allow hiding columns in list view
  * @property {boolean} showTotalRecordNum - whether to show total record count in list view
- * @property {boolean} alwaysShowAllPages - whether to always show all pages in list view
- * @property {boolean} allowShowAllPages - whether to allow showing all pages in list view
  * @property {string[]} sortables - field names that can be sorted in list view
  * @property {string[]} sorted - the default sort order for list view
  * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - each available field details, by field name
@@ -64,6 +62,8 @@ import { defineStore } from "pinia";
  * @property {object} fieldProps - extra props to pass a field component in a form model
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} widgetComponents - overriding components for individual widgets
  * @property {object} widgetProps - extra props to pass a widget component in a form model
+ * @property {{[fieldName:string]: import('@vueda/utils/columnLookups.js').ColumnComponent | string}} columnComponents - overriding list column adapter for individual fields, by field name (a component, `() => component`, or a string key into `availableColumns`)
+ * @property {{[fieldName:string]: object}} columnProps - extra props to pass a field's list column adapter, by field name
  * @property {object} actionRedirects - mapping of action name to destination view
  *  when cancelling or after successful completion. The `default` key is used
  *  when no action-specific redirect exists. Values can be strings or functions
@@ -92,12 +92,12 @@ import { defineStore } from "pinia";
  * @property {object} [formProps] - extra props to pass the form model
  * @property {boolean} allowColumnHiding - whether to allow hiding columns in list view
  * @property {boolean} showTotalRecordNum - whether to show total record count in list view
- * @property {boolean} alwaysShowAllPages - whether to always show all pages in list view
- * @property {boolean} allowShowAllPages - whether to allow showing all pages in list view
  * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} [fieldComponents] - overriding components for individual fields
  * @property {object} [fieldProps] - extra props to pass a field component in a form model
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} [widgetComponents] - overriding components for individual widgets
  * @property {object} [widgetProps] - extra props to pass a widget component in a form model
+ * @property {{[fieldName:string]: import('@vueda/utils/columnLookups.js').ColumnComponent | string}} [columnComponents] - overriding list column adapter for individual fields, by field name (a component, `() => component`, or a string key into `availableColumns`)
+ * @property {{[fieldName:string]: object}} [columnProps] - extra props to pass a field's list column adapter, by field name
  * @property {object} [actionRedirects] - action-specific redirect mapping to merge with defaults.
  */
 
@@ -116,6 +116,8 @@ const getDefaultFromModelInfo = (modelInfo) => {
                 fieldProps: {},
                 widgetComponents: {},
                 widgetProps: {},
+                columnComponents: {},
+                columnProps: {},
                 actionDetails: {},
                 fieldDetails: {},
                 filterableDetails: {},
@@ -125,7 +127,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
         ];
     }
     const pkField = modelInfo.pk;
-    const fields = Object.keys(modelInfo.fields).filter((f) => f !== pkField);
+    const fields = Object.keys(modelInfo.fields).filter((f) => f !== pkField && !modelInfo.fields[f]?.hidden);
     const expandFields = modelInfo.expand.map((e) => e.name);
     const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
     const expandDetailsByName = Object.fromEntries(modelInfo.expand.map((e) => [e.name, e]));
@@ -154,12 +156,12 @@ const getDefaultFromModelInfo = (modelInfo) => {
             formProps: {},
             allowColumnHiding: false,
             showTotalRecordNum: true,
-            alwaysShowAllPages: false,
-            allowShowAllPages: true,
             fieldComponents: {},
             fieldProps: {},
             widgetComponents: {},
             widgetProps: {},
+            columnComponents: {},
+            columnProps: {},
             actionRedirects: {
                 default: canUpdate ? "update" : canRetrieve ? "read" : canList ? "list" : null,
             },
@@ -168,7 +170,13 @@ const getDefaultFromModelInfo = (modelInfo) => {
     ];
 };
 
-const shallowObjectProperties = ["formProps", "fieldComponents", "widgetComponents", "actionRedirects"];
+const shallowObjectProperties = [
+    "formProps",
+    "fieldComponents",
+    "widgetComponents",
+    "columnComponents",
+    "actionRedirects",
+];
 const deepObjectProperties = [
     "fieldDetails",
     "actionDetails",
@@ -176,6 +184,7 @@ const deepObjectProperties = [
     "sortableDetails",
     "fieldProps",
     "widgetProps",
+    "columnProps",
 ];
 const nonSimpleProperties = [...shallowObjectProperties, "expandDetails", ...deepObjectProperties];
 

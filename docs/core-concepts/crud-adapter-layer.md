@@ -1,7 +1,7 @@
 ---
 title: CRUDL Adapter Layer
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -27,7 +27,7 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 **Every slot starts with a sentinel function that rejects with a diagnostic message.** Before any adapter is registered, calling a composable method produces a rejected promise with the message `Crud method "<name>" is not implemented.` Slots that require cancellation support (`list`, `subscribe`) use a variant that also provides an empty `.cancel()` method. This ensures that missing registration produces an actionable error instead of a `TypeError` or silent failure.
 
-**The registry is singleton and last-write-wins.** Calling `setListCrud(...)` or `setObjectCrud(...)` replaces handler functions completely for the specified slots; it does not merge them. The `args` object is merged via `Object.assign`. Calling the setup functions multiple times (for example, from both `main.js` and a test setup) silently overwrites the previous registration. There is no warning or error for double registration.
+**The registry is a singleton and last-write-wins.** Calling `setListCrud(...)` or `setObjectCrud(...)` replaces handler functions completely for the specified slots; it does not merge them. The `args` object is merged via `Object.assign`. Calling the setup functions multiple times (for example, from both `main.js` and a test setup) silently overwrites the previous registration. There is no warning or error for double registration.
 
 ## Default Adapter Set (List)
 
@@ -39,7 +39,7 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 **{@api js:function:@arrai-innovations/vueda/utils/listCrud#allPagePaginatedListCrudAdaptor} fetches all pages concurrently.** It shares a single `AbortController` across concurrent page fetches (up to four concurrent via `p-limit`). Cancelling the returned promise aborts all in-flight pages. It uses `Promise.allSettled()` to avoid unhandled rejections when some pages are aborted while others succeed. This adapter is not registered by default; projects that need it can register it explicitly via `setListCrud`.
 
-**{@api js:function:@arrai-innovations/vueda/utils/listCrud#defaultObjectsDelete} handles bulk deletion.** It sends `{ pks: [...] }` as a JSON body with the `DELETE` method, adds a {@term Dry Run} header when `dryRun` is true, and classifies responses by status code: `204` is success (returns nothing), `400` throws {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}, and other statuses throw `FetchError`.
+**{@api js:function:@arrai-innovations/vueda/utils/listCrud#defaultObjectsDelete} handles bulk deletion.** It sends `{ pks: [...] }` as a JSON body with the `DELETE` method, adds a {@term Dry Run} header when `dryRun` is true and an `Acknowledge-Warnings` header when an `acknowledgeWarnings` digest is passed, and classifies responses by status code: `204` is success (returns nothing), `400` throws {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}, `409` throws {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError} (the server is withholding the delete behind warning confirmation), and other statuses throw `FetchError`.
 
 ## Default Adapter Set (Object)
 
@@ -47,7 +47,7 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 **Object adapters resolve to the response data directly.** Unlike list adapters (which push results via callbacks and resolve to `void`), object adapters return a promise that resolves to the object's data on success. The caller receives the created, retrieved, updated, or patched object as the resolution value.
 
-**Status code contracts are fixed per adapter.** `defaultObjectCreate` expects `201` on success. `defaultObjectUpdate` and `defaultObjectPatch` expect `200`. `defaultObjectDelete` expects `204`. All four mutation adapters throw {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError} on `400` (server-side validation failure) and `FetchError` on other non-success statuses.
+**Status code contracts are fixed per adapter.** `defaultObjectCreate` expects `201` on success. `defaultObjectUpdate` and `defaultObjectPatch` expect `200`. `defaultObjectDelete` expects `204`. All four mutation adapters throw {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError} on `400` (server-side validation failure) and `FetchError` on other non-success statuses. `defaultObjectCreate` and `defaultObjectUpdate` additionally throw {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError} on `409` (the warning confirmation gate) and accept an `acknowledgeWarnings` digest, sent as the `Acknowledge-Warnings` header on a confirmed retry.
 
 **Default adapters are explicitly non-`async` to preserve `.cancel()` on the returned promise.** Each adapter returns the promise produced by `fetchHelper` or `cancellableFetch` directly, with a `.cancel()` method attached. Wrapping an adapter in `async`/`await` or `.then()` produces a new `Promise` instance that does not carry the `.cancel()` method. This is a deliberate design constraint documented in inline comments, and it is the most common pitfall when writing custom adapters.
 

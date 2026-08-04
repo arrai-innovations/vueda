@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.urls import reverse
 
+from tests.conftest import response_body
 from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SentItem
 
@@ -26,7 +27,7 @@ def can_resend_permission(db):
 
 @pytest.mark.django_db
 def test_resend_requires_permission_allows_user(monkeypatch, api_client, sent_item, can_resend_permission):
-    user = get_user_model().objects.create_user(email="resender@example.com", password="password123")
+    user = get_user_model().objects.create_user(email="resender@domain.invalid", password="password123")
     user.user_permissions.add(can_resend_permission)
 
     scheduled_items = []
@@ -41,7 +42,7 @@ def test_resend_requires_permission_allows_user(monkeypatch, api_client, sent_it
 
     response = api_client.post(url, format="json")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response_body(response)
     assert response.data == {"message": "Successfully Queued."}
     assert len(scheduled_items) == 1
     assert scheduled_items[0].pk != sent_item.pk
@@ -49,7 +50,7 @@ def test_resend_requires_permission_allows_user(monkeypatch, api_client, sent_it
 
 @pytest.mark.django_db
 def test_resend_requires_permission_denies_without_flag(monkeypatch, api_client, sent_item):
-    user = get_user_model().objects.create_user(email="no-resend@example.com", password="password123")
+    user = get_user_model().objects.create_user(email="no-resend@domain.invalid", password="password123")
 
     scheduled_items = []
 
@@ -63,5 +64,5 @@ def test_resend_requires_permission_denies_without_flag(monkeypatch, api_client,
 
     response = api_client.post(url, format="json")
 
-    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
     assert not scheduled_items

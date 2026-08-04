@@ -44,4 +44,12 @@ describe("lib/utils/fieldMappings.js", () => {
         expect(merged).toBe(manyFieldMappings);
         expect(manyFieldMappings.CustomManyField).toEqual(customMappings.CustomManyField);
     });
+
+    it("maps JSONField to the default JSON widget", async () => {
+        const { defaultFieldMappings, manyFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+        const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+        expect(defaultFieldMappings.JSONField.JSONField.widget).toBe(availableWidgets.WidgetJson);
+        expect(manyFieldMappings.JSONField.JSONField.widget).toBe(availableWidgets.WidgetJson);
+    });
 });

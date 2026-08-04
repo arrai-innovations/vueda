@@ -1,14 +1,13 @@
 ---
 title: Model Choices, Lookup Fields, and Dynamic Options
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
 # Model Choices, Lookup Fields, and Dynamic Options
 
 This guide covers the end-to-end flow for loading dynamic option lists; both field-level choices (from serializer/model definitions) and filter-level choices (from filterset definitions); using VUEDA's info endpoints and client composables. By the end, choice-backed fields and filter lookups will load their options dynamically, respect permissions, and handle edge cases like empty labels and lazy loading.
-
 The guide assumes familiarity with the identifier and metadata contracts. If you have not read [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline), start there; it explains how choice values are normalized to strings and why identifier comparison uses string equality. For the model registration and `formatted_name` configuration that choice endpoints depend on, see [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract).
 
 ## Goal and Preconditions
@@ -62,9 +61,11 @@ Choice responses are lists of `{label, value}` objects. For related-model choice
 
 The filter choices endpoint serves option lists for filterset-defined filters; the filters that appear in the `list` view's filter UI.
 
-### Empty label and empty value
+### Empty values
 
-When a filter defines `empty_label`, the endpoint prepends an empty-value entry to the choices list. The empty value comes from the filter's `empty_value` configuration or from the default settings. This entry represents the "no selection" or "all" option in the filter dropdown.
+Filter choice responses omit empty-valued options. For filters, "no selection" or "all" is represented by leaving the filter query parameter out of the request, not by selecting an empty option. If a UI needs a clear or all control, render it outside the server-provided choices list.
+
+`empty_label` and `empty_value` can still appear in `model_filtering` metadata when the underlying filter exposes them, but the filter choices endpoint does not prepend a synthetic empty option.
 
 ### Permission model
 
@@ -77,6 +78,12 @@ Requesting choices for a filter name that does not exist on the filterset return
 ### Response shape
 
 Filter choice responses follow the same `{label, value}` structure as field choices. Values are normalized to strings. For queryset-backed filter choices, the queryset is filtered and paginated according to the filter's configuration before choices are extracted.
+
+### Dynamic filtering and typeahead
+
+The filter-choices endpoint is designed for interactive search: the client can pass the user's current input as a query parameter matching the filter's field name, and the endpoint narrows the returned options accordingly. For filters with `startswith`, `istartswith`, `contains`, or `icontains` lookup expressions, this narrowing happens in-memory on static choice lists and is applied directly to queryset-backed filters. This makes the endpoint well-suited for typeahead dropdowns that progressively reduce the option list as the user types.
+
+For queryset-backed `ModelChoiceFilter` filters and `AllValues`-style filters, the endpoint also considers the other active filter parameters when building the choice queryset. The returned options reflect only the values present in the currently filtered dataset, not the full set of possible values.
 
 ## Client Fetch Strategy
 
@@ -114,7 +121,7 @@ The composable does not fetch when the component is inactive (unmounted or deact
 
 ### Filter UI lazy loading
 
-The default filter UI (`FilterComponent`) fetches filter choices lazily; either when the filter dropdown is opened or when the current query already includes a value for that filter. This means filter choices are not loaded on initial page load unless the URL contains filter parameters. Expecting eager availability of filter choices (for example, reading them synchronously after component mount) will produce empty option lists until user interaction triggers the fetch.
+The default filter UI (`FilterFieldForm`, rendered by the add-filter menu and the chip edit popover) fetches filter choices lazily; either when the filter form is opened or when the current query already includes a value for that filter. This means filter choices are not loaded on initial page load unless the URL contains filter parameters. Expecting eager availability of filter choices (for example, reading them synchronously after component mount) will produce empty option lists until user interaction triggers the fetch.
 
 ## Verification Checklist
 
@@ -127,7 +134,7 @@ With choice loading wired, verify these behaviors:
 - A user without `read` permission on the source model receives 403 from choice endpoints.
 - A user without `list` permission on a related model receives 403 from related-model choice endpoints.
 - Requesting choices for an invalid field or filter name returns 404 with a helpful message.
-- Empty-label entries appear at the top of filter choice lists when `empty_label` is configured.
+- Filter choice lists do not contain empty-value options. The clear or all state is handled outside the returned choices.
 - Multiple components requesting the same field's choices do not produce duplicate network requests.
 
 ## Troubleshooting
@@ -136,7 +143,7 @@ With choice loading wired, verify these behaviors:
 
 **Choice endpoint returns 404 for a valid field name.** The field must have choices defined on the serializer; either static choices in the field definition or a related-model queryset source. A plain `CharField` without choices will return 404 from the field-choices endpoint even though it exists in model-info metadata.
 
-**Related-model choice labels show raw values instead of formatted names.** The related model's `formatted_name` strategy is not configured correctly. If the model sets `formatted_name = None`, it must provide either `formatted_name_lookup_expression` or a `get_formatted_name()` method. If using `get_formatted_name()`, the related model's serializer must declare `formatted_name = serializers.SerializerMethodField()`. See [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract) for the configuration options.
+**Related-model choice labels show raw values instead of formatted names.** The related model's `formatted_name` strategy is not configured correctly. If the model sets `formatted_name = None`, it must provide either `formatted_name_lookup_expression` or a `get_formatted_name()` method. A system check (`vueda_info.E001`) catches this misconfiguration at startup. If using `get_formatted_name()`, the related model's serializer must declare `formatted_name = serializers.SerializerMethodField()`. See [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract) for the configuration options.
 
 **Filter choices are empty on initial page load.** This is expected behavior for lazily-loaded filter choices. The filter UI fetches choices when the dropdown is opened or when the URL already contains a filter value. If you need eager loading, configure `intendToFetch: true` and ensure the component is active at mount time.
 
@@ -162,4 +169,5 @@ With choice loading wired, verify these behaviors:
     - {@api js:module:@arrai-innovations/vueda/use/useModelChoices}
     - {@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices}
 - Vue.js Components:
-    - {@api vue:component:FilterComponent}
+    - {@api vue:component:FilterFieldForm}
+    - {@api vue:component:FilterChip}

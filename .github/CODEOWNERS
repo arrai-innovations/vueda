@@ -1,0 +1,4 @@
+# Code owners are automatically requested for review on any pull request
+# that touches a matching path, acting as the repo's default reviewer.
+
+* @jhillacre

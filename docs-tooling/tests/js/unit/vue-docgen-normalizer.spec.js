@@ -59,6 +59,31 @@ describe("VueDocgenNormalizer", () => {
         expect(output.nodes.some((node) => node.kind === "slot")).toBe(true);
         expect(output.nodes.some((node) => node.kind === "event")).toBe(true);
     });
+
+    it("maps @deprecated component tags to canonical lifecycle metadata", async () => {
+        const normalizer = new VueDocgenNormalizer();
+        const payload = componentPayload("client/lib/components/TestComp.vue", {
+            description: "Legacy component.",
+            tags: {
+                deprecated: [
+                    {
+                        title: "deprecated",
+                        description: "Use {@api vue:component:ReplacementComp} instead.",
+                    },
+                ],
+            },
+        });
+
+        const output = normalizer.normalize(payload);
+
+        await assertCanonical(output);
+
+        const comp = output.nodes.find((node) => node.kind === "component");
+        expect(comp.lifecycle).toEqual({
+            status: "deprecated",
+            description: "Use {@api vue:component:ReplacementComp} instead.",
+        });
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -1028,7 +1053,7 @@ export const FORM_HIDDEN_FEEDBACK_SLOTS = [
 // ---------------------------------------------------------------------------
 
 describe("VueDocgenNormalizer — @vueda-slot-forward", () => {
-    const DETAIL_PATH = "/fake/client/lib/components/DetailView.vue";
+    const DETAIL_PATH = "/fake/client/lib/views/DetailView.vue";
     const VIEW_PATH = "/fake/client/lib/views/ViewRead.vue";
 
     const detailPayloadSlots = [
@@ -1053,7 +1078,7 @@ defineOptions({ name: "ViewRead" });
             sourceDir: "client/lib",
             files: [
                 {
-                    filePath: "client/lib/components/DetailView.vue",
+                    filePath: "client/lib/views/DetailView.vue",
                     components: [{ displayName: "DetailView", props: [], events: [], slots: detailPayloadSlots }],
                 },
                 {
@@ -1081,7 +1106,7 @@ defineOptions({ name: "ViewRead" });
             sourceDir: "client/lib",
             files: [
                 {
-                    filePath: "client/lib/components/DetailView.vue",
+                    filePath: "client/lib/views/DetailView.vue",
                     components: [{ displayName: "DetailView", props: [], events: [], slots: detailPayloadSlots }],
                 },
                 {
@@ -1112,13 +1137,13 @@ defineOptions({ name: "AuthorizingForm" });
         const normalizer = makeNormalizerWithFiles({
             "/fake/client/lib/views/AuthorizingForm.vue": multiForwardSource,
             [DETAIL_PATH]: "<script></script>",
-            "/fake/client/lib/components/ActionForm.vue": "<script></script>",
+            "/fake/client/lib/views/ActionForm.vue": "<script></script>",
         });
         const payload = {
             sourceDir: "client/lib",
             files: [
                 {
-                    filePath: "client/lib/components/DetailView.vue",
+                    filePath: "client/lib/views/DetailView.vue",
                     components: [
                         {
                             displayName: "DetailView",
@@ -1129,7 +1154,7 @@ defineOptions({ name: "AuthorizingForm" });
                     ],
                 },
                 {
-                    filePath: "client/lib/components/ActionForm.vue",
+                    filePath: "client/lib/views/ActionForm.vue",
                     components: [
                         {
                             displayName: "ActionForm",

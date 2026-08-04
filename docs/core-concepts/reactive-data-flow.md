@@ -1,7 +1,7 @@
 ---
 title: Reactive Data Flow (Stores + Composables)
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 

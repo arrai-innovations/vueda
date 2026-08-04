@@ -14,17 +14,17 @@
       - [Names Mapping (Important)](#names-mapping-important)
         - [Names Mapping For New Projects (default)](#names-mapping-for-new-projects-default)
         - [Names Mapping For Existing Django Projects](#names-mapping-for-existing-django-projects)
-    - [Workflow Management](#workflow-management)
-      - [Adding a workflow](#adding-a-workflow)
-      - [Deleting a Workflow](#deleting-a-workflow)
-    - [Workflow Management Command](#workflow-management-command)
-    - [Group Management](#group-management)
+    - [Developer Tools](#developer-tools)
+      - [Group Management](#group-management)
+      - [Workflow Management](#workflow-management)
+      - [Permissions and Workflow Overview](#permissions-and-workflow-overview)
     - [Set up Dispatch Queue](#set-up-dispatch-queue)
       - [start celery worker:](#start-celery-worker)
   - [Development](#development)
     - [Environment](#environment)
     - [Hooks](#hooks)
     - [API Documentation Generation](#api-documentation-generation)
+    - [Documentation Annotations](#documentation-annotations)
     - [Updating](#updating)
     - [Tagging Releases](#tagging-releases)
   - [Testing](#testing)
@@ -214,79 +214,49 @@ PERMISSION_NAMES_MAPPING = {
 }
 ```
 
-### Workflow Management
+### Developer Tools
 
-#### Adding a workflow
+VUEDA includes browser-based management tools and matching management commands to help developers track and migrate changes to group permissions and workflows without having to manually create migrations.
 
-1. Go to the workflow overview page at `/routes/vueda.workflow/overview/`.
-2. Create a superuser if you need one and then log in.
-3. Click the `Add Workflow` button.
-4. Fill out the form and save. You will be redirected to the edit form.
-5. Because initial state and transitions require a state to be selected when the edit form is saved, but no states exist by default, state changes will be saved if they don't have any validation errors, even if the server generates other validation errors. This is on purpose, so the state drop down will update, allowing you to select a state.
-6. When the states and transitions have been created, you can access their edit forms from the workflow overview page. These forms allow you to add/edit/delete state permissions, transition permissions, and transition sources.
-7. Once the workflow has been created the way you want it, you can use the [Workflow Management Command](#workflow-management-command).
+#### Group Management
 
-#### Deleting a Workflow
+The permission overview screen at `/routes/vueda.user/permissions/overview/` lets you view, add, rename, and remove groups for any permission in the project. When you are ready to roll those changes out to other environments, run `makegroupmigrations` to produce a migration with the changes.
 
-If you have a model that used the workflow, you will need to remove the association to any workflow objects on the model before you can delete the workflow.
+If you create a migration and then upgrade VUEDA, you can run `updategroupmigrations` to update the imports and function implementations embedded in the migration before it is deployed anywhere. Changed data is preserved.
 
-NOTE: Instruction 7 needs to have specific things deleted at the same time to prevent blow ups.
+For full instructions, see [Manage Groups and Generate Group Migrations](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/manage-groups.md).
 
-1. Go to the workflow overview page at `/routes/vueda.workflow/overview/`.
-2. Create a superuser if you need one and then log in.
-3. Edit each of the states that have state permissions, check delete on each and save.
-4. Edit each of the transitions that have transition permissions and transition sources, check delete on each and save.
-5. Edit the workflow.
-6. Check the workflow permissions, transitions, and states that are not used by the initial state, and save.
-7. Check the last remaining state and the initial state that uses it, and save.
-8. Then you can go to the workflow overview page and click the delete workflow button that will appear.
-9. Once the workflow has been deleted, you can use the [Workflow Management Command](#workflow-management-command).
+#### Workflow Management
 
-NOTE: Permissions and Groups associated with Workflows that are being deleted, must not be deleted until the workflow has been deleted from any servers, since they don't have history.
+The workflow overview screen at `/routes/vueda.workflow/overview/` lets you create and configure workflows with states, transitions, and permissions. When you are ready to roll those changes out to other environments, run `makeworkflowmigrations` to produce a migration with the changes.
 
-### Workflow Management Command
+If you create a migration and then upgrade VUEDA, you can run `updateworkflowmigrations` to update the imports and function implementations embedded in the migration before it is deployed anywhere. Changed data and other variables are preserved.
 
-A management command to automate the creation of migrations that reflect workflow changes made locally. These generated migrations can be migrated forwards and backwards, and do not use ids, since they can be different between databases.
+For full instructions, see [Manage Workflows and Generate Workflow Migrations](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/manage-workflows.md).
 
-`python manage.py makeworkflowmigrations`
+#### Permissions and Workflow Overview
 
-Similar to django `makemigrations`, you can specify the app_label(s) you want to make migrations for, or all if none are specified.
+The permissions and workflow overview at `/vueda.info/overview/` provides a read-only audit of which groups have which permissions and which workflow transitions they can trigger. Select a specific user to see exactly what that user can and cannot do. The page can be printed as a reference to share with clients or as a starting point when diagnosing access issues.
 
-If you are the user that made the changes to workflow manually, then you will want to fake this migration, since you already have the changes.
-
-Some additional options were added to the management command, mainly for testing.
-
-`--dry-run` - Use this to see the output of what the management command would do. No migrations are actually created when this is specified.
-
-`--keep-history-date` - If this is specified, then when migrations are run, the history that is created for the changes will use the history dates from the history records that were created when the workflow was created/edited/deleted. This is mainly used for testing.
-
-<!-- #todo: document -->
-
-### Group Management
-
-A view exists, where you can see permissions and groups.
-
-`/routes/vueda.user/permissions/overview/`
-
-Similar to workflow, you will need to log in.
-
-On this screen you can add/edit/delete groups per permission.
-
-Once the management command that will create group migrations is written, then you will be able to create the migration similar to `makeworkflowmigrations`.
+For full instructions, see [Use the Permissions and Workflow Overview](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/permissions-workflow-overview.md).
 
 ### Set up Dispatch Queue
+
+VDQ (`vueda.vdq`) is optional — only follow this section if your project needs
+queued, asynchronous email/SMS dispatch. VDQ requires `vueda.workflow` to be
+installed, since every queue item is tracked through a workflow state machine.
 
 The dispatch queue uses celery to run tasks.
 Celery can be used with a number of different [backends](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html).
 You will need to select the backend you want to you and then configure the `CELERY_BROKER_URL` in your environment, for example:
 
-```
+```text
 CELERY_BROKER_URL=redis://localhost:6379/3
 ```
 
 For email sending, you need to have the following environment variables set (via env vars or your config loader):
 
-```
+```text
 ANYMAIL_MAILGUN_API_KEY=
 ANYMAIL_MAILGUN_API_URL=
 ANYMAIL_WEBHOOK_SECRET=
@@ -295,7 +265,7 @@ ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY=
 
 For SMS sending, you need to have the following environment variables set (via env vars or your config loader):
 
-```
+```text
 TWILIO_ACCOUNT_SID=""
 TWILIO_AUTH_TOKEN=""
 TWILIO_WEBHOOK_URL=""
@@ -362,6 +332,12 @@ To manually generate the documentation, make sure dev packages are installed and
 The first command will generate the `schema.yml` file.
 The second command will install the code if needed and generate a `redoc-static.html` file from the `schema.yml` file.
 If you would like, you can get json by clicking the download button when viewing the html.
+
+### Documentation Annotations
+
+Rendered Python API references and the REST reference are generated by the `docs-tooling/` package, which reads docstrings from `server/vueda/` and the OpenAPI document produced by `manage.py spectacular`. When adding or updating modules, classes, viewsets, serializers, or model fields, follow the annotation conventions in the authoritative contract:
+
+- [Server annotation contract](../docs-tooling/briefings/server-annotations.md)
 
 ### Updating
 

@@ -32,11 +32,22 @@ function typedocKindSegment(kind) {
     }
 }
 
+function typedocAnchorForNode(node) {
+    return slugify(node.name);
+}
+
+function stripHash(value) {
+    return value.split("#", 1)[0];
+}
+
 export function typedocPathForNode(node, index) {
     if (node.kind === "module" || node.kind === "namespace") {
         return typedocModulePath(node);
     }
     const parent = index.parentOf.get(node.id);
+    if (node.kind === "property" && parent) {
+        return `${stripHash(typedocPathForNode(parent, index))}#${typedocAnchorForNode(node)}`;
+    }
     if (parent?.kind === "class") {
         const moduleAncestor = index.parentOf.get(parent.id) || parent;
         const moduleFile = typedocModulePath(moduleAncestor);
@@ -62,8 +73,7 @@ export function buildTypedocPathMap(bundle, index) {
 
 function pdocModulePath(node) {
     const moduleName = node.extensions?.pdoc?.modulename || node.name;
-    const pathPart = moduleName.replace(/\./g, "/");
-    return `py/${pathPart}.md`;
+    return `py/${moduleName}.md`;
 }
 
 function pdocClassDir(node, moduleFile) {
@@ -82,11 +92,13 @@ export function pdocPathForNode(node, index) {
         const dir = pdocClassDir(parent, moduleFile);
         return `${dir}.md#${slugify(node.name)}`;
     }
-    const moduleAncestor = parent?.kind === "module" ? parent : parent ? index.parentOf.get(parent.id) : null;
-    if (moduleAncestor && moduleAncestor.kind === "module") {
-        const moduleFile = pdocModulePath(moduleAncestor);
-        const dir = moduleFile.replace(/\.md$/, "");
-        return `${dir}/${slugify(node.name)}.md`;
+    if (parent?.kind === "module") {
+        const moduleFile = pdocModulePath(parent);
+        if (node.kind === "class") {
+            const dir = moduleFile.replace(/\.md$/, "");
+            return `${dir}/${slugify(node.name)}.md`;
+        }
+        return `${moduleFile}#${slugify(node.name)}`;
     }
     return `py/${slugify(node.name)}.md`;
 }
@@ -124,6 +136,10 @@ function responseCodeFromId(node) {
     return match ? match[1] : slugify(node.name || "response");
 }
 
+export function openapiResponseAnchorForNode(node) {
+    return slugify(responseCodeFromId(node));
+}
+
 export function openapiPathForNode(node, index) {
     if (node.kind === "schema" || node.kind === "enum") {
         return `rest/schemas/${slugify(node.name)}.md`;
@@ -134,8 +150,7 @@ export function openapiPathForNode(node, index) {
     if (node.kind === "response") {
         const parent = index.parentOf.get(node.id);
         if (parent && parent.kind === "endpoint") {
-            const base = openapiPathForNode(parent, index).replace(/\.md$/, "");
-            return `${base}/responses/${slugify(responseCodeFromId(node))}.md`;
+            return `${openapiPathForNode(parent, index)}#${openapiResponseAnchorForNode(node)}`;
         }
     }
     return `rest/${slugify(node.name)}.md`;
@@ -150,15 +165,15 @@ export function buildOpenApiPathMap(bundle, index) {
 }
 
 export function vueDocgenComponentPath(node) {
-    return `vue/components/${slugify(node.name)}.md`;
+    return `vue/${slugify(node.name)}.md`;
 }
 
 export function vueDocgenSlotsPath(node) {
-    return `vue/components/${slugify(node.name)}/slots.md`;
+    return `vue/${slugify(node.name)}/slots.md`;
 }
 
 export function vueDocgenEventsPath(node) {
-    return `vue/components/${slugify(node.name)}/events.md`;
+    return `vue/${slugify(node.name)}/events.md`;
 }
 
 export function buildVueDocgenPathMap(bundle) {

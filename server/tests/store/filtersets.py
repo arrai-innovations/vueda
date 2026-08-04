@@ -3,6 +3,7 @@ from django_filters import rest_framework
 
 import tests.store.models as my_models
 from tests import filters as test_filters
+from vueda.core.filters import VuedaCompositePrimaryKeyFilterSet
 from vueda.core.filters import VuedaFilterSet
 
 
@@ -18,7 +19,8 @@ def strtobool(value):
 class ProductFilterSet(VuedaFilterSet):
     distributor = rest_framework.AllValuesMultipleFilter(field_name="distributor__name")
     distributor.model = my_models.Product
-    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
+    name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")
     tangible_type = rest_framework.ModelChoiceFilter(
         field_name="tangible_type", label="Tangible Type", queryset=my_models.TangibleType.objects.all()
     )
@@ -26,8 +28,19 @@ class ProductFilterSet(VuedaFilterSet):
         field_name="special_care", label="Special Care", queryset=my_models.SpecialCare.objects.exclude(code="alcohol")
     )
     disabled = rest_framework.BooleanFilter(field_name="disabled", label="Disabled")
+    condition = test_filters.ContainsChoiceFilter(
+        field_name="condition",
+        label="Condition",
+        choices=(
+            ("new", "New"),
+            ("like_new", "Like New"),
+            ("refurbished", "Refurbished"),
+            ("used", "Used"),
+        ),
+        lookup_expr="icontains",
+    )
     last_ordered = rest_framework.DateFilter()
-    quantity = test_filters.CustomNumberInFilter()
+    quantity = test_filters.CustomNumberInFilter(field_name="product_options__quantity_available")
 
     class Meta:
         model = my_models.Product
@@ -43,17 +56,29 @@ class CustomerOrderFilterSet(VuedaFilterSet):
 
 
 class DistributorFilterSet(VuedaFilterSet):
-    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
+    name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")
 
     class Meta:
         model = my_models.Distributor
         fields = ["name"]
 
 
+class DistributorProxyFilterSet(VuedaFilterSet):
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
+    name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")
+
+    class Meta:
+        model = my_models.DistributorProxy
+        fields = ["name"]
+
+
 class ProductOptionFilterSet(VuedaFilterSet):
-    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr=["exact", "contains"])
-    sku = rest_framework.CharFilter(field_name="sku", label="SKU", lookup_expr=["exact", "contains"])
-    price = rest_framework.NumericRangeFilter(field_name="price", label="Price", lookup_expr=[])
+    name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
+    name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")
+    sku = rest_framework.CharFilter(field_name="sku", label="SKU", lookup_expr="exact")
+    sku_icontains = rest_framework.CharFilter(field_name="sku", label="SKU (contains)", lookup_expr="icontains")
+    price = rest_framework.NumericRangeFilter(field_name="price", label="Price")
     disabled = rest_framework.TypedChoiceFilter(
         field_name="disabled", label="Disabled", choices=(("false", "False"), ("true", "True")), coerce=strtobool
     )
@@ -66,7 +91,8 @@ class ProductOptionFilterSet(VuedaFilterSet):
 
 class CartFilterSet(VuedaFilterSet):
     last_modified = rest_framework.DateTimeFromToRangeFilter(
-        field_name="last_modified", label="Last modified", lookup_expr=[]
+        field_name="last_modified",
+        label="Last modified",
     )
     reserved_delivery_time = rest_framework.DateTimeFilter()
     reserved_until = rest_framework.TimeFilter()
@@ -77,17 +103,12 @@ class CartFilterSet(VuedaFilterSet):
     )
     # This can't be done in the init, because they were not designed to do that, even though they need the model.
     product_name.model = my_models.Cart
-    # These are our own additional fields.  With empty_label of None, we won't return the empty choice.
-    product_name.empty_label = None
 
     product_quantity = rest_framework.AllValuesMultipleFilter(
         field_name="cart_items__product_option__quantity_available", label="Product quantity"
     )
     # This can't be done in the init, because they were not designed to do that, even though they need the model.
     product_quantity.model = my_models.Cart
-    # These are our own additional fields, so we can modify the empty label and value that are returned.
-    product_quantity.empty_label = "Nothing"
-    product_quantity.empty_value = "test"
 
     class Meta:
         model = my_models.Cart
@@ -109,3 +130,9 @@ class InventoryRecordFilterSet(VuedaFilterSet):
     class Meta:
         model = my_models.InventoryRecord
         fields = ["reason"]
+
+
+class OrderItemCompositePKFilterSet(VuedaCompositePrimaryKeyFilterSet):
+    class Meta:
+        model = my_models.OrderItemCompositePK
+        fields = ["quantity"]

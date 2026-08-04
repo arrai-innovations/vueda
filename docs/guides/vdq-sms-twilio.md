@@ -1,7 +1,7 @@
 ---
 title: Send SMS from VDQ with Twilio
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -44,8 +44,8 @@ Use `add_sms(sender, receiver, body)` to create and immediately schedule an SMS 
 from vueda.vdq.schedulers import add_sms
 
 add_sms(
-    sender={"name": "System", "cell": "+15551234567"},
-    receiver={"name": "Customer", "cell": "+15559876543"},
+    sender={"name": "System", "cell": "+18005550100"},
+    receiver={"name": "Customer", "cell": "+18005550199"},
     body="Your verification code is 123456",
 )
 ```
@@ -91,7 +91,9 @@ The periodic task `check_sms_status` fetches Twilio status for awaiting SMS mess
 
 Both webhook and polling modes check for timeout. `update_sms_qi` evaluates whether the timeout window (`VDQ_TWILIO_SMS_TIMEOUT_HOURS`) has been exceeded based on the queue item's `done_since` field. Items past the timeout window transition to `unconfirmed` (a done state).
 
-Note that `done_since` is not automatically updated by VDQ workflow transitions. The timeout age is anchored to the value set at row creation or by explicit code paths. Unexpected drift in `done_since` can cause items to enter timeout handling sooner or later than expected.
+::: warning
+`done_since` is not automatically updated by VDQ workflow transitions. The timeout age is anchored to the value set at row creation or by explicit code paths. Unexpected drift in `done_since` can cause items to enter timeout handling sooner or later than expected.
+:::
 
 ## Retry and Failure Bookkeeping
 

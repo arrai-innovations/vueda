@@ -1,7 +1,7 @@
 ---
 title: Customize Field and Widget Rendering
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -31,7 +31,7 @@ You understand the field/widget distinction. In VUEDA's form architecture, a **f
 
 Three override surfaces are available, evaluated in precedence order:
 
-**Per-instance view props** take the highest precedence. When a view component passes `fieldComponents`, `widgetComponents`, `fieldProps`, or `widgetProps` as props to `FormModel` or `DetailedView`, those values override any model config settings for that specific view instance.
+**Per-instance view props** take the highest precedence. When a view component passes `fieldComponents`, `widgetComponents`, `fieldProps`, or `widgetProps` as props to `FormModel` or `DetailView`, those values override any model config settings for that specific view instance.
 
 **Model config** provides portable, model-wide overrides. Setting overrides through `storeModelConfig.setConfig` applies them across all views that use `useModelConfig` for that model. This is the preferred surface for overrides that should be consistent across create, update, and `read` views.
 
@@ -58,7 +58,7 @@ modelConfigStore.setConfig(
     { app: "myapp", model: "mymodel" },
     {
         fieldComponents: { line_items: "FieldSetTabularInline" },
-        widgetComponents: { line_items__status: "WidgetSelect" },
+        widgetComponents: { line_items__status: "WidgetSelectDropdown" },
     },
 );
 ```
@@ -156,7 +156,7 @@ modelConfigStore.setConfig(
     { app: "myapp", model: "mymodel" },
     {
         fieldComponents: { line_items: "FieldSetTabularInline" },
-        widgetComponents: { line_items__status: "WidgetSelect" },
+        widgetComponents: { line_items__status: "WidgetSelectDropdown" },
         fieldProps: { line_items: { showCreateButton: false } },
         widgetProps: { line_items__amount: { step: 0.01 } },
     },
@@ -211,8 +211,8 @@ const widget = useWidget(props, emit);
 - Vue.js Components:
     - {@api vue:component:FormModel}
     - {@api vue:component:FieldRenderer}
-    - {@api vue:component:DetailedView}
+    - {@api vue:component:DetailView}
     - {@api vue:component:FilterForm}
     - {@api vue:component:FieldSetTabularInline}
-    - {@api vue:component:WidgetSelect}
+    - {@api vue:component:WidgetSelectDropdown}
     - {@api vue:component:WidgetUnmapped}

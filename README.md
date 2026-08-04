@@ -1,10 +1,10 @@
 # VUEDA Monorepo
 
-![VUEDA Logo - Vue.js User Experience for Django Admin](docs/public/assets/logo-text.svg)
+![VUEDA Logo - Vue.js User Experience for Django Admin](docs/public/assets/logo-text-solid.svg)
 
-**Server:** [![code style: ruff][]][ruff] [![code style: prettier][]][prettier] ![pytest status][] ![coverage status][] ![ruff status][] ![pip-audit status][]
+**Server:** [![code style: ruff][]][ruff] [![code style: prettier][]][prettier] ![server pytest status][] ![server coverage status][] ![ruff status][] ![server pysentry status][]
 
-**Client:** [![code style: prettier][]][prettier] ![tests][] [![coverage: status][]][coverage] ![eslint][] ![audit][]
+**Client:** [![code style: prettier][]][prettier] ![tests][] [![client coverage status][]][client coverage] ![eslint][] ![pnpm-audit status][]
 
 Package READMEs:
 
@@ -35,11 +35,11 @@ and render forms, lists, and detail views dynamically.
 
 ## Repository Layout
 
-```
+```text
 /
   server/       # Django + DRF package (vueda on PyPI)
   client/       # Vue 3 component library (@arrai-innovations/vueda on npm)
-  templates/    # Copier starter templates for implementor repos
+  templates/    # Copier starter templates for integrator repos
   docs/         # VitePress documentation site
   docs-tooling/ # Internal tooling for API doc extraction and rendering
 ```
@@ -54,7 +54,7 @@ npm install -g pnpm@latest-10
 
 [Install just via one of the various methods.](https://github.com/casey/just?tab=readme-ov-file#installation)
 
-```
+```console
 just bootstrap
 ```
 
@@ -62,19 +62,19 @@ just bootstrap
 
 Read‑only checks:
 
-```
+```console
 just check
 ```
 
 Auto‑fixing:
 
-```
+```console
 just fix
 ```
 
 Tests:
 
-```
+```console
 just test
 ```
 
@@ -82,8 +82,8 @@ just test
 
 When a major version number change occurs, you will need to update the dependency information in:
 
-- templates/implementor-monorepo-dx/server/pyproject.toml.jinja
-- templates/implementor-monorepo/server/pyproject.toml.jinja
+- templates/integrator-monorepo-dx/server/pyproject.toml.jinja
+- templates/integrator-monorepo/server/pyproject.toml.jinja
 
 ## Release Tags
 
@@ -96,12 +96,12 @@ We use tag prefixes to publish packages independently:
 [ruff]: https://docs.astral.sh/ruff/formatter/#style-guide
 [code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
 [prettier]: https://github.com/prettier/prettier
-[pytest status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.svg
-[coverage status]: https://docs.arrai.dev/vueda-server/artifacts/main/pytest.coverage.svg
-[ruff status]: https://docs.arrai.dev/vueda-server/artifacts/main/ruff.svg
-[pip-audit status]: https://docs.arrai.dev/vueda-server/artifacts/main/pip-audit.svg
-[tests]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.svg
-[coverage: status]: https://docs.arrai.dev/vueda-client/artifacts/main/tests.coverage.svg
-[coverage]: https://docs.arrai.dev/vueda-client/artifacts/main/coverage_tests/
-[eslint]: https://docs.arrai.dev/vueda-client/artifacts/main/eslint.svg
-[audit]: https://docs.arrai.dev/vueda-client/artifacts/main/npm-audit.svg
+[server pytest status]: https://docs.arrai.dev/vueda/artifacts/main/server-pytest.svg
+[server coverage status]: https://docs.arrai.dev/vueda/artifacts/main/server-pytest.coverage.svg
+[ruff status]: https://docs.arrai.dev/vueda/artifacts/main/ruff.svg
+[server pysentry status]: https://docs.arrai.dev/vueda/artifacts/main/server-pysentry.svg
+[client tests]: https://docs.arrai.dev/vueda/artifacts/main/tests.svg
+[client coverage status]: https://docs.arrai.dev/vueda/artifacts/main/tests.coverage.svg
+[client coverage]: https://docs.arrai.dev/vueda/artifacts/main/coverage_tests/
+[eslint]: https://docs.arrai.dev/vueda/artifacts/main/eslint.svg
+[pnpm-audit status]: https://docs.arrai.dev/vueda/artifacts/main/pnpm-audit.svg

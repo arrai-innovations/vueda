@@ -1,0 +1,183 @@
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Source+Sans+Pro&display=swap" rel="stylesheet">
+    <link href="/static/info/overview.css" rel="stylesheet">
+    <title>Permissions &amp; Workflow Overview</title>
+</head>
+<body>
+
+<div class="print-header">
+    <h1>
+        Permissions &amp; Workflow Overview -
+        {% if selected_user %}{{ selected_user.formatted_name }}{% else %}All Users{% endif %}
+    </h1>
+</div>
+
+<div class="screen-header no-print sticky sticky-1">
+    <h1>Permissions &amp; Workflow Overview</h1>
+    <form class="user-filter-form" method="get">
+        <select id="user-filter" name="user_id">
+            <option value="">All users</option>
+            {% for user in users %}
+                <option value="{{ user.pk }}"{% if selected_user and selected_user.pk == user.pk %} selected{% endif %}>{{ user.formatted_name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+    {{ logout }}
+    <button class="btn back-to-top">Back To Top</button>
+</div>
+
+{% if groups %}
+    <section class="app">
+        <div class="app-header sticky sticky-2">
+            <h2><code>Groups</code></h2>
+        </div>
+        <div class="groups">
+            <div class="groups-body">
+                {% for group in groups %}
+                <div class="groups-section perm-row">
+                    <span class="codename">{{ group.name }}</span>
+                    {% if "user_has_group" in group %}
+                        {% if group.user_has_group %}
+                            <span class="group-tag group-yes">
+                                &#x2713;
+                            </span>
+                        {% else %}
+                            <span class="group-tag group-no">
+                                &#x2715;
+                            </span>
+                        {% endif %}
+                    {% else %}
+                        <span class="group-tag"></span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endif %}
+
+{% if apps %}
+    {% for app_label, models in apps.items() %}
+        <section class="app">
+            <div class="app-header sticky sticky-2">
+                <h2><code>{{ app_label }}</code></h2>
+            </div>
+            {% for model in models %}
+                <div class="model">
+                    <div class="model-header sticky sticky-3">
+                        <h3><code>{{ model.model_name }}</code></h3>
+                    </div>
+                    <div class="model-body">
+                        <div class="model-section permissions-section">
+                            <div class="section-label">Permissions</div>
+                            {% for perm in model.permissions %}
+                                <div class="row perm-row">
+                                    <div class="row-info">
+                                        <code class="codename">{{ perm.codename }}</code>
+                                        <span class="row-sub">{{ perm.name }}</span>
+                                    </div>
+                                    {% if "user_has_permission" in perm %}
+                                        {% if perm.user_has_permission %}
+                                            <div class="perm-yes">
+                                                &#x2713;
+                                            </div>
+                                        {% else %}
+                                            <div class="perm-no">
+                                                &#x2715;
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span></span>
+                                    {% endif %}
+                                    <div class="row-groups">
+                                        {% for group_name in perm.groups %}
+                                            <span class="group-tag">{{ group_name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if model.workflow %}
+                            <div class="model-section transitions-section">
+                                <div class="section-label">Transitions</div>
+
+                                <div class="row workflow-access-row">
+                                    <div class="row-info">
+                                        <span class="transition-name workflow-access-label">Workflow Access</span>
+                                        <span class="row-sub">{{ model.workflow.name }}</span>
+                                    </div>
+                                    {% if model.workflow.user_can_access_workflow is not none %}
+                                        {% if model.workflow.user_can_access_workflow %}
+                                            <div class="perm-yes">&#x2713;</div>
+                                        {% else %}
+                                            <div class="perm-no">&#x2715;</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span></span>
+                                    {% endif %}
+                                    <div class="row-groups">
+                                        {% for group_name in model.workflow.workflow_groups %}
+                                            <span class="group-tag group-tag-workflow">{{ group_name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% if model.workflow.has_state_permissions %}
+                                    <div class="row state-perms-row">
+                                        <div class="row-info">
+                                            <span class="transition-name state-perms-label">State Permissions</span>
+                                            <span class="row-sub">Row-level grant/deny rules apply</span>
+                                        </div>
+                                        <span></span>
+                                        <div class="row-groups">
+                                            {% for sp in model.workflow.state_permissions %}
+                                                <span class="group-tag {% if sp.grant_or_deny %}group-tag-grant{% else %}group-tag-deny{% endif %}">
+                                                    {{ sp.state_name }}: {{ sp.group_name }} ({{ sp.permission_codename }}) &mdash; {% if sp.grant_or_deny %}grant{% else %}deny{% endif %}
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                {% for transition in model.workflow.transitions %}
+                                    <div class="row transition-row">
+                                        <div class="row-info">
+                                            <span class="transition-name">{{ transition.name }}</span>
+                                            <span class="row-sub transition-states">
+                                                {%- if transition.sources -%}
+                                                    {{ transition.sources | join(", ") }} &#8594;
+                                                {%- endif %} {{ transition.target }}
+                                            </span>
+                                        </div>
+                                        {% if transition.user_can_do is not none %}
+                                            {% if transition.user_can_do %}
+                                                <div class="perm-yes">&#x2713;</div>
+                                            {% else %}
+                                                <div class="perm-no">&#x2715;</div>
+                                            {% endif %}
+                                        {% else %}
+                                            <span></span>
+                                        {% endif %}
+                                        <div class="row-groups">
+                                            {% for group_id, group_name in transition.groups %}
+                                                <span class="group-tag group-tag-transition">{{ group_name }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </section>
+    {% endfor %}
+{% else %}
+    <p class="empty-state">No registered models found.</p>
+{% endif %}
+
+<script src="/static/info/overview.js"></script>
+</body>
+</html>

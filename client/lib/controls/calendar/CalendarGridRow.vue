@@ -1,0 +1,31 @@
+<script setup>
+import "@vueda/theme/vueda-tailwind/controls/CalendarGridRow.theme.js";
+import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { CalendarGridRow } from "reka-ui";
+
+/**
+ * A styled row within the calendar grid representing a single week.
+ */
+defineOptions({
+    inheritAttrs: false,
+});
+
+const props = defineProps({
+    ...THEME_OVERRIDE_PROPS,
+    /** Additional CSS classes to apply to the grid row. */
+    class: { type: [String, Array, Object], default: undefined },
+});
+
+const theme = useTheme("CalendarGridRow", props);
+</script>
+
+<template>
+    <CalendarGridRow
+        data-slot="calendar-grid-row"
+        :class="[theme('root'), props.class]"
+        :style="theme.hideStyle?.value"
+        v-bind="$attrs"
+    >
+        <slot />
+    </CalendarGridRow>
+</template>

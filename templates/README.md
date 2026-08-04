@@ -1,17 +1,20 @@
 # Copier Templates
 
-This directory contains starter templates for implementor VUEDA monorepos.
+This directory contains starter templates for integrator VUEDA monorepos.
 
 ## Available Templates
 
-- `implementor-monorepo`: minimal setup with direct `uv`/`pnpm` workflows.
-- `implementor-monorepo-dx`: DX-focused setup with repository automation via `just`.
+- `integrator-monorepo`: minimal setup with direct `uv`/`pnpm` workflows.
+- `integrator-monorepo-dx`: DX-focused setup with repository automation via `just`.
+  Copier prompts for the JavaScript package manager. `pnpm` is the default,
+  with `npm` and `yarn` also supported.
 
 ## Prerequisites
 
 - [Copier](https://copier.readthedocs.io/)
 - [uv](https://docs.astral.sh/uv/)
-- [pnpm](https://pnpm.io/)
+- [pnpm](https://pnpm.io/) for `integrator-monorepo`, or the JavaScript
+  package manager selected for `integrator-monorepo-dx`
 - Python 3.11+
 - Node.js 22+
 
@@ -20,20 +23,20 @@ This directory contains starter templates for implementor VUEDA monorepos.
 Run Copier from the repository root where this `templates/` directory exists:
 
 ```console
-$ copier copy templates/implementor-monorepo <destination-dir>
+$ copier copy templates/integrator-monorepo <destination-dir>
 ```
 
 or
 
 ```console
-$ copier copy templates/implementor-monorepo-dx <destination-dir>
+$ copier copy templates/integrator-monorepo-dx <destination-dir>
 ```
 
 Copier will prompt for values defined in each template's `copier.yml`.
 
 ## Next Steps After Generation
 
-### `implementor-monorepo`
+### `integrator-monorepo`
 
 ```console
 $ cd <destination-dir>
@@ -43,7 +46,7 @@ $ pnpm install
 
 Create `server/config.local.toml` and set at least `SECRET_KEY`.
 
-### `implementor-monorepo-dx`
+### `integrator-monorepo-dx`
 
 ```console
 $ cd <destination-dir>

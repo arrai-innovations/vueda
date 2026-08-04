@@ -1,6 +1,8 @@
 # Models to use with info.
 
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres import fields as postgres_fields
 from django.core import validators
 from django.core.validators import StepValueValidator
@@ -9,20 +11,19 @@ from django.db.models import F
 from django.db.models import Max
 from django.db.models.functions import Cast
 
-from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
 from vueda.core.models import VuedaModel
 from vueda.history.models import VuedaHistoryModel
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class Customer(HasWorkflowModelMixin, VuedaHistoryModel):
+class Customer(VuedaHistoryModel):
     user = models.OneToOneField(get_user_model(), on_delete=models.PROTECT)
 
     formatted_name = None
     formatted_name_lookup_expression = "data__formatted_name"
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryModel.Meta):
         ordering = ["user__name"]
 
 
@@ -37,8 +38,9 @@ class CustomerData(models.Model):
 
 class Distributor(VuedaHistoryModel):
     name = models.CharField(max_length=255)
+    description = models.CharField(max_length=1024)
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryModel.Meta):
         pass
 
 
@@ -72,8 +74,18 @@ class Product(VuedaHistoryModel):
     internal_comments = postgres_fields.ArrayField(models.TextField(), blank=True, default=list)
     last_ordered = models.DateField(null=True)
     quantity = models.IntegerField(db_default=0)
+    condition = models.CharField(
+        max_length=20,
+        choices=(
+            ("new", "New"),
+            ("like_new", "Like New"),
+            ("refurbished", "Refurbished"),
+            ("used", "Used"),
+        ),
+        blank=True,
+    )
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryModel.Meta):
         ordering = ["name"]
         unique_together = [
             ["distributor", "name"],
@@ -94,7 +106,7 @@ class ProductOption(VuedaHistoryModel):
     disabled = models.BooleanField(db_default=False)
     quantity_available = models.IntegerField(db_default=0)
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryModel.Meta):
         default_related_name = "product_options"
 
 
@@ -155,7 +167,7 @@ class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryModel):
         db_persist=True,
     )
 
-    class Meta(BaseModelMeta):
+    class Meta(VuedaHistoryModel.Meta):
         permissions = [("fulfill_orders", "Can fulfill orders")]
 
     @classmethod
@@ -269,3 +281,93 @@ class PackingBox(VuedaModel):
     class Meta(VuedaModel.Meta):
         verbose_name = "Packing Box"
         verbose_name_plural = "Packing Boxes"
+
+
+class Invoice(VuedaModel):
+    name = models.CharField(max_length=255)
+
+    class Meta(VuedaModel.Meta):
+        pass
+
+
+class InvoiceLine(VuedaHistoryModel):
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="invoice_lines")
+    name = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta(VuedaHistoryModel.Meta):
+        pass
+
+
+class ProductCompositePK(VuedaModel):
+    name = models.CharField(max_length=255)
+
+    class Meta(VuedaModel.Meta):
+        ordering = ["name"]
+
+
+class OrderCompositePK(VuedaModel):
+    order_number = models.DecimalField(max_digits=7, decimal_places=0)
+    order_date = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    formatted_name = models.GeneratedField(
+        expression=Cast(F("order_number"), output_field=models.CharField()),
+        output_field=models.CharField(),
+        db_persist=True,
+    )
+
+    class Meta(VuedaModel.Meta):
+        ordering = ["order_number"]
+
+
+class OrderItemCompositePK(VuedaModel):
+    pk = models.CompositePrimaryKey("order_id", "product_id")
+    order = models.ForeignKey(OrderCompositePK, on_delete=models.PROTECT)
+    product = models.ForeignKey(ProductCompositePK, on_delete=models.PROTECT)
+    quantity = models.IntegerField(
+        db_default=0, validators=[validators.MinValueValidator(0), validators.MaxValueValidator(1000)]
+    )
+
+    formatted_name = None
+    formatted_name_lookup_expression = "product__formatted_name"
+
+    class Meta(VuedaModel.Meta):
+        default_related_name = "order_items_composite_pks"
+        verbose_name = "Order Items Composite PK"
+        verbose_name_plural = "Order Items Composite PKs"
+
+
+# Tests require no objects of this type to exist.
+class OrderItemAltCompositePK(VuedaModel):
+    pk = models.CompositePrimaryKey("order_id", "product_id")
+    order = models.ForeignKey(OrderCompositePK, on_delete=models.PROTECT)
+    product = models.ForeignKey(ProductCompositePK, on_delete=models.PROTECT)
+    quantity = models.IntegerField(
+        db_default=0, validators=[validators.MinValueValidator(0), validators.MaxValueValidator(1000)]
+    )
+
+    formatted_name = None
+    formatted_name_lookup_expression = "product__formatted_name"
+
+    class Meta(VuedaModel.Meta):
+        default_related_name = "order_items_alt_composite_pks"
+        ordering = ["order", "product", "quantity"]
+        verbose_name = "Order Items Alt Composite PK"
+        verbose_name_plural = "Order Items Alt Composite PKs"
+
+
+class DistributorProxy(Distributor):
+    class Meta(Distributor.Meta):
+        proxy = True
+        verbose_name = "distributor proxy"
+        verbose_name_plural = "distributor proxies"
+
+
+class Note(VuedaModel):
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey("content_type", "object_id")
+    text = models.TextField()
+
+    formatted_name = None
+    formatted_name_lookup_expression = "text"

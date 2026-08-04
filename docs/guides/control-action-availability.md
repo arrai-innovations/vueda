@@ -1,7 +1,7 @@
 ---
 title: Control Action Availability in the UI
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -76,7 +76,7 @@ Rendered action controls in views use two additional filtering layers beyond rou
 
 **Group-based filtering** uses `useFilteredActions` to read the model config's `config.actions` setting. When defined, only actions listed in `config.actions` are included in the rendered set. This filtering applies across all views for the model and is typically used for role-based or product-based UX customization.
 
-**Object-level intersection** applies in detail-style views. `DetailedView` intersects the config-filtered action set with the object's `available_actions` before rendering action buttons. An action must pass both filters to appear as a rendered control. This means the same model can show different action buttons for different objects; reflecting per-object permission outcomes without any client-side permission logic.
+**Object-level intersection** applies in detail-style views. `DetailView` intersects the config-filtered action set with the object's `available_actions` before rendering action buttons. An action must pass both filters to appear as a rendered control. This means the same model can show different action buttons for different objects; reflecting per-object permission outcomes without any client-side permission logic.
 
 `list` views use config-filtered actions for toolbar controls (like bulk delete) but do not intersect with per-object availability, since `list` views do not have a single target object.
 
@@ -86,7 +86,7 @@ Workflow transition controls are sourced from the workflow transition store and 
 
 Workflow transitions extend the action namespace with transition-specific routes. The route guard includes permitted transition codes in the action set, enabling navigation to transition-specific views alongside standard CRUDL routes.
 
-The guard evaluates transitions by their `code` property. Every transition object must have a valid string `code`; objects without one cause the guard to throw an explicit error rather than silently skipping the transition. If you see `requireModelInfo: workflow transition is missing a string code`, check the workflow configuration for transitions with missing or non-string codes.
+The guard evaluates transitions by their `code` property. Every transition object must have a valid string `code`; objects without one cause the guard to throw an explicit error rather than silently skipping the transition. The server enforces `code` as a required, non-blank field, so this error indicates a data integrity violation or server-side bug rather than a routine misconfiguration.
 
 `ViewActionRouter` resolves transition routes by matching the route's action parameter against transition codes. When a match is found, the route renders `ViewWorkflowTransition`. When no match is found (and the action is also not a standard CRUDL action), the route renders `ViewActionNotFound`.
 
@@ -109,7 +109,7 @@ After wiring action availability, verify the following behaviors:
 
 **Route guard fails repeatedly for a model after a transient error.** The model-info store caches fetch errors. The cached error will be reused for all navigation attempts to that model until the store is reset or the page is reloaded.
 
-**Workflow transition route renders "Action Not Found."** Verify the transition has a valid string `code`. Check that the transition is in the permitted transitions set for the requesting user. Check that `ViewActionRouter` can resolve the transition code to `ViewWorkflowTransition`.
+**Workflow transition route renders "Action Not Found."** Check that the transition is in the permitted transitions set for the requesting user. Check that `ViewActionRouter` can resolve the transition code to `ViewWorkflowTransition`.
 
 ## Relevant Implementation Surface
 

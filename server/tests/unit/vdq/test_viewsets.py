@@ -7,6 +7,7 @@ from django.contrib.auth.models import Permission
 from django.urls import reverse
 from rest_framework import status
 
+from tests.conftest import response_body
 from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SentItem
 
@@ -15,7 +16,9 @@ from vueda.vdq.models import SentItem
 class TestQueueItemWorkflowTransitions:
     @pytest.fixture(autouse=True)
     def setup_user(self):
-        self.user = get_user_model().objects.create_superuser(email="queue-checker@example.com", password="password123")
+        self.user = get_user_model().objects.create_superuser(
+            email="queue-checker@domain.invalid", password="password123"
+        )
 
     @pytest.fixture
     def authenticated_client(self, api_client):
@@ -44,7 +47,7 @@ class TestQueueItemWorkflowTransitions:
                 HTTP_DRY_RUN="true",
             )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["new_state"]["code"] == "cancelled"
         delayed_queue_item.refresh_from_db()
         assert delayed_queue_item.workflow_state.code == "delayed"
@@ -68,7 +71,7 @@ class TestQueueItemWorkflowTransitions:
                 format="json",
             )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["new_state"]["code"] == "cancelled"
         delayed_queue_item.refresh_from_db()
         assert delayed_queue_item.workflow_state.code == "cancelled"
@@ -91,7 +94,7 @@ class TestQueueItemWorkflowTransitions:
                 HTTP_DRY_RUN="true",
             )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["new_state"]["code"] == "queued"
         delayed_queue_item.refresh_from_db()
         assert delayed_queue_item.workflow_state.code == "delayed"
@@ -113,7 +116,7 @@ class TestQueueItemWorkflowTransitions:
                 format="json",
             )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["new_state"]["code"] == "queued"
         delayed_queue_item.refresh_from_db()
         assert delayed_queue_item.workflow_state.code == "queued"
@@ -130,13 +133,13 @@ def test_send_queue_viewset_excludes_done_states(api_client, sender, receiver):
     finished.fast_transition("await")
     finished.fast_transition("succeed")
 
-    user = get_user_model().objects.create_superuser(email="queue-checker@example.com", password="password123")
+    user = get_user_model().objects.create_superuser(email="queue-checker@domain.invalid", password="password123")
     api_client.force_authenticate(user=user)
 
     list_url = reverse("vueda_vdq.queueitem-list")
     response = api_client.get(list_url, format="json")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response_body(response)
     result_ids = {item["id"] for item in response.data["results"]}
     assert active.pk in result_ids
     assert finished.pk not in result_ids
@@ -144,7 +147,7 @@ def test_send_queue_viewset_excludes_done_states(api_client, sender, receiver):
     detail_url = reverse("vueda_vdq.queueitem-detail", kwargs={"pk": finished.pk})
     detail_response = api_client.get(detail_url, format="json")
 
-    assert detail_response.status_code == HTTPStatus.OK
+    assert detail_response.status_code == HTTPStatus.OK, response_body(detail_response)
     assert detail_response.data["id"] == finished.pk
 
 
@@ -157,7 +160,7 @@ def test_sent_item_viewset_resend_single(monkeypatch, api_client, sender, receiv
 
     sent_item = SentItem.objects.get(pk=queue_item.pk)
 
-    user = get_user_model().objects.create_user(email="resender@example.com", password="password123")
+    user = get_user_model().objects.create_user(email="resender@domain.invalid", password="password123")
     permission = Permission.objects.get(codename="can_resend", content_type__app_label="vueda_vdq")
     user.user_permissions.add(permission)
     api_client.force_authenticate(user=user)
@@ -172,7 +175,7 @@ def test_sent_item_viewset_resend_single(monkeypatch, api_client, sender, receiv
     url = reverse("sentitem-resend", kwargs={"pk": sent_item.pk})
     response = api_client.post(url, format="json")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response_body(response)
     assert response.data == {"message": "Successfully Queued."}
     assert len(scheduled) == 1
 
@@ -192,7 +195,7 @@ def test_sent_item_viewset_resend_bulk(monkeypatch, api_client, sender, receiver
         queue_item.fast_transition("succeed")
         sent_items.append(SentItem.objects.get(pk=queue_item.pk))
 
-    user = get_user_model().objects.create_user(email="bulk-resender@example.com", password="password123")
+    user = get_user_model().objects.create_user(email="bulk-resender@domain.invalid", password="password123")
     permission = Permission.objects.get(codename="can_resend", content_type__app_label="vueda_vdq")
     user.user_permissions.add(permission)
     api_client.force_authenticate(user=user)
@@ -207,7 +210,7 @@ def test_sent_item_viewset_resend_bulk(monkeypatch, api_client, sender, receiver
     url = reverse("sentitem-resend")
     response = api_client.post(url, {"pks": [item.pk for item in sent_items]}, format="json")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response_body(response)
     assert len(scheduled) == len(sent_items)
     original_ids = {item.pk for item in sent_items}
     for queue_item in scheduled:
@@ -222,7 +225,7 @@ def test_send_queue_viewset_returns_items_by_pk(api_client, sender, receiver):
     finished.fast_transition("await")
     finished.fast_transition("succeed")
 
-    user = get_user_model().objects.create_superuser(email="queue-reader@example.com", password="password123")
+    user = get_user_model().objects.create_superuser(email="queue-reader@domain.invalid", password="password123")
     api_client.force_authenticate(user=user)
 
     queued_response = api_client.get(reverse("vueda_vdq.queueitem-detail", kwargs={"pk": queued.pk}), format="json")
@@ -231,7 +234,7 @@ def test_send_queue_viewset_returns_items_by_pk(api_client, sender, receiver):
         format="json",
     )
 
-    assert queued_response.status_code == HTTPStatus.OK
+    assert queued_response.status_code == HTTPStatus.OK, response_body(queued_response)
     assert queued_response.data["id"] == queued.pk
-    assert finished_response.status_code == HTTPStatus.OK
+    assert finished_response.status_code == HTTPStatus.OK, response_body(finished_response)
     assert finished_response.data["id"] == finished.pk

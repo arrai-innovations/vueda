@@ -10,6 +10,7 @@ const { provideStore, mockedProvide, mockedInject } = mockProvideInject(vi);
 const { clearUnmounted, unmountedFunctions, mockedOnUnmounted } = mockLifecycle(vi);
 const reservedServerCodeMsg =
     'Error code "server" is reserved for server-originated validation and cannot be set from local validation. Use a non-reserved code (e.g. "validate" or custom) for client validation.';
+let useIdCounter = 0;
 vi.mock("vue", async () => {
     const original = await vi.importActual("vue");
     return {
@@ -18,6 +19,7 @@ vi.mock("vue", async () => {
         provide: mockedProvide,
         inject: mockedInject,
         onUnmounted: mockedOnUnmounted,
+        useId: () => `test-id-${++useIdCounter}`,
     };
 });
 
@@ -68,6 +70,7 @@ const getFormContextMock = (vue) => {
             modified: {},
             ignored: {},
             focused: {},
+            submitted: false,
 
             // *** Dependency Management ***
             dependencyValues: {},
@@ -949,37 +952,57 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.valueRequiredViolation).toBe(true);
                 });
                 scopedIt(
-                    "should update and clear required errors in form context based on required violation",
+                    "should not show required error on blur when field starts and remains empty without submission attempt",
                     async () => {
                         const { field, fc } = mountFieldInContext(
-                            {
-                                required: {
-                                    testField: true,
-                                },
-                            },
-                            {
-                                name: "testField",
-                                required: true,
-                                requiredMessage: "Field is required",
-                                modelValue: "",
-                            },
+                            { required: { testField: true } },
+                            { name: "testField", required: true, requiredMessage: "Field is required", modelValue: "" },
                         );
                         await flushPromises();
-                        expect(fc.state.errors).toEqual({});
-                        expect(field.state.required).toBe(true);
                         expect(field.state.valueRequiredViolation).toBe(true);
 
                         fc.state.touched.testField = true;
                         await flushPromises();
-                        expect(fc.updateError).toHaveBeenCalledWith("testField", "required", "Field is required");
-                        set(fc.state.errors, "testField.required", "Field is required");
-                        expect(fc.state.errors).toEqual({ testField: { required: "Field is required" } });
+                        expect(fc.updateError).not.toHaveBeenCalled();
+                        expect(fc.state.errors).toEqual({});
+                    },
+                );
+                scopedIt("should show required error on blur after form is submitted for an empty field", async () => {
+                    const { field, fc } = mountFieldInContext(
+                        { required: { testField: true } },
+                        { name: "testField", required: true, requiredMessage: "Field is required", modelValue: "" },
+                    );
+                    await flushPromises();
+                    expect(field.state.valueRequiredViolation).toBe(true);
+                    expect(fc.state.errors).toEqual({});
 
-                        fc.state.values.testField = "new value";
+                    fc.state.submitted = true;
+                    fc.state.touched.testField = true;
+                    await flushPromises();
+                    expect(fc.updateError).toHaveBeenCalledWith("testField", "required", "Field is required");
+                    set(fc.state.errors, "testField.required", "Field is required");
+                    expect(fc.state.errors).toEqual({ testField: { required: "Field is required" } });
+
+                    fc.state.values.testField = "new value";
+                    await flushPromises();
+                    expect(fc.deleteError).toHaveBeenCalledWith("testField", "required");
+                    del(fc.state.errors, "testField");
+                    expect(field.state.errors).toEqual({});
+                });
+                scopedIt(
+                    "should show required error on blur when field has been modified (value entered then cleared)",
+                    async () => {
+                        const { fc } = mountFieldInContext(
+                            { required: { testField: true }, modified: { testField: false } },
+                            { name: "testField", required: true, requiredMessage: "Field is required", modelValue: "" },
+                        );
                         await flushPromises();
-                        expect(fc.deleteError).toHaveBeenCalledWith("testField", "required");
-                        del(fc.state.errors, "testField");
-                        expect(field.state.errors).toEqual({});
+                        expect(fc.state.errors).toEqual({});
+
+                        fc.state.modified.testField = true;
+                        fc.state.touched.testField = true;
+                        await flushPromises();
+                        expect(fc.updateError).toHaveBeenCalledWith("testField", "required", "Field is required");
                     },
                 );
             });
@@ -1142,7 +1165,7 @@ describe("lib/use/useField.js", () => {
                     expect(field.state.submittingValue).toEqual("primitive");
                 });
             });
-            describe.skip("initialValue", () => {});
+            describe.todo("initialValue");
             describe("valueIsInitial", () => {
                 scopedIt("should not allow updates", async () => {
                     const { field } = mountFieldInContext();
@@ -1227,6 +1250,7 @@ describe("lib/use/useField.js", () => {
                         });
 
                         props.requiredMessage = "Test is super required";
+                        fc.state.submitted = true;
                         fc.state.values.testField = ""; // now a violation
                         fc.state.touched.testField = true;
                         await flushPromises();

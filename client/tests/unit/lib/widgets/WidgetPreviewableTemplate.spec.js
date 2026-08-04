@@ -10,22 +10,6 @@ vi.mock("@vueda/use/useWidgetTheme.js", () => ({
     useWidgetTheme: mockedUseWidgetTheme,
 }));
 
-vi.mock("@vueda/widgets/WidgetLabel.vue", async () => {
-    const vue = await vi.importActual("vue");
-    const WidgetLabelStub = vue.defineComponent({
-        name: "WidgetLabelStub",
-        setup(_, { slots }) {
-            return () => (slots.default ? slots.default({}) : []);
-        },
-    });
-    return {
-        __esModule: true,
-        default: WidgetLabelStub,
-        WIDGET_LABEL_PROPS: {},
-        getWidgetSlotsComputed: () => vue.computed(() => []),
-    };
-});
-
 const widgetStub = (name) =>
     defineComponent({
         name,
@@ -40,11 +24,11 @@ const widgetStub = (name) =>
         },
     });
 
-const WidgetInputStub = widgetStub("WidgetInputStub");
-const WidgetTextareaStub = widgetStub("WidgetTextareaStub");
+const WidgetTextInputStub = widgetStub("WidgetTextInputStub");
+const WidgetTextTextareaStub = widgetStub("WidgetTextTextareaStub");
 const WidgetHtmlStub = widgetStub("WidgetHtmlStub");
-vi.mock("@vueda/widgets/WidgetInput.vue", () => ({ default: WidgetInputStub }));
-vi.mock("@vueda/widgets/WidgetTextarea.vue", () => ({ default: WidgetTextareaStub }));
+vi.mock("@vueda/widgets/WidgetTextInput.vue", () => ({ default: WidgetTextInputStub }));
+vi.mock("@vueda/widgets/WidgetTextTextarea.vue", () => ({ default: WidgetTextTextareaStub }));
 vi.mock("@vueda/widgets/WidgetHtml.vue", () => ({ default: WidgetHtmlStub }));
 
 describe("lib/widgets/WidgetPreviewableTemplate.vue", () => {
@@ -69,7 +53,7 @@ describe("lib/widgets/WidgetPreviewableTemplate.vue", () => {
             props: { type: "input", displayDependencies: ["a"] },
             global: { provide: { [FieldContextSymbol]: fc } },
         });
-        const input = wrapper.getComponent(WidgetInputStub);
+        const input = wrapper.getComponent(WidgetTextInputStub);
         expect(JSON.parse(input.attributes("data-deps"))).toEqual(["a", "preview_tag_data"]);
     });
 

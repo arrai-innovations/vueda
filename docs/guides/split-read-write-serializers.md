@@ -1,7 +1,7 @@
 ---
 title: Split Read/Write Serializers Safely
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

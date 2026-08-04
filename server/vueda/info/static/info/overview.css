@@ -1,0 +1,496 @@
+/* ── Reset & base ────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Source Sans Pro", sans-serif;
+    font-size: 1.1rem;
+    background-color: #111;
+    color: #c8c8c8;
+    margin: 0;
+    padding: 0;
+    overflow-y: scroll;
+}
+
+form {
+    margin-bottom: 0;
+}
+
+code {
+    font-family: "JetBrains Mono", monospace;
+}
+
+/* ── Print header (hidden on screen) ────────────────────────────────── */
+
+.print-header {
+    display: none;
+}
+
+/* ── Screen header ───────────────────────────────────────────────────── */
+
+.screen-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: #111;
+    padding: 0.5rem 1.25rem;
+    border-bottom: 1px solid #2a2a2a;
+    height: 3.75rem;
+}
+
+.screen-header h1 {
+    font-size: 1.75rem;
+    font-weight: normal;
+    margin: 0;
+    flex: 1 1 auto;
+    white-space: nowrap;
+    color: #e0e0e0;
+}
+
+select {
+    background: #1e1e1e;
+    color: #c8c8c8;
+    border: 1px solid #3a3a3a;
+    padding: 0.5rem 0.75rem;
+    font-size: 1.25rem;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn {
+    font-size: 1.25rem;
+    padding: 0.5rem 0.75rem;
+    color: #fff;
+    border: 0;
+    cursor: pointer;
+    white-space: nowrap;
+    background: #0077f6;
+}
+
+.btn:hover {
+    background: #2c2c2c;
+    color: #ccc;
+}
+
+/* ── Sticky positioning ──────────────────────────────────────────────── */
+
+.sticky {
+    position: sticky;
+}
+
+.sticky-1 {
+    top: 0;
+    z-index: 3;
+}
+
+.sticky-2 {
+    top: 3.75rem;
+    z-index: 2;
+    height: 2.25rem;
+}
+
+.sticky-3 {
+    top: 6rem;
+    z-index: 1;
+}
+
+/* ── App section ─────────────────────────────────────────────────────── */
+
+.app {
+    margin-bottom: 0.25rem;
+}
+
+.app-header {
+    background: #1a1a1a;
+}
+
+.app-header h2 {
+    margin: 0;
+    padding: 0.25rem 1.25rem;
+    font-size: 1.5rem;
+    font-weight: normal;
+    color: #aaddff;
+}
+
+/* ── Model ───────────────────────────────────────────────────────────── */
+
+.model {
+    border-left: 3px solid #2a2a2a;
+    margin-left: 1rem;
+    margin-bottom: 1px;
+}
+
+.model-header {
+    background: #1e1e1e;
+}
+
+.model-header h3 {
+    margin: 0;
+    padding: 0.25rem 0.75rem;
+    font-size: 1.25rem;
+    font-weight: normal;
+    color: #bbbbff;
+}
+
+/* ── Model body — flexbox, side by side on wide screens ──────────────── */
+
+.model-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.model-section {
+    flex: 1 1 min(50%, 100%);
+    min-width: 0;
+}
+
+.model-section:last-child {
+    border-right: none;
+}
+
+.section-label {
+    padding: 0.2rem 0.75rem;
+    font-size: 0.72rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #666;
+    background: #181818;
+    border-bottom: 1px solid #222;
+}
+
+.permissions-section {
+    border-right: 1px solid #222;
+}
+
+.permissions-section .section-label {
+    border-right: 1px solid #222;
+}
+
+.transitions-section {
+    border-left: 1px solid #222;
+    margin-left: -1px;
+    position: relative;
+}
+
+.transitions-section .section-label {
+    border-left: 1px solid #222;
+    color: #5a7a5a;
+}
+
+/* Groups Section */
+
+.groups {
+    margin-bottom: 0.75rem;
+    margin-left: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.groups-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.groups-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10rem;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    justify-content: space-between;
+    min-width: 24rem;
+    border: 1px solid #333;
+}
+
+.group-tag.group-yes,
+.perm-yes {
+    background: transparent;
+    color: green;
+}
+
+.group-tag.group-no,
+.perm-no {
+    background: transparent;
+    color: red;
+}
+
+/* ── Permission / transition rows ────────────────────────────────────── */
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem 0.3rem 0.75rem;
+    border-bottom: 1px solid #1e1e1e;
+    align-items: center;
+}
+
+.perm-row:nth-child(odd) {
+    background: #1f1f1f;
+}
+
+.perm-row:nth-child(even) {
+    background: #1c1c1c;
+}
+
+.transition-row:nth-child(odd) {
+    background: #1c201c;
+}
+
+.transition-row:nth-child(even) {
+    background: #191c19;
+}
+
+.row-info {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    min-width: 20rem;
+}
+
+.codename {
+    color: #99bbee;
+    font-size: 1rem;
+}
+
+.row-sub {
+    font-size: 1rem;
+    color: #aaa;
+    margin-top: 0.05rem;
+}
+
+.transition-name {
+    color: #aadd99;
+    font-size: 1rem;
+}
+
+.transition-states {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 1rem;
+    color: #9fbf8f;
+}
+
+.button-logout {
+    background: #990000;
+    border: 1px #990000;
+    color: #fff;
+    font-size: 1.25rem;
+    padding: 0.5rem 1rem;
+}
+
+/* ── Group tags ──────────────────────────────────────────────────────── */
+
+.row-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    flex: 1 1 auto;
+    padding-top: 0.1rem;
+}
+
+.group-tag {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+    font-size: 1rem;
+    color: #7aabdd;
+    white-space: nowrap;
+    line-height: 1.4;
+    min-width: 5rem;
+    text-align: end;
+}
+
+.group-tag-transition {
+    background: #182818;
+    color: #77bb77;
+}
+
+.group-tag-workflow {
+    background: #1a1a2e;
+    color: #8899ee;
+}
+
+.group-tag-grant {
+    background: #162416;
+    color: #66bb66;
+}
+
+.group-tag-deny {
+    background: #2a1414;
+    color: #cc6666;
+}
+
+.workflow-access-row {
+    background: #1a1f2e;
+}
+
+.state-perms-row {
+    background: #1e1a1a;
+}
+
+.workflow-access-label {
+    color: #8899ee;
+}
+
+.state-perms-label {
+    color: #cc9966;
+}
+
+.no-groups {
+    color: #444;
+    font-size: 0.8rem;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+
+.empty-state {
+    padding: 3rem 1rem;
+    color: #555;
+    text-align: center;
+    font-size: 1rem;
+}
+
+/* ── Print styles ────────────────────────────────────────────────────── */
+
+@media print {
+    body {
+        background: white;
+        margin: 0;
+        overflow: visible;
+        font-size: 13pt !important;
+    }
+
+    body * {
+        color: black !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .print-header {
+        display: block;
+        border-bottom: 0.125rem solid #333;
+        margin-bottom: 0.6rem;
+        padding-bottom: 0.5rem;
+        padding-left: 0.5rem;
+    }
+
+    .print-header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: bold;
+    }
+
+    .print-subtitle {
+        margin: 0.1rem 0 0;
+    }
+
+    .sticky {
+        position: static;
+        height: auto;
+    }
+
+    .app {
+        break-inside: avoid;
+        margin-bottom: 0.5rem;
+    }
+
+    .app-header {
+        background: #fff;
+        border-bottom: 0.125rem solid #ccc;
+        padding-left: 0.25rem;
+    }
+
+    .app-header h2 {
+        padding: 0.25rem;
+        padding-bottom: 0;
+    }
+
+    .groups-section {
+        gap: 2rem;
+        flex: 0 0 auto;
+        padding: 0.25rem 0.5rem;
+        border-left: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        min-width: 12rem;
+    }
+
+    .model {
+        border-left: 0.125rem solid #ccc;
+        border-right: 0.125rem solid #ccc;
+        border-bottom: 0.125rem solid #ccc;
+        margin-left: 0rem;
+        break-inside: avoid;
+    }
+
+    .model-header {
+        background: #f5f5f5;
+        border-bottom: 0.125rem solid #ccc;
+    }
+
+    .model-header h3 {
+        padding: 0.25rem 0.5rem;
+    }
+
+    .section-label {
+        background: #f0f0f0;
+        padding: 0.1rem 0.5rem;
+        border-bottom: 0.125rem solid #ccc;
+    }
+
+    .row {
+        background: white !important;
+        border-bottom: 0.5pt solid #e8e8e8;
+        padding: 0.12rem 0.3rem 0.12rem 0.5rem;
+        gap: 0.3rem;
+    }
+
+    .group-tag {
+        background: transparent;
+        padding: 0 0.3rem;
+    }
+
+    .group-tag-transition {
+        background: #e8f0e8;
+        border-color: #acaa;
+    }
+
+    .group-tag-workflow {
+        background: #e8e8f8;
+    }
+
+    .group-tag-grant {
+        background: #e8f8e8;
+    }
+
+    .group-tag-deny {
+        background: #f8e8e8;
+    }
+
+    .workflow-access-row,
+    .state-perms-row {
+        background: transparent !important;
+    }
+
+    .transition-row,
+    .perm-row {
+        background: transparent !important;
+    }
+
+    .transitions-section,
+    .transitions-section .section-label,
+    .permissions-section,
+    .permissions-section .section-label {
+        border-color: #ccc;
+    }
+}

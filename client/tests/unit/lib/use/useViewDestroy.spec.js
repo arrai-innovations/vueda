@@ -1,8 +1,9 @@
 import { useList } from "@arrai-innovations/reactive-helpers";
-import { scopedIt } from "@tests/unit/utils.js";
+import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
+import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import { nextTick, reactive, ref } from "vue";
 
 vi.mock("@vueda/use/useModelConfig.js", async () => {
@@ -50,6 +51,10 @@ describe("lib/use/useViewDestroy.js", () => {
                 error: null,
             }),
             bulkDelete: vi.fn().mockResolvedValue(),
+            clearError: vi.fn(() => {
+                mockInstanceList.state.errored = false;
+                mockInstanceList.state.error = null;
+            }),
         };
 
         useModelConfig.mockReturnValue(mockModelConfig);
@@ -62,7 +67,7 @@ describe("lib/use/useViewDestroy.js", () => {
     });
 
     scopedIt("sets up model config and list with expected parameters", async () => {
-        const result = useViewDestroy(props);
+        const result = await withSetup(() => useViewDestroy(props));
 
         expect(useModelConfig).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));
         expect(useList).toHaveBeenCalledWith(
@@ -84,7 +89,7 @@ describe("lib/use/useViewDestroy.js", () => {
     });
 
     scopedIt("handleDelete calls bulkDelete and throws if errored", async () => {
-        const result = useViewDestroy(props);
+        const result = await withSetup(() => useViewDestroy(props));
         const spy = vi.spyOn(mockInstanceList, "bulkDelete");
 
         // no error expected
@@ -99,20 +104,62 @@ describe("lib/use/useViewDestroy.js", () => {
     });
 
     scopedIt("handleDelete forwards dryRun flag to bulkDelete", async () => {
-        const result = useViewDestroy(props);
+        const result = await withSetup(() => useViewDestroy(props));
         await result.handleDelete({ dryRun: true });
         expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({ dryRun: true });
     });
 
+    scopedIt("handleDelete forwards acknowledgeWarnings to bulkDelete", async () => {
+        const result = await withSetup(() => useViewDestroy(props));
+        await result.handleDelete({ dryRun: false, acknowledgeWarnings: "d1" });
+        expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({ dryRun: false, acknowledgeWarnings: "d1" });
+    });
+
+    scopedIt("handleDelete clears the captured list error before rethrowing a ConfirmationRequiredError", async () => {
+        // bulkDelete captures the thrown error into instanceList.state, which ViewDestroy hands to
+        // ActionForm as fetchState; a 409 left there would render as a failure banner behind the
+        // confirmation dialog and linger after a cancel.
+        const result = await withSetup(() => useViewDestroy(props));
+        const confirmationError = new ConfirmationRequiredError(
+            { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } },
+            {},
+        );
+        mockInstanceList.bulkDelete.mockImplementation(() => {
+            mockInstanceList.state.errored = true;
+            mockInstanceList.state.error = confirmationError;
+            return Promise.resolve(false);
+        });
+
+        await expect(result.handleDelete({})).rejects.toBe(confirmationError);
+        expect(mockInstanceList.clearError).toHaveBeenCalledTimes(1);
+        expect(mockInstanceList.state.errored).toBe(false);
+        expect(mockInstanceList.state.error).toBe(null);
+    });
+
+    scopedIt("handleDelete leaves other captured errors in the list state when rethrowing", async () => {
+        const result = await withSetup(() => useViewDestroy(props));
+        const failure = new Error("delete failed");
+        mockInstanceList.bulkDelete.mockImplementation(() => {
+            mockInstanceList.state.errored = true;
+            mockInstanceList.state.error = failure;
+            return Promise.resolve(false);
+        });
+
+        await expect(result.handleDelete({})).rejects.toBe(failure);
+        expect(mockInstanceList.clearError).not.toHaveBeenCalled();
+        expect(mockInstanceList.state.errored).toBe(true);
+        expect(mockInstanceList.state.error).toBe(failure);
+    });
+
     scopedIt("validAndActive is false if isActive is false", async () => {
         useIsActive.mockReturnValue(ref(false));
-        const result = useViewDestroy(props);
+        const result = await withSetup(() => useViewDestroy(props));
         expect(result.validAndActive.value).toBe(false);
     });
 
     scopedIt("validAndActive is false if pk or model is missing", async () => {
         props.pk = null;
-        const result = useViewDestroy(props);
+        const result = await withSetup(() => useViewDestroy(props));
         expect(result.validAndActive.value).toBe(false);
 
         props.pk = "123";
@@ -121,9 +168,9 @@ describe("lib/use/useViewDestroy.js", () => {
         expect(result.validAndActive.value).toBe(false);
     });
 
-    scopedIt("falls back to 'id' if modelConfig.info.pk is missing", () => {
+    scopedIt("falls back to 'id' if modelConfig.info.pk is missing", async () => {
         delete mockModelConfig.info.pk;
-        useViewDestroy(props);
+        await withSetup(() => useViewDestroy(props));
         const listProps = useList.mock.calls[0][0].props;
         expect(listProps.pkKey).toBe("id");
     });

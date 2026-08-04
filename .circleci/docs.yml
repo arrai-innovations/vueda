@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
     pytest: arrai/pytest@9.1.1
-    utils: arrai/utils@1.21.1
+    utils: arrai/utils@1.22.0
 
 parameters:
     run-docs-workflows:
@@ -38,7 +38,11 @@ jobs:
                       echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
                       export PATH="$HOME/.local/bin:$PATH"
                       pnpm --version
-            - utils/add_npm_config
+            - utils/add_npm_config:
+                  registry: npm.arrai.dev
+                  token: $NPM_ARRAI_DEV_TOKEN
+                  scopes: |
+                      @arrai-innovations:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
@@ -107,7 +111,11 @@ jobs:
                       echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
                       export PATH="$HOME/.local/bin:$PATH"
                       pnpm --version
-            - utils/add_npm_config
+            - utils/add_npm_config:
+                  registry: npm.arrai.dev
+                  token: $NPM_ARRAI_DEV_TOKEN
+                  scopes: |
+                      @arrai-innovations:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
@@ -129,13 +137,16 @@ jobs:
             - run:
                   name: Render API Documentation
                   command: |
-                      rm -rf docs/reference/api
                       mkdir -p docs/reference/api
-                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render
             - run:
                   name: Validate Documentation References
                   command: |
                       cd ~/project/docs-tooling && ./bin/docs-tooling.js validate
+            - run:
+                  name: Validate Theme/CSS Source Conformance
+                  command: |
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js validate-sources
     docs-publish:
         executor: python311-node
         resource_class: medium
@@ -160,7 +171,11 @@ jobs:
                       echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
                       export PATH="$HOME/.local/bin:$PATH"
                       pnpm --version
-            - utils/add_npm_config
+            - utils/add_npm_config:
+                  registry: npm.arrai.dev
+                  token: $NPM_ARRAI_DEV_TOKEN
+                  scopes: |
+                      @arrai-innovations:registry=https://npm.arrai.dev/
             - restore_cache:
                   keys:
                       - pnpm-v1-{{ arch }}-{{ checksum "pnpm-lock.yaml" }}
@@ -182,19 +197,28 @@ jobs:
             - run:
                   name: Render API Documentation
                   command: |
-                      rm -rf docs/reference/api
                       mkdir -p docs/reference/api
-                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render --output ../docs/reference/api
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js render
             - run:
                   name: Build VitePress Site
                   command: |
                       rm -rf docs/.vitepress/.temp docs/.vitepress/cache
-                      cd docs && VITEPRESS_BASE="/vueda/documentation/$CIRCLE_TAG/" pnpm exec vitepress build
+                      # Publish per major line: docs-v3.x.y -> /v3/. Minor/patch/prerelease overwrite the major dir.
+                      MAJOR="${CIRCLE_TAG#docs-v}"; MAJOR="${MAJOR%%.*}"
+                      cd docs && NODE_OPTIONS=--max-old-space-size=4096 VITEPRESS_BASE="/v${MAJOR}/" pnpm exec vitepress build
             - run:
                   name: Stage Documentation for Deploy
                   command: |
-                      mkdir -p -m 0750 publish/$CIRCLE_TAG/
-                      cp -r site/* publish/$CIRCLE_TAG/
+                      MAJOR="${CIRCLE_TAG#docs-v}"; MAJOR="${MAJOR%%.*}"
+                      mkdir -p -m 0750 "publish/v${MAJOR}/"
+                      cp -r site/* "publish/v${MAJOR}/"
+            # RETARGET FOR vueda.dev (ops): remote_folder "/" resolves server-side to the
+            # SSH user's docroot. For /v<major>/ to serve at the domain root, this must
+            # point at the vueda.dev docroot (new vhost + SSH user), not the current
+            # docs.arrai.dev/vueda/documentation base. delete:false is required so a new
+            # major build does not wipe sibling majors; stale files within a rebuilt major
+            # dir are a separate concern (clean the major dir server-side before deploy, or
+            # switch to a per-major rsync with --delete).
             - utils/rsync_folder:
                   when: on_success
                   folder: ~/project/publish/

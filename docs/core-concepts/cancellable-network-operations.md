@@ -1,7 +1,7 @@
 ---
 title: Cancellable Network Operations
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -29,7 +29,7 @@ The cancellation contract is expressed through two TypeScript-style typedefs. A 
 
 The critical design constraint is that `.cancel()` is attached to a specific Promise instance. JavaScript's `async`/`await` and `.then()` chaining produce new Promise instances that do not inherit properties from the original. This means that any function that wraps a cancellable promise in an `async` function body, or chains `.then()` onto it and returns the chain, produces a new Promise that has lost the `.cancel()` method.
 
-This constraint is why several VUEDA network adapters are explicitly non-`async`. Functions like `defaultObjectCreate`, `defaultObjectDelete`, the list CRUDL adaptors, and `useWarnings` include inline comments explaining that they cannot be `async` because doing so would drop `.cancel()` from the returned Promise. The functions instead return the original Promise directly, attaching additional `.cancel()` behaviour where needed without re-wrapping.
+This constraint is why several VUEDA network adapters are explicitly non-`async`. Functions like `defaultObjectCreate`, `defaultObjectDelete`, and the list CRUDL adaptors include inline comments explaining that they cannot be `async` because doing so would drop `.cancel()` from the returned Promise. The functions instead return the original Promise directly, attaching additional `.cancel()` behaviour where needed without re-wrapping.
 
 Consumers that may or may not receive a cancellable promise use optional chaining: `promise?.cancel?.()` or `promise?.cancel(reason)`. This pattern appears in composables and view-level cleanup code where the promise source may vary.
 
@@ -92,4 +92,3 @@ The cancellation architecture produces several characteristic failure patterns.
 - {@api js:function:@arrai-innovations/vueda/utils/listCrud#allPagePaginatedListCrudAdaptor}
 - {@api js:function:@arrai-innovations/vueda/use/useLookupContext#useLookupContext}
 - {@api js:function:@arrai-innovations/vueda/use/useResolvedLookupObject#useResolvedLookupObject}
-- {@api js:function:@arrai-innovations/vueda/use/useWarnings#useWarnings}

@@ -26,8 +26,8 @@ def create_test_data(self):
 
     customers = {}
     for data in (
-        {"user": "test_customer_1@example.com"},
-        {"user": "test_customer_2@example.com"},
+        {"user": "test_customer_1@domain.invalid"},
+        {"user": "test_customer_2@domain.invalid"},
     ):
         data["user"] = self.users[data["user"]]
         customer = store_models.Customer.objects.create(**data)
@@ -39,31 +39,31 @@ def create_test_data(self):
         {
             "order_number": 1001,
             "when": datetime.datetime(2023, 12, 13, 13, 0, 0),
-            "customer": "test_customer_1@example.com",
+            "customer": "test_customer_1@domain.invalid",
             "order_state": "shipped",
         },
         {
             "order_number": 1002,
             "when": datetime.datetime(2023, 12, 13, 14, 0, 0),
-            "customer": "test_customer_2@example.com",
+            "customer": "test_customer_2@domain.invalid",
             "order_state": "shipped",
         },
         {
             "order_number": 1003,
             "when": datetime.datetime(2024, 1, 7, 13, 0, 0),
-            "customer": "test_customer_2@example.com",
+            "customer": "test_customer_2@domain.invalid",
             "order_state": "shipped",
         },
         {
             "order_number": 1004,
             "when": datetime.datetime(2024, 3, 13, 12, 0, 0),
-            "customer": "test_customer_2@example.com",
+            "customer": "test_customer_2@domain.invalid",
             "order_state": "packed",
         },
         {
             "order_number": 1005,
             "when": datetime.datetime(2024, 3, 13, 16, 0, 0),
-            "customer": "test_customer_1@example.com",
+            "customer": "test_customer_1@domain.invalid",
             "order_state": "new",
         },
     ):
@@ -768,7 +768,7 @@ def create_test_data(self):
                                 "sku": "100124",
                                 "gtin": "00368135511625",
                                 "price": Decimal("54.99"),
-                                "quantity_available": 6,
+                                "quantity_available": 10,
                             },
                             "order_items": (
                                 {
@@ -826,6 +826,27 @@ def create_test_data(self):
                             ),
                         },
                     ),
+                },
+            ),
+        },
+        {
+            "distributor": "Awesome Music Co.",
+            "products": (
+                {
+                    "product": {
+                        "name": "K-Pop Release",
+                        "order_between": [1, 1],
+                        "tangible_type": tangible_type["digital"],
+                    },
+                    "options": (),
+                },
+                {
+                    "product": {
+                        "name": "J-Pop Release",
+                        "order_between": [1, 1],
+                        "tangible_type": tangible_type["digital"],
+                    },
+                    "options": (),
                 },
             ),
         },
@@ -892,7 +913,7 @@ def create_test_data(self):
     tzinfo.dst(None)
     for cart_data in (
         {
-            "customer_email": "test_customer_1@example.com",
+            "customer_email": "test_customer_1@domain.invalid",
             "cart_items": [
                 {
                     "product_option": products["Men's White T-Shirt"]["product_options"]["Medium"],
@@ -906,7 +927,7 @@ def create_test_data(self):
             "last_modified": datetime.datetime(2024, 8, 10, 12, 0, 0, tzinfo=tzinfo),
         },
         {
-            "customer_email": "test_customer_2@example.com",
+            "customer_email": "test_customer_2@domain.invalid",
             "cart_items": [
                 {
                     "product_option": products["Square Cookies For Squares"]["product_options"]["Gentle Cinnamon"],
@@ -946,3 +967,9 @@ def create_test_data(self):
         }
 
     self.carts = carts
+
+    # Make composite primary pk objects.
+    # The Alt version must not have any objects.
+    order = store_models.OrderCompositePK.objects.create(order_number="1234")
+    product = store_models.ProductCompositePK.objects.create(name="Test Composite PK Product")
+    store_models.OrderItemCompositePK.objects.create(order=order, product=product, quantity=1)

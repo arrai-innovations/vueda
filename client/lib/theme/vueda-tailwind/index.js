@@ -1,88 +1,28 @@
 /**
  * @module theme/vueda-tailwind
- * @description Aggregated Tailwind CSS pass-through theme configuration for all VUEDA Client components.
+ * @description Aggregated Tailwind CSS pass-through theme for all VUEDA Client
+ * components. Importing this module eagerly registers every family's theme
+ * entries: each family `index.js` side-effect-imports its component `*.theme.js`
+ * files, which `patchTheme` themselves into the registry. The default export is
+ * then a snapshot of the populated registry, so the legacy global-eager path
+ * `setTheme(vuedaTailwind)` installs the complete theme exactly as before.
+ *
+ * Source-of-truth for slot data lives in the per-component `*.theme.js` files;
+ * the family `index.js` files carry only the ordered key + group-banner manifest
+ * that docs-tooling reads. Integrators wanting a leaner bundle skip this barrel
+ * and let each component's `*.theme.js` register on demand (the fully-lazy path),
+ * or import only the family `index.js` files they use (the per-family path).
  */
-import display from "@vueda/theme/vueda-tailwind/display/index.js";
-import form from "@vueda/theme/vueda-tailwind/form/index.js";
-import objectsGrid from "@vueda/theme/vueda-tailwind/objects-grid/index.js";
-import views from "@vueda/theme/vueda-tailwind/views/index.js";
-import widgets from "@vueda/theme/vueda-tailwind/widgets/index.js";
+import "@vueda/theme/vueda-tailwind/controls/index.js";
+import "@vueda/theme/vueda-tailwind/display/index.js";
+import "@vueda/theme/vueda-tailwind/feedback/index.js";
+import "@vueda/theme/vueda-tailwind/form/index.js";
+import "@vueda/theme/vueda-tailwind/grid/index.js";
+import "@vueda/theme/vueda-tailwind/navigation/index.js";
+import "@vueda/theme/vueda-tailwind/objects-grid/index.js";
+import "@vueda/theme/vueda-tailwind/shell/index.js";
+import "@vueda/theme/vueda-tailwind/views/index.js";
+import "@vueda/theme/vueda-tailwind/widgets/index.js";
+import { getTheme } from "@vueda/use/themeRegistry.js";
 
-export default {
-    ...objectsGrid,
-    ...form,
-    ...widgets,
-    ...views,
-    ...display,
-    PaginationComponent: {
-        root: {
-            class: "flex flex-col sm:flex-row justify-between sm:justify-between items-center gap-2",
-        },
-        paginator: {
-            class: ["py-2 flex-1 flex justify-center"],
-        },
-        totalRecords: {
-            class: ["p-2"],
-        },
-    },
-    StickyBar: {
-        root: ({ hidden }) => {
-            return {
-                class: {
-                    "sticky top-[-1px] z-30": true,
-                    "transition-transform duration-300 ease-in-out transform": true,
-                    "translate-y-[-100%]": hidden,
-                    "translate-y-0": !hidden,
-                },
-            };
-        },
-        inner: {
-            //bg-zinc-100 dark:bg-zinc-800 pt-[2px]
-            class: ["bg-white dark:bg-black", "pt-2"],
-        },
-        gradient: {
-            class: [
-                //w-full h-1 md:h-2 2xl:h-4 bg-gradient-to-b from-zinc-100 to-transparent dark:from-zinc-800 dark:to-transparent
-                "w-full h-1 md:h-2 2xl:h-4",
-                "bg-gradient-to-b from-white to-transparent dark:from-black dark:to-transparent",
-            ],
-        },
-    },
-    FilterGroup: {
-        root: {
-            class: "flex-col ",
-        },
-        filtersWrapper: {
-            class: "flex flex-wrap gap-1 mt-1",
-        },
-        messageWrapper: {
-            class: "flex my-2",
-        },
-    },
-    FilterComponent: {
-        root: {},
-        clearButton: {
-            class: ({ hasFilterValue, errored }) => ({
-                "!border-dashed": !hasFilterValue,
-                "!border-red-500 !text-red-500": errored,
-            }),
-        },
-        dropdownButton: {
-            class: ({ hasFilterValue, errored }) => ({
-                "!border-dashed": !hasFilterValue,
-                "!border-red-500 !text-red-500": errored,
-            }),
-        },
-        formPopover: {
-            class: ["sm:min-w-[25%]"],
-        },
-    },
-    FilterForm: {
-        outer: {
-            class: ["flex flex-col"],
-        },
-        heading: {
-            class: ["font-bold leading-relaxed"],
-        },
-    },
-};
+export default getTheme();

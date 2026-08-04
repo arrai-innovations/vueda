@@ -1,227 +1,29 @@
 from datetime import date
+from typing import ClassVar
 
 import pytest
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import override_settings
-from django.urls import reverse
 from rest_framework.exceptions import ValidationError
 
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
-from tests.models import Employee
-from tests.models import Timesheet
-from tests.serializers import TimesheetSerializer
-from tests.serializers import TimesheetSerializerExclude
+from tests.employee.models import Employee
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
+from tests.timesheet.models import Timesheet
+from tests.timesheet.serializers import TimesheetSerializer
+from tests.timesheet.serializers import TimesheetSerializerExclude
 from tests.unit.info.test_model_info import VuedaTestData
 from tests.utils import FakeRequest
 from tests.utils import FakeView
 from vueda import info
 from vueda.core.serializers import PrimaryKeyListSerializer
+from vueda.core.serializers import VuedaReadonlyListSerializer
 from vueda.core.viewsets import get_recursive_expands_and_fields
-
-
-@pytest.mark.django_db
-class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
-        "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
-        ]
-    }
-
-    users_to_create = {
-        "test_my_user@example.com": {
-            "name": "Test User update",
-            "password": "testpass",
-            "groups": ["Timesheet Updater"],
-        },
-    }
-
-    def test_update_timesheet_with_existing_field(self, api_client):
-        user = self.users["test_my_user@example.com"]
-        api_client.force_authenticate(user=user)
-
-        e1 = Employee.objects.create(
-            user=user,
-            employee_number="abcd-1234",
-        )
-        t1 = Timesheet.objects.create(
-            employee=e1,
-            period_start=date(2024, 2, 15),
-            period_end=date(2024, 2, 29),
-        )
-
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-        response = api_client.put(
-            url + f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=period_start,period_end",
-            data={
-                "period_start": date(2024, 2, 16),
-                "period_end": date(2024, 2, 25),
-            },
-            format="json",
-        )
-
-        self.assert_response(response, 200)
-        assert "period_start" in response.data
-        assert "period_end" in response.data
-        assert "employee" not in response.data
-
-    def test_update_timesheet_with_non_existing_field(self, api_client):
-        user = self.users["test_my_user@example.com"]
-        api_client.force_authenticate(user=user)
-
-        e1 = Employee.objects.create(
-            user=user,
-            employee_number="abcd-1234",
-        )
-        t1 = Timesheet.objects.create(
-            employee=e1,
-            period_start=date(2024, 2, 15),
-            period_end=date(2024, 2, 29),
-        )
-
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-        response = api_client.put(
-            url + f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=period_start,une",
-            data={
-                "period_start": date(2024, 2, 16),
-                "period_end": date(2024, 2, 25),
-                "une": "ssss",
-            },
-            format="json",
-        )
-
-        self.assert_response(response, 400)
-        assert "period_end" in response.data
-        assert "employee" not in response.data
-        assert "une" in response.data
-
-    def test_expand_with_existing_expands(self, api_client):
-        user = self.users["test_my_user@example.com"]
-        api_client.force_authenticate(user=user)
-
-        e1 = Employee.objects.create(
-            user=user,
-            employee_number="abcd-1234",
-        )
-        t1 = Timesheet.objects.create(
-            employee=e1,
-            period_start=date(2024, 2, 15),
-            period_end=date(2024, 2, 29),
-        )
-
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-        response = api_client.put(
-            url + f"?{settings.REST_FLEX_FIELDS['EXPAND_PARAM']}=employee,foo",
-            data={
-                "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-12345"},
-                "period_start": date(2024, 2, 16),
-                "period_end": date(2024, 2, 25),
-            },
-            format="json",
-        )
-
-        self.assert_response(response, 200)
-        assert "period_start" in response.data
-        assert "period_end" in response.data
-        assert "employee" in response.data
-        assert "foo" in response.data
-        assert "user" in response.data["employee"]
-
-    def test_expand_with_non_existing_expands(self, api_client):
-        user = self.users["test_my_user@example.com"]
-        api_client.force_authenticate(user=user)
-
-        e1 = Employee.objects.create(
-            user=user,
-            employee_number="abcd-1234",
-        )
-        t1 = Timesheet.objects.create(
-            employee=e1,
-            period_start=date(2024, 2, 15),
-            period_end=date(2024, 2, 29),
-        )
-
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-        response = api_client.put(
-            url + f"?{settings.REST_FLEX_FIELDS['EXPAND_PARAM']}=foo,label10",
-            data={
-                "employee": e1.pk,
-                "period_start": date(2024, 2, 16),
-                "period_end": date(2024, 2, 25),
-            },
-            format="json",
-        )
-
-        self.assert_response(response, 400)
-        assert "label10" in response.data
-
-    def test_expand_with_existing_fields(self, api_client):
-        user = self.users["test_my_user@example.com"]
-        api_client.force_authenticate(user=user)
-
-        e1 = Employee.objects.create(
-            user=user,
-            employee_number="abcd-1234",
-        )
-        t1 = Timesheet.objects.create(
-            employee=e1,
-            period_start=date(2024, 2, 15),
-            period_end=date(2024, 2, 29),
-        )
-
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-        response = api_client.put(
-            url
-            + f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=period_start,period_end,employee&"
-            + f"{settings.REST_FLEX_FIELDS['EXPAND_PARAM']}=employee",
-            data={
-                "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-123456"},
-                "period_start": date(2024, 2, 16),
-                "period_end": date(2024, 2, 25),
-            },
-            format="json",
-        )
-
-        self.assert_response(response, 200)
-        assert "period_start" in response.data
-        assert "period_end" in response.data
-        assert "employee" in response.data
-        assert "user" in response.data["employee"]
-
-    def test_expand_with_non_existing_fields(self, api_client):
-        user = self.users["test_my_user@example.com"]
-        api_client.force_authenticate(user=user)
-
-        e1 = Employee.objects.create(
-            user=user,
-            employee_number="abcd-12348",
-        )
-        t1 = Timesheet.objects.create(
-            employee=e1,
-            period_start=date(2024, 2, 15),
-            period_end=date(2024, 2, 29),
-        )
-
-        url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-        response = api_client.put(
-            url
-            + f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=period_start,period_end,employee,invalid_field_name&"
-            + f"{settings.REST_FLEX_FIELDS['EXPAND_PARAM']}=employee",
-            data={
-                "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-123456"},
-                "period_start": date(2024, 2, 16),
-                "period_end": date(2024, 2, 25),
-                "invalid_field_name": "invalid_value",
-            },
-            format="json",
-        )
-
-        self.assert_response(response, 400)
-        assert "invalid_field_name" in response.data
-        assert "period_start" not in response.data
 
 
 @pytest.mark.django_db
@@ -306,6 +108,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "customer",
             "customer.dict_data",
             "customer.first_history_entry",
+            "customer.formatted_name",
             "customer.history",
             "customer.id",
             "customer.last_history_entry",
@@ -318,6 +121,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "last_history_entry",
             "order_items",
             "order_items.customer_order",
+            "order_items.formatted_name",
             "order_items.id",
             "order_items.product_option",
             "order_items.quantity",
@@ -327,7 +131,10 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_state.code",
             "order_state.name",
             "shipping_method",
+            "valid_transitions",
             "when",
+            "workflow_state_code",
+            "workflow_state_name",
         }
 
         assert valid_wildcard_fields == {
@@ -399,6 +206,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "customer",
             "customer.dict_data",
             "customer.first_history_entry",
+            "customer.formatted_name",
             "customer.history",
             "customer.id",
             "customer.last_history_entry",
@@ -425,6 +233,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_items.customer_order.order_state",
             "order_items.customer_order.when",
             "order_items.id",
+            "order_items.formatted_name",
             "order_items.product_option",
             "order_items.product_option.disabled",
             "order_items.product_option.first_history_entry",
@@ -444,7 +253,10 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_state.code",
             "order_state.name",
             "shipping_method",
+            "valid_transitions",
             "when",
+            "workflow_state_code",
+            "workflow_state_name",
         }
 
         assert valid_wildcard_fields == {
@@ -467,14 +279,14 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
 
 @pytest.mark.django_db
 class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
+            ("timesheet", "Timesheet", "update"),
         ]
     }
 
-    users_to_create = {
-        "test_my_user@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_my_user@domain.invalid": {
             "name": "Test User update",
             "password": "testpass",
             "groups": ["Timesheet Updater"],
@@ -484,7 +296,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
     @pytest.fixture
     def employee(self):
         return Employee.objects.create(
-            user=self.users["test_my_user@example.com"],
+            user=self.users["test_my_user@domain.invalid"],
             employee_number="abcd-1234",
         )
 
@@ -527,9 +339,9 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             pytest.fail(f"Serializer is not valid: {e}")
         serializer.save()
 
-        assert serializer.data["period_start"] == "2024-02-16"
-        assert serializer.data["period_end"] == "2024-02-28"
-        assert "employee" not in serializer.data
+        assert serializer.data["period_start"] == "2024-02-16", serializer.data
+        assert serializer.data["period_end"] == "2024-02-28", serializer.data
+        assert "employee" not in serializer.data, serializer.data
 
     def test_flex_fields_with_invalid_field_param(self, employee, valid_timesheet_data):
         put_data = {
@@ -557,9 +369,9 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
             assert "period_end" in e.detail
-            assert e.detail["period_end"][0].code == "invalid"
+            assert e.detail["period_end"][0].code == "invalid", e.detail
             assert "invalid_field_name" in e.detail
-            assert e.detail["invalid_field_name"][0].code == "invalid"
+            assert e.detail["invalid_field_name"][0].code == "invalid", e.detail
         else:
             pytest.fail("Serializer is valid when it should not be")
 
@@ -591,8 +403,8 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             pytest.fail(f"Serializer is not valid: {e}")
         serializer.save()
 
-        assert serializer.data["period_start"] == "2024-02-16"
-        assert serializer.data["period_end"] == "2024-02-28"
+        assert serializer.data["period_start"] == "2024-02-16", serializer.data
+        assert serializer.data["period_end"] == "2024-02-28", serializer.data
         assert "employee" in serializer.data
         assert "foo" in serializer.data
 
@@ -621,7 +433,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
             assert "employee" in e.detail
-            assert e.detail["employee"][0].code == "incorrect_type"  # not expanded, expected a pk
+            assert e.detail["employee"][0].code == "incorrect_type", e.detail  # not expanded, expected a pk
         else:
             pytest.fail("Serializer is valid when it should not be")
 
@@ -634,26 +446,26 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
             assert "label10" in e.detail
-            assert e.detail["label10"][0].code == "invalid"
+            assert e.detail["label10"][0].code == "invalid", e.detail
         else:
             pytest.fail("Serializer is valid when it should not be")
 
 
 @pytest.mark.django_db
 class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
+            ("timesheet", "Timesheet", "update"),
         ]
     }
 
-    users_to_create = {
-        "test_my_user@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_my_user@domain.invalid": {
             "name": "Test User update",
             "password": "testpass",
             "groups": ["Timesheet Updater"],
         },
-        "test_my_user2@example.com": {
+        "test_my_user2@domain.invalid": {
             "name": "Test User update",
             "password": "testpass2",
             "groups": ["Timesheet Updater"],
@@ -663,14 +475,14 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
     @pytest.fixture
     def employee(self):
         return Employee.objects.create(
-            user=self.users["test_my_user@example.com"],
+            user=self.users["test_my_user@domain.invalid"],
             employee_number="abcd-1234",
         )
 
     @pytest.fixture
     def employee2(self):
         return Employee.objects.create(
-            user=self.users["test_my_user2@example.com"],
+            user=self.users["test_my_user2@domain.invalid"],
             employee_number="abcd-234",
         )
 
@@ -700,9 +512,9 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
             pytest.fail(f"Serializer is not valid: {e}")
         serializer.save()
 
-        assert serializer.data["period_start"] == "2024-02-16"
-        assert serializer.data["period_end"] == "2024-02-28"
-        assert (serializer.get_extra_kwargs()["employee"])["read_only"] is True
+        assert serializer.data["period_start"] == "2024-02-16", serializer.detail
+        assert serializer.data["period_end"] == "2024-02-28", serializer.detail
+        assert serializer.get_extra_kwargs()["employee"]["read_only"] is True, serializer.detail
 
     def test_exclude_create_field(self, employee):
         post_data = {
@@ -767,6 +579,55 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         assert obj.employee == employee
 
 
+@pytest.mark.django_db
+class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Timesheet Updater": [
+            ("timesheet", "Timesheet", "update"),
+        ]
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_nested_initial_data@domain.invalid": {
+            "name": "Test Nested Initial Data User",
+            "password": "testpass",
+            "groups": ["Timesheet Updater"],
+        },
+    }
+
+    @pytest.fixture
+    def employee(self):
+        return Employee.objects.create(
+            user=self.users["test_nested_initial_data@domain.invalid"],
+            employee_number="nested-12345",
+        )
+
+    def test_initial_data_propagated_to_nested_serializer(self, employee):
+        timesheet = Timesheet.objects.create(
+            employee=employee,
+            period_start=date(2024, 2, 15),
+            period_end=date(2024, 2, 29),
+        )
+        employee_data = {"id": employee.pk, "user": employee.user.pk, "employee_number": "nested-12345"}
+        data = {
+            "employee": employee_data,
+            "period_start": "2024-02-16",
+            "period_end": "2024-02-28",
+        }
+
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee"]}, data, "PUT")}
+        context["view"] = FakeView(
+            context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=timesheet.pk)
+        )
+
+        serializer = TimesheetSerializer(instance=timesheet, data=data, context=context)
+        serializer.is_valid(raise_exception=True)
+
+        # to_internal_value should have propagated initial_data from the main serializer
+        # down to the nested EmployeeSerializer field
+        assert serializer.fields["employee"].initial_data == employee_data
+
+
 class TestPrimaryKeyListSerializer:
     def test_valid_pk_list(self):
         serializer = PrimaryKeyListSerializer(data={"pks": [1, 2, 3]})
@@ -778,16 +639,129 @@ class TestPrimaryKeyListSerializer:
         serializer = PrimaryKeyListSerializer(data={"pks": [1, "abc"]})
 
         assert not serializer.is_valid()
-        assert serializer.errors["pks"][1][0] == "Primary keys must be valid integers."
+        assert serializer.errors["pks"][1][0] == "Primary keys must be valid integers.", serializer.errors
 
     def test_requires_list_input(self):
         serializer = PrimaryKeyListSerializer(data={"pks": "1"})
 
         assert not serializer.is_valid()
-        assert serializer.errors["pks"][0] == "pks must be a list of primary keys."
+        assert serializer.errors["pks"][0] == "pks must be a list of primary keys.", serializer.errors
 
     def test_requires_data(self):
         serializer = PrimaryKeyListSerializer(data={"pks": []})
 
         assert not serializer.is_valid()
-        assert serializer.errors["pks"][0] == "pks list cannot be empty."
+        assert serializer.errors["pks"][0] == "pks list cannot be empty.", serializer.errors
+
+
+class TestVuedaSerializerFieldMapping:
+    """The serializer field mapping routes file and image columns through VUEDA's serializer fields."""
+
+    def _lookup(self, model_field_class):
+        from rest_framework.utils.field_mapping import ClassLookupDict
+
+        from vueda.core.serializers import VuedaSerializer
+
+        return ClassLookupDict(VuedaSerializer.serializer_field_mapping)[model_field_class()]
+
+    def test_file_field_maps_to_vueda_file_field(self):
+        from django.db import models
+
+        from vueda.core.fields.serializers import FileField as VuedaFileField
+
+        assert self._lookup(models.FileField) is VuedaFileField
+
+    def test_image_field_maps_to_vueda_image_field(self):
+        # ImageField subclasses FileField, so the mapping must key it explicitly to win the MRO walk.
+        from django.db import models
+
+        from vueda.core.fields.serializers import ImageField as VuedaImageField
+
+        assert self._lookup(models.ImageField) is VuedaImageField
+
+
+@pytest.mark.django_db
+class TestVuedaReadonlySerializer:
+    @pytest.fixture
+    def customer(self):
+        user = get_user_model().objects.create(email="readonly-serializer@domain.invalid", name="Readonly Test User")
+        return store_models.Customer.objects.create(user=user)
+
+    @staticmethod
+    def _context(customer_data):
+        request = FakeRequest(method="GET")
+        view = FakeView(
+            request,
+            store_serializers.CustomerDataSerializer,
+            "retrieve",
+            queryset=store_models.CustomerData.objects.filter(pk=customer_data.pk),
+        )
+        return {"request": request, "view": view}
+
+    def test_serializes_view_backed_fields(self, customer):
+        serializer = store_serializers.CustomerDataSerializer(customer.data, context=self._context(customer.data))
+
+        assert serializer.data == {
+            "id": customer.pk,
+            "customer": customer.pk,
+            "formatted_name": customer.user.email,
+        }
+
+    def test_all_fields_are_forced_read_only(self, customer):
+        serializer = store_serializers.CustomerDataSerializer(customer.data, context=self._context(customer.data))
+
+        assert {field.read_only for field in serializer.fields.values()} == {True}
+        assert set(store_serializers.CustomerDataSerializer.Meta.read_only_fields) == set(serializer.fields.keys())
+
+    def test_list_serializer_class_is_readonly_variant(self):
+        assert store_serializers.CustomerDataSerializer.Meta.list_serializer_class is VuedaReadonlyListSerializer
+
+    def test_create_and_update_are_hidden(self, customer):
+        serializer = store_serializers.CustomerDataSerializer()
+
+        assert not hasattr(serializer, "create")
+        assert not hasattr(serializer, "update")
+
+        with pytest.raises(AttributeError):
+            serializer.create({})
+        with pytest.raises(AttributeError):
+            serializer.update(customer.data, {})
+
+    def test_save_is_hidden(self, customer):
+        serializer = store_serializers.CustomerDataSerializer(
+            instance=customer.data, data={"formatted_name": "attempted@domain.invalid"}
+        )
+        serializer.is_valid()
+
+        with pytest.raises(AttributeError):
+            serializer.save()
+
+    def test_list_save_is_hidden(self, customer):
+        serializer = store_serializers.CustomerDataSerializer(
+            instance=[customer.data], data=[{"formatted_name": "attempted@domain.invalid"}], many=True
+        )
+        serializer.is_valid()
+
+        with pytest.raises(AttributeError):
+            serializer.save()
+
+    def test_validation_always_succeeds_without_processing_input(self):
+        # No context/view is needed: validate_empty_values() short-circuits before any
+        # field validation, request, or writable-nested machinery is touched.
+        serializer = store_serializers.CustomerDataSerializer(
+            data={"formatted_name": "attempted@domain.invalid", "customer": 999999}
+        )
+
+        assert serializer.is_valid()
+        assert serializer.validated_data == {}
+        assert serializer.errors == {}
+
+    def test_expandable_field_metadata_marks_readonly(self):
+        class _ParentSerializer(store_serializers.CustomerSerializer):
+            class Meta(store_serializers.CustomerSerializer.Meta):
+                expandable_fields = {"data": (store_serializers.CustomerDataSerializer, {})}
+
+        expand_items = _ParentSerializer().get_expandable_fields()
+        data_expand_item = next(item for item in expand_items if item["name"] == "data")
+
+        assert data_expand_item["read_only"] is True

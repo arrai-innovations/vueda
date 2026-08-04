@@ -194,6 +194,49 @@ describe("renderTypeDocBundle with returns description", () => {
     });
 });
 
+describe("renderTypeDocBundle with deprecated lifecycle metadata", () => {
+    it("function page renders the deprecation warning callout", () => {
+        const bundle = new TypeDocNormalizer().normalize({
+            name: "vueda",
+            children: [
+                {
+                    id: 1,
+                    name: "legacy",
+                    kind: 2,
+                    children: [
+                        {
+                            id: 2,
+                            name: "oldThing",
+                            kind: 64,
+                            comment: {
+                                summary: [{ kind: "text", text: "Old helper." }],
+                                blockTags: [
+                                    {
+                                        tag: "@deprecated",
+                                        content: [{ kind: "text", text: "Use newThing instead." }],
+                                    },
+                                ],
+                            },
+                            signatures: [
+                                {
+                                    id: 3,
+                                    name: "oldThing",
+                                    parameters: [],
+                                    type: { type: "intrinsic", name: "void" },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
+        const outputs = renderTypeDocBundle(bundle);
+        const page = outputs.get("js/legacy/functions/oldThing.md");
+        expect(page).toContain("::: warning Deprecated");
+        expect(page).toContain("Use newThing instead.");
+    });
+});
+
 describe("renderTypeDocBundle with examples", () => {
     function buildOutputsWithExamples() {
         const bundle = new TypeDocNormalizer().normalize(payloadWithExamples);
@@ -582,20 +625,27 @@ describe("renderTypeDocBundle with property nodes", () => {
         return renderTypeDocBundle(bundle);
     }
 
-    it("property page renders a Type section", () => {
+    it("does not emit a standalone property page", () => {
         const outputs = buildOutputsWithProperty();
-        const page = outputs.get("js/forms/properties/clearErrors.md");
-        expect(page).toBeDefined();
-        expect(page).toContain("## Type");
-        expect(page).toContain("`boolean`");
+        expect(outputs.has("js/forms/properties/clearErrors.md")).toBe(false);
     });
 
-    it("Type section appears after Overview section", () => {
+    it("module page frontmatter exposes the property id as an inlined member", () => {
         const outputs = buildOutputsWithProperty();
-        const page = outputs.get("js/forms/properties/clearErrors.md");
-        const overviewPos = page.indexOf("## Overview");
-        const typePos = page.indexOf("## Type");
-        expect(overviewPos).toBeGreaterThan(-1);
-        expect(typePos).toBeGreaterThan(overviewPos);
+        const page = outputs.get("js/forms.md");
+        expect(page).toBeDefined();
+        expect(page).toContain("member_ids");
+        expect(page).toContain("js:property:vueda/forms#clearErrors");
+    });
+
+    it("module page renders property details under a stable anchor", () => {
+        const outputs = buildOutputsWithProperty();
+        const page = outputs.get("js/forms.md");
+        expect(page).toContain("### clearErrors {#clearErrors}");
+        expect(page).toContain("Clears all form errors.");
+        expect(page).toContain("Type: `boolean`");
+        const headingPos = page.indexOf("### clearErrors");
+        const typePos = page.indexOf("Type: `boolean`");
+        expect(typePos).toBeGreaterThan(headingPos);
     });
 });

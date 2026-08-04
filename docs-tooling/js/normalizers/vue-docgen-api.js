@@ -3,6 +3,7 @@
  */
 import { Normalizer } from "../core.js";
 import { compact } from "../utils/compact.js";
+import { deprecatedLifecycleFromVueTags } from "../utils/lifecycle.js";
 import { getRepoRoot, normalizeSourceFile } from "../utils/source.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -733,6 +734,7 @@ export class VueDocgenNormalizer extends Normalizer {
                     kind: "component",
                     name: displayName,
                     description: component.description || undefined,
+                    lifecycle: deprecatedLifecycleFromVueTags(component.tags),
                     members: [],
                     children: [],
                     source: sourceFile ? { file: sourceFile } : undefined,

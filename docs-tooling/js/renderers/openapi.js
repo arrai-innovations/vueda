@@ -1,5 +1,5 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
-import { buildOpenApiPathMap } from "../utils/path-map.js";
+import { buildOpenApiPathMap, openapiResponseAnchorForNode } from "../utils/path-map.js";
 import {
     escapeText,
     formatMembers,
@@ -10,6 +10,7 @@ import {
     renderCodeInline,
     renderFrontmatter,
     renderHeading,
+    renderLifecycle,
     renderTable,
 } from "./markdown.js";
 import path from "node:path";
@@ -47,7 +48,9 @@ function renderEndpoint(node, index, pathMap, filePath) {
     if (responses.length) {
         lines.push(renderHeading(2, "Responses"), "");
         for (const response of responses) {
-            lines.push(renderHeading(3, renderCodeInline(response.name)));
+            lines.push(
+                renderHeading(3, `${renderCodeInline(response.name)} {#${openapiResponseAnchorForNode(response)}}`),
+            );
             const responseSignature = response.signatures?.[0];
             if (responseSignature?.returns?.name) {
                 const target = responseSignature.returns.link
@@ -89,16 +92,28 @@ function renderSchema(node, filePath) {
 }
 
 export function renderOpenApiNode(node, index, pathMap, filePath) {
-    const frontmatter = renderFrontmatter({
+    const frontmatterData = {
         title: node.displayName,
         id: node.id,
         kind: node.kind,
         source: "openapi",
-    });
+    };
+    if (node.kind === "endpoint") {
+        const responses = (index.childrenOf.get(node.id) || []).filter((child) => child.kind === "response");
+        if (responses.length) {
+            frontmatterData.member_ids = responses.map((response) => response.id);
+        }
+    }
+    const frontmatter = renderFrontmatter(frontmatterData);
 
     const lines = [];
     lines.push(frontmatter);
     lines.push(renderHeading(1, normalizeTitle(node.displayName || node.name)), "");
+
+    const lifecycleBlock = renderLifecycle(node.lifecycle);
+    if (lifecycleBlock) {
+        lines.push(lifecycleBlock, "");
+    }
 
     if (node.kind === "endpoint") {
         lines.push(renderEndpoint(node, index, pathMap, filePath));
@@ -131,6 +146,9 @@ export function renderOpenApiBundle(bundle) {
     index.pathMap = pathMap;
     for (const node of bundle.nodes) {
         const filePath = pathMap.get(node.id);
+        if (filePath.includes("#")) {
+            continue;
+        }
         const { content } = renderOpenApiNode(node, index, pathMap, filePath);
         outputs.set(filePath, content);
     }

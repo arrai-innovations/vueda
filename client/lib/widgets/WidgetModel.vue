@@ -2,11 +2,10 @@
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelChoices } from "@vueda/use/useModelChoices.js";
 import { WIDGET_EMITS, useWidget } from "@vueda/use/useWidget.js";
-import WidgetMultiSelect from "@vueda/widgets/WidgetMultiSelect.vue";
-import WidgetRadio from "@vueda/widgets/WidgetRadio.vue";
-import WidgetSelect from "@vueda/widgets/WidgetSelect.vue";
+import WidgetCombobox from "@vueda/widgets/WidgetCombobox.vue";
+import WidgetRadioGroup from "@vueda/widgets/WidgetRadioGroup.vue";
 import omit from "lodash-es/omit.js";
-import { computed, ref, toRef } from "vue";
+import { computed, ref, toRef, useAttrs } from "vue";
 
 /**
  * Renders a select, multi-select, or radio widget populated with choices fetched from a Django model.
@@ -50,6 +49,7 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
+const attrs = useAttrs();
 const widgetContext = useWidget(props, emit);
 const isActive = useIsActive();
 const hasBeenFocused = ref(false);
@@ -69,30 +69,31 @@ const modelChoices = useModelChoices(
     isActive,
 );
 const widgetComponents = {
-    select: WidgetSelect,
-    multiSelect: WidgetMultiSelect,
-    radio: WidgetRadio,
+    select: WidgetCombobox,
+    multiSelect: WidgetCombobox,
+    radio: WidgetRadioGroup,
 };
 const onFocus = () => {
     hasBeenFocused.value = true;
 };
 const widgetComponent = computed(() => widgetComponents[props.type]);
+const childWidgetAttrs = computed(() => omit(attrs, ["value", "app", "model"]));
 </script>
 <template>
-    <component
-        :is="widgetComponent"
-        :loading="modelChoices.loading"
-        :model-value="modelValue"
-        :on-focus="onFocus"
-        option-label="label"
-        option-value="value"
-        :options="modelChoices.choices?.[props.fieldName]?.results || []"
-        v-bind="omit($attrs, 'value')"
-        :aria-required="widgetContext.state.required"
-        @update:model-value="emit('update:modelValue', $event)"
-    >
-        <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-            <slot :name="slot" v-bind="slotProps || {}" />
-        </template>
-    </component>
+    <div class="contents" @focusin.once="onFocus">
+        <component
+            :is="widgetComponent"
+            :model-value="modelValue"
+            :multiple="props.type === 'multiSelect' || undefined"
+            option-label="label"
+            option-value="value"
+            :options="modelChoices.choices?.[props.fieldName]?.results ?? []"
+            v-bind="childWidgetAttrs"
+            @update:model-value="emit('update:modelValue', $event)"
+        >
+            <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
+            </template>
+        </component>
+    </div>
 </template>

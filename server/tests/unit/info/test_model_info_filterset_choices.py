@@ -1,11 +1,13 @@
 from http import HTTPStatus
-from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.utils import create_test_data
@@ -19,13 +21,11 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
         "cart",
         "product_quantity",
         (
-            {"label": "Nothing"},
             {"label": "0", "value": "0"},
             {"label": "10", "value": "10"},
             {"label": "4", "value": "4"},
             {"label": "6", "value": "6"},
         ),
-        "test",
     ),
     (
         "store",
@@ -37,110 +37,94 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
             {"label": "Square Cookies For Squares", "value": "Square Cookies For Squares"},
             {"label": "Women's White T-Shirt", "value": "Women's White T-Shirt"},
         ),
-        None,
     ),
     (
         "store",
         "product",
         "disabled",
         (
-            {"label": "None"},
-            {"label": "Unknown", "value": ""},
             {"label": "Yes", "value": "true"},
             {"label": "No", "value": "false"},
         ),
-        "",
     ),
     (
         "store",
         "product",
         "distributor",
         (
-            {"label": "None"},
+            {"label": "Awesome Music Co.", "value": "Awesome Music Co."},
             {"label": "Tasty Treats Assoc.", "value": "Tasty Treats Assoc."},
             {"label": "T-Shirt Corp.", "value": "T-Shirt Corp."},
             {"label": "Vibrant Looks Inc.", "value": "Vibrant Looks Inc."},
         ),
-        "",
     ),
     (
         "store",
         "product",
         "special_care",
         (
-            {"label": "None"},
-            {"label": "Dangerous", "value": None},
-            {"label": "Fragile", "value": None},
-            {"label": "Oversized", "value": None},
-            {"label": "Perishable", "value": None},
-            {"label": "Temperature Controlled", "value": None},
+            {"label": "Dangerous"},
+            {"label": "Fragile"},
+            {"label": "Perishable"},
+            {"label": "Temperature Controlled"},
         ),
-        "",
     ),
     (
         "store",
         "product",
         "tangible_type",
         (
-            {"label": "None"},
-            {"label": "Digital", "value": None},
-            {"label": "Physical", "value": None},
+            {
+                "label": "Digital",
+            },
+            {
+                "label": "Physical",
+            },
         ),
-        "",
     ),
     (
         "store",
         "productoption",
         "disabled",
         (
-            {"label": "None"},
-            {"label": "True", "value": None},
-            {"label": "False", "value": None},
+            {"label": "True", "value": "true"},
+            {"label": "False", "value": "false"},
         ),
-        "",
     ),
     (
         "store",
         "inventoryrecord",
         "is_added",
         (
-            {"label": "None"},
-            {"label": "Unknown", "value": None},
-            {"label": "No", "value": None},
-            {"label": "Yes", "value": None},
+            {"label": "No", "value": "false"},
+            {"label": "Yes", "value": "true"},
         ),
-        "",
     ),
     (
         "store",
         "inventoryrecord",
         "reason",
         (
-            {"label": "None"},
-            {"label": "Damaged Inventory", "value": None},
-            {"label": "Order Fulfillment", "value": None},
-            {"label": "Received Inventory", "value": None},
-            {"label": "Returned Inventory", "value": None},
+            {"label": "Damaged Inventory"},
+            {"label": "Order Fulfillment"},
+            {"label": "Received Inventory"},
+            {"label": "Returned Inventory"},
         ),
-        "",
     ),
     (
         "store",
         "customerorder",
         "shipping_method",
         (
-            {"label": "None"},
-            {"label": "---------", "value": None},
-            {"label": "Regular", "value": None},
-            {"label": "Express", "value": None},
+            {"label": "Regular", "value": "regular"},
+            {"label": "Express", "value": "express"},
         ),
-        "",
     ),
 ]
 
 
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
             ("contenttypes", "ContentType", "read"),
@@ -200,18 +184,18 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
         ],
     }
 
-    users_to_create = {
-        "test_admin@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer_1@example.com": {
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
         },
-        "test_customer_2@example.com": {
+        "test_customer_2@domain.invalid": {
             "name": "Test Customer 2",
             "password": "testpass",
             "groups": ["Customer"],
@@ -258,13 +242,13 @@ class TestModelInfoFiltersetChoices:
             response_value = response_values_by_label[label]
             assert isinstance(response_value, str), f"{msg} -> value should be str, got {type(response_value).__name__}"
 
-            if "value" in expected_choice and expected_choice["value"] is not None:
+            if "value" in expected_choice:
                 assert response_value == expected_choice["value"], (
                     f"{msg} -> expected value={expected_choice['value']!r}, got {response_value!r}"
                 )
 
     @pytest.mark.parametrize(
-        "app_label, model_name, field_name, expected_choices, expected_empty_value",
+        "app_label, model_name, field_name, expected_choices",
         DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
         ids=idfn,
     )
@@ -276,9 +260,8 @@ class TestModelInfoFiltersetChoices:
         model_name,
         field_name,
         expected_choices,
-        expected_empty_value,
     ):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -298,24 +281,21 @@ class TestModelInfoFiltersetChoices:
         # The customer is not able to list inventory records.
         match (app_label, model_name, field_name):
             case ("store", "inventoryrecord", "is_added") | ("store", "inventoryrecord", "reason"):
-                assert response.status_code == HTTPStatus.FORBIDDEN, pformat(response.data)
+                assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
 
             case _:
                 msg = (
                     f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_choices"
                 )
 
-                assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
+                assert response.status_code == HTTPStatus.OK, response_body(response)
                 assert frozenset(result["label"] for result in response.data["results"]) == frozenset(
                     result["label"] for result in expected_choices
                 ), msg
                 self.assert_choice_value_contract(response.data, expected_choices, msg)
-                if expected_empty_value is not None:
-                    msg = f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_empty_value"
-                    assert response.data["results"][0]["value"] == expected_empty_value, msg
 
     @pytest.mark.parametrize(
-        "app_label, model_name, field_name, expected_choices, expected_empty_value",
+        "app_label, model_name, field_name, expected_choices",
         DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
         ids=idfn,
     )
@@ -327,9 +307,8 @@ class TestModelInfoFiltersetChoices:
         model_name,
         field_name,
         expected_choices,
-        expected_empty_value,
     ):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -348,15 +327,37 @@ class TestModelInfoFiltersetChoices:
 
         msg = f"DETAIL_CHOICES_FILTERING_PARAMETRIZE -> {(app_label, model_name, field_name)} -> expected_choices"
 
-        assert response.status_code == HTTPStatus.OK, f"\n\n{pformat(response.data)}"
+        assert response.status_code == HTTPStatus.OK, response_body(response)
 
         assert frozenset(result["label"] for result in response.data["results"]) == frozenset(
             result["label"] for result in expected_choices
         ), msg
         self.assert_choice_value_contract(response.data, expected_choices, msg)
 
+    def test_all_values_filter_choices_drop_blank_string_values(self, test_data, api_client):
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        blank_distributor = store_models.Distributor.objects.create(name="", description="Blank distributor")
+        store_models.Product.objects.create(
+            distributor=blank_distributor,
+            name="Blank Distributor Product",
+            order_between=[1, 2],
+            tangible_type=test_data.tangible_type["physical"],
+        )
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "distributor")),
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert "" not in {result["label"] for result in response.data["results"]}
+        assert "" not in {result["value"] for result in response.data["results"]}
+
     def test_info_choices_filter_list_invalid_field(self, test_data, api_client):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -373,8 +374,124 @@ class TestModelInfoFiltersetChoices:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.NOT_FOUND, pformat(response.data)
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert response.data["detail"] == (
-            "Invalid filter 'invalid_filterset_field'. Valid filters are disabled, "
-            "distributor, id, last_ordered, name, quantity, special_care, tangible_type."
+            "Invalid filter 'invalid_filterset_field'. Valid filters are condition, disabled, "
+            "distributor, id, last_ordered, name, name_icontains, quantity, special_care, tangible_type."
+        )
+
+
+@pytest.mark.django_db
+class TestModelInfoFilterSetChoicesQueryParamFiltering:
+    """Tests that passing filterset query params to the choices endpoint narrows the returned choices."""
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+
+    def test_distributor_choices_filtered_by_name_icontains_cookies(self, test_data, api_client):
+        """name_icontains=cookies matches only the two Tasty Treats products, so only that distributor appears."""
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "distributor")),
+            data={"name_icontains": "cookies"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        result_labels = frozenset(r["label"] for r in response.data["results"])
+        assert result_labels == frozenset({"Tasty Treats Assoc."}), (
+            f"Expected distributor choices filtered to cookie-product distributor only, got: {result_labels}"
+        )
+
+    def test_distributor_choices_filtered_by_quantity_of_ten(self, test_data, api_client):
+        """quantity=3 matches only the one T-Shirt product, so only that distributor appears."""
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "distributor")),
+            data={"quantity": "10"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        result_labels = frozenset(r["label"] for r in response.data["results"])
+        assert result_labels == frozenset({"T-Shirt Corp.", "Vibrant Looks Inc."}), (
+            f"Expected distributor choices filtered to shirt-product distributor only, got: {result_labels}"
+        )
+
+    def test_special_care_choices_filtered_by_name_icontains_cookies(self, test_data, api_client):
+        """name_icontains=cookies narrows special_care choices (queryset path) to only those used by cookie products.
+
+        Cookie products use: fragile, perishable, temperature_controlled.
+        Dangerous (paint products only) and Oversized (unused) should be absent.
+        """
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "special_care")),
+            data={"name_icontains": "cookies"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        result_labels = frozenset(r["label"] for r in response.data["results"])
+        assert result_labels == frozenset({"Fragile", "Perishable", "Temperature Controlled"}), (
+            f"Expected special_care choices filtered to cookie-product values only, got: {result_labels}"
+        )
+
+    def test_tangible_type_choices_filtered_by_tangible_type_digital(self, test_data, api_client):
+        """name_icontains=cookies narrows tangible_type choices (queryset path) to only those used by cookie products.
+
+        All cookie products are Physical; Digital is not used by any product, so it should be absent.
+        """
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "tangible_type")),
+            data={"name_icontains": "cookies"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        result_labels = frozenset(r["label"] for r in response.data["results"])
+        assert result_labels == frozenset({"Physical"}), (
+            f"Expected tangible_type choices filtered to cookie-product values only, got: {result_labels}"
+        )
+
+    def test_condition_choices_filtered_by_ne(self, test_data, api_client):
+        """Passing condition=ne filters static choices to those whose value contains 'ne'.
+
+        'ne' is a substring of 'new' and 'like_new' but not 'refurbished' or 'used'.
+        The ChoiceFilter blank placeholder ('---------', empty value) is dropped from the
+        choices metadata, and the empty 'None' choice is no longer prepended by default.
+        """
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+
+        response = api_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "condition")),
+            data={"condition": "ne"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        result_labels = frozenset(r["label"] for r in response.data["results"])
+        assert result_labels == frozenset({"New", "Like New"}), (
+            f"Expected only choices containing 'ne', got: {result_labels}"
         )

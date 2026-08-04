@@ -1,4 +1,5 @@
 import strip from "@rollup/plugin-strip";
+import tailwindcss from "@tailwindcss/vite";
 import Vue from "@vitejs/plugin-vue";
 import fs from "fs";
 import { URL, fileURLToPath } from "url";
@@ -14,7 +15,7 @@ export default () => {
         };
     }
     return defineConfig({
-        plugins: [Vue(), circleDependency({})],
+        plugins: [tailwindcss(), Vue(), circleDependency({})],
         build: {
             rollupOptions: {
                 plugins: [

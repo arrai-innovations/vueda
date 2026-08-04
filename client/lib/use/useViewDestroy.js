@@ -6,6 +6,7 @@ import { useList } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, toRef } from "vue";
@@ -16,7 +17,10 @@ import { computed, inject, reactive, toRef } from "vue";
  * @property {boolean} validAndActive - Whether the current context has a valid app/model/pk and is active.
  * @property {import('@vueda/use/useModelConfig.js').ModelConfig} modelConfig - The model config for the current app/model.
  * @property {import('@arrai-innovations/reactive-helpers/use/useList.js').ListManager} instanceList - The list context of instances to destroy.
- * @property {(options: { dryRun?: boolean }) => Promise<void>} handleDelete - Attempts to delete the instance(s). Throws on failure.
+ * @property {(options: { dryRun?: boolean, acknowledgeWarnings?: string }) => Promise<void>} handleDelete - Attempts
+ *  to delete the instance(s). Throws on failure, including a `ConfirmationRequiredError` when the server gates the
+ *  delete behind warning acknowledgement (HTTP 409); pass the error's digest back via `acknowledgeWarnings` to
+ *  proceed.
  */
 
 /**
@@ -25,10 +29,7 @@ import { computed, inject, reactive, toRef } from "vue";
  * Internally loads the instance(s) matching the provided `pk`, then exposes a
  * `handleDelete` function that can perform bulk deletion and report errors.
  *
- * @param {object} props - The reactive props object.
- * @param {string} props.app - The app label for the model.
- * @param {string} props.model - The model name to use.
- * @param {string|string[]} props.pk - The primary key(s) identifying the instance(s) to retrieve and delete.
+ * @param {{ app: string, model: string, pk: string|string[] }} props - The reactive props object.
  * @returns {ViewDestroyState} An object containing reactive state and the `handleDelete` function.
  */
 export function useViewDestroy(props) {
@@ -62,10 +63,18 @@ export function useViewDestroy(props) {
         },
     });
 
-    const handleDelete = async ({ dryRun }) => {
-        await instanceList.bulkDelete({ dryRun });
+    const handleDelete = async ({ dryRun, acknowledgeWarnings }) => {
+        await instanceList.bulkDelete({ dryRun, acknowledgeWarnings });
         if (instanceList.state.errored) {
-            throw instanceList.state.error;
+            const error = instanceList.state.error;
+            if (error instanceof ConfirmationRequiredError) {
+                // Not a failure: the caller's confirmation flow owns it (ViewDestroy hands
+                // instanceList.state to ActionForm as fetchState, which renders fetchState.error as a
+                // failure banner; left in place it would show behind the confirmation dialog and
+                // linger after a cancel). Clear it from the list state before rethrowing.
+                instanceList.clearError();
+            }
+            throw error;
         }
     };
     return {

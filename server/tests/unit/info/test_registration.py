@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 
-from tests.models import Timesheet
+from tests.timesheet.models import Timesheet
 from vueda import info
 from vueda.info import registration
 
@@ -9,7 +9,7 @@ from vueda.info import registration
 @pytest.mark.django_db
 class TestRegistration:
     def test_register_decorator(self):
-        from tests.serializers import TimesheetSerializer
+        from tests.timesheet.serializers import TimesheetSerializer
         from vueda.core.viewsets import VuedaViewSet
 
         # Make the registry a new dictionary, so tests don't pollute each other.
@@ -26,8 +26,8 @@ class TestRegistration:
             assert not hasattr(registered_item["serializer"], "model")
 
     def test_register_function(self):
-        from tests.models import Product
-        from tests.serializers import ProductSerializer
+        from tests.product.models import Product
+        from tests.product.serializers import ProductSerializer
         from vueda.core.viewsets import VuedaViewSet
 
         # Make the registry a new dictionary, so tests don't pollute each other.
@@ -62,8 +62,8 @@ class TestRegistration:
             info.register(TestSerializer, TestViewSet)
 
     def test_register_duplicate(self):
-        from tests.models import Product
-        from tests.serializers import ProductSerializer
+        from tests.product.models import Product
+        from tests.product.serializers import ProductSerializer
         from vueda.core.viewsets import VuedaViewSet
 
         # Make the registry a new dictionary, so tests don't pollute each other.
@@ -80,7 +80,7 @@ class TestRegistration:
         assert "is already registered." in str(exc_info.value)
 
     def test_register_serializer_decorator(self):
-        from tests.models import Product
+        from tests.product.models import Product
         from vueda.core.serializers import VuedaHistorySerializer
 
         # Make the registry a new dictionary, so tests don't pollute each other.
@@ -97,7 +97,7 @@ class TestRegistration:
             assert registered_item["viewset"] is None
 
     def test_register_serializer_function(self):
-        from tests.serializers import ProductSerializer
+        from tests.product.serializers import ProductSerializer
 
         # Make the registry a new dictionary, so tests don't pollute each other.
         _registry = registration.get_empty_registry()
@@ -122,7 +122,7 @@ class TestRegistration:
             info.register_serializer(TestSerializer)
 
     def test_register_serializer_duplicate(self):
-        from tests.serializers import ProductSerializer
+        from tests.product.serializers import ProductSerializer
 
         # Make the registry a new dictionary, so tests don't pollute each other.
         registration.get_empty_registry()
@@ -134,8 +134,8 @@ class TestRegistration:
         assert "is already registered." in str(exc_info.value)
 
     def test_register_after_register_serializer(self):
-        from tests.models import Product
-        from tests.serializers import ProductSerializer
+        from tests.product.models import Product
+        from tests.product.serializers import ProductSerializer
         from vueda.core.viewsets import VuedaViewSet
 
         # Make the registry a new dictionary, so tests don't pollute each other.
@@ -151,8 +151,8 @@ class TestRegistration:
         assert "is already registered." in str(exc_info.value)
 
     def test_register_serializer_after_register(self):
-        from tests.models import Product
-        from tests.serializers import ProductSerializer
+        from tests.product.models import Product
+        from tests.product.serializers import ProductSerializer
         from vueda.core.viewsets import VuedaViewSet
 
         # Make the registry a new dictionary, so tests don't pollute each other.

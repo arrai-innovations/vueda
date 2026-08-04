@@ -4,20 +4,24 @@ coverage
 site
 .git
 .uv-cache
-.venv
+.venv*
 .claude
 __pycache__
 **/.uv-cache/**
-**/.venv/**
+**/.venv*/**
 **/.claude/**
 
 # lockfiles and package metadata
+pnpm-workspace.yaml
 pnpm-lock.yaml
 package-lock.json
 uv.lock
 client/package.json
 docs/package.json
 docs-tooling/package.json
+
+# generated TypeScript declaration outputs
+client/types
 
 # generated docs outputs
 docs/reference/api

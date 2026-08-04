@@ -1,18 +1,33 @@
 ---
-audience: implementors
+audience: integrator
 status: draft
 type: index
 ---
 
 # Guides
 
-Guides are task-focused recipes for implementors working on real VUEDA projects. They assume you already know your domain model and need practical steps for wiring server + client behavior.
+Guides are task-focused how-tos for integrators. They assume you know your domain model and want concrete steps for wiring server and client behavior.
+
+## Environment & Networking
+
+- [Local HTTPS Development](local-https-setup.md): Set up mkcert, gunicorn TLS, and Vite HTTPS for a production-like local environment with secure cookies.
+
+## Client Setup & Theming
+
+- [Client Plugin Prerequisites](client-plugin-prerequisites.md): Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting.
+- [shadcn-vue and VUEDA](shadcn-vue.md): How VUEDA relates to shadcn-vue, what `shadcn-vue add` does and does not support, and how to use shadcn-vue blocks alongside VUEDA.
+- [Customize VUEDA Appearance](customize-vueda-appearance.md): Concrete recipes for the four customization scopes: instance, component, family, and brand.
+- [Place the Page Title and Page Actions](place-page-title-and-actions.md): Establish the `usePageTitle` context in your layout, contribute titles from views, render page actions, and build a custom title display.
 
 ## Resource Modeling & CRUDL
 
 - [Create a CRUDL Surface for a New Model](create-crudl-surface.md): Minimal server/client pieces for `list`/`read`/`create`/`update`/`delete`/`list`.
+- [Set Up CRUDL for a Composite Primary Key Model](composite-primary-keys.md): Set up serializer, viewset, and filterset for models that use a composite primary key.
+- [Expose a Proxy Model as a Separate CRUDL Surface](proxy-models.md): Give a proxy model its own serializer, viewset, permissions, and model-info registration without a separate database table.
 - [Split Read/Write Serializers Safely](split-read-write-serializers.md): Use viewset serializer switching without breaking model-info metadata.
 - [Configure `list`/`read`/`create`/`update` Views](configure-crud-views.md): Tune model config per view, including default fields/expands/actions.
+- [Link List Rows to Read and Update Views](link-list-rows-to-detail-views.md): Add a per-row link from a `list` view to that row's `read` or `update` view.
+- [Customize List Column Rendering](customize-list-column-rendering.md): Override how `list` columns render with type-aware column adapters, model config, view props, or slots.
 - [Expose Aggregates in `list` Responses](list-column-totals.md): Use server column totals and render them in `list` views.
 
 ## Fields, Forms, and Relationships
@@ -30,6 +45,9 @@ Guides are task-focused recipes for implementors working on real VUEDA projects.
 - [Map Django and VUEDA Permission Names](permission-name-mapping.md): Configure and verify `PERMISSION_NAMES_MAPPING`.
 - [Add Workflow State and Transition Permissions](workflow-state-permissions.md): Layer state-based grants/denies over {@term CRUDL} permissions.
 - [Design Transition UX and Redirects](transition-ux-and-redirects.md): Integrate transitions with action routing and post-submit redirects.
+- [Manage Workflows and Generate Workflow Migrations](manage-workflows.md): Create, edit, and delete workflows through the UI, then capture those changes as a replayable migration.
+- [Manage Groups and Generate Group Migrations](manage-groups.md): Add, rename, and remove groups through the permission overview UI, then capture those changes as a replayable migration.
+- [Use the Permissions and Workflow Overview](permissions-workflow-overview.md): Audit group and permission assignments across all registered models, and inspect what a specific user can access.
 
 ## Async Work and Integrations
 

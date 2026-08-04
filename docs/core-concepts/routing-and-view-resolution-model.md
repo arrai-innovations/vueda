@@ -1,7 +1,7 @@
 ---
 title: Routing and View Resolution Model
 type: explanation
-audience: implementor
+audience: integrator
 status: draft
 ---
 
@@ -14,6 +14,8 @@ This page explains how route records are structured, how the guard chain gates n
 ## Route Records and Names
 
 **{@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} produces exactly two route records that cover the entire {@term CRUDL} and action surface.** The `detail` route, named `actionrouter.detailview`, matches the path `/:app/:model/:action/:pk` and carries object identity as `params.pk`. The non-`detail` route, named `actionrouter.listview`, matches `/:app/:model/:action/`. Multi-object selection is encoded as `query.pk`, a comma-delimited string that the route's `props` function splits into an array.
+
+Both `:app` and `:model` segments are derived from the model-info response, which uses Django's `ContentType` fields: `app_label` (the app's label, typically the last segment of the dotted Python path) and `model` (the class name lowercased with no separators). For example, a model class `ProductOption` in an app labeled `inventory` produces client URLs like `/inventory/productoption/list/`. The naming follows Django's `model_name` convention, but the enforcement is VUEDA's: the client reads `app_label` and `model` from model-info and constructs route paths from them automatically. Server-side DRF router prefixes (e.g. `router.register("product-options", ...)`) are independent and do not need to match.
 
 This two-route design means that one URL schema supports both single-object and multi-object action contexts without requiring additional route definitions. A `detail` action like `read` resolves to the `detail` route with a scalar PK in the path. A `list` action resolves to the non-`detail` route. A bulk action resolves to the non-`detail` route with multiple PKs encoded in the query string. The route name and PK shape are the only structural differences.
 
@@ -91,7 +93,7 @@ The resolution order means that the `crudComponents` registry takes priority ove
 
 **Redirect loops from self-gated `actionRedirect` targets.** If the `actionRedirect` destination is itself a route that passes through `requireModelInfo` (including another route in the CRUDL family), a failing guard will redirect to a destination that also fails its guard, producing repeated redirects. The visible symptom is a cascade of "Action Not Found" or "Model Not Found" toasts with no stable landing view. The `actionRedirect` must point to a route that is not gated by `requireModelInfo`.
 
-**Toast service assumed present.** `requireModelInfo` and `requireGroups` access `instance.config.globalProperties.$toast.add(...)` without null-checking. If the PrimeVue toast service is not registered on the Vue app instance, the guard throws a `TypeError` during evaluation, aborting navigation with an unhandled error rather than a redirect.
+**Toasts require a mounted toaster surface.** `requireModelInfo` and `requireGroups` report denials and lookup failures by calling the `toast` function imported from `vue-sonner`. This is a plain module import, so no service registration is needed and the guard never throws when the toaster is absent. If no `<Sonner />` toaster is mounted in the app, those `toast(...)` calls silently produce no notification: the guard still redirects, but the user sees no message explaining why.
 
 **`routeActions` filtering does not normalize action names.** The `routeActions` array is compared against canonical model-info action names directly. Using UI route names (such as `read`) in `routeActions` will fail to match the corresponding canonical name (`retrieve`), causing the guard to emit an "Action Not Found" toast and redirect even though the action exists in model-info. The `routeActions` array must use server-canonical names.
 

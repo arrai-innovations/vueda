@@ -81,6 +81,19 @@ export function renderList(items) {
     return items.map((item) => `- ${item}`).join("\n");
 }
 
+export function renderLifecycle(lifecycle) {
+    if (lifecycle?.status !== "deprecated") {
+        return "";
+    }
+
+    const lines = ["::: warning Deprecated"];
+    if (lifecycle.description) {
+        lines.push("", escapeText(lifecycle.description));
+    }
+    lines.push(":::");
+    return lines.join("\n");
+}
+
 export function linkToId(label, id) {
     return `[${label}](./${idToFilename(id)})`;
 }
@@ -120,7 +133,7 @@ export function labelFromType(typeRef) {
 export function formatParameters(parameters) {
     return (parameters || []).map((param) => [
         param.name || "",
-        labelFromType(param.type) || "",
+        renderCodeInline(labelFromType(param.type)),
         // TypeDoc serializes flags sparsely, so missing optional means "required".
         param.optional ? "no" : "yes",
         param.description || "",
@@ -132,9 +145,13 @@ export function formatMembers(members, kindLabel = "property") {
         .filter((member) => member.kind === kindLabel || kindLabel === "any")
         .map((member) => [
             member.name || "",
-            labelFromType(member.type) || "",
+            renderCodeInline(labelFromType(member.type)),
             member.required === true ? "yes" : member.required === false ? "no" : "",
-            member.default || "",
+            // Wrap defaults in inline code (like the type column). A raw default
+            // such as a multi-line arrow-function getter would otherwise be parsed
+            // as inline HTML by VitePress and break the Vue compiler (duplicate
+            // attribute) when the markdown is rendered.
+            renderCodeInline(member.default),
             member.description || "",
         ]);
 }

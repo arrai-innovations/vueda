@@ -1,4 +1,5 @@
 # Serializers to use with info.
+import drf_writable_nested
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
@@ -6,13 +7,15 @@ from rest_framework import serializers
 from tests.fields import RangeField
 from tests.store import models
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import VuedaHistorySerializer
+from vueda.core.serializers import VuedaReadonlySerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.user.serializers import UserSerializer
 from vueda.workflow.serializers import HasWorkflowSerializerMixin
 
 
-class CustomerSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer):
+class CustomerSerializer(VuedaHistorySerializer):
     user = serializers.PrimaryKeyRelatedField(
         queryset=get_user_model().objects.filter(is_system=False),
     )
@@ -21,15 +24,11 @@ class CustomerSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer):
 
     class Meta(VuedaHistorySerializer.Meta):
         model = models.Customer
-        fields = (
-            [
-                "id",
-                "user",
-                "number_of_ordered_products",
-            ]
-            + VuedaHistorySerializer.Meta.fields
-            + HasWorkflowSerializerMixin.Meta.fields
-        )
+        fields = [
+            "id",
+            "user",
+            "number_of_ordered_products",
+        ] + VuedaHistorySerializer.Meta.fields
         expandable_fields = {
             "user": (
                 UserSerializer,
@@ -110,12 +109,19 @@ class CustomerSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer):
         return "Test"
 
 
+class CustomerDataSerializer(VuedaReadonlySerializer):
+    class Meta(VuedaReadonlySerializer.Meta):
+        model = models.CustomerData
+        fields = ["id", "customer"] + VuedaSerializer.Meta.fields
+
+
 class DistributorSerializer(VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
         model = models.Distributor
         fields = [
             "id",
             "name",
+            "description",
         ] + VuedaHistorySerializer.Meta.fields
 
 
@@ -351,18 +357,22 @@ class OrderItemSerializer(VuedaSerializer):
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
-class CustomerOrderSerializer(VuedaHistorySerializer):
+class CustomerOrderSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
         model = models.CustomerOrder
-        fields = [
-            "id",
-            "order_number",
-            "when",
-            "customer",
-            "order_items",
-            "order_state",
-            "shipping_method",
-        ] + VuedaHistorySerializer.Meta.fields
+        fields = (
+            [
+                "id",
+                "order_number",
+                "when",
+                "customer",
+                "order_items",
+                "order_state",
+                "shipping_method",
+            ]
+            + VuedaHistorySerializer.Meta.fields
+            + HasWorkflowSerializerMixin.Meta.fields
+        )
         expandable_fields = {
             "customer": (
                 CustomerSerializer,
@@ -510,3 +520,175 @@ class PackingBoxSerializer(VuedaSerializer):
             "in_stock",
             "number_in_stock",
         ] + VuedaSerializer.Meta.fields
+
+
+class InvoiceLineSerializer(VuedaHistorySerializer):
+    class Meta(VuedaHistorySerializer.Meta):
+        model = models.InvoiceLine
+        fields = ["id", "name", "amount"] + VuedaHistorySerializer.Meta.fields
+
+
+class InvoiceSerializer(VuedaSerializer):
+    invoice_lines = InvoiceLineSerializer(many=True, required=False)
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Invoice
+        fields = ["id", "name", "invoice_lines"] + VuedaSerializer.Meta.fields
+
+
+# Plain drf_writable_nested serializers (no vueda fixes) — used to detect if
+# drf-writable-nested ever fixes the create-before-delete ordering bug itself.
+class InvoiceLineBaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.InvoiceLine
+        fields = ["id", "name", "amount"]
+
+
+class InvoiceBaseSerializer(
+    drf_writable_nested.NestedUpdateMixin,
+    drf_writable_nested.NestedCreateMixin,
+    serializers.ModelSerializer,
+):
+    invoice_lines = InvoiceLineBaseSerializer(many=True, required=False)
+
+    class Meta:
+        model = models.Invoice
+        fields = ["id", "name", "invoice_lines"]
+
+
+class OrderCompositePKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.OrderCompositePK
+        fields = [
+            "id",
+            "order_number",
+            "order_date",
+            "order_items_composite_pks",
+        ] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "order_items_composite_pks": (
+                "tests.store.serializers.OrderItemCompositePKSerializer",
+                {
+                    "many": True,
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        "pk",
+                        "order",
+                        "product",
+                        "quantity",
+                    ],
+                },
+            ),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class ProductCompositePKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.ProductCompositePK
+        fields = [
+            "id",
+            "name",
+        ] + VuedaSerializer.Meta.fields
+
+
+class OrderItemCompositePKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.OrderItemCompositePK
+        fields = [
+            "pk",
+            "order",
+            "product",
+            "quantity",
+        ] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "order": (
+                OrderCompositePKSerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        "id",
+                        "order_number",
+                        "order_date",
+                    ],
+                },
+            ),
+            "product": (
+                ProductCompositePKSerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        "id",
+                        "name",
+                    ],
+                },
+            ),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class OrderItemAltCompositePKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.OrderItemAltCompositePK
+        fields = [
+            "pk",
+            "order",
+            "product",
+            "quantity",
+        ] + VuedaSerializer.Meta.fields
+
+
+class DistributorProxySerializer(VuedaHistorySerializer):
+    class Meta(VuedaHistorySerializer.Meta):
+        model = models.DistributorProxy
+        fields = [
+            "id",
+            "name",
+            "description",
+        ] + VuedaHistorySerializer.Meta.fields
+
+
+class NoteSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "content_object": (
+                GenericForeignKeySerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                        # Model targetted specifiers.
+                        "_store__distributor__*",
+                        "_store__product__description",
+                        "_store__product__id",
+                        "_store__product__name",
+                        # quantity isn't defined on ProductSerializer, so adding it here won't cause it to be returned.
+                        "_store__product__quantity",
+                    ],
+                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
+                        "_store__distributor__description",
+                    ],
+                },
+            ),
+        }
+
+
+class AnotherNoteSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "content_object": GenericForeignKeySerializer,
+        }
+
+
+class NoteStaticOmitSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.Note
+        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "content_object": (
+                GenericForeignKeySerializer,
+                {
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["id", "name"],
+                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: ["available_actions"],
+                },
+            ),
+        }

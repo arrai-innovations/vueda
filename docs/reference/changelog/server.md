@@ -1,0 +1,130 @@
+---
+title: Server
+type: reference
+audience: integrator
+status: draft
+---
+
+# Server Changelog
+
+Integrator-facing changes for the `vueda` Python package.
+
+Use this page for changes that affect server package consumers: Django apps, settings, serializers, viewsets,
+permissions, metadata responses, management commands, migrations, REST behavior, and compatibility notes.
+
+## Public Baseline
+
+Earlier VUEDA server versions existed for internal or private use. The v3 prerelease series is the first
+public-facing documentation baseline.
+
+## vNext (unreleased)
+
+### Breaking Changes
+
+- **Read-only serializer permission metadata**:
+    - Model-info `model_permissions` now exposes only the mapped `list` and `read` permissions when a model's canonical serializer subclasses `VuedaReadonlySerializer`. Other permission rows remain in Django's permission table, and the change does not alter server authorization.
+      _If an integration treated `model_permissions` as a complete database permission inventory, account for the filtered read-only surface or query Django's permission model directly._
+- **Filter choice empty options**:
+    - `model_info_filter_choices` no longer prepends or returns empty-valued options. This removes the previous synthetic option driven by `empty_label`, `empty_value`, `EMPTY_CHOICE_LABEL`, and `EMPTY_CHOICE_VALUE`; it also omits blank values discovered by all-values filters. A missing filter query parameter now represents "no filter" in this endpoint's contract.
+      _Render any clear, all, or no-selection affordance in the client outside the server-provided choices list._
+- **File and image field representation**:
+    - `VuedaSerializer` now maps `models.FileField` and `models.ImageField` columns to VUEDA's serializer fields, which represent a stored file as `{"name": ..., "url": ...}` (with an absolute `url` when a request is in context) instead of DRF's plain URL string. This applies to any file or image column auto-built by a VUEDA serializer.
+      _Update client or integration code that read a bare URL string from these fields. The v3 client widgets (`WidgetFile`, `WidgetImage`) already consume the `{name, url}` shape. To keep the previous plain-string behavior on a specific field, declare a stock `rest_framework.serializers.FileField`/`ImageField` explicitly on your serializer._
+
+### Features
+
+- **`expandable_fields` system check**:
+    - A new Django system check (`vueda_core.E001`-`E004`) validates each serializer's `Meta.expandable_fields` at `manage.py check` time. It flags list values (flex-fields only supports tuples), malformed `(serializer, options)` tuples, serializer strings that fail to resolve, and values that are not a serializer class, tuple, or serializer string — catching misconfiguration at startup instead of on first request.
+- **Read-only relation metadata (model info)**:
+    - Model-info field metadata now includes `app_label` and `model` for read-only foreign-key and many-relation serializer fields when the related model can be resolved. This lets clients build relation-aware list columns without per-column fallback configuration, while still leaving `choices` disabled for read-only relation fields.
+- **Submit-time warning confirmation (`get_warnings`)**:
+    - `VuedaSerializer` gained a non-raising `get_warnings()` hook. Override it to return advisory warnings as `{field: [messages], "non_field_errors": [messages]}`. It is called after validation succeeds, so `self.validated_data` and (on update) `self.instance` are available.
+    - When `get_warnings()` returns warnings, `VuedaViewSet` withholds the create/update and responds `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` instead of saving. Resubmitting with the `Acknowledge-Warnings` request header set to that `digest` lets the write proceed. A changed warning set yields a different digest and re-prompts. Blocking errors (`VuedaValidationError`) are unaffected and still return 400 before warnings are evaluated.
+      _This is the recommended way to surface non-blocking, must-confirm concerns. Raising `VuedaValidationError(..., is_warning=True)` still blocks the save (returns 400) and is discouraged for advisory cases; prefer `get_warnings()`. The `acknowledge-warnings` header is added to the default `CORS_ALLOW_HEADERS`._
+- **Warning confirmation for destroy, activate, deactivate, and custom actions**:
+    - `WarningConfirmationMixin` (and therefore `VuedaViewSet`) gained a viewset-level `get_warnings(action, objs)` hook for writes that have no per-object serializer. Override it to return advisory warnings in the same aggregate `{field: [messages]}` shape; `action` is the action name (`"destroy"`, `"activate"`, or `"deactivate"`) and `objs` is the affected instances. Single-object and bulk variants are both gated: when the hook returns warnings the request has not acknowledged, the viewset responds `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` before anything is written, the same contract as the create/update gate. The default returns `{}`, so no confirmation is required unless you override it. Bulk gating is all-or-nothing: a 409 blocks the whole batch, and confirming runs all of it.
+    - Added `vueda.core.exceptions.gate_warnings(request, warnings)`, the standalone gate that all warning-gated paths route through. Call it from a custom action body after `serializer.is_valid(raise_exception=True)` (so blocking 400s surface before the 409) and before any write or side effect; it raises `ConfirmationRequired` unless the `Acknowledge-Warnings` request header matches the warnings digest. `ACKNOWLEDGE_WARNINGS_HEADER` moved to `vueda.core.exceptions` and is re-exported from `vueda.core.decorators`, so existing imports keep working.
+    - The `@action` decorator gained `confirm=True`, which declares an always-on consequence warning: the first unacknowledged mutating request returns 409 without executing the body, and resubmitting with the digest acknowledged runs it. The message comes from a `confirm_message` attribute set on the action function after its definition (`my_action.confirm_message = "..."`), falling back to "This action requires confirmation." Because this gate runs before the body, it suits input-less consequence actions; actions with input should call `gate_warnings` explicitly after validation so 400s precede the 409.
+      _Warnings must be computable before the write, from the request input plus current database state; conditions discoverable only by performing the write are errors that abort the transaction, not warnings. Bulk/list-serializer create and update saves and workflow transitions remain ungated._
+- **`ImageField` serializer field**:
+    - Added `vueda.core.fields.serializers.ImageField`, the image counterpart to the existing `FileField`. It shares the `{"name", "url"}` representation and subclasses `FileField` rather than DRF's `ImageField`, so it does not require Pillow; image content validation is left to the model field and upload pipeline.
+- **`updategroupmigrations` management command**:
+    - Added a new management command that scans all installed apps for group migrations created by `makegroupmigrations` and rewrites their import and function sections with the current implementations from `makegroupmigrations.py`.
+    - The `changed_data` variable and the `class Migration` block are preserved; only the embedded function bodies and imports are updated.
+    - Accepts a `--dry-run` flag to preview which files would be changed without writing anything.
+    - Run this command after any VUEDA upgrade that changes the function implementations in `makegroupmigrations.py`.
+- **`updateworkflowmigrations` management command**:
+    - Added a new management command that scans all installed apps for workflow migrations created by `makeworkflowmigrations` and rewrites their import and function sections with the current implementations from `makeworkflowmigrations.py`.
+    - The recorded change data (`changed_data`, `history_change_reason`, `migration_app_label`) and the `class Migration` block are preserved; only the embedded function bodies, imports, and any stale function names in `operations` are updated.
+    - Accepts an optional `app_label` argument to limit the update to a specific app, and a `--dry-run` flag to preview which files would be changed without writing anything.
+    - Run this command after any VUEDA upgrade that changes the function implementations in `makeworkflowmigrations.py`.
+- **`GenericForeignKeySerializer`**:
+    - Added `GenericForeignKeySerializer` to `vueda.core.serializers` for declaring `GenericForeignKey` expandable fields. Declare it in `expandable_fields` using the `GenericForeignKey` field name as the key. The serializer resolves the concrete related model's canonical registered serializer at representation time via `get_serializer_for_model`, so every model that can appear through the generic foreign key must be registered via `register` or `register_serializer`.
+    - Generic foreign key expands are always read-only. Model-info metadata for these expands reports `type_model: "GenericForeignKey"`, `type_serializer: "GenericForeignKeySerializer"`, and `type_db: null`.
+    - `FIELDS_PARAM` and `OMIT_PARAM` entries in the `expandable_fields` options now support model-targeted specifiers of the form `_<app_label>__<model_name>__<field_name>`. Specifiers matching the concrete type of the related object are resolved to their bare field name before the concrete serializer is instantiated; specifiers targeting a different model are silently dropped. Plain field names and wildcards continue to apply to every related model type.
+- **`get_serializer_for_model`**:
+    - Added `get_serializer_for_model` to the public API of `vueda.info.registration`. Returns the canonical serializer class registered for a given model by looking up the in-process registry directly, without a database query. Returns `None` if the model is not registered. Use this when you need the registered serializer class for a model and want to avoid the `ContentType` lookup required by `get_registration`.
+
+- **Django built-in model `formatted_name` support**:
+    - `InfoConfig.ready()` now patches Django's `Group`, `Permission`, and `ContentType` models with the `_has_formatted_name_field`, `_get_formatted_name`, and `formatted_name_lookup_expression` (or `get_formatted_name`) attributes that VUEDA's viewset and serializer layers require. `Group` and `Permission` use `name` as their display field; `ContentType` uses `app_labeled_name`. All three can now be used as expandable fields without any application-level configuration.
+
+### Fixes
+
+- **Optional VDQ notifications**:
+    - Applications can now install `vueda.user` without installing `vueda.vdq`. The default user adapter sends account email through Django's configured email backend and sends two-factor authentication SMS messages directly through Twilio when VDQ is absent; applications with VDQ installed continue to queue notifications.
+- **Writable nested history serializer responses**:
+    - History-enabled objects created through a writable nested serializer now include their annotated `current_history_id` in the response. Nested serializers re-fetch the new object through its own model manager instead of the parent view's queryset.
+- **Dependency security floor**:
+    - The server package now requires `cryptography` 48.0.1 or newer and `starlette` 1.3.1 or newer so installs resolve to versions with the published security fixes.
+      _No action is required unless your application pins either dependency below those versions._
+
+## v3.0.0a0 (2026-05-27)
+
+### Migration Summary
+
+This is the first public-facing v3 server baseline. The major migration work is around the metadata contract,
+composite primary key support, permissions/workflow tooling, more predictable REST error shapes, and generated API
+documentation.
+
+Review any application code that customizes VUEDA serializers, viewsets, filtersets, workflow/group migration
+commands, password reset flows, search behavior, or model metadata consumed by the client.
+
+### Breaking Changes
+
+- **Object payload `available_actions`**:
+    - `VuedaSerializer` now removes `available_actions` from ordinary object responses unless the sparse field request explicitly includes it.
+      _Review client or integration code that read `available_actions` directly from ordinary object payloads. Request the field explicitly or use the metadata/action-contract surfaces instead._
+- **Composite primary key models**:
+    - Composite primary key support now uses dedicated serializer, filterset, and URL conversion behavior.
+      _For composite primary key models, use VUEDA's composite primary key serializer/filterset path instead of assuming the default integer `pk` filter._
+- **Password reset and error response shapes**:
+    - Password reset and unhandled error responses now follow DRF-style `detail` and field-error shapes more consistently.
+      _Review code that matched older `result` / `message` or `error` response keys._
+
+### Features
+
+- **Server version endpoint**:
+    - Added documented server version metadata so the docs and client can identify which server package version they are paired with.
+- **Metadata contract improvements**:
+    - Serializer and model-info output now exposes more of the contract needed by the v3 client, including hidden field metadata and cleaner generated API documentation.
+- **Composite primary key support**:
+    - Added support for serializing, filtering, URL parsing, and documenting composite primary key models.
+- **Search and filtering**:
+    - Expanded `VuedaSearchFilterBackend` support for ranked search, trigram similar lookups, word-similar lookups, deterministic ordering, and distinct handling.
+- **Group and workflow migration tooling**:
+    - Improved group and workflow migration commands so permission and workflow changes can be captured and replayed more reliably.
+- **VDQ and async dependencies**:
+    - Added `channels` as a runtime dependency and updated async/background-work related server dependencies for the v3 package set.
+
+### Fixes
+
+- **REST error consistency**:
+    - Unhandled server errors now return a `detail` key, 404 responses use a DRF-style `detail` payload, and `ImproperlyConfigured` errors are converted into client-readable validation details.
+- **Forgot-password flow**:
+    - Forgot-password now validates the submitted email through serializer data, returns 204 on success, returns field errors for inactive or missing users, and returns `detail` for rate limiting.
+- **Ranked search distinct handling**:
+    - Ranked search now preserves ordering and primary-key tie-breaking when distinct results are required.
+- **Expanded history fields**:
+    - History field filtering now respects wildcard field selection when applying flex-like omit/field controls to historical records.
+- **Workflow permission messages**:
+    - Transition attempts without permissions now return a clearer message for the client to display.

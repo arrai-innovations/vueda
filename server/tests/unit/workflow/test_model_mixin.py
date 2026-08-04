@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import ClassVar
 from unittest.mock import Mock
 
 import pytest
@@ -20,14 +21,14 @@ from vueda.workflow.models import WorkflowPermission
 
 @pytest.mark.django_db
 class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
-    groups_to_create = {"Order Workflow Managers": []}
-    users_to_create = {
-        "workflow-user@example.com": {
+    groups_to_create: ClassVar[dict] = {"Order Workflow Managers": []}
+    users_to_create: ClassVar[dict] = {
+        "workflow-user@domain.invalid": {
             "name": "Workflow User",
             "password": "password",
             "groups": ["Order Workflow Managers"],
         },
-        "no-workflow-perms@example.com": {
+        "no-workflow-perms@domain.invalid": {
             "name": "No Workflow Perms",
             "password": "password",
             "groups": [],
@@ -48,11 +49,11 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
 
     @pytest.fixture
     def workflow_user(self):
-        return self.users["workflow-user@example.com"]
+        return self.users["workflow-user@domain.invalid"]
 
     @pytest.fixture
     def unauthorized_user(self):
-        return self.users["no-workflow-perms@example.com"]
+        return self.users["no-workflow-perms@domain.invalid"]
 
     @pytest.fixture
     def customer_order(self, workflow_user):
@@ -463,7 +464,7 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         assert not check_instance_called, "check_instance should not be called when state denies"
 
     def test_has_perm_check_instance_workflow_not_called_without_workflow(self, workflow_user, monkeypatch):
-        from tests.models import Product
+        from tests.product.models import Product
 
         product = Product.objects.create(name="Test Product")
         check_instance_workflow_called = False
@@ -480,7 +481,7 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
                 return True
 
         monkeypatch.setattr(Product, "RowLevelPermissions", TestRowLevelPermissions)
-        workflow_user.has_perm("tests.read_product", obj=product)
+        workflow_user.has_perm("product.read_product", obj=product)
         assert not check_instance_workflow_called, (
             "check_instance_workflow should not be called for non-workflow models"
         )

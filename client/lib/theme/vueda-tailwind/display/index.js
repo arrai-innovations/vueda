@@ -2,98 +2,63 @@
  * @module theme/vueda-tailwind/display
  * @description Tailwind CSS pass-through theme configuration for VUEDA Client display and read-only components.
  */
+import "./AspectRatio.theme.js";
+import "./Avatar.theme.js";
+import "./AvatarFallback.theme.js";
+import "./AvatarImage.theme.js";
+import "./Badge.theme.js";
+import "./ClickToCopyText.theme.js";
+import "./ConsequencesBullets.theme.js";
+import "./ConstraintsBar.theme.js";
+import "./DateRangeDisplay.theme.js";
+import "./DateTimeDisplay.theme.js";
+import "./DiagnosticStrip.theme.js";
+import "./ErrorDisplay.theme.js";
+import "./FieldPickerMenuList.theme.js";
+import "./Kbd.theme.js";
+import "./KbdGroup.theme.js";
+import "./LoadingHeartbeatStrip.theme.js";
+import "./LoadingSkeletonGhost.theme.js";
+import "./ResponsiveMenu.theme.js";
+import "./SortChip.theme.js";
+import "./SortGroup.theme.js";
+import "./SuggestionList.theme.js";
+import "./SystemMessageCard.theme.js";
+import "./TriedUrlCallout.theme.js";
+import "./UserAvatar.theme.js";
 
 export default {
-    DateRangeDisplay: {
-        root: {
-            class: "whitespace-nowrap",
-        },
-        separator: {
-            class: "",
-        },
-        from: {
-            class: "",
-        },
-        to: {
-            class: "",
-        },
-    },
-    DateTimeDisplay: {
-        root: {
-            class: "flex items-center space-x-2",
-        },
-        inline: {
-            class: "whitespace-nowrap",
-        },
-        break: {
-            absolute: "whitespace-nowrap",
-            relative: "whitespace-nowrap mt-1",
-        },
-        absolute: {
-            class: "whitespace-nowrap",
-        },
-        relative: {
-            class: "whitespace-nowrap",
-        },
-        tooltip: {
-            class: "cursor-help",
-        },
-        dash: {
-            class: "",
-        },
-    },
-    ErrorDisplay: {
-        root: {
-            class: "w-full",
-        },
-        container: {
-            class: "max-w-full overflow-x-auto p-1 2xs:p-2 2xl:p-4 flex flex-col gap-2",
-        },
-        message: {
-            class: [],
-        },
-        codeBlock: {
-            class: "bg-surface-100 dark:bg-surface-800 p-1 2xs:p-2 2xl:p-4 rounded", // Styling for the code block
-        },
-        link: {
-            class: "underline",
-        },
-    },
-    ClickToCopyText: {
-        root: {
-            class: "flex flex-row items-baseline gap-1 p-1 2xs:p-2 2xl:p-4 ",
-        },
-    },
-    MobileSortComponent: {
-        drawer: {
-            class: ["!h-auto"],
-        },
-        drawerInner: {
-            class: ["flex flex-col gap-4"],
-        },
-        draggable: {
-            class: ["flex flex-col gap-2"],
-        },
-        draggableItem: {
-            class: ["flex flex-row rounded-lg border border-surface-200 p-3"],
-        },
-        draggableItemInner: {
-            class: ["select-none flex flex-row gap-3 items-center justify-between grow flex-1"],
-        },
-        dragHandle: {
-            class: ["drag-handle cursor-grab active:cursor-grabbing p-1"],
-        },
-        sortOrderText: {
-            class: ["w-3 text-sm font-semibold text-surface-500"],
-        },
-        select: {
-            class: ["w-full"],
-        },
-        sortInlineActionBar: {
-            class: ["flex flex-row content-baseline justify-end"],
-        },
-        actionBar: {
-            class: ["flex flex-col gap-2"],
-        },
-    },
+    // ---------- Media ----------
+    AspectRatio: {},
+    // ---------- Date and time ----------
+    DateRangeDisplay: {},
+    DateTimeDisplay: {},
+    // ---------- Text utilities ----------
+    ErrorDisplay: {},
+    ClickToCopyText: {},
+    // ---------- Badges and keyboard hints ----------
+    Badge: {},
+    Kbd: {},
+    KbdGroup: {},
+    // ---------- Avatars ----------
+    Avatar: {},
+    AvatarImage: {},
+    AvatarFallback: {},
+    UserAvatar: {},
+    // ---------- System messages ----------
+    ConsequencesBullets: {},
+    SystemMessageCard: {},
+    LoadingHeartbeatStrip: {},
+    LoadingSkeletonGhost: {},
+    DiagnosticStrip: {},
+    SuggestionList: {},
+    TriedUrlCallout: {},
+    // ---------- Menus ----------
+    ResponsiveMenu: {},
+    FieldPickerMenuList: {},
+    // ---------- Constraints band ----------
+    ConstraintsBar: {},
+    // ---------- Sorting ----------
+    SortChip: {},
+    SortGroup: {},
 };

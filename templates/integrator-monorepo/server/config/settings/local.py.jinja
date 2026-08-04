@@ -1,0 +1,14 @@
+from config.settings.base import *
+
+
+CSRF_COOKIE_NAME = "{{ csrf_cookie_name }}"
+
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
+
+# Import patch_django in the leaf settings file (not base.py) so that
+# PERMISSION_NAMES_MAPPING is fully resolved before the import triggers a lookup.
+# If you override PERMISSION_NAMES_MAPPING above, place this import after that override.
+from vueda.core import patch_django  # noqa: F401

@@ -5,9 +5,9 @@ This package contains internal tooling that extracts, normalizes, and renders AP
 ## Commands
 
 - All tests: `just test-docs-tooling`
-- JS tests (single run): `pnpm -C docs-tooling test`
+- JS tests: `just test-docs-tooling-js` (accepts extra vitest args)
+- Python tests: `just test-docs-tooling-py` (accepts extra pytest args)
 - JS tests (watch): `pnpm -C docs-tooling test:watch`
-- Python tests: `cd docs-tooling && uv run --group test --no-sync pytest`
 - Docs pipeline (root): `just docs-extract`, `just docs-normalize`, `just docs-render`, `just docs-api`
 - Docs pipeline (local): `cd docs-tooling && ./bin/docs-tooling.js extract|normalize|render`
 
@@ -20,19 +20,27 @@ This package contains internal tooling that extracts, normalizes, and renders AP
 - `schema/`: canonical JSON schema.
 - `tests/`: Vitest and pytest coverage for tooling.
 - `.generated/`: intermediate artifacts from extract/normalize steps.
+- `briefings/`: authoritative annotation contracts the extractors enforce. These are linked from each consuming package's AGENTS and README so contributors can find the rules next to the code; update them here whenever an extractor's expectations change.
 
-## Commit Message Style
+## Annotation Contracts
 
-We use a custom commitlint configuration based on [Conventional Commits](https://www.conventionalcommits.org/). It is customized to have the following valid types:
+The briefings below are the source of truth for what each extractor expects to find in the source trees it walks. When changing an extractor, update the corresponding briefing in the same commit.
 
+- [Client annotation contract](./briefings/client-annotations.md)
+- [Server annotation contract](./briefings/server-annotations.md)
+
+## Test Execution
+
+For fast feedback during development, run only the spec file you are currently working on:
+
+```bash
+pnpm -C docs-tooling test -- tests/js/validators/references.test.js
 ```
-build, ci, chore, content, docs, feat, fix, perf, refactor, remove, revert, style, test, wip
-```
 
-**Example**:
+Multiple files or a glob may be passed if the change spans more than one spec.
 
-```
-fix(cli): correct normalize output routing
-```
+Run the full suite before marking a task complete or opening a PR:
 
-The scope should reference the affected filename (sans extension), module, or concern.
+```bash
+pnpm -C docs-tooling test
+```

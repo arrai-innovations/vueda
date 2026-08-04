@@ -1,5 +1,6 @@
 import {
     escapeText,
+    formatMembers,
     formatParameters,
     linkToId,
     linkToPath,
@@ -183,5 +184,49 @@ describe("formatParameters", () => {
 
         expect(rows[0][2]).toBe("no");
         expect(rows[1][2]).toBe("yes");
+    });
+
+    it("wraps type column in inline code", () => {
+        const rows = formatParameters([{ name: "x", type: { name: "Array<string>" } }]);
+        expect(rows[0][1]).toBe("`Array<string>`");
+    });
+
+    it("leaves type column empty when type is absent", () => {
+        const rows = formatParameters([{ name: "x" }]);
+        expect(rows[0][1]).toBe("");
+    });
+});
+
+describe("formatMembers", () => {
+    it("wraps type column in inline code", () => {
+        const rows = formatMembers(
+            [{ kind: "prop", name: "variant", type: { name: "VariantProps<typeof toggleVariants>" } }],
+            "prop",
+        );
+        expect(rows[0][1]).toBe("`VariantProps<typeof toggleVariants>`");
+    });
+
+    it("leaves type column empty when type is absent", () => {
+        const rows = formatMembers([{ kind: "prop", name: "x" }], "prop");
+        expect(rows[0][1]).toBe("");
+    });
+
+    it("wraps the default column in inline code so raw expressions cannot be parsed as HTML", () => {
+        const rows = formatMembers(
+            [
+                {
+                    kind: "prop",
+                    name: "slowAfterMs",
+                    default: '() => { if (typeof window === "undefined") return 3000; }',
+                },
+            ],
+            "prop",
+        );
+        expect(rows[0][3]).toBe('`() => { if (typeof window === "undefined") return 3000; }`');
+    });
+
+    it("leaves the default column empty when no default is present", () => {
+        const rows = formatMembers([{ kind: "prop", name: "x" }], "prop");
+        expect(rows[0][3]).toBe("");
     });
 });

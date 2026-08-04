@@ -10,6 +10,20 @@ from vueda.workflow import models
 
 
 class WorkflowUrlsMixin:
+    def get_inlines_context_data(self, formsets):
+        inline_formsets = []
+        for formset in formsets:
+            model = formset.model
+            default_related_name = model._meta.default_related_name
+            inline_formsets.append(
+                {
+                    "class": default_related_name.replace("_", "-"),
+                    "formset": formset,
+                    "name": default_related_name.replace("_", " ").title(),
+                }
+            )
+        return inline_formsets
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 

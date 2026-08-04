@@ -5,6 +5,7 @@ __all__ = (
     "urlpatterns",
 )
 
+from django.conf import settings
 from django.urls import include
 from django.urls import path
 
@@ -19,3 +20,10 @@ info_patterns = [
 urlpatterns = [
     path("vueda.info/", include(info_patterns)),
 ]
+
+if settings.DEBUG:
+    from vueda.info.views import InfoOverviewView
+
+    urlpatterns += [
+        path("vueda.info/overview/", InfoOverviewView.as_view(), name="info-overview"),
+    ]

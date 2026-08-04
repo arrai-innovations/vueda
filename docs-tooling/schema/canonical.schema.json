@@ -2,36 +2,102 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://vueda.dev/schemas/docs-tooling/canonical.schema.json",
     "title": "DocBundle",
-    "type": "object",
-    "required": ["schemaVersion", "source", "nodes", "roots"],
-    "additionalProperties": false,
-    "properties": {
-        "schemaVersion": {
-            "type": "string"
-        },
-        "source": {
-            "type": "string",
-            "enum": ["openapi", "pdoc", "typedoc", "vue-docgen"]
-        },
-        "meta": {
+    "oneOf": [{ "$ref": "#/$defs/DocNodeBundle" }, { "$ref": "#/$defs/ThemeKeysBundle" }],
+    "$defs": {
+        "DocNodeBundle": {
             "type": "object",
+            "title": "DocNodeBundle",
+            "required": ["schemaVersion", "source", "nodes", "roots"],
             "additionalProperties": false,
             "properties": {
-                "title": { "type": "string" },
-                "version": { "type": "string" },
-                "sourcePath": { "type": "string" }
+                "schemaVersion": { "type": "string" },
+                "source": {
+                    "type": "string",
+                    "enum": ["openapi", "pdoc", "typedoc", "vue-docgen"]
+                },
+                "meta": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "title": { "type": "string" },
+                        "version": { "type": "string" },
+                        "sourcePath": { "type": "string" }
+                    }
+                },
+                "nodes": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/DocNode" }
+                },
+                "roots": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                }
             }
         },
-        "nodes": {
-            "type": "array",
-            "items": { "$ref": "#/$defs/DocNode" }
+        "ThemeKeysBundle": {
+            "type": "object",
+            "title": "ThemeKeysBundle",
+            "required": ["schemaVersion", "source", "families"],
+            "additionalProperties": false,
+            "properties": {
+                "schemaVersion": { "type": "string" },
+                "source": { "type": "string", "const": "theme-keys" },
+                "families": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/ThemeKeysFamily" }
+                }
+            }
         },
-        "roots": {
-            "type": "array",
-            "items": { "type": "string" }
-        }
-    },
-    "$defs": {
+        "ThemeKeysFamily": {
+            "type": "object",
+            "required": ["name", "components"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string" },
+                "sourceFile": { "type": ["string", "null"] },
+                "components": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/ThemeKeysComponent" }
+                }
+            }
+        },
+        "ThemeKeysComponent": {
+            "type": "object",
+            "required": ["name", "kind", "slots"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string" },
+                "kind": { "type": "string", "enum": ["key", "primitive"] },
+                "group": { "type": ["string", "null"] },
+                "description": { "type": ["string", "null"] },
+                "slots": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/ThemeKeysSlot" }
+                }
+            }
+        },
+        "ThemeKeysSlot": {
+            "type": "object",
+            "required": ["id", "name", "kind", "valueShape"],
+            "additionalProperties": false,
+            "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "kind": { "type": "string", "enum": ["key", "primitive"] },
+                "valueShape": { "type": "string", "enum": ["static", "callback"] },
+                "defaultClasses": {
+                    "oneOf": [{ "type": "null" }, { "type": "array", "items": { "type": "string" } }]
+                },
+                "callbackSource": { "type": ["string", "null"] },
+                "composes": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "description": { "type": ["string", "null"] },
+                "group": { "type": ["string", "null"] },
+                "source": { "$ref": "#/$defs/SourceLocation" }
+            }
+        },
         "DocNode": {
             "type": "object",
             "required": ["id", "kind", "name"],
@@ -84,12 +150,22 @@
                     "type": "array",
                     "items": { "type": "string" }
                 },
+                "lifecycle": { "$ref": "#/$defs/Lifecycle" },
                 "typeDefinition": { "$ref": "#/$defs/TypeRef" },
                 "propertyType": { "$ref": "#/$defs/TypeRef" },
                 "source": { "$ref": "#/$defs/SourceLocation" },
                 "extensions": {
                     "type": "object"
                 }
+            }
+        },
+        "Lifecycle": {
+            "type": "object",
+            "required": ["status"],
+            "additionalProperties": false,
+            "properties": {
+                "status": { "type": "string", "enum": ["deprecated"] },
+                "description": { "type": "string" }
             }
         },
         "Signature": {
@@ -166,6 +242,7 @@
             "properties": {
                 "file": { "type": "string" },
                 "line": { "type": "number" },
+                "column": { "type": "number" },
                 "url": { "type": "string" }
             }
         }

@@ -93,10 +93,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         },
     )
     @action(detail=True, methods=["get"], url_path=r"object-state/(?P<object_id>[^/.]+)")
-    def object_state(self, request, *args, **kwargs):
+    def object_state(self, request, app_label, model, object_id):
         user = request.user
-        app_label = kwargs["app_label"]
-        model = kwargs["model"]
         instance = self.get_object()
         if not isinstance(instance, HasWorkflowModelMixin):
             return Response(
@@ -144,7 +142,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         },
     )
     @action(detail=True, methods=["get"])
-    def permitted_transitions(self, request, *args, **kwargs):
+    def permitted_transitions(self, request, app_label, model):
         try:
             workflow = self.get_workflow()
         except Http404:
@@ -197,7 +195,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         },
     )
     @action(detail=True, methods=["get"], url_path=r"object-transitions/(?P<object_id>[^/.]+)")
-    def object_transitions(self, request, *args, **kwargs):
+    def object_transitions(self, request, app_label, model, object_id):
         instance = self.get_object()
         return Response(list(instance.available_transitions(request.user).order_by("name").values("code", "name")))
 
@@ -208,40 +206,12 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         },
     )
     @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[^/.]+))?")
-    def execute_transition(self, request, *args, **kwargs):
+    def execute_transition(self, request, app_label, model, object_id=None):
         transition_code = request.data.get("transition_code")
-        if "object_id" in self.request_kwargs:
+        if object_id:
             instance = self.get_object()
             with transaction.atomic():
-                if not request.dry_run:
-                    locked_instance = (
-                        instance.__class__.objects.select_for_update(skip_locked=True).filter(pk=instance.pk).first()
-                    )
-                    if not locked_instance:
-                        raise VuedaValidationError("This object cannot be updated right now. Please try again.")
-
-                    instance = locked_instance
-
-                # apply_transition does the permission checks
-                try:
-                    state, current_history_id = instance.apply_transition(
-                        transition_code, user=request.user, dry_run=request.dry_run
-                    )
-
-                    response_data = {
-                        "new_state": {
-                            "code": state.code,
-                            "name": state.name,
-                        },
-                        "new_transitions": list(
-                            instance.available_transitions(request.user).order_by("name").values("code", "name")
-                        ),
-                    }
-                    if current_history_id:
-                        response_data["new_state"]["current_history_id"] = current_history_id
-                except (PermissionDenied, InvalidTransitionError) as e:
-                    raise VuedaValidationError(str(e))
-
+                response_data = self._apply_transition_to_instance(instance, transition_code, request)
             return Response(response_data)
         else:
             object_ids = request.data.get("object_ids", [])
@@ -252,38 +222,42 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             with transaction.atomic():
                 for object_id in object_ids:
                     instance = get_object_or_404(self.get_workflow().content_type.model_class(), pk=object_id)
-                    if not request.dry_run:
-                        locked_instance = (
-                            instance.__class__.objects.select_for_update(skip_locked=True)
-                            .filter(pk=instance.pk)
-                            .first()
-                        )
-                        if not locked_instance:
-                            error[object_id] = ["This object cannot be updated right now. Please try again."]
-                            continue
-                        instance = locked_instance
                     try:
-                        state, current_history_id = instance.apply_transition(
-                            transition_code, user=request.user, dry_run=request.dry_run
+                        response_data[object_id] = self._apply_transition_to_instance(
+                            instance, transition_code, request
                         )
-                    except (PermissionDenied, InvalidTransitionError) as e:
-                        error[object_id] = [str(e)]
-                        continue
                     except VuedaValidationError as e:
                         error[object_id] = e.detail
-                        continue
-
-                    response_data[object_id] = {
-                        "new_state": {
-                            "code": state.code,
-                            "name": state.name,
-                        },
-                        "new_transitions": list(
-                            instance.available_transitions(request.user).order_by("name").values("code", "name")
-                        ),
-                    }
-                    if current_history_id:
-                        response_data[object_id]["new_state"]["current_history_id"] = current_history_id
             if error:
                 raise VuedaValidationError(error)
             return Response(response_data)
+
+    def _apply_transition_to_instance(self, instance, transition_code, request):
+        if not request.dry_run:
+            locked_instance = (
+                instance.__class__.objects.select_for_update(skip_locked=True).filter(pk=instance.pk).first()
+            )
+            if not locked_instance:
+                raise VuedaValidationError("This object cannot be updated right now. Please try again.")
+            instance = locked_instance
+
+        # apply_transition does the permission checks
+        try:
+            state, current_history_id = instance.apply_transition(
+                transition_code, user=request.user, dry_run=request.dry_run
+            )
+        except (PermissionDenied, InvalidTransitionError) as e:
+            raise VuedaValidationError(str(e))
+
+        data = {
+            "new_state": {
+                "code": state.code,
+                "name": state.name,
+            },
+            "new_transitions": list(
+                instance.available_transitions(request.user).order_by("name").values("code", "name")
+            ),
+        }
+        if current_history_id:
+            data["new_state"]["current_history_id"] = current_history_id
+        return data

@@ -15,12 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 CLIENT_SOURCE = ROOT / "client/package.json"
 CLIENT_TEMPLATES = [
-    ROOT / "templates/implementor-monorepo/client/package.json.jinja",
-    ROOT / "templates/implementor-monorepo-dx/client/package.json.jinja",
+    ROOT / "templates/integrator-monorepo/client/package.json.jinja",
+    ROOT / "templates/integrator-monorepo-dx/client/package.json.jinja",
 ]
 
-SERVER_MIN_TEMPLATE = ROOT / "templates/implementor-monorepo/server/pyproject.toml.jinja"
-SERVER_DX_TEMPLATE = ROOT / "templates/implementor-monorepo-dx/server/pyproject.toml.jinja"
+SERVER_MIN_TEMPLATE = ROOT / "templates/integrator-monorepo/server/pyproject.toml.jinja"
+SERVER_DX_TEMPLATE = ROOT / "templates/integrator-monorepo-dx/server/pyproject.toml.jinja"
 SERVER_VERSION_FILE = ROOT / "server/vueda/__init__.py"
 
 CLIENT_KEY_MAP = [
@@ -49,7 +49,7 @@ def read_server_version() -> str | None:
 
 
 def expected_server_dependency(version: str) -> str | None:
-    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:(?:a|b|rc)\d+)?", version)
     if match is None:
         return None
     major = int(match.group(1))

@@ -1,15 +1,9 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { defineComponent, h, reactive, ref } from "vue";
 
 // Stubs
-const WidgetLabelStub = defineComponent({
-    name: "WidgetLabelStub",
-    props: ["id", "labelTag"],
-    setup(_, { slots }) {
-        return () => h("label", { "data-qa": "widget-label" }, slots.default ? slots.default({ class: "lbl" }) : null);
-    },
-});
 const LinkModelViewStub = defineComponent({
     name: "LinkModelViewStub",
     props: ["app", "model", "pk", "view", "label"],
@@ -32,7 +26,7 @@ const LinkModelViewStub = defineComponent({
 
 // Mocks
 const useWidget = vi.fn(() => ({
-    state: reactive({ formModelName: "fm", widgetId: "wid", combinedValue: "val", combinedName: "field" }),
+    state: reactive({ formModelName: "fm", combinedValue: "val", combinedName: "field" }),
 }));
 vi.mock("@vueda/use/useWidget.js", () => ({ WIDGET_EMITS: [], WIDGET_PROPS: {}, useWidget }));
 const useWidgetTheme = vi.fn(() => () => "theme");
@@ -46,55 +40,63 @@ vi.mock("@vueda/use/useIsActive.js", () => ({ useIsActive }));
 const useSlotNameResolver = vi.fn(() => ({ name: ref("n"), exists: ref(false) }));
 vi.mock("@vueda/use/useSlotNameResolver.js", () => ({ useSlotNameResolver }));
 
-vi.mock("@vueda/widgets/WidgetLabel.vue", () => ({
-    default: WidgetLabelStub,
-    WIDGET_LABEL_PROPS: { label: String },
-    getWidgetSlotsComputed: () => ref([]),
-}));
-vi.mock("@vueda/components/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
+vi.mock("@vueda/navigation/link-model-view/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
 
-let WidgetReadOnly;
+describe("lib/widgets/WidgetReadOnly.vue", () => {
+    let WidgetReadOnly;
 
-beforeEach(async () => {
-    WidgetReadOnly = (await import("@vueda/widgets/WidgetReadOnly.vue")).default;
-    vi.clearAllMocks();
-});
+    const fieldContext = { state: { fieldId: "test-field-id" } };
+    const mountOptions = {
+        global: {
+            provide: {
+                [FieldContextSymbol]: fieldContext,
+            },
+        },
+    };
 
-afterEach(() => {
-    vi.clearAllMocks();
-});
-
-scopedIt("renders text item when not in lookup mode", () => {
-    const wrapper = mount(WidgetReadOnly, {
-        props: { prefix: "P", suffix: "S" },
+    beforeEach(async () => {
+        WidgetReadOnly = (await import("@vueda/widgets/WidgetReadOnly.vue")).default;
+        vi.clearAllMocks();
     });
-    const value = wrapper.get('[data-qa="widget-read-only-value"]');
-    expect(value.text()).toContain("P");
-    expect(value.text()).toContain("val");
-    expect(value.text()).toContain("S");
-    expect(wrapper.find('[data-qa="link-model-view"]').exists()).toBe(false);
-});
 
-scopedIt("renders link when lookup mode and value available", () => {
-    const lookup = reactive({
-        object: { id: 1, formatted_name: "One" },
-        loading: false,
-        error: null,
-        errored: false,
-        effectScope: { stop: vi.fn() },
+    afterEach(() => {
+        vi.clearAllMocks();
     });
-    useModelConfig.mockReturnValue({ info: { pk: "id" }, config: { fetchFields: [], expand: [] } });
-    useResolvedLookupObject.mockReturnValue(lookup);
-    const wrapper = mount(WidgetReadOnly, {
-        props: { app: "a", model: "m", prefix: "<", suffix: ">" },
+
+    scopedIt("renders text item when not in lookup mode", () => {
+        const wrapper = mount(WidgetReadOnly, {
+            props: { prefix: "P", suffix: "S" },
+            ...mountOptions,
+        });
+        const value = wrapper.get('[data-qa="widget-read-only-value"]');
+        expect(value.text()).toContain("P");
+        expect(value.text()).toContain("val");
+        expect(value.text()).toContain("S");
+        expect(wrapper.find('[data-qa="link-model-view"]').exists()).toBe(false);
     });
-    const link = wrapper.get('[data-qa="link-model-view"]');
-    expect(link.attributes("data-app")).toBe("a");
-    expect(link.attributes("data-model")).toBe("m");
-    expect(link.attributes("data-pk")).toBe("1");
-    expect(link.attributes("data-label")).toBe("One");
-    expect(link.text()).toBe("One");
-    const value = wrapper.get('[data-qa="widget-read-only-value"]');
-    expect(value.text()).toContain("<");
-    expect(value.text()).toContain(">");
+
+    scopedIt("renders link when lookup mode and value available", () => {
+        const lookup = reactive({
+            object: { id: 1, formatted_name: "One" },
+            loading: false,
+            error: null,
+            errored: false,
+            effectScope: { stop: vi.fn() },
+        });
+        useModelConfig.mockReturnValue({ info: { pk: "id" }, config: { fetchFields: [], expand: [] } });
+        useResolvedLookupObject.mockReturnValue(lookup);
+        const wrapper = mount(WidgetReadOnly, {
+            props: { app: "a", model: "m", prefix: "<", suffix: ">" },
+            ...mountOptions,
+        });
+        const link = wrapper.get('[data-qa="link-model-view"]');
+        expect(link.attributes("data-app")).toBe("a");
+        expect(link.attributes("data-model")).toBe("m");
+        expect(link.attributes("data-pk")).toBe("1");
+        expect(link.attributes("data-label")).toBe("One");
+        expect(link.text()).toBe("One");
+        const value = wrapper.get('[data-qa="widget-read-only-value"]');
+        expect(value.text()).toContain("<");
+        expect(value.text()).toContain(">");
+    });
 });

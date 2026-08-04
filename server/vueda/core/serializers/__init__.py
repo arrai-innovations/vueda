@@ -4,30 +4,43 @@ __all__ = (
     "EmailSettingsBaseSerializer",
     "ExcludeFieldsSerializerMixin",
     "FlexFieldsWriteableNestedSerializerMixin",
+    "GenericForeignKeySerializer",
     "MakeReadonly",
     "NoExtraFieldsSerializerMixin",
     "PrimaryKeyListSerializer",
     "VuedaExpandableFieldsSerializerMixin",
     "VuedaHistorySerializer",
+    "VuedaListSerializer",
     "VuedaLookupSerializer",
     "VuedaReadonlyListSerializer",
     "VuedaReadonlySerializer",
     "VuedaSerializer",
 )
 
+import copy
 import inspect
+from typing import ClassVar
 
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import CompositePrimaryKey
+from django.db.models import F
+from django.db.models import FileField as ModelFileField
+from django.db.models import ImageField as ModelImageField
+from rest_flex_fields import split_levels
 from rest_framework import serializers
 
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.fields.serializers import FileField as VuedaFileField
+from vueda.core.fields.serializers import ImageField as VuedaImageField
 from vueda.core.serializers.fields import AvailableActionsField
+from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
 from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
+from vueda.info.registration import get_serializer_for_model
 
 
 class PrimaryKeyListSerializer(serializers.Serializer):
@@ -65,11 +78,19 @@ class NoExtraFieldsSerializerMixin:
                 if field_name.find("[") != -1:
                     field_name = field_name.split("[")[0]
 
-                # Handle data lik cart_items.quantity
+                # Handle data like cart_items.quantity
                 if "." in field_name:
                     field_name = field_name.split(".")[0]
 
                 initial_fields.add(field_name)
+
+            if (
+                "formatted_name" not in initial_fields
+                and hasattr(getattr(self, "Meta", None), "model")
+                and self.Meta.model._has_formatted_name_field()
+            ):
+                initial_fields.add("formatted_name")
+
             extra_keys_fields = initial_fields - set(self.fields.keys())
             for extra_key in extra_keys_fields:
                 msg = f"Invalid field.  Valid fields are {', '.join(sorted(self.get_fields()))}."
@@ -99,6 +120,26 @@ class FlexFieldsWriteableNestedSerializerMixin(
     """
     This is a utility mixin making a single class that makes serializers flex & nested writable.
     """
+
+    def apply_flex_fields(self, fields, flex_options):
+        expand_fields, _next_expand_fields = split_levels(flex_options["expand"])
+        sparse_fields, next_sparse_fields = split_levels(flex_options["fields"])
+
+        if self._contains_wildcard_value(expand_fields):
+            expand_fields = self._expandable_fields.keys()
+
+        added_wildcard_expands = False
+        for expand_field in expand_fields:
+            if expand_field not in next_sparse_fields:
+                flex_options["fields"].append(f"{expand_field}.*")
+                added_wildcard_expands = True
+
+        # If no fields were specified (which can occur through tests) and we added
+        # expanded field wildcards, then we also need all fields from the main model.
+        if added_wildcard_expands and not sparse_fields:
+            flex_options["fields"].append("*")
+
+        return super().apply_flex_fields(fields, flex_options)
 
     def to_internal_value(self, data):
         """
@@ -218,7 +259,6 @@ class VuedaExpandableFieldsSerializerMixin:
             #   get_expandable_fields hasn't been overridden on the serializer to return custom data.
             #   But, would an error here be good, or can it be figured out in a system check?
 
-            # TODO: Move this into a system check.
             if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
                 field_serializer, expand_options = field_data
             else:
@@ -231,7 +271,7 @@ class VuedaExpandableFieldsSerializerMixin:
             if type(field_serializer) == str:  # noqa E721
                 field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
 
-            # TODO: Move this into a system check.
+            # For ways that bypass system checks, validate that this is a class.
             if not inspect.isclass(field_serializer):
                 raise VuedaValidationError(
                     "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
@@ -242,7 +282,7 @@ class VuedaExpandableFieldsSerializerMixin:
             if "many" in expand_options:
                 expand_item["many"] = expand_options["many"]
 
-            if issubclass(field_serializer, VuedaReadonlySerializer):
+            if issubclass(field_serializer, (GenericForeignKeySerializer, VuedaReadonlySerializer)):
                 expand_item["read_only"] = True
             elif "read_only" in expand_options:
                 expand_item["read_only"] = expand_options["read_only"]
@@ -319,7 +359,6 @@ class VuedaExpandableFieldsSerializerMixin:
                 "name": field_name,
             }
 
-            # TODO: Do a system check for the expandable fields syntax.
             if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
                 field_serializer, expand_options = field_data
             else:
@@ -330,14 +369,8 @@ class VuedaExpandableFieldsSerializerMixin:
             # https://github.com/rsinger86/drf-flex-fields/blob/9dd6a9140fd6d2ffe1baf9ab1ffc728540dea84d/
             #   rest_flex_fields/serializers.py#L127-L130
             if type(field_serializer) == str:  # noqa E721
+                # System checks are always run when the schema is generated, so this should always become a class.
                 field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
-
-            if not inspect.isclass(field_serializer):
-                raise VuedaValidationError(
-                    "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
-                    " class and options, or simply a Serializer/Field Class.",
-                    {"name": field_name},
-                )
 
             if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
                 app_label = field_serializer.Meta.model._meta.app_label
@@ -360,10 +393,36 @@ class VuedaExpandableFieldsSerializerMixin:
         return expands_data
 
 
+class FormattedNameSerializerMixin:
+    def get_formatted_name(self, obj):
+        return obj._get_formatted_name()
+
+
+class VuedaListSerializer(serializers.ListSerializer):
+    """
+    List serializer for ``VuedaSerializer`` subclasses. Annotates the queryset with
+    ``formatted_name`` when the child serializer's model has ``formatted_name_lookup_expression``,
+    mirroring the annotation that ``VuedaViewSet.get_queryset()`` applies for direct requests.
+    This ensures ``formatted_name`` is populated even when objects are fetched via a related
+    manager during expand (which bypasses the viewset queryset).
+    """
+
+    def to_representation(self, data):
+        child_model = getattr(getattr(self.child, "Meta", None), "model", None)
+        if child_model and hasattr(data, "annotate"):
+            lookup = getattr(child_model, "formatted_name_lookup_expression", None)
+            if lookup is not None:
+                existing = getattr(getattr(data, "query", None), "annotations", {})
+                if "formatted_name" not in existing:
+                    data = data.annotate(formatted_name=F(lookup))
+        return super().to_representation(data)
+
+
 class VuedaSerializer(
     NoExtraFieldsSerializerMixin,
     VuedaExpandableFieldsSerializerMixin,
     FlexFieldsWriteableNestedSerializerMixin,
+    FormattedNameSerializerMixin,
     serializers.ModelSerializer,
 ):
     """
@@ -373,10 +432,44 @@ class VuedaSerializer(
     """
 
     available_actions = AvailableActionsField()
+    formatted_name = serializers.ReadOnlyField(style={"hidden": True})
+
+    def get_warnings(self):
+        """
+        Return advisory warnings for the current create/update as a mapping of
+        ``{field_name: [messages], "non_field_errors": [messages]}``. An empty mapping means no
+        warnings.
+
+        Override to surface non-blocking concerns the user should confirm before the write commits
+        (for example, "this will deactivate the last administrator"). This is called by the viewset
+        after validation succeeds, so ``self.validated_data`` is populated and ``self.instance`` holds
+        the current (pre-save) instance on updates. It must not raise: blocking conditions belong in
+        ``validate``/``VuedaValidationError`` (which return 400), whereas warnings gate the save behind
+        an explicit client confirmation (see ``WarningConfirmationMixin``).
+        """
+        return {}
+
+    def to_representation(self, instance):
+        repr_data = super().to_representation(instance)
+        sparse_fields, _ = split_levels(self._flex_options_all["fields"])
+        if "available_actions" not in sparse_fields:
+            repr_data.pop("available_actions", None)
+        return repr_data
+
+    serializer_field_mapping: ClassVar[dict] = {
+        **serializers.ModelSerializer.serializer_field_mapping,
+        CompositePrimaryKey: CompositePrimaryKeyField,
+        # Route file and image columns through VUEDA's serializer fields so they emit the
+        # {"name": ..., "url": ...} representation the client widgets consume. ImageField is keyed
+        # explicitly (not just inherited via FileField) so ClassLookupDict resolves it before FileField.
+        ModelFileField: VuedaFileField,
+        ModelImageField: VuedaImageField,
+    }
 
     class Meta:
         expandable_fields = {}
         fields = ["formatted_name", "available_actions"]
+        list_serializer_class = VuedaListSerializer
 
 
 class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
@@ -395,7 +488,6 @@ class VuedaLookupSerializer(VuedaSerializer):
         fields = ["id", "code", "name", "formatted_name"] + VuedaSerializer.Meta.fields
 
 
-# TODO: Create a test that uses the readonly serializers
 class MakeReadonly(serializers.SerializerMetaclass):
     """
     Metaclass that hides ``create`` and ``update`` on any serializer class it is applied to.
@@ -424,13 +516,16 @@ class MakeReadonly(serializers.SerializerMetaclass):
         return out_cls
 
 
-class VuedaReadonlyListSerializer(serializers.ListSerializer, metaclass=MakeReadonly):
+class VuedaReadonlyListSerializer(VuedaListSerializer, metaclass=MakeReadonly):
     """List serializer that disables ``create`` and ``update``. Used as the list class for ``VuedaReadonlySerializer``."""
 
     __excluded__ = ("create", "update")
 
     def validate_empty_values(self, data):
-        return True, None
+        # An empty list, not None: ListSerializer.save() iterates validated_data before ever
+        # reaching self.update/self.create, so None would raise TypeError instead of the
+        # intended AttributeError from the hidden methods.
+        return True, []
 
 
 class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
@@ -464,7 +559,10 @@ class VuedaReadonlySerializer(VuedaSerializer, metaclass=MakeReadonly):
         return fields
 
     def validate_empty_values(self, data):
-        return True, None
+        # An empty dict, not None: Serializer.save() unpacks validated_data before ever
+        # reaching self.update/self.create, so None would raise TypeError instead of the
+        # intended AttributeError from the hidden methods.
+        return True, {}
 
 
 class EmailSettingsBaseSerializer(VuedaSerializer):
@@ -487,3 +585,125 @@ class EmailSettingsBaseSerializer(VuedaSerializer):
             "bcc_email",
             "preview_tag_data",
         ]
+
+
+def _parse_model_targeted_field(field_name: str) -> tuple[str, str, str] | None:
+    """Parse a model-targeted field specifier like ``_store__distributor__description``.
+
+    Returns ``(app_label, model_name, field)`` for a well-formed specifier, or ``None``
+    for regular field names or malformed specifiers.
+
+    Syntax: leading ``_`` followed by ``app_label``, ``model_name``, and ``field_name``
+    separated by ``__``.  Single underscores within any component are allowed (e.g.
+    ``_my_app__my_model__first_name``); double underscores are not, which matches
+    Django's own restriction on field names.
+    """
+    if not field_name.startswith("_") or field_name.startswith("__"):
+        return None
+    parts = field_name[1:].split("__")
+    if len(parts) != 3 or not all(parts):  # noqa: PLR2004
+        return None
+    return parts[0], parts[1], parts[2]
+
+
+class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, serializers.Serializer):
+    """Serializer for GenericForeignKey expand fields.
+
+    Dynamically serializes the related object's concrete fields at to_representation
+    time, since the related model is unknown until then. Supports flex field filtering
+    (fields/omit) via rest_flex_fields options passed through expandable_fields.
+
+    The instance is not available at get_fields() time — for nested serializers DRF
+    passes the related value directly to to_representation(), never setting self.instance.
+    All dynamic field logic therefore lives in to_representation().
+
+    Always includes app_label, model, and formatted_name in the output regardless of
+    field filtering.
+
+    Model-targeted field specifiers (``_applabel__modelname__field``) may be used in
+    the ``FIELDS_PARAM`` and ``OMIT_PARAM`` lists inside ``expandable_fields`` to apply
+    filtering only when the related object is an instance of the named model.  Plain
+    field names and wildcards apply to every related model type.  If no static filtering
+    is needed, ``GenericForeignKeySerializer`` may be declared as a bare class without
+    options.
+    """
+
+    def get_fields(self):
+        # Fields are dynamic — resolved from the related instance in to_representation.
+        return {}
+
+    def to_representation(self, instance):
+        if instance is None:
+            return None
+
+        serializer_class = get_serializer_for_model(type(instance))
+        if serializer_class is None:
+            return None
+
+        # Flex options are lost when serializers are created, so we need to get the raw expandable data and process it.
+        field_options = self.parent._expandable_fields.get(self.field_name, ())
+        if isinstance(field_options, tuple):
+            serializer_settings = copy.deepcopy(field_options[1]) if len(field_options) > 1 else {}
+        else:
+            serializer_settings = {}
+
+        fields_param = settings.REST_FLEX_FIELDS["FIELDS_PARAM"]
+        omit_param = settings.REST_FLEX_FIELDS["OMIT_PARAM"]
+
+        # Resolve model-targeted field specifiers for the concrete instance type first, so the static
+        # declaration is in its final per-model form before we apply request-time selections on top.
+        # Specifiers matching the current model are replaced with their bare field name;
+        # specifiers targeting a different model are dropped.  Plain field names and
+        # wildcards pass through unchanged.
+        meta = instance._meta
+        for param in (fields_param, omit_param):
+            if param in serializer_settings:
+                resolved = []
+                for field in serializer_settings[param]:
+                    parsed = _parse_model_targeted_field(field)
+                    if parsed is None:
+                        resolved.append(field)
+                    elif parsed[0] == meta.app_label and parsed[1] == meta.model_name:
+                        resolved.append(parsed[2])
+                serializer_settings[param] = resolved
+
+        # Apply request-time field/omit selections (stored by flex-fields on self._flex_options_all).
+        # Runtime selections further restrict the static declaration — they cannot expand it:
+        # - fields: intersect with static (runtime can only narrow, not widen the allowed set)
+        # - omit: union with static (both sets of exclusions apply)
+        runtime_fields = self._flex_options_all["fields"]
+        runtime_omit = self._flex_options_all["omit"]
+
+        # runtime_fields will always be at least '*'.
+        static_fields = serializer_settings.get(fields_param, [])
+        if not static_fields:
+            serializer_settings[fields_param] = list(runtime_fields)
+        elif "*" in static_fields:
+            # Static allows all fields for this model; runtime narrows the set.
+            serializer_settings[fields_param] = list(runtime_fields)
+        elif "*" not in runtime_fields:
+            # Both sides are explicit: keep only fields the static declaration permits.
+            static_set = set(static_fields)
+            serializer_settings[fields_param] = [f for f in runtime_fields if f in static_set]
+        # else: runtime is a wildcard — the static restriction is already tighter; no change.
+
+        # runtime_omits will always be at least 'available_actions' because of
+        # 'VuedaExpandableFieldsSerializerMixin' > '_get_expanded_field_names'.
+        static_omit = serializer_settings.get(omit_param, [])
+        extra = [f for f in runtime_omit if f not in static_omit]
+        if extra:
+            serializer_settings[omit_param] = static_omit + extra
+
+        serializer_settings["context"] = self.context
+        serializer_settings["instance"] = instance
+
+        serializer = serializer_class(**serializer_settings)
+        results = serializer.data
+
+        # Always include GFK identity metadata regardless of field filtering.
+        results["app_label"] = meta.app_label
+        results["model"] = meta.model_name
+        if "formatted_name" not in results or results["formatted_name"] is None:
+            results["formatted_name"] = instance._get_formatted_name()
+
+        return results

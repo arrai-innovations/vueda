@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from django.conf import settings
@@ -7,6 +7,7 @@ from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.expected_results_model_info import EXPECTED_RESULTS
@@ -15,7 +16,7 @@ from vueda import info
 
 
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("contenttypes", "ContentType", "list"),
             ("contenttypes", "ContentType", "read"),
@@ -27,6 +28,8 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "CartItem", "read"),
             ("store", "Customer", "list"),
             ("store", "Customer", "read"),
+            ("store", "CustomerData", "list"),
+            ("store", "CustomerData", "read"),
             ("store", "CustomerOrder", "create"),
             ("store", "CustomerOrder", "delete"),
             ("store", "CustomerOrder", "list"),
@@ -37,6 +40,11 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "Distributor", "list"),
             ("store", "Distributor", "read"),
             ("store", "Distributor", "update"),
+            ("store", "DistributorProxy", "create"),
+            ("store", "DistributorProxy", "delete"),
+            ("store", "DistributorProxy", "list"),
+            ("store", "DistributorProxy", "read"),
+            ("store", "DistributorProxy", "update"),
             ("store", "InventoryRecord", "create"),
             ("store", "InventoryRecord", "delete"),
             ("store", "InventoryRecord", "list"),
@@ -47,6 +55,11 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "InventoryRecordReason", "list"),
             ("store", "InventoryRecordReason", "read"),
             ("store", "InventoryRecordReason", "update"),
+            ("store", "Note", "create"),
+            ("store", "Note", "delete"),
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
+            ("store", "Note", "update"),
             ("store", "OptionType", "create"),
             ("store", "OptionType", "delete"),
             ("store", "OptionType", "list"),
@@ -57,6 +70,21 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "OrderItem", "list"),
             ("store", "OrderItem", "read"),
             ("store", "OrderItem", "update"),
+            ("store", "OrderCompositePK", "create"),
+            ("store", "OrderCompositePK", "delete"),
+            ("store", "OrderCompositePK", "list"),
+            ("store", "OrderCompositePK", "read"),
+            ("store", "OrderCompositePK", "update"),
+            ("store", "OrderItemCompositePK", "create"),
+            ("store", "OrderItemCompositePK", "delete"),
+            ("store", "OrderItemCompositePK", "list"),
+            ("store", "OrderItemCompositePK", "read"),
+            ("store", "OrderItemCompositePK", "update"),
+            ("store", "OrderItemAltCompositePK", "create"),
+            ("store", "OrderItemAltCompositePK", "delete"),
+            ("store", "OrderItemAltCompositePK", "list"),
+            ("store", "OrderItemAltCompositePK", "read"),
+            ("store", "OrderItemAltCompositePK", "update"),
             ("store", "OrderState", "create"),
             ("store", "OrderState", "delete"),
             ("store", "OrderState", "list"),
@@ -87,11 +115,11 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "TangibleType", "list"),
             ("store", "TangibleType", "read"),
             ("store", "TangibleType", "update"),
-            ("tests", "User", "create"),
-            ("tests", "User", "delete"),
-            ("tests", "User", "list"),
-            ("tests", "User", "read"),
-            ("tests", "User", "update"),
+            ("employee", "User", "create"),
+            ("employee", "User", "delete"),
+            ("employee", "User", "list"),
+            ("employee", "User", "read"),
+            ("employee", "User", "update"),
         ],
         "Customer": [
             ("contenttypes", "ContentType", "list"),
@@ -107,15 +135,30 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "CartItem", "update"),
             ("store", "Customer", "read"),
             ("store", "Customer", "delete"),
+            ("store", "CustomerData", "list"),
+            ("store", "CustomerData", "read"),
             ("store", "CustomerOrder", "create"),
             ("store", "CustomerOrder", "read"),
             ("store", "Distributor", "list"),
             ("store", "Distributor", "read"),
+            ("store", "DistributorProxy", "list"),
+            ("store", "DistributorProxy", "read"),
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
             ("store", "OptionType", "list"),
             ("store", "OptionType", "read"),
             ("store", "OrderItem", "create"),
             ("store", "OrderItem", "list"),
             ("store", "OrderItem", "read"),
+            ("store", "OrderCompositePK", "create"),
+            ("store", "OrderCompositePK", "list"),
+            ("store", "OrderCompositePK", "read"),
+            ("store", "OrderItemCompositePK", "create"),
+            ("store", "OrderItemCompositePK", "list"),
+            ("store", "OrderItemCompositePK", "read"),
+            ("store", "OrderItemAltCompositePK", "create"),
+            ("store", "OrderItemAltCompositePK", "list"),
+            ("store", "OrderItemAltCompositePK", "read"),
             ("store", "OrderState", "list"),
             ("store", "OrderState", "read"),
             ("store", "PackingBox", "list"),
@@ -128,22 +171,22 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             ("store", "SpecialCare", "read"),
             ("store", "TangibleType", "list"),
             ("store", "TangibleType", "read"),
-            ("tests", "User", "read"),
+            ("employee", "User", "read"),
         ],
     }
 
-    users_to_create = {
-        "test_admin@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
             "name": "Test Admin",
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer_1@example.com": {
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
         },
-        "test_customer_2@example.com": {
+        "test_customer_2@domain.invalid": {
             "name": "Test Customer 2",
             "password": "testpass",
             "groups": ["Customer"],
@@ -164,6 +207,7 @@ class TestModelInfoSerializer:
     def register_viewsets():
         info.registration.get_empty_registry()
         info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
+        info.register(store_serializers.CustomerDataSerializer, store_viewsets.CustomerDataViewSet)
         info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
         info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
         info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
@@ -175,6 +219,13 @@ class TestModelInfoSerializer:
         info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
         info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
         info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)
+        info.register(store_serializers.NoteSerializer, store_viewsets.NoteViewSet)
+        info.register(store_serializers.OrderCompositePKSerializer, store_viewsets.OrderCompositePKViewSet)
+        info.register(store_serializers.OrderItemCompositePKSerializer, store_viewsets.OrderItemCompositePKViewSet)
+        info.register(
+            store_serializers.OrderItemAltCompositePKSerializer, store_viewsets.OrderItemAltCompositePKViewSet
+        )
+        info.register(store_serializers.DistributorProxySerializer, store_viewsets.DistributorProxyViewSet)
 
     def check_model_actions_data(self, response_data, expected_data, expected_actions_key, app_label, model_name):
         data = response_data.data["model_actions"]
@@ -298,15 +349,15 @@ class TestModelInfoSerializer:
                         )
 
     def test_info_list(self, test_data, api_client):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
 
         response = api_client.get(reverse("info.model_info-list"), format="json")
 
-        assert response.status_code == HTTPStatus.OK, str(response.data)
-        assert response.data["totalRecords"] == 12  # noqa: PLR2004
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == len(EXPECTED_RESULTS)
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",
@@ -320,7 +371,7 @@ class TestModelInfoSerializer:
         model_name,
         kwargs,
     ):
-        user = test_data.users["test_admin@example.com"]
+        user = test_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -346,7 +397,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == HTTPStatus.OK, pformat(response.data)
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
         self.check_model_actions_data(
@@ -370,7 +421,7 @@ class TestModelInfoSerializer:
         model_name,
         kwargs,
     ):
-        user = test_data.users["test_customer_1@example.com"]
+        user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
         self.register_viewsets()
@@ -396,7 +447,7 @@ class TestModelInfoSerializer:
             },
         )
 
-        assert response.status_code == HTTPStatus.OK, pformat(response.data)
+        assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
         self.check_model_actions_data(

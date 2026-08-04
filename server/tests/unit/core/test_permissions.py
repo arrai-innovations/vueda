@@ -1,4 +1,5 @@
 from datetime import date
+from typing import ClassVar
 
 import pytest
 from django.conf import settings
@@ -7,57 +8,58 @@ from django.urls import reverse
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
-from tests.models import Employee
-from tests.models import Timesheet
+from tests.conftest import response_body
+from tests.employee.models import Employee
+from tests.timesheet.models import Timesheet
 
 
 @pytest.mark.django_db
 class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, BaseTestUserMixin):
-    groups_to_create = {
+    groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
-            ("tests", "Timesheet", "read"),
+            ("timesheet", "Timesheet", "read"),
         ],
         "Timesheet Creator": [
-            ("tests", "Timesheet", "create"),
+            ("timesheet", "Timesheet", "create"),
         ],
         "Timesheet Updater": [
-            ("tests", "Timesheet", "update"),
+            ("timesheet", "Timesheet", "update"),
         ],
         "Timesheet Deleter": [
-            ("tests", "Timesheet", "delete"),
+            ("timesheet", "Timesheet", "delete"),
         ],
         "Timesheet Lister": [
-            ("tests", "Timesheet", "list"),
+            ("timesheet", "Timesheet", "list"),
         ],
     }
 
-    users_to_create = {
-        "test_user+timesheet+reader@example.com": {
+    users_to_create: ClassVar[dict] = {
+        "test_user+timesheet+reader@domain.invalid": {
             "name": "Test User reader",
             "password": "testpass",
             "groups": ["Timesheet Reader"],
         },
-        "test_user+timesheet+creator@example.com": {
+        "test_user+timesheet+creator@domain.invalid": {
             "name": "Test User creator",
             "password": "testpass",
             "groups": ["Timesheet Creator"],
         },
-        "test_user+timesheet+updater@example.com": {
+        "test_user+timesheet+updater@domain.invalid": {
             "name": "Test User updater",
             "password": "testpass",
             "groups": ["Timesheet Updater"],
         },
-        "test_user+timesheet+deleter@example.com": {
+        "test_user+timesheet+deleter@domain.invalid": {
             "name": "Test User deleter",
             "password": "testpass",
             "groups": ["Timesheet Deleter"],
         },
-        "test_user+timesheet+lister@example.com": {
+        "test_user+timesheet+lister@domain.invalid": {
             "name": "Test User lister",
             "password": "testpass",
             "groups": ["Timesheet Lister"],
         },
-        "test_user+timesheet+no_permissions@example.com": {
+        "test_user+timesheet+no_permissions@domain.invalid": {
             "name": "Test User no permissions",
             "password": "testpass",
             "groups": [],
@@ -67,12 +69,12 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
     @pytest.mark.parametrize(
         "email,http_method",
         [
-            ("test_user+timesheet+reader@example.com", "GET"),
-            ("test_user+timesheet+creator@example.com", "POST"),
-            ("test_user+timesheet+updater@example.com", "PUT"),
-            ("test_user+timesheet+updater@example.com", "PATCH"),
-            ("test_user+timesheet+deleter@example.com", "DELETE"),
-            ("test_user+timesheet+lister@example.com", "GET"),
+            ("test_user+timesheet+reader@domain.invalid", "GET"),
+            ("test_user+timesheet+creator@domain.invalid", "POST"),
+            ("test_user+timesheet+updater@domain.invalid", "PUT"),
+            ("test_user+timesheet+updater@domain.invalid", "PATCH"),
+            ("test_user+timesheet+deleter@domain.invalid", "DELETE"),
+            ("test_user+timesheet+lister@domain.invalid", "GET"),
         ],
         ids=[
             "read",
@@ -95,23 +97,28 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
             period_start=date(2024, 2, 15),
             period_end=date(2024, 2, 29),
         )
-        detail_url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-        # add f= querystring to details an only ask for certain fields
-        detail_url += f"?{settings.REST_FLEX_FIELDS['FIELDS_PARAM']}=id,employee,period_start,period_end"
-        list_url = reverse("tests.timesheet-list")
+        # add f= querystring to details, and only ask for certain fields
+        detail_url = reverse(
+            "timesheet.timesheet-detail",
+            kwargs={"pk": t1.pk},
+            query={
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,employee,period_start,period_end",
+            },
+        )
+        list_url = reverse("timesheet.timesheet-list")
         match http_method:
             case "GET":
                 url = list_url if "lister" in email else detail_url
                 response = api_client.get(url, format="json")
                 self.assert_response(response, 200)
                 if "lister" in email:
-                    assert len(response.data["results"]) == 1
-                    assert response.data["results"][0]["id"] == t1.pk
+                    assert len(response.data["results"]) == 1, response_body(response)
+                    assert response.data["results"][0]["id"] == t1.pk, response_body(response)
                 else:
-                    assert response.data["id"] == t1.pk
-                    assert response.data["employee"] == e1.pk
-                    assert response.data["period_start"] == "2024-02-15"
-                    assert response.data["period_end"] == "2024-02-29"
+                    assert response.data["id"] == t1.pk, response_body(response)
+                    assert response.data["employee"] == e1.pk, response_body(response)
+                    assert response.data["period_start"] == "2024-02-15", response_body(response)
+                    assert response.data["period_end"] == "2024-02-29", response_body(response)
             case "POST":
                 response = api_client.post(
                     list_url,
@@ -123,10 +130,10 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                     },
                 )
                 self.assert_response(response, 201)
-                assert response.data["employee"] == e1.pk
-                assert response.data["period_start"] == "2024-03-01"
-                assert response.data["period_end"] == "2024-03-15"
-                assert response.data["id"]
+                assert response.data["employee"] == e1.pk, response_body(response)
+                assert response.data["period_start"] == "2024-03-01", response_body(response)
+                assert response.data["period_end"] == "2024-03-15", response_body(response)
+                assert response.data["id"], response_body(response)
             case "PUT":
                 response = api_client.put(
                     detail_url,
@@ -138,10 +145,10 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                     },
                 )
                 self.assert_response(response, 200)
-                assert response.data["employee"] == e1.pk
-                assert response.data["period_start"] == "2024-02-16"
-                assert response.data["period_end"] == "2024-03-01"
-                assert response.data["id"] == t1.pk
+                assert response.data["employee"] == e1.pk, response_body(response)
+                assert response.data["period_start"] == "2024-02-16", response_body(response)
+                assert response.data["period_end"] == "2024-03-01", response_body(response)
+                assert response.data["id"] == t1.pk, response_body(response)
             case "PATCH":
                 response = api_client.patch(
                     detail_url,
@@ -151,15 +158,15 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                     },
                 )
                 self.assert_response(response, 200)
-                assert response.data["employee"] == e1.pk
-                assert response.data["period_start"] == "2024-02-17"
-                assert response.data["period_end"] == "2024-02-29"
-                assert response.data["id"] == t1.pk
+                assert response.data["employee"] == e1.pk, response_body(response)
+                assert response.data["period_start"] == "2024-02-17", response_body(response)
+                assert response.data["period_end"] == "2024-02-29", response_body(response)
+                assert response.data["id"] == t1.pk, response_body(response)
             case "DELETE":
                 response = api_client.delete(detail_url, format="json")
                 self.assert_response(response, 204)
                 assert not Timesheet.objects.filter(pk=t1.pk).exists()
-                assert response.data is None
+                assert response.data is None, response_body(response)
             case _:
                 raise ValueError(f"Invalid http_method: {http_method}")
 
@@ -183,7 +190,7 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
         ],
     )
     def test_does_not_have_permission(self, http_method, is_list, api_client):
-        user = self.users["test_user+timesheet+no_permissions@example.com"]
+        user = self.users["test_user+timesheet+no_permissions@domain.invalid"]
         api_client.force_authenticate(user=user)
         e1 = Employee.objects.create(
             user=user,
@@ -194,8 +201,8 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
             period_start=date(2024, 2, 15),
             period_end=date(2024, 2, 29),
         )
-        detail_url = reverse("tests.timesheet-detail", kwargs={"pk": t1.pk})
-        list_url = reverse("tests.timesheet-list")
+        detail_url = reverse("timesheet.timesheet-detail", kwargs={"pk": t1.pk})
+        list_url = reverse("timesheet.timesheet-list")
         match http_method:
             case "GET":
                 url = list_url if is_list else detail_url

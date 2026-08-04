@@ -11,17 +11,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="CartData",
-            fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("formatted_name", models.CharField()),
-            ],
-            options={
-                "db_table": "cart_data",
-                "managed": False,
-            },
-        ),
-        migrations.CreateModel(
             name="CartItemData",
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),

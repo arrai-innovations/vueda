@@ -1,0 +1,25 @@
+[project]
+name = "{{ project_slug }}-server"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "vueda >=3.0.0a0,<4",
+  "psycopg[binary] >=3.2.0,<4",
+  "gunicorn >=23.0.0,<24",
+  "uvicorn[standard] >=0.34.0,<1",
+]
+
+[dependency-groups]
+dev = [
+  "ruff ==0.14.6",
+  "pytest >=7.0.0,<9",
+  "pytest-django >=4.0.0,<5",
+]
+
+[[tool.uv.index]]
+name = "arrai"
+url = "https://pypi.arrai.dev/simple/"
+explicit = true
+
+[tool.uv.sources]
+vueda = { index = "arrai" }

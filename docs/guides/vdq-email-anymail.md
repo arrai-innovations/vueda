@@ -1,7 +1,7 @@
 ---
 title: Send Email from VDQ with Anymail
 type: how-to
-audience: implementor
+audience: integrator
 status: draft
 ---
 

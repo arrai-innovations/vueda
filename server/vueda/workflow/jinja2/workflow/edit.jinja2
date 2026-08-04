@@ -46,6 +46,13 @@
                 {% with class=inline_formset.class, name=inline_formset.name, formset=inline_formset.formset %}
                     {% include "workflow/formset.jinja2" with context %}
                 {% endwith %}
+                {% if inline_formset.class == 'transition-permissions' and not inline_formset.formset.instance.transition_permissions.exists() %}
+                    <div class="formset {{ inline_formset.class }}" data-noinlinetext="{{ inline_formset.formset.model._meta.default_related_name }}">
+                        <p>
+                            Users won't be able to do this transition unless a transition permission is added.
+                        </p>
+                    </div>
+                {% endif %}
             {% endfor %}
         </div>
     </form>
