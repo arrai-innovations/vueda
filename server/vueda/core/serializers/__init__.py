@@ -239,8 +239,12 @@ class VuedaExpandableFieldsSerializerMixin:
 
         return super()._get_expanded_field_names(expand_fields, omit_fields, sparse_fields, next_level_omits)
 
-    def get_expandable_fields(self) -> list:
-        """Return a list of expand descriptors used by the ``/info/`` meta-API."""
+    def generate_expand_model_info(self) -> list:
+        """
+        Build the base list of expand descriptors for the ``/info/`` meta-API from
+        ``Meta.expandable_fields``. This is the internal generation step; serializers that need to
+        customize the final expand metadata should override ``get_expand_model_info`` instead.
+        """
         from vueda.info.serializers import ModelInfoSerializer
 
         meta = self.Meta if hasattr(self, "Meta") else None
@@ -254,10 +258,6 @@ class VuedaExpandableFieldsSerializerMixin:
                 "read_only": False,
                 "many": False,
             }
-
-            # TODO: We need to do something when the field is a SerializerMethodField, and
-            #   get_expandable_fields hasn't been overridden on the serializer to return custom data.
-            #   But, would an error here be good, or can it be figured out in a system check?
 
             # TODO: Move this into a system check.
             if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
@@ -298,6 +298,14 @@ class VuedaExpandableFieldsSerializerMixin:
                 # Expandable fields don't need available actions.
                 fields = serializer.get_model_fields_data(field_serializer, excluded_fields={"available_actions"})
 
+                # Mirror ModelInfoSerializer.get_model_fields: this expand's own nested serializer may
+                # correct its generated field metadata (e.g. for a SerializerMethodField), and that
+                # correction must be applied here too, not just when the nested serializer is used as
+                # a root canonical serializer.
+                get_field_model_info = getattr(field_serializer(), "get_field_model_info", None)
+                if get_field_model_info is not None:
+                    fields = get_field_model_info(fields)
+
                 if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
                     for field_name, field in tuple(fields.items()):
@@ -320,11 +328,25 @@ class VuedaExpandableFieldsSerializerMixin:
 
         return expands_data
 
-    def get_model_fields_data(self, serializer) -> dict:
-        """Return field metadata for schema generation. Override in subclasses to provide data."""
-        return {}
+    def get_expand_model_info(self, expands):
+        """
+        Customization hook for the ``model_expands`` metadata the ``/info/`` meta-API returns for this
+        serializer. Receives the generated list of expand descriptors and must return a list in the same
+        shape; override to add or adjust entries, such as the real type of a ``SerializerMethodField``.
+        The default implementation returns ``expands`` unchanged.
+        """
+        return expands
 
-    def get_schema_operation_parameters(self, operation_id, parameters):  # pragma: no cover
+    def get_field_model_info(self, fields):
+        """
+        Customization hook for the ``model_fields`` metadata the ``/info/`` meta-API returns for this
+        serializer. Receives the generated field metadata dict (keyed by field name) and must return a
+        dict in the same shape; override to correct or add entries, such as the real type of a
+        ``SerializerMethodField``. The default implementation returns ``fields`` unchanged.
+        """
+        return fields
+
+    def get_schema_operation_parameters(self, operation_id, parameters):
         expandable_fields = self.get_schema_expandable_fields()
 
         enums = set()
@@ -347,58 +369,116 @@ class VuedaExpandableFieldsSerializerMixin:
                 }
             )
 
+        schema_fields = self.get_schema_fields()
+
+        if schema_fields:
+            parameters.append(
+                {
+                    "name": settings.REST_FLEX_FIELDS["FIELDS_PARAM"],
+                    "required": False,
+                    "in": "query",
+                    "description": "Selects a sparse subset of fields to include in the response.",
+                    "schema": {
+                        "title": "Sparse Fields",
+                        "type": "array of strings",
+                        "enum": sorted(schema_fields),
+                    },
+                }
+            )
+
         return parameters
 
-    def get_schema_expandable_fields(self):  # pragma: no cover
+    @staticmethod
+    def _reduce_field_model_info_for_schema(original_expands_data):
+        """
+        Reduce ``model_fields``/``model_expands``-shaped metadata (as produced by ``generate_expand_model_info``/
+        ``ModelInfoSerializer.get_model_fields_data`` and corrected by ``get_expand_model_info``/
+        ``get_field_model_info``) to what an OpenAPI schema needs: a label, the DRF field type (renamed from
+        ``type_serializer`` to ``type``), whether the value is required, and its choices. Drops the database/model
+        type detail (``type_db``/``type_model``), the ``many``/``read_only`` flags, the ``hidden`` flag, help text,
+        and constraint bookkeeping (``max_value``, ``min_value``, ``max_length``, ``min_length``, ``max_digits``,
+        ``decimal_places``, ``pk``) that ``/info/`` also reports but the schema does not need.
+
+        Handles three shapes: a flat ``model_fields``-style dict keyed by field name (from ``get_schema_fields``);
+        a list of ``model_expands``-style descriptors with nested per-field metadata under the
+        ``FIELDS_PARAM`` key (a related-model-backed expand); and a list of descriptors with no nested fields
+        (a ``SerializerMethodField``-backed expand with no related model), whose own type metadata sits directly
+        on the descriptor instead of under ``FIELDS_PARAM``. The reduction applies to the descriptor itself as
+        well as to any nested fields, so a descriptor's own ``many``/``read_only``/type keys are reduced too.
+        """
+
+        drop_keys = (
+            "type_db",
+            "type_model",
+            "many",
+            "read_only",
+            "hidden",
+            "help_text",
+            "max_value",
+            "min_value",
+            "max_length",
+            "min_length",
+            "max_digits",
+            "decimal_places",
+            "pk",
+        )
+
+        def update_data(field_data):
+            for key in drop_keys:
+                field_data.pop(key, None)
+            if "type_serializer" in field_data:
+                if "type" not in field_data:
+                    field_data["type"] = field_data["type_serializer"]
+                del field_data["type_serializer"]
+
+        if isinstance(original_expands_data, dict):
+            expands_data = original_expands_data.values()
+        else:
+            expands_data = original_expands_data
+
+        for expand_item in expands_data:
+            if not isinstance(expand_item, dict):
+                continue
+            fields_param = expand_item.get(settings.REST_FLEX_FIELDS["FIELDS_PARAM"])
+            if isinstance(fields_param, dict):
+                for field_data in fields_param.values():
+                    update_data(field_data)
+            update_data(expand_item)
+
+        return original_expands_data
+
+    def get_schema_expandable_fields(self):
+        """
+        Build the ``expand`` query parameter's documented values for the OpenAPI schema, reusing the same
+        generation (``generate_expand_model_info``) and customization hook (``get_expand_model_info``) the
+        ``/info/`` meta-API uses for ``model_expands``, then reducing the result to what the schema needs.
+        """
+        expands_data = self.generate_expand_model_info()
+        expands_data = self.get_expand_model_info(expands_data)
+        return self._reduce_field_model_info_for_schema(expands_data)
+
+    def get_schema_fields(self):
+        """
+        Build this serializer's own field metadata for OpenAPI schema purposes, mirroring how ``model_fields``
+        is generated for the ``/info/`` meta-API: inspect the serializer's own fields with
+        ``ModelInfoSerializer.get_model_fields_data``, then run the result through ``get_field_model_info`` so
+        a serializer that already corrects a ``SerializerMethodField``'s metadata for ``/info/`` gets the same
+        correction reflected in its schema, then reduce to the keys the schema needs. Returns an empty dict when
+        this serializer has no ``Meta.model`` to inspect.
+        """
+        from vueda.info.serializers import ModelInfoSerializer
+
         meta = self.Meta if hasattr(self, "Meta") else None
-        expandable_fields = meta.expandable_fields if hasattr(meta, "expandable_fields") else {}
+        model = meta.model if hasattr(meta, "model") else None
 
-        expands_data = []
+        if model is None:
+            return {}
 
-        for field_name, field_data in expandable_fields.items():
-            expand_item = {
-                "name": field_name,
-            }
+        model_content_type = ContentType.objects.get_for_model(model)
+        fields = ModelInfoSerializer(model_content_type).get_model_fields_data(self.__class__)
+        fields = self.get_field_model_info(fields)
 
-            # TODO: Do a system check for the expandable fields syntax.
-            if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
-                field_serializer, expand_options = field_data
-            else:
-                field_serializer = field_data
-                expand_options = {}
-
-            # Copied to deal with serializer strings.
-            # https://github.com/rsinger86/drf-flex-fields/blob/9dd6a9140fd6d2ffe1baf9ab1ffc728540dea84d/
-            #   rest_flex_fields/serializers.py#L127-L130
-            if type(field_serializer) == str:  # noqa E721
-                field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
-
-            if not inspect.isclass(field_serializer):
-                raise VuedaValidationError(
-                    "This is not a valid `expandable_fields` definition. It must be a tuple of a Serializer/Field"
-                    " class and options, or simply a Serializer/Field Class.",
-                    {"name": field_name},
-                )
-
-            if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
-                app_label = field_serializer.Meta.model._meta.app_label
-                model_name = field_serializer.Meta.model._meta.model_name
-                expand_item["app_label"] = app_label
-                expand_item["model"] = model_name
-                field_data = self.get_model_fields_data(field_serializer)
-
-            if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
-                # We need to call tuple, as we are modifying the dictionary.
-                for field_name in tuple(field_data):
-                    if field_name == "pk":  # Always keep the pk.
-                        continue
-                    if field_name not in expand_options[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]:
-                        del field_data[field_name]
-            expand_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = field_data
-
-            expands_data.append(expand_item)
-
-        return expands_data
+        return self._reduce_field_model_info_for_schema(fields)
 
 
 class FormattedNameSerializerMixin:

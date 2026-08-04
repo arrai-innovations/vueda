@@ -417,7 +417,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # we need to get a canonical serializer for the model to determine what fields are available
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
 
-        return self.get_model_fields_data(serializer)
+        fields = self.get_model_fields_data(serializer)
+
+        # Registration doesn't require the canonical serializer to inherit VuedaExpandableFieldsSerializerMixin,
+        # so get_field_model_info may not exist.
+        get_field_model_info = getattr(serializer(), "get_field_model_info", None)
+        if get_field_model_info is not None:
+            fields = get_field_model_info(fields)
+
+        return fields
 
     def get_model_actions(self, instance):
         """
@@ -516,9 +524,20 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         Get the expands for a model and their own metadata.
         """
         # Similar to actions, we'll need to have a canonical serializer to determine what expands are available
-        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
+        serializer = self.canonical["serializer"]  # type: type[serializers.ModelSerializer]
 
-        expands = serializer().get_expandable_fields()
+        serializer_instance = serializer()
+
+        # Registration doesn't require the canonical serializer to inherit VuedaExpandableFieldsSerializerMixin,
+        # so neither hook may exist. A serializer with no concept of expandable fields simply has no expands to
+        # report.
+        generate_expand_model_info = getattr(serializer_instance, "generate_expand_model_info", None)
+        expands = generate_expand_model_info() if generate_expand_model_info is not None else []
+
+        get_expand_model_info = getattr(serializer_instance, "get_expand_model_info", None)
+        if get_expand_model_info is not None:
+            expands = get_expand_model_info(expands)
+
         fields_param = settings.REST_FLEX_FIELDS["FIELDS_PARAM"]
 
         generic_foreign_key_names = {
