@@ -676,7 +676,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         }
         period_start = instance.period_start
         period_end = instance.period_end
-        formatted_name = f"{instance.employee.employee_number} on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        formatted_name = f"{employee.employee_number} on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
         expected_retrieve_response["formatted_name"] = formatted_name
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -754,14 +754,24 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
     groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
             ("timesheet", "Timesheet", "update"),
-        ]
+        ],
+        "Customer Updater": [
+            ("store", "Customer", "update"),
+        ],
+        "CartItem Updater": [
+            ("store", "CartItem", "update"),
+        ],
     }
 
     users_to_create: ClassVar[dict] = {
         "test_my_user@domain.invalid": {
             "name": "Test User update",
             "password": "testpass",
-            "groups": ["Timesheet Updater"],
+            "groups": [
+                "Timesheet Updater",
+                "Customer Updater",
+                "CartItem Updater",
+            ],
         },
     }
 
@@ -932,6 +942,92 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert "period_end" in response.data
         assert "employee" in response.data
         assert "user" in response.data["employee"]
+
+    def test_expand_with_existing_fields_customer(self, api_client):
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        c1 = store_models.Customer.objects.create(user=user)
+
+        response = api_client.put(
+            reverse(
+                "store.customer-detail",
+                kwargs={"pk": c1.pk},
+                query={
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "user",
+                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "user",
+                },
+            ),
+            data={"user": {"id": user.pk, "email": user.email, "name": user.name}},
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert "user" in response.data
+        assert "email" in response.data["user"]
+
+    def test_expand_with_existing_fields_cart_item(self, api_client):
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        customer = store_models.Customer.objects.create(user=user)
+        cart = store_models.Cart.objects.create(customer=customer)
+        distributor = store_models.Distributor.objects.create(
+            name="Test Distributor",
+            description="Test Distributor Description",
+        )
+        tangible_type = store_models.TangibleType.objects.get(code="physical")
+        product = store_models.Product.objects.create(
+            distributor=distributor,
+            name="Test Product",
+            tangible_type=tangible_type,
+            order_between=(1, 10),
+        )
+        option_type = store_models.OptionType.objects.get(code="size")
+        product_option = store_models.ProductOption.objects.create(
+            product=product,
+            option_type=option_type,
+            name="Test Option",
+            sku="TEST-SKU-001",
+            gtin="0000000000001",
+            price="9.99",
+        )
+        ci1 = store_models.CartItem.objects.create(
+            cart=cart,
+            product_option=product_option,
+            quantity=1,
+        )
+
+        response = api_client.put(
+            reverse(
+                "store.cartitem-detail",
+                kwargs={"pk": ci1.pk},
+                query={
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "cart,product_option",
+                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "product_option",
+                },
+            ),
+            data={
+                "cart": cart.pk,
+                "product_option": {
+                    "disabled": False,
+                    "gtin": product_option.gtin,
+                    "id": product_option.pk,
+                    "name": product_option.name,
+                    "option_type": option_type.pk,
+                    "price": product_option.price,
+                    "product": product.pk,
+                    "quantity_available": 16,
+                    "sku": product_option.sku,
+                },
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        assert "cart" in response.data
+        assert "product_option" in response.data
+        assert "name" in response.data["product_option"]
 
     def test_expand_with_non_existing_fields(self, api_client):
         user = self.users["test_my_user@domain.invalid"]

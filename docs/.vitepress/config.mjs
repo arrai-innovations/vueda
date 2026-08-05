@@ -7,6 +7,7 @@ import {
     stripInlineMarkdown,
 } from "../../docs-tooling/js/utils/reference-parser.js";
 import { slugify } from "../../docs-tooling/js/utils/slugify.js";
+import { arraiThemeRoot } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
 import path from "node:path";
@@ -916,7 +917,9 @@ export default defineConfig({
             // Bundle vue-router as ESM for the SSR build instead of externalizing its CJS
             // entry, which does `require("vue")` and breaks Node ESM instantiation with a
             // "vue has no default export" error. Pairs with the vue-router resolve alias.
-            noExternal: ["vue-router"],
+            // The shared theme publishes Vue SFC source and must also remain in
+            // VitePress's SSR bundle.
+            noExternal: ["vue-router", "@arrai-innovations/vitepress-theme"],
         },
         server: {
             host: true,
@@ -930,6 +933,9 @@ export default defineConfig({
                 : true,
             // Allow reverse-proxy/custom hostnames in local dev.
             allowedHosts: true,
+            // Local `link:` installs resolve the theme and its fonts outside
+            // this repository. Published installs remain inside repoRoot.
+            fs: { allow: [repoRoot, arraiThemeRoot] },
         },
         preview: {
             host: true,
