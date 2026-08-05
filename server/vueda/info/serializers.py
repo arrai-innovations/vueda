@@ -14,12 +14,14 @@ from collections.abc import Iterable
 
 import django_filters
 from django.conf import settings
+from django.contrib.admin.utils import NotRelationField
 from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import RangeField
 from django.core import validators
+from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import StepValueValidator
 from django.db import connection
@@ -561,16 +563,21 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 raise NotImplementedError("Only model ordering expressions of type F are allowed.")
 
         else:
-            fields = get_fields_from_path(model, order_by)
+            ascending = True
+            field_name = order_by
+            if field_name.startswith("-"):
+                field_name = field_name[1:]
+                ascending = False
+
+            # The leading "-" must be stripped before resolving the path: it isn't part of the field
+            # name, and `get_fields_from_path` has no notion of ordering direction.
+            fields = get_fields_from_path(model, field_name)
             field = fields[-1]
 
             if include_ascending:
-                ordering_data["ascending"] = True
-                if order_by.startswith("-"):
-                    order_by = order_by[1:]
-                    ordering_data["ascending"] = False
+                ordering_data["ascending"] = ascending
 
-            ordering_data["name"] = order_by
+            ordering_data["name"] = field_name
 
         field_type = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
         if field_type:
@@ -584,7 +591,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         """
         ordering_data = {
             "default": [],
-            "viewset_fields": [],
+            "fields": [],
         }
 
         # Similar to actions, we'll need to have a canonical viewset to determine what fields are available
@@ -615,13 +622,53 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # actual ordering DRF applies at request time, so the client doesn't need to replicate that logic.
         ordering_data["default"] = viewset_default or model_default
 
-        if hasattr(viewset, "ordering_fields"):
-            for order_by in viewset.ordering_fields:
-                data = self.get_ordering_data(model, order_by, include_ascending=False)
+        if viewset is not None:
+            if hasattr(viewset, "ordering_fields"):
+                # DRF's OrderingFilter treats the string "__all__" as a special value meaning "any model
+                # field", not a literal field name, so it must be expanded to the model's own fields here too.
+                if viewset.ordering_fields == "__all__":
+                    order_bys = [field.name for field in model._meta.fields]
+                else:
+                    order_bys = viewset.ordering_fields
+            else:
+                # When `ordering_fields` isn't declared, DRF's OrderingFilter defaults to allowing
+                # ordering on any readable field of the canonical serializer, keyed by each field's
+                # `source` rather than its serializer name (OrderingFilter.get_default_valid_fields).
+                order_bys = self.get_default_ordering_field_sources(model)
 
-                ordering_data["viewset_fields"].append(data)
+            for order_by in order_bys:
+                try:
+                    data = self.get_ordering_data(model, order_by, include_ascending=False)
+                except (FieldDoesNotExist, NotRelationField):
+                    # Not every serializer field with a default source resolves to a real orderable
+                    # model path (e.g. a computed field declared without an explicit `source`). DRF
+                    # itself would error out ordering by one of these, so we don't advertise it either.
+                    continue
+
+                ordering_data["fields"].append(data)
 
         return ordering_data
+
+    def get_default_ordering_field_sources(self, model):
+        """
+        Replicates ``rest_framework.filters.OrderingFilter.get_default_valid_fields``: the field
+        sources DRF allows ordering on when a viewset doesn't declare ``ordering_fields``.
+        """
+        serializer_class = self.canonical["serializer"]
+
+        model_property_names = {
+            attr for attr in dir(model) if attr != "pk" and isinstance(getattr(model, attr), property)
+        }
+
+        return [
+            field.source.replace(".", "__")
+            for field in serializer_class().fields.values()
+            if (
+                not getattr(field, "write_only", False)
+                and field.source != "*"
+                and field.source not in model_property_names
+            )
+        ]
 
     @staticmethod
     def get_model_filtering_label(filter_obj, model):
@@ -1994,8 +2041,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     ],
                                 },
                             },
-                            "viewset_fields": {
+                            "fields": {
                                 "type": "array",
+                                "description": (
+                                    "The fields a client may order by. Reflects the viewset's own "
+                                    "`ordering_fields` when declared (expanded to the model's own fields "
+                                    'when set to `"__all__"`), falling back to any readable field of the '
+                                    "canonical serializer, resolved by its underlying model field, when the "
+                                    "viewset doesn't declare `ordering_fields` at all."
+                                ),
                                 "items": {
                                     "type": "object",
                                     "properties": {
