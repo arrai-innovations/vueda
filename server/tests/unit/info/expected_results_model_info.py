@@ -751,12 +751,7 @@ EXPECTED_RESULTS = [
             "expected_ordering": {
                 "model_default": [],
                 "viewset_default": [],
-                "viewset_fields": [
-                    {"name": "code", "type": "alpha"},
-                    {"name": "formatted_name", "type": "alpha"},
-                    {"name": "id", "type": "numeric"},
-                    {"name": "name", "type": "alpha"},
-                ],
+                "viewset_fields": [],
             },
             "expected_permissions": [
                 {"codename": "create_optiontype", "name": "Can create option type"},
@@ -7415,11 +7410,15 @@ EXPECTED_RESULTS = [
                     "type_model": "IntegerField",
                 },
             },
-            "expected_ordering": [
-                {"name": "order", "type": "alpha"},
-                {"name": "product", "type": "alpha"},
-                {"name": "quantity", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "order", "type": "alpha"},
+                    {"name": "product", "type": "alpha"},
+                    {"name": "quantity", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_orderitemcompositepk", "name": "Can create Order Items Composite PK"},
                 {"codename": "list_orderitemcompositepk", "name": "Can list Order Items Composite PK"},
@@ -7585,7 +7584,15 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             # No expected ordering, to prevent a blow up due to no objects of this kind existing.
-            "expected_ordering": [],
+            "expected_ordering": {
+                "model_default": [
+                    {"ascending": True, "name": "order", "type": "alpha"},
+                    {"ascending": True, "name": "product", "type": "alpha"},
+                    {"ascending": True, "name": "quantity", "type": "numeric"},
+                ],
+                "viewset_default": [],
+                "viewset_fields": [],
+            },
             "expected_permissions": [
                 {"codename": "create_orderitemaltcompositepk", "name": "Can create Order Items Alt Composite PK"},
                 {"codename": "list_orderitemaltcompositepk", "name": "Can list Order Items Alt Composite PK"},
@@ -7811,10 +7818,16 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "order_date", "type": "datetime"},
-                {"name": "order_number", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "model_default": [
+                    {"ascending": True, "name": "order_number", "type": "numeric"},
+                ],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "order_number", "type": "numeric"},
+                    {"name": "order_date", "type": "datetime"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_ordercompositepk", "name": "Can create order composite pk"},
                 {"codename": "list_ordercompositepk", "name": "Can list order composite pk"},
@@ -8417,9 +8430,15 @@ EXPECTED_RESULTS = [
                     ],
                 },
             },
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [
+                    {"ascending": True, "name": "name", "type": "alpha"},
+                ],
+                "viewset_fields": [
+                    {"name": "name", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_distributorproxy", "name": "Can create distributor proxy"},
                 {"codename": "delete_distributorproxy", "name": "Can delete distributor proxy"},
@@ -8586,10 +8605,14 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "content_type", "type": "alpha"},
-                {"name": "object_id", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "content_type", "type": "alpha"},
+                    {"name": "object_id", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_note", "name": "Can create note"},
                 {"codename": "delete_note", "name": "Can delete note"},
@@ -8692,9 +8715,13 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "formatted_name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "model_default": [],
+                "viewset_default": [],
+                "viewset_fields": [
+                    {"name": "formatted_name", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "list_customerdata", "name": "Can list customer data"},
                 {"codename": "read_customerdata", "name": "Can read customer data"},
