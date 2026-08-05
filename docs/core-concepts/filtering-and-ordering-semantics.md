@@ -15,13 +15,19 @@ This page explains the authority at each boundary, the metadata shapes that flow
 
 The filtering and ordering contract begins at the canonical registered viewset. Model-info metadata does not derive filter and ordering information solely from serializer fields; it also reads `filterset_class` and `ordering_fields` from the registered viewset. If a model has no registered viewset (only a serializer), its `model_filtering` and `model_ordering` metadata are empty.
 
-This authority boundary means that adding a field to the serializer does not automatically make it filterable. Filtering requires an entry in the viewset's `filterset_class`. Adding a field to the serializer can make it automatically sortable, providing no `ordering_fields` are defined on the viewset. This reflects the functionality in Django Rest Framework. If `ordering_fields` are defined, then an entry is required in `ordering_fields` to make that field sortable. The metadata projects what is declared; it does not infer capabilities from the data model.
+This authority boundary means that adding a field to the serializer does not automatically make it filterable. Filtering requires an entry in the viewset's `filterset_class`. Adding a field to the serializer can make it automatically sortable, providing no `ordering_fields` are defined on the viewset. This reflects the functionality in Django Rest Framework, and it resolves each serializer field by its underlying `source`, not by the serializer's name for it: a serializer field exposed under a renamed key is sortable under its source's name, and a field sourced from a Python model property is not sortable at all, since DRF's default resolution excludes model properties (there is no database column for a property to sort by). If `ordering_fields` are defined, then an entry is required in `ordering_fields` to make that field sortable. The metadata projects what is declared; it does not infer capabilities from the data model.
 
 ## Metadata Projection for Ordering and Filtering
 
 The {@term Model Info} endpoint projects viewset declarations into structured metadata that clients consume.
 
-Ordering metadata (`model_ordering`) is a list of descriptors, each containing a `name` (the ordering field identifier) and a `type` (the field type classification). The list is derived from the canonical viewset's `ordering_fields`. When no canonical viewset exists, `model_ordering` is empty.
+Ordering metadata (`model_ordering`) is an object with two keys: `default` and `fields`. `default` is the ordering DRF actually applies when a request omits the `?o=` param — the viewset's own `ordering` when declared, otherwise the model's `Meta.ordering` — with each entry carrying `name`, `type`, `ascending`, `nulls_first`, and `nulls_last`. `fields` is the set of fields a client's `?o=` param may reference, each carrying `name` and `type`. When no canonical viewset exists, both `default` and `fields` are empty.
+
+`fields` mirrors DRF's own `OrderingFilter` resolution for the viewset's `ordering_fields` setting:
+
+- When `ordering_fields` is an explicit list, `fields` reflects that list.
+- When `ordering_fields = "__all__"`, DRF's shorthand for allowing any model field, `fields` expands to the model's own fields (by column name) instead of the literal string `"__all__"`.
+- When `ordering_fields` isn't declared at all, DRF defaults to allowing ordering on any readable field of the canonical serializer, resolved by each field's `source` rather than its serializer name. `fields` reflects that same source-based resolution: a renamed serializer field appears under its source's name, and a field with no real orderable path behind it (a Python model property, or a computed field declared without an explicit `source`) is omitted rather than causing the endpoint to error.
 
 Filtering metadata (`model_filtering`) is richer. Each filter entry includes the filter field name, its type, the list of `lookup_exprs` (lookup expressions such as `in`, `exact`, `contains`), `suffixes` (such as `min` and `max` or `after` and `before`), and choice metadata when the filter field has a bounded value set. {@term Lookup} expressions are always presented as a list, even when only one expression is available. This consistent shape simplifies client parsing; consumers do not need to distinguish between single-expression and multi-expression filters.
 
@@ -90,6 +96,8 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 **Related model missing `formatted_name`.** If the related model referenced by a queryset-backed filter choice does not implement the `formatted_name` lookup path, the filter-choice endpoint returns 500. A system check (`vueda_info.E001`) catches this for registered models at startup. This is a configuration error on the related model.
 
 **Sticky model-info fetch errors.** A failed model-info fetch caches the error and blocks all subsequent access to that model's filtering and ordering metadata. Retrying the navigation does not trigger a re-fetch.
+
+**Renamed or property-backed serializer fields sort unexpectedly, or not at all.** When a viewset doesn't declare `ordering_fields`, a client can only order by a serializer field's `source`, not its exposed name. A serializer field that renames a model field (for example, exposing `Product.name` as `title` via an explicit `source="name"`) is sortable as `name`, and an `?o=title` request is silently ignored rather than erroring. A serializer field sourced from a Python model property is not sortable under any name, because DRF's default resolution excludes model properties outright — there is no database column for a property to sort by. Both cases fall back to the viewset's default ordering rather than failing loudly, which can read as "sorting doesn't work" rather than "this field isn't declared sortable."
 
 **Default filter UI uses only first lookup expression.** Filters with multiple declared lookup expressions only expose the first one in the default filter component. The additional expressions are present in the metadata but not rendered. This is a UI limitation, not a metadata issue.
 
