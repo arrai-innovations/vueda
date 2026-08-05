@@ -311,20 +311,20 @@ class TestModelInfoSerializer:
         assert ordering_data["default"] == expected_ordering_data["default"], (
             f'"{app_label}", "{model_name}" -> "expected_ordering" -> "default"'
         )
-        expected_data = expected_ordering_data["viewset_fields"]
-        data = ordering_data["viewset_fields"]
+        expected_data = expected_ordering_data["fields"]
+        data = ordering_data["fields"]
         assert {x["name"] for x in data} == {x["name"] for x in expected_data}, (
-            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "viewset_fields"'
+            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "fields"'
         )
         for model_order in data:
             for expected_model_order in expected_data:
                 if model_order["name"] == expected_model_order["name"]:
                     assert frozenset(model_order) == frozenset(expected_model_order), (
-                        f'"{app_label}", "{model_name}" -> "expected_ordering" -> "viewset_fields" -> "{model_order}"'
+                        f'"{app_label}", "{model_name}" -> "expected_ordering" -> "fields" -> "{model_order}"'
                     )
                     for key, value in model_order.items():
                         assert value == expected_model_order[key], (
-                            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "viewset_fields" -> "{model_order}"'
+                            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "fields" -> "{model_order}"'
                         )
 
     @staticmethod

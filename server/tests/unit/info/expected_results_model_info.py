@@ -599,7 +599,7 @@ EXPECTED_RESULTS = [
                 "default": [
                     {"name": "name", "ascending": True, "type": "alpha"},
                 ],
-                "viewset_fields": [
+                "fields": [
                     {"name": "name", "type": "alpha"},
                 ],
             },
@@ -749,7 +749,15 @@ EXPECTED_RESULTS = [
             "expected_filtering": {},
             "expected_ordering": {
                 "default": [],
-                "viewset_fields": [],
+                # OptionTypeViewSet doesn't declare `ordering_fields`, so DRF's OrderingFilter defaults to
+                # any readable field on OptionTypeSerializer. "available_actions" is excluded because it
+                # has no real model field behind it.
+                "fields": [
+                    {"name": "id", "type": "numeric"},
+                    {"name": "code", "type": "alpha"},
+                    {"name": "name", "type": "alpha"},
+                    {"name": "formatted_name", "type": "alpha"},
+                ],
             },
             "expected_permissions": [
                 {"codename": "create_optiontype", "name": "Can create option type"},
@@ -1335,7 +1343,7 @@ EXPECTED_RESULTS = [
                 "default": [
                     {"name": "user__name", "ascending": True, "type": "alpha"},
                 ],
-                "viewset_fields": [
+                "fields": [
                     {"name": "user__email", "type": "alpha"},
                 ],
             },
@@ -1761,7 +1769,7 @@ EXPECTED_RESULTS = [
                         "type": "numeric",
                     },
                 ],
-                "viewset_fields": [
+                "fields": [
                     {"name": "customer__user__email", "type": "alpha"},
                     {"name": "last_modified", "type": "datetime"},
                 ],
@@ -2856,7 +2864,7 @@ EXPECTED_RESULTS = [
             },
             "expected_ordering": {
                 "default": [],
-                "viewset_fields": [
+                "fields": [
                     {"name": "order_number", "type": "numeric"},
                     {"name": "customer__user__email", "type": "alpha"},
                     {"name": "when", "type": "datetime"},
@@ -3005,7 +3013,7 @@ EXPECTED_RESULTS = [
             "expected_filtering": {},
             "expected_ordering": {
                 "default": [],
-                "viewset_fields": [
+                "fields": [
                     {"name": "name", "type": "alpha"},
                 ],
             },
@@ -4380,7 +4388,7 @@ EXPECTED_RESULTS = [
                 "default": [
                     {"name": "name", "type": "alpha", "ascending": True},
                 ],
-                "viewset_fields": [
+                "fields": [
                     {"name": "distributor__name", "type": "alpha"},
                     {"name": "name", "type": "alpha"},
                     {"name": "disabled", "type": "boolean"},
@@ -5518,7 +5526,7 @@ EXPECTED_RESULTS = [
             },
             "expected_ordering": {
                 "default": [],
-                "viewset_fields": [
+                "fields": [
                     {"name": "name", "type": "alpha"},
                     {"name": "option_type", "type": "alpha"},
                     {"name": "sku", "type": "alpha"},
@@ -5809,7 +5817,7 @@ EXPECTED_RESULTS = [
                 "default": [
                     {"name": "product_option__product__name", "type": "alpha", "ascending": True},
                 ],
-                "viewset_fields": [],
+                "fields": [],
             },
             "expected_permissions": [
                 {"codename": "create_orderitem", "name": "Can create ORDER item"},
@@ -6581,7 +6589,7 @@ EXPECTED_RESULTS = [
             },
             "expected_ordering": {
                 "default": [],
-                "viewset_fields": [
+                "fields": [
                     {"name": "when", "type": "datetime"},
                     {"name": "reason", "type": "alpha"},
                     {"name": "quantity", "type": "numeric"},
@@ -6902,7 +6910,7 @@ EXPECTED_RESULTS = [
             "expected_filtering": {},
             "expected_ordering": {
                 "default": [],
-                "viewset_fields": [
+                "fields": [
                     {"name": "product_option__name", "type": "alpha"},
                     {"name": "quantity", "type": "numeric"},
                 ],
@@ -7116,7 +7124,7 @@ EXPECTED_RESULTS = [
             "expected_filtering": {},
             "expected_ordering": {
                 "default": [],
-                "viewset_fields": [
+                "fields": [
                     {"name": "name", "type": "alpha"},
                 ],
             },
@@ -7398,7 +7406,7 @@ EXPECTED_RESULTS = [
             },
             "expected_ordering": {
                 "default": [],
-                "viewset_fields": [
+                "fields": [
                     {"name": "order", "type": "alpha"},
                     {"name": "product", "type": "alpha"},
                     {"name": "quantity", "type": "numeric"},
@@ -7575,7 +7583,16 @@ EXPECTED_RESULTS = [
                     {"ascending": True, "name": "product", "type": "alpha"},
                     {"ascending": True, "name": "quantity", "type": "numeric"},
                 ],
-                "viewset_fields": [],
+                # OrderItemAltCompositePKViewSet doesn't declare `ordering_fields`, so DRF's OrderingFilter
+                # defaults to any readable field on OrderItemAltCompositePKSerializer. "formatted_name" is
+                # excluded because the model sets it to `None` (using `formatted_name_lookup_expression`
+                # instead), and "available_actions" is excluded because it has no real model field behind it.
+                "fields": [
+                    {"name": "pk", "type": "alpha"},
+                    {"name": "order", "type": "alpha"},
+                    {"name": "product", "type": "alpha"},
+                    {"name": "quantity", "type": "numeric"},
+                ],
             },
             "expected_permissions": [
                 {"codename": "create_orderitemaltcompositepk", "name": "Can create Order Items Alt Composite PK"},
@@ -7806,7 +7823,7 @@ EXPECTED_RESULTS = [
                 "default": [
                     {"ascending": True, "name": "order_number", "type": "numeric"},
                 ],
-                "viewset_fields": [
+                "fields": [
                     {"name": "order_number", "type": "numeric"},
                     {"name": "order_date", "type": "datetime"},
                 ],
@@ -8417,7 +8434,7 @@ EXPECTED_RESULTS = [
                 "default": [
                     {"ascending": True, "name": "name", "type": "alpha"},
                 ],
-                "viewset_fields": [
+                "fields": [
                     {"name": "name", "type": "alpha"},
                 ],
             },
@@ -8589,7 +8606,7 @@ EXPECTED_RESULTS = [
             "expected_filtering": {},
             "expected_ordering": {
                 "default": [],
-                "viewset_fields": [
+                "fields": [
                     {"name": "content_type", "type": "alpha"},
                     {"name": "object_id", "type": "numeric"},
                 ],
@@ -8698,7 +8715,7 @@ EXPECTED_RESULTS = [
             "expected_filtering": {},
             "expected_ordering": {
                 "default": [],
-                "viewset_fields": [
+                "fields": [
                     {"name": "formatted_name", "type": "alpha"},
                 ],
             },

@@ -54,3 +54,9 @@ class Product(VuedaHistoryModel):
 
     def __str__(self):
         return self.name
+
+    @property
+    def computed_title(self):
+        """A plain Python property (no underlying column), so ordering tests can prove DRF excludes
+        serializer fields sourced from model properties when resolving default ordering fields."""
+        return self.name

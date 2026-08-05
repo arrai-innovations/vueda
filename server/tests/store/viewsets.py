@@ -143,6 +143,14 @@ class CartViewSet(VuedaViewSet):
         return Response(abandoned_carts.count())
 
 
+class CartOrderingFieldsViewSet(CartViewSet):
+    """Adds `expected_delivery_time` to `ordering_fields` — the same field name `ordering` already sorts
+    by via `F("expected_delivery_time").asc(nulls_first=True)` — to test whether an explicit `?o=` request
+    on that field preserves the default's nulls-first behavior or falls back to plain ascending order."""
+
+    ordering_fields = [*CartViewSet.ordering_fields, "expected_delivery_time"]
+
+
 class CartItemViewSet(VuedaViewSet):
     queryset = my_models.CartItem.objects.all()
     serializer_class = my_serializers.CartItemSerializer
