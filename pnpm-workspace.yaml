@@ -9,7 +9,7 @@ patchedDependencies:
 
 overrides:
   lodash-es: ">=4.17.24"
-  postcss: ">=8.5.10"
+  postcss: ">=8.5.23"
   # Transitive (dev-only) advisory remediations. Each key scopes to the
   # reported vulnerable range; each value floors at the minimal patched version
   # and caps below the next major, so the newest in-major release is pulled in
@@ -18,18 +18,20 @@ overrides:
   "@protobufjs/utf8@<=1.1.0": ">=1.1.1 <2"
   "ajv@<6.14.0": ">=6.14.0 <7"
   "ajv@>=7.0.0-alpha.0 <8.18.0": ">=8.18.0 <9"
-  "brace-expansion@<1.1.13": ">=1.1.13 <2"
-  "brace-expansion@>=2.0.0 <2.0.3": ">=2.0.3 <3"
-  "dompurify@<3.4.11": ">=3.4.11 <4"
+  "brace-expansion@<1.1.18": ">=1.1.18 <2"
+  "brace-expansion@>=2.0.0 <2.1.4": ">=2.1.4 <3"
+  "brace-expansion@>=3.0.0 <5.0.9": ">=5.0.9 <6"
+  "dompurify@<3.4.12": ">=3.4.12 <4"
   # esbuild 0.24.x stopped at 0.24.2; the fix first shipped in 0.25.0.
   "esbuild@<=0.24.2": ">=0.25.0 <0.26"
-  "fast-uri@<=3.1.1": ">=3.1.2 <4"
+  "fast-uri@<3.1.5": ">=3.1.5 <4"
   "fast-xml-parser@<5.7.0": ">=5.7.0 <6"
   "flatted@<=3.4.1": ">=3.4.2 <4"
   "form-data@>=4.0.0 <4.0.6": ">=4.0.6 <5"
   "handlebars@<4.7.9": ">=4.7.9 <5"
   "js-cookie@<=3.0.5": ">=3.0.6 <4"
-  "js-yaml@>=4.0.0 <=4.1.1": ">=4.1.2 <5"
+  "js-yaml@>=4.0.0 <4.3.0": ">=4.3.0 <5"
+  "linkify-it@<=5.0.1": ">=5.0.2 <6"
   "lodash@<=4.17.23": ">=4.17.24 <5"
   "markdown-it@>=13.0.0 <14.1.1": ">=14.1.1 <15"
   "minimatch@<3.1.4": ">=3.1.4 <4"
@@ -40,9 +42,9 @@ overrides:
   "picomatch@>=4.0.0 <4.0.4": ">=4.0.4 <5"
   "protobufjs@<=7.5.7": ">=7.5.8 <8"
   "rollup@>=4.0.0 <4.59.0": ">=4.59.0 <5"
-  "shell-quote@>=1.1.0 <=1.8.3": ">=1.8.4 <2"
+  "shell-quote@>=1.1.0 <=1.8.4": ">=1.8.5 <2"
   "underscore@<=1.13.7": ">=1.13.8 <2"
-  "undici@>=6.0.0 <6.24.0": ">=6.24.0 <7"
+  "undici@>=6.0.0 <6.28.0": ">=6.28.0 <7"
   "vite@>=6.0.0 <=6.4.2": ">=6.4.3 <7"
   "vitest@<3.2.6": ">=3.2.6 <4"
   "ws@>=7.0.0 <7.5.11": ">=7.5.11 <8"
