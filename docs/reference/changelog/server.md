@@ -77,6 +77,10 @@ public-facing documentation baseline.
 - **Dependency security floor**:
     - The server package now requires `cryptography` 48.0.1 or newer and `starlette` 1.3.1 or newer so installs resolve to versions with the published security fixes.
       _No action is required unless your application pins either dependency below those versions._
+- **`UserSerializer` non-mapping input**:
+    - Submitting non-mapping data to `UserSerializer` on create — for example, a bare primary key sent through a writable nested or expanded user field — now returns the base serializer's standard "Expected a dictionary" DRF validation error instead of raising an unhandled `AttributeError`.
+- **Sparse field requests and `formatted_name`**:
+    - Requests scoped to a subset of fields via `FIELDS_PARAM`/`OMIT_PARAM` no longer reject `formatted_name` as an invalid submitted field. `formatted_name` is a virtual, model-computed field and is now always accepted regardless of the requested field subset.
 
 ## v3.0.0a0 (2026-05-27)
 
