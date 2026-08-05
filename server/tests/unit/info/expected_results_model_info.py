@@ -596,8 +596,7 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [
+                "default": [
                     {"name": "name", "ascending": True, "type": "alpha"},
                 ],
                 "viewset_fields": [
@@ -749,8 +748,7 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [],
+                "default": [],
                 "viewset_fields": [],
             },
             "expected_permissions": [
@@ -1334,10 +1332,9 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "model_default": [
+                "default": [
                     {"name": "user__name", "ascending": True, "type": "alpha"},
                 ],
-                "viewset_default": [],
                 "viewset_fields": [
                     {"name": "user__email", "type": "alpha"},
                 ],
@@ -1756,10 +1753,7 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "model_default": [
-                    {"name": "expected_delivery_time", "type": "numeric", "ascending": True, "nulls_first": True},
-                ],
-                "viewset_default": [
+                "default": [
                     {
                         "ascending": True,
                         "name": "expected_delivery_time",
@@ -2861,8 +2855,7 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [],
+                "default": [],
                 "viewset_fields": [
                     {"name": "order_number", "type": "numeric"},
                     {"name": "customer__user__email", "type": "alpha"},
@@ -3011,8 +3004,7 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [],
+                "default": [],
                 "viewset_fields": [
                     {"name": "name", "type": "alpha"},
                 ],
@@ -4385,10 +4377,9 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "model_default": [
+                "default": [
                     {"name": "name", "type": "alpha", "ascending": True},
                 ],
-                "viewset_default": [],
                 "viewset_fields": [
                     {"name": "distributor__name", "type": "alpha"},
                     {"name": "name", "type": "alpha"},
@@ -5526,8 +5517,7 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [],
+                "default": [],
                 "viewset_fields": [
                     {"name": "name", "type": "alpha"},
                     {"name": "option_type", "type": "alpha"},
@@ -5816,10 +5806,9 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "model_default": [
+                "default": [
                     {"name": "product_option__product__name", "type": "alpha", "ascending": True},
                 ],
-                "viewset_default": [],
                 "viewset_fields": [],
             },
             "expected_permissions": [
@@ -6591,8 +6580,7 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [],
+                "default": [],
                 "viewset_fields": [
                     {"name": "when", "type": "datetime"},
                     {"name": "reason", "type": "alpha"},
@@ -6913,8 +6901,7 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [],
+                "default": [],
                 "viewset_fields": [
                     {"name": "product_option__name", "type": "alpha"},
                     {"name": "quantity", "type": "numeric"},
@@ -7128,8 +7115,7 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [],
+                "default": [],
                 "viewset_fields": [
                     {"name": "name", "type": "alpha"},
                 ],
@@ -7411,8 +7397,7 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [],
+                "default": [],
                 "viewset_fields": [
                     {"name": "order", "type": "alpha"},
                     {"name": "product", "type": "alpha"},
@@ -7585,12 +7570,11 @@ EXPECTED_RESULTS = [
             "expected_filtering": {},
             # No expected ordering, to prevent a blow up due to no objects of this kind existing.
             "expected_ordering": {
-                "model_default": [
+                "default": [
                     {"ascending": True, "name": "order", "type": "alpha"},
                     {"ascending": True, "name": "product", "type": "alpha"},
                     {"ascending": True, "name": "quantity", "type": "numeric"},
                 ],
-                "viewset_default": [],
                 "viewset_fields": [],
             },
             "expected_permissions": [
@@ -7819,10 +7803,9 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "model_default": [
+                "default": [
                     {"ascending": True, "name": "order_number", "type": "numeric"},
                 ],
-                "viewset_default": [],
                 "viewset_fields": [
                     {"name": "order_number", "type": "numeric"},
                     {"name": "order_date", "type": "datetime"},
@@ -8431,8 +8414,7 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [
+                "default": [
                     {"ascending": True, "name": "name", "type": "alpha"},
                 ],
                 "viewset_fields": [
@@ -8606,8 +8588,7 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [],
+                "default": [],
                 "viewset_fields": [
                     {"name": "content_type", "type": "alpha"},
                     {"name": "object_id", "type": "numeric"},
@@ -8716,8 +8697,7 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "model_default": [],
-                "viewset_default": [],
+                "default": [],
                 "viewset_fields": [
                     {"name": "formatted_name", "type": "alpha"},
                 ],

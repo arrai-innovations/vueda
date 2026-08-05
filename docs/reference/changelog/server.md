@@ -30,6 +30,9 @@ public-facing documentation baseline.
 - **File and image field representation**:
     - `VuedaSerializer` now maps `models.FileField` and `models.ImageField` columns to VUEDA's serializer fields, which represent a stored file as `{"name": ..., "url": ...}` (with an absolute `url` when a request is in context) instead of DRF's plain URL string. This applies to any file or image column auto-built by a VUEDA serializer.
       _Update client or integration code that read a bare URL string from these fields. The v3 client widgets (`WidgetFile`, `WidgetImage`) already consume the `{name, url}` shape. To keep the previous plain-string behavior on a specific field, declare a stock `rest_framework.serializers.FileField`/`ImageField` explicitly on your serializer._
+- **Model-info default ordering (`model_ordering`)**:
+    - `model_ordering` changes from a flat array of `{name, type}` sortable fields to an object with two keys: `default`, the ordering DRF actually applies when no `?o=` param is given (the viewset's own `ordering` when declared, otherwise the model's `Meta.ordering`), with each entry now also carrying `ascending`, `nulls_first`, and `nulls_last`; and `viewset_fields`, the sortable fields previously returned directly under `model_ordering`.
+      _Read `model_ordering.viewset_fields` where code previously read `model_ordering` directly, and read `model_ordering.default` to show or apply the default ordering instead of inferring it from the model or viewset._
 
 ### Features
 

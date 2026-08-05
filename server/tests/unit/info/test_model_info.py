@@ -308,11 +308,8 @@ class TestModelInfoSerializer:
     @staticmethod
     def check_model_ordering_data(response_data, expected_ordering_data, app_label, model_name):
         ordering_data = response_data.data["model_ordering"]
-        assert ordering_data["model_default"] == expected_ordering_data["model_default"], (
-            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "model_default"'
-        )
-        assert ordering_data["viewset_default"] == expected_ordering_data["viewset_default"], (
-            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "viewset_default"'
+        assert ordering_data["default"] == expected_ordering_data["default"], (
+            f'"{app_label}", "{model_name}" -> "expected_ordering" -> "default"'
         )
         expected_data = expected_ordering_data["viewset_fields"]
         data = ordering_data["viewset_fields"]

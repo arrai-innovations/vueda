@@ -583,8 +583,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         Get the ordering fields for a model and their own metadata.
         """
         ordering_data = {
-            "model_default": [],
-            "viewset_default": [],
+            "default": [],
             "viewset_fields": [],
         }
 
@@ -598,17 +597,23 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             queryset = viewset().get_queryset()
             model = queryset.model
 
+        model_default = []
         if model._meta.ordering:
             for order_by in model._meta.ordering:
                 data = self.get_ordering_data(model, order_by)
 
-                ordering_data["model_default"].append(data)
+                model_default.append(data)
 
+        viewset_default = []
         if hasattr(viewset, "ordering"):
             for order_by in viewset.ordering:
                 data = self.get_ordering_data(model, order_by)
 
-                ordering_data["viewset_default"].append(data)
+                viewset_default.append(data)
+
+        # The viewset's `ordering` takes precedence over the model's `Meta.ordering`, matching the
+        # actual ordering DRF applies at request time, so the client doesn't need to replicate that logic.
+        ordering_data["default"] = viewset_default or model_default
 
         if hasattr(viewset, "ordering_fields"):
             for order_by in viewset.ordering_fields:
@@ -1937,8 +1942,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                         "type": "object",
                         "title": "Ordering Data",
                         "properties": {
-                            "model_default": {
+                            "default": {
                                 "type": "array",
+                                "description": (
+                                    "The ordering applied when no explicit ordering is requested. Reflects the "
+                                    "viewset's own `ordering`, falling back to the model's `Meta.ordering` when "
+                                    "the viewset doesn't declare one."
+                                ),
                                 "items": {
                                     "type": "object",
                                     "properties": {
@@ -1975,53 +1985,6 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                             "type": "boolean",
                                             "readonly": True,
                                             "description": "Nulls are ordered last",
-                                        },
-                                    },
-                                    "required": [
-                                        "ascending",
-                                        "name",
-                                        "type",
-                                    ],
-                                },
-                            },
-                            "viewset_default": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "ascending": {
-                                            "type": "boolean",
-                                            "readonly": True,
-                                            "description": "Ordering direction.",
-                                        },
-                                        "name": {
-                                            "type": "string",
-                                            "readonly": True,
-                                            "description": "Field to order by.",
-                                            "example": "last_name",
-                                        },
-                                        "nulls_first": {
-                                            "type": "boolean",
-                                            "readonly": True,
-                                            "description": "Nulls are ordered first",
-                                        },
-                                        "nulls_last": {
-                                            "type": "boolean",
-                                            "readonly": True,
-                                            "description": "Nulls are ordered last",
-                                        },
-                                        "type": {
-                                            "type": "string",
-                                            "readonly": True,
-                                            "description": "Type of Ordering.",
-                                            "enum": [
-                                                "alpha",
-                                                "boolean",
-                                                "date",
-                                                "datetime",
-                                                "numeric",
-                                                "time",
-                                            ],
                                         },
                                     },
                                     "required": [
