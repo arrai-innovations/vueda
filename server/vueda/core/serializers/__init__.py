@@ -362,8 +362,11 @@ class VuedaExpandableFieldsSerializerMixin:
                     "description": "Replaces simple values with complex, nested serializations.",
                     "schema": {
                         "title": "Expandable Fields",
-                        "type": "array of strings",
-                        "enum": sorted(enums),
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": sorted(enums),
+                        },
                     },
                 }
             )
@@ -379,8 +382,11 @@ class VuedaExpandableFieldsSerializerMixin:
                     "description": "Selects a sparse subset of fields to include in the response.",
                     "schema": {
                         "title": "Sparse Fields",
-                        "type": "array of strings",
-                        "enum": sorted(schema_fields),
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": sorted(schema_fields),
+                        },
                     },
                 }
             )
