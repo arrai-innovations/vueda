@@ -7,7 +7,7 @@ import {
     stripInlineMarkdown,
 } from "../../docs-tooling/js/utils/reference-parser.js";
 import { slugify } from "../../docs-tooling/js/utils/slugify.js";
-import { arraiThemeRoot } from "@arrai-innovations/vitepress-theme/config";
+import { arraiThemeRoot, buildBreadcrumbRoutes } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
 import path from "node:path";
@@ -761,41 +761,25 @@ const docsSidebar = timeSync("config:sidebar", () => ({
     "/reference/api/": buildApiSidebar(),
 }));
 
-const breadcrumbContentDirs = ["tutorials", "guides", "core-concepts", "reference"];
+// Mirrors `srcExclude` below: pages VitePress never renders must not become
+// breadcrumb links.
 const isExcludedFromBreadcrumbs = (rel) => {
     const base = path.posix.basename(rel);
     if (base === "AGENTS.md" || base === "CLAUDE.md" || base === "CONTENT_PLAN.md" || base === "README.md") {
         return true;
     }
-    return rel.startsWith("temp/") || rel.includes("/node_modules/") || rel.startsWith("node_modules/");
+    return rel.startsWith("temp/");
 };
 
-const buildRouteTitleIndex = () => {
-    const titles = {};
-    const candidates = [];
-    const rootIndex = path.join(docsRoot, "index.md");
-    if (fs.existsSync(rootIndex)) {
-        candidates.push(rootIndex);
-    }
-    for (const dir of breadcrumbContentDirs) {
-        candidates.push(...walkFiles(path.join(docsRoot, dir)).filter((file) => file.endsWith(".md")));
-    }
-    for (const filePath of candidates) {
-        const rel = posixPath(path.relative(docsRoot, filePath));
-        if (isExcludedFromBreadcrumbs(rel)) {
-            continue;
-        }
-        const { title } = readDocMeta(filePath);
-        let route = toDocRoute(filePath);
-        if (route !== "/" && route.endsWith("/")) {
-            route = route.slice(0, -1);
-        }
-        titles[route] = title;
-    }
-    return titles;
-};
-
-const routeTitles = timeSync("config:route-titles", buildRouteTitleIndex);
+const breadcrumbRoutes = timeSync("config:breadcrumb-routes", () =>
+    buildBreadcrumbRoutes({
+        docsRoot,
+        exclude: isExcludedFromBreadcrumbs,
+        // Reuse the frontmatter/heading resolution the sidebars already run on,
+        // so a page carries one title across both.
+        getTitle: ({ filePath }) => readDocMeta(filePath).title,
+    }),
+);
 
 // Stamp the docs with the client and server versions present at the tagged
 // commit. Read from source so this works in local dev and CI without needing
@@ -853,7 +837,7 @@ export default defineConfig({
     themeConfig: {
         logo: "/assets/logo-cube-solid.svg",
         outline: "deep",
-        routeTitles,
+        breadcrumbs: { routes: breadcrumbRoutes },
         vueda: packageVersions,
         nav: [
             { text: "About", link: "/" },
