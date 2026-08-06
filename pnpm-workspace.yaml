@@ -80,4 +80,4 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - '@arrai-innovations/reactive-helpers@22.0.0'
   - '@arrai-innovations/vue-sonner@2.0.10'
-  - '@arrai-innovations/vitepress-theme@1.0.0'
+  - '@arrai-innovations/vitepress-theme@1.0.1'
