@@ -11,6 +11,7 @@ __all__ = (
     "NumberArrayFilter",
     "VuedaCompositePrimaryKeyFilterSet",
     "VuedaFilterSet",
+    "VuedaOrderingFilter",
     "VuedaSearchFilterBackend",
 )
 
@@ -24,12 +25,14 @@ from django.contrib.postgres.search import SearchRank
 from django.contrib.postgres.search import SearchVector
 from django.contrib.postgres.search import TrigramSimilarity
 from django.db import models
+from django.db.models import F
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.functions import Greatest
 from django.utils.translation import gettext_lazy as _
 from django_filters import ModelChoiceFilter
 from django_filters import rest_framework
 from ordered_set import OrderedSet
+from rest_framework.filters import OrderingFilter
 from rest_framework.filters import SearchFilter
 from rest_framework.settings import api_settings
 
@@ -108,6 +111,92 @@ class VuedaCompositePrimaryKeyFilterSet(rest_framework.FilterSet):
 TRIGRAM_SIMILAR_PREFIX = "#"
 TRIGRAM_WORD_SIMILAR_PREFIX = "~"
 SEARCH_LOOKUP_PREFIX = "V:"
+
+NULLS_ORDERING_FLIP = {"first": "last", "last": "first"}
+
+
+class VuedaOrderingFilter(OrderingFilter):
+    """
+    Extends DRF's `OrderingFilter` in two ways:
+
+    1. An explicit `?o=` request on a field can carry the same nulls-first/nulls-last placement as
+       that field's default ordering. `OrderingFilter` only applies nulls placement through a view's
+       default `ordering` (e.g. `ordering = [F("due_date").asc(nulls_first=True)]`) and loses it the
+       moment a client explicitly requests that same field via `?o=` — DRF passes the request through
+       as a plain field name string, which falls back to the database's default nulls placement.
+
+       Declare `nulls_ordering` on the view as a dict of field name -> `"first"`/`"last"` to give
+       explicit `?o=` requests on that field the same nulls placement, regardless of sort direction.
+       To have the placement flip (first <-> last) when the field is requested in descending order
+       instead, list the field name in `nulls_ordering_flip` as well.
+
+    2. A field named in the view's default ordering (`ordering`, or the model's `Meta.ordering` when
+       the view doesn't declare one) is always a valid explicit `?o=` target, even when it isn't also
+       listed in `ordering_fields`. Without this, DRF would silently ignore an explicit request for a
+       default-only field and fall back to the default ordering, which is surprising: a field a client
+       can already see sorted by (in the default) should always be requestable directly.
+    """
+
+    def filter_queryset(self, request, queryset, view):
+        ordering = self.get_ordering(request, queryset, view)
+        if not ordering:
+            return queryset
+
+        nulls_ordering = getattr(view, "nulls_ordering", None) or {}
+        nulls_ordering_flip = getattr(view, "nulls_ordering_flip", None) or ()
+
+        ordering = [self._apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip) for term in ordering]
+        return queryset.order_by(*ordering)
+
+    def get_valid_fields(self, queryset, view, context=None):
+        valid_fields = super().get_valid_fields(queryset, view, context)
+
+        default_ordering = getattr(view, "ordering", None) or queryset.model._meta.ordering
+        if not default_ordering:
+            return valid_fields
+
+        if isinstance(default_ordering, str):
+            default_ordering = (default_ordering,)
+
+        valid_field_names = {name for name, _ in valid_fields}
+        added_fields = []
+        for term in default_ordering:
+            field_name = self._ordering_field_name(term)
+            if field_name not in valid_field_names:
+                valid_field_names.add(field_name)
+                added_fields.append((field_name, field_name))
+
+        return [*valid_fields, *added_fields]
+
+    @staticmethod
+    def _ordering_field_name(term):
+        """Field name for an ordering term, whether a plain string or an `F(...).asc()`/`.desc()` expression."""
+        if isinstance(term, str):
+            return term[1:] if term.startswith("-") else term
+
+        expression = term.expression
+        if isinstance(expression, F):
+            return expression.name
+
+        raise NotImplementedError("Only model ordering expressions of type F are allowed.")
+
+    @staticmethod
+    def _apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip):
+        if not isinstance(term, str):
+            # Already an OrderBy/F expression, e.g. from a view's default `ordering`.
+            return term
+
+        descending = term.startswith("-")
+        field_name = term[1:] if descending else term
+        placement = nulls_ordering.get(field_name)
+        if placement is None:
+            return term
+
+        if descending and field_name in nulls_ordering_flip:
+            placement = NULLS_ORDERING_FLIP[placement]
+
+        expression = F(field_name).desc if descending else F(field_name).asc
+        return expression(**{f"nulls_{placement}": True})
 
 
 class VuedaSearchFilterBackend(SearchFilter):

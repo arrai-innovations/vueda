@@ -554,11 +554,6 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 if include_ascending:
                     ordering_data["ascending"] = not order_by.descending
 
-                if order_by.nulls_first:
-                    ordering_data["nulls_first"] = True
-                elif order_by.nulls_last:
-                    ordering_data["nulls_last"] = True
-
             else:
                 raise NotImplementedError("Only model ordering expressions of type F are allowed.")
 
@@ -619,9 +614,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 viewset_default.append(data)
 
         # The viewset's `ordering` takes precedence over the model's `Meta.ordering`, matching the
-        # actual ordering DRF applies at request time, so the client doesn't need to replicate that logic.
-        ordering_data["default"] = viewset_default or model_default
+        # actual ordering DRF applies at request time (see VuedaOrderingFilter), so the client doesn't
+        # need to replicate that logic. It's one or the other in full, never a field-by-field merge.
+        default = viewset_default or model_default
+        ordering_data["default"] = [data["name"] for data in default]
 
+        fields_by_name = {}
         if viewset is not None:
             if hasattr(viewset, "ordering_fields"):
                 # DRF's OrderingFilter treats the string "__all__" as a special value meaning "any model
@@ -645,7 +643,21 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     # itself would error out ordering by one of these, so we don't advertise it either.
                     continue
 
+                fields_by_name[data["name"]] = data
                 ordering_data["fields"].append(data)
+
+        # VuedaOrderingFilter accepts an explicit `?o=` request on a default-ordering field even when
+        # `ordering_fields` doesn't whitelist it, so every default field belongs in `fields` too: merge
+        # `ascending` into its existing entry when `ordering_fields` already covers it, otherwise add one.
+        for data in default:
+            name = data["name"]
+            existing = fields_by_name.get(name)
+            if existing is not None:
+                existing["ascending"] = data["ascending"]
+            else:
+                new_entry = {"name": name, "type": data["type"], "ascending": data["ascending"]}
+                fields_by_name[name] = new_entry
+                ordering_data["fields"].append(new_entry)
 
         return ordering_data
 
@@ -1992,9 +2004,29 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                             "default": {
                                 "type": "array",
                                 "description": (
-                                    "The ordering applied when no explicit ordering is requested. Reflects the "
-                                    "viewset's own `ordering`, falling back to the model's `Meta.ordering` when "
-                                    "the viewset doesn't declare one."
+                                    "Names of the fields applied when no explicit ordering is requested. "
+                                    "Reflects the viewset's own `ordering`, falling back to the model's "
+                                    "`Meta.ordering` when the viewset doesn't declare one; it's one or the "
+                                    "other, never a merge of both. Every name listed here also appears in "
+                                    "`fields`, since it's always valid to order by explicitly."
+                                ),
+                                "items": {
+                                    "type": "string",
+                                    "readonly": True,
+                                    "description": "Field to order by.",
+                                    "example": "last_name",
+                                },
+                            },
+                            "fields": {
+                                "type": "array",
+                                "description": (
+                                    "The fields a client may order by. Reflects the viewset's own "
+                                    "`ordering_fields` when declared (expanded to the model's own fields "
+                                    'when set to `"__all__"`), falling back to any readable field of the '
+                                    "canonical serializer, resolved by its underlying model field, when the "
+                                    "viewset doesn't declare `ordering_fields` at all. Also includes any "
+                                    "field named in `default` that `ordering_fields` doesn't already cover, "
+                                    "since ordering by a default field explicitly is always allowed."
                                 ),
                                 "items": {
                                     "type": "object",
@@ -2021,56 +2053,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "ascending": {
                                             "type": "boolean",
                                             "readonly": True,
-                                            "description": "Ordering direction.",
-                                        },
-                                        "nulls_first": {
-                                            "type": "boolean",
-                                            "readonly": True,
-                                            "description": "Nulls are ordered first",
-                                        },
-                                        "nulls_last": {
-                                            "type": "boolean",
-                                            "readonly": True,
-                                            "description": "Nulls are ordered last",
-                                        },
-                                    },
-                                    "required": [
-                                        "ascending",
-                                        "name",
-                                        "type",
-                                    ],
-                                },
-                            },
-                            "fields": {
-                                "type": "array",
-                                "description": (
-                                    "The fields a client may order by. Reflects the viewset's own "
-                                    "`ordering_fields` when declared (expanded to the model's own fields "
-                                    'when set to `"__all__"`), falling back to any readable field of the '
-                                    "canonical serializer, resolved by its underlying model field, when the "
-                                    "viewset doesn't declare `ordering_fields` at all."
-                                ),
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "name": {
-                                            "type": "string",
-                                            "readonly": True,
-                                            "description": "Field to order by.",
-                                            "example": "last_name",
-                                        },
-                                        "type": {
-                                            "type": "string",
-                                            "readonly": True,
-                                            "description": "Type of Ordering.",
-                                            "enum": [
-                                                "alpha",
-                                                "boolean",
-                                                "date",
-                                                "datetime",
-                                                "numeric",
-                                                "time",
-                                            ],
+                                            "description": (
+                                                "Direction this field is sorted in when it's part of the "
+                                                "default ordering. Only present for fields listed in `default`."
+                                            ),
                                         },
                                     },
                                     "required": [
@@ -3266,12 +3252,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "customerorder",
                                         "verbose_name": "customer order",
                                         "verbose_name_plural": "customer orders",
-                                        "model_ordering": [
-                                            {"name": "order_number", "type": "numeric"},
-                                            {"name": "customer__user__email", "type": "alpha"},
-                                            {"name": "when", "type": "datetime"},
-                                            {"name": "order_state", "type": "alpha"},
-                                        ],
+                                        "model_ordering": {
+                                            "default": [],
+                                            "fields": [
+                                                {"name": "order_number", "type": "numeric"},
+                                                {"name": "customer__user__email", "type": "alpha"},
+                                                {"name": "when", "type": "datetime"},
+                                                {"name": "order_state", "type": "alpha"},
+                                            ],
+                                        },
                                     }
                                 ]
                             },

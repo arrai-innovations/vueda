@@ -27,6 +27,24 @@ class ProductOrderingFieldsViewSet(ProductOrderingViewSet):
     ordering_fields = ["name"]
 
 
+class ProductOrderingMultiFieldDefaultViewSet(ProductViewSet):
+    """`ordering` declares two default fields and `ordering_fields` is empty, so neither field is
+    otherwise whitelisted. Proves VuedaOrderingFilter treats every field named in a multi-field
+    default as a valid explicit `?o=` target on its own, not just the first."""
+
+    ordering = ["-name", "available_for_sale"]
+    ordering_fields = []
+
+
+class ProductOrderingSingleDefaultPlusFieldViewSet(ProductViewSet):
+    """`ordering` declares one default field, distinct from the one field `ordering_fields`
+    whitelists, to test the merge between a single default field and an explicitly-declared
+    ordering field."""
+
+    ordering = ["-name"]
+    ordering_fields = ["available_for_sale"]
+
+
 class ProductOrderingAllFieldsViewSet(ProductOrderingViewSet):
     """Sets `ordering_fields = "__all__"` and swaps in a serializer where Product.name is exposed as
     `title`, to prove `__all__` resolves against the model's own field names, not the serializer's."""

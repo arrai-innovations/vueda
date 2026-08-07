@@ -145,16 +145,35 @@ class CartViewSet(VuedaViewSet):
 
 class CartOrderingFieldsViewSet(CartViewSet):
     """Adds `expected_delivery_time` to `ordering_fields` — the same field name `ordering` already sorts
-    by via `F("expected_delivery_time").asc(nulls_first=True)` — to test whether an explicit `?o=` request
-    on that field preserves the default's nulls-first behavior or falls back to plain ascending order."""
+    by via `F("expected_delivery_time").asc(nulls_first=True)` — and declares `nulls_ordering` so an
+    explicit `?o=` request on that field keeps nulls-first placement instead of falling back to the
+    database's default (plain ascending order puts nulls last)."""
 
     ordering_fields = [*CartViewSet.ordering_fields, "expected_delivery_time"]
+    nulls_ordering = {"expected_delivery_time": "first"}
+
+
+class CartOrderingFieldsNullsFlipViewSet(CartOrderingFieldsViewSet):
+    """Adds `expected_delivery_time` to `nulls_ordering_flip`, so requesting that field in descending
+    order flips its nulls placement from first to last, instead of keeping nulls first regardless of
+    sort direction."""
+
+    nulls_ordering_flip = ("expected_delivery_time",)
 
 
 class CartItemViewSet(VuedaViewSet):
     queryset = my_models.CartItem.objects.all()
     serializer_class = my_serializers.CartItemSerializer
     ordering_fields = ["product_option__name", "quantity"]
+
+
+class CartItemColumnTotalsViewSet(CartItemViewSet):
+    """Adds `column_totals` referencing a related field via a double-underscore lookup, to prove
+    aggregation works for fields reached through a relation, not just fields declared directly on
+    CartItem itself. A second column total (`product_option__price`) is declared alongside it so
+    tests can verify that requesting one column total does not also return the other."""
+
+    column_totals = ["product_option__quantity_available", "product_option__price"]
 
 
 class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
