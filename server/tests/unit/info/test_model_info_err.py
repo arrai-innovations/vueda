@@ -475,9 +475,7 @@ class TestFormattedName:
                 ),
                 format="json",
                 data={
-                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                        "model_expands",
-                    ],
+                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_expands",
                 },
             )
 

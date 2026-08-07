@@ -317,7 +317,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
 
         context = {
             "request": FakeRequest(
-                {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["period_start", "period_end"]}, put_data, "PUT"
+                {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"}, put_data, "PUT"
             )
         }
 
@@ -351,7 +351,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         }
         context = {
             "request": FakeRequest(
-                {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["period_start", "invalid_field_name"]}, put_data, "PUT"
+                {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,invalid_field_name"}, put_data, "PUT"
             )
         }
         context["view"] = FakeView(context["request"], TimesheetSerializer)
@@ -382,9 +382,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             "period_end": "2024-02-28",
         }
 
-        context = {
-            "request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee", "foo"]}, put_data, "PUT")
-        }
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,foo"}, put_data, "PUT")}
 
         t = Timesheet.objects.create(
             **{
@@ -414,9 +412,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             "period_start": "2024-02-16",
             "period_end": "2024-02-28",
         }
-        context = {
-            "request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["foo", "label10"]}, put_data, "PUT")
-        }
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "foo,label10"}, put_data, "PUT")}
 
         context["view"] = FakeView(context["request"], TimesheetSerializer)
         t = Timesheet.objects.create(
@@ -615,7 +611,7 @@ class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, Base
             "period_end": "2024-02-28",
         }
 
-        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee"]}, data, "PUT")}
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee"}, data, "PUT")}
         context["view"] = FakeView(
             context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=timesheet.pk)
         )

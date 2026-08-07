@@ -115,10 +115,7 @@ class TestCompositeKey:
             ),
             format="json",
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "order",
-                    "product",
-                ],
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order,product",
             },
         )
 
@@ -142,14 +139,8 @@ class TestCompositeKey:
             ),
             format="json",
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "order",
-                    "product",
-                ],
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
-                    "pk",
-                    "formatted_name",
-                ],
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order,product",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "pk,formatted_name",
             },
         )
 
@@ -175,9 +166,7 @@ class TestCompositeKey:
             ),
             format="json",
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "order_items_composite_pks",
-                ],
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items_composite_pks",
             },
         )
 
@@ -201,14 +190,10 @@ class TestCompositeKey:
             ),
             format="json",
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "order_items_composite_pks",
-                ],
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
-                    "id",
-                    "order_items_composite_pks.pk",
-                    "order_items_composite_pks.formatted_name",
-                ],
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items_composite_pks",
+                settings.REST_FLEX_FIELDS[
+                    "FIELDS_PARAM"
+                ]: "id,order_items_composite_pks.pk,order_items_composite_pks.formatted_name",
             },
         )
 

@@ -355,14 +355,9 @@ class TestModelInfoSerializer:
             ),
             format="json",
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_actions",
-                    "model_expands",
-                    "model_fields",
-                    "model_filtering",
-                    "model_ordering",
-                    "model_permissions",
-                ],
+                settings.REST_FLEX_FIELDS[
+                    "EXPAND_PARAM"
+                ]: "model_actions,model_expands,model_fields,model_filtering,model_ordering,model_permissions",
             },
         )
 
@@ -403,14 +398,9 @@ class TestModelInfoSerializer:
             ),
             format="json",
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_actions",
-                    "model_expands",
-                    "model_fields",
-                    "model_filtering",
-                    "model_ordering",
-                    "model_permissions",
-                ],
+                settings.REST_FLEX_FIELDS[
+                    "EXPAND_PARAM"
+                ]: "model_actions,model_expands,model_fields,model_filtering,model_ordering,model_permissions",
             },
         )
 
