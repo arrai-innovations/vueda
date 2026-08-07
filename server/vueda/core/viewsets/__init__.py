@@ -239,7 +239,15 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         """Return aggregated totals for any fields listed in ``column_totals``."""
         if not self.column_totals:
             return {}
-        aggregations = {column: Sum(column) for column in self.column_totals}
+        column_totals = self.column_totals
+
+        # Return requested column totals only.
+        if hasattr(self, "requested_column_totals"):
+            column_totals = []
+            for requested_column in self.requested_column_totals:
+                column_totals.append(requested_column)
+
+        aggregations = {column: Sum(column) for column in column_totals}
         return queryset.aggregate(**aggregations)
 
     def list(self, request, *args, **kwargs):
@@ -374,15 +382,17 @@ class NoExtraFieldsForViewSetMixin:
             settings.REST_FRAMEWORK["ORDERING_PARAM"],
         )
 
-    @staticmethod
-    def validate_flex_expand_and_field_param(request, serializer):
-        submitted_fields = submitted_expand_fields = valid_expands = valid_fields = frozenset()
+    def validate_flex_expand_and_field_param(self, request, serializer):
+        submitted_fields = valid_fields = set()
+        submitted_expand_fields = valid_expands = frozenset()
+
+        self.requested_column_totals = set()
 
         if (
             settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params
             or settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params
         ):
-            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["FIELDS_PARAM"]))
+            submitted_fields = set(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["FIELDS_PARAM"]))
             submitted_expand_fields = frozenset(
                 serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"])
             )
@@ -397,6 +407,16 @@ class NoExtraFieldsForViewSetMixin:
                 get_recursive_expands_and_fields(serializer, 0, max_depth)
             )
 
+        if hasattr(self, "column_totals"):
+            has_wildcard = False
+            for value in WILDCARD_VALUES:
+                if value in submitted_fields:
+                    has_wildcard = True
+
+            for column_total_field in self.column_totals:
+                if has_wildcard:  # Return all column totals if a wildcard is present.
+                    self.requested_column_totals.add(column_total_field)
+
         if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
             extra_keys = submitted_fields - (valid_fields | valid_wildcard_fields)
 
@@ -410,7 +430,21 @@ class NoExtraFieldsForViewSetMixin:
                     if (data[0] if isinstance(data, tuple) else data) is GenericForeignKeySerializer
                 }
                 if gfk_fields:
-                    extra_keys = frozenset(k for k in extra_keys if k.split(".")[0] not in gfk_fields)
+                    extra_keys = {k for k in extra_keys if k.split(".")[0] not in gfk_fields}
+
+            # Gather up the requested column totals.
+            if hasattr(self, "column_totals") and extra_keys:
+                for extra_key in tuple(extra_keys):  # copy of extra_keys, so we can modify it during the loop.
+                    # If the field is an extra_key and is in column_totals, then add it
+                    # as a requested column total and remove it from the requested fields.
+                    if extra_key in self.column_totals:
+                        self.requested_column_totals.add(extra_key)
+                        extra_keys.remove(extra_key)
+                        query_params = request.query_params[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]].split(",")
+                        query_params.remove(extra_key)
+                        request.query_params._mutable = True
+                        request.query_params[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = ",".join(query_params)
+                        request.query_params._mutable = False
 
             if extra_keys:
                 errors = {}
@@ -426,6 +460,10 @@ class NoExtraFieldsForViewSetMixin:
                     ]
 
                 return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        elif hasattr(self, "column_totals"):  # all fields requested by not specifying a fields param
+            for column_total_field in self.column_totals:
+                self.requested_column_totals.add(column_total_field)
 
         if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
             extra_keys = submitted_expand_fields - (valid_expands | valid_wildcard_expands)
