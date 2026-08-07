@@ -31,10 +31,12 @@ public-facing documentation baseline.
     - `VuedaSerializer` now maps `models.FileField` and `models.ImageField` columns to VUEDA's serializer fields, which represent a stored file as `{"name": ..., "url": ...}` (with an absolute `url` when a request is in context) instead of DRF's plain URL string. This applies to any file or image column auto-built by a VUEDA serializer.
       _Update client or integration code that read a bare URL string from these fields. The v3 client widgets (`WidgetFile`, `WidgetImage`) already consume the `{name, url}` shape. To keep the previous plain-string behavior on a specific field, declare a stock `rest_framework.serializers.FileField`/`ImageField` explicitly on your serializer._
 - **Model-info default ordering (`model_ordering`)**:
-    - `model_ordering` changes from a flat array of `{name, type}` sortable fields to an object with two keys: `default`, the ordering DRF actually applies when no `?o=` param is given (the viewset's own `ordering` when declared, otherwise the model's `Meta.ordering`), with each entry now also carrying `ascending`, `nulls_first`, and `nulls_last`; and `fields`, the sortable fields previously returned directly under `model_ordering`.
+    - `model_ordering` changes from a flat array of `{name, type}` sortable fields to an object with two keys: `default`, the field names DRF actually orders by when no `?o=` param is given (the viewset's own `ordering` when declared, otherwise the model's `Meta.ordering` — one or the other, never a merge of both); and `fields`, the fields a client may explicitly order by.
       _Read `model_ordering.fields` where code previously read `model_ordering` directly, and read `model_ordering.default` to show or apply the default ordering instead of inferring it from the model or viewset._
+    - Every field named in `default` also appears in `fields`, carrying an `ascending` key for its direction in the default ordering, even when `ordering_fields` doesn't otherwise whitelist it — matching `VuedaOrderingFilter`, which now accepts an explicit `?o=` request for any default-ordering field regardless of `ordering_fields` (see the `VuedaOrderingFilter` entry under Features).
     - When a viewset sets `ordering_fields = "__all__"` (DRF's shorthand for allowing any model field), `fields` lists the model's own fields instead of the literal string `"__all__"`.
     - When a viewset doesn't declare `ordering_fields` at all, DRF defaults to allowing ordering on any readable field of the canonical serializer, resolved by each field's `source` rather than its serializer name (so a renamed field is sortable under its underlying model field name, not its serializer name). `fields` now reflects that same resolution, instead of staying empty.
+    - `model_ordering` no longer reports `nulls_first`/`nulls_last` for any field. Nulls placement for the `?o=` param is still controlled server-side (see `nulls_ordering`/`nulls_ordering_flip` under Features); it just isn't advertised to clients as metadata.
 
 ### Features
 
@@ -72,6 +74,11 @@ public-facing documentation baseline.
 
 - **Django built-in model `formatted_name` support**:
     - `InfoConfig.ready()` now patches Django's `Group`, `Permission`, and `ContentType` models with the `_has_formatted_name_field`, `_get_formatted_name`, and `formatted_name_lookup_expression` (or `get_formatted_name`) attributes that VUEDA's viewset and serializer layers require. `Group` and `Permission` use `name` as their display field; `ContentType` uses `app_labeled_name`. All three can now be used as expandable fields without any application-level configuration.
+- **`VuedaOrderingFilter`**:
+    - `DEFAULT_FILTER_BACKENDS` now uses `vueda.core.filters.VuedaOrderingFilter` in place of DRF's stock `rest_framework.filters.OrderingFilter`. Declare `nulls_ordering` on a viewset as a dict of field name to `"first"` or `"last"` to give an explicit `?o=` request on that field the same nulls placement a `F(...).asc(nulls_first=True)`-style default `ordering` already applies, instead of falling back to the database's default nulls placement the moment a client requests that field by name.
+    - List a field name in `nulls_ordering_flip` to have its declared nulls placement flip (`first` becomes `last` and vice versa) when the client requests that field in descending order, instead of keeping the same placement regardless of sort direction.
+    - A field named in the viewset's default `ordering` (or the model's `Meta.ordering` when the viewset doesn't declare one) is now always a valid explicit `?o=` target, even when `ordering_fields` doesn't whitelist it. Previously, an explicit request for a default-only field was silently ignored and fell back to the default ordering.
+      _`VuedaOrderingFilter` is a drop-in subclass of DRF's `OrderingFilter`. Existing viewsets that don't declare `nulls_ordering` see no change to nulls placement, but every viewset automatically gains the default-field-ordering behavior described above._
 
 ### Fixes
 
