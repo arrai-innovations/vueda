@@ -41,6 +41,17 @@ def product_ordering_data():
     return data
 
 
+@pytest.fixture
+def product_ordering_availability_data():
+    data = ProductOrderingTestData()
+    # available_for_sale isn't unique, but name is, so the boolean sequence in response order still
+    # proves the sort ran on available_for_sale rather than on insertion/pk order.
+    Product.objects.create(name="Cherry", available_for_sale=True, buzz_words=["Fresh"])
+    Product.objects.create(name="Apple", available_for_sale=False, buzz_words=["Fresh"])
+    Product.objects.create(name="Banana", available_for_sale=True, buzz_words=["Fresh"])
+    return data
+
+
 @pytest.mark.django_db
 class TestModelOrderingOnly:
     """Product.Meta.ordering = ["name"]; ProductViewSet declares neither `ordering` nor `ordering_fields`."""
@@ -142,6 +153,107 @@ class TestModelViewsetAndOrderingFieldsOrdering:
 
 
 @pytest.mark.django_db
+class TestOrderingMultiFieldDefaultAllowsExplicitOrderingOnEachField:
+    """ProductOrderingMultiFieldDefaultViewSet declares a two-field default `ordering = ["-name",
+    "available_for_sale"]` and an empty `ordering_fields`, so neither field is otherwise whitelisted.
+    VuedaOrderingFilter should still accept an explicit `?o=` request naming either default field.
+    """
+
+    def test_default_order_applies_both_fields(self, product_ordering_availability_data, api_client, settings):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_multi_field_default"
+
+        user = product_ordering_availability_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(reverse("product.product-list"), format="json")
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
+
+    def test_explicit_ordering_param_on_first_default_field_is_applied(
+        self, product_ordering_availability_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_multi_field_default"
+
+        user = product_ordering_availability_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.product-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "name"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        # "name" isn't in `ordering_fields` (it's empty), but it is named in the default ordering, so
+        # VuedaOrderingFilter accepts it as an explicit target instead of falling back to the default.
+        assert [x["formatted_name"] for x in response.data["results"]] == ["Apple", "Banana", "Cherry"]
+
+    def test_explicit_ordering_param_on_second_default_field_is_applied(
+        self, product_ordering_availability_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_multi_field_default"
+
+        user = product_ordering_availability_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.product-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "available_for_sale"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        # "available_for_sale" is the *second* field in the default ordering, not the first, so this
+        # also proves every field in a multi-field default is added, not just the first one.
+        assert [x["available_for_sale"] for x in response.data["results"]] == [False, True, True]
+
+
+@pytest.mark.django_db
+class TestOrderingSingleDefaultPlusOrderingField:
+    """ProductOrderingSingleDefaultPlusFieldViewSet declares a single-field default `ordering =
+    ["-name"]` and `ordering_fields = ["available_for_sale"]` — a different field. Both the
+    explicitly-whitelisted field and the default-only field should be valid explicit `?o=` targets.
+    """
+
+    def test_explicit_ordering_param_on_whitelisted_field_is_applied(
+        self, product_ordering_availability_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_single_default_plus_field"
+
+        user = product_ordering_availability_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.product-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "available_for_sale"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        assert [x["available_for_sale"] for x in response.data["results"]] == [False, True, True]
+
+    def test_explicit_ordering_param_on_default_only_field_is_applied(
+        self, product_ordering_availability_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_single_default_plus_field"
+
+        user = product_ordering_availability_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.product-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "name"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        # "name" isn't in `ordering_fields` (only "available_for_sale" is), but it is the default
+        # ordering field, so VuedaOrderingFilter accepts it as an explicit target too.
+        assert [x["formatted_name"] for x in response.data["results"]] == ["Apple", "Banana", "Cherry"]
+
+
+@pytest.mark.django_db
 class TestOrderingFieldsAllValue:
     """ProductOrderingAllFieldsViewSet sets `ordering_fields = "__all__"` on top of `ordering = ["-name"]`,
     and serves Product.name under the serializer field name `title` (via ProductRenamedFieldSerializer).
@@ -215,8 +327,11 @@ class TestOrderingFieldsUnsetDefaultsToSerializer:
     - ProductRenamedFieldSerializer.title has no explicit `source`, so it defaults to "title", and
       get_queryset() annotates the queryset with `title=F("name")`. Ordering by "title" is applied,
       because the field's source and the annotation share that name.
-    - Ordering by "name", the underlying model column, falls back to the viewset default instead:
-      "name" isn't a serializer field's source here (only "title" is), so DRF doesn't recognize it.
+    - Ordering by "name", the underlying model column, is also applied, but not because DRF's own
+      source-based resolution recognizes it ("name" isn't a serializer field's source here, only
+      "title" is). `VuedaOrderingFilter` always accepts an explicit `?o=` request for a field named in
+      the viewset's default `ordering` (`["-name"]`, inherited from `ProductOrderingViewSet`),
+      regardless of whether `ordering_fields`/source resolution would otherwise allow it.
     - ProductOrderingSourceFieldViewSet swaps in a serializer whose `title` field is declared with an
       explicit `source="name"`, and no matching annotation. Ordering by "title" falls back here,
       because DRF resolves valid ordering keys by source ("name"), never by the field's own name.
@@ -237,7 +352,7 @@ class TestOrderingFieldsUnsetDefaultsToSerializer:
         assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
         assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
 
-    def test_explicit_ordering_param_on_model_field_name_falls_back_to_viewset_default(
+    def test_explicit_ordering_param_on_model_field_name_is_applied_via_default_ordering(
         self, product_ordering_data, api_client, settings
     ):
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_default_fields"
@@ -252,10 +367,10 @@ class TestOrderingFieldsUnsetDefaultsToSerializer:
         )
 
         assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
-        # "name" isn't defined on the serializer at all (only "title" is), so it can't be any
-        # serializer field's source either. DRF only recognizes serializer field sources here, so
-        # "name" is invalid and OrderingFilter falls back to the viewset default.
-        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
+        # "name" isn't defined on the serializer at all (only "title" is), so DRF's own source-based
+        # resolution wouldn't recognize it. But "name" is the field named in the viewset's default
+        # `ordering`, so VuedaOrderingFilter accepts it as an explicit target anyway.
+        assert [x["formatted_name"] for x in response.data["results"]] == ["Apple", "Banana", "Cherry"]
 
     def test_explicit_ordering_param_on_annotated_serializer_field_name_is_applied(
         self, product_ordering_data, api_client, settings
@@ -357,9 +472,10 @@ def cart_ordering_data():
 @pytest.mark.django_db
 class TestCartOrderingFieldsNullsFirst:
     """CartViewSet's default `ordering` is `F("expected_delivery_time").asc(nulls_first=True)`.
-    CartOrderingFieldsViewSet additionally whitelists `expected_delivery_time` in `ordering_fields` — the
-    exact field name the default ordering already sorts by — to check whether an explicit `?o=` request
-    on that same field preserves the nulls-first behavior baked into the default, or loses it.
+    CartOrderingFieldsViewSet additionally whitelists `expected_delivery_time` in `ordering_fields` and
+    declares `nulls_ordering = {"expected_delivery_time": "first"}`, so `VuedaOrderingFilter` gives an
+    explicit `?o=` request on that same field the same nulls-first placement the default ordering uses,
+    for both ascending and descending requests (no `nulls_ordering_flip` is declared here).
     """
 
     def test_default_order_puts_nulls_first(self, cart_ordering_data, api_client, settings):
@@ -374,7 +490,9 @@ class TestCartOrderingFieldsNullsFirst:
         durations = [Cart.objects.get(pk=x["id"]).expected_delivery_time for x in response.data["results"]]
         assert durations == [None, timedelta(days=1), timedelta(days=2)]
 
-    def test_explicit_ordering_param_on_same_field_loses_nulls_first(self, cart_ordering_data, api_client, settings):
+    def test_explicit_ascending_ordering_param_on_same_field_keeps_nulls_first(
+        self, cart_ordering_data, api_client, settings
+    ):
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_ordering_fields"
 
         user = cart_ordering_data.users["test_admin@domain.invalid"]
@@ -388,7 +506,70 @@ class TestCartOrderingFieldsNullsFirst:
 
         assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
         durations = [Cart.objects.get(pk=x["id"]).expected_delivery_time for x in response.data["results"]]
-        # An explicit `?o=` param that matches a valid `ordering_fields` entry is passed to `order_by()`
-        # as a plain field name, not the `F(...).asc(nulls_first=True)` expression the default ordering
-        # uses, so PostgreSQL's default ASC null ordering (NULLS LAST) applies instead of nulls-first.
-        assert durations == [timedelta(days=1), timedelta(days=2), None]
+        # Without VuedaOrderingFilter, a `?o=` param matching a valid `ordering_fields` entry would be
+        # passed to `order_by()` as a plain field name, losing the nulls-first placement (PostgreSQL's
+        # default ASC null ordering is NULLS LAST). `nulls_ordering` on the viewset restores it.
+        assert durations == [None, timedelta(days=1), timedelta(days=2)]
+
+    def test_explicit_descending_ordering_param_on_same_field_keeps_nulls_first(
+        self, cart_ordering_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_ordering_fields"
+
+        user = cart_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-expected_delivery_time"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        durations = [Cart.objects.get(pk=x["id"]).expected_delivery_time for x in response.data["results"]]
+        # CartOrderingFieldsViewSet doesn't declare `nulls_ordering_flip`, so nulls stay first even
+        # though the rest of the values are now sorted descending.
+        assert durations == [None, timedelta(days=2), timedelta(days=1)]
+
+
+@pytest.mark.django_db
+class TestCartOrderingFieldsNullsFlip:
+    """CartOrderingFieldsNullsFlipViewSet additionally lists `expected_delivery_time` in
+    `nulls_ordering_flip`, so a descending `?o=` request on that field flips its nulls placement from
+    first to last, instead of keeping nulls first regardless of sort direction.
+    """
+
+    def test_explicit_ascending_ordering_param_keeps_nulls_first(self, cart_ordering_data, api_client, settings):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_ordering_fields_nulls_flip"
+
+        user = cart_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "expected_delivery_time"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        durations = [Cart.objects.get(pk=x["id"]).expected_delivery_time for x in response.data["results"]]
+        # Flip only applies to descending requests, so ascending still puts nulls first.
+        assert durations == [None, timedelta(days=1), timedelta(days=2)]
+
+    def test_explicit_descending_ordering_param_flips_nulls_to_last(self, cart_ordering_data, api_client, settings):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_ordering_fields_nulls_flip"
+
+        user = cart_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-expected_delivery_time"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        durations = [Cart.objects.get(pk=x["id"]).expected_delivery_time for x in response.data["results"]]
+        # `expected_delivery_time` is listed in `nulls_ordering_flip`, so requesting it descending
+        # flips its nulls placement from first to last.
+        assert durations == [timedelta(days=2), timedelta(days=1), None]

@@ -596,11 +596,9 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "default": [
-                    {"name": "name", "ascending": True, "type": "alpha"},
-                ],
+                "default": ["name"],
                 "fields": [
-                    {"name": "name", "type": "alpha"},
+                    {"name": "name", "type": "alpha", "ascending": True},
                 ],
             },
             "expected_permissions": [
@@ -1340,11 +1338,10 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "default": [
-                    {"name": "user__name", "ascending": True, "type": "alpha"},
-                ],
+                "default": ["user__name"],
                 "fields": [
                     {"name": "user__email", "type": "alpha"},
+                    {"name": "user__name", "type": "alpha", "ascending": True},
                 ],
             },
             "expected_permissions": [
@@ -1761,17 +1758,11 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "default": [
-                    {
-                        "ascending": True,
-                        "name": "expected_delivery_time",
-                        "nulls_first": True,
-                        "type": "numeric",
-                    },
-                ],
+                "default": ["expected_delivery_time"],
                 "fields": [
                     {"name": "customer__user__email", "type": "alpha"},
                     {"name": "last_modified", "type": "datetime"},
+                    {"name": "expected_delivery_time", "type": "numeric", "ascending": True},
                 ],
             },
             "expected_permissions": [
@@ -4385,12 +4376,10 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "default": [
-                    {"name": "name", "type": "alpha", "ascending": True},
-                ],
+                "default": ["name"],
                 "fields": [
                     {"name": "distributor__name", "type": "alpha"},
-                    {"name": "name", "type": "alpha"},
+                    {"name": "name", "type": "alpha", "ascending": True},
                     {"name": "disabled", "type": "boolean"},
                 ],
             },
@@ -5814,10 +5803,10 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "default": [
+                "default": ["product_option__product__name"],
+                "fields": [
                     {"name": "product_option__product__name", "type": "alpha", "ascending": True},
                 ],
-                "fields": [],
             },
             "expected_permissions": [
                 {"codename": "create_orderitem", "name": "Can create ORDER item"},
@@ -7576,22 +7565,17 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            # No expected ordering, to prevent a blow up due to no objects of this kind existing.
             "expected_ordering": {
-                "default": [
-                    {"ascending": True, "name": "order", "type": "alpha"},
-                    {"ascending": True, "name": "product", "type": "alpha"},
-                    {"ascending": True, "name": "quantity", "type": "numeric"},
-                ],
+                "default": ["order", "product", "quantity"],
                 # OrderItemAltCompositePKViewSet doesn't declare `ordering_fields`, so DRF's OrderingFilter
                 # defaults to any readable field on OrderItemAltCompositePKSerializer. "formatted_name" is
                 # excluded because the model sets it to `None` (using `formatted_name_lookup_expression`
                 # instead), and "available_actions" is excluded because it has no real model field behind it.
                 "fields": [
                     {"name": "pk", "type": "alpha"},
-                    {"name": "order", "type": "alpha"},
-                    {"name": "product", "type": "alpha"},
-                    {"name": "quantity", "type": "numeric"},
+                    {"name": "order", "type": "alpha", "ascending": True},
+                    {"name": "product", "type": "alpha", "ascending": True},
+                    {"name": "quantity", "type": "numeric", "ascending": True},
                 ],
             },
             "expected_permissions": [
@@ -7820,11 +7804,9 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "default": [
-                    {"ascending": True, "name": "order_number", "type": "numeric"},
-                ],
+                "default": ["order_number"],
                 "fields": [
-                    {"name": "order_number", "type": "numeric"},
+                    {"name": "order_number", "type": "numeric", "ascending": True},
                     {"name": "order_date", "type": "datetime"},
                 ],
             },
@@ -8431,11 +8413,9 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_ordering": {
-                "default": [
-                    {"ascending": True, "name": "name", "type": "alpha"},
-                ],
+                "default": ["name"],
                 "fields": [
-                    {"name": "name", "type": "alpha"},
+                    {"name": "name", "type": "alpha", "ascending": True},
                 ],
             },
             "expected_permissions": [
