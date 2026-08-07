@@ -154,6 +154,15 @@ class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
     ordering_fields = ["order_number", "customer__user__email", "when", "order_state"]
 
 
+class CartItemColumnTotalsViewSet(CartItemViewSet):
+    """Adds `column_totals` referencing a related field via a double-underscore lookup, to prove
+    aggregation works for fields reached through a relation, not just fields declared directly on
+    CartItem itself. A second column total (`product_option__price`) is declared alongside it so
+    tests can verify that requesting one column total does not also return the other."""
+
+    column_totals = ["product_option__quantity_available", "product_option__price"]
+
+
 class InventoryRecordReasonViewSet(VuedaViewSet):
     queryset = my_models.InventoryRecordReason.objects.all()
     serializer_class = my_serializers.InventoryRecordReasonSerializer
