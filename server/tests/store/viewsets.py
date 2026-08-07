@@ -167,15 +167,6 @@ class CartItemViewSet(VuedaViewSet):
     ordering_fields = ["product_option__name", "quantity"]
 
 
-class CartItemColumnTotalsViewSet(CartItemViewSet):
-    """Adds `column_totals` referencing a related field via a double-underscore lookup, to prove
-    aggregation works for fields reached through a relation, not just fields declared directly on
-    CartItem itself. A second column total (`product_option__price`) is declared alongside it so
-    tests can verify that requesting one column total does not also return the other."""
-
-    column_totals = ["product_option__quantity_available", "product_option__price"]
-
-
 class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
     queryset = my_models.CustomerOrder.objects.all()
     serializer_class = my_serializers.CustomerOrderSerializer
