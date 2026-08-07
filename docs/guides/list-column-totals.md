@@ -38,7 +38,24 @@ class InvoiceViewSet(VuedaViewSet):
 
 Each entry in `column_totals` should be a field name that the database backend can `SUM`. Typically, these are `DecimalField`, `IntegerField`, or `FloatField` columns. Non-aggregatable fields (strings, booleans, relations) will fail at the database query level when the `SUM` is attempted.
 
+An entry can also be a double-underscore relation lookup, such as `product_option__quantity_available`, to total a numeric field reached through a foreign key. `column_totals` feeds directly into a queryset `Sum()` aggregation rather than the serializer's field list, so any lookup Django's `aggregate()` accepts is valid.
+
 When `column_totals` is empty (the default), the server aggregate payload is `{}` and no aggregation query runs.
+
+## Requesting a Subset of Totals
+
+By default, a `list` request returns every field declared in `column_totals`. A client can request a subset by including the wanted column-total field name(s) in the sparse `fields` query parameter (`f`) alongside whichever row fields it needs:
+
+```text
+GET /routes/myapp/invoice/?f=id,subtotal,tax
+```
+
+Only `subtotal` and `tax` appear in `columnTotals`; `total` is omitted because it was not requested. If `fields` is omitted entirely, or submitted with a wildcard value (`*` or `~all`), every declared `column_totals` field is returned, same as the default.
+
+Column-total field names are aggregate-only: {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param} recognizes them in the `fields` param, computes the corresponding aggregate, and strips them from the row-level field selection before the serializer runs. This has two consequences:
+
+- Requesting a `column_totals` field name in `fields` does not appear as a column on the objects in `results`, even though it is accepted.
+- It also does not trigger the "invalid field" `400` response that an unrecognized `fields` value would normally produce, because the viewset treats `column_totals` names as a distinct, valid vocabulary from serializer fields.
 
 ## Filter and Permission Semantics
 
@@ -68,6 +85,8 @@ The paginated `list` response includes a `columnTotals` key alongside `results`,
 ```
 
 When `column_totals` is empty, `columnTotals` is `{}`. When the filtered queryset is empty, aggregate values may be `null` (the database returns `NULL` for `SUM` over zero rows). The client should handle `null` values defensively.
+
+When a request's `fields` param requests only a subset of the declared `column_totals` (see [Requesting a Subset of Totals](#requesting-a-subset-of-totals)), `columnTotals` contains only the requested keys.
 
 ## Client Rendering Strategy
 
@@ -103,6 +122,7 @@ After implementing column totals, verify:
 - Empty result sets produce `null` or `0` totals without errors.
 - The `list` view renders totals in the default footer row or through a custom slot.
 - Non-aggregatable fields in `column_totals` produce clear database errors (test this in development, not production).
+- Requesting a subset of declared totals via `fields` returns only the requested keys in `columnTotals`, and omitting `fields` (or submitting a wildcard) returns all of them.
 
 ## Troubleshooting
 
@@ -118,6 +138,8 @@ After implementing column totals, verify:
 
 **Totals include `null` values.** The filtered queryset for a column is empty, or the column contains only `NULL` values. The database returns `NULL` for `SUM` over zero rows. Handle this defensively in the UI with a fallback display value.
 
+**A declared column total is missing from `columnTotals`.** The request's `fields` param requested a subset of fields that did not include that column-total field name. Add the field name to `fields`, submit a wildcard `fields` value, or omit `fields` entirely to get every declared total.
+
 ## Relevant Implementation Surface
 
 - Python:
@@ -125,6 +147,7 @@ After implementing column totals, verify:
     - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}
     - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.get_column_info}
     - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}
+    - {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
     - {@api py:class:vueda.core.pagination.VUEDAPageNumberPagination}
     - {@api py:function:vueda.core.pagination.VUEDAPageNumberPagination.get_paginated_response}
 - JavaScript:
