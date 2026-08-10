@@ -177,11 +177,14 @@ const dummyModelInfo = {
             },
         },
     ],
-    ordering: [
-        { name: "week_start", type: "date" },
-        { name: "employee__last_name", type: "alpha" },
-        { name: "employee__first_name", type: "alpha" },
-    ],
+    ordering: {
+        default: ["week_start", "employee__last_name"],
+        fields: [
+            { name: "week_start", type: "date", ascending: false },
+            { name: "employee__last_name", type: "alpha", ascending: true },
+            { name: "employee__first_name", type: "alpha" },
+        ],
+    },
     filtering: {
         name: {
             label: "Name",
@@ -263,7 +266,7 @@ describe("lib/stores/storeModelConfig.js", () => {
             // Filtering and ordering
             expect(config.filterables).toEqual(["name"]);
             expect(config.sortables).toEqual(["week_start", "employee__last_name", "employee__first_name"]);
-            expect(config.sorted).toEqual([]);
+            expect(config.sorted).toEqual(["-week_start", "employee__last_name"]);
 
             expect(config.fieldDetails).toHaveProperty("id");
             expect(config.fieldDetails).toHaveProperty("name");
@@ -286,7 +289,7 @@ describe("lib/stores/storeModelConfig.js", () => {
             );
 
             expect(config.filterableDetails).toEqual(dummyModelInfo.filtering);
-            expect(config.sortablesDetails).toEqual(dummyModelInfo.ordering);
+            expect(config.sortablesDetails).toEqual(dummyModelInfo.ordering.fields);
 
             expect(config.actionRedirects.default).toBe("update");
 
@@ -377,7 +380,77 @@ describe("lib/stores/storeModelConfig.js", () => {
             const config = await store.getConfig({ app: "testApp", model: "testModel" });
             expect(config.filterables).toEqual([]);
             expect(config.sortables).toEqual([]);
+            expect(config.sorted).toEqual([]);
         });
+
+        scopedIt("derives the default sort from ordering.default, honoring each field's ascending flag", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+            customModelInfo.ordering = {
+                default: ["employee__first_name", "week_start"],
+                fields: [
+                    { name: "week_start", type: "date", ascending: false },
+                    { name: "employee__first_name", type: "alpha", ascending: true },
+                    { name: "employee__last_name", type: "alpha" },
+                ],
+            };
+            mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            // Priority order follows `default`; direction follows each field's `ascending`.
+            expect(config.sorted).toEqual(["employee__first_name", "-week_start"]);
+        });
+
+        scopedIt(
+            "logs an error and assumes ascending when a default sort field has no boolean ascending flag",
+            async () => {
+                const store = storeModelConfig();
+                store.builtConfigs = {};
+                store.initialized = {};
+                const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+                const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+                customModelInfo.ordering = {
+                    default: ["employee__last_name"],
+                    // `ascending` is only ever omitted by the server for fields that aren't
+                    // in `default`; a `default` entry missing it is a server contract bug.
+                    fields: [{ name: "employee__last_name", type: "alpha" }],
+                };
+                mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+                const config = await store.getConfig({ app: "testApp", model: "testModel" });
+                expect(config.sorted).toEqual(["employee__last_name"]);
+                expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("employee__last_name"));
+
+                consoleError.mockRestore();
+            },
+        );
+
+        scopedIt(
+            "logs an error and assumes ascending when a default sort field has no matching ordering.fields entry",
+            async () => {
+                const store = storeModelConfig();
+                store.builtConfigs = {};
+                store.initialized = {};
+                const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+                const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+                customModelInfo.ordering = {
+                    default: ["not_a_real_field"],
+                    fields: [{ name: "week_start", type: "date", ascending: false }],
+                };
+                mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+                const config = await store.getConfig({ app: "testApp", model: "testModel" });
+                expect(config.sorted).toEqual(["not_a_real_field"]);
+                expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("not_a_real_field"));
+
+                consoleError.mockRestore();
+            },
+        );
 
         scopedIt("exposes the primary key via fieldDetails", async () => {
             const store = storeModelConfig();

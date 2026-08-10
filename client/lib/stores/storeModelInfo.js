@@ -131,9 +131,18 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @typedef {object} OrderInfo
  * @property {string} name - The name of the ordering field.
  * @property {string} type - The type of the ordering field (e.g., "alpha", "numeric", "boolean", "date").
- * @property {boolean} [nullable] - Indicates whether the field can have null values.
- * @property {string} [direction] - The default sorting direction, either "asc" or "desc".
- * @property {string} [description] - A brief description of the ordering field.
+ * @property {boolean} [ascending] - Whether this field sorts ascending by default. Only present when this field's
+ *  name also appears in `OrderingInfo.default`; absent for every other field.
+ */
+
+/**
+ * The ordering metadata for a model: every field available for ordering, plus the field
+ * names the server applies by default when no client sort is specified.
+ *
+ * @typedef {object} OrderingInfo
+ * @property {string[]} default - Field names sorted on by default, in priority order. Each name must match
+ *  an entry in `fields` carrying a boolean `ascending`, which determines the default's direction.
+ * @property {OrderInfo[]} fields - The fields available for ordering the model.
  */
 
 /**
@@ -223,7 +232,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {{[fieldName: string]: FieldInfo}} fields - A mapping of field names to their respective `FieldInfo` objects.
  * @property {ActionInfo[]} actions - The actions that can be performed on the model.
  * @property {ExpandInfo[]} expand - The expandable fields of the model.
- * @property {OrderInfo[]} ordering - The fields available for ordering the model.
+ * @property {OrderingInfo} ordering - The fields available for ordering the model, plus the server's default sort.
  * @property {{[filterName: string]: FilterInfo}} filtering - The fields available for filtering the model.
  * @property {PermissionInfo[]} permissions - The permissions available for the model.
  * @property {string[]} [methods] - The HTTP methods supported by the model (e.g., ["GET", "POST"]).

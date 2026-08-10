@@ -666,6 +666,10 @@ export function useViewList(options) {
     const columnTotals = computed(() => instanceList.state.columnTotals || {});
     const mobileSortDrawerVisible = ref(false);
     const sortablesList = computed(() => unref(sorting.state.sortables) || []);
+    // The server's default sort (from `modelConfig.config.sorted`), sanitized against the
+    // currently sortable fields. Applied when a view has neither a URL sort nor a stored
+    // preference; a stored preference (even an empty one) always wins over this default.
+    const defaultSorted = computed(() => sanitizeSortFields(modelConfig.config?.sorted || [], sortablesList.value));
     // Layout-independent gate for the sort control: show it whenever the model
     // exposes sortable fields. The control picks its own surface (popover vs
     // drawer) by viewport, so the gate no longer depends on `isTable`.
@@ -718,8 +722,11 @@ export function useViewList(options) {
                     !hasUrlSorting && restoreStoredPreferences
                         ? listPreferenceStore.getSorting(preferenceArgs())
                         : null;
+                // No URL sort and no stored preference: fall back to the server's default
+                // sort. A stored preference (even one sanitized down to nothing) always
+                // wins over the default, since it reflects an explicit prior choice.
                 const restored = sanitizeSortFields(
-                    hasUrlSorting ? parseSortQuery(querySorting) : storedSorting || [],
+                    hasUrlSorting ? parseSortQuery(querySorting) : storedSorting || defaultSorted.value,
                     sortables,
                 );
                 assignReactiveObject(sorting.state.sorted, restored);
@@ -814,6 +821,7 @@ export function useViewList(options) {
         sort: reactive({
             sorting,
             sortablesList,
+            defaultSorted,
             isTable,
             mobileSortDrawerVisible,
             canShowSorter,
