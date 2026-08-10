@@ -44,6 +44,15 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    /**
+     * Show the remove ("x") control. Hidden once removing would leave nothing
+     * sorted; the host strip ({@api vue:component:SortGroup}) passes `false` for
+     * a lone chip regardless of whether that chip is part of the default sort.
+     */
+    removable: {
+        type: Boolean,
+        default: true,
+    },
 });
 const emit = defineEmits([
     /** Emitted when the label segment is clicked to flip this field's direction. */
@@ -105,21 +114,23 @@ const icon = useIcons("SortChip", props);
             />
             <span v-else :class="theme('direction')" aria-hidden="true">{{ descending ? "↓" : "↑" }}</span>
         </button>
-        <span :class="theme('divider')" aria-hidden="true" />
-        <button
-            type="button"
-            :class="theme('remove')"
-            :aria-label="`Remove sort: ${label}`"
-            data-qa="sort-chip-remove"
-            @click="emit('remove')"
-        >
-            <component
-                :is="icon('close').component"
-                v-if="icon('close')"
-                v-bind="icon('close').props"
-                aria-hidden="true"
-            />
-            <span v-else aria-hidden="true">&times;</span>
-        </button>
+        <template v-if="removable">
+            <span :class="theme('divider')" aria-hidden="true" />
+            <button
+                type="button"
+                :class="theme('remove')"
+                :aria-label="`Remove sort: ${label}`"
+                data-qa="sort-chip-remove"
+                @click="emit('remove')"
+            >
+                <component
+                    :is="icon('close').component"
+                    v-if="icon('close')"
+                    v-bind="icon('close').props"
+                    aria-hidden="true"
+                />
+                <span v-else aria-hidden="true">&times;</span>
+            </button>
+        </template>
     </span>
 </template>

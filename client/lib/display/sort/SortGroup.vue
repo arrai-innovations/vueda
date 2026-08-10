@@ -9,12 +9,13 @@ import { VueDraggableNext as draggable } from "vue-draggable-next";
 
 /**
  * Renders the active sort order as a strip of removable {@api vue:component:SortChip}s,
- * plus a Clear sort control (shown only with more than one chip). Each chip toggles
- * its own direction; removing a chip drops that field from the sort; dragging a
- * chip by its priority ordinal reorders the sort. Adding fields stays with the
- * {@api vue:component:SortControl} add menu; this strip is the always-visible
- * read-out and the primary editing surface, the sort-side counterpart to
- * {@api vue:component:FilterGroup}'s chips.
+ * plus a Reset sort control (shown only when the active sort differs from `defaultSorted`).
+ * Each chip toggles its own direction; removing a chip drops that field from the sort
+ * (the remove control itself is hidden once only one chip remains, since there is
+ * nothing left to remove down to); dragging a chip by its priority ordinal reorders
+ * the sort. Adding fields stays with the {@api vue:component:SortControl} add menu;
+ * this strip is the always-visible read-out and the primary editing surface, the
+ * sort-side counterpart to {@api vue:component:FilterGroup}'s chips.
  */
 defineOptions({});
 
@@ -22,6 +23,14 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
     /** Active sort fields; prefix a field name with `-` for descending. */
     sorted: {
+        type: Array,
+        default: () => [],
+    },
+    /**
+     * The server's default sort order, in the same `-`-prefixed representation as `sorted`.
+     * Reset sort restores this order; the control is hidden whenever `sorted` already matches it.
+     */
+    defaultSorted: {
         type: Array,
         default: () => [],
     },
@@ -33,7 +42,7 @@ const props = defineProps({
     /**
      * When true, the chips render as a bare subgroup (no band chrome) for
      * hosting inside a shared {@api vue:component:ConstraintsBar}; the group
-     * keeps its own Clear sort control. When false (default), the chips render
+     * keeps its own Reset sort control. When false (default), the chips render
      * as a self-contained strip.
      */
     hosted: {
@@ -84,9 +93,11 @@ const apply = (next) => {
 };
 const toggle = (base) => apply(toggleSortField(localSorted.value, base));
 const remove = (base) => apply(removeSortField(localSorted.value, base));
-const clearAll = () => {
-    if (localSorted.value.length) {
-        apply([]);
+// Hidden once the active sort already matches the default, since there is nothing to reset.
+const matchesDefault = computed(() => sameOrder(localSorted.value, props.defaultSorted));
+const resetToDefault = () => {
+    if (!matchesDefault.value) {
+        apply([...props.defaultSorted]);
     }
 };
 // The drag wrapper has already mutated `localSorted` in place by the time `change`
@@ -98,7 +109,13 @@ const slots = useSlots();
 </script>
 
 <template>
-    <div v-if="items.length" :class="hosted ? theme('subgroup') : theme('strip')" data-qa="sort-group-strip">
+    <!-- Renders with no active chips when the sort has been cleared down to nothing
+         but still differs from the default, so Reset sort stays reachable. -->
+    <div
+        v-if="items.length || !matchesDefault"
+        :class="hosted ? theme('subgroup') : theme('strip')"
+        data-qa="sort-group-strip"
+    >
         <span :class="theme('eyebrow')">Sort</span>
         <!-- Drag-reorder the active sort. The handle is each chip's grip + ordinal
              (`.drag-handle`), which only renders with more than one chip, so a lone
@@ -125,6 +142,7 @@ const slots = useSlots();
                 :index="item.index"
                 :field-details="fieldDetails"
                 :show-ordinal="items.length > 1"
+                :removable="items.length > 1"
                 @toggle="toggle(item.base)"
                 @remove="remove(item.base)"
             >
@@ -134,14 +152,14 @@ const slots = useSlots();
             </sort-chip>
         </draggable>
         <Button
-            v-if="items.length > 1"
+            v-if="!matchesDefault"
             emphasis="ghost"
             size="sm"
             :class="theme('clear')"
-            data-qa="sort-clear"
-            @click="clearAll"
+            data-qa="sort-reset"
+            @click="resetToDefault"
         >
-            Clear sort
+            Reset sort
         </Button>
     </div>
 </template>
