@@ -70,12 +70,13 @@ const ControlComboboxListStub = defineComponent({
 
 const ControlComboboxInputStub = defineComponent({
     name: "ControlComboboxInputStub",
-    props: ["modelValue", "placeholder"],
+    props: ["modelValue", "placeholder", "displayValue"],
     emits: ["update:modelValue"],
     setup(props, { emit }) {
         return () =>
             h("input", {
                 "data-stub": "combobox-input",
+                "data-display-value": props.displayValue?.(),
                 value: props.modelValue,
                 placeholder: props.placeholder,
                 onInput: (e) => emit("update:modelValue", e.target.value),
@@ -460,6 +461,42 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
             searchState.emptyMessage = "No matching results.";
             const wrapper = mount(WidgetCombobox, { props: apiProps });
             expect(wrapper.find("[data-stub='combobox-empty']").text()).toBe("No matching results.");
+        });
+    });
+
+    /* -------------------------------------------------------------- */
+    /*  Input display value                                            */
+    /* -------------------------------------------------------------- */
+
+    // Reka UI resets the search input's text to this function's return value after a
+    // selection. Without it, Reka falls back to `String(modelValue)` (e.g. "9" instead
+    // of "Apple") for non-object model values.
+    describe("Input display value", () => {
+        scopedIt("shows the resolved label, not the raw pk, for a selected API-mode option", async () => {
+            const { nextTick } = await vi.importActual("vue");
+            searchState.singleSelectedLabel = "Apple";
+            const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing" } });
+            widgetContext.state.combinedValue = 9;
+            await nextTick();
+            const input = wrapper.find("[data-stub='combobox-input']");
+            expect(input.attributes("data-display-value")).toBe("Apple");
+        });
+
+        scopedIt("shows the resolved label for a selected static-mode option", async () => {
+            const { nextTick } = await vi.importActual("vue");
+            const wrapper = mount(WidgetCombobox, {
+                props: { options: STATIC_OPTIONS, optionLabel: "label", optionValue: "value" },
+            });
+            widgetContext.state.combinedValue = "green";
+            await nextTick();
+            const input = wrapper.find("[data-stub='combobox-input']");
+            expect(input.attributes("data-display-value")).toBe("Green");
+        });
+
+        scopedIt("shows an empty string when nothing is selected", async () => {
+            const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing" } });
+            const input = wrapper.find("[data-stub='combobox-input']");
+            expect(input.attributes("data-display-value")).toBe("");
         });
     });
 

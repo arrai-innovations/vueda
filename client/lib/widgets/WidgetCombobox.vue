@@ -174,6 +174,11 @@ const emptyMessage = computed(() => {
 
 const isGrouped = computed(() => isApiMode.value && comboboxSearch.isGrouped);
 
+// Reka UI's ComboboxInput resets its search term to `String(modelValue)` after a
+// selection unless a displayValue function is supplied; without this, selecting an
+// API-mode option would show the raw pk (e.g. "9") instead of its label.
+const inputDisplayValue = () => (props.multiple ? "" : (closedStateLabel.value ?? ""));
+
 const handleOpenChange = (open) => {
     if (open) {
         widgetContext.focus();
@@ -235,6 +240,7 @@ const icon = useIcons("WidgetCombobox", props);
         <ComboboxList class="w-[var(--reka-combobox-trigger-width)]">
             <ComboboxInput
                 v-model="comboboxSearch.query"
+                :display-value="inputDisplayValue"
                 :placeholder="isApiMode ? 'Type to search...' : 'Search...'"
             />
             <ComboboxViewport>
