@@ -251,6 +251,29 @@ describe("lib/shell/field/Field.vue", () => {
             });
             expect(wrapper.text()).toBe("Object error");
         });
+
+        scopedIt("flattens a nested array of messages into a single message", () => {
+            const wrapper = mount(FieldMessage, {
+                props: { messages: [["Required"]] },
+            });
+            expect(wrapper.text()).toBe("Required");
+        });
+
+        scopedIt("flattens a nested array of messages into a list", () => {
+            const wrapper = mount(FieldMessage, {
+                props: { messages: [["This email is already taken", "This is too long"]] },
+            });
+            expect(wrapper.findAll("li")).toHaveLength(2);
+            expect(wrapper.text()).toContain("This email is already taken");
+            expect(wrapper.text()).toContain("This is too long");
+        });
+
+        scopedIt("flattens a mix of plain and nested-array messages", () => {
+            const wrapper = mount(FieldMessage, {
+                props: { messages: ["This field is required.", ["This email is already taken", "This is too long"]] },
+            });
+            expect(wrapper.findAll("li")).toHaveLength(3);
+        });
     });
 
     describe("FieldLegend", () => {
