@@ -608,7 +608,14 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         viewset_default = []
         if hasattr(viewset, "ordering"):
-            for order_by in viewset.ordering:
+            # Like DRF's own OrderingFilter.get_default_ordering, the viewset's `ordering` may be a
+            # bare string instead of a list/tuple; iterating a string directly would walk it character
+            # by character instead of treating it as a single field name.
+            viewset_ordering = viewset.ordering
+            if isinstance(viewset_ordering, str):
+                viewset_ordering = (viewset_ordering,)
+
+            for order_by in viewset_ordering:
                 data = self.get_ordering_data(model, order_by)
 
                 viewset_default.append(data)
