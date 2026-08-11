@@ -13,6 +13,8 @@ __all__ = (
     "WhoIsSerializer",
 )
 
+from collections.abc import Mapping
+
 from allauth.account.internal.flows.reauthentication import did_recently_authenticate
 from allauth.mfa.models import Authenticator
 from dj_rest_auth.serializers import TokenSerializer
@@ -145,7 +147,10 @@ class UserSerializer(VuedaSerializer):
 
     def to_internal_value(self, data):
         self._used_temp_password = False
-        if self.instance is None:
+        # Guard against non-mapping data (e.g. a bare pk submitted while this field is expanded)
+        # so the base serializer's own "Expected a dictionary" validation error can be raised,
+        # rather than an AttributeError from calling .get() below.
+        if self.instance is None and isinstance(data, Mapping):
             send_welcome_email = data.get("send_welcome_email_on_create", False)
             password = data.get("password")
 

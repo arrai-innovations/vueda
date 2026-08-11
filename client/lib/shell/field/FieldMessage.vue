@@ -5,7 +5,8 @@ import { computed, reactive, toRef } from "vue";
 
 /**
  * Displays field messages (errors or warnings) from a slot or an array of
- * strings or objects with a `message` property, deduplicating and rendering
+ * strings, arrays of strings (e.g. multiple server messages under one error
+ * code), or objects with a `message` property, deduplicating and rendering
  * a list when multiple messages are present.
  */
 defineOptions({});
@@ -17,7 +18,7 @@ const props = defineProps({
      * @type {import('vue').HTMLAttributes['class']}
      */
     class: { type: [String, Array, Object], default: undefined },
-    /** One or more message strings or objects with a message property to display beneath the field. */
+    /** One or more message strings, arrays of message strings, or objects with a message property to display beneath the field. */
     messages: { type: Array, default: undefined },
     /** Controls color and ARIA role. */
     severity: {
@@ -32,9 +33,11 @@ const theme = useTheme("FieldMessage", props, reactive({ severity: toRef(props, 
 const content = computed(() => {
     if (!props.messages || props.messages.length === 0) return null;
 
+    const flattenedMessages = props.messages.filter(Boolean).flatMap((msg) => (Array.isArray(msg) ? msg : [msg]));
+
     const uniqueMessages = [
         ...new Map(
-            props.messages.filter(Boolean).map((msg) => {
+            flattenedMessages.filter(Boolean).map((msg) => {
                 const message = typeof msg === "string" ? msg : msg?.message;
                 return [message, msg];
             }),
