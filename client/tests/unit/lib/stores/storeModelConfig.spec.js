@@ -203,7 +203,6 @@ const dummyModelInfo = {
     description: "A test timesheet model.",
     read_only: false,
     abstract: false,
-    default_ordering: ["week_start"],
 };
 
 describe("lib/stores/storeModelConfig.js", () => {
