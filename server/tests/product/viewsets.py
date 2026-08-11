@@ -21,6 +21,14 @@ class ProductOrderingViewSet(ProductViewSet):
     ordering = ["-name"]
 
 
+class ProductOrderingStringViewSet(ProductViewSet):
+    """Sets the viewset's `ordering` as a bare string instead of a list/tuple, which DRF's own
+    OrderingFilter also allows, to prove the model-info metadata handles it without iterating the
+    string character by character."""
+
+    ordering = "-name"
+
+
 class ProductOrderingFieldsViewSet(ProductOrderingViewSet):
     """Adds `ordering_fields` on top of viewset `ordering`, to test whether it changes the default order."""
 
