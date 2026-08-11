@@ -240,7 +240,6 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} [description] - A brief description of the model's purpose.
  * @property {boolean} [readOnly] - Indicates if the model is read-only.
  * @property {boolean} [abstract] - Indicates if the model is abstract and not directly instantiable.
- * @property {string} [defaultOrdering] - The default ordering for the model (e.g., "name ASC").
  */
 
 /**

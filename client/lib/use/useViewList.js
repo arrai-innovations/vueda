@@ -211,6 +211,7 @@ const VIEW_NAME = "list";
  * @typedef {object} ViewListSortGroup
  * @property {{state: {sortables: import('vue').ComputedRef<string[]|undefined>, sorted: string[]}, updateSorted: (sorted: string[]) => void}} sorting - Sorting state and updater.
  * @property {string[]} sortablesList - Flat list of sortable field names (auto-unwrapped).
+ * @property {string[]} defaultSorted - The server's default sort order (from `modelConfig.config.sorted`), sanitized against `sortablesList` (auto-unwrapped). Applied when the view has neither an URL sort nor a stored preference; a stored preference always wins over it. Also the array `SortGroup`'s Reset sort control restores the default.
  * @property {boolean} isTable - True when the grid is in table mode (auto-unwrapped ref; can be assigned via `@update:is-table`).
  * @property {boolean} mobileSortDrawerVisible - Whether the deprecated mobile sort shell is open (auto-unwrapped ref; v-model compatible via `v-model:visible`). Deprecated: SortControl owns its own open state.
  * @property {boolean} canShowSorter - True when the sort control should be rendered (whenever sortable fields exist; layout-independent).
