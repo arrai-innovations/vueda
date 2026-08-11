@@ -30,8 +30,8 @@ The defaults are:
 - `expand`: all expandable field names declared on the serializer.
 - `routeActions` and `actions`: all action names from model-info.
 - `filterables`: all keys from the filterset definition.
-- `sortables`: all ordering field names from the viewset.
-- `sorted`: empty (no default sort).
+- `sortables`: every field name in the model-info `model_ordering.fields` list — the fields a client may order by.
+- `sorted`: the server's default sort order, from `model_ordering.default` (each name reversed with a leading `-` when its `ascending` flag is `false`).
 - `actionDetails`: keyed by action name, each entry carries the `detail`, `bulk`, and other properties from the server's action metadata.
 - `fieldDetails`: keyed by field name, each entry carries the field's type, label, choices, constraints, and other metadata.
 - `actionRedirects`: `{ default: "update" }` if `update` is available, then `"read"` (from `retrieve`), then `"list"`, then `null`.
@@ -110,7 +110,7 @@ If an action is present in `actions` but missing from `actionDetails`, UI classi
 
 **`filterables`** controls which fields appear in the filter UI. The default is all keys from the model's filterset definition. Override this to restrict which filters are available to the user. `filterableDetails` carries the metadata for each filterable field (type, choices, label) and is typically left at its default.
 
-**`sortables`** controls which columns support sorting. The default is all ordering fields declared on the viewset. **`sorted`** sets the initial sort state; it defaults to empty, meaning no sort is applied until the user interacts.
+**`sortables`** controls which columns support sorting. The default is every field name the model-info `model_ordering.fields` list advertises (the viewset's declared `ordering_fields`, expanded per DRF's own resolution rules — see [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics)). **`sorted`** sets the initial sort state; it defaults to the server's own default sort order (`model_ordering.default`), not an empty sort — `ViewList` opens already sorted the way the server would sort it if no `?o=` were sent. A stored user preference, once one exists, takes precedence over this default; `SortGroup`'s `Reset sort` control restores it explicitly.
 
 **List controls:**
 
