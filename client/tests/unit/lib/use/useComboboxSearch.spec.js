@@ -197,6 +197,71 @@ describe("lib/use/useComboboxSearch.js", () => {
         });
     });
 
+    describe("Research after a value is selected", () => {
+        scopedIt("does not re-search while the query still matches the resolved selected label", async () => {
+            listState.objectsInOrder = [
+                { id: 1, formatted_name: "Alpha" },
+                { id: 11, formatted_name: "Beta" },
+            ];
+            widgetContext.state.combinedValue = 1;
+            const search = useComboboxSearch(props, widgetContext);
+            search.onOpen();
+            await flushPromises();
+            clearList.mockClear();
+
+            // Simulates Reka UI resetting the search box's text to the selected
+            // value's label after a selection (or on reopening).
+            search.query = search.singleSelectedLabel;
+            await flushPromises();
+
+            expect(search.options).toHaveLength(1);
+            expect(search.options[0]).toMatchObject({ id: 1, formatted_name: "Object One" });
+            expect(clearList).not.toHaveBeenCalled();
+        });
+
+        scopedIt(
+            "re-fills options with the full list when the search box is cleared after selecting a value",
+            async () => {
+                listState.objectsInOrder = [
+                    { id: 1, formatted_name: "Alpha" },
+                    { id: 11, formatted_name: "Beta" },
+                ];
+                widgetContext.state.combinedValue = 1;
+                const search = useComboboxSearch(props, widgetContext);
+                search.onOpen();
+                search.query = search.singleSelectedLabel;
+                await flushPromises();
+
+                // Sanity check: still pinned to the single resolved value before clearing.
+                expect(search.options).toHaveLength(1);
+
+                search.query = "";
+                await flushPromises();
+
+                expect(search.options).toHaveLength(2);
+                expect(search.options.map((o) => o.formatted_name)).toEqual(["Alpha", "Beta"]);
+                expect(clearList).toHaveBeenCalled();
+            },
+        );
+
+        scopedIt("keeps searching when the query no longer matches the selected label", async () => {
+            listState.objectsInOrder = [{ id: 20, formatted_name: "Cherry" }];
+            widgetContext.state.combinedValue = 1;
+            const search = useComboboxSearch(props, widgetContext);
+            search.onOpen();
+            search.query = search.singleSelectedLabel;
+            await flushPromises();
+            expect(search.options).toHaveLength(1);
+            expect(search.options[0]).toMatchObject({ id: 1 });
+
+            search.query = "cher";
+            await flushPromises();
+
+            expect(search.options).toHaveLength(1);
+            expect(search.options[0]).toMatchObject({ id: 20, formatted_name: "Cherry" });
+        });
+    });
+
     describe("singleSelectedLabel", () => {
         scopedIt("returns non-breaking space while lookup is loading", async () => {
             widgetContext.state.combinedValue = 1;

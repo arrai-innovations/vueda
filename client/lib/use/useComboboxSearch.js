@@ -160,7 +160,9 @@ export function useComboboxSearch(props, widgetContext) {
 
     const intendToSearch = computed(
         () =>
-            ((modelConfig.loading === false && !hasValue.value) || effectiveSearch.value.length > 0) &&
+            ((modelConfig.loading === false &&
+                (!hasValue.value || (hasValue.value && bouncedQuery.value.length === 0))) ||
+                effectiveSearch.value.length > 0) &&
             hasBeenFocused.value,
     );
 
