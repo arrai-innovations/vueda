@@ -861,8 +861,8 @@ class TestSchemaExpandableFieldsAndFields:
         parameters_by_name = {parameter["name"]: parameter for parameter in parameters}
 
         expand_param = parameters_by_name[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]]
-        assert "user" in expand_param["schema"]["enum"]
-        assert "dict_data" in expand_param["schema"]["enum"]
+        assert "user" in expand_param["schema"]["items"]["enum"]
+        assert "dict_data" in expand_param["schema"]["items"]["enum"]
 
         fields_param = parameters_by_name[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]
-        assert "number_of_ordered_products" in fields_param["schema"]["enum"]
+        assert "number_of_ordered_products" in fields_param["schema"]["items"]["enum"]
