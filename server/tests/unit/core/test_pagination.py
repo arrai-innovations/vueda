@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework import status
 
@@ -181,11 +183,47 @@ class TestColumnTotals(BaseTestCommonModelViewSet):
         api_client.force_authenticate(user=user)
         return api_client
 
-    def test_column_totals(self, authenticated_client, page_data):
+    def test_column_totals(self, settings, authenticated_client, page_data):
+        url = reverse("timesheet.timesheetentry-list")
+        response = authenticated_client.get(
+            url,
+            data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "*"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert str(response.data["columnTotals"]["hours"]) == "3.15"
+
+    def test_column_totals_no_fields_returns_none(self, authenticated_client, page_data):
         url = reverse("timesheet.timesheetentry-list")
         response = authenticated_client.get(url, format="json")
         assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["columnTotals"] == {}
+
+    def test_column_totals_no_fields_skips_aggregation_query(self, authenticated_client, page_data):
+        """Regression test: omitting `fields` must not run a `SUM` aggregation query.
+
+        Prior to the fix, omitting `fields` implicitly requested every declared column total,
+        so the `list` queryset always picked up an extra aggregation query even when the caller
+        had no use for totals.
+        """
+        url = reverse("timesheet.timesheetentry-list")
+        with CaptureQueriesContext(connection) as ctx:
+            response = authenticated_client.get(url, format="json")
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["columnTotals"] == {}
+        assert not any("SUM(" in query["sql"] for query in ctx.captured_queries)
+
+    def test_column_totals_wildcard_field_runs_aggregation_query(self, settings, authenticated_client, page_data):
+        url = reverse("timesheet.timesheetentry-list")
+        with CaptureQueriesContext(connection) as ctx:
+            response = authenticated_client.get(
+                url,
+                data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "*"},
+                format="json",
+            )
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert str(response.data["columnTotals"]["hours"]) == "3.15"
+        assert any("SUM(" in query["sql"] for query in ctx.captured_queries)
 
 
 @pytest.mark.django_db
@@ -268,16 +306,13 @@ class TestColumnTotalsDoubleUnderscoreField(BaseTestCommonModelViewSet):
         assert response.data["columnTotals"] == {"product_option__quantity_available": 12}
         assert response.data["results"][0].keys() == frozenset({"id", "quantity"})
 
-    def test_column_totals_no_fields_returns_all(self, settings, authenticated_client, page_data):
+    def test_column_totals_no_fields_returns_none(self, settings, authenticated_client, page_data):
         settings.ROOT_URLCONF = "tests.unit.core.urls_cart_item_column_totals"
 
         response = authenticated_client.get(reverse("store.cartitem-list"), format="json")
 
         assert response.status_code == status.HTTP_200_OK, response_body(response)
-        assert response.data["columnTotals"] == {
-            "product_option__quantity_available": 12,
-            "product_option__price": Decimal("25.00"),
-        }
+        assert response.data["columnTotals"] == {}
 
     def test_column_totals_wildcard_field_returns_all(self, settings, authenticated_client, page_data):
         settings.ROOT_URLCONF = "tests.unit.core.urls_cart_item_column_totals"
