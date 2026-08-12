@@ -44,13 +44,13 @@ When `column_totals` is empty (the default), the server aggregate payload is `{}
 
 ## Requesting a Subset of Totals
 
-By default, a `list` request returns every field declared in `column_totals`. A client can request a subset by including the wanted column-total field name(s) in the sparse `fields` query parameter (`f`) alongside whichever row fields it needs:
+By default, a `list` request returns no column totals: `columnTotals` is `{}` unless the request asks for at least one. A client requests totals by including the wanted column-total field name(s) in the sparse `fields` query parameter (`f`) alongside whichever row fields it needs:
 
 ```text
 GET /routes/myapp/invoice/?f=id,subtotal,tax
 ```
 
-Only `subtotal` and `tax` appear in `columnTotals`; `total` is omitted because it was not requested. If `fields` is omitted entirely, or submitted with a wildcard value (`*` or `~all`), every declared `column_totals` field is returned, same as the default.
+Only `subtotal` and `tax` appear in `columnTotals`; `total` is omitted because it was not requested. Submitting a wildcard value (`*` or `~all`) in `fields` returns every declared `column_totals` field. Omitting `fields` entirely returns none of them — this keeps the default `list` query free of aggregation work when the caller has no use for totals.
 
 Column-total field names are aggregate-only: {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param} recognizes them in the `fields` param, computes the corresponding aggregate, and strips them from the row-level field selection before the serializer runs. This has two consequences:
 
@@ -84,7 +84,7 @@ The paginated `list` response includes a `columnTotals` key alongside `results`,
 }
 ```
 
-When `column_totals` is empty, `columnTotals` is `{}`. When the filtered queryset is empty, aggregate values may be `null` (the database returns `NULL` for `SUM` over zero rows). The client should handle `null` values defensively.
+When `column_totals` is empty, or when a request does not ask for any column totals, `columnTotals` is `{}`. When the filtered queryset is empty, aggregate values may be `null` (the database returns `NULL` for `SUM` over zero rows). The client should handle `null` values defensively.
 
 When a request's `fields` param requests only a subset of the declared `column_totals` (see [Requesting a Subset of Totals](#requesting-a-subset-of-totals)), `columnTotals` contains only the requested keys.
 
@@ -115,20 +115,20 @@ Be aware that custom `row-after-objects` slot implementations replace the defaul
 
 After implementing column totals, verify:
 
-- `list` response includes `columnTotals` with the declared field names and aggregate values.
+- `list` response includes `columnTotals` with the requested field names and aggregate values when the request names them in `fields` (or submits a wildcard).
 - Totals change when filters are applied (they reflect the filtered set, not the full table).
 - Totals change when a different user with row-level restrictions views the same list (they reflect only visible rows).
 - Totals remain consistent across pages (pre-pagination aggregation).
 - Empty result sets produce `null` or `0` totals without errors.
 - The `list` view renders totals in the default footer row or through a custom slot.
 - Non-aggregatable fields in `column_totals` produce clear database errors (test this in development, not production).
-- Requesting a subset of declared totals via `fields` returns only the requested keys in `columnTotals`, and omitting `fields` (or submitting a wildcard) returns all of them.
+- Requesting a subset of declared totals via `fields` returns only the requested keys in `columnTotals`; submitting a wildcard returns all of them; omitting `fields` entirely returns none.
 
 ## Troubleshooting
 
 **`columnTotals` is missing from the response.** The endpoint is not using VUEDA's pagination class. Custom endpoints or overridden pagination classes may not include `columnTotals` in the response shape.
 
-**`columnTotals` is `{}`.** The viewset's `column_totals` attribute is empty or not set. Add the field names you want to aggregate.
+**`columnTotals` is `{}`.** Either the viewset's `column_totals` attribute is empty or not set, or the request did not name any of the declared totals in `fields` (and did not submit a wildcard). Add the field names you want to aggregate, or add the wanted total field name(s) to the request's `fields` param.
 
 **Database error on `list` request.** A field in `column_totals` is not aggregatable (e.g., a string or boolean field). Remove it from the list or convert the column to a numeric type.
 
@@ -138,7 +138,7 @@ After implementing column totals, verify:
 
 **Totals include `null` values.** The filtered queryset for a column is empty, or the column contains only `NULL` values. The database returns `NULL` for `SUM` over zero rows. Handle this defensively in the UI with a fallback display value.
 
-**A declared column total is missing from `columnTotals`.** The request's `fields` param requested a subset of fields that did not include that column-total field name. Add the field name to `fields`, submit a wildcard `fields` value, or omit `fields` entirely to get every declared total.
+**A declared column total is missing from `columnTotals`.** The request's `fields` param did not include that column-total field name. Add the field name to `fields`, or submit a wildcard `fields` value to get every declared total. Omitting `fields` entirely returns no totals.
 
 ## Relevant Implementation Surface
 
