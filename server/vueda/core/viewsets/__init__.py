@@ -236,16 +236,16 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         return queryset
 
     def get_column_info(self, queryset):
-        """Return aggregated totals for any fields listed in ``column_totals``."""
+        """Return aggregated totals for any fields requested via ``requested_column_totals``."""
         if not self.column_totals:
             return {}
-        column_totals = self.column_totals
 
-        # Return requested column totals only.
+        column_totals = ()
         if hasattr(self, "requested_column_totals"):
-            column_totals = []
-            for requested_column in self.requested_column_totals:
-                column_totals.append(requested_column)
+            column_totals = self.requested_column_totals
+
+        if not column_totals:
+            return {}
 
         aggregations = {column: Sum(column) for column in column_totals}
         return queryset.aggregate(**aggregations)
@@ -460,10 +460,6 @@ class NoExtraFieldsForViewSetMixin:
                     ]
 
                 return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-
-        elif hasattr(self, "column_totals"):  # all fields requested by not specifying a fields param
-            for column_total_field in self.column_totals:
-                self.requested_column_totals.add(column_total_field)
 
         if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
             extra_keys = submitted_expand_fields - (valid_expands | valid_wildcard_expands)
