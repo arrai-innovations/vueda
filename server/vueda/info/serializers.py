@@ -320,11 +320,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return field_type
 
-    def get_model_fields_data(self, serializer, *, excluded_fields=frozenset()):
+    def get_model_fields_data(self, serializer, *, excluded_fields=frozenset(), context=None):
         pk_field = serializer.Meta.model._meta.pk.name
         fields = {}
 
-        for field_name, field in serializer().get_fields().items():
+        serializer_instance = serializer(context=context) if context else serializer()
+        for field_name, field in serializer_instance.get_fields().items():
             if field_name in excluded_fields:
                 continue
 
@@ -417,7 +418,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # we need to get a canonical serializer for the model to determine what fields are available
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
 
-        fields = self.get_model_fields_data(serializer)
+        # self.context carries this request's view, so a canonical serializer built on
+        # ExcludeFieldsSerializerMixin (which requires a view in context) doesn't get instantiated bare.
+        fields = self.get_model_fields_data(serializer, context=self.context)
 
         # Registration doesn't require the canonical serializer to inherit VuedaExpandableFieldsSerializerMixin,
         # so get_field_model_info may not exist.

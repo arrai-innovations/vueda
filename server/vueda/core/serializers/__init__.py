@@ -468,6 +468,10 @@ class VuedaExpandableFieldsSerializerMixin:
         a serializer that already corrects a ``SerializerMethodField``'s metadata for ``/info/`` gets the same
         correction reflected in its schema, then reduce to the keys the schema needs. Returns an empty dict when
         this serializer has no ``Meta.model`` to inspect.
+
+        Passes ``self.context`` along so ``get_model_fields_data`` re-instantiates this *same* serializer
+        class with the view already in context (rather than bare) -- this is describing this serializer's
+        own fields, not another serializer's, so reusing ``self``'s context here is always correct.
         """
         from vueda.info.serializers import ModelInfoSerializer
 
@@ -477,7 +481,7 @@ class VuedaExpandableFieldsSerializerMixin:
         if model is None:
             return {}
 
-        fields = ModelInfoSerializer().get_model_fields_data(self.__class__)
+        fields = ModelInfoSerializer().get_model_fields_data(self.__class__, context=self.context)
         fields = self.get_field_model_info(fields)
 
         return self._reduce_field_model_info_for_schema(fields)

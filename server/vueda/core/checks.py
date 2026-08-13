@@ -5,6 +5,8 @@ import inspect
 import rest_flex_fields.serializers as flex_serializers
 from django.core.checks import Error
 from rest_framework.fields import Field
+from rest_framework.serializers import BaseSerializer
+from rest_framework.serializers import ListSerializer
 
 
 def _resolve_lazy_serializer_string(lazy_path):
@@ -165,5 +167,122 @@ def check_expandable_fields_configuration(app_configs, **kwargs):
             errors.extend(field_errors)
             if resolved_serializer is not None and resolved_serializer not in checked_serializers:
                 pending.append(resolved_serializer)
+
+    return errors
+
+
+def _iter_nested_serializer_fields(serializer_class):
+    """Yield ``(field_name, child_serializer_class)`` for each declared field of ``serializer_class`` that is
+    (or, for a ``many=True`` declaration, wraps via ``ListSerializer.child``) another serializer.
+
+    Uses the class-level ``_declared_fields`` collected by ``SerializerMetaclass``, so nothing needs to be
+    instantiated (and therefore no view needs to be in context) to inspect it.
+    """
+    for field_name, field in getattr(serializer_class, "_declared_fields", {}).items():
+        target = field.child if isinstance(field, ListSerializer) else field
+        if isinstance(target, BaseSerializer):
+            yield field_name, type(target)
+
+
+def _resolve_expandable_field_serializer_class(field_data):
+    """Best-effort resolve an ``expandable_fields`` entry to its serializer class.
+
+    Structural validity (tuple shape, resolvable strings, etc.) is ``check_expandable_fields_configuration``'s
+    job; this simply returns ``None`` when the entry can't be resolved to a class, so the caller can skip it.
+    """
+    field_serializer, _expand_options = _unwrap_expandable_field(field_data)
+
+    if isinstance(field_serializer, str):
+        field_serializer, _error = _resolve_lazy_serializer_string(field_serializer)
+
+    if not inspect.isclass(field_serializer):
+        return None
+
+    return field_serializer
+
+
+def check_exclude_fields_serializer_usage(app_configs, **kwargs):
+    """
+    ``ExcludeFieldsSerializerMixin.get_extra_kwargs()`` reads ``self.context["view"].action``. A view is only
+    ever present in context when the serializer is a routed ViewSet's ``serializer_class`` directly -- never
+    when it is reached as a nested field, an ``expandable_fields`` entry, or a ``register_serializer()``
+    (viewset-less) registration. Those uses raise a bare ``KeyError: 'view'`` from ``manage.py spectacular``
+    (and from the ``/info/`` meta-API), since the serializer is instantiated without a view in its context.
+    """
+    from vueda.core.serializers import ExcludeFieldsSerializerMixin
+    from vueda.info.registration import get_all_registrations
+
+    errors = []
+    checked_serializers = set()
+    pending = list(_get_routed_serializer_classes())
+
+    while pending:
+        serializer_class = pending.pop()
+        if serializer_class in checked_serializers:
+            continue
+        checked_serializers.add(serializer_class)
+
+        for field_name, child_serializer_class in _iter_nested_serializer_fields(serializer_class):
+            if issubclass(child_serializer_class, ExcludeFieldsSerializerMixin):
+                errors.append(
+                    Error(
+                        f"{child_serializer_class.__name__} is used as {serializer_class.__name__}'s "
+                        f"{field_name!r} field, but inherits ExcludeFieldsSerializerMixin.",
+                        hint=(
+                            "ExcludeFieldsSerializerMixin requires a view in its context, which is only present "
+                            "when it is a routed ViewSet's serializer_class directly -- not when nested as a "
+                            "field on another serializer."
+                        ),
+                        obj=child_serializer_class,
+                        id="vueda_core.E007",
+                    )
+                )
+            if child_serializer_class not in checked_serializers:
+                pending.append(child_serializer_class)
+
+        meta = getattr(serializer_class, "Meta", None)
+        expandable_fields = getattr(meta, "expandable_fields", {}) if meta else {}
+
+        for field_name, field_data in expandable_fields.items():
+            child_serializer_class = _resolve_expandable_field_serializer_class(field_data)
+            if child_serializer_class is None:
+                continue
+
+            if issubclass(child_serializer_class, ExcludeFieldsSerializerMixin):
+                errors.append(
+                    Error(
+                        f"{child_serializer_class.__name__} is used as an expandable field "
+                        f"({serializer_class.__name__}.Meta.expandable_fields[{field_name!r}]), but inherits "
+                        "ExcludeFieldsSerializerMixin.",
+                        hint=(
+                            "ExcludeFieldsSerializerMixin requires a view in its context, which is only present "
+                            "when it is a routed ViewSet's serializer_class directly -- not when reachable "
+                            "through another serializer's expandable_fields."
+                        ),
+                        obj=child_serializer_class,
+                        id="vueda_core.E008",
+                    )
+                )
+            if child_serializer_class not in checked_serializers:
+                pending.append(child_serializer_class)
+
+    for _key, registration in get_all_registrations().items():
+        if registration["viewset"] is not None:
+            continue
+
+        serializer_class = registration["serializer"]
+        if issubclass(serializer_class, ExcludeFieldsSerializerMixin):
+            errors.append(
+                Error(
+                    f"{serializer_class.__name__} is registered with register_serializer() (no viewset), but "
+                    "inherits ExcludeFieldsSerializerMixin.",
+                    hint=(
+                        "ExcludeFieldsSerializerMixin requires a view in its context, which is never present "
+                        "for a serializer registered without a viewset."
+                    ),
+                    obj=serializer_class,
+                    id="vueda_core.E009",
+                )
+            )
 
     return errors
