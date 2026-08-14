@@ -318,6 +318,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - New theme utilities: `overlay-hairline` (hairline edge + popover elevation in one `box-shadow`) and its `overlay-hairline-elevated` modifier (swaps to the overlay drop for dialogs / sheets).
       _No action required. If you overrode a theme key to swap a border colour, recolour the edge with `--vueda-hairline-color` (or a `hairline-*` variant) instead of `border-*`. If a theme key set both `hairline` and a `shadow-*` utility, use `overlay-hairline` instead — they both write `box-shadow` and cannot coexist._
 
+- **WidgetCombobox keeps its search input in sync with the resolved label (WidgetCombobox)**:
+    - Selecting an option in an API-backed `WidgetCombobox` leave the search box showing the raw value instead of the label of the option. `WidgetCombobox` now keeps the search input in sync with the resolved label itself instead of relying on Reka UI's built-in search-term reset, which only updates the search input when the selected value changes.
+      _No action required._
 ## Public Baseline
 
 Earlier VUEDA client versions existed for internal or private use. The v3 prerelease series is the first
