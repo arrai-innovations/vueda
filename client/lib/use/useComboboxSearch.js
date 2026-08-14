@@ -93,6 +93,7 @@ function groupByField(objects, groupKey) {
  */
 export function useComboboxSearch(props, widgetContext) {
     const hasBeenFocused = ref(false);
+    const isOpen = ref(false);
     const query = ref("");
     const bouncedQuery = ref("");
 
@@ -161,7 +162,7 @@ export function useComboboxSearch(props, widgetContext) {
     const intendToSearch = computed(
         () =>
             ((modelConfig.loading === false &&
-                (!hasValue.value || (hasValue.value && bouncedQuery.value.length === 0))) ||
+                (!hasValue.value || (hasValue.value && bouncedQuery.value.length === 0 && isOpen.value))) ||
                 effectiveSearch.value.length > 0) &&
             hasBeenFocused.value,
     );
@@ -257,8 +258,10 @@ export function useComboboxSearch(props, widgetContext) {
             if (!hasBeenFocused.value) {
                 hasBeenFocused.value = true;
             }
+            isOpen.value = true;
         },
         onClose: () => {
+            isOpen.value = false;
             query.value = "";
         },
     });

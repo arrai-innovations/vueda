@@ -138,6 +138,24 @@ describe("lib/use/useComboboxSearch.js", () => {
             await flushPromises();
             expect(clearList.mock.calls.length).toBe(countAfterFirst);
         });
+
+        scopedIt("does not trigger a list request when closing with a selected value", async () => {
+            widgetContext.state.combinedValue = 1;
+            const search = useComboboxSearch(props, widgetContext);
+
+            search.query = search.singleSelectedLabel;
+            await flushPromises();
+
+            search.onOpen();
+            await flushPromises();
+            clearList.mockClear();
+
+            search.onClose();
+            await flushPromises();
+
+            expect(search.query).toBe("");
+            expect(clearList).not.toHaveBeenCalled();
+        });
     });
 
     describe("Search term and emptyMessage", () => {
