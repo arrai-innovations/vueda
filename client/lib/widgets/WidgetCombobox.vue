@@ -18,7 +18,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { useFilter } from "reka-ui";
-import { computed, inject } from "vue";
+import { computed, inject, watch } from "vue";
 
 /**
  * A combobox widget supporting static options or API-backed search, single or multiple
@@ -174,15 +174,28 @@ const emptyMessage = computed(() => {
 
 const isGrouped = computed(() => isApiMode.value && comboboxSearch.isGrouped);
 
-// Reka UI's ComboboxInput resets its search term to `String(modelValue)` after a
-// selection unless a displayValue function is supplied; without this, selecting an
-// API-mode option would show the raw pk (e.g. "9") instead of its label.
-const inputDisplayValue = () => (props.multiple ? "" : (closedStateLabel.value ?? ""));
+// Reka's built-in reset-search-term-on-select re-derives the input's text only when the
+// combobox's model value changes; it doesn't re-run when reactive state read inside that
+// derivation resolves afterward, so a value selected while its
+// label is still loading is left showing blank forever. We disable that built-in reset
+// (see `reset-search-term-on-select="false"` below) and sync the query ourselves instead,
+// whenever the resolved label changes.
+watch(
+    () => (props.multiple ? null : closedStateLabel.value),
+    (label) => {
+        if (label != null) {
+            comboboxSearch.query = label;
+        }
+    },
+);
 
 const handleOpenChange = (open) => {
     if (open) {
         widgetContext.focus();
         comboboxSearch.onOpen();
+        if (!props.multiple) {
+            comboboxSearch.query = closedStateLabel.value ?? "";
+        }
     } else {
         widgetContext.blur();
         comboboxSearch.onClose();
@@ -213,7 +226,7 @@ const icon = useIcons("WidgetCombobox", props);
         :multiple="props.multiple"
         :name="widgetContext.state.combinedName"
         :required="widgetContext.state.required"
-        :reset-search-term-on-select="true"
+        :reset-search-term-on-select="false"
         @update:open="handleOpenChange"
     >
         <ComboboxAnchor class="w-full">
@@ -240,7 +253,6 @@ const icon = useIcons("WidgetCombobox", props);
         <ComboboxList class="w-[var(--reka-combobox-trigger-width)]">
             <ComboboxInput
                 v-model="comboboxSearch.query"
-                :display-value="inputDisplayValue"
                 :placeholder="isApiMode ? 'Type to search...' : 'Search...'"
             />
             <ComboboxViewport>

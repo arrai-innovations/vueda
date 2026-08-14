@@ -468,9 +468,12 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
     /*  Input display value                                            */
     /* -------------------------------------------------------------- */
 
-    // Reka UI resets the search input's text to this function's return value after a
-    // selection. Without it, Reka falls back to `String(modelValue)` (e.g. "9" instead
-    // of "Apple") for non-object model values.
+    // Reka's own search-term reset is disabled (`reset-search-term-on-select="false"`)
+    // because it only re-derives the input's text when the combobox's model value itself
+    // changes, and never re-invokes that derivation when reactive state read inside it
+    // (e.g. an async label lookup) resolves afterward. WidgetCombobox owns the input's
+    // text itself instead, syncing `comboboxSearch.query` to the resolved label. See
+    // WidgetCombobox.reka.spec.js for a regression test against the real Reka controls.
     describe("Input display value", () => {
         scopedIt("shows the resolved label, not the raw pk, for a selected API-mode option", async () => {
             const { nextTick } = await vi.importActual("vue");
@@ -478,8 +481,9 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
             const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing" } });
             widgetContext.state.combinedValue = 9;
             await nextTick();
+            expect(searchState.query).toBe("Apple");
             const input = wrapper.find("[data-stub='combobox-input']");
-            expect(input.attributes("data-display-value")).toBe("Apple");
+            expect(input.attributes("value")).toBe("Apple");
         });
 
         scopedIt("shows the resolved label for a selected static-mode option", async () => {
@@ -489,14 +493,36 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
             });
             widgetContext.state.combinedValue = "green";
             await nextTick();
+            expect(searchState.query).toBe("Green");
             const input = wrapper.find("[data-stub='combobox-input']");
-            expect(input.attributes("data-display-value")).toBe("Green");
+            expect(input.attributes("value")).toBe("Green");
         });
 
         scopedIt("shows an empty string when nothing is selected", async () => {
             const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing" } });
+            expect(searchState.query).toBe("");
             const input = wrapper.find("[data-stub='combobox-input']");
-            expect(input.attributes("data-display-value")).toBe("");
+            expect(input.attributes("value")).toBe("");
+        });
+
+        scopedIt("re-syncs the query to the selected label when the combobox re-opens", async () => {
+            const { nextTick } = await vi.importActual("vue");
+            searchState.singleSelectedLabel = "Apple";
+            const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing" } });
+            widgetContext.state.combinedValue = 9;
+            await nextTick();
+            searchState.query = "something the user typed";
+            await wrapper.getComponent(ControlComboboxStub).vm.$emit("update:open", true);
+            expect(searchState.query).toBe("Apple");
+        });
+
+        scopedIt("does not sync the query on open in multiple mode", async () => {
+            searchState.singleSelectedLabel = "Apple";
+            const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing", multiple: true } });
+            widgetContext.state.combinedValue = [9];
+            searchState.query = "still typing";
+            await wrapper.getComponent(ControlComboboxStub).vm.$emit("update:open", true);
+            expect(searchState.query).toBe("still typing");
         });
     });
 
