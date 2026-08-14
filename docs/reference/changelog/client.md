@@ -321,6 +321,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 - **WidgetCombobox keeps its search input in sync with the resolved label (WidgetCombobox)**:
     - Selecting an option in an API-backed `WidgetCombobox` leave the search box showing the raw value instead of the label of the option. `WidgetCombobox` now keeps the search input in sync with the resolved label itself instead of relying on Reka UI's built-in search-term reset, which only updates the search input when the selected value changes.
       _No action required._
+
 ## Public Baseline
 
 Earlier VUEDA client versions existed for internal or private use. The v3 prerelease series is the first
