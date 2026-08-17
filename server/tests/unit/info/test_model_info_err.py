@@ -528,3 +528,47 @@ class TestFormattedName:
         """_get_formatted_name returns the looked-up field value when formatted_name_lookup_expression is a string."""
         instance = err_models.ValidLookupExpression(the_name_field="Test Name")
         assert instance._get_formatted_name() == "Test Name"
+
+
+class VuedaExcludeFieldsTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Customer": [
+            ("contenttypes", "ContentType", "read"),
+            ("erring", "NoExpandableFieldsData", "read"),
+        ]
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+            "groups": ["Customer"],
+        },
+    }
+
+
+@pytest.mark.django_db
+class TestModelInfoExcludeFieldsSerializerMixin:
+    """ExcludeFieldsSerializer is registered with a ViewSet directly -- the only valid use of
+    ExcludeFieldsSerializerMixin. Regression coverage for ModelInfoSerializer.get_model_fields()
+    threading its context through get_model_fields_data(), instead of instantiating the canonical
+    serializer bare (which raised KeyError: 'view')."""
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaExcludeFieldsTestData()
+
+    def test_model_fields_does_not_crash(self, test_data, api_client):
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ExcludeFieldsSerializer, err_viewsets.ExcludeFieldsViewSet)
+
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("erring", "noexpandablefieldsdata")),
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_fields"},
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert sorted(response.data["model_fields"].keys()) == ["available_actions", "formatted_name", "id"]

@@ -761,7 +761,108 @@ class TestVuedaReadonlySerializer:
             class Meta(store_serializers.CustomerSerializer.Meta):
                 expandable_fields = {"data": (store_serializers.CustomerDataSerializer, {})}
 
-        expand_items = _ParentSerializer().get_expandable_fields()
+        expand_items = _ParentSerializer().generate_expand_model_info()
         data_expand_item = next(item for item in expand_items if item["name"] == "data")
 
         assert data_expand_item["read_only"] is True
+
+
+@pytest.mark.django_db
+class TestSchemaExpandableFieldsAndFields:
+    """
+    ``get_schema_expandable_fields``/``get_schema_fields`` reuse the same generation and customization
+    hooks as the ``/info/`` meta-API (``generate_expand_model_info``/``get_expand_model_info`` and
+    ``get_field_model_info``), reduced to what an OpenAPI schema needs. ``CustomerSerializer`` has no
+    schema-specific override for its ``dict_data``/``single_value`` ``SerializerMethodField`` expands, or
+    for its ``number_of_ordered_products`` ``SerializerMethodField``; both are covered by the same
+    ``get_expand_model_info``/``get_field_model_info`` overrides it already defines for ``/info/``.
+    """
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register_serializer(store_serializers.CustomerSerializer)
+
+    def test_schema_expandable_fields_reduces_a_model_backed_expand(self):
+        self.register_viewsets()
+        schema_expandable_fields = store_serializers.CustomerSerializer().get_schema_expandable_fields()
+        expands = {expand["name"]: expand for expand in schema_expandable_fields}
+
+        assert expands["dict_data"] == {
+            "name": "dict_data",
+            settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                "name": {
+                    "label": "Name",
+                    "type": "CharField",
+                    "required": False,
+                    "choices": False,
+                },
+            },
+        }
+        assert expands["single_value"] == {
+            "name": "single_value",
+            "type": "CharField",
+        }
+
+    def test_schema_expandable_fields_reflects_get_expand_model_info_without_a_schema_override(self):
+        self.register_viewsets()
+        schema_expandable_fields = store_serializers.CustomerSerializer().get_schema_expandable_fields()
+        expands = {expand["name"]: expand for expand in schema_expandable_fields}
+
+        assert expands["user"] == {
+            "name": "user",
+            "app_label": "employee",
+            "model": "user",
+            settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                "id": {
+                    "choices": False,
+                    "label": "ID",
+                    "required": False,
+                    "type": "IntegerField",
+                },
+                "email": {
+                    "choices": False,
+                    "label": "Email address",
+                    "required": True,
+                    "type": "EmailField",
+                },
+                "name": {
+                    "choices": False,
+                    "label": "Name",
+                    "required": True,
+                    "type": "CharField",
+                },
+            },
+        }
+
+    def test_schema_fields_reflects_get_field_model_info_correction(self):
+        fields = store_serializers.CustomerSerializer().get_schema_fields()
+
+        assert fields["number_of_ordered_products"] == {
+            "label": "Number Of Ordered Products",
+            "type": "IntegerField",
+            "required": False,
+            "choices": False,
+        }
+
+    def test_schema_fields_empty_without_a_model(self):
+        from rest_framework import serializers as drf_serializers
+
+        from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
+
+        class NoModelSerializer(VuedaExpandableFieldsSerializerMixin, drf_serializers.Serializer):
+            pass
+
+        assert NoModelSerializer().get_schema_fields() == {}
+
+    def test_schema_operation_parameters_documents_expand_and_fields(self):
+        self.register_viewsets()
+        parameters = store_serializers.CustomerSerializer().get_schema_operation_parameters("op", [])
+        parameters_by_name = {parameter["name"]: parameter for parameter in parameters}
+
+        expand_param = parameters_by_name[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]]
+        assert "user" in expand_param["schema"]["items"]["enum"]
+        assert "dict_data" in expand_param["schema"]["items"]["enum"]
+
+        fields_param = parameters_by_name[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]
+        assert "number_of_ordered_products" in fields_param["schema"]["items"]["enum"]

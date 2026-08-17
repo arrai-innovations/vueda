@@ -25,6 +25,7 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 - [Set Up CRUDL for a Composite Primary Key Model](composite-primary-keys.md): Set up serializer, viewset, and filterset for models that use a composite primary key.
 - [Expose a Proxy Model as a Separate CRUDL Surface](proxy-models.md): Give a proxy model its own serializer, viewset, permissions, and model-info registration without a separate database table.
 - [Split Read/Write Serializers Safely](split-read-write-serializers.md): Use viewset serializer switching without breaking model-info metadata.
+- [Lock Fields to Specific Write Actions](hide-fields-per-write-action.md): Use `ExcludeFieldsSerializerMixin` to make fields read-only on `create` or `update` without a full serializer split.
 - [Configure `list`/`read`/`create`/`update` Views](configure-crud-views.md): Tune model config per view, including default fields/expands/actions.
 - [Link List Rows to Read and Update Views](link-list-rows-to-detail-views.md): Add a per-row link from a `list` view to that row's `read` or `update` view.
 - [Customize List Column Rendering](customize-list-column-rendering.md): Override how `list` columns render with type-aware column adapters, model config, view props, or slots.
@@ -34,6 +35,7 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 
 - [Model Choices, Lookup Fields, and Dynamic Options](choices-and-lookups.md): Use model-info choices and choice endpoints correctly.
 - [Use Expand and Sparse Field Controls](expand-and-fields-controls.md): Control payload shape with `expand` and `fields`.
+- [Customize Model Info Field and Expand Metadata](customize-model-info-metadata.md): Correct generated `model_fields`/`model_expands` metadata for `SerializerMethodField`s with `get_field_model_info` and `get_expand_model_info`.
 - [Build Nested/Inlined Writes](nested-writable-inlines.md): Handle writable nested relations and server validation behavior.
 - [Customize Field and Widget Rendering](custom-field-widget-rendering.md): Override field/widget components and props in model config.
 - [Handle Form Validation and Server Errors](form-validation-and-errors.md): Map server validation responses into VUEDA form context.
