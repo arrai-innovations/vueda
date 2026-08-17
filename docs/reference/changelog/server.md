@@ -67,6 +67,9 @@ public-facing documentation baseline.
 
 - **Django built-in model `formatted_name` support**:
     - `InfoConfig.ready()` now patches Django's `Group`, `Permission`, and `ContentType` models with the `_has_formatted_name_field`, `_get_formatted_name`, and `formatted_name_lookup_expression` (or `get_formatted_name`) attributes that VUEDA's viewset and serializer layers require. `Group` and `Permission` use `name` as their display field; `ContentType` uses `app_labeled_name`. All three can now be used as expandable fields without any application-level configuration.
+- **Django 6.0 support**:
+    - The server package now accepts Django 6.0 in addition to 5.2 (`django>=5.2.14,<6.1`). `Model.save()` overrides in `vueda.core`, `vueda.vdq`, and `vueda.workflow` were updated for Django 6.0's keyword-only `save()` signature, and the removed `django.utils.itercompat` import was replaced with a standard-library `collections.abc.Iterable` check.
+      _Django 6.0 requires Python 3.12+; installations on Python 3.11 continue to resolve Django 5.2 via `uv.lock`. Pin `django<6` in your own application if you need to stay on Django 5.2 while running Python 3.12 or newer._
 
 ### Fixes
 
