@@ -208,7 +208,7 @@ const icon = useIcons("WidgetCombobox", props);
         :multiple="props.multiple"
         :name="widgetContext.state.combinedName"
         :required="widgetContext.state.required"
-        :reset-search-term-on-select="true"
+        :reset-search-term-on-select="!isApiMode"
         @update:open="handleOpenChange"
     >
         <ComboboxAnchor class="w-full">

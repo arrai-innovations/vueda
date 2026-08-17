@@ -100,8 +100,11 @@ def postprocess_schema_components(result, generator, **kwargs):  # noqa C901
                             ),
                             "schema": {
                                 "title": "Expandable Fields",
-                                "type": "array of strings",
-                                "enum": ["groups"],
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "enum": ["groups"],
+                                },
                             },
                         }
                     ]

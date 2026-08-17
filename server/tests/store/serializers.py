@@ -49,10 +49,8 @@ class CustomerSerializer(VuedaHistorySerializer):
     def get_number_of_ordered_products(self, obj):
         return 20
 
-    def get_expandable_fields(self):
-        expandable_fields = super().get_expandable_fields()
-
-        for expandable_field in expandable_fields:
+    def get_expand_model_info(self, expands):
+        for expandable_field in expands:
             match expandable_field["name"]:
                 case "dict_data":
                     expandable_field["read_only"] = True
@@ -74,33 +72,22 @@ class CustomerSerializer(VuedaHistorySerializer):
                     expandable_field["type_model"] = None
                     expandable_field["type_serializer"] = "CharField"
 
-        return expandable_fields
+        return expands
 
-    def get_schema_expandable_fields(self):  # pragma: no cover
-        expandable_fields = super().get_schema_expandable_fields()
+    def get_field_model_info(self, fields):
+        fields["number_of_ordered_products"] = {
+            "label": "Number Of Ordered Products",
+            "type_db": None,
+            "type_model": None,
+            "type_serializer": "IntegerField",
+            "many": False,
+            "read_only": True,
+            "required": False,
+            "choices": False,
+            "hidden": False,
+        }
 
-        expandable_fields.extend(
-            (
-                {
-                    "name": "dict_data",
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                        "name": {
-                            "label": "Name",
-                            "type": "CharField",
-                            "many": False,
-                            "read_only": True,
-                            "required": False,
-                            "choices": False,
-                        },
-                    },
-                },
-                {
-                    "name": "single_value",
-                },
-            )
-        )
-
-        return expandable_fields
+        return fields
 
     def get_dict_data(self, instance):
         return {"name": "Test"}

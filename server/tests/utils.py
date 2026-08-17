@@ -97,8 +97,7 @@ class BaseTestMigrations:
             #   new test could get created for django, and then this wouldn't be a customization.
             with extend_sys_path(temp_dir):
                 new_module = os.path.basename(target_dir) + ".migrations"
-                migration_modules = settings.MIGRATION_MODULES
-                migration_modules[app_label] = new_module
+                migration_modules = {**settings.MIGRATION_MODULES, app_label: new_module}
                 with self.settings(MIGRATION_MODULES=migration_modules):
                     yield target_migrations_dir
 

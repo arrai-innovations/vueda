@@ -35,10 +35,10 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             ),
         }
 
-    def get_expandable_fields(self):
+    def generate_expand_model_info(self):
         from vueda.info.serializers import ModelInfoSerializer
 
-        expandable_fields = super().get_expandable_fields()
+        expandable_fields = super().generate_expand_model_info()
 
         model = self.Meta.model
         history_model = model.history.model
@@ -209,6 +209,14 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             serializer = ModelInfoSerializer(model_content_type)
             canonical_serializer = serializer.canonical["serializer"]
             fields = serializer.get_model_fields_data(canonical_serializer)
+
+            # Mirror ModelInfoSerializer.get_model_fields: these fields are the same fields reported on the
+            # root model_fields metadata, so any get_field_model_info correction on the canonical serializer
+            # (e.g. for a SerializerMethodField) must be applied here too, not just on the root.
+            get_field_model_info = getattr(canonical_serializer(), "get_field_model_info", None)
+            if get_field_model_info is not None:
+                fields = get_field_model_info(fields)
+
             for field_name, field in fields.items():
                 if "pk" in field:
                     del field["pk"]
@@ -231,10 +239,6 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
                     if "hidden" not in field:
                         field["hidden"] = False
 
-        return expandable_fields
-
-    def get_schema_expandable_fields(self):  # pragma: no cover
-        expandable_fields = super().get_schema_expandable_fields()
         return expandable_fields
 
     def get_first_history_entry(self, data):
