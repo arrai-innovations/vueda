@@ -2504,7 +2504,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=48.0.1" },
     { name = "dj-database-url", specifier = ">=2.2.0,<3" },
     { name = "dj-email-url", specifier = ">=1.0.6,<2" },
-    { name = "dj-rest-auth", specifier = ">=6.0.0,<7.3" },
+    { name = "dj-rest-auth", specifier = ">=7.0.0,<8.0" },
     { name = "django", specifier = ">=5.2.14,<6.1" },
     { name = "django-allauth", extras = ["mfa"], specifier = ">=65.14.1" },
     { name = "django-anymail", extras = ["mailgun", "sendgrid", "sparkpost"], specifier = ">=15.0,<16" },
