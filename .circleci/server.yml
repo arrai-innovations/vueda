@@ -31,6 +31,14 @@ executors:
         docker:
             - image: cimg/python:3.12
             - image: cimg/postgres:15.12
+    python313-pg:
+        docker:
+            - image: cimg/python:3.13
+            - image: cimg/postgres:15.12
+    python314-pg:
+        docker:
+            - image: cimg/python:3.14
+            - image: cimg/postgres:15.12
 
 jobs:
     server-build:
@@ -103,11 +111,49 @@ workflows:
                           only: /.*/
                       tags:
                           only: /^server-v.*/
+            - pytest/pytest:
+                  name: server-pytest-django6-py313
+                  executor: python313-pg
+                  context: arrai-global
+                  wd: server
+                  pytest_args: --cov -n2 --dist loadgroup
+                  env_type: uv
+                  config:
+                      - run:
+                            name: Copy config
+                            command: |
+                                cd server
+                                cp config.circleci.toml config.local.toml
+                  filters:
+                      branches:
+                          only: /.*/
+                      tags:
+                          only: /^server-v.*/
+            - pytest/pytest:
+                  name: server-pytest-django6-py314
+                  executor: python314-pg
+                  context: arrai-global
+                  wd: server
+                  pytest_args: --cov -n2 --dist loadgroup
+                  env_type: uv
+                  config:
+                      - run:
+                            name: Copy config
+                            command: |
+                                cd server
+                                cp config.circleci.toml config.local.toml
+                  filters:
+                      branches:
+                          only: /.*/
+                      tags:
+                          only: /^server-v.*/
             - server-build:
                   name: server-build
                   requires:
                       - server-pytest
                       - server-pytest-django6
+                      - server-pytest-django6-py313
+                      - server-pytest-django6-py314
                   filters:
                       tags:
                           only: /^server-v.*/
