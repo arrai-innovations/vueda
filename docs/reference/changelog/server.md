@@ -82,6 +82,8 @@ public-facing documentation baseline.
 - **Django 6.0 support**:
     - The server package now accepts Django 6.0 in addition to 5.2 (`django>=5.2.14,<6.1`). `Model.save()` overrides in `vueda.core`, `vueda.vdq`, and `vueda.workflow` were updated for Django 6.0's keyword-only `save()` signature, and the removed `django.utils.itercompat` import was replaced with a standard-library `collections.abc.Iterable` check.
       _Django 6.0 requires Python 3.12+; installations on Python 3.11 continue to resolve Django 5.2 via `uv.lock`. Pin `django<6` in your own application if you need to stay on Django 5.2 while running Python 3.12 or newer._
+    - The `dj-rest-auth` constraint also widened (`dj-rest-auth>=6.0.0,<7.3`) to allow versions that support Django 6.0.
+      _`dj-rest-auth` 7.0 dropped Django 5.2 support. Applications staying on Django 5.2 must pin `dj-rest-auth<7.0` themselves._
 
 ### Fixes
 
