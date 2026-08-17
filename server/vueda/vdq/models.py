@@ -27,6 +27,7 @@ __all__ = (
 
 import mimetypes
 
+import django
 import swapper
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -186,19 +187,37 @@ class AbstractQueueItemAttachment(models.Model):
     class Meta:
         abstract = True
 
-    def save(self, *args, **kwargs):
-        if self.attachment:
-            if not self.file_size:
-                try:
-                    self.file_size = self.attachment.size
-                except (OSError, AttributeError):
-                    # Some storages cannot provide size yet; skip and persist without it.
-                    pass
-            if not self.mimetype:
-                detected_type, _ = mimetypes.guess_type(self.filename)
-                self.mimetype = detected_type or DEFAULT_ATTACHMENT_MIME_TYPE
+    if django.VERSION >= (6, 0):
 
-        super().save(*args, **kwargs)
+        def save(self, **kwargs):
+            if self.attachment:
+                if not self.file_size:
+                    try:
+                        self.file_size = self.attachment.size
+                    except (OSError, AttributeError):
+                        # Some storages cannot provide size yet; skip and persist without it.
+                        pass
+                if not self.mimetype:
+                    detected_type, _ = mimetypes.guess_type(self.filename)
+                    self.mimetype = detected_type or DEFAULT_ATTACHMENT_MIME_TYPE
+
+            super().save(**kwargs)
+
+    else:
+
+        def save(self, *args, **kwargs):
+            if self.attachment:
+                if not self.file_size:
+                    try:
+                        self.file_size = self.attachment.size
+                    except (OSError, AttributeError):
+                        # Some storages cannot provide size yet; skip and persist without it.
+                        pass
+                if not self.mimetype:
+                    detected_type, _ = mimetypes.guess_type(self.filename)
+                    self.mimetype = detected_type or DEFAULT_ATTACHMENT_MIME_TYPE
+
+            super().save(*args, **kwargs)
 
     def get_content(self):
         with self.attachment.open("rb") as f:

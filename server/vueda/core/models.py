@@ -9,6 +9,7 @@ __all__ = (
     "VuedaModel",
 )
 
+import django
 from django.contrib.admin.utils import lookup_field
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -104,11 +105,21 @@ class SingletonModel(VuedaModel):
     class Meta(BaseModelMeta):
         abstract = True
 
-    def save(self, *args, **kwargs):
-        """Delete all other rows and force ``id=1`` before saving."""
-        self.__class__.objects.exclude(id=self.id).delete()
-        self.id = 1
-        super().save(*args, **kwargs)
+    if django.VERSION >= (6, 0):
+
+        def save(self, **kwargs):
+            """Delete all other rows and force ``id=1`` before saving."""
+            self.__class__.objects.exclude(id=self.id).delete()
+            self.id = 1
+            super().save(**kwargs)
+
+    else:
+
+        def save(self, *args, **kwargs):
+            """Delete all other rows and force ``id=1`` before saving."""
+            self.__class__.objects.exclude(id=self.id).delete()
+            self.id = 1
+            super().save(*args, **kwargs)
 
     @classmethod
     def load(cls) -> "SingletonModel":
