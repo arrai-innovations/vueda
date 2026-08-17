@@ -178,6 +178,7 @@ export function useDetailView(options, formInitialValue) {
     );
 
     const fetchFields = computed(() => options.fetchFields ?? modelConfig.config?.fetchFields);
+    const hasValidTransitions = computed(() => !!modelConfig.info?.fields?.valid_transitions);
 
     const instanceObjectProps = reactive({
         target: {
@@ -187,12 +188,14 @@ export function useDetailView(options, formInitialValue) {
         pkKey: computed(() => modelConfig.info?.pk ?? "id"),
         pk: toRef(options, "pk"),
         params: {
-            [FIELDS_PARAM]: computed(() => [
-                modelConfig.info?.pk ?? "id",
-                fetchFields.value,
-                "available_actions",
-                "valid_transitions",
-            ]),
+            [FIELDS_PARAM]: computed(() =>
+                [
+                    modelConfig.info?.pk ?? "id",
+                    fetchFields.value,
+                    "available_actions",
+                    hasValidTransitions.value ? "valid_transitions" : null,
+                ].filter(Boolean),
+            ),
             [EXPAND_PARAM]: computed(() => modelConfig.config?.expand),
         },
         intendToRetrieve,

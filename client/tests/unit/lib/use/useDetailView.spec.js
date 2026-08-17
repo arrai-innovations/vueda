@@ -5,6 +5,7 @@ import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
+import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { nextTick, reactive, ref } from "vue";
 
 vi.mock("@vueda/use/useModelConfig.js", async () => {
@@ -293,6 +294,20 @@ describe("lib/use/useDetailView.js", () => {
             await withSetup(() => useDetailView(props, formInitialValue));
             const objectProps = useObject.mock.calls[0][0].props;
             expect(objectProps.pkKey).toBe("id");
+        });
+
+        scopedIt("requests valid_transitions when the model info declares the field", async () => {
+            mockModelConfig.info.fields = { valid_transitions: {} };
+            await withSetup(() => useDetailView(props, formInitialValue));
+            const objectProps = useObject.mock.calls[0][0].props;
+            expect(objectProps.params[FIELDS_PARAM]).toContain("valid_transitions");
+        });
+
+        scopedIt("omits valid_transitions when the model info does not declare the field", async () => {
+            mockModelConfig.info.fields = { name: {} };
+            await withSetup(() => useDetailView(props, formInitialValue));
+            const objectProps = useObject.mock.calls[0][0].props;
+            expect(objectProps.params[FIELDS_PARAM]).not.toContain("valid_transitions");
         });
     });
 });
