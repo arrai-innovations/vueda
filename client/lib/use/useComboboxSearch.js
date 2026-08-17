@@ -198,18 +198,17 @@ export function useComboboxSearch(props, widgetContext) {
         { deep: true },
     );
 
-    watch(
-        query,
-        debounce(
-            (val) => {
-                if (bouncedQuery.value !== val) {
-                    bouncedQuery.value = val;
-                }
-            },
-            500,
-            { leading: true },
-        ),
+    const updateBouncedQuery = debounce(
+        (val) => {
+            if (bouncedQuery.value !== val) {
+                bouncedQuery.value = val;
+            }
+        },
+        500,
+        { leading: true },
     );
+
+    watch(query, updateBouncedQuery);
 
     const listObjects = computed(() => {
         const objects = deepUnref(searchList.state.objectsInOrder);
@@ -262,6 +261,8 @@ export function useComboboxSearch(props, widgetContext) {
         },
         onClose: () => {
             isOpen.value = false;
+            updateBouncedQuery.cancel();
+            bouncedQuery.value = "";
             query.value = "";
         },
     });

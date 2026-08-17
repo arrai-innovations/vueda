@@ -358,4 +358,67 @@ describe("lib/use/useComboboxSearch.js", () => {
             expect(search.options).toHaveLength(1);
         });
     });
+
+    describe("onClose cancels a pending debounced search (real debounce)", () => {
+        afterEach(() => {
+            vi.useRealTimers();
+            vi.doMock("lodash-es/debounce.js", () => ({
+                default: (fn) => {
+                    const d = (...args) => fn(...args);
+                    d.cancel = vi.fn();
+                    return d;
+                },
+            }));
+        });
+
+        scopedIt(
+            "closing then immediately reopening sends an empty search parameter instead of the stale query",
+            async () => {
+                vi.doUnmock("lodash-es/debounce.js");
+                vi.resetModules();
+                vi.useFakeTimers();
+
+                let capturedOpts;
+                vi.doMock("@vueda/use/useModelConfig.js", () => ({
+                    useModelConfig: vi.fn(() => modelConfig),
+                }));
+                vi.doMock("@vueda/use/useResolvedLookupObject.js", () => ({
+                    useResolvedLookupObject: vi.fn(() => lookup),
+                }));
+                vi.doMock("@arrai-innovations/reactive-helpers", async () => {
+                    const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
+                    return {
+                        ...actual,
+                        useList: vi.fn((opts) => {
+                            capturedOpts = opts;
+                            return { state: listState, clearList };
+                        }),
+                    };
+                });
+
+                const mod = await import("@vueda/use/useComboboxSearch.js");
+                const search = mod.useComboboxSearch(props, widgetContext);
+
+                search.onOpen();
+                search.query = "app";
+                await flushPromises();
+                // The leading edge of the debounce fires synchronously.
+                expect(capturedOpts.props.params.s).toBe("app");
+
+                search.onClose();
+                search.onOpen();
+                await flushPromises();
+
+                expect(search.query).toBe("");
+                expect(capturedOpts.props.params.s).toBe("");
+
+                // Advancing past the debounce window must not resurrect the stale query:
+                // onClose should have canceled the pending trailing invocation.
+                vi.advanceTimersByTime(500);
+                await flushPromises();
+
+                expect(capturedOpts.props.params.s).toBe("");
+            },
+        );
+    });
 });
