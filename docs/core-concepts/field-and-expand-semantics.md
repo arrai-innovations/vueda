@@ -50,6 +50,8 @@ The `model_expands` section of a model-info response describes each expandable r
 
 The nested `f` metadata is what makes expansion an explicit embedded contract rather than a boolean toggle. When the client expands a relationship, it knows the exact field schema of the embedded objects; their types, read-only status, required status, and constraints. This enables the client to build field-detail maps for expanded sub-fields (using `expand__subfield` composite keys) without fetching a separate model-info request for the related model.
 
+Generating `model_expands` requires the canonical serializer to inherit `VuedaExpandableFieldsSerializerMixin`, which is where `Meta.expandable_fields` is walked into descriptors. `VuedaSerializer` already includes this mixin, so any of its subclasses get `model_expands` for free. {@term Canonical Registration} does not require the canonical serializer to inherit `VuedaSerializer` at all; a plain `rest_framework.serializers.ModelSerializer` can be registered. If you register one of those and want it to report `model_expands`, inherit `VuedaExpandableFieldsSerializerMixin` directly. Without it, `model_expands` is an empty list regardless of any `Meta.expandable_fields` declaration, since there is no generation step to read that declaration.
+
 When sparse field selection (`f`) is applied to an expanded serializer's fields, the primary key of the nested serializer is always preserved even if not explicitly requested. This ensures that expanded objects are always identifiable regardless of which subset of their fields the client selects.
 
 ## Generic Foreign Key Expands

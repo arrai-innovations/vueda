@@ -1,3 +1,6 @@
+from .exclude_fields import ExcludeFieldsAsExpandableFieldViewSet  # noqa: F401
+from .exclude_fields import ExcludeFieldsAsNestedFieldViewSet  # noqa: F401
+from .exclude_fields import ExcludeFieldsViewSet  # noqa: F401
 from .viewsets import ExpandableFieldsBadTupleLengthViewSet  # noqa: F401
 from .viewsets import ExpandableFieldsListViewSet  # noqa: F401
 from .viewsets import ExpandableFieldsNestedInvalidViewSet  # noqa: F401
