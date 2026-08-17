@@ -468,36 +468,11 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
     /*  Input display value                                            */
     /* -------------------------------------------------------------- */
 
-    // Reka's own search-term reset is disabled (`reset-search-term-on-select="false"`)
-    // because it only re-derives the input's text when the combobox's model value itself
-    // changes, and never re-invokes that derivation when reactive state read inside it
-    // (e.g. an async label lookup) resolves afterward. WidgetCombobox owns the input's
-    // text itself instead, syncing `comboboxSearch.query` to the resolved label. See
-    // WidgetCombobox.reka.spec.js for a regression test against the real Reka controls.
+    // The search box's text is entirely Reka's responsibility via `reset-search-term-on-select`;
+    // WidgetCombobox no longer writes to `comboboxSearch.query` itself. This stub doesn't
+    // implement Reka's reset logic, so it can only assert the prop WidgetCombobox passes.
+    // See WidgetCombobox.reka.spec.js for the actual reset behavior against real Reka controls.
     describe("Input display value", () => {
-        scopedIt("shows the resolved label, not the raw pk, for a selected API-mode option", async () => {
-            const { nextTick } = await vi.importActual("vue");
-            searchState.singleSelectedLabel = "Apple";
-            const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing" } });
-            widgetContext.state.combinedValue = 9;
-            await nextTick();
-            expect(searchState.query).toBe("Apple");
-            const input = wrapper.find("[data-stub='combobox-input']");
-            expect(input.attributes("value")).toBe("Apple");
-        });
-
-        scopedIt("shows the resolved label for a selected static-mode option", async () => {
-            const { nextTick } = await vi.importActual("vue");
-            const wrapper = mount(WidgetCombobox, {
-                props: { options: STATIC_OPTIONS, optionLabel: "label", optionValue: "value" },
-            });
-            widgetContext.state.combinedValue = "green";
-            await nextTick();
-            expect(searchState.query).toBe("Green");
-            const input = wrapper.find("[data-stub='combobox-input']");
-            expect(input.attributes("value")).toBe("Green");
-        });
-
         scopedIt("shows an empty string when nothing is selected", async () => {
             const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing" } });
             expect(searchState.query).toBe("");
@@ -505,24 +480,18 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
             expect(input.attributes("value")).toBe("");
         });
 
-        scopedIt("re-syncs the query to the selected label when the combobox re-opens", async () => {
-            const { nextTick } = await vi.importActual("vue");
-            searchState.singleSelectedLabel = "Apple";
+        scopedIt("disables Reka's search-term reset in API mode", async () => {
             const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing" } });
-            widgetContext.state.combinedValue = 9;
-            await nextTick();
-            searchState.query = "something the user typed";
-            await wrapper.getComponent(ControlComboboxStub).vm.$emit("update:open", true);
-            expect(searchState.query).toBe("Apple");
+            const root = wrapper.getComponent(ControlComboboxStub);
+            expect(root.props("resetSearchTermOnSelect")).toBe(false);
         });
 
-        scopedIt("does not sync the query on open in multiple mode", async () => {
-            searchState.singleSelectedLabel = "Apple";
-            const wrapper = mount(WidgetCombobox, { props: { app: "myapp", model: "thing", multiple: true } });
-            widgetContext.state.combinedValue = [9];
-            searchState.query = "still typing";
-            await wrapper.getComponent(ControlComboboxStub).vm.$emit("update:open", true);
-            expect(searchState.query).toBe("still typing");
+        scopedIt("leaves Reka's search-term reset enabled in static mode", async () => {
+            const wrapper = mount(WidgetCombobox, {
+                props: { options: STATIC_OPTIONS, optionLabel: "label", optionValue: "value" },
+            });
+            const root = wrapper.getComponent(ControlComboboxStub);
+            expect(root.props("resetSearchTermOnSelect")).toBe(true);
         });
     });
 
