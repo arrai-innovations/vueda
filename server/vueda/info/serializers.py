@@ -320,11 +320,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return field_type
 
-    def get_model_fields_data(self, serializer, *, excluded_fields=frozenset()):
+    def get_model_fields_data(self, serializer, *, excluded_fields=frozenset(), context=None):
         pk_field = serializer.Meta.model._meta.pk.name
         fields = {}
 
-        for field_name, field in serializer().get_fields().items():
+        serializer_instance = serializer(context=context) if context else serializer()
+        for field_name, field in serializer_instance.get_fields().items():
             if field_name in excluded_fields:
                 continue
 
@@ -417,7 +418,17 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # we need to get a canonical serializer for the model to determine what fields are available
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
 
-        return self.get_model_fields_data(serializer)
+        # self.context carries this request's view, so a canonical serializer built on
+        # ExcludeFieldsSerializerMixin (which requires a view in context) doesn't get instantiated bare.
+        fields = self.get_model_fields_data(serializer, context=self.context)
+
+        # Registration doesn't require the canonical serializer to inherit VuedaExpandableFieldsSerializerMixin,
+        # so get_field_model_info may not exist.
+        get_field_model_info = getattr(serializer(), "get_field_model_info", None)
+        if get_field_model_info is not None:
+            fields = get_field_model_info(fields)
+
+        return fields
 
     def get_model_actions(self, instance):
         """
@@ -516,9 +527,20 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         Get the expands for a model and their own metadata.
         """
         # Similar to actions, we'll need to have a canonical serializer to determine what expands are available
-        serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
+        serializer = self.canonical["serializer"]  # type: type[serializers.ModelSerializer]
 
-        expands = serializer().get_expandable_fields()
+        serializer_instance = serializer()
+
+        # Registration doesn't require the canonical serializer to inherit VuedaExpandableFieldsSerializerMixin,
+        # so neither hook may exist. A serializer with no concept of expandable fields simply has no expands to
+        # report.
+        generate_expand_model_info = getattr(serializer_instance, "generate_expand_model_info", None)
+        expands = generate_expand_model_info() if generate_expand_model_info is not None else []
+
+        get_expand_model_info = getattr(serializer_instance, "get_expand_model_info", None)
+        if get_expand_model_info is not None:
+            expands = get_expand_model_info(expands)
+
         fields_param = settings.REST_FLEX_FIELDS["FIELDS_PARAM"]
 
         generic_foreign_key_names = {
