@@ -318,6 +318,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - New theme utilities: `overlay-hairline` (hairline edge + popover elevation in one `box-shadow`) and its `overlay-hairline-elevated` modifier (swaps to the overlay drop for dialogs / sheets).
       _No action required. If you overrode a theme key to swap a border colour, recolour the edge with `--vueda-hairline-color` (or a `hairline-*` variant) instead of `border-*`. If a theme key set both `hairline` and a `shadow-*` utility, use `overlay-hairline` instead — they both write `box-shadow` and cannot coexist._
 
+- **Combobox search input behavior for a selected value (WidgetCombobox)**:
+    - Selecting an option in an API-backed `WidgetCombobox` left the search box showing the raw value instead of the label. An API-backed `WidgetCombobox` now starts with a blank search box every time it opens and lists the full result set, while a static-mode combobox still pre-fills the search box with the selected option on open.
+    - Clearing the search box in an open, API-backed `WidgetCombobox` after selecting a value now reloads the full result list. Previously, clearing the search box left the list pinned to just the selected option until a different search term was typed.
+      _No action required._
+
 ## Public Baseline
 
 Earlier VUEDA client versions existed for internal or private use. The v3 prerelease series is the first
