@@ -207,7 +207,7 @@ workflows:
                   name: server-pysentry
                   context: arrai-global
                   executor: python311-base
-                  version: 0.4.5
+                  version: 0.4.9
                   filters:
                       branches:
                           only:
@@ -216,7 +216,7 @@ workflows:
                   name: server-pysentry-no-badge
                   context: arrai-global
                   executor: python311-base
-                  version: 0.4.5
+                  version: 0.4.9
                   create_badges: false
                   filters:
                       branches:
