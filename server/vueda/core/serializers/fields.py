@@ -13,10 +13,11 @@ __all__ = (
     "TemplatedTextField",
 )
 
+from collections.abc import Iterable
+
 from django.core.serializers.base import DeserializationError
 from django.core.serializers.base import SerializationError
 from django.http import Http404
-from django.utils.itercompat import is_iterable
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
@@ -54,7 +55,7 @@ class AvailableActionsField(serializers.ListField):
                 instances = self.parent.instance
                 if instances is None:
                     instances = self.root.instance
-                if not is_iterable(instances):
+                if not isinstance(instances, Iterable):
                     instances = (instances,)
             else:
                 instances = (instance,)

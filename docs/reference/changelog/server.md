@@ -82,6 +82,12 @@ public-facing documentation baseline.
     - Both methods reduce the generated metadata to schema-relevant keys (`label`, `type`, `required`, `choices`), dropping the database/model type detail (`type_db`/`type_model`, with `type_serializer` renamed to `type`), the `many`/`read_only` flags, the `hidden` flag, help text, and constraint bookkeeping (`max_value`, `min_value`, `max_length`, `min_length`, `max_digits`, `decimal_places`, `pk`) that `/info/` also reports but the schema does not need. These are dropped from an expand descriptor itself as well as from its nested fields, so an expand's own `many`/`read_only` flags don't appear in the schema either.
       _Remove any custom `get_schema_expandable_fields` override that duplicated `get_expand_model_info` logic just to describe a `SerializerMethodField` expand for schema purposes; the base implementation now covers it automatically._
 
+- **Django 6.0 support**:
+    - The server package now accepts Django 6.0 in addition to 5.2 (`django>=5.2.14,<6.1`). `Model.save()` overrides in `vueda.core`, `vueda.vdq`, and `vueda.workflow` were updated for Django 6.0's keyword-only `save()` signature, and the removed `django.utils.itercompat` import was replaced with a standard-library `collections.abc.Iterable` check.
+      _Django 6.0 requires Python 3.12+; installations on Python 3.11 continue to resolve Django 5.2 via `uv.lock`. Pin `django<6` in your own application if you need to stay on Django 5.2 while running Python 3.12 or newer._
+    - The `dj-rest-auth` constraint was also raised (`dj-rest-auth>=7.0.0,<8.0`) to bring in a `dj-rest-auth` release that supports Django 6.0.
+      _`dj-rest-auth` itself declares support for `django>=4.2` with no upper bound, so no action is required in your own application regardless of which supported Django version you run._
+
 ### Fixes
 
 - **Optional VDQ notifications**:

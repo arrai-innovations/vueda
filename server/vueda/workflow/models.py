@@ -16,6 +16,7 @@ __all__ = (
 
 from collections.abc import Iterable
 
+import django
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -57,12 +58,23 @@ class Workflow(SimpleHistoryModelMixin, Lookup):
     def __str__(self):
         return f"name: {self.name}, code: {self.code}"
 
-    def save(self, *args, **kwargs) -> None:
-        """Snapshot ``historical_app_label`` and ``historical_model`` before saving."""
-        self.historical_app_label = self.content_type.app_label
-        self.historical_model = self.content_type.model
+    if django.VERSION >= (6, 0):
 
-        super().save(*args, **kwargs)
+        def save(self, **kwargs) -> None:
+            """Snapshot ``historical_app_label`` and ``historical_model`` before saving."""
+            self.historical_app_label = self.content_type.app_label
+            self.historical_model = self.content_type.model
+
+            super().save(**kwargs)
+
+    else:
+
+        def save(self, *args, **kwargs) -> None:
+            """Snapshot ``historical_app_label`` and ``historical_model`` before saving."""
+            self.historical_app_label = self.content_type.app_label
+            self.historical_model = self.content_type.model
+
+            super().save(*args, **kwargs)
 
 
 class WorkflowPermission(SimpleHistoryModelMixin):
@@ -110,14 +122,26 @@ class WorkflowPermission(SimpleHistoryModelMixin):
             f"{'deleted ' if deleted_permission else ''}permission: {permission}"
         )
 
-    def save(self, *args, **kwargs):
-        # Set the historical permission codename, so if the permission is deleted,
-        # we don't just have an id that may not be the same on the server.
-        self.historical_permission_codename = self.permission.codename
-        self.historical_permission_content_type_app_label = self.permission.content_type.app_label
-        self.historical_permission_content_type_model_name = self.permission.content_type.model
+    if django.VERSION >= (6, 0):
 
-        super().save(*args, **kwargs)
+        def save(self, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+
+            super().save(**kwargs)
+    else:
+
+        def save(self, *args, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+
+            super().save(*args, **kwargs)
 
 
 class State(SimpleHistoryModelMixin):
@@ -195,14 +219,26 @@ class StatePermission(SimpleHistoryModelMixin):
             f"grant_or_deny: {'grant' if self.grant_or_deny else 'deny'}"
         )
 
-    def save(self, *args, **kwargs):
-        # Set the historical permission codename, so if the permission is deleted,
-        # we don't just have an id that may not be the same on the server.
-        self.historical_permission_codename = self.permission.codename
-        self.historical_permission_content_type_app_label = self.permission.content_type.app_label
-        self.historical_permission_content_type_model_name = self.permission.content_type.model
-        self.historical_group_name = self.group.name
-        super().save(*args, **kwargs)
+    if django.VERSION >= (6, 0):
+
+        def save(self, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+            self.historical_group_name = self.group.name
+            super().save(**kwargs)
+    else:
+
+        def save(self, *args, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+            self.historical_group_name = self.group.name
+            super().save(*args, **kwargs)
 
 
 class InitialState(SimpleHistoryModelMixin):
@@ -343,13 +379,24 @@ class TransitionPermission(SimpleHistoryModelMixin):
             f"{'deleted ' if deleted_permission else ''}permission: {permission}"
         )
 
-    def save(self, *args, **kwargs):
-        # Set the historical permission codename, so if the permission is deleted,
-        # we don't just have an id that may not be the same on the server.
-        self.historical_permission_codename = self.permission.codename
-        self.historical_permission_content_type_app_label = self.permission.content_type.app_label
-        self.historical_permission_content_type_model_name = self.permission.content_type.model
-        super().save(*args, **kwargs)
+    if django.VERSION >= (6, 0):
+
+        def save(self, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+            super().save(**kwargs)
+    else:
+
+        def save(self, *args, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+            super().save(*args, **kwargs)
 
 
 class TransitionSource(SimpleHistoryModelMixin):
@@ -488,13 +535,24 @@ class HasWorkflowModelMixin(models.Model):
     class Meta:
         abstract = True
 
-    def save(self, *args, **kwargs):
-        """
-        Save the object and create a workflow object if it doesn't exist.
-        """
-        super().save(*args, **kwargs)
-        if not self.object_state:
-            self.create_object_state()
+    if django.VERSION >= (6, 0):
+
+        def save(self, **kwargs):
+            """
+            Save the object and create a workflow object if it doesn't exist.
+            """
+            super().save(**kwargs)
+            if not self.object_state:
+                self.create_object_state()
+    else:
+
+        def save(self, *args, **kwargs):
+            """
+            Save the object and create a workflow object if it doesn't exist.
+            """
+            super().save(*args, **kwargs)
+            if not self.object_state:
+                self.create_object_state()
 
     def create_object_state(self):
         """
