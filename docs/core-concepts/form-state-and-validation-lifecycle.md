@@ -68,7 +68,7 @@ Server validation enters the form state through a single method: `handleServerFo
 - `error.errors` entries are written as `state.errors[name].server`
 - `error.messages` entries are written as `state.messages[name].server`
 
-The `FormValidationError` constructor is where the server's wire payload is split into these two maps. It flattens the response payload into paths and uses a regex pattern (`/\.warnings(\[\d+\])?/`) to classify them: paths containing `.warnings` are routed to `.messages`, all others to `.errors`. This split is the bridge between the server's warning mechanism (where `VuedaValidationError(detail, is_warning=True)` wraps details in a `{"warnings": [...]}` structure) and the client's two-channel state model.
+`FormValidationError` (parsed from a 400 response) only ever populates `.errors`; its `.messages` is always empty. `.messages` is instead populated by `ConfirmationRequiredError` (parsed from a 409 response), directly from that response's `warnings` mapping. Both classes expose the same `{errors, messages}` shape, which is what lets `handleServerFormValidationError` ingest either one without branching on error type. See [The Warning Channel](#the-warning-channel) below for the full 409 lifecycle.
 
 Server errors are cleared selectively, not globally. `clearServerErrors(name, dependents)` deletes the `server` code from both `state.errors[name]` and `state.messages[name]`, then clears each dependent path provided in the same call. Dependents can use the `$parent` placeholder, which resolves to the dot-delimited parent of the current field's path; this is how nested fields in array items can clear server errors on sibling fields when one field is edited.
 

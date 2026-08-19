@@ -48,12 +48,12 @@ The distinction matters because only `FormValidationError` instances are handled
 
 ## Form-Context Error and Message Mapping
 
-When a `FormValidationError` reaches the form context (either through the default `onSubmissionError` handler or through manual handling), it is ingested via `handleServerFormValidationError(error)`. This method iterates the error's two pre-parsed maps:
+When a `FormValidationError` or `ConfirmationRequiredError` reaches the form context (either through the default submission handlers or through manual handling), it is ingested via `handleServerFormValidationError(error)`. This method reads two maps off the error and writes each entry under the `server` code:
 
-- `error.errors` (non-warning paths from the server payload) → written to `state.errors[fieldPath].server`
-- `error.messages` (warning paths from the server payload) → written to `state.messages[fieldPath].server`
+- `error.errors` → `state.errors[fieldPath].server`
+- `error.messages` → `state.messages[fieldPath].server`
 
-The split happens in the `FormValidationError` constructor. It flattens the response payload into paths, then uses the regex `/\.warnings(\[\d+\])?/` to classify them. Paths containing `.warnings` (produced by the server's `VuedaValidationError(detail, is_warning=True)`) are routed to `.messages`. Everything else goes to `.errors`.
+`FormValidationError` (parsed from a 400 response) only ever populates `.errors`; its `.messages` is always empty. Advisory warnings instead arrive through a different class, `ConfirmationRequiredError` (parsed from a 409 response), whose `.messages` is populated directly from that response's `warnings` mapping.
 
 For standard CRUDL forms using `useObjectForm`, the ingestion is automatic; `defaultOnSubmissionError` calls `handleServerFormValidationError` when the caught error is a `FormValidationError`. For custom forms, you must call it explicitly in your error handler:
 
@@ -171,7 +171,7 @@ For the validation pipeline to work correctly, the server must follow these conv
 
 **Use `VuedaValidationError` for validation failures.** This exception normalizes scalar details into `list` form, preserves dict/list structures recursively, and ensures the response is parseable by `FormValidationError` on the client. Standard DRF `ValidationError` also works for simple cases, but `VuedaValidationError` handles the warning channel and structured payloads.
 
-**Use `get_warnings()` for advisory, confirm-before-save feedback.** Override `get_warnings()` on the serializer (see the next section) rather than raising `VuedaValidationError(..., is_warning=True)`. A raised warning still returns 400 and blocks the save like an error rendered in yellow; `get_warnings()` instead gates the save behind an explicit confirmation and then lets the same write proceed.
+**Use `get_warnings()` for advisory, confirm-before-save feedback.** Override `get_warnings()` on the serializer (see the next section) to gate the save behind an explicit confirmation rather than failing it outright.
 
 **Prefer field-keyed payloads over aggregate strings.** A payload like `{"quantity": ["Must be positive"]}` maps to a specific field in the form. A payload like `{"detail": "Invalid request"}` maps to nothing and produces opaque feedback. For bulk actions, prefer `{pk: {field: [errors]}}` style maps so correction context stays per-object.
 
@@ -278,8 +278,6 @@ With the validation pipeline wired, verify these behaviors:
 **Custom submit handler does not block on local errors.** If you are writing a custom submit guard (not using `useObjectForm`), ensure you call `formContext.setAllTouched()` and `await nextTick()` before checking `state.anyError`. Without these, required-field and custom validation watchers may not have fired yet.
 
 **Bulk action errors show as a single opaque message.** If the server returns a single aggregate error string for a bulk operation (instead of per-pk field-keyed errors), the client has no way to route the feedback to specific objects. Prefer `{pk: {field: [errors]}}` style maps from bulk action endpoints.
-
-**A warning blocks the save instead of asking for confirmation.** This happens when the warning is raised as `VuedaValidationError(detail, is_warning=True)`, which still returns 400 and blocks. For confirm-then-save behavior, move the check to the serializer's `get_warnings()` so the viewset returns a 409 the client can confirm.
 
 **The confirmation dialog never appears.** Confirm the server release implements the warning gate (responds 409, not 200/400), that the warnings source (serializer `get_warnings()`, viewset `get_warnings(action, objs)`, or a `gate_warnings` call) actually returns a non-empty mapping for the input, and that a `FormConfirmDialog` is bound to the confirmation controller. For object forms, the view shell renders the dialog (`ViewCreate` and `ViewUpdate` do; custom `useObjectForm` shells must add it themselves). For action and destroy views, `ActionForm` mounts the dialog itself; only standalone `useActionForm` callers must add one. When no dialog is registered on the controller, the submission resolves as cancelled and a console warning names the missing dialog; check the browser console.
 
