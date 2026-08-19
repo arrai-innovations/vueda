@@ -1,4 +1,4 @@
-"""Custom exception handler and validation error classes with warning support."""
+"""Custom exception handler and validation error classes."""
 
 __all__ = (
     "ACKNOWLEDGE_WARNINGS_HEADER",
@@ -8,7 +8,6 @@ __all__ = (
     "compute_warnings_digest",
     "debug_stack_exception_handler",
     "gate_warnings",
-    "get_error_details_as_warning",
     "page_not_found",
 )
 
@@ -36,8 +35,6 @@ from rest_framework.status import HTTP_409_CONFLICT
 from rest_framework.utils.serializer_helpers import ReturnDict
 from rest_framework.utils.serializer_helpers import ReturnList
 from rest_framework.views import exception_handler
-
-from vueda.core.logging_filters import contains_only_warnings
 
 
 logger = logging.getLogger(__name__)
@@ -87,7 +84,7 @@ def debug_stack_exception_handler(exc, context):
     else:
         django_requests_logger.error("Exception in DRF view", extra={"request": context["request"]})
 
-    if not settings.DEBUG and not getattr(settings, "IN_TESTS", False) and not contains_only_warnings(exc):
+    if not settings.DEBUG and not getattr(settings, "IN_TESTS", False) and isinstance(exc, ValidationError):
         # Capture the exception with Sentry
         sentry_sdk.capture_exception(exc)
 
@@ -161,7 +158,7 @@ def page_not_found(request, exception, *args, **kwargs):
     return JsonResponse({"detail": "Not found."}, status=HTTP_404_NOT_FOUND)
 
 
-def _get_error_details(data, default_code=None, is_warning=False):
+def _get_error_details(data, default_code=None):
     """
     Descend into a nested data structure, forcing any
     lazy translation strings or strings into `ErrorDetail`.
@@ -173,16 +170,13 @@ def _get_error_details(data, default_code=None, is_warning=False):
             return force_str([detail])
         return force_str(detail)
 
-    if is_warning:
-        data = get_error_details_as_warning(data)
-
     if isinstance(data, (list, tuple)):
         ret = []
         for item in data:
             if isinstance(item, VuedaValidationError):
-                ret.append(_get_error_details(item, item.code, item.is_warning))
+                ret.append(_get_error_details(item, item.code))
             else:
-                ret.append(_get_error_details(item, default_code, is_warning))
+                ret.append(_get_error_details(item, default_code))
         if isinstance(data, ReturnList):
             return ReturnList(ret, serializer=data.serializer)
 
@@ -200,41 +194,18 @@ def _get_error_details(data, default_code=None, is_warning=False):
     return ErrorDetail(text, code)
 
 
-def get_error_details_as_warning(detail):
-    if isinstance(detail, (list, tuple)):
-        return [get_error_details_as_warning(d) for d in detail]
-    if isinstance(detail, dict):
-        details = {}
-        for key, value in detail.items():
-            errors = get_error_details_as_warning(value)
-            if not isinstance(errors, list):
-                errors = [errors]
-            details[key] = errors
-        return details
-    else:
-        warnings = _get_error_details(detail, default_code="warning")
-        # If the value is a list, tuple or dict, we don't want another list.
-        if not isinstance(warnings, (list, tuple, dict)):
-            return {"warnings": [warnings]}
-        return {"warnings": warnings}
-
-
 class VuedaValidationError(ValidationError):
     default_type = "error"
 
-    def __init__(self, detail=None, code=None, is_warning=False):
+    def __init__(self, detail=None, code=None):
         if detail is None:
             detail = self.default_detail
 
         if code is None:
-            if is_warning:
-                code = "warning"
-            else:
-                code = self.default_code
+            code = self.default_code
 
         self.code = code
-        self.is_warning = is_warning
-        error_details = _get_error_details(detail, code, is_warning)
+        error_details = _get_error_details(detail, code)
 
         # If the value is a list, tuple or dict, we don't want another list.
         if not isinstance(error_details, (list, tuple, dict)):

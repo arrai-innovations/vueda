@@ -12,19 +12,11 @@ class LogRecordsSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
     def validate(self, data):
-        validation_errors = []
+        if data["process_id"] == 1:
+            raise VuedaValidationError([VuedaValidationError("Test Error 1"), VuedaValidationError("Test Error 2")])
+        return data
 
-        match data["process_id"]:
-            case 1:
-                validation_errors.append(VuedaValidationError("Test Error 1"))
-                validation_errors.append(VuedaValidationError("Test Warning 1", is_warning=True))
-                validation_errors.append(VuedaValidationError("Test Error 2"))
-                validation_errors.append(VuedaValidationError("Test Warning 2", is_warning=True))
-            case 2:
-                validation_errors.append(VuedaValidationError("Test Error 1"))
-                validation_errors.append(VuedaValidationError("Test Error 2"))
-            case 3:
-                validation_errors.append(VuedaValidationError("Test Warning 1", is_warning=True))
-                validation_errors.append(VuedaValidationError("Test Warning 2", is_warning=True))
-
-        raise VuedaValidationError(validation_errors)
+    def get_warnings(self):
+        if self.validated_data.get("process_id") == 2:  # noqa: PLR2004
+            return {"non_field_errors": ["Test Confirmation Warning"]}
+        return {}
