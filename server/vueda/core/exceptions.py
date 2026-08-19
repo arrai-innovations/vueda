@@ -195,6 +195,9 @@ def _get_error_details(data, default_code=None):
 
 
 class VuedaValidationError(ValidationError):
+    default_type = "error"
+
+    def __init__(self, detail=None, code=None):
     def __init__(self, detail=None, code=None):
         if detail is None:
             detail = self.default_detail
