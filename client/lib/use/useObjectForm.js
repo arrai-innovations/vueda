@@ -156,7 +156,7 @@ export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => 
 export const defaultOnSubmissionError = async ({ state, error, formContext, toast }) => {
     if (error instanceof FormValidationError) {
         formContext.handleServerFormValidationError(error);
-        const plural = Object.keys(error.messages).length > 1;
+        const plural = Object.keys(error.errors).length > 1;
         toast.warning("Save Validation Failed", {
             description: `Please review the new error${plural ? "s" : ""} displayed. You have been scrolled to the first error.`,
             duration: 15000,
