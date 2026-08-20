@@ -116,11 +116,6 @@ vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => modelConf
 
 vi.mock("@vueda/use/useObject404.js", () => ({ useObject404: vi.fn() }));
 
-const objectTransitions = reactive({ transitions: [] });
-vi.mock("@vueda/use/useObjectsWorkflowTransitions.js", () => ({
-    useObjectsWorkflowTransitions: () => objectTransitions,
-}));
-
 vi.mock("@vueda/utils/case.js", () => ({ memoizedStartCase: (s) => s.toUpperCase() }));
 
 describe("lib/views/DetailView.vue", () => {
@@ -132,7 +127,6 @@ describe("lib/views/DetailView.vue", () => {
         mockedUseObject.mockReturnValue({ state: instanceState });
         assignReactiveObject.mockClear();
         filteredActions.actions = [];
-        objectTransitions.transitions = [];
         DetailView = (await import("@vueda/views/DetailView.vue")).default;
     });
 
@@ -178,11 +172,13 @@ describe("lib/views/DetailView.vue", () => {
             destroy: { detail: false },
             read: { detail: true },
         };
-        instanceState.object = { available_actions: ["activate", "update", "destroy", "read"] };
-        objectTransitions.transitions = [
-            { name: "complete", code: "complete" },
-            { name: "approve", code: "approve" },
-        ];
+        instanceState.object = {
+            available_actions: ["activate", "update", "destroy", "read"],
+            valid_transitions: [
+                { name: "complete", code: "complete" },
+                { name: "approve", code: "approve" },
+            ],
+        };
         const wrapper = mountWithContext();
         await vue.nextTick();
         const views = wrapper.findAll('[data-qa="link-model-view"]').map((n) => n.attributes("data-view"));

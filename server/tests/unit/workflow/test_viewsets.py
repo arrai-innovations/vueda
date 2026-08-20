@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
@@ -192,6 +193,21 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert {transition["code"] for transition in response.data} == {"hold_order", "pack_order"}
+
+    def test_object_detail_returns_named_valid_transitions(self, api_client, workflow_reader, customer_order):
+        api_client.force_authenticate(workflow_reader)
+
+        response = api_client.get(
+            reverse("store.customerorder-detail", kwargs={"pk": customer_order.pk}),
+            data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "valid_transitions"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["valid_transitions"] == [
+            {"code": "hold_order", "name": "Hold Order"},
+            {"code": "pack_order", "name": "Pack Order"},
+        ]
 
     def test_execute_transition_dry_run_detail_skips_lock_and_state_change(
         self, api_client, workflow_user, customer_order

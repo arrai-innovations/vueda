@@ -33,6 +33,9 @@ public-facing documentation baseline.
 - **`get_expandable_fields()` renamed to `get_expand_model_info()`**:
     - The serializer override hook for customizing `model_expands` metadata is renamed and its signature changed. It now receives the already-generated list of expand descriptors and must return a list in the same shape, instead of being called with no arguments and calling `super().get_expandable_fields()` to obtain the base list. It remains defined on `VuedaExpandableFieldsSerializerMixin`.
       _Rename any `get_expandable_fields(self)` override to `get_expand_model_info(self, expands)`, drop the `super()` call, and operate on the `expands` parameter directly._
+- **`valid_transitions` entries are objects, not code strings (`AvailableTransitionField`)**:
+    - `AvailableTransitionField` now returns each entry as `{"code": ..., "name": ...}` instead of a bare transition-code string. Model info reports the field's `type_serializer` as `DictField` instead of `CharField` accordingly. This lets clients render a transition's display name without a second lookup, and is what allows the v3 client's `useDetailView` to read available transitions straight off the fetched object instead of issuing a separate per-object transitions request.
+      _Update any code reading `valid_transitions` entries as plain strings to read the `code` (and optionally `name`) key off each object instead._
 
 ### Features
 
