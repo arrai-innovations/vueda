@@ -108,7 +108,7 @@ workflows:
                   executor: python311-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --cov -n2 --dist loadgroup
+                  pytest_args: -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
                   build_coverage: false
@@ -128,7 +128,7 @@ workflows:
                   executor: python312-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --cov -n2 --dist loadgroup
+                  pytest_args: -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
                   build_coverage: false
@@ -153,7 +153,7 @@ workflows:
                   executor: python313-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --cov -n2 --dist loadgroup
+                  pytest_args: -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
                   build_coverage: false
@@ -178,7 +178,7 @@ workflows:
                   executor: python314-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --cov -n2 --dist loadgroup
+                  pytest_args: -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
                   build_coverage: false
@@ -203,7 +203,7 @@ workflows:
                   executor: python312-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --cov -n2 --dist loadgroup
+                  pytest_args: -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
                   build_coverage: false
@@ -228,7 +228,7 @@ workflows:
                   executor: python313-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --cov -n2 --dist loadgroup
+                  pytest_args: -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
                   build_coverage: false
@@ -271,9 +271,31 @@ workflows:
                                 cp config.circleci.toml config.local.toml
                   filters:
                       branches:
-                          only: /.*/
+                          only: main
                       tags:
                           only: /^server-v.*/
+            - pytest/pytest:
+                  name: server-pytest-django61-py314-no-badge
+                  executor: python314-pg
+                  context: arrai-global
+                  wd: server
+                  pytest_args: --cov -n2 --dist loadgroup
+                  create_status_badge: false
+                  create_coverage_badge: false
+                  config:
+                      - run:
+                            name: Pin Django 6.1
+                            command: |
+                                cd server
+                                uv pip install "django>=6.1,<6.2"
+                      - run:
+                            name: Copy config
+                            command: |
+                                cd server
+                                cp config.circleci.toml config.local.toml
+                  filters:
+                      branches:
+                          ignore: main
             - server-pytest-status:
                   # Written immediately, before the matrix even starts, so the badge
                   # defaults to red. If any pytest job fails, server-pytest-status-passed
@@ -284,9 +306,7 @@ workflows:
                   context: arrai-global
                   filters:
                       branches:
-                          only: /.*/
-                      tags:
-                          only: /^server-v.*/
+                          only: main
             - server-pytest-status:
                   name: server-pytest-status-passed
                   status: passed
@@ -303,9 +323,7 @@ workflows:
                       - server-pytest-django61-py314
                   filters:
                       branches:
-                          only: /.*/
-                      tags:
-                          only: /^server-v.*/
+                          only: main
             - server-build:
                   name: server-build
                   requires:
