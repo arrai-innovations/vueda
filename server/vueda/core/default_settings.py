@@ -79,7 +79,7 @@ class EnvLike(Protocol):
     def dj_cache_url(self, key: str, default: Any = ..., **kwargs: Any) -> dict[str, Any]: ...
 
 
-def get_defaults(env: EnvLike):
+def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     """
     Get a sane and consistent set of default django settings, dotenv lookup keys & defaults and return them as a dict.
 
@@ -100,9 +100,15 @@ def get_defaults(env: EnvLike):
     locals().update(get_defaults(env))
     ```
 
-    :param env: Env-like adapter providing __call__, bool, int, float, list, and dj_db_url.
-    :return: dict of default settings
+    `env` is an env-like adapter providing `__call__`, `bool`, `int`, `float`, `list`, and `dj_db_url`,
+    among others.
+
+    Email is configured through Django's deprecated `EMAIL_BACKEND` and `EMAIL_TIMEOUT` settings by
+    default, since `EMAIL_BACKEND` still works on Django 6.1 and `MAILERS` doesn't exist before it. Pass
+    `use_mailers=True` to configure Django 6.1+'s `MAILERS` setting instead; see the
+    [MAILERS migration guide](https://docs.djangoproject.com/en/6.1/howto/mailers-migration/).
     """
+    email_backend = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
     # most envs will not have defaults, so we force them to be set
     return_dict = {
         "CELERY_BROKER_URL": env("CELERY_BROKER_URL", default=""),
@@ -163,8 +169,6 @@ def get_defaults(env: EnvLike):
         "USE_TZ": True,
         "ALLOWED_HOSTS": env.list("ALLOWED_HOSTS"),  # like "host", not "host:port" or "http(s)://host"
         "DATABASES": {"default": env.dj_db_url("DATABASE_URL")},  # like "postgres://user:password@host:5432/dbname"
-        "EMAIL_BACKEND": env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"),
-        "EMAIL_TIMEOUT": 5,
         "EMAIL_SUBJECT_PREFIX": env("EMAIL_SUBJECT_PREFIX", default=""),
         "SESSION_ENGINE": "django.contrib.sessions.backends.cache",
         "SESSION_COOKIE_HTTPONLY": True,
@@ -370,7 +374,12 @@ def get_defaults(env: EnvLike):
             "PACKAGE_MANAGER": env("PACKAGE_MANAGER", default="auto"),  # auto, uv, pipenv
         },
     }
-    if return_dict["EMAIL_BACKEND"] == "anymail.backends.mailgun.EmailBackend":
+    if use_mailers:
+        return_dict["MAILERS"] = {"default": {"BACKEND": email_backend, "OPTIONS": {"timeout": 5}}}
+    else:
+        return_dict["EMAIL_BACKEND"] = email_backend
+        return_dict["EMAIL_TIMEOUT"] = 5
+    if email_backend == "anymail.backends.mailgun.EmailBackend":
         return_dict.update(
             {
                 "ANYMAIL_MAILGUN_API_KEY": env("ANYMAIL_MAILGUN_API_KEY"),
