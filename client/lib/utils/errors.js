@@ -109,23 +109,9 @@ export class FormValidationError extends Error {
             delete data.serverStack;
         }
         const paths = flattenPaths(data);
-        const warningsPattern = /\.warnings(\[\d+\])?/;
-        const withWarnings = [];
-        const withoutWarnings = [];
 
-        paths.forEach((path) => {
-            if (warningsPattern.test(path)) {
-                withWarnings.push(path);
-            } else {
-                withoutWarnings.push(path);
-            }
-        });
-
-        const objectErrorPaths = this.extractObjectPaths(withoutWarnings, ".detail");
-        const stringErrorPaths = this.extractStringPaths(withoutWarnings, objectErrorPaths);
-
-        const objectWarningPaths = this.extractObjectPaths(withWarnings, ".detail");
-        const stringWarningPaths = this.extractStringPaths(withWarnings, objectWarningPaths);
+        const objectErrorPaths = this.extractObjectPaths(paths, ".detail");
+        const stringErrorPaths = this.extractStringPaths(paths, objectErrorPaths);
 
         /**
          * The messages for the form validation errors.
@@ -142,19 +128,11 @@ export class FormValidationError extends Error {
         }, {});
 
         /**
-         * The messages for the form validation warnings.
+         * A FormValidationError carries no messages
          *
          * @type {{[path: string]: string}}
          */
-        this.messages = objectWarningPaths.concat(stringWarningPaths).reduce((acc, path) => {
-            const normalizedPath = path.replace(warningsPattern, "").split("[").slice(0, -1).join("[");
-
-            if (!acc[normalizedPath]) {
-                acc[normalizedPath] = [];
-            }
-            acc[normalizedPath].push(get(data, path));
-            return acc;
-        }, {});
+        this.messages = {};
     }
 
     /**

@@ -352,10 +352,12 @@ const clearAllTouched = (state) => {
 };
 
 /**
- * Take django form validation messages from a FormValidationError and put them in the form context as errors.
+ * Take django form validation errors and, if present, advisory messages, and put them in the form
+ * context. `FormValidationError` and `ConfirmationRequiredError` both expose `{errors, messages}`;
+ * only one side is ever non-empty on a given instance (blocking errors vs. advisory warnings).
  *
  * @param {FormContextState} state
- * @param {FormValidationError} error
+ * @param {FormValidationError| ConfirmationRequiredError} error
  * @private
  */
 const handleServerFormValidationError = (state, error) => {
@@ -543,7 +545,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {(name: string, childIndex?: number) => void} clearMessages - Clear a field's messages, or a child's
  *  messages if childIndex is given.
  * @property {(name: string, code?: string) => void} deleteMessage - Delete a field's message.
- * @property {(error: FormValidationError) => void} handleServerFormValidationError - Handle a server validation error.
+ * @property {(error: FormValidationError|ConfirmationRequiredError) => void} handleServerFormValidationError - Handle a server validation or confirmation-required error.
  * @property {(name: string, dependants: string[]|undefined) => void} clearServerErrors - clear errors and messages for
  *  the named field and optionally dependants
  *

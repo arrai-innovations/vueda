@@ -14,13 +14,11 @@ This page explains the contract itself: what shapes are produced, how they are c
 ```mermaid
 flowchart TD
     subgraph Server
-        VVE["VuedaValidationError<br/>(is_warning=False)"]
-        VVW["VuedaValidationError<br/>(is_warning=True)"]
+        VVE["VuedaValidationError"]
         EH["Exception Handler<br/>+ serverStack"]
     end
 
     VVE -- "field: [msg]" --> EH
-    VVW -- "field: [warnings: [msg]]" --> EH
     EH -- "HTTP 400" --> GATE
 
     subgraph Client["Client Adapter"]
@@ -31,19 +29,13 @@ flowchart TD
     GATE -- "Yes" --> FVE
     GATE -- "No" --> FE["FetchError<br/>(no form feedback)"]
 
-    FVE -- "flatten & split<br/>on .warnings regex" --> SPLIT
+    FVE -- "flatten paths" --> ERR
 
     subgraph FormState["Form State (useForm)"]
-        SPLIT{{"Path contains<br/>.warnings?"}}
         ERR["state.errors[field].server<br/>(blocks submission)"]
-        MSG["state.messages[field].server<br/>(non-blocking warning)"]
     end
 
-    SPLIT -- "No" --> ERR
-    SPLIT -- "Yes" --> MSG
-
     ERR --> RENDER_E["FormMessage / FieldMessage<br/>severity=error (red)"]
-    MSG --> RENDER_W["FormMessage / FieldMessage<br/>severity=warn (yellow)"]
 
     style Server fill:#f8f4e8,stroke:#c9a227
     style Client fill:#e8f0f8,stroke:#2768c9
@@ -62,27 +54,9 @@ The contract has a single classification gate: **HTTP 400 means form validation;
 
 ### The canonical validation shape
 
-Server validation failures are produced by `VuedaValidationError`, which extends DRF's `ValidationError` with two additions: a warning flag and normalization guarantees. The constructor normalizes scalar values into a list and preserves dict/list structures recursively. This means the client can always expect either a field-keyed dict (`{"field": ["message"]}`) or a non-field list (`["message"]`), never a bare string.
+Server validation failures are produced by `VuedaValidationError`, which extends DRF's `ValidationError` with normalization guarantees. The constructor normalizes scalar values into a list and preserves dict/list structures recursively. This means the client can always expect either a field-keyed dict (`{"field": ["message"]}`) or a non-field list (`["message"]`), never a bare string.
 
 The exception handler (`debug_stack_exception_handler`) adds two transformations before the response is sent. First, if the top-level detail is a list (non-field errors), it rewrites it to `{non_field_errors: [...]}` using DRF's `NON_FIELD_ERRORS_KEY` setting. This ensures that non-field errors always arrive under a stable key that the client can look up. Second, it appends a `serverStack` property to the response payload: in DEBUG mode and tests, this includes the full traceback; in production, it includes only the exception text. The client strips `serverStack` from the payload before parsing field paths.
-
-### Warning wire format
-
-When `VuedaValidationError` is constructed with `is_warning=True`, the detail is wrapped in a `{"warnings": [...]}` structure through the `get_error_details_as_warning` helper. The exception code is set to `"warning"` instead of the default `"error"`. On the wire, a warning payload for a field looks like:
-
-```json
-{ "field_name": [{ "warnings": ["Be careful about this value"] }] }
-```
-
-While a standard error for the same field looks like:
-
-```json
-{ "field_name": ["This value is invalid."] }
-```
-
-A single response can contain both errors and warnings for different fields, or even mixed entries for the same field. The client parser uses the structural presence of `.warnings` in the flattened path to distinguish them; it does not inspect error codes.
-
-Warning-only exceptions receive special treatment in production: the exception handler checks `contains_only_warnings(exc)` and, if true, skips Sentry capture and database logging. The default logging configuration also includes a `FilterOutVuedaValidationWarnings` filter that suppresses warning-only validation from file logging. This reflects the design intent: warnings are informational feedback, not application errors.
 
 ### Input-shape rejection
 
@@ -112,13 +86,11 @@ The `FormValidationError` constructor flattens the response payload into paths u
 
 ## {@term Warning Channel} Semantics
 
-The warning channel is a parallel transport mechanism that uses the same HTTP 400 status and the same `FormValidationError` parsing path as errors, but routes to a different destination in form state.
+Advisory warnings are not part of the HTTP 400 / `FormValidationError` contract described above; they use a separate status code and error class. A serializer's `get_warnings()` (or the viewset/action-level equivalent for writes without a per-object serializer) returns an aggregate `{field: [messages]}` mapping after validation succeeds. When that mapping is non-empty and the request has not acknowledged it, the write is withheld and the response is `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` instead of a 400.
 
-On the server, `VuedaValidationError(detail, is_warning=True)` wraps the detail through `get_error_details_as_warning`, which produces `{"warnings": [...]}` structures at the leaf level. On the client, `FormValidationError` detects these by testing each flattened path against the regex `/\.warnings(\[\d+\])?/`. Matching paths are collected as warning paths; non-matching paths are collected as error paths. Warning paths have the `.warnings` segment stripped during normalization so that the resulting key maps to the same field name as an error would.
+On the client, this 409 is parsed into a `ConfirmationRequiredError`. Its `.messages` map is populated directly from the response's `warnings` mapping (`.errors` is always empty, since a confirmation response carries no blocking errors). `handleServerFormValidationError(error)` ingests both error classes the same way, reading `error.errors` into `state.errors[name].server` and `error.messages` into `state.messages[name].server`, so form components do not need to branch on which class they received.
 
-The two maps, `FormValidationError.errors` and `FormValidationError.messages`, are then ingested into form state separately: errors go to `state.errors[name].server`, messages go to `state.messages[name].server`. This separation is what makes warnings non-blocking: the submission pipeline checks only `state.errors`, so `state.messages` entries never prevent submission.
-
-A response can contain both errors and warnings. The parser processes them independently; there is no mutual exclusion. A field can have a blocking error and a non-blocking warning simultaneously, and both will be visible in the form UI (as error-severity and warning-severity feedback, respectively).
+See [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle#the-warning-channel) for the full confirm-then-resubmit lifecycle, and [Handle Form Validation and Server Errors](../guides/form-validation-and-errors#warnings-that-require-confirmation) for implementation steps on both sides.
 
 ## Client Classification and Form-State Ingestion
 
@@ -128,9 +100,8 @@ Client CRUDL adapters (`objectCrud` for `create`/`update`/`delete`, `listCrud` f
 
 1. Strips `serverStack` from the payload and stores it separately.
 2. Flattens the remaining payload into paths.
-3. Splits paths into warning and non-warning sets using the warnings regex.
-4. Extracts structured-object paths (those with a `.detail` suffix) and string paths.
-5. Builds the `errors` map from non-warning paths and the `messages` map from warning paths.
+3. Extracts structured-object paths (those with a `.detail` suffix) and string paths.
+4. Builds the `errors` map from all paths. `messages` is always empty.
 
 Form context ingestion occurs when `handleServerFormValidationError(error)` is called. This iterates `error.errors` and `error.messages`, writing each entry under the `server` code key. The `server` code is what distinguishes server-originated feedback from local validation (`required`, `validate`) in the two-dimensional error storage.
 
@@ -151,8 +122,6 @@ This means that a form component fetching choices for a field that references an
 ## Observable Failure Signatures
 
 **Non-object response payloads.** `FormValidationError` assumes an object-like payload (`const data = { ...responseData }`). If the server returns a non-object 400 response (for example, a bare string or an array), the spread produces unexpected keys or an empty object, and the resulting error/message maps may be sparse or empty.
-
-**Warning-only responses on form-validation transport.** A response containing only warnings still uses HTTP 400 and still arrives as a `FormValidationError`. The client routes all entries to `.messages` (none to `.errors`), so the form will not show any blocking errors. However, callers that treat any `FormValidationError` as a hard failure (without checking the error/message split) may incorrectly block the user.
 
 **Non-field errors with no `FormMessage`.** `non_field_errors` entries are rendered by `FormMessage` placed inside a form context. Field-scope `FieldMessage` instances do not pick up non-field errors. If a form does not include a `FormMessage`, non-field errors will appear in state but be invisible in the UI.
 
