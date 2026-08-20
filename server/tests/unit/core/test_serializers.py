@@ -4,7 +4,6 @@ from typing import ClassVar
 import pytest
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import override_settings
 from rest_framework.exceptions import ValidationError
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -42,15 +41,14 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
         info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
         info.register_serializer(store_serializers.OrderItemSerializer)
 
-    @override_settings(
-        REST_FLEX_FIELDS={
+    def test_limits_depth_to_default(self, settings, api_client, test_data):
+        settings.REST_FLEX_FIELDS = {
             "EXPAND_PARAM": "e",
             "FIELDS_PARAM": "f",
             "OMIT_PARAM": "om",
             "MAXIMUM_EXPANSION_DEPTH": 2,
-        },
-    )
-    def test_limits_depth_to_default(self, api_client, test_data):
+        }
+
         serializer = store_serializers.CustomerOrderSerializer()
         valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
             serializer, 0, 10

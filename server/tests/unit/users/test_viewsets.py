@@ -4,7 +4,6 @@ import pytest
 from allauth.core.exceptions import ReauthenticationRequired
 from allauth.mfa.models import Authenticator
 from django.contrib.auth import get_user_model
-from django.test import override_settings
 from django.urls import reverse
 
 from tests.conftest import response_body
@@ -167,14 +166,20 @@ def test_activate_totp_return_unauthenticated_when_not_recently_logged_in(api_cl
     assert response.data["detail"] == "Reauthentication required"
 
 
-@override_settings(TWILIO_ACCOUNT_SID="", TWILIO_AUTH_TOKEN="", TWILIO_CALLER_ID="")
-def test_available_methods_excludes_sms_without_twilio():
+def test_available_methods_excludes_sms_without_twilio(settings):
+    settings.TWILIO_ACCOUNT_SID = ""
+    settings.TWILIO_AUTH_TOKEN = ""
+    settings.TWILIO_CALLER_ID = ""
+
     serializer = TOTPDeviceSerializer()
     assert all(choice[0] != "sms" for choice in serializer.fields["method"].choices)
 
 
-@override_settings(TWILIO_ACCOUNT_SID="TESTSID", TWILIO_AUTH_TOKEN="TESTAUTH", TWILIO_CALLER_ID="TESTCALLER")
-def test_available_methods_return_full_choices_with_twilio_setup():
+def test_available_methods_return_full_choices_with_twilio_setup(settings):
+    settings.TWILIO_ACCOUNT_SID = "TESTSID"
+    settings.TWILIO_AUTH_TOKEN = "TESTAUTH"
+    settings.TWILIO_CALLER_ID = "TESTCALLER"
+
     serializer = TOTPDeviceSerializer()
     methods = list(serializer.fields["method"].choices)
     all_methods = [choice[0] for choice in TWO_FACTOR_AUTHENTICATION_OPTIONS]
@@ -183,8 +188,11 @@ def test_available_methods_return_full_choices_with_twilio_setup():
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
-@override_settings(TWILIO_ACCOUNT_SID="", TWILIO_AUTH_TOKEN="", TWILIO_CALLER_ID="")
-def test_setup_sms_returns_validation_error_when_twilio_unavailable(api_client, user, monkeypatch):
+def test_setup_sms_returns_validation_error_when_twilio_unavailable(settings, api_client, user, monkeypatch):
+    settings.TWILIO_ACCOUNT_SID = ""
+    settings.TWILIO_AUTH_TOKEN = ""
+    settings.TWILIO_CALLER_ID = ""
+
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "secret")
     monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
 
@@ -274,8 +282,11 @@ def test_setup_rejects_invalid_email_destination(api_client, user, monkeypatch):
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
-@override_settings(TWILIO_ACCOUNT_SID="TESTSID", TWILIO_AUTH_TOKEN="TESTAUTH", TWILIO_CALLER_ID="TESTCALLER")
-def test_setup_rejects_invalid_phone_destination(api_client, user, monkeypatch):
+def test_setup_rejects_invalid_phone_destination(settings, api_client, user, monkeypatch):
+    settings.TWILIO_ACCOUNT_SID = "TESTSID"
+    settings.TWILIO_AUTH_TOKEN = "TESTAUTH"
+    settings.TWILIO_CALLER_ID = "TESTCALLER"
+
     monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
 
     api_client.force_authenticate(user=user)
