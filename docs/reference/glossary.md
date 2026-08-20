@@ -145,4 +145,4 @@ State/transition permission layer that augments baseline model permissions.
 
 ## Warning Channel
 
-The non-blocking validation feedback path that carries server warnings into client message state rather than blocking error state.
+The confirmation-gated path for advisory server warnings: a non-empty `get_warnings()` result withholds the write and returns `409 Conflict` until the client resubmits with an acknowledged digest.
