@@ -5,7 +5,7 @@ import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
-import { useObjectsWorkflowTransitions } from "@vueda/use/useObjectsWorkflowTransitions.js";
+import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { nextTick, reactive, ref } from "vue";
 
 vi.mock("@vueda/use/useModelConfig.js", async () => {
@@ -24,17 +24,13 @@ vi.mock("@vueda/use/useFilteredActions.js", async () => {
     const actual = await vi.importActual("@vueda/use/useFilteredActions.js");
     return { ...actual, useFilteredActions: vi.fn() };
 });
-vi.mock("@vueda/use/useObjectsWorkflowTransitions.js", async () => {
-    const actual = await vi.importActual("@vueda/use/useObjectsWorkflowTransitions.js");
-    return { ...actual, useObjectsWorkflowTransitions: vi.fn() };
-});
 vi.mock("@vueda/use/useObject404.js", async () => {
     const actual = await vi.importActual("@vueda/use/useObject404.js");
     return { ...actual, useObject404: vi.fn() };
 });
 
 describe("lib/use/useDetailView.js", () => {
-    let props, formInitialValue, mockModelConfig, mockInstanceObject, mockFilteredActions, mockTransitions;
+    let props, formInitialValue, mockModelConfig, mockInstanceObject, mockFilteredActions;
 
     beforeEach(() => {
         props = reactive({
@@ -73,13 +69,11 @@ describe("lib/use/useDetailView.js", () => {
         };
 
         mockFilteredActions = reactive({ actions: [] });
-        mockTransitions = reactive({ transitions: [] });
 
         useModelConfig.mockReturnValue(mockModelConfig);
         useObject.mockReturnValue(mockInstanceObject);
         useIsActive.mockReturnValue(ref(true));
         useFilteredActions.mockReturnValue(mockFilteredActions);
-        useObjectsWorkflowTransitions.mockReturnValue(mockTransitions);
         useObject404.mockReturnValue(undefined);
     });
 
@@ -257,14 +251,14 @@ describe("lib/use/useDetailView.js", () => {
             expect(actions.detailActions).not.toContain("create");
         });
 
-        scopedIt("availableTransitions maps transition codes from objectTransitions", async () => {
-            mockTransitions.transitions = [{ code: "approve" }, { code: "reject" }];
+        scopedIt("availableTransitions maps transition codes from the object's valid_transitions", async () => {
+            mockInstanceObject.state.object.valid_transitions = [{ code: "approve" }, { code: "reject" }];
             const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(actions.availableTransitions).toEqual(["approve", "reject"]);
         });
 
-        scopedIt("availableTransitions is undefined when transitions is undefined", async () => {
-            mockTransitions.transitions = undefined;
+        scopedIt("availableTransitions is undefined when valid_transitions is undefined", async () => {
+            mockInstanceObject.state.object.valid_transitions = undefined;
             const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(actions.availableTransitions).toBeUndefined();
         });
@@ -300,6 +294,20 @@ describe("lib/use/useDetailView.js", () => {
             await withSetup(() => useDetailView(props, formInitialValue));
             const objectProps = useObject.mock.calls[0][0].props;
             expect(objectProps.pkKey).toBe("id");
+        });
+
+        scopedIt("requests valid_transitions when the model info declares the field", async () => {
+            mockModelConfig.info.fields = { valid_transitions: {} };
+            await withSetup(() => useDetailView(props, formInitialValue));
+            const objectProps = useObject.mock.calls[0][0].props;
+            expect(objectProps.params[FIELDS_PARAM]).toContain("valid_transitions");
+        });
+
+        scopedIt("omits valid_transitions when the model info does not declare the field", async () => {
+            mockModelConfig.info.fields = { name: {} };
+            await withSetup(() => useDetailView(props, formInitialValue));
+            const objectProps = useObject.mock.calls[0][0].props;
+            expect(objectProps.params[FIELDS_PARAM]).not.toContain("valid_transitions");
         });
     });
 });

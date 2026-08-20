@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Breaking: `useObjectsWorkflowTransitions` is removed (`DetailView`, `useDetailView`)**:
+    - `useDetailView` now reads `valid_transitions` off the object payload it already fetches, instead of issuing a second per-object request through `useObjectsWorkflowTransitions`/`storeWorkflow`. The model info's `fields` map only exposes `valid_transitions` for models with a workflow, so the request is skipped entirely for models without one.
+      _If you imported `@vueda/use/useObjectsWorkflowTransitions.js` directly, read `valid_transitions` off the fetched object instead (as `useDetailView`'s `actions.availableTransitions` now does). `ViewWorkflowTransition` and `storeWorkflow` are unaffected._
 - **All-pages list loading clears stale rows immediately (listCrud)**:
     - `allPagePaginatedListCrudAdaptor` now clears the existing list when a replacement request starts. It previously checked a literal `page` parameter instead of VUEDA's configured `p` parameter, then left stale rows visible until the first response arrived. Column totals are also applied once from the first response because they aggregate the full filtered queryset and do not vary by page.
       _No action required._
