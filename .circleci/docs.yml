@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
     pytest: arrai/pytest@dev:1
-    utils: arrai/utils@1.23.1
+    utils: arrai/utils@1.23.2
 
 parameters:
     run-docs-workflows:

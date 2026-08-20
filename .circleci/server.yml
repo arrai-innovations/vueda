@@ -6,7 +6,7 @@ orbs:
     pypi: arrai/pypi@3.1.0
     pysentry: arrai/pysentry@1.0.0
     pytest: arrai/pytest@dev:1
-    utils: arrai/utils@1.23.1
+    utils: arrai/utils@1.23.2
 
 parameters:
     run-client-workflows:
