@@ -89,6 +89,9 @@ jobs:
         resource_class: small
         circleci_ip_ranges: true
         steps:
+            - run:
+                  name: Create ~/.ssh folder
+                  command: mkdir -m 0700 -p ~/.ssh
             - utils/add_ssh_config
             - utils/make_status_shield:
                   status: <<parameters.status>>
