@@ -5,8 +5,8 @@ orbs:
     lintinator: arrai/lintinator@2.1.1
     pypi: arrai/pypi@3.1.0
     pysentry: arrai/pysentry@1.0.0
-    pytest: arrai/pytest@10.0.3
-    utils: arrai/utils@1.22.0
+    pytest: arrai/pytest@dev:1
+    utils: arrai/utils@1.23.1
 
 parameters:
     run-client-workflows:
@@ -89,9 +89,6 @@ jobs:
         resource_class: small
         circleci_ip_ranges: true
         steps:
-            - run:
-                  name: Create ~/.ssh folder
-                  command: mkdir -m 0700 -p ~/.ssh
             - utils/add_ssh_config
             - utils/make_status_shield:
                   status: <<parameters.status>>
@@ -112,7 +109,8 @@ workflows:
                   context: arrai-global
                   wd: server
                   pytest_args: --cov -n2 --dist loadgroup
-                  create_badges: false
+                  create_status_badge: false
+                  create_coverage_badge: false
                   build_coverage: false
                   config:
                       - run:
@@ -131,7 +129,8 @@ workflows:
                   context: arrai-global
                   wd: server
                   pytest_args: --cov -n2 --dist loadgroup
-                  create_badges: false
+                  create_status_badge: false
+                  create_coverage_badge: false
                   build_coverage: false
                   config:
                       - run:
@@ -155,7 +154,8 @@ workflows:
                   context: arrai-global
                   wd: server
                   pytest_args: --cov -n2 --dist loadgroup
-                  create_badges: false
+                  create_status_badge: false
+                  create_coverage_badge: false
                   build_coverage: false
                   config:
                       - run:
@@ -179,7 +179,8 @@ workflows:
                   context: arrai-global
                   wd: server
                   pytest_args: --cov -n2 --dist loadgroup
-                  create_badges: false
+                  create_status_badge: false
+                  create_coverage_badge: false
                   build_coverage: false
                   config:
                       - run:
@@ -203,7 +204,8 @@ workflows:
                   context: arrai-global
                   wd: server
                   pytest_args: --cov -n2 --dist loadgroup
-                  create_badges: false
+                  create_status_badge: false
+                  create_coverage_badge: false
                   build_coverage: false
                   config:
                       - run:
@@ -227,7 +229,8 @@ workflows:
                   context: arrai-global
                   wd: server
                   pytest_args: --cov -n2 --dist loadgroup
-                  create_badges: false
+                  create_status_badge: false
+                  create_coverage_badge: false
                   build_coverage: false
                   config:
                       - run:
@@ -251,7 +254,10 @@ workflows:
                   context: arrai-global
                   wd: server
                   pytest_args: --cov -n2 --dist loadgroup
-                  create_badges: false
+                  create_status_badge: false
+                  coverage_artifacts_directory: server-pytest
+                  coverage_badge_label: server-coverage
+                  coverage_badge_file: server-coverage.svg
                   config:
                       - run:
                             name: Pin Django 6.1

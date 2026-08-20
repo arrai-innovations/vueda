@@ -4,7 +4,7 @@ orbs:
     github: arrai/github@5.0.0
     lintinator: arrai/lintinator@2.1.1
     pnpm: arrai/pnpm@1.0.0
-    utils: arrai/utils@1.22.0
+    utils: arrai/utils@1.23.1
 
 parameters:
     run-client-workflows:
