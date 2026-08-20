@@ -246,7 +246,7 @@ workflows:
                       branches:
                           ignore:
                               - main
-            - pytest/pytest:
+            - pytest/pytest_fixed_ip:
                   name: docs-tooling-test-py
                   context: arrai-global
                   executor: python311
