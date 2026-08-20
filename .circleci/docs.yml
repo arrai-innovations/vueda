@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-    pytest: arrai/pytest@9.1.1
+    pytest: arrai/pytest@10.0.3
     utils: arrai/utils@1.22.0
 
 parameters:
