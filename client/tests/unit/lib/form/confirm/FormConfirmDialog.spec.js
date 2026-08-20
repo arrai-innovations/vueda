@@ -2,19 +2,24 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import FormConfirmDialog from "@vueda/form/confirm/FormConfirmDialog.vue";
 
-// The alert-dialog primitives teleport and gate on `open`; stub them to passthroughs so the test can
-// assert this component's own behaviour (warning rendering and confirm/cancel wiring) directly.
+// This file exercises FormConfirmDialog's own logic in isolation, with the Reka-UI-backed
+// alert-dialog primitives stubbed to passthroughs (AlertDialogCancel included -- its closing
+// behavior is Reka's, not FormConfirmDialog's own, and is covered by FormConfirmDialog.reka.spec.js
+// instead).
+const AlertDialogStub = {
+    props: ["open"],
+    emits: ["update:open"],
+    template: "<div><slot /></div>",
+};
 const passthrough = { template: "<div><slot /></div>" };
-const buttonStub = { template: "<button @click=\"$emit('click')\"><slot /></button>", emits: ["click"] };
 const stubs = {
-    AlertDialog: passthrough,
+    AlertDialog: AlertDialogStub,
     AlertDialogContent: passthrough,
     AlertDialogHeader: passthrough,
     AlertDialogTitle: passthrough,
     AlertDialogDescription: passthrough,
     AlertDialogFooter: passthrough,
-    AlertDialogCancel: buttonStub,
-    AlertDialogAction: buttonStub,
+    AlertDialogCancel: passthrough,
 };
 
 const makeController = (overrides = {}) => ({
@@ -56,13 +61,24 @@ describe("lib/form/confirm/FormConfirmDialog.vue", () => {
         expect(controller.cancel).not.toHaveBeenCalled();
     });
 
-    scopedIt("calls controller.cancel when the cancel button is clicked", async () => {
+    scopedIt("resolves cancel when the dialog closes (Escape, overlay, or the Cancel button)", async () => {
         const controller = makeController({ messages: { count: ["unusual"] } });
         const wrapper = mount(FormConfirmDialog, { props: { controller }, global: { stubs } });
 
-        await wrapper.find("[data-qa=form-confirm-cancel]").trigger("click");
+        await wrapper.findComponent(AlertDialogStub).vm.$emit("update:open", false);
+
         expect(controller.cancel).toHaveBeenCalledTimes(1);
         expect(controller.confirm).not.toHaveBeenCalled();
+    });
+
+    scopedIt("does not resolve while the dialog is open", async () => {
+        const controller = makeController({ messages: { count: ["unusual"] } });
+        const wrapper = mount(FormConfirmDialog, { props: { controller }, global: { stubs } });
+
+        await wrapper.findComponent(AlertDialogStub).vm.$emit("update:open", true);
+
+        expect(controller.confirm).not.toHaveBeenCalled();
+        expect(controller.cancel).not.toHaveBeenCalled();
     });
 
     scopedIt("registers on mount and unregisters on unmount", () => {
