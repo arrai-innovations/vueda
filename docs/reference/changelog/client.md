@@ -14,6 +14,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Badge gains `info`, `success`, and `warning` variants (Badge)**:
+    - `Badge` accepted only `default`, `secondary`, `destructive`, and `outline`, so status pills that needed a semantic tone were open-coded with utility classes at each call site. The three new variants render as a tinted status surface: the tone at 10 % as the fill, the tone itself as the label colour, and a 50 % tone hairline, which is the pairing the `--info` / `--success` / `--warning` tokens document. A linked badge (`as="a"`) deepens its surface to 20 % on hover and 25 % on press instead of shifting lightness, because the tinted tones have no paired hover token.
+    - Existing variants and the default are unchanged, and the new tones compose with `numeric`. Re-toning `--info`, `--success`, or `--warning` now shifts these badges and `Alert` together.
+      _Replace open-coded tone pills with `variant="info" | "success" | "warning"`. A badge presents status the application or server supplied; it is not an authorization signal._
+
 - **Breaking: `useObjectsWorkflowTransitions` is removed (`DetailView`, `useDetailView`)**:
     - `useDetailView` now reads `valid_transitions` off the object payload it already fetches, instead of issuing a second per-object request through `useObjectsWorkflowTransitions`/`storeWorkflow`. The model info's `fields` map only exposes `valid_transitions` for models with a workflow, so the request is skipped entirely for models without one.
       _If you imported `@vueda/use/useObjectsWorkflowTransitions.js` directly, read `valid_transitions` off the fetched object instead (as `useDetailView`'s `actions.availableTransitions` now does). `ViewWorkflowTransition` and `storeWorkflow` are unaffected._

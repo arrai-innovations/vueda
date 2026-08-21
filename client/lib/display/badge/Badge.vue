@@ -13,8 +13,11 @@ defineOptions({});
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
     /**
-     * Visual style variant.
-     * @type {('default'|'secondary'|'destructive'|'outline')}
+     * Visual style variant. `default`, `secondary`, and `destructive` render a solid fill;
+     * `outline` renders a bordered chip; `info`, `success`, and `warning` render a tinted
+     * status surface. Status supplied by the application or server is what a badge presents;
+     * it is never an authorization signal.
+     * @type {('default'|'secondary'|'destructive'|'outline'|'info'|'success'|'warning')}
      */
     variant: { type: String, default: undefined },
     /**
