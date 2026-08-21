@@ -15,6 +15,7 @@ import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import Progress from "@vueda/feedback/progress/Progress.vue";
 import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
+import ClickToCopyText from "@vueda/display/click-to-copy-text/ClickToCopyText.vue";
 import Sonner from "@vueda/feedback/toast/Sonner.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { toast } from "vue-sonner";
@@ -305,6 +306,45 @@ Theme key: {@api theme-key:Badge}. Token surface:
         <span><Badge variant="destructive"><FontAwesomeIcon :icon="faCircleExclamation" /> Overdue</Badge></span>
       </div>
     </div>
+  </DemoCard>
+</VuedaDemo>
+
+## ClickToCopyText
+
+`ClickToCopyText` pairs a text value with a button that copies it to the
+clipboard. Use it for machine-readable values a reader will need to paste
+somewhere else: a request id, a reference number, an API key name, a support
+ticket code. The value stays selectable text, so the button is a convenience
+rather than the only way to get at it.
+
+Copying goes through the browser's async Clipboard API, which browsers gate to a
+secure context. On a page served over plain HTTP, or in a browser that refuses
+the permission, the copy silently does nothing while the toast still fires; the
+component does not detect or report that. Both slots are overridable, so a
+consumer that needs a different affordance can replace the button while keeping
+the copy handler.
+
+The success toast is raised through the same global toast store as every other
+toast, so it appears in this page's single {@api vue:component:Sonner} host
+documented below.
+
+Theme key: {@api theme-key:ClickToCopyText}.
+
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
+  <DemoCard title="default" description=" (click copy to see the toast)">
+    <ClickToCopyText text="reference-1234" />
+    <template #footer>
+      <span>the value renders as plain selectable text beside a ghost <code>Button</code> at <code>size="sm"</code></span>
+      <span>the button label is the literal word "copy"; override the <code>copy-button</code> slot to change it</span>
+      <span>default toast text is <code>"&lt;text&gt; copied"</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="custom toast message">
+    <ClickToCopyText text="req_01HZXQ4M7T" toast="Request id copied to your clipboard" />
+    <template #footer>
+      <span>the <code>toast</code> prop replaces the whole message rather than adding to it</span>
+      <span>mono presentation is a consumer choice: the component does not impose a font on the value</span>
+    </template>
   </DemoCard>
 </VuedaDemo>
 
