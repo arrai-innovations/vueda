@@ -87,6 +87,7 @@ public-facing documentation baseline.
 - **`MAILERS` support (Django 6.1+)**:
     - `get_defaults()` gained a `use_mailers` keyword argument. It defaults to `False`, which keeps configuring the deprecated `EMAIL_BACKEND` and `EMAIL_TIMEOUT` settings; pass `use_mailers=True` to configure Django 6.1's `MAILERS` setting instead (`MAILERS = {"default": {"BACKEND": ..., "OPTIONS": {"timeout": 5}}}`), built from the same `EMAIL_BACKEND` environment/config value.
       _`EMAIL_BACKEND` continues to work unchanged on Django 6.1, so no action is required until you choose to opt in. See Django's [MAILERS migration guide](https://docs.djangoproject.com/en/6.1/howto/mailers-migration/) before passing `use_mailers=True`, and confirm any third-party packages your project relies on (for example `django-anymail`) support `MAILERS` first._
+      _`use_mailers=True` now raises `ImproperlyConfigured` on Django < 6.1 instead of returning a `MAILERS` setting those versions silently ignore (which left them running the default SMTP backend instead of the configured one). Only pass `use_mailers=True` on Django 6.1+._
 
 ### Fixes
 

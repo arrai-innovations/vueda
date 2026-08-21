@@ -16,6 +16,8 @@ from typing import Any
 from typing import Protocol
 from typing import TypeVar
 
+import django
+from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.postgresql.psycopg_any import IsolationLevel
 
 
@@ -106,8 +108,16 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     Email is configured through Django's deprecated `EMAIL_BACKEND` and `EMAIL_TIMEOUT` settings by
     default, since `EMAIL_BACKEND` still works on Django 6.1 and `MAILERS` doesn't exist before it. Pass
     `use_mailers=True` to configure Django 6.1+'s `MAILERS` setting instead; see the
-    [MAILERS migration guide](https://docs.djangoproject.com/en/6.1/howto/mailers-migration/).
+    [MAILERS migration guide](https://docs.djangoproject.com/en/6.1/howto/mailers-migration/). `use_mailers=True`
+    raises `ImproperlyConfigured` on Django < 6.1, since those versions ignore `MAILERS` and would otherwise
+    silently fall back to Django's default SMTP backend instead of the configured one.
     """
+    if use_mailers and django.VERSION < (6, 1):
+        raise ImproperlyConfigured(
+            f"get_defaults(use_mailers=True) requires Django 6.1+; Django {django.get_version()} ignores "
+            "MAILERS and would silently use the default SMTP EmailBackend instead of the configured one. "
+            "Pass use_mailers=False (the default) on this Django version to configure EMAIL_BACKEND instead."
+        )
     email_backend = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
     # most envs will not have defaults, so we force them to be set
     return_dict = {

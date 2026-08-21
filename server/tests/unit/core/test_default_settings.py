@@ -1,4 +1,9 @@
 from pathlib import Path
+from unittest import mock
+
+import django
+import pytest
+from django.core.exceptions import ImproperlyConfigured
 
 from vueda.core.config import TomlEnv
 from vueda.core.config import load_toml
@@ -46,3 +51,9 @@ def test_use_mailers_respects_email_backend_override():
 
     assert defaults["MAILERS"]["default"]["BACKEND"] == "anymail.backends.mailgun.EmailBackend"
     assert defaults["ANYMAIL_MAILGUN_API_KEY"] == "key"
+
+
+@pytest.mark.parametrize("version", [(6, 0, 8, "final", 0), (5, 2, 0, "final", 0)])
+def test_use_mailers_rejected_before_django_6_1(version):
+    with mock.patch.object(django, "VERSION", version), pytest.raises(ImproperlyConfigured, match="MAILERS"):
+        get_defaults(_env(), use_mailers=True)
