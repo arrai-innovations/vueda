@@ -13,12 +13,51 @@ import ConsequencesBullets from "@vueda/display/consequences-bullets/Consequence
 import SystemMessageCard from "@vueda/display/system-message/SystemMessageCard.vue";
 import TypedConfirmField from "@vueda/form/confirm/TypedConfirmField.vue";
 import TriedUrlCallout from "@vueda/display/system-message/TriedUrlCallout.vue";
+import DiagnosticStrip from "@vueda/display/system-message/DiagnosticStrip.vue";
+import SuggestionList from "@vueda/display/system-message/SuggestionList.vue";
+import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faHouse, faSearch } from "@fortawesome/free-solid-svg-icons";
 
 const deactivateConfirm = ref("");
 const destroyConfirm = ref("");
+
+// Fixtures for the SuggestionList, DiagnosticStrip, and ErrorDisplay demos below.
+// All values are fictional. Emails use domain.invalid per the test conventions.
+const routeSuggestions = [
+  { label: "customers", sub: "/customers", score: 0.92, to: "/customers" },
+  { label: "customer-groups", sub: "/customer-groups", score: 0.71, to: "/customer-groups" },
+  { label: "custom-fields", sub: "/settings/custom-fields", score: 0.54, to: "/settings/custom-fields" },
+];
+const actionSuggestions = [
+  { label: "archive", sub: "Move out of the active list", verb: "POST", to: "/customers/archive" },
+  { label: "retrieve", sub: "Read one customer", verb: "GET", to: "/customers/9" },
+  { label: "destroy", sub: "Delete permanently", verb: "DELETE", to: "/customers/9/destroy" },
+];
+const diagnosticRows = [
+  { label: "request id", value: "req_01HZXQ4M7T" },
+  { label: "route", value: "/customers/9/edit" },
+  { label: "session", value: "sess_8f2ad41c" },
+];
+const diagnosticProseRows = [
+  { label: "what happened", value: "The record was locked by another editor." },
+  { label: "who to ask", value: "support@domain.invalid" },
+];
+
+// A plain object rather than an Error instance: the formatter includes a stack trace in
+// development builds, which would make these cards differ between the dev server and the
+// published site. Shaped like the FetchError the server layer raises.
+const conflictError = {
+  name: "FetchError",
+  message: "Request failed.",
+  response: { status: 409, statusText: "Conflict" },
+  responseData: { detail: "Customer 9 is locked by another editor until 14:05." },
+};
+const batchErrors = [
+  conflictError,
+  { name: "FetchError", message: "Request failed.", response: { status: 422, statusText: "Unprocessable Content" }, responseData: { detail: "Row 14 has no matching ledger account." } },
+];
 </script>
 
 # System Views
@@ -380,3 +419,116 @@ The root is a 2-column grid: an 88 px uppercase eyebrow label column on the left
 | `label` | Label `<span>`           | 10 px / 600 / uppercase / 0.06 em tracking · `text-muted-foreground`    |
 | `value` | Value wrapper `<span>`   | mono 12.5 px / 400 · `min-w-0 truncate`                                 |
 | `fade`  | Non-bad segment `<span>` | `text-muted-foreground` — fades path so bad segments pop                |
+
+## SuggestionList
+
+`SuggestionList` is the "Did you mean?" list the 404 views compose. It takes a
+head label, an optional mono source label, and a list of rows. Each row is a
+four-column grid: icon, label with an optional sub-line, a trailing chip, and a
+chevron. Two shapes decide what the trailing chip carries: `route` shows a
+similarity score, `action` shows an HTTP verb.
+
+Each row renders a `router-link`, so an application installs vue-router and these
+navigate. This page has no router, so the rows below render the anchor a real
+`RouterLink` would produce and swallow the click; hover and focus are otherwise
+the real recipe.
+
+Theme keys: {@api theme-key:SuggestionList}.
+
+<VuedaDemo class="grid gap-6 lg:grid-cols-2">
+  <DemoCard title='shape="route"' description=" (similarity score chip)">
+    <SuggestionList
+      head="Did you mean"
+      source="router.suggest()"
+      shape="route"
+      :items="routeSuggestions"
+    />
+    <template #footer>
+      <span>the score chip formats a 0-to-1 similarity as a percentage; a row without <code>score</code> leaves the column empty</span>
+      <span><code>sub</code> is the optional second line beneath the label</span>
+    </template>
+  </DemoCard>
+  <DemoCard title='shape="action"' description=" (HTTP verb chip)">
+    <SuggestionList head="Available actions" source="customer" shape="action" :items="actionSuggestions" />
+    <template #footer>
+      <span>the same rows with <code>shape="action"</code>: the trailing column carries <code>verb</code> instead of a score</span>
+      <span>a verb chip states which method the action issues; it does not imply the reader may call it</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## DiagnosticStrip
+
+`DiagnosticStrip` is the two-column definition list the system views put in their
+footer, so an operator can copy the request id, route, and session into a ticket
+rather than describing what they saw. Values render monospace by default because
+they exist to be pasted somewhere else.
+
+It presents whatever the view hands it. Nothing in the strip is fetched, and
+nothing about it changes what the server did.
+
+Theme keys: {@api theme-key:DiagnosticStrip}.
+
+<VuedaDemo class="grid gap-6 lg:grid-cols-2">
+  <DemoCard title="default" description=" (mono values)">
+    <DiagnosticStrip :rows="diagnosticRows" />
+    <template #footer>
+      <span>each row is a <code>dt</code> and <code>dd</code> pair: a 10 px uppercase label against an 11 px value</span>
+      <span>intended for the body slot of a <code>SystemMessageCard</code>, which is where the 404 views place it</span>
+    </template>
+  </DemoCard>
+  <DemoCard title=':mono="false"' description=" (prose values)">
+    <DiagnosticStrip :mono="false" :rows="diagnosticProseRows" />
+    <template #footer>
+      <span>turn mono off when the values are sentences rather than identifiers</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## ErrorDisplay
+
+`ErrorDisplay` is the dismissible error card the view layer renders above a
+failed surface. `ActionForm` mounts one for every submit, which is why a failed
+save shows a card without the view doing anything. It takes an `errored` flag and
+an `error`, and formats whatever it is given: an `Error`, a `FetchError` carrying
+a response and server detail, an array of several, or a bare string.
+
+It also reports each distinct error to Sentry once. That is part of its contract
+rather than a side effect of these demos: no Sentry client is initialised for this
+documentation site, so the calls below go nowhere.
+
+Several error classes are deliberately ignorable, so a view can mount one card
+and still let the surfaces that own those failures present them instead:
+`ignore-form-validation-errors` for per-field validation that belongs on the
+fields, `ignore-list-filter-errors` for filter errors that belong on the chip,
+and `ignore-aborted-requests` for a request the user navigated away from.
+
+Displaying an error changes nothing on the server. It reports what already
+happened, and dismissing the card does not retry or undo it.
+
+Theme keys: {@api theme-key:ErrorDisplay}.
+
+<VuedaDemo class="grid gap-6">
+  <DemoCard title="server error" description=" (status, statusText, and server detail)">
+    <ErrorDisplay :error="conflictError" :errored="true" while-text="saving the customer" />
+    <template #footer>
+      <span>the card leads with the <code>while-text</code>, so the reader learns what failed before how</span>
+      <span>the formatter stacks name and message, then <code>response.status</code> and <code>statusText</code>, then <code>responseData.detail</code></span>
+      <span>the underlying surface is an <code>Alert</code>, so a re-tone of the destructive tokens carries here</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="several errors at once">
+    <ErrorDisplay :error="batchErrors" :errored="true" while-text="reconciling the batch" />
+    <template #footer>
+      <span>an array renders every entry in one card rather than stacking a card per error</span>
+      <span>each distinct error reports once; a repeat of the same message is not re-reported</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="dismissible">
+    <ErrorDisplay :dismissible="true" :error="conflictError" :errored="true" while-text="saving the customer" />
+    <template #footer>
+      <span><code>dismissible</code> adds an <code>AlertClose</code> and emits <code>dismiss-error</code>; the owning view decides what that clears</span>
+      <span>dismissing is a presentation change only. The failed request is not retried.</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
