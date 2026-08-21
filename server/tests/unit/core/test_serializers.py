@@ -578,6 +578,29 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         assert obj.period_end == date(2024, 2, 29)
         assert obj.employee == employee
 
+    @pytest.mark.parametrize("action", ["partial", "date", "ate"])
+    def test_action_name_matching_a_write_action_substring_excludes_nothing(self, employee, action):
+        """An extra action whose name is a substring of create, update, or partial_update must not inherit
+        that action's exclusions. TimesheetSerializerExclude excludes employee on update and supervisor on
+        create, so neither may become read_only for an unrelated action."""
+        t = Timesheet.objects.create(
+            period_start=date(2024, 2, 15),
+            period_end=date(2024, 2, 29),
+            employee=employee,
+        )
+
+        request = FakeRequest(method="GET")
+        context = {
+            "request": request,
+            "view": FakeView(request, TimesheetSerializerExclude, action, queryset=Timesheet.objects.filter(pk=t.id)),
+        }
+        serializer = TimesheetSerializerExclude(instance=t, context=context)
+
+        extra_kwargs = serializer.get_extra_kwargs()
+
+        assert "read_only" not in extra_kwargs.get("employee", {}), extra_kwargs
+        assert "read_only" not in extra_kwargs.get("supervisor", {}), extra_kwargs
+
 
 @pytest.mark.django_db
 class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, BaseTestGroupMixin):
