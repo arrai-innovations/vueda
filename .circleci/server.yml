@@ -274,7 +274,7 @@ workflows:
                           only: main
                       tags:
                           only: /^server-v.*/
-            - pytest/pytest:
+            - pytest/pytest_fixed_ip:
                   name: server-pytest-django61-py314-no-badge
                   executor: python314-pg
                   context: arrai-global
