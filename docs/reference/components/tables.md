@@ -16,6 +16,7 @@ import TableHead from "@vueda/grid/table/TableHead.vue";
 import TableHeader from "@vueda/grid/table/TableHeader.vue";
 import TableRow from "@vueda/grid/table/TableRow.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import Badge from "@vueda/display/badge/Badge.vue";
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import Input from "@vueda/controls/input/Input.vue";
 import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
@@ -130,28 +131,28 @@ Seven additional keys cover the inner elements:
             <TableCell class="font-mono text-[11px]">INV-2026-00482</TableCell>
             <TableCell>Northwind Logistics</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-12</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-primary/10 text-primary border-primary/30">Sent</span></TableCell>
+            <TableCell><Badge variant="info">Sent</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$14,028.50</TableCell>
           </TableRow>
           <TableRow>
             <TableCell class="font-mono text-[11px]">INV-2026-00481</TableCell>
             <TableCell>Acme Coffee Roasters</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-11</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-success/10 text-success border-success/50">Paid</span></TableCell>
+            <TableCell><Badge variant="success">Paid</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$2,440.00</TableCell>
           </TableRow>
           <TableRow>
             <TableCell class="font-mono text-[11px]">INV-2026-00480</TableCell>
             <TableCell>Hightower Mfg.</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-09</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-warning/10 text-warning border-warning/50">Overdue</span></TableCell>
+            <TableCell><Badge variant="warning">Overdue</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$8,915.20</TableCell>
           </TableRow>
           <TableRow>
             <TableCell class="font-mono text-[11px]">INV-2026-00479</TableCell>
             <TableCell>Pemberton &amp; Vale</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-07</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-muted text-foreground border-border">Draft</span></TableCell>
+            <TableCell><Badge variant="secondary">Draft</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$612.00</TableCell>
           </TableRow>
         </TableBody>
@@ -573,7 +574,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
             <TableCell class="font-mono text-[11px]">INV-2026-00482</TableCell>
             <TableCell>Northwind Logistics</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-12</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-primary/10 text-primary border-primary/30">Sent</span></TableCell>
+            <TableCell><Badge variant="info">Sent</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$14,028.50</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -588,7 +589,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
             <TableCell class="font-mono text-[11px]">INV-2026-00480</TableCell>
             <TableCell>Hightower Mfg.</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-09</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-warning/10 text-warning border-warning/50">Overdue</span></TableCell>
+            <TableCell><Badge variant="warning">Overdue</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$8,915.20</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -603,7 +604,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
             <TableCell class="font-mono text-[11px]">INV-2026-00481</TableCell>
             <TableCell>Acme Coffee Roasters</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-11</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-success/10 text-success border-success/50">Paid</span></TableCell>
+            <TableCell><Badge variant="success">Paid</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$2,440.00</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -618,7 +619,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
             <TableCell class="font-mono text-[11px]">INV-2026-00479</TableCell>
             <TableCell>Pemberton &amp; Vale</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-07</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-muted text-foreground border-border">Draft</span></TableCell>
+            <TableCell><Badge variant="secondary">Draft</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$612.00</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -633,7 +634,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
             <TableCell class="font-mono text-[11px]">INV-2026-00477</TableCell>
             <TableCell>Riverbend Builders</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-04</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-success/10 text-success border-success/50">Paid</span></TableCell>
+            <TableCell><Badge variant="success">Paid</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$11,240.00</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
