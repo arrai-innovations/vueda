@@ -19,4 +19,14 @@
 
 @custom-variant hover (&:hover, .force-state-hover &);
 @custom-variant focus-visible (&:focus-visible, .force-state-focus &);
+
+/* `focus` is a separate variant from `focus-visible`, and it is the one the menu
+ * and select item families paint their highlighted row with (`focus:bg-accent` on
+ * DropdownMenuItem, ContextMenuItem, MenubarItem, SelectItem, NavigationMenuLink,
+ * and their checkbox / radio / sub-trigger siblings). Reka drives that state with
+ * real DOM focus, so only one item per page can be highlighted for real; without
+ * this shim an open-panel state matrix cannot show a highlighted row at all.
+ * ComboboxItem and CommandItem instead key off `data-[highlighted]`, which needs
+ * no shim because the attribute can be set directly in demo markup. */
+@custom-variant focus (&:focus, .force-state-focus &);
 @custom-variant disabled (&:disabled, .force-state-disabled &);
