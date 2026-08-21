@@ -216,6 +216,20 @@ class WidgetViewSet(VuedaViewSet):
 
 Both the single and bulk variants call the hook after their own validation and before the write. Bulk gating is all-or-nothing: a 409 blocks the whole batch, and confirming runs all of it. The shape is the same aggregate `{field: [messages]}` mapping; there is no per-object attribution.
 
+**Server: gate a workflow transition with `get_transition_warnings`.** Workflow transitions have no serializer either, so they use a model-level hook next to `allow_transition`. Override `get_transition_warnings(transition, user=None)` on a model using {@api py:class:vueda.workflow.models.HasWorkflowModelMixin}:
+
+```python
+class Order(HasWorkflowModelMixin, models.Model):
+    def get_transition_warnings(self, transition, user=None):
+        if transition.code == "cancel" and self.paid:
+            return {"non_field_errors": ["Cancelling a paid order issues a refund."]}
+        return {}
+```
+
+`WorkflowViewSet.execute_transition` evaluates the hook (via `check_transition`, which validates permission and availability without writing) before applying the transition, for both the single-object and bulk (`object_ids`) request forms. Bulk gating collects warnings across every instance in the batch and gates once with one digest, the same all-or-nothing contract as bulk destroy: a 409 blocks the whole batch, and confirming applies all of it. Transition authorization and error behavior (permission checks, `InvalidTransitionError`, locking, dry-run) are unchanged; the warning gate only adds a step before the write.
+
+The bulk `warnings` shape is `{object_id: {field: [messages]}}` rather than the single-object `{field: [messages]}` mapping — each instance's own `get_transition_warnings` result is kept nested under its object id instead of flattened, the `{pk: {field: [errors]}}` shape recommended above for bulk action feedback. A single-object transition's warnings stay the plain aggregate shape, since there's no object to key by.
+
 **Server: gate a custom action body.** Custom `@action` bodies write directly, so they call the gate explicitly. Call `gate_warnings(request, warnings)` (from {@api py:module:vueda.core.exceptions}) after `serializer.is_valid(raise_exception=True)`, so blocking errors return 400 before the 409, and before any write or side effect:
 
 ```python
@@ -251,9 +265,11 @@ class InvoiceViewSet(VuedaViewSet):
 
 Because `confirm=True` gates before the body runs, any body-level validation error would only surface after the user confirms; actions that take input should call `gate_warnings` explicitly after validation instead.
 
-**Author warnings from pre-write state only.** A warning is a consent question, so it must be computable from the submitted input plus the current database state, before the write; every gate raises before anything is written. A condition you can only discover by performing the write (a protected foreign key, a constraint violation) is an error that aborts the transaction, not a warning. Two write paths are not gated: bulk/list-serializer create and update saves, and workflow transitions.
+**Author warnings from pre-write state only.** A warning is a consent question, so it must be computable from the submitted input plus the current database state, before the write; every gate raises before anything is written. A condition you can only discover by performing the write (a protected foreign key, a constraint violation) is an error that aborts the transaction, not a warning. One write path is not gated: bulk/list-serializer create and update saves.
 
 **Client: actions and deletes confirm turnkey.** `useActionForm` handles the 409 the same way `useObjectForm` does: `ModelActionForm`'s `defaultRunAction` and `defaultObjectsDelete` raise `ConfirmationRequiredError`, the `confirmation` controller prompts, and a confirmed action reruns once with the `Acknowledge-Warnings` header set. Unlike object forms, `ActionForm` mounts the `FormConfirmDialog` itself, so `ViewAction`, `ViewDestroy`, and custom shells built on `ActionForm` need no extra markup. Only callers that use `useActionForm` without the `ActionForm` shell must render a dialog bound to the returned `confirmation` controller (or override its `onSubmissionWarningsRequireConfirmation` hook); without one, warned actions fail closed as cancelled with a console warning.
+
+**Client: workflow transitions confirm the same way.** `storeWorkflow.executeTransition` maps a 409 to `ConfirmationRequiredError` and accepts an `acknowledgeWarnings` argument that it sends as the `Acknowledge-Warnings` header on a confirmed retry. `ViewWorkflowTransition` renders its own `FormConfirmDialog` bound to a `useConfirmationController` instance: a warned transition opens the dialog, confirming retries once with the digest acknowledged (a changed warning set re-prompts), and cancelling leaves the transition unapplied and the view on the same page.
 
 ## Verification Checklist
 
@@ -266,6 +282,7 @@ With the validation pipeline wired, verify these behaviors:
 - Local validation errors (required fields left empty, custom validate failures) block submission with a "Pre-save Validation Failed" toast.
 - A serializer that returns `get_warnings()` produces a 409 that opens the confirmation dialog; confirming saves, cancelling does not.
 - A viewset `get_warnings(action, objs)` override, a `gate_warnings` call in a custom action body, or `@action(confirm=True)` produces the same 409 confirm flow on delete, activate/deactivate, and action views (the dialog comes from `ActionForm`, no extra markup needed).
+- A `get_transition_warnings` override produces the same 409 confirm flow on `ViewWorkflowTransition`, for both a single transition and a bulk transition (one aggregate digest, no partial writes before acknowledgement).
 - Structured non-field error objects render through `FormMessage`'s default slot override (or, without an override, as `name: value` fallback lines).
 - The first-error scroll navigates to `non_field_errors` first, then to the first displayed field with an error.
 
