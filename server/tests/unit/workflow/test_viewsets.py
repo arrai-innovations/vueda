@@ -16,6 +16,7 @@ from rest_framework.settings import api_settings
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.store import models as store_models
+from vueda.workflow.models import State
 from vueda.workflow.models import WorkflowPermission
 
 
@@ -587,3 +588,35 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert int_ids_response.status_code == HTTPStatus.CONFLICT, response_body(int_ids_response)
         assert str_ids_response.status_code == HTTPStatus.CONFLICT, response_body(str_ids_response)
         assert int_ids_response.data["digest"] == str_ids_response.data["digest"]
+
+    def test_execute_transition_bulk_aggregates_pre_check_errors_for_every_failing_instance(
+        self, api_client, workflow_user, customer_order, another_order
+    ):
+        # Both instances fail the pre-check loop (pack_order is not available from "shipped"), not
+        # just one, so the aggregation contract must report every failing object_id -- not stop at
+        # the first -- and the batch must write nothing for either instance.
+        api_client.force_authenticate(workflow_user)
+        shipped_state = State.objects.get(code="shipped", workflow__code="order_fulfillment")
+        for order in (customer_order, another_order):
+            object_state = order.object_state
+            object_state.state = shipped_state
+            object_state.save()
+
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+
+        response = api_client.patch(
+            bulk_url,
+            {"transition_code": "pack_order", "object_ids": [customer_order.pk, another_order.pk]},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        message = "Transition 'pack_order' not available from state 'shipped'"
+        assert response.data[str(customer_order.pk)] == [message]
+        assert response.data[str(another_order.pk)] == [message]
+        customer_order.refresh_from_db()
+        another_order.refresh_from_db()
+        assert customer_order.workflow_state.code == "shipped"
+        assert another_order.workflow_state.code == "shipped"
