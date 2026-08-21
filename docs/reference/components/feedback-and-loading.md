@@ -183,13 +183,27 @@ in dense rows. A badge is a status marker by default; only a linked badge
 lightness step (the same `--*-hover` tokens the buttons use), not an alpha
 fade.
 
+Two families of variant share the component. `default`, `secondary`, and
+`destructive` are **solid**: a saturated fill with its own paired foreground
+token for the label. `info`, `success`, and `warning` are **tinted**: a 10 %
+surface, the tone itself as the label colour, and a 50 % tone hairline. The
+split follows the tokens: the three semantic tones ship no paired foreground
+token, so a solid fill would have no readable label colour to state. Reach for
+the solid family for identity and counts, and the tinted family for status a
+row reports about itself.
+
+A badge presents status the application or server supplied. It is not an
+authorization signal, and hiding one does not withhold a permission.
+
 Theme key: {@api theme-key:Badge}. Token surface:
 {@api css-token:primary}, {@api css-token:secondary},
-{@api css-token:destructive}, {@api css-token:foreground},
-{@api css-token:border}, and {@api css-token:vueda-control-radius}.
+{@api css-token:destructive}, {@api css-token:info},
+{@api css-token:success}, {@api css-token:warning},
+{@api css-token:foreground}, {@api css-token:border}, and
+{@api css-token:vueda-control-radius}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
-  <DemoCard title="variants">
+  <DemoCard title="variants" description=" (solid family)">
     <div class="flex flex-wrap items-center gap-2">
       <Badge>Active</Badge>
       <Badge variant="secondary">Draft</Badge>
@@ -199,6 +213,20 @@ Theme key: {@api theme-key:Badge}. Token surface:
     <template #footer>
       <span>radius <code>--vueda-control-radius</code></span>
       <span>padding <code>px-2 py-0.5</code></span>
+      <span>solid fills carry a transparent hairline, so no edge shows; <code>outline</code> paints <code>--border</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="variants" description=" (tinted status family)">
+    <div class="flex flex-wrap items-center gap-2">
+      <Badge variant="info">Updated</Badge>
+      <Badge variant="success">Reconciled</Badge>
+      <Badge variant="warning">Needs review</Badge>
+      <Badge variant="destructive">Failed</Badge>
+    </div>
+    <template #footer>
+      <span>surface <code>&lt;tone&gt;/10</code>, label <code>text-&lt;tone&gt;</code>, hairline the tone at 50 %</span>
+      <span><code>destructive</code> shown alongside for contrast: it is the solid family's error state, not a tinted tone</span>
+      <span>tones read against the page surface, so re-toning <code>--info</code>, <code>--success</code>, or <code>--warning</code> shifts these and <code>Alert</code> together</span>
     </template>
   </DemoCard>
   <DemoCard title="with icons">
@@ -207,33 +235,47 @@ Theme key: {@api theme-key:Badge}. Token surface:
       <Badge variant="secondary"><FontAwesomeIcon :icon="faHourglassHalf" /> Pending</Badge>
       <Badge variant="destructive"><FontAwesomeIcon :icon="faLock" /> Locked</Badge>
       <Badge variant="outline"><FontAwesomeIcon :icon="faClock" /> Scheduled</Badge>
+      <Badge variant="info"><FontAwesomeIcon :icon="faCircleInfo" /> Updated</Badge>
+      <Badge variant="success"><FontAwesomeIcon :icon="faCircleCheck" /> Created</Badge>
+      <Badge variant="warning"><FontAwesomeIcon :icon="faTriangleExclamation" /> Restored</Badge>
     </div>
     <template #footer>
       <span>icon size <code>3</code></span>
       <span>gap <code>1</code></span>
+      <span>a tinted badge's icon inherits the tone, since the label colour is the tone itself</span>
     </template>
   </DemoCard>
   <DemoCard title="interactive (link)" description='(as="a")' class="lg:col-span-2">
-    <div class="grid grid-cols-[auto_repeat(4,minmax(0,1fr))] items-center gap-x-3 gap-y-2">
+    <div class="grid grid-cols-[auto_repeat(7,minmax(0,1fr))] items-center gap-x-3 gap-y-2">
       <div></div>
       <StateLabel>default</StateLabel>
       <StateLabel>secondary</StateLabel>
       <StateLabel>destructive</StateLabel>
       <StateLabel>outline</StateLabel>
+      <StateLabel>info</StateLabel>
+      <StateLabel>success</StateLabel>
+      <StateLabel>warning</StateLabel>
       <StateLabel>rest</StateLabel>
       <div><Badge as="a" href="#">Active</Badge></div>
       <div><Badge as="a" href="#" variant="secondary">Draft</Badge></div>
       <div><Badge as="a" href="#" variant="destructive">Void</Badge></div>
       <div><Badge as="a" href="#" variant="outline">Archived</Badge></div>
+      <div><Badge as="a" href="#" variant="info">Updated</Badge></div>
+      <div><Badge as="a" href="#" variant="success">Created</Badge></div>
+      <div><Badge as="a" href="#" variant="warning">Review</Badge></div>
       <StateLabel>hover</StateLabel>
       <div><ForceState state="hover"><Badge as="a" href="#">Active</Badge></ForceState></div>
       <div><ForceState state="hover"><Badge as="a" href="#" variant="secondary">Draft</Badge></ForceState></div>
       <div><ForceState state="hover"><Badge as="a" href="#" variant="destructive">Void</Badge></ForceState></div>
       <div><ForceState state="hover"><Badge as="a" href="#" variant="outline">Archived</Badge></ForceState></div>
+      <div><ForceState state="hover"><Badge as="a" href="#" variant="info">Updated</Badge></ForceState></div>
+      <div><ForceState state="hover"><Badge as="a" href="#" variant="success">Created</Badge></ForceState></div>
+      <div><ForceState state="hover"><Badge as="a" href="#" variant="warning">Review</Badge></ForceState></div>
     </div>
     <template #footer>
       <span>only linked badges hover</span>
-      <span>bg shifts one lightness step</span>
+      <span>a solid fill shifts one lightness step, through the same <code>--*-hover</code> tokens the buttons use</span>
+      <span>a tinted tone deepens its surface from 10 % to 20 % instead, keeping the label colour fixed</span>
     </template>
   </DemoCard>
   <DemoCard title="table context" class="lg:col-span-2">
