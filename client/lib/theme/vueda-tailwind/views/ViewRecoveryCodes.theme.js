@@ -17,7 +17,7 @@ patchTheme({
         root: {
             class: [],
         },
-        /** Bordered code-panel card inside the AuthForm body, rendered when the user has a TOTP device configured. Card-radius border with 16 px / 8 px padding so the unused-codes grid reads as a deliberate display surface rather than another form row; the print-hidden affordances above and below this card keep the printed output clean. BACKLOG-001 will extend {@api theme-key:ViewRecoveryCodes.listItem} with a struck-through used-code state once the server exposes used codes. */
+        /** Bordered code-panel card inside the AuthForm body, rendered when the user has a TOTP device configured. Card-radius border with 16 px / 8 px padding so the unused-codes grid reads as a deliberate display surface rather than another form row; the print-hidden affordances above and below this card keep the printed output clean. The endpoint returns unused codes only, so there is no used-code state to render; {@api theme-key:ViewRecoveryCodes.listItem} would carry one if the server ever exposed it. */
         inner: {
             class: ["my-4 hairline hairline-border rounded-vueda-card py-4 px-2"],
         },
@@ -33,7 +33,7 @@ patchTheme({
         list: {
             class: ["grid grid-cols-2 gap-x-6 gap-y-1 px-2 py-1", "select-all m-0 list-none"],
         },
-        /** One code row. `grid-cols-[22px_1fr]` reserves a 22 px column for the index so all codes align on the same baseline regardless of digit count; mono / 14 px / 500 with a small letter-spacing bump so the dashed code reads as machine-input. BACKLOG-001: extending this with `data-used="true"` will swap the row to `line-through text-muted-foreground` once the server exposes used codes. */
+        /** One code row. `grid-cols-[22px_1fr]` reserves a 22 px column for the index so all codes align on the same baseline regardless of digit count; mono / 14 px / 500 with a small letter-spacing bump so the dashed code reads as machine-input. A `data-used="true"` variant would swap the row to `line-through text-muted-foreground`, but the endpoint returns unused codes only, so nothing sets it today. */
         listItem: {
             class: [
                 "grid grid-cols-[22px_1fr] items-baseline gap-2",

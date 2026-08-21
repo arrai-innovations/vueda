@@ -9,9 +9,10 @@ details (mark, accent-blue origin, font choices) live in
 below are how those brand choices land in the running UI.
 
 Realized canon only: every rule below is in effect in this folder and the
-SFC tree today. Design work that is settled but not yet realized lives in
-[BACKLOG.md](./BACKLOG.md) (sibling to this file); it graduates here
-once it lands.
+SFC tree today. Where a slot ships deliberately empty or a recipe stops short
+of what a surface needs, its own JSDoc says so. Settled-but-unrealized design
+work is tracked outside the package, so nothing here points at a plan a reader
+of the shipped code cannot see.
 
 Token _values_ live authoritatively in `base.css` and the theme JS files.
 This document references token _names_ and section headers; it never
@@ -576,8 +577,8 @@ consistently so consumers can reason about them uniformly.
 
 VUEDA's component layer is shadcn-vue plus VUEDA-original primitives.
 The rules above govern _why_ primitives are shaped the way they are; the
-auto-generated theme-key reference (rendered from JSDoc in the per-family
-`index.js` files) documents _what_ each slot does today.
+auto-generated theme-key reference (rendered from JSDoc in the per-component
+`*.theme.js` files) documents _what_ each slot does today.
 
 When extending the primitive layer:
 

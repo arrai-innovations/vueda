@@ -14,7 +14,7 @@ patchTheme({
      * about to type.
      */
     ComboboxTrigger: {
-        /** The pressable surface that opens the {@api theme-key:ComboboxList.root}. Ships empty today: in-tree consumers (`WidgetCombobox`) supply their own input-shell chrome via `asChild`, so the bare primitive has no usable default. The Combobox-vs-Select differentiator (Combobox reads as a field because the user is about to type) is enforced by consumers, not by this slot; see BACKLOG-008 for the API session that bakes the input-shell default into this primitive and resolves the multi-select div-trigger pattern. */
+        /** The pressable surface that opens the {@api theme-key:ComboboxList.root}. Ships empty today: in-tree consumers (`WidgetCombobox`) supply their own input-shell chrome via `asChild`, so the bare primitive has no usable default. The Combobox-vs-Select differentiator (Combobox reads as a field because the user is about to type) is enforced by consumers, not by this slot. Giving the bare primitive an input-shell default is deferred until the same session settles the multi-select div-trigger pattern, since one API choice covers both. */
         root: {
             class: [""],
         },
