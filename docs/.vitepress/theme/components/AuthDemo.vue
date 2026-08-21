@@ -49,6 +49,15 @@ const props = defineProps({
      * standard loading and error toggling so the view sees a realistic lifecycle.
      */
     mocks: { type: Object, default: () => ({}) },
+    /**
+     * Optional `(pinia) => void` hook run against this demo's isolated pinia before
+     * the view mounts. Each instance builds its own pinia, so metadata seeded into
+     * the docs app's store at start-up (see `fixtures/showcaseCustomer.js`) is not
+     * visible here. Views that resolve model config, such as `ViewSetupDevice`
+     * reading its method choices from `useModelConfig`, need their fixture seeded
+     * through this hook instead.
+     */
+    seed: { type: Function, default: undefined },
     /** Initial in-memory route name (one of the stubbed auth routes). */
     routeName: { type: String, default: "sign-in" },
     /** Initial in-memory route query. */
@@ -114,6 +123,7 @@ onMounted(async () => {
     routes.push({ path: "/:pathMatch(.*)*", name: "catch-all", component: NOOP });
 
     const pinia = createPinia();
+    props.seed?.(pinia);
     const router = createRouter({ history: createMemoryHistory(), routes });
     await router.push({ name: props.routeName, query: props.routeQuery });
     await router.isReady();
