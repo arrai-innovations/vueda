@@ -85,6 +85,7 @@ import {
   faEnvelope,
   faFileExport,
   faFileLines,
+  faFloppyDisk,
   faFolderOpen,
   faLayerGroup,
   faListCheck,
@@ -960,32 +961,63 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
       <span>max-width: caller-supplied via <code>class</code></span>
     </template>
   </DemoCard>
-  <DemoCard title="surface anatomy — inverted tokens · arrow · kbd · static" class="sm:col-span-2 lg:col-span-3">
-    <div class="flex flex-wrap gap-8 items-start pt-2">
-      <div class="flex flex-col items-center">
-        <span class="text-[10px] uppercase tracking-wide text-muted-foreground self-start mb-2">plain label</span>
-        <div data-slot="tooltip-content" class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs whitespace-nowrap">Customer tax ID on file</div>
-        <div class="size-2.5 bg-foreground rotate-45 rounded-[2px] -mt-[4px]"></div>
+  <DemoCard title="surface anatomy" description=" (inverted tokens, arrow, kbd, live)" class="sm:col-span-2 lg:col-span-3">
+    <div class="grid gap-6 pt-2 sm:grid-cols-3">
+      <div class="flex flex-col items-center pb-16">
+        <StateLabel>plain label</StateLabel>
+        <ClientOnly>
+          <TooltipProvider>
+            <Tooltip :open="true">
+              <TooltipTrigger as-child>
+                <Button emphasis="ghost" size="icon" aria-label="Customer tax info">
+                  <FontAwesomeIcon :icon="faCircleInfo" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent force-mount side="bottom" :side-offset="8">Customer tax ID on file</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </ClientOnly>
       </div>
-      <div class="flex flex-col items-center">
-        <span class="text-[10px] uppercase tracking-wide text-muted-foreground self-start mb-2">with keyboard shortcut</span>
-        <div data-slot="tooltip-content" class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs inline-flex items-center whitespace-nowrap">
-          Save invoice
-          <Kbd class="ml-1.5">⌘S</Kbd>
-        </div>
-        <div class="size-2.5 bg-foreground rotate-45 rounded-[2px] -mt-[4px]"></div>
+      <div class="flex flex-col items-center pb-16">
+        <StateLabel>with keyboard shortcut</StateLabel>
+        <ClientOnly>
+          <TooltipProvider>
+            <Tooltip :open="true">
+              <TooltipTrigger as-child>
+                <Button emphasis="ghost" size="icon" aria-label="Save invoice">
+                  <FontAwesomeIcon :icon="faFloppyDisk" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent force-mount side="bottom" :side-offset="8">
+                Save invoice
+                <Kbd class="ml-1.5">⌘S</Kbd>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </ClientOnly>
       </div>
-      <div class="flex flex-col items-center">
-        <span class="text-[10px] uppercase tracking-wide text-muted-foreground self-start mb-2">long content</span>
-        <div data-slot="tooltip-content" class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs max-w-[220px] text-center text-balance">Customer hasn't responded in 14 days. Consider escalating to collections review.</div>
-        <div class="size-2.5 bg-foreground rotate-45 rounded-[2px] -mt-[4px]"></div>
+      <div class="flex flex-col items-center pb-16">
+        <StateLabel>long content</StateLabel>
+        <ClientOnly>
+          <TooltipProvider>
+            <Tooltip :open="true">
+              <TooltipTrigger as-child>
+                <Button emphasis="ghost" size="icon" aria-label="Collections status">
+                  <FontAwesomeIcon :icon="faTriangleExclamation" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent force-mount side="bottom" :side-offset="8" class="max-w-[220px]">Customer has not responded in 14 days. Consider escalating to collections review.</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </ClientOnly>
       </div>
     </div>
     <template #footer>
-      <span>surface: <code>bg-foreground text-background</code> · inverts the shared overlay palette</span>
-      <span>radius: same <code>--vueda-control-radius</code> as all overlays</span>
-      <span>arrow: rotated square · <code>size-2.5 rotate-45 rounded-[2px]</code> · same fill as surface</span>
-      <span><code>Kbd</code>: tooltip contrast variant against the inverted surface</span>
+      <span>surface: <code>bg-foreground text-background</code>, inverting the shared overlay palette; radius is the same <code>--vueda-control-radius</code> as every other overlay</span>
+      <span>arrow: a real <code>TooltipArrow</code> from <code>TooltipContent.arrow</code>, a rotated square filled from the surface and pulled behind the panel edge</span>
+      <span><code>Kbd</code> re-tones itself from a <code>[data-slot=tooltip-content]</code> descendant selector, so the contrast variant needs no prop</span>
+      <span>the panel is <code>w-fit</code> with <code>text-balance</code>; the long cell adds only a <code>max-w</code>, and the theme handles the wrapping</span>
+      <span>each tooltip is force-mounted with a pinned side, so the three sit in their columns' reserved space instead of following a pointer</span>
     </template>
   </DemoCard>
 </VuedaDemo>
