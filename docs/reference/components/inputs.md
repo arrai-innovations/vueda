@@ -29,8 +29,22 @@ import InputOTP from "@vueda/controls/input-otp/InputOTP.vue";
 import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
 import InputOTPSlot from "@vueda/controls/input-otp/InputOTPSlot.vue";
 import InputOTPSeparator from "@vueda/controls/input-otp/InputOTPSeparator.vue";
+import Slider from "@vueda/controls/slider/Slider.vue";
+import InputGroup from "@vueda/controls/input-group/InputGroup.vue";
+import InputGroupAddon from "@vueda/controls/input-group/InputGroupAddon.vue";
+import InputGroupButton from "@vueda/controls/input-group/InputGroupButton.vue";
+import InputGroupInput from "@vueda/controls/input-group/InputGroupInput.vue";
+import InputGroupText from "@vueda/controls/input-group/InputGroupText.vue";
+import InputGroupTextarea from "@vueda/controls/input-group/InputGroupTextarea.vue";
+import FileUpload from "@vueda/controls/file-upload/FileUpload.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { faClock } from "@fortawesome/free-solid-svg-icons";
+import { faClock, faMagnifyingGlass, faPercent } from "@fortawesome/free-solid-svg-icons";
+import { ref } from "vue";
+
+const sliderSingle = ref([40]);
+const sliderRange = ref([20, 70]);
+const uploadFile = ref(null);
+const uploadDropFile = ref(null);
 </script>
 
 # Inputs
@@ -637,6 +651,180 @@ focus surface as Input, with adjacent slots sharing seams via
     <template #footer>
       <span>opacity 50 across all slots</span>
       <span>no caret on disabled slot</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Slider
+
+`Slider` is a track with one or more draggable thumbs, bound through `v-model` to
+an **array** of numbers. One entry renders one thumb, so the same component covers
+a single value and a range; the filled `range` segment spans from the track start
+to the thumb, or between two thumbs.
+
+`step` quantises the value and `min-steps-between-thumbs` stops two thumbs from
+crossing. The component reports its value continuously as the thumb moves; it does
+not debounce, so a consumer driving a request off it should do that itself.
+
+Slider measures its track, so it needs a real layout pass and is wrapped in
+`<ClientOnly>` here. That is a documentation detail rather than a usage rule: an
+application renders it normally.
+
+Theme keys: {@api theme-key:Slider}. Token surface:
+{@api css-token:primary} (range fill), {@api css-token:muted} (track),
+{@api css-token:ring} (thumb focus).
+
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
+  <DemoCard title="single value">
+    <ClientOnly>
+      <div class="flex flex-col gap-3">
+        <Slider v-model="sliderSingle" :max="100" :min="0" :step="1" />
+        <span class="font-mono text-xs text-muted-foreground">v-model: [{{ sliderSingle.join(", ") }}]</span>
+      </div>
+    </ClientOnly>
+    <template #footer>
+      <span>one array entry, one thumb; the fill runs from the track start to the thumb</span>
+      <span>drag the thumb or focus it and use the arrow keys</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="range" description=" (two thumbs)">
+    <ClientOnly>
+      <div class="flex flex-col gap-3">
+        <Slider v-model="sliderRange" :max="100" :min="0" :min-steps-between-thumbs="5" :step="5" />
+        <span class="font-mono text-xs text-muted-foreground">v-model: [{{ sliderRange.join(", ") }}]</span>
+      </div>
+    </ClientOnly>
+    <template #footer>
+      <span>two entries, two thumbs; the fill spans between them</span>
+      <span><code>:step="5"</code> quantises, and <code>:min-steps-between-thumbs="5"</code> keeps them from crossing</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled">
+    <ClientOnly>
+      <Slider disabled :default-value="[60]" :max="100" />
+    </ClientOnly>
+    <template #footer>
+      <span>disabled dims the whole control and drops pointer interaction; the value still renders</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="vertical" description=" (orientation)">
+    <ClientOnly>
+      <div class="flex h-40 justify-center">
+        <Slider orientation="vertical" :default-value="[35]" :max="100" />
+      </div>
+    </ClientOnly>
+    <template #footer>
+      <span><code>orientation="vertical"</code> swaps the track axis; the host has to give it a height</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## InputGroup
+
+`InputGroup` welds addons onto one control so the group reads as a single field:
+the group owns the border, radius, and focus ring, and the inner control renders
+without its own shell. Put an `InputGroupInput` or `InputGroupTextarea` inside,
+then any number of `InputGroupAddon`s around it.
+
+`align` places an addon: `inline-start` and `inline-end` sit beside the control on
+the same row, `block-start` and `block-end` sit above and below it. An addon holds
+whatever you give it, and the family ships two ready pieces: `InputGroupText` for
+static labels, prefixes, and units, and `InputGroupButton` for a pressable action
+(a ghost `xs` button by default, so it fits the row without competing with it).
+
+Theme keys: {@api theme-key:InputGroup}, {@api theme-key:InputGroupAddon},
+{@api theme-key:InputGroupInput}, {@api theme-key:InputGroupText},
+{@api theme-key:InputGroupButton}, {@api theme-key:InputGroupTextarea}.
+
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
+  <DemoCard title="text prefix" description=" (inline-start)">
+    <InputGroup>
+      <InputGroupAddon align="inline-start">
+        <InputGroupText>https://</InputGroupText>
+      </InputGroupAddon>
+      <InputGroupInput placeholder="example.com" />
+    </InputGroup>
+    <template #footer>
+      <span>the prefix reads as part of the value, so the reader does not retype it</span>
+      <span>the group draws one border and one focus ring around both parts</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="unit suffix" description=" (inline-end)">
+    <InputGroup>
+      <InputGroupInput placeholder="0" inputmode="decimal" />
+      <InputGroupAddon align="inline-end">
+        <InputGroupText><FontAwesomeIcon :icon="faPercent" /></InputGroupText>
+      </InputGroupAddon>
+    </InputGroup>
+    <template #footer>
+      <span>a unit belongs in an addon rather than the placeholder, so it stays visible once a value is typed</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="icon and button" description=" (both inline edges)">
+    <InputGroup>
+      <InputGroupAddon align="inline-start">
+        <FontAwesomeIcon :icon="faMagnifyingGlass" class="size-4 text-muted-foreground" />
+      </InputGroupAddon>
+      <InputGroupInput placeholder="Search invoices" />
+      <InputGroupAddon align="inline-end">
+        <InputGroupButton tone="primary" emphasis="fill">Search</InputGroupButton>
+      </InputGroupAddon>
+    </InputGroup>
+    <template #footer>
+      <span>an addon takes arbitrary content; the icon here is not an <code>InputGroupText</code></span>
+      <span><code>InputGroupButton</code> defaults to a ghost <code>xs</code> button; this one opts into a filled primary. Its size travels as <code>data-size</code> for the addon recipe rather than as a <code>Button</code> size prop.</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="textarea with a block addon" description=" (block-end)">
+    <InputGroup>
+      <InputGroupTextarea placeholder="Add a note for the reviewer" rows="3" />
+      <InputGroupAddon align="block-end">
+        <InputGroupText>Markdown supported</InputGroupText>
+        <InputGroupButton>Attach</InputGroupButton>
+      </InputGroupAddon>
+    </InputGroup>
+    <template #footer>
+      <span><code>block-end</code> puts the addon on its own row under the control, inside the same border</span>
+      <span>one addon can hold several children; they lay out along the row</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## FileUpload
+
+`FileUpload` wraps a hidden native file input with a styled trigger reading
+"Choose file", and emits the chosen `File` through `v-model`. `accept` filters what the picker offers and
+`max-file-size` (bytes, default 1,000,000) rejects an oversized selection.
+`dropzone` adds a drop target around the trigger.
+
+The component is a **selection** surface only. Choosing a file hands your code a
+`File` object from the browser; nothing is transmitted, stored, or authorised
+until the application sends it. `accept` and `max-file-size` are client-side
+conveniences the browser and the component apply, so a server still has to
+validate type and size itself.
+
+Theme keys: {@api theme-key:FileUpload}.
+
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
+  <DemoCard title="default trigger">
+    <div class="flex flex-col gap-2">
+      <FileUpload v-model="uploadFile" accept=".csv,.tsv" />
+      <span class="font-mono text-xs text-muted-foreground">v-model: {{ uploadFile ? uploadFile.name : "null" }}</span>
+    </div>
+    <template #footer>
+      <span>the native input is hidden; the visible trigger opens the browser's own picker</span>
+      <span><code>accept=".csv,.tsv"</code> narrows what the picker offers, and the read-out shows the selected <code>File.name</code></span>
+      <span>selection is local: this demo has nowhere to send a file and does not try</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="dropzone">
+    <div class="flex flex-col gap-2">
+      <FileUpload v-model="uploadDropFile" accept="image/*" dropzone :max-file-size="2000000" />
+      <span class="font-mono text-xs text-muted-foreground">v-model: {{ uploadDropFile ? uploadDropFile.name : "null" }}</span>
+    </div>
+    <template #footer>
+      <span><code>dropzone</code> adds a drop target and an "or drag and drop here" line; the trigger keeps working for readers who would rather browse</span>
+      <span><code>:max-file-size="2000000"</code> raises the 1 MB default to 2 MB, rejecting anything larger before your code sees it</span>
     </template>
   </DemoCard>
 </VuedaDemo>
