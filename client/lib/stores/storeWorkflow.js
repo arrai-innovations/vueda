@@ -508,8 +508,6 @@ export const storeWorkflow = defineStore("workflow", {
             }
             return this.promises.objectHistories[key][objectPk];
         },
-        // Rejects with a ConfirmationRequiredError (HTTP 409) when the server reports unacknowledged
-        // transition warnings; pass its digest back via acknowledgeWarnings to retry confirmed.
         executeTransition(
             app,
             model,
