@@ -141,13 +141,15 @@ Verify failure cases:
 - Executing a transition without proper permissions returns `400` with a permission error message.
 - Lock acquisition failure returns `400` with `"This object cannot be updated right now. Please try again."`.
 
+Verify the warning-confirmation gate: when a model overrides `get_transition_warnings`, executing a transition with unacknowledged warnings returns `409` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` before anything is written, and resubmitting with the `Acknowledge-Warnings` header set to that `digest` lets the transition proceed. The gate runs before the row lock, for both the single-object and bulk (`object_ids`) request forms; a bulk request gates once with one digest over all instances (`{object_id: {field: [messages]}}`), and none of them transition until the batch is acknowledged.
+
 ## Endpoint Checks and Expected Errors
 
 **`object-state`** returns `403` when the user lacks object `read_*` permission for the target instance. The permission codename uses `PERMISSION_NAMES_MAPPING["read"]` when configured.
 
 **`permitted_transitions`** returns an empty list when the workflow does not exist for the given `app_label/model` pair. It returns `403` when the user lacks `vueda_workflow.read_workflow` or workflow-level permissions.
 
-**`execute_transition`** returns `400` for all execution failures (permission denied, invalid transition, lock failure). The error format is validation-style, not HTTP authorization-style.
+**`execute_transition`** returns `400` for all execution failures (permission denied, invalid transition, lock failure), in validation-style format rather than HTTP authorization-style. It returns `409` instead when `get_transition_warnings` reports unacknowledged warnings; that check runs after the `400` checks and before any write, so blocking failures still take precedence over the warning gate.
 
 All workflow endpoints require `vueda_workflow.read_workflow` at the viewset permission-check phase. This check runs before any object-specific or transition-specific logic. Test that users without this base permission receive a `403` response on all workflow endpoints.
 
@@ -169,7 +171,11 @@ All workflow endpoints require `vueda_workflow.read_workflow` at the viewset per
     - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_state_permission}
     - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_transition_permission}
     - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.available_transitions}
+    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_transition}
+    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_checked_transition}
     - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_transition}
+    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.get_transition_warnings}
+    - {@api py:function:vueda.core.exceptions.gate_warnings}
     - {@api py:class:vueda.workflow.models.StatePermission}
     - {@api py:class:vueda.workflow.models.TransitionPermission}
     - {@api py:class:vueda.workflow.models.WorkflowPermission}

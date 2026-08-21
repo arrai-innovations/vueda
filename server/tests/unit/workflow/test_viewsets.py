@@ -1,4 +1,5 @@
 from decimal import Decimal
+from http import HTTPStatus
 from typing import ClassVar
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -107,6 +108,26 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             customer=other_customer,
             order_state=order_state,
             shipping_method="free",
+        )
+
+    @pytest.fixture
+    def express_order(self, customer, order_state):
+        # CustomerOrder.get_transition_warnings warns on any transition when shipping_method is
+        # "express"; the other fixtures use "free" so existing tests stay ungated.
+        return store_models.CustomerOrder.objects.create(
+            order_number=Decimal("2001"),
+            customer=customer,
+            order_state=order_state,
+            shipping_method="express",
+        )
+
+    @pytest.fixture
+    def another_express_order(self, other_customer, order_state):
+        return store_models.CustomerOrder.objects.create(
+            order_number=Decimal("2002"),
+            customer=other_customer,
+            order_state=order_state,
+            shipping_method="express",
         )
 
     def test_object_state_returns_state_when_user_has_object_read_permission(
@@ -383,3 +404,123 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
         assert "object_ids" in response.data
+
+    def test_execute_transition_single_is_gated_then_applies_on_acknowledgement(
+        self, api_client, workflow_user, express_order
+    ):
+        api_client.force_authenticate(workflow_user)
+        detail_url = reverse(
+            "workflow.workflow-execute-transition",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": express_order.pk},
+        )
+
+        gated = api_client.patch(detail_url, {"transition_code": "pack_order"}, format="json")
+
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
+        assert gated.data["confirmation_required"] is True
+        assert gated.data["warnings"] == {
+            "non_field_errors": [
+                f"Order {express_order.order_number} ships express; Pack Order needs a fulfillment double-check."
+            ]
+        }
+        assert gated.data["digest"]
+        express_order.refresh_from_db()
+        assert express_order.workflow_state.code == "new"  # no mutation happened
+
+        confirmed = api_client.patch(
+            detail_url,
+            {"transition_code": "pack_order"},
+            format="json",
+            HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"],
+        )
+
+        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed)
+        assert confirmed.data["new_state"]["code"] == "packed"
+        express_order.refresh_from_db()
+        assert express_order.workflow_state.code == "packed"
+
+    def test_execute_transition_single_stale_digest_re_prompts_with_current_warnings(
+        self, api_client, workflow_user, express_order
+    ):
+        api_client.force_authenticate(workflow_user)
+        detail_url = reverse(
+            "workflow.workflow-execute-transition",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": express_order.pk},
+        )
+
+        response = api_client.patch(
+            detail_url,
+            {"transition_code": "pack_order"},
+            format="json",
+            HTTP_ACKNOWLEDGE_WARNINGS="not-the-right-digest",
+        )
+
+        assert response.status_code == HTTPStatus.CONFLICT, response_body(response)
+        assert response.data["warnings"] == {
+            "non_field_errors": [
+                f"Order {express_order.order_number} ships express; Pack Order needs a fulfillment double-check."
+            ]
+        }
+        assert response.data["digest"]
+        express_order.refresh_from_db()
+        assert express_order.workflow_state.code == "new"
+
+    def test_execute_transition_bulk_is_gated_with_one_aggregate_digest_then_applies_on_acknowledgement(
+        self, api_client, workflow_user, express_order, another_express_order
+    ):
+        api_client.force_authenticate(workflow_user)
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+        payload = {"transition_code": "pack_order", "object_ids": [express_order.pk, another_express_order.pk]}
+
+        gated = api_client.patch(bulk_url, payload, format="json")
+
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
+        warnings_data = gated.data["warnings"]
+        assert warnings_data == {
+            express_order.pk: {
+                "non_field_errors": [
+                    f"Order {express_order.order_number} ships express; Pack Order needs a fulfillment double-check."
+                ]
+            },
+            another_express_order.pk: {
+                "non_field_errors": [
+                    f"Order {another_express_order.order_number} ships express; Pack Order needs a fulfillment double-check."
+                ]
+            },
+        }
+        express_order.refresh_from_db()
+        another_express_order.refresh_from_db()
+        # No partial writes: neither instance transitioned before acknowledgement.
+        assert express_order.workflow_state.code == "new"
+        assert another_express_order.workflow_state.code == "new"
+
+        confirmed = api_client.patch(bulk_url, payload, format="json", HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"])
+
+        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed)
+        express_order.refresh_from_db()
+        another_express_order.refresh_from_db()
+        assert express_order.workflow_state.code == "packed"
+        assert another_express_order.workflow_state.code == "packed"
+
+    def test_execute_transition_bulk_missing_object_id_takes_precedence_over_warnings(
+        self, api_client, workflow_user, express_order, another_express_order
+    ):
+        # A missing object_id in the batch is reported (and stops the bulk write) the same way it
+        # was before warnings existed, without ever exposing the warnings gate.
+        api_client.force_authenticate(workflow_user)
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+        missing_pk = another_express_order.pk + 1000
+
+        response = api_client.patch(
+            bulk_url,
+            {"transition_code": "pack_order", "object_ids": [express_order.pk, missing_pk]},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
+        express_order.refresh_from_db()
+        assert express_order.workflow_state.code == "new"
