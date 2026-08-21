@@ -365,7 +365,7 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
       <span>the highlighted row sets <code>data-highlighted</code> directly in markup: <code>ComboboxItem</code> keys off that attribute rather than focus, so it needs no forced-state wrapper</span>
       <span><code>ComboboxEmpty</code> renders only when the filter yields nothing, so the second panel declares no items rather than faking the state</span>
       <span>typing in either search row filters for real; the first panel's items all match "acme"</span>
-      <span>the trigger chrome is still hand-written because <code>ComboboxTrigger.root</code> ships empty (BACKLOG-008)</span>
+      <span>the trigger chrome is still hand-written because {@api theme-key:ComboboxTrigger} ships its <code>root</code> slot empty: in-tree consumers supply their own input shell via <code>asChild</code></span>
     </template>
   </DemoCard>
 </VuedaDemo>

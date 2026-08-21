@@ -214,7 +214,7 @@ All of that is one interactive component, so the demo below is one live mount ra
 
 Not shipped. The card below is a proposal, not a rendering of the default theme: it replaces the method dropdown with a segmented rail of option cards carrying a per-option icon and a sub-line (the authenticator app, the masked phone, the email address). It removes a click and reads as the primary decision on the screen instead of a form row.
 
-The proposal is tracked as BACKLOG-009 in `client/lib/theme/vueda-tailwind/BACKLOG.md`, where it is blocked on one primitive-level choice: a new `WidgetSegmentedRadio`, or a `variant="rail"` mode on `WidgetRadioGroup`. `ViewSetupDevice` needs the same control, so the decision is taken once and applied to both.
+It is blocked on one primitive-level choice: a new `WidgetSegmentedRadio`, or a `variant="rail"` mode on `WidgetRadioGroup`. `WidgetRadioGroup` cannot express the rail recipe through theme keys alone, because per-option icons, sub-lines, and the group's selected-option chrome need structural template changes plus accessibility plumbing. `ViewSetupDevice` needs the same control, so the choice is taken once and applied to both.
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Proposal · hand-authored. Compare against the live dropdown above.</header>
@@ -249,7 +249,7 @@ The proposal is tracked as BACKLOG-009 in `client/lib/theme/vueda-tailwind/BACKL
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>selected option: <code>border-primary bg-primary/5</code>; the whole card is the click target, the radio itself is <code>sr-only</code></span>
-    <span>the sub-line needs data the current-user payload does not carry yet, so BACKLOG-009 covers the control and not the sub-line source</span>
+    <span>the sub-line needs data the current-user payload does not carry yet, so the control and its content are separate pieces of work</span>
   </footer>
 </VuedaDemo>
 
@@ -320,7 +320,7 @@ Regenerating is the form's action, so it runs through `ActionForm` like any othe
 
 Not shipped. The card below is a proposal, not a rendering of the default theme. It keeps every code listed for transparency and strikes through the ones already redeemed, so the remaining count is readable at a glance instead of inferred.
 
-The proposal is tracked as BACKLOG-001 in `client/lib/theme/vueda-tailwind/BACKLOG.md`, blocked on the server: the recovery-codes endpoint returns unused codes only, so the client has nothing to mark. Once used codes are exposed, the realized shape is a `data-used="true"` variant on `ViewRecoveryCodes.listItem` rather than the hand-authored row below.
+It is blocked on the server: the recovery-codes endpoint returns unused codes only, so the client has nothing to mark. Once used codes are exposed, the realized shape is a `data-used="true"` variant on {@api theme-key:ViewRecoveryCodes.listItem} rather than the hand-authored row below.
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Proposal · hand-authored. 3 of 8 redeemed.</header>
