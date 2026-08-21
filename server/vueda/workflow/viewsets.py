@@ -222,7 +222,11 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 raise VuedaValidationError({"object_ids": ["Must be a list of primary keys."]})
 
             model_class = self.get_workflow().content_type.model_class()
-            id_instances = [(object_id, get_object_or_404(model_class, pk=object_id)) for object_id in object_ids]
+
+            id_instances = [
+                (str(instance.pk), instance)
+                for instance in (get_object_or_404(model_class, pk=object_id) for object_id in object_ids)
+            ]
 
             # Warnings are collected across every instance before any write, so a bulk transition
             # gates once with one aggregate digest instead of once per instance. Authorization
