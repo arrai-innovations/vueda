@@ -37,6 +37,22 @@ import StepperDescription from "@vueda/shell/stepper/StepperDescription.vue";
 import StepperSeparator from "@vueda/shell/stepper/StepperSeparator.vue";
 import ScrollArea from "@vueda/shell/scroll-area/ScrollArea.vue";
 import Separator from "@vueda/shell/separator/Separator.vue";
+import Tabs from "@vueda/shell/tabs/Tabs.vue";
+import TabsList from "@vueda/shell/tabs/TabsList.vue";
+import TabsTrigger from "@vueda/shell/tabs/TabsTrigger.vue";
+import TabsContent from "@vueda/shell/tabs/TabsContent.vue";
+import Drawer from "@vueda/shell/drawer/Drawer.vue";
+import DrawerTrigger from "@vueda/shell/drawer/DrawerTrigger.vue";
+import DrawerContent from "@vueda/shell/drawer/DrawerContent.vue";
+import DrawerHeader from "@vueda/shell/drawer/DrawerHeader.vue";
+import DrawerTitle from "@vueda/shell/drawer/DrawerTitle.vue";
+import DrawerDescription from "@vueda/shell/drawer/DrawerDescription.vue";
+import DrawerFooter from "@vueda/shell/drawer/DrawerFooter.vue";
+import DrawerClose from "@vueda/shell/drawer/DrawerClose.vue";
+import ResizablePanelGroup from "@vueda/shell/resizable/ResizablePanelGroup.vue";
+import ResizablePanel from "@vueda/shell/resizable/ResizablePanel.vue";
+import ResizableHandle from "@vueda/shell/resizable/ResizableHandle.vue";
+import AspectRatio from "@vueda/display/aspect-ratio/AspectRatio.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faCheck, faChevronRight, faClock, faEllipsis, faFile, faFileExport, faFolder, faImage, faUser } from "@fortawesome/free-solid-svg-icons";
@@ -679,6 +695,204 @@ one.
     </div>
     <template #footer>
       <span>Separator does not ship a labeled variant; compose two with a span between</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Tabs
+
+`Tabs` switches between sibling panels that occupy the same space. The root owns
+the selected value (`default-value` uncontrolled, `v-model` controlled), a
+`TabsList` holds the `TabsTrigger`s, and one `TabsContent` per value renders the
+panel. Trigger and content pair up by matching `value`, not by order.
+
+`activation-mode` decides what keyboard arrows do: the default `automatic` selects
+as focus moves, while `manual` moves focus and waits for Enter or Space. Prefer
+`manual` when selecting a tab does real work, such as issuing a request.
+
+Tabs are for peer views of the same subject. They are not a wizard: nothing in
+the component enforces an order or a completion state, which is what
+[Stepper](#stepper) is for.
+
+Theme keys: {@api theme-key:Tabs}, {@api theme-key:TabsList},
+{@api theme-key:TabsTrigger}, {@api theme-key:TabsContent}.
+
+<VuedaDemo class="grid gap-6">
+  <DemoCard title="three panels" description=" (default value, automatic activation)">
+    <Tabs default-value="overview">
+      <TabsList>
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="invoices">Invoices</TabsTrigger>
+        <TabsTrigger value="history">History</TabsTrigger>
+        <TabsTrigger disabled value="billing">Billing</TabsTrigger>
+      </TabsList>
+      <TabsContent value="overview">
+        <p class="text-sm text-muted-foreground">Northwind Logistics, enterprise tier, owned by Mara Tani.</p>
+      </TabsContent>
+      <TabsContent value="invoices">
+        <p class="text-sm text-muted-foreground">14 invoices, 3 overdue.</p>
+      </TabsContent>
+      <TabsContent value="history">
+        <p class="text-sm text-muted-foreground">Last edited 2026-04-12 by Linnea Borg.</p>
+      </TabsContent>
+      <TabsContent value="billing">
+        <p class="text-sm text-muted-foreground">Not reachable: this trigger is disabled.</p>
+      </TabsContent>
+    </Tabs>
+    <template #footer>
+      <span>the active trigger carries <code>data-state=active</code>; only the matching panel mounts</span>
+      <span>the fourth trigger sets <code>disabled</code>, so it is skipped by both pointer and keyboard</span>
+      <span>arrow keys move between triggers, and Home and End jump to the ends</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Drawer
+
+`Drawer` is an edge-anchored overlay that slides in and can be dismissed by
+dragging it back. It is built on vaul, so it carries touch affordances a `Sheet`
+does not: a drag handle, a velocity-aware close threshold, and optional snap
+points. Reach for it on touch-first surfaces, and for `Sheet` on pointer-first
+ones; the two are otherwise the same shape of thing.
+
+`DrawerContent` portals to the document body and renders its own overlay and
+handle. Composition mirrors the dialog family: a trigger, then a content region
+holding a header with a title and description, a body, and a footer.
+
+Two defaults matter for embedding a drawer anywhere other than a full page.
+`should-scale-background` is **on** by default and scales the page behind the
+drawer, and vaul also writes styles onto `document.body` while open. Both are
+right in an application and wrong inside a documentation page, so the demo turns
+them off. An application usually leaves them alone.
+
+The drawer needs real layout and pointer measurement, so it renders client-side
+only. Its markup follows the documented composition; unlike the rest of this page
+it is not covered by a unit test, because vaul cannot mount under jsdom.
+
+Theme keys: {@api theme-key:DrawerContent}, {@api theme-key:DrawerHeader},
+{@api theme-key:DrawerTitle}, {@api theme-key:DrawerDescription},
+{@api theme-key:DrawerFooter}, {@api theme-key:DrawerOverlay}.
+
+<VuedaDemo class="grid gap-6">
+  <DemoCard title="bottom drawer" description=" (drag the handle down to dismiss)">
+    <div class="flex justify-center py-4">
+      <ClientOnly>
+        <Drawer :no-body-styles="true" :should-scale-background="false">
+          <DrawerTrigger as-child>
+            <Button emphasis="outline">Edit payment terms</Button>
+          </DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Payment terms</DrawerTitle>
+              <DrawerDescription>Override the customer default for this invoice only.</DrawerDescription>
+            </DrawerHeader>
+            <div class="px-4 text-sm text-muted-foreground">
+              <p>Net 30 applies unless you set something else here.</p>
+            </div>
+            <DrawerFooter>
+              <Button tone="primary">Apply</Button>
+              <DrawerClose as-child>
+                <Button emphasis="ghost">Cancel</Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      </ClientOnly>
+    </div>
+    <template #footer>
+      <span>the handle above the header is drawn by <code>DrawerContent</code> itself, not placed by the consumer</span>
+      <span>dismiss by dragging the handle down, pressing Escape, or clicking the overlay; <code>DrawerClose</code> wraps any control to close</span>
+      <span>this demo sets <code>:should-scale-background="false"</code> and <code>:no-body-styles="true"</code> so opening it does not scale or lock the documentation page</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Resizable
+
+`ResizablePanelGroup` splits a region into panels the reader can resize by
+dragging the handle between them. `direction` sets the axis. Each
+`ResizablePanel` takes sizes as **percentages** of the group, and a panel can be
+`collapsible` with a `collapsed-size` so a drag past its minimum snaps it shut
+instead of fighting the pointer.
+
+Give the group an `auto-save-id` and it persists the layout to storage, so a
+reader's split survives a reload. The demo below omits it deliberately: a
+documentation page should not write layout state to your browser.
+
+`ResizableHandle` is the drag target; `with-handle` adds a visible grip. Without
+it the handle is still there and still draggable, just a hairline.
+
+Theme keys: {@api theme-key:ResizablePanelGroup}, {@api theme-key:ResizableHandle}.
+
+<VuedaDemo class="grid gap-6 lg:grid-cols-2">
+  <DemoCard title="horizontal" description=" (drag the grip between panels)">
+    <ResizablePanelGroup class="h-48 rounded-vueda-card hairline hairline-border" direction="horizontal">
+      <ResizablePanel :default-size="35" :min-size="20">
+        <div class="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">List</div>
+      </ResizablePanel>
+      <ResizableHandle with-handle />
+      <ResizablePanel :default-size="65" :min-size="30">
+        <div class="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">Detail</div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
+    <template #footer>
+      <span>sizes are percentages of the group, so they stay proportional as the card reflows</span>
+      <span>the handle is keyboard operable: focus it and use the arrow keys</span>
+      <span><code>:min-size</code> on both panels is what stops a drag from collapsing either to nothing</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="vertical" description=" (nested group, no visible grip)">
+    <ResizablePanelGroup class="h-48 rounded-vueda-card hairline hairline-border" direction="vertical">
+      <ResizablePanel :default-size="60">
+        <div class="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">Editor</div>
+      </ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel :default-size="40" :min-size="15">
+        <div class="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">Output</div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
+    <template #footer>
+      <span><code>direction="vertical"</code> stacks the panels and turns the handle into a horizontal rule</span>
+      <span>this handle omits <code>with-handle</code>: still draggable, just without the grip glyph</span>
+      <span>the group needs a height; a percentage split has nothing to divide otherwise</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## AspectRatio
+
+`AspectRatio` holds a box at a fixed width-to-height ratio while its width is
+free to change. Pass `ratio` as a number, so 16:9 is `16 / 9`. The child fills the
+reserved box.
+
+Use it to stop layout shift: the space is reserved before the content arrives, so
+a slow image or an embed does not push the page around as it loads.
+
+Theme keys: {@api theme-key:AspectRatio}.
+
+<VuedaDemo class="grid gap-6 sm:grid-cols-3">
+  <DemoCard title="16 / 9">
+    <AspectRatio class="overflow-hidden rounded-vueda-card bg-muted" :ratio="16 / 9">
+      <div class="flex h-full w-full items-center justify-center font-mono text-xs text-muted-foreground">16 / 9</div>
+    </AspectRatio>
+    <template #footer>
+      <span>the box keeps its ratio as the column width changes</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="1 / 1">
+    <AspectRatio class="overflow-hidden rounded-vueda-card bg-muted" :ratio="1">
+      <div class="flex h-full w-full items-center justify-center font-mono text-xs text-muted-foreground">1 / 1</div>
+    </AspectRatio>
+    <template #footer>
+      <span>a square avatar or thumbnail slot</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="3 / 4" description=" (portrait)">
+    <AspectRatio class="overflow-hidden rounded-vueda-card bg-muted" :ratio="3 / 4">
+      <div class="flex h-full w-full items-center justify-center font-mono text-xs text-muted-foreground">3 / 4</div>
+    </AspectRatio>
+    <template #footer>
+      <span>a ratio below 1 reserves a taller box than it is wide</span>
     </template>
   </DemoCard>
 </VuedaDemo>
