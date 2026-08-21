@@ -282,6 +282,7 @@ workflows:
                   pytest_args: --cov -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
+                  coverage_artifacts_directory: server-pytest
                   config:
                       - run:
                             name: Pin Django 6.1
