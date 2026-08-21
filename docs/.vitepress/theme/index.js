@@ -1,6 +1,7 @@
 import AuthDemo from "./components/AuthDemo.vue";
 import DemoCard from "./components/DemoCard.vue";
 import DemoFormModel from "./components/DemoFormModel.vue";
+import DemoTitleBar from "./components/DemoTitleBar.vue";
 import ForceState from "./components/ForceState.vue";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
 import StateLabel from "./components/StateLabel.vue";
@@ -60,6 +61,7 @@ const theme = createArraiTheme({
         app.component("AuthDemo", AuthDemo);
         app.component("DemoCard", DemoCard);
         app.component("DemoFormModel", DemoFormModel);
+        app.component("DemoTitleBar", DemoTitleBar);
         app.component("GlossaryTerm", GlossaryTerm);
         app.component("ForceState", ForceState);
         app.component("StateLabel", StateLabel);

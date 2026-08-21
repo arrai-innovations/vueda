@@ -6,10 +6,7 @@ type: reference
 ---
 
 <script setup>
-import PageTitle from "@vueda/shell/page-title/PageTitle.vue";
-import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
-import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import ObjectsGrid from "@vueda/objects-grid/ObjectsGrid.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Input from "@vueda/controls/input/Input.vue";
@@ -47,7 +44,7 @@ import {
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { faBuilding, faEnvelope } from "@fortawesome/free-regular-svg-icons";
-import { defineComponent, h, ref } from "vue";
+import { ref } from "vue";
 
 const fields = [
     { name: "account", label: "Account" },
@@ -90,35 +87,6 @@ const customerUpdateValues = {
     currency: "usd",
 };
 
-// Registers a title source into the surrounding page-title context, rendering nothing itself.
-// In a real app this is what a view does via usePageTitle(() => ({ title, loading })).
-const TitleRegistrar = defineComponent({
-    name: "TitleRegistrar",
-    props: { title: { type: String, default: undefined }, loading: { type: Boolean, default: undefined } },
-    setup(props) {
-        usePageTitle(() => ({ title: props.title, loading: props.loading }));
-        return () => null;
-    },
-});
-
-// Demo-only wrapper. Each example needs its own title, so this establishes an isolated page-title
-// context (usePageTitle with no args), registers the title, and renders the real PageTitle display
-// plus a PageActions cluster from the #actions slot. In a real app the layout calls usePageTitle()
-// once above <RouterView> and each view registers its own title; here we collapse that into one
-// component so every demo is self-contained. Client-only because PageActions teleports into the
-// title bar's action zone, which only exists after the display mounts.
-const DemoTitleBar = defineComponent({
-    name: "DemoTitleBar",
-    props: { title: { type: String, default: undefined }, loading: { type: Boolean, default: undefined } },
-    setup(props, { slots }) {
-        usePageTitle();
-        return () => [
-            h(TitleRegistrar, { title: props.title, loading: props.loading }),
-            h(PageTitle),
-            slots.actions ? h(PageActions, null, { default: slots.actions }) : null,
-        ];
-    },
-});
 </script>
 
 # CRUDL Views
@@ -133,7 +101,7 @@ This page is the visual contract the default theme guarantees at view scale. Use
 
 {@api vue:component:PageTitle} is the layout-level page header. The integrator places it once above `<RouterView>`; it reads the active view's title and loading state from `usePageTitle` (not from props) and hosts the action zone that `PageActions` teleports page-level buttons into. Setting `sticky` pins the bar to the top of the scroll viewport.
 
-The demos below use a small `DemoTitleBar` wrapper that stands in for the layout: it establishes the page-title context, registers a title, and renders `PageTitle` plus a `PageActions` cluster. In an application the layout owns that wiring and each view contributes only its title and actions.
+The demos below use a small `DemoTitleBar` wrapper that stands in for the layout: it establishes an isolated page-title context, registers a title into it, and renders the real `PageTitle` plus a `PageActions` cluster. In an application the layout owns that wiring once and each view contributes only its title and actions.
 
 Theme keys: {@api theme-key:PageTitle}.
 
