@@ -64,10 +64,11 @@ brief: values (color, dimension, duration) belong in
 [CSS tokens](../theming/tokens.md); compositions (class arrangements,
 state recipes) belong in [theme keys](../theming/keys.md).
 
-The select and combobox "open content" cells below are static anatomy panels
-rendered with the same Tailwind classes the theme keys produce. This avoids
-the portal-positioning problem that would arise from forcing a real dropdown
-open inside the docs grid. The closed trigger cells are all live components.
+Every cell below is a live component, open panels included. The open-content and
+open-list cells force-mount a real panel with its side pinned, so each one lands
+in the reserved space beneath its trigger instead of following a pointer. Because
+those panels are positioned by floating-ui they cannot sit in normal grid flow,
+which is why they get their own reserved column rather than a grid cell.
 
 ## Select: state matrix
 
@@ -196,15 +197,15 @@ Token surface: {@api css-token:border} (trigger stroke),
       <span>no lg variant on SelectTrigger</span>
     </template>
   </DemoCard>
-  <DemoCard title="open content anatomy — groups, labels, separator, indicator, highlighted, disabled" class="sm:col-span-2">
-    <div class="flex gap-8 flex-wrap items-start">
-      <div class="flex flex-col gap-2">
-        <StateLabel>trigger · open (interactive)</StateLabel>
-        <Select default-value="net30">
-          <SelectTrigger class="w-52">
+  <DemoCard title="open content anatomy" description=" (groups, labels, separator, indicator, selected, disabled, live)" class="sm:col-span-2">
+    <div class="flex flex-col items-start pb-72">
+      <StateLabel>content panel, force-mounted open</StateLabel>
+      <ClientOnly>
+        <Select default-value="net30" :open="true">
+          <SelectTrigger class="w-52" @escape-key-down.prevent>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent force-mount side="bottom" align="start" :side-offset="6" :avoid-collisions="false" @escape-key-down.prevent @pointer-down-outside.prevent>
             <SelectGroup>
               <SelectLabel>Standard</SelectLabel>
               <SelectItem value="net30">Net 30</SelectItem>
@@ -219,41 +220,14 @@ Token surface: {@api css-token:border} (trigger stroke),
             </SelectGroup>
           </SelectContent>
         </Select>
-      </div>
-      <div class="flex flex-col gap-2">
-        <StateLabel>content panel · static anatomy</StateLabel>
-        <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline p-1 w-52 text-sm">
-          <div class="text-muted-foreground px-2 py-1.5 text-xs">Standard</div>
-          <div class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 bg-accent text-accent-foreground">
-            Net 30
-            <span class="absolute right-2 flex size-3.5 items-center justify-center">
-              <FontAwesomeIcon :icon="faCheck" class="size-3" />
-            </span>
-          </div>
-          <div class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2">
-            Net 60
-          </div>
-          <div class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2">
-            Net 90
-          </div>
-          <div class="bg-border -mx-1 h-px my-1"></div>
-          <div class="text-muted-foreground px-2 py-1.5 text-xs">Custom</div>
-          <div class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 hover:bg-accent hover:text-accent-foreground">
-            Due on receipt
-          </div>
-          <div class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 opacity-50 pointer-events-none">
-            Contract terms
-          </div>
-        </div>
-      </div>
+      </ClientOnly>
     </div>
     <template #footer>
-      <span>content bg <code>--popover</code></span>
-      <span>label fg <code>--muted-foreground</code>, text-xs</span>
-      <span>highlighted bg <code>--accent</code>, fg <code>--accent-foreground</code></span>
-      <span>check indicator absolute right-2</span>
-      <span>separator <code>--border</code></span>
-      <span>disabled opacity-50 pointer-events-none</span>
+      <span>every row is a real <code>SelectItem</code> in a real <code>SelectContent</code>, so this panel cannot drift from the theme keys</span>
+      <span>the check indicator is <code>SelectItem</code>'s own <code>SelectItemIndicator</code>, driven by <code>data-state=checked</code> on the selected value</span>
+      <span>"Contract terms" carries the real <code>disabled</code> prop, which sets the <code>data-disabled</code> the theme keys off</span>
+      <span>highlight is <code>focus:bg-accent</code>; hover or arrow-key through the rows to see it, since only one row can hold focus at a time</span>
+      <span>side and collision avoidance are pinned so the panel lands in the card's reserved space; the trigger stays live but cannot close it</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -327,50 +301,71 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
       <span>check indicator from ComboboxItemIndicator</span>
     </template>
   </DemoCard>
-  <DemoCard title="open list anatomy — search input, grouped items, empty state">
+  <DemoCard title="open list anatomy" description=" (search input, grouped items, empty state, live)">
     <div class="flex flex-col gap-4">
-      <div>
-        <div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">filtered results</div>
-        <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline overflow-hidden w-64">
-          <div class="flex h-9 items-center gap-2 border-b-hairline px-3">
-            <FontAwesomeIcon :icon="faMagnifyingGlass" class="size-4 opacity-50 shrink-0" />
-            <input class="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground" value="acme" readonly />
-          </div>
-          <div class="max-h-[300px] overflow-y-auto p-1">
-            <div class="overflow-hidden p-1 text-foreground">
-              <div class="px-2 py-1.5 text-xs font-medium text-muted-foreground">Customers</div>
-              <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm bg-accent text-accent-foreground">
-                <FontAwesomeIcon :icon="faBuilding" class="size-4" />
-                Acme Corp.
-              </div>
-              <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
-                <FontAwesomeIcon :icon="faBuilding" class="size-4" />
-                Acme Industrial
-              </div>
-              <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
-                <FontAwesomeIcon :icon="faBuilding" class="size-4" />
-                Acme Logistics
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="flex flex-col items-start pb-56">
+        <StateLabel>filtered results</StateLabel>
+        <ClientOnly>
+          <Combobox :open="true">
+            <ComboboxAnchor class="w-64">
+              <ComboboxTrigger
+                class="hairline flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control"
+              >
+                <span class="text-muted-foreground">Select customer...</span>
+                <FontAwesomeIcon :icon="faChevronDown" class="size-4 opacity-50" />
+              </ComboboxTrigger>
+            </ComboboxAnchor>
+            <ComboboxList force-mount class="w-64" @escape-key-down.prevent @pointer-down-outside.prevent>
+              <ComboboxInput placeholder="Search customers..." />
+              <ComboboxViewport>
+                <ComboboxEmpty>No results.</ComboboxEmpty>
+                <ComboboxGroup heading="Customers">
+                  <ComboboxItem value="acme-corp" data-highlighted="">
+                    <FontAwesomeIcon :icon="faBuilding" />
+                    Acme Corp.
+                  </ComboboxItem>
+                  <ComboboxItem value="acme-industrial">
+                    <FontAwesomeIcon :icon="faBuilding" />
+                    Acme Industrial
+                  </ComboboxItem>
+                  <ComboboxItem value="acme-logistics">
+                    <FontAwesomeIcon :icon="faBuilding" />
+                    Acme Logistics
+                  </ComboboxItem>
+                </ComboboxGroup>
+              </ComboboxViewport>
+            </ComboboxList>
+          </Combobox>
+        </ClientOnly>
       </div>
-      <div>
-        <div class="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">empty state</div>
-        <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline overflow-hidden w-64">
-          <div class="flex h-9 items-center gap-2 border-b-hairline px-3">
-            <FontAwesomeIcon :icon="faMagnifyingGlass" class="size-4 opacity-50 shrink-0" />
-            <input class="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground" value="zzqq" readonly />
-          </div>
-          <div class="py-6 text-center text-sm text-muted-foreground">No results.</div>
-        </div>
+      <div class="flex flex-col items-start pb-32">
+        <StateLabel>empty state</StateLabel>
+        <ClientOnly>
+          <Combobox :open="true">
+            <ComboboxAnchor class="w-64">
+              <ComboboxTrigger
+                class="hairline flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control"
+              >
+                <span class="text-muted-foreground">Select customer...</span>
+                <FontAwesomeIcon :icon="faChevronDown" class="size-4 opacity-50" />
+              </ComboboxTrigger>
+            </ComboboxAnchor>
+            <ComboboxList force-mount class="w-64" @escape-key-down.prevent @pointer-down-outside.prevent>
+              <ComboboxInput placeholder="Search customers..." />
+              <ComboboxViewport>
+                <ComboboxEmpty>No results.</ComboboxEmpty>
+              </ComboboxViewport>
+            </ComboboxList>
+          </Combobox>
+        </ClientOnly>
       </div>
     </div>
     <template #footer>
-      <span>list bg <code>--popover</code></span>
-      <span>search row <code>h-9 border-b-hairline</code> separates from items</span>
-      <span>highlighted bg <code>--accent</code></span>
-      <span>empty <code>py-6 text-center text-sm</code></span>
+      <span>both panels are real force-mounted <code>ComboboxList</code>s, so the search row, viewport, group heading, and empty state all come from their theme keys</span>
+      <span>the highlighted row sets <code>data-highlighted</code> directly in markup: <code>ComboboxItem</code> keys off that attribute rather than focus, so it needs no forced-state wrapper</span>
+      <span><code>ComboboxEmpty</code> renders only when the filter yields nothing, so the second panel declares no items rather than faking the state</span>
+      <span>typing in either search row filters for real; the first panel's items all match "acme"</span>
+      <span>the trigger chrome is still hand-written because <code>ComboboxTrigger.root</code> ships empty (BACKLOG-008)</span>
     </template>
   </DemoCard>
 </VuedaDemo>
