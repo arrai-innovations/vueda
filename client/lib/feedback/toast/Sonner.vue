@@ -63,6 +63,12 @@ const icon = useIcons("Sonner", props);
                 '--normal-text': 'var(--popover-foreground)',
                 '--normal-border': 'var(--border)',
                 '--border-radius': 'var(--vueda-card-radius)',
+                // Body copy and the cancel button's fill. vue-sonner routes these through
+                // --description-text / --cancel-bg as of the 2.0.11 fork; before that they were
+                // literals no variable could reach, which left the description stuck at the
+                // upstream near-black once --normal-bg flipped to the dark popover.
+                '--description-text': 'var(--muted-foreground)',
+                '--cancel-bg': 'var(--secondary)',
                 // richColors cells: mixed against --popover rather than transparent, so the
                 // filled surface stays opaque like every other floating overlay (Popover,
                 // Dialog) instead of true alpha over unpredictable page content underneath.

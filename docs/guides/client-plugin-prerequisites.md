@@ -17,7 +17,7 @@ The objective is a `main.js` that registers all required plugins and setup funct
 
 Before you begin:
 
-The project must have `vue-sonner` installed as a dependency; it is a peer dependency of `@arrai-innovations/vueda` and backs the toast surface. VUEDA's control and widget components are first-party (built on Reka UI, which VUEDA bundles), so there is no third-party component-library peer dependency to install. Pinia and Vue Router must also be installed; they are assumed throughout but are not VUEDA-specific.
+The project must install the maintained fork under the `vue-sonner` package name, for example `"vue-sonner": "npm:@arrai-innovations/vue-sonner@^2.0.11"`. It is a peer dependency of `@arrai-innovations/vueda` and backs the toast surface. VUEDA's control and widget components are first-party (built on Reka UI, which VUEDA bundles), so there is no third-party component-library peer dependency to install. Pinia and Vue Router must also be installed; they are assumed throughout but are not VUEDA-specific.
 
 If you are using the built-in `vueda-tailwind` theme (recommended), you also need `tailwindcss` and `@tailwindcss/vite` installed as dev dependencies, and the Vite plugin registered in `vite.config.js`. Tailwindcss is a build tool, not a runtime peer dependency of VUEDA.
 
@@ -106,7 +106,7 @@ VUEDA's controls and widgets (`Button`, `WidgetSelect`, `WidgetDatePicker`, `Wid
 
 ## Toast Notifications
 
-Toast notifications are backed by `vue-sonner`. Install it as a direct application dependency so VUEDA's toaster and any application code that imports `toast` share the same module instance. No plugin registration is needed; `toast` is a plain module import that works anywhere (components, composables, stores, route guards).
+Toast notifications are backed by the `@arrai-innovations/vue-sonner` fork installed as the `vue-sonner` dependency. Keep that package name so VUEDA's toaster and any application code that imports `toast` share the same module instance. No plugin registration is needed; `toast` is a plain module import that works anywhere (components, composables, stores, route guards).
 
 **Setup:** Mount the `Sonner` toaster once in your root component (e.g. `TheApp.vue`):
 
