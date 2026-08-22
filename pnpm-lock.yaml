@@ -109,8 +109,8 @@ importers:
   client:
     dependencies:
       '@arrai-innovations/reactive-helpers':
-        specifier: ^22.0.0
-        version: 22.0.0(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+        specifier: ^23.0.2
+        version: 23.0.2(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
       '@codemirror/lang-json':
         specifier: ^6.0.2
         version: 6.0.2
@@ -287,8 +287,8 @@ importers:
   docs:
     dependencies:
       '@arrai-innovations/reactive-helpers':
-        specifier: ^21.1.0
-        version: 21.1.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+        specifier: ^23.0.2
+        version: 23.0.2(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
       '@arrai-innovations/vue-sonner':
         specifier: ^2.0.11
         version: 2.0.11
@@ -482,16 +482,9 @@ packages:
   '@arrai-innovations/commitlint-config@2.1.0':
     resolution: {integrity: sha512-+sgs7R5aV7TcVZrw9297OEIcTANSCGOlzFCkAmfLlgtxK1UIm6lIFBEtB3hzat6qzmy4pzVe1rgSKP7r3dquyQ==}
 
-  '@arrai-innovations/reactive-helpers@21.1.0':
-    resolution: {integrity: sha512-fIuDS6dkxOyhK5njocHC+HKDESXrlaRrYwqInRSfCfQR6Nc54ZQ/ObszcwxQoqRBNXEgoaaI5xAcNxk2TzYqxA==}
-    deprecated: Pre-open-source proprietary release. Use >=22.0.0 (BSD-3-Clause).
-    peerDependencies:
-      '@vueuse/core': ^13.0.0
-      lodash-es: '>=4.17.24'
-      vue: ^3.5.13
-
-  '@arrai-innovations/reactive-helpers@22.0.0':
-    resolution: {integrity: sha512-3PhVfg+5e3abVlC+uUz0fxAEerXvC7B3uLkddXwr1W7xUdSMbo8mZCrIaz8hJBNIqxtFj+Qi05xe2wEHlpBzww==}
+  '@arrai-innovations/reactive-helpers@23.0.2':
+    resolution: {integrity: sha512-aQyu1fG3s1ZY4tV/41QoNi7yuDWxkBfnnESce+TpH4XRSNOKDbr2lVsygQuVkpFhtTWoBJByv/M2m6JuFnRLpA==}
+    engines: {node: '>=22'}
     peerDependencies:
       '@vueuse/core': ^13.0.0
       lodash-es: '>=4.17.24'
@@ -5934,10 +5927,10 @@ snapshots:
     dependencies:
       '@commitlint/config-conventional': 19.8.1
 
-  '@arrai-innovations/reactive-helpers@21.1.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
+  '@arrai-innovations/reactive-helpers@23.0.2(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@jcoreio/async-throttle': 1.7.0
-      '@vueuse/core': 14.3.0(vue@3.5.27(typescript@5.9.3))
+      '@vueuse/core': 13.9.0(vue@3.5.27(typescript@5.9.3))
       browser-util-inspect: 0.2.0
       flexsearch: 0.7.21
       lodash-es: 4.18.1
@@ -5946,10 +5939,10 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@arrai-innovations/reactive-helpers@22.0.0(@vueuse/core@13.9.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
+  '@arrai-innovations/reactive-helpers@23.0.2(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@jcoreio/async-throttle': 1.7.0
-      '@vueuse/core': 13.9.0(vue@3.5.27(typescript@5.9.3))
+      '@vueuse/core': 14.3.0(vue@3.5.27(typescript@5.9.3))
       browser-util-inspect: 0.2.0
       flexsearch: 0.7.21
       lodash-es: 4.18.1
