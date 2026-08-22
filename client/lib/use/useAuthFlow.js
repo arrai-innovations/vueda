@@ -3,12 +3,12 @@
  * @description Sets up reauthentication routing, UnauthorizedError interception, and a
  * form context for forms that gate access behind prior authentication.
  */
+import { toast } from "@arrai-innovations/vue-sonner";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { defaultOnSubmissionError } from "@vueda/use/useObjectForm.js";
 import { toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { toast } from "vue-sonner";
 
 /**
  * @typedef {object} AuthFlowOptions

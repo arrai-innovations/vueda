@@ -12,7 +12,7 @@ const toastMock = vi.hoisted(() => ({
     loading: vi.fn(),
     message: vi.fn(),
 }));
-vi.mock("vue-sonner", () => ({ toast: toastMock }));
+vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
 describe("lib/use/useActionForm.js", () => {
     beforeEach(() => {

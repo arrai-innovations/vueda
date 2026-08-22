@@ -1,4 +1,5 @@
 <script setup>
+import { toast } from "@arrai-innovations/vue-sonner";
 import Button from "@vueda/controls/button/Button.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import Alert from "@vueda/feedback/alert/Alert.vue";
@@ -13,7 +14,6 @@ import AuthForm from "@vueda/views/AuthForm.vue";
 import { useClipboard } from "@vueuse/core";
 import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { toast } from "vue-sonner";
 
 /**
  * Account security page for managing two-factor authentication recovery codes. Displays the user's unused

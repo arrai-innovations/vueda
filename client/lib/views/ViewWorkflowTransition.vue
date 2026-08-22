@@ -1,4 +1,5 @@
 <script setup>
+import { toast } from "@arrai-innovations/vue-sonner";
 import Button from "@vueda/controls/button/Button.vue";
 import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
 import PageActions from "@vueda/shell/page-title/PageActions.vue";
@@ -14,7 +15,6 @@ import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import { computed, inject, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
-import { toast } from "vue-sonner";
 
 /**
  * View that lists the available workflow transitions for one or more model instances and allows

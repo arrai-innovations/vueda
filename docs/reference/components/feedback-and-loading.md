@@ -18,7 +18,7 @@ import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
 import ClickToCopyText from "@vueda/display/click-to-copy-text/ClickToCopyText.vue";
 import Sonner from "@vueda/feedback/toast/Sonner.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import { toast } from "vue-sonner";
+import { toast } from "@arrai-innovations/vue-sonner";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
   faBell,

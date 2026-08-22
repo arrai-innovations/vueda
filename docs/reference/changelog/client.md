@@ -16,7 +16,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 - **Sonner toast descriptions, cancel buttons, and focus indicators follow the active color mode (Sonner)**:
     - Toast descriptions now use VUEDA's muted foreground token, cancel buttons use the secondary surface token, and close/action focus indicators use the VUEDA focus ring. This fixes low-contrast dark-mode descriptions and focus indicators that could disappear on dark surfaces.
-      _Requires `vue-sonner` >= 2.0.11. Install the fork alias: `"vue-sonner": "npm:@arrai-innovations/vue-sonner@^2.0.11"`. If you retone toast descriptions, set `--description-text` on `<Sonner>` instead of targeting `[data-description]`._
+      _Requires `@arrai-innovations/vue-sonner` >= 2.0.11. If you retone toast descriptions, set `--description-text` on `<Sonner>` instead of targeting `[data-description]`._
 
 - **Badge gains `info`, `success`, and `warning` variants (Badge)**:
     - `Badge` accepted only `default`, `secondary`, `destructive`, and `outline`, so status pills that needed a semantic tone were open-coded with utility classes at each call site. The three new variants render as a tinted status surface: the tone at 10 % as the fill, the tone itself as the label colour, and a 50 % tone hairline, which is the pairing the `--info` / `--success` / `--warning` tokens document. A linked badge (`as="a"`) deepens its surface to 20 % on hover and 25 % on press instead of shifting lightness, because the tinted tones have no paired hover token.
@@ -86,7 +86,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
       _No action required. Re-toning `--success` / `--info` / `--warning` / `--destructive` now also retones richColors toasts._
 - **Sonner now depends on a maintained fork of vue-sonner (Sonner)**:
     - vue-sonner's hover-expand-then-collapse race (dismissing a toast down to one remaining auto-collapses the toast stack, and a dismiss-triggered layout shift can fire a spurious mouseleave/mouseenter pair that re-expands it moments later) is now fixed at the source rather than just narrowed by a shorter transition. `@vueda/feedback/toast/Sonner.vue` depends on [`@arrai-innovations/vue-sonner`](https://github.com/arrai-innovations/vue-sonner), our fork of the upstream package, which debounces the stack's collapse so a same-position pointer re-entry cancels it before it's ever applied.
-      _If you previously added the fork alias at `^2.0.10`, update it to `^2.0.11`; the peer range is now raised to match._
+      _The fork is depended on under its own name rather than aliased over `vue-sonner`, so install `@arrai-innovations/vue-sonner` and import `toast` from it. An earlier unreleased build of this line used an `npm:` alias on `vue-sonner`; drop that alias if you picked it up._
 - **New default sign-in view (new ViewSignIn)**:
     - `ViewSignIn` is a ready-to-route sign-in view: an email and password form in an `AuthorizingForm` card (centered chrome), wired to `storeUser.login` through the inner `ActionForm`, with post-login routing and MFA pending-flow detection handled by `AuthorizingForm` via `useSignInFlow`. It presents a single "Sign In" action (no cancel: admin apps have nowhere to cancel a sign-in to) and stays re-submittable after a rejected attempt. It exposes the same customization surface as the other auth views: props forwarded to `AuthorizingForm` (`header`, `subTitle`, `redirect`, `formProps`, `requireRecentLogin`, theme overrides) plus `field(email)`, `widget(email)`, `field(password)`, `widget(password)`, and `action-bar` slots, with any other `AuthorizingForm` or `ActionForm` slot forwarded.
       _Additive. Point your sign-in route at `@vueda/views/ViewSignIn.vue` to adopt the default, or wrap it and override the widget slots (for example to restyle the inputs) instead of hand-rolling a sign-in view._
@@ -276,8 +276,8 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - `SortChip` and `SortEditor` no longer expose the `sort-icon` slot. Their direction glyphs resolve through the `sortDown` icon registry key; `SortEditor` still exposes `toggle-order-button` for replacing the whole direction control.
       _Replace `#sort-icon` customizations with a `sortDown` registry entry under `Default`, `SortChip`, or `SortEditor`, or replace the full SortEditor control through `#toggle-order-button`._
 - **Toast dependencies**:
-    - `vue-sonner` is now a peer dependency of `@arrai-innovations/vueda`, and the Copier client templates install it directly.
-      _Add `vue-sonner` to consuming applications so direct `toast` imports and VUEDA's toaster resolve the same package instance._
+    - `@arrai-innovations/vue-sonner` is now a peer dependency of `@arrai-innovations/vueda`, and the Copier client templates install it directly.
+      _Add `@arrai-innovations/vue-sonner` to consuming applications and import `toast` from it, so direct imports and VUEDA's toaster resolve the same package instance._
 - **Field shell layout**:
     - Horizontal `Field` labels now use a shrinkable, capped column, and `FieldContent` can shrink inside flex rows. This prevents controls and helper text from overflowing narrow horizontal field containers.
 - **SidebarRail**:

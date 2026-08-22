@@ -6,6 +6,7 @@
  * without the shell can use it directly.
  */
 import { loadingCombine } from "@arrai-innovations/reactive-helpers";
+import { toast } from "@arrai-innovations/vue-sonner";
 import { useConfirmationController } from "@vueda/use/useConfirmationController.js";
 import {
     defaultOnSubmissionWarningsRequireConfirmation,
@@ -15,7 +16,6 @@ import { ConfirmationRequiredError, FormValidationError } from "@vueda/utils/err
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from "vue";
-import { toast } from "vue-sonner";
 
 /**
  * @typedef {object} ActionFormProps
@@ -35,7 +35,7 @@ import { toast } from "vue-sonner";
  *     error: import('@vueda/utils/errors.js').ConfirmationRequiredError,
  *     formContext: import('@vueda/use/useForm.js').FormContext,
  *     confirmation: import('@vueda/use/useConfirmationController.js').ConfirmationController,
- *     toast: import("vue-sonner").toast
+ *     toast: import("@arrai-innovations/vue-sonner").toast
  * }) => Promise<boolean>} [onSubmissionWarningsRequireConfirmation] - Replaces the default handling of a
  *  confirmation-required response (HTTP 409): render the warnings and ask the user via the confirmation
  *  controller. Resolving `true` retries the action once with the warnings acknowledged.

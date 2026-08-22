@@ -1,9 +1,9 @@
 <script setup>
+import { toast as sonnerToast } from "@arrai-innovations/vue-sonner";
 import Button from "@vueda/controls/button/Button.vue";
 import "@vueda/theme/vueda-tailwind/display/ClickToCopyText.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useClipboard } from "@vueuse/core";
-import { toast as sonnerToast } from "vue-sonner";
 
 /**
  * Displays a text value alongside a button that copies it to the clipboard and shows a toast notification on success.

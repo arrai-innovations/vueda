@@ -1,4 +1,5 @@
 <script setup>
+import { toast } from "@arrai-innovations/vue-sonner";
 import Button from "@vueda/controls/button/Button.vue";
 import InputOTP from "@vueda/controls/input-otp/InputOTP.vue";
 import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
@@ -15,7 +16,6 @@ import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
-import { toast } from "vue-sonner";
 
 /**
  * Two-factor authentication challenge view presented after initial login. Lets the user select an available
