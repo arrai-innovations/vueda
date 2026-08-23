@@ -16,29 +16,15 @@ import FieldLabel from "@vueda/shell/field/FieldLabel.vue";
 import RadioGroup from "@vueda/controls/radio-group/RadioGroup.vue";
 import RadioGroupItem from "@vueda/controls/radio-group/RadioGroupItem.vue";
 import Table from "@vueda/grid/table/Table.vue";
-import TableBody from "@vueda/grid/table/TableBody.vue";
-import TableCell from "@vueda/grid/table/TableCell.vue";
-import TableHead from "@vueda/grid/table/TableHead.vue";
-import TableHeader from "@vueda/grid/table/TableHeader.vue";
-import TableRow from "@vueda/grid/table/TableRow.vue";
-import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
-import Kbd from "@vueda/display/kbd/Kbd.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
     faArrowRight,
     faFlagCheckered,
     faRotateLeft,
-    faPen,
-    faPlus,
-    faTable,
-    faFilter,
-    faArrowUpFromBracket,
     faLock,
     faCircleQuestion,
 } from "@fortawesome/free-solid-svg-icons";
 import {
-    faClock,
-    faIdCard,
     faBell,
     faEnvelope,
 } from "@fortawesome/free-regular-svg-icons";
@@ -59,6 +45,8 @@ const activateScenario = customerScenario({
 });
 // Rejects the pre-flight the way a server does when some records cannot take the action:
 // a 400 keyed by primary key. The confirmed request would succeed.
+const historyScenario = customerScenario({ app: "showcasehistory" });
+const emptyHistoryScenario = customerScenario({ app: "showcasehistoryempty", history: [] });
 const billScenario = customerScenario({
     app: "showcasebill",
     actions: [
@@ -368,315 +356,61 @@ The current state is surfaced in a tinted strip below the title bar so there is 
 
 ## ViewHistoryList
 
-Audit trail for a single object. Each row is one field change; sibling rows share a revision. The first row of each revision carries the metadata (timestamp, user, type) and a left-border stripe visually groups the changes that belong to it. A filter bar sits above the table with a layout toggle (table vs. cards).
+Audit trail for a single object. Each revision groups the fields it changed: the first row
+carries the metadata (revision, timestamp, reason, type, user) and a left stripe ties the
+sibling rows to it. A meta strip above the grid toggles between table and card layouts, and a
+pagination footer follows.
 
+The demo below is the live component. The revisions come from the offline `history_list`
+endpoint, so the grouping, the diff cells, and the type pills are the framework's own output.
+Use the Table and Cards buttons to switch layouts.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=1024 · 4 revisions · 9 changes · table layout</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Audit trail · Northwind Logistics">
-      <template #button>
-        <Button size="sm" emphasis="outline">
-          <FontAwesomeIcon :icon="faFilter" />
-          Filter
-        </Button>
-        <Button size="sm" emphasis="outline">
-          <FontAwesomeIcon :icon="faArrowUpFromBracket" />
-          Export CSV
-        </Button>
-      </template>
-      <template #subtitle>
-        <strong>9 changes</strong> across 4 revisions · oldest 2026-01-12
-        <span class="ml-auto text-muted-foreground">Retention <strong class="text-foreground">7 years</strong></span>
-      </template>
-    </PageTitle>
-    <!-- filter / layout bar -->
-    <div class="flex items-center gap-0 border-b-hairline bg-muted/10 px-6 py-2 text-sm">
-      <span class="mr-4 text-muted-foreground"><strong class="text-foreground">Range</strong> last 90 days</span>
-      <span class="mr-4 text-muted-foreground"><strong class="text-foreground">Type</strong> all</span>
-      <span class="text-muted-foreground"><strong class="text-foreground">User</strong> any</span>
-      <div class="ml-auto flex overflow-clip rounded-vueda-control border border-border">
-        <Button size="sm" emphasis="ghost" class="rounded-none border-r border-border text-xs">
-          <FontAwesomeIcon :icon="faTable" /> Table
-        </Button>
-        <Button size="sm" emphasis="ghost" class="rounded-none text-xs text-muted-foreground">
-          <FontAwesomeIcon :icon="faIdCard" /> Cards
-        </Button>
-      </div>
-    </div>
-    <!-- table -->
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead class="w-16">Rev</TableHead>
-          <TableHead class="w-36">When</TableHead>
-          <TableHead class="w-44">Who</TableHead>
-          <TableHead class="w-28">Type</TableHead>
-          <TableHead class="w-40">Field</TableHead>
-          <TableHead>Old</TableHead>
-          <TableHead>New</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <!-- Revision 4 — 3 changes -->
-        <TableRow>
-          <TableCell class="border-l-2 border-primary align-top font-mono text-xs text-muted-foreground">#4</TableCell>
-          <TableCell class="align-top">
-            <div class="text-sm">2026-04-26 14:08</div>
-            <div class="text-xs text-muted-foreground">2 hours ago</div>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-              <UserAvatar name="Mara Tani" :size="22" />
-              Mara Tani
-            </span>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/8 px-2 py-0.5 text-xs text-info">
-              <FontAwesomeIcon :icon="faPen" /> updated
-            </span>
-          </TableCell>
-          <TableCell class="align-top font-mono text-xs">mrr_cents</TableCell>
-          <TableCell class="align-top"><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">1382000</span></TableCell>
-          <TableCell class="align-top"><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">1402850</span></TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell class="border-l-2 border-primary font-mono text-xs text-muted-foreground">·</TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell class="font-mono text-xs">renewal_at</TableCell>
-          <TableCell><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">2026-12-01</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">2027-01-15</span></TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell class="border-l-2 border-primary font-mono text-xs text-muted-foreground">·</TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell class="font-mono text-xs">notes</TableCell>
-          <TableCell><span class="inline-block max-w-48 truncate rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">Annual renewal — review pricing tier in Q4.</span></TableCell>
-          <TableCell><span class="inline-block max-w-48 truncate rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">Annual renewal locked at Tier 3 through 2027.</span></TableCell>
-        </TableRow>
-        <!-- Revision 3 — 1 change -->
-        <TableRow>
-          <TableCell class="border-l-2 border-primary align-top font-mono text-xs text-muted-foreground">#3</TableCell>
-          <TableCell class="align-top">
-            <div class="text-sm">2026-04-12 09:42</div>
-            <div class="text-xs text-muted-foreground">2 weeks ago</div>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-              <UserAvatar name="Jordan Reyes" :size="22" />
-              Jordan Reyes
-            </span>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/8 px-2 py-0.5 text-xs text-info">
-              <FontAwesomeIcon :icon="faPen" /> updated
-            </span>
-          </TableCell>
-          <TableCell class="font-mono text-xs">status</TableCell>
-          <TableCell><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">trial</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">active</span></TableCell>
-        </TableRow>
-        <!-- Revision 2 — 4 changes -->
-        <TableRow>
-          <TableCell class="border-l-2 border-primary align-top font-mono text-xs text-muted-foreground">#2</TableCell>
-          <TableCell class="align-top">
-            <div class="text-sm">2026-02-04 17:15</div>
-            <div class="text-xs text-muted-foreground">3 months ago</div>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-              <UserAvatar name="Priya Subramanian" :size="22" />
-              Priya Subramanian
-            </span>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/8 px-2 py-0.5 text-xs text-info">
-              <FontAwesomeIcon :icon="faPen" /> updated
-            </span>
-          </TableCell>
-          <TableCell class="font-mono text-xs">owner_id</TableCell>
-          <TableCell><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">user:42 (Linnea Borg)</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">user:7 (Mara Tani)</span></TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell class="border-l-2 border-primary font-mono text-xs text-muted-foreground">·</TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell class="font-mono text-xs">tags</TableCell>
-          <TableCell><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">["logistics","new"]</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">["logistics","strategic","apac"]</span></TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell class="border-l-2 border-primary font-mono text-xs text-muted-foreground">·</TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell class="font-mono text-xs">billing_address</TableCell>
-          <TableCell><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">12 Wharf Rd, Auckland</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">Lvl 3, 88 Quay St, Auckland 1010</span></TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell class="border-l-2 border-primary font-mono text-xs text-muted-foreground">·</TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell class="font-mono text-xs">phone</TableCell>
-          <TableCell><span class="text-xs italic text-muted-foreground">— empty</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">+64 9 555 0142</span></TableCell>
-        </TableRow>
-        <!-- Revision 1 — created -->
-        <TableRow>
-          <TableCell class="border-l-2 border-primary align-top font-mono text-xs text-muted-foreground">#1</TableCell>
-          <TableCell class="align-top">
-            <div class="text-sm">2026-01-12 11:02</div>
-            <div class="text-xs text-muted-foreground">3.5 months ago</div>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-              <UserAvatar name="Linnea Borg" :size="22" />
-              Linnea Borg
-            </span>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs text-success">
-              <FontAwesomeIcon :icon="faPlus" /> created
-            </span>
-          </TableCell>
-          <TableCell class="text-xs italic text-muted-foreground">— record created —</TableCell>
-          <TableCell><span class="text-xs italic text-muted-foreground">no prior values</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">12 fields populated</span></TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=1 · 5 revisions · live ViewHistoryList</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewHistoryList.vue')"
+    :app="historyScenario.app"
+    :model="historyScenario.model"
+    pk="1"
+    action="history_list"
+    :seed="historyScenario.seed"
+    :api="historyScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>revision grouping: <code>border-l-2 border-primary</code> on every first-cell of the revision — consistent stripe, no row background needed</span>
-    <span>child rows: first four cells empty; only Field/Old/New columns carry data</span>
-    <span>diff cells: old = <code>bg-destructive/5 text-destructive line-through</code>, new = <code>bg-success/10 text-success</code>; empty values as italic muted text</span>
-    <span>type pills: hand-rolled <code>rounded-full border</code> spans with tone classes; "updated" → info, "created" → success, "restored" → warning</span>
-    <span>user avatar: <code>UserAvatar :size="22"</code> — primary-tinted initials chip</span>
+    <span>columns: not the model's fields. `ViewHistoryList` builds them from the model info's <code>history</code> expand, then adds Field, Old, and New itself. The <code>fields</code> prop picks and orders from that set</span>
+    <span>revision grouping: one row per changed field, with <code>data-rev-start</code> on the first and <code>data-rev-child</code> on its siblings. {@api theme-key:ViewHistoryList} paints the stripe from those attributes, so the grouping survives a re-skin</span>
+    <span>type pills: the raw django-simple-history codes (<code>+</code>, <code>~</code>, <code>-</code>) and their spelled-out forms both map to a tone and an icon; an unknown value falls through and renders as itself</span>
+    <span>dates: an absolute timestamp plus a relative phrase, both from the stored ISO string through luxon</span>
+    <span>layout: the meta strip's Table and Cards buttons pin a layout; left on auto it follows the <code>table-breakpoint</code> prop, so the same view reads as cards on a narrow viewport</span>
+    <span>theme keys: {@api theme-key:ViewHistoryList}, {@api theme-key:ObjectsGrid} · source: <code>ViewHistoryList.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
+A record with no revisions yet gets a dedicated empty state rather than an empty grid.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · same data · cards layout · includes "restored" revision type</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Audit trail · Hightower Mfg.">
-      <template #button>
-        <Button size="sm" emphasis="outline">
-          <FontAwesomeIcon :icon="faArrowUpFromBracket" />
-          Export CSV
-        </Button>
-      </template>
-    </PageTitle>
-    <!-- filter / layout bar -->
-    <div class="flex items-center gap-4 border-b-hairline bg-muted/10 px-6 py-2 text-sm">
-      <span class="text-muted-foreground"><strong class="text-foreground">Range</strong> all time</span>
-      <span class="text-muted-foreground"><strong class="text-foreground">3 revisions</strong></span>
-      <div class="ml-auto flex overflow-clip rounded-vueda-control border border-border">
-        <Button size="sm" emphasis="ghost" class="rounded-none border-r border-border text-xs text-muted-foreground">
-          <FontAwesomeIcon :icon="faTable" /> Table
-        </Button>
-        <Button size="sm" emphasis="ghost" class="rounded-none text-xs">
-          <FontAwesomeIcon :icon="faIdCard" /> Cards
-        </Button>
-      </div>
-    </div>
-    <!-- cards -->
-    <div class="divide-y divide-border">
-      <!-- Rev 3 — updated 2 fields -->
-      <div class="px-6 py-4">
-        <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span class="font-mono text-xs text-muted-foreground">#3</span>
-          <span class="text-sm"><strong>2026-04-25 17:15</strong> · 3 days ago</span>
-          <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-            <UserAvatar name="Priya Subramanian" :size="22" />
-            Priya Subramanian
-          </span>
-          <span class="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/8 px-2 py-0.5 text-xs text-info">
-            <FontAwesomeIcon :icon="faPen" /> updated · 2 fields
-          </span>
-        </div>
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center gap-3">
-            <span class="w-32 shrink-0 font-mono text-xs text-muted-foreground">status</span>
-            <span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">active</span>
-            <FontAwesomeIcon :icon="faArrowRight" class="text-xs text-muted-foreground" />
-            <span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">at_risk</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="w-32 shrink-0 font-mono text-xs text-muted-foreground">health_score</span>
-            <span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">82</span>
-            <FontAwesomeIcon :icon="faArrowRight" class="text-xs text-muted-foreground" />
-            <span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">54</span>
-          </div>
-        </div>
-      </div>
-      <!-- Rev 2 — restored -->
-      <div class="px-6 py-4">
-        <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span class="font-mono text-xs text-muted-foreground">#2</span>
-          <span class="text-sm"><strong>2026-03-08 09:42</strong> · 7 weeks ago</span>
-          <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-            <UserAvatar name="Jordan Reyes" :size="22" />
-            Jordan Reyes
-          </span>
-          <span class="inline-flex items-center gap-1 rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-xs text-warning">
-            <FontAwesomeIcon :icon="faRotateLeft" /> restored
-          </span>
-        </div>
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center gap-3">
-            <span class="w-32 shrink-0 font-mono text-xs text-muted-foreground">deleted_at</span>
-            <span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">2026-02-22 14:10</span>
-            <FontAwesomeIcon :icon="faArrowRight" class="text-xs text-muted-foreground" />
-            <span class="text-xs italic text-muted-foreground">— cleared</span>
-          </div>
-        </div>
-      </div>
-      <!-- Rev 1 — created -->
-      <div class="px-6 py-4">
-        <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span class="font-mono text-xs text-muted-foreground">#1</span>
-          <span class="text-sm"><strong>2025-11-04 11:02</strong> · 6 months ago</span>
-          <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-            <UserAvatar name="Linnea Borg" :size="22" />
-            Linnea Borg
-          </span>
-          <span class="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs text-success">
-            <FontAwesomeIcon :icon="faPlus" /> created
-          </span>
-        </div>
-        <p class="text-sm text-muted-foreground">Record created with 9 fields populated. Initial owner Linnea Borg.</p>
-      </div>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=2 · no history yet</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewHistoryList.vue')"
+    :app="emptyHistoryScenario.app"
+    :model="emptyHistoryScenario.model"
+    pk="2"
+    action="history_list"
+    :seed="emptyHistoryScenario.seed"
+    :api="emptyHistoryScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>cards layout: each revision is a <code>divide-y</code> block — header row + change list; no table chrome needed</span>
-    <span>"restored" type pill: <code>bg-warning/10 border-warning/25 text-warning</code>; third tone in the type vocabulary alongside "updated" (info) and "created" (success)</span>
-    <span>card layout is the default on narrow viewports; table layout is the default on wide viewports</span>
+    <span>empty state: replaces the grid and the meta strip, so no layout toggle or column headers are offered for nothing. The <code>empty</code> slot replaces the whole body</span>
+    <span>it waits for loading to settle: while the request is in flight the grid stays up so its skeleton rows render, and the empty state only appears once zero rows are confirmed</span>
+    <span>the pagination footer stays, reading zero of zero</span>
   </footer>
 </VuedaDemo>
-
-<VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=2099 · no history yet (just created)</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Audit trail · Foxglove &amp; Kettle" />
-    <div class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <FontAwesomeIcon :icon="faClock" class="text-3xl text-muted-foreground/40" />
-      <p class="font-semibold text-foreground">No history yet</p>
-      <p class="max-w-sm text-sm text-muted-foreground">This record was created less than an hour ago and hasn't been edited since. Once changes are made, they'll appear here grouped by revision with a per-field old → new diff.</p>
-    </div>
-  </div>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>empty state: no filter bar, no layout toggle — surface nothing until there is something to surface</span>
-    <span>clock icon from <code>@fortawesome/free-regular-svg-icons</code>: the regular (outline) variant reads as "waiting" rather than "done"</span>
-  </footer>
-</VuedaDemo>
+</ClientOnly>
 
 ## Customization surface
 

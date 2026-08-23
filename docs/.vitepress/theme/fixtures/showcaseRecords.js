@@ -388,44 +388,69 @@ function withServerFields(record, availableActions, validTransitions) {
 }
 
 /**
- * Object-history entries for the `ViewHistoryList` demos, in the shape the
- * `object-history` endpoint returns. Newest first.
+ * Revisions for the `ViewHistoryList` demos, in the shape the `history_list` action returns.
+ * Newest first.
+ *
+ * Keys stay snake_case: record payloads are pushed through untouched and read by their server
+ * names. `history_id` is the pk (`ViewHistoryList` sets `pkKey: "history_id"`), and a revision
+ * with no `num_changes` renders as the creating revision rather than a list of field changes.
  *
  * @type {object[]}
  */
 export const CUSTOMER_HISTORY = [
     {
-        id: 5,
-        historyType: "updated",
-        historyDate: "2026-08-14T15:22:04Z",
-        historyUser: "Mara Tani",
+        history_id: 5,
+        history_date: "2026-08-14T15:22:04Z",
+        history_type: "~",
+        history_user: "Mara Tani",
+        history_change_reason: "Upgraded after the Q3 review.",
+        history_relation: "customer",
+        num_changes: 2,
         changes: [
             { field: "tier", old: "standard", new: "enterprise" },
             { field: "mrr", old: "12400.00", new: "18400.00" },
         ],
     },
     {
-        id: 4,
-        historyType: "updated",
-        historyDate: "2026-06-02T11:08:41Z",
-        historyUser: "Jordan Reyes",
+        history_id: 4,
+        history_date: "2026-06-02T11:08:41Z",
+        history_type: "~",
+        history_user: "Jordan Reyes",
+        history_change_reason: "",
+        history_relation: "customer",
+        num_changes: 1,
         changes: [{ field: "owner", old: "jr", new: "mt" }],
     },
     {
-        id: 3,
-        historyType: "updated",
-        historyDate: "2026-03-19T09:47:15Z",
-        historyUser: "Mara Tani",
+        history_id: 3,
+        history_date: "2026-03-19T09:47:15Z",
+        history_type: "~",
+        history_user: "Mara Tani",
+        history_change_reason: "",
+        history_relation: "customer",
+        num_changes: 1,
         changes: [{ field: "notes", old: "", new: "Renewal review each March." }],
     },
     {
-        id: 2,
-        historyType: "restored",
-        historyDate: "2025-11-27T17:31:52Z",
-        historyUser: "Priya Subramanian",
+        history_id: 2,
+        history_date: "2025-11-27T17:31:52Z",
+        history_type: "restored",
+        history_user: "Priya Subramanian",
+        history_change_reason: "Restored from the archive at the client's request.",
+        history_relation: "customer",
+        num_changes: 0,
         changes: [],
     },
-    { id: 1, historyType: "created", historyDate: "2025-11-04T13:12:00Z", historyUser: "Linnea Borg", changes: [] },
+    {
+        history_id: 1,
+        history_date: "2025-11-04T13:12:00Z",
+        history_type: "+",
+        history_user: "Linnea Borg",
+        history_change_reason: "",
+        history_relation: "customer",
+        num_changes: 0,
+        changes: [],
+    },
 ];
 
 /**
@@ -571,8 +596,11 @@ export function modelRoutes({
             },
         },
         {
+            // `ViewHistoryList` reads its revisions from a detail action on the model, not from
+            // the `object-history` url: its target is `{ app, model, pk, action: "history_list" }`
+            // (`client/lib/views/ViewHistoryList.vue`).
             method: "GET",
-            path: new RegExp(`^/routes/history/object-history/${scope}/(?<pk>[^/]+)/$`),
+            path: new RegExp(`^/routes/${scope}/(?<pk>[^/]+)/history_list/$`),
             handler: ({ query }) => paginate(history, query),
         },
         {
