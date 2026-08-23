@@ -4,6 +4,7 @@ import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vu
 import TypedConfirmField from "@vueda/form/confirm/TypedConfirmField.vue";
 import FormField from "@vueda/form/form-model/FormField.vue";
 import "@vueda/theme/vueda-tailwind/views/ModelActionForm.theme.js";
+import { useForm } from "@vueda/use/useForm.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -12,12 +13,13 @@ import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constan
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
+import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import ActionForm from "@vueda/views/ActionForm.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
 import startCase from "lodash-es/startCase.js";
-import { computed, ref, toRef, unref, useSlots } from "vue";
+import { computed, inject, provide, ref, toRef, unref, useSlots } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /**
@@ -138,6 +140,29 @@ const props = defineProps({
 
 const router = useRouter();
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
+
+// The embedded ActionForm injects FormContextSymbol and useActionForm calls into it on
+// every submit: setAllTouched(), state.submittingValues for the request body, and
+// handleServerFormValidationError() to route a 400's field errors back onto the fields.
+// Only ViewAction establishes a context of its own (it renders form fields, so it has to
+// own one above this component); ViewDestroy and ViewActivate render this component
+// directly with nothing above it. Establish one here when none is injected so those views
+// have a working form rather than a missing dependency.
+//
+// A no-op stand-in is not a substitute. ActionForm builds its validation summary from
+// state.errors and gates submit on state.anyError, so against a stub a server 400 would
+// leave both empty: a generic toast, no per-field messages, and a submit button still
+// enabled for the same rejection. The `extra-fields` slot has the same problem, since
+// fields placed there would fall back to useField's per-field local context and never
+// reach submittingValues.
+//
+// Provide only when absent: ViewAction's context sits above this component and must keep
+// serving its own fields.
+const injectedFormContext = inject(FormContextSymbol, null);
+const formContext = injectedFormContext ?? useForm({});
+if (!injectedFormContext) {
+    provide(FormContextSymbol, formContext);
+}
 
 const actionSuccessSummaryComputed = computed(() => {
     if (props.actionSuccessSummary) {
