@@ -118,8 +118,7 @@ what gives per-record server messages somewhere to land, as the third demo shows
 
 An action with input fills the `extra-fields` slot. The demo below is the real view with that one
 slot supplied by a docs-only wrapper; everything rendered is the framework's own output. Type
-into Reason and submit to see the request body, then clear it and submit again to see the
-validation summary.
+into Reason and submit, then clear it and submit again to see the validation summary.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -136,10 +135,8 @@ validation summary.
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>slot: {@api theme-key:ModelActionForm.extraFields} stacks the rows below the prompt panel at the standard 12 px form gap, so they line up with the field column of a full form</span>
-    <span>request body: field values reach the server only through <code>transform-submit-data-fn</code>. With it, confirming sends <code>{"reason": "...", "copy_notes": false}</code>; without it the action sends no body at all, because the form's own shape is one entry per primary key rather than a request body</span>
-    <span><code>has-input</code>: not a default. Without it {@api vue:component:ActionForm} submits without validating, and a required field left empty still goes to the server</span>
-    <span>required by default: {@api js:function:@arrai-innovations/vueda/use/useField#useField} treats an unset <code>required</code> as <code>true</code>, so an optional field in this slot needs <code>:required="false"</code> or it renders an asterisk</span>
-    <span>one gap worth knowing: a required field the user never touched does not block submit. The submit path touches the paths already in the form values, and a pristine field has none</span>
+    <span>fields: ordinary {@api vue:component:FormField} rows, so they inherit the form family's label, help, and error treatment, and their errors join the same validation summary a server 400 fills</span>
+    <span>plumbing: the wrapper also passes what an action with input currently needs to validate its fields and send their values. Those opt-ins are being reworked, so treat the wrapper as the demo's scaffolding rather than the shape to copy</span>
     <span>single record: the action goes to the detail url (<code>/routes/:app/:model/:pk/duplicate/</code>); several records go to the list url with a <code>{ pks }</code> body</span>
   </footer>
 </VuedaDemo>
@@ -172,27 +169,6 @@ records cannot take the action.
   </footer>
 </VuedaDemo>
 </ClientOnly>
-
-::: info What the retired mockups showed
-Three hand-authored mockups used to stand here. What they showed that the default view does not:
-
-- **Written banner copy, per action.** Each mockup opened with two sentences describing exactly
-  what that action would do and what it would leave alone. Every real banner is a generated title
-  plus one fixed sentence. Projects that want the prose pass `banner-title` and
-  `banner-description`.
-- **A banner that reported the dry run.** The bill-now mockup's banner read "Dry-run found 2
-  problems". No banner reads the pre-flight. The findings render in the validation alert below the
-  prompt instead, which the third demo shows.
-- **Record rows with detail.** The mockups listed accounts with icons, owners, amounts, and
-  per-record exclude checkboxes. `ViewAction` renders primary keys, because it fetches nothing.
-- **Named buttons and hints.** "Archive 4 customers", a `Kbd` shortcut hint, and an audit note in
-  the actions strip. The real strip is "Yes, continue" and "Cancel, go back", with an empty
-  `actions-hint` slot where the note would go.
-- **Cancel in the title row.** The mockups put a Cancel button beside the page title. The real
-  view teleports one "Go Back" button there.
-- **Field styling.** The duplicate mockup styled its inputs by hand. The real slot content is
-  ordinary `FormField` rows, so they inherit the form family's label, help, and error treatment.
-  :::
 
 ## ViewActivate
 
@@ -228,31 +204,6 @@ seeded showcase customer model. Confirming it sends a real PATCH to the offline 
   </footer>
 </VuedaDemo>
 </ClientOnly>
-
-::: info What the retired mockup showed
-The hand-authored mockup this section used to carry differed from the default view in
-several ways, recorded here rather than lost:
-
-- **A banner meta row.** The mockup ended the banner with a row of contextual facts (action
-  name, last seen, workspaces restored). The banner has no meta row; it is a title, a
-  description, and nothing else.
-- **Written banner copy.** The mockup's two lines were prose about what activation does to
-  sessions and API keys. Both real lines are generated from the action and model names, so
-  a project that wants that copy passes `banner-title` and `banner-description`.
-- **Extra checkbox fields.** "Send notification email" and "Force password reset" were part
-  of the mockup. The default view renders no extra fields. The `extra-fields` slot is where
-  they belong: fields placed there join the form context, so their values reach the request
-  body.
-- **An audit hint.** The mockup's action strip ended with "Audited as `user.activate` on
-  save". The `actions-hint` slot exists for exactly that and is empty by default.
-- **Named buttons.** The mockup submitted with "Reactivate user" beside a check icon and
-  offered Cancel in both the title row and the action strip. The real buttons read "Yes,
-  continue" and "Cancel, go back" (override the `confirm-button` slot to change that), and
-  the only title-row button is the view's own "Go Back".
-- **The record row.** The mockup hand-built a row with a user icon, an email address, and a
-  deactivation date. The real chip carries the record's `formatted_name` and its primary
-  key.
-  :::
 
 ## ViewWorkflowTransition
 
@@ -728,6 +679,15 @@ Audit trail for a single object. Each row is one field change; sibling rows shar
 </VuedaDemo>
 
 ## Customization surface
+
+Every action view is `ModelActionForm` underneath, so the same slots and props reshape all of them:
+
+- `banner-title` and `banner-description` replace the generated banner lines; `tone` switches the whole card, banner, and icon tile together.
+- `confirm-message` replaces the prompt wording, and the slot of the same name replaces the panel.
+- `extra-fields` adds action-specific inputs below the prompt.
+- `actions-hint` fills the right side of the actions strip, for a shortcut or an audit note.
+- `confirm-button` replaces the submit button, including its label.
+- `selected-objects` replaces the whole selected-records panel, for a project that wants richer rows than a name and a primary key.
 
 The action banner, selected-objects panel, prompt block, and actions strip are all composed from tokens — there are no dedicated theme keys for them yet. Customization happens at the token level.
 

@@ -14,9 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
-- **Model metadata composables bind to their own app's pinia (useModelInfo, useModelConfig, useModelChoices, useLookupContext)**:
-    - These composables resolved their pinia stores lazily, inside a watcher or callback that runs after setup. A callback has no current component instance to inject from, so pinia fell back to its module-global active instance, which every `app.use(pinia)` overwrites. On a page hosting more than one Vue app, a composable in the first app could read the last app's store, miss cached model info, and refetch it. They now resolve their stores during setup.
-      _No action required for single-app integrations. If you construct these composables outside a component (in a test, for example), a pinia must now be active when they are created rather than when their first fetch runs._
+- **Model metadata composables stay scoped to their app's Pinia instance (useModelInfo, useModelConfig, useModelChoices, useLookupContext)**:
+    - These composables now resolve their stores during setup, so pages that host multiple Vue apps keep model metadata requests scoped to the app that created the composable.
+      _No action required for component usage. If you create these composables outside a component, call them while the intended Pinia instance is active._
 
 - **Model actions run through the CRUD adapter layer (useModelAction, listCrud, objectCrud, ModelActionForm)**:
     - `useModelAction` now dispatches actions through registered list and object CRUD handlers instead of constructing `fetch` requests itself. Bulk actions use the selected list's `bulkDelete` or `executeAction`; single-object actions use the object's `delete` or `executeAction`.

@@ -5,22 +5,13 @@ import WidgetCheckbox from "@vueda/widgets/WidgetCheckbox.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 
 /**
- * Docs-only wrapper that mounts a real {@link ViewAction} with its `extra-fields` slot filled.
+ * Docs-only wrapper that renders a live ViewAction with the `extra-fields` slot.
  *
- * `ModelDemo` renders the view as the sub-app root and passes props, so it has no way to hand a
- * view slot content. This component supplies that one slot and nothing else: everything on screen
- * is the framework's own output.
+ * ModelDemo mounts the target view as the sub-app root and can only pass props,
+ * so demos that need view slots use a wrapper component.
  *
- * It also shows the two settings an action with input needs, which are not defaults:
- *
- * - `has-input` makes `ActionForm` validate before submitting. Without it the confirm button
- *   ignores the fields entirely and a required-but-empty field still submits.
- * - `transform-submit-data-fn` is what puts field values in the request body. `useModelAction`
- *   sends a body only when it is supplied, which is deliberate: `ViewAction` seeds its form with
- *   one entry per primary key so per-object server errors have somewhere to land, and that shape
- *   is not a request body.
- *
- * Both reach `ModelActionForm` and `ActionForm` as fall-through attributes.
+ * `has-input` and `transform-submit-data-fn` are required here so the slotted
+ * fields participate in validation and become the action request body.
  */
 defineProps({
     /** Django app label. */

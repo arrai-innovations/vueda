@@ -508,30 +508,6 @@ column, and action buttons are the framework's actual output rather than an appr
 </VuedaDemo>
 </ClientOnly>
 
-::: info What the retired mockup showed
-This section used to carry a hand-authored mockup. Some of what it showed is not what the
-default read view renders, and those gaps are recorded here rather than lost:
-
-- **Grouped sections.** The mockup split the record into Profile / Billing / Notes bands,
-  each with an uppercase heading and a right-aligned meta line. `ViewRead` renders one flat
-  `FormModel`. Section grouping is a customization, not a default.
-- **Named transition buttons.** The mockup showed Edit, History, Email, and Renew plus an
-  overflow menu. The real bar is generated from the record's `available_actions`, so it
-  reads Update, Partial Update, and Destroy. History, Email, and Renew are project-defined
-  actions; the overflow menu does not exist at all.
-- **Action labels.** Button text is `startCase` applied to the DRF action name, so the
-  `partial_update` action reads "Partial Update" rather than a friendlier phrase.
-- **A status badge in the title row.** The mockup put an "Active" badge beside the title.
-  `PageActions` hosts action buttons; a status badge there is a consumer addition.
-- **Boolean values.** The mockup rendered a tax-exempt record as `No`. `WidgetReadOnly`
-  prints the stored value, so the live demo reads `false`. Static choices no longer differ:
-  `WidgetReadOnly` gained `options` / `optionLabel` / `optionValue` and now resolves `mt`,
-  `enterprise`, and `usd` to `Mara Tani`, `Enterprise`, and `USD`, which is what the mockup
-  showed. Booleans carry no choices, so that one still stands apart.
-- **Row metrics.** The mockup used a 160 px label column with `divide-y` separators. The
-  real read orientation uses 180 px and a per-row bottom hairline.
-  :::
-
 ## ViewUpdate
 
 The update view renders the same form as create, populated from the loaded record. The body below is a real {@api vue:component:FormModel} seeded with initial values. Two update-specific behaviors are view-level and are not shown by a standalone FormModel: per-field modified indicators (a primary-tinted dot and "Modified" badge in the label) and the form-level error Alert that renders after a failed save.
@@ -600,27 +576,6 @@ from the fetched instances, and an optional type-to-confirm phrase gates the sub
 </VuedaDemo>
 </ClientOnly>
 
-::: info What the retired mockup showed
-The hand-authored mockup this section used to carry differed from the default view in
-several ways, recorded here rather than lost:
-
-- **Banner copy.** The mockup wrote two prose paragraphs with counts bolded inline. The real
-  banner is a generated title plus a `ConsequencesBullets` list, one line per linked type.
-  The mockup's "Audit log entries will be retained for 90 days" sentence has no equivalent.
-- **Record rows.** The mockup hand-built rows with a building icon and a `#1019`-style id.
-  The real list renders each fetched record through `WidgetReadOnly`, with no icon and the
-  bare primary key as a trailing mono chip.
-- **Confirm field placement.** The mockup put the type-to-confirm inside a `Field` with its
-  own label and description. `TypedConfirmField` is self-contained: a label with an inline
-  mono chip carrying the expected phrase, then a mono input.
-- **Its own action row.** The mockup ended with a hand-built Cancel / Delete pair, the
-  destructive one labelled "Delete 3 customers permanently". The real buttons come from
-  `ActionForm` and read "Yes, continue" and "Cancel, go back" unless a consumer overrides
-  the `confirm-button` slot.
-- **Card accent.** The mockup applied an inline `color-mix` border at 40 % and a 10 %
-  box-shadow ring. The theme uses `border-destructive/50` and an 8 % ring.
-  :::
-
 ## Customization surface
 
 Token decisions flow across all five views:
@@ -630,6 +585,13 @@ Token decisions flow across all five views:
 - {@api css-token:primary} tints active filter chips, modified indicators, status badges, and the selected-row accent.
 - {@api css-token:destructive} drives the destroy view's card border, banner background, and submit button.
 - {@api css-token:muted} and {@api css-token:muted-foreground} apply to filter strips, pagination labels, section headers, and empty values.
+
+Some of what a finished screen shows is a consumer addition rather than a view default:
+
+- `ViewRead` renders one flat `FormModel`. Grouping fields into titled sections is a customization.
+- `PageActions` hosts action buttons; a status badge beside the title is something the layout adds.
+- The detail action bar is generated from each record's `available_actions`, and each label is `startCase` applied to the DRF action name. Friendlier labels and extra entries come from project-defined actions, not from the view.
+- `ViewDestroy`'s buttons read "Yes, continue" and "Cancel, go back" unless the `confirm-button` slot overrides them.
 
 The highest-value theme keys for CRUDL views:
 
