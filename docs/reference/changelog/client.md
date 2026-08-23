@@ -28,6 +28,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 - **Read-only widgets resolve static choice labels (WidgetReadOnly, ViewRead)**:
     - `WidgetReadOnly` now accepts the same static choice props as editable choice widgets (`options`, `optionLabel`, and `optionValue`) and displays the matching option label in read-only forms. `ViewRead` now shows labels such as `Enterprise`, `USD`, and `No` instead of stored values such as `enterprise`, `usd`, and `false` when field metadata includes static choices. The read-only value slots now also receive `rawValue` for custom renderers that intentionally show stored values.
+    - Read-only forms now pass model-info `display_choices` metadata to `WidgetReadOnly` ahead of editable `choices`. This lets the server label stored values for read-only display without changing the editable widget type. `ChoiceField` backed by `BooleanField` also maps to the radio widget for integrations that use native Django boolean choices.
       _No action required. If you intentionally display raw stored values in read views, use the widget slot's `rawValue` prop._
 
 - **Sonner toast descriptions, cancel buttons, and focus indicators follow the active color mode (Sonner)**:

@@ -182,7 +182,13 @@ const valuesMatch = (optionValue, fieldValue) => {
     if (optionValue === null || optionValue === undefined || fieldValue === null || fieldValue === undefined) {
         return false;
     }
-    return String(optionValue) === String(fieldValue);
+    const optionString = String(optionValue);
+    const fieldString = String(fieldValue);
+    const normalizeBooleanString = (value) => {
+        const lowerValue = value.toLowerCase();
+        return lowerValue === "true" || lowerValue === "false" ? lowerValue : value;
+    };
+    return normalizeBooleanString(optionString) === normalizeBooleanString(fieldString);
 };
 
 const getChoiceLabel = (fieldValue) => {

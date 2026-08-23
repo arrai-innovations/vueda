@@ -33,6 +33,7 @@ class CustomerSerializer(VuedaSerializer):
         return obj.orders.count()
 
     def get_field_model_info(self, fields):
+        fields = super().get_field_model_info(fields)
         fields["number_of_ordered_products"] = {
             "label": "Number Of Ordered Products",
             "type_db": None,
@@ -52,6 +53,29 @@ You only need to correct the keys that are wrong. The generated entry already ca
 `type_serializer` is a DRF field class name, such as `CharField` or `IntegerField` above. See the [DRF serializer fields reference](https://www.django-rest-framework.org/api-guide/fields/) for the full list of field classes and which one best matches what your method field returns.
 
 There is no requirement to override this hook. If you don't, the field still appears in `model_fields` with its best-effort generated metadata.
+
+Call `super().get_field_model_info(fields)` when overriding this hook unless you intentionally want to skip base metadata additions such as `field_display_choices`.
+
+## Display-Only Value Labels
+
+Use `field_display_choices` when a stored value needs a read-only label but should not become an editable choice field. This is useful for booleans that should still edit as toggles but display as domain labels in read-only views:
+
+```python
+class SubmissionSerializer(VuedaSerializer):
+    field_display_choices = {
+        "submitted": {
+            True: "Submitted",
+            False: "-",
+            None: "Unknown",
+        },
+    }
+
+    class Meta(VuedaSerializer.Meta):
+        model = Submission
+        fields = ["id", "submitted"] + VuedaSerializer.Meta.fields
+```
+
+The generated `model_fields.submitted.display_choices` value is a list of `{"label": ..., "value": ...}` objects. These labels are display metadata only. They do not change serializer validation, model choices, or the editable widget selected by the client.
 
 ::: info
 If your serializer inherits `VuedaHistorySerializer`, the same field also appears inside the `history`, `first_history_entry`, and `last_history_entry` expand descriptors in `model_expands`, since those embed the root model's own fields. `get_field_model_info` is applied there too, automatically, using the same override — you do not need to correct the field a second time for its appearance inside those three expands.
@@ -84,7 +108,7 @@ As with `get_field_model_info`, this is optional. An expand backed by a real rel
 
 ## These Hooks Also Drive the OpenAPI Schema
 
-`get_expand_model_info` and `get_field_model_info` are not only for the `/info/` meta-API. `get_schema_expandable_fields()` (which documents the `expand` query parameter's valid values) and `get_schema_fields()` (which documents the `fields` query parameter's valid values) build on the same generation and both hooks, then reduce the result to what an OpenAPI schema needs — dropping the `many`/`read_only`/`hidden` flags, help text, and constraint details, keeping only `label`, `type`, `required`, and `choices`. If you already override these hooks to describe a `SerializerMethodField` for `/info/`, that correction shows up in the generated OpenAPI schema too, with no separate override required.
+`get_expand_model_info` and `get_field_model_info` are not only for the `/info/` meta-API. `get_schema_expandable_fields()` (which documents the `expand` query parameter's valid values) and `get_schema_fields()` (which documents the `fields` query parameter's valid values) build on the same generation and both hooks, then reduce the result to what an OpenAPI schema needs: dropping the `many`/`read_only`/`hidden` flags, display choices, help text, and constraint details, keeping only `label`, `type`, `required`, and `choices`. If you already override these hooks to describe a `SerializerMethodField` for `/info/`, that correction shows up in the generated OpenAPI schema too, with no separate override required.
 
 ## Non-`VuedaSerializer` Serializers
 

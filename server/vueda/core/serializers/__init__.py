@@ -19,6 +19,7 @@ __all__ = (
 
 import copy
 import inspect
+from collections.abc import Mapping
 from typing import ClassVar
 
 import drf_writable_nested
@@ -222,6 +223,8 @@ class VuedaExpandableFieldsSerializerMixin:
     from nested expand representations.
     """
 
+    field_display_choices: ClassVar[dict] = {}
+
     def _get_expanded_field_names(
         self,
         expand_fields: list[str],
@@ -339,9 +342,39 @@ class VuedaExpandableFieldsSerializerMixin:
         Customization hook for the ``model_fields`` metadata the ``/info/`` meta-API returns for this
         serializer. Receives the generated field metadata dict (keyed by field name) and must return a
         dict in the same shape; override to correct or add entries, such as the real type of a
-        ``SerializerMethodField``. The default implementation returns ``fields`` unchanged.
+        ``SerializerMethodField``. The default implementation applies ``field_display_choices``.
         """
+        for field_name, choices in self.get_field_display_choices().items():
+            if field_name in fields:
+                fields[field_name]["display_choices"] = self.serialize_display_choices(choices)
         return fields
+
+    def get_field_display_choices(self):
+        """
+        Return display-only label mappings for serializer fields.
+
+        ``field_display_choices`` should be keyed by serializer field name. Each value may be either a
+        mapping of ``{stored_value: label}``, an iterable of ``(stored_value, label)`` pairs, or an
+        iterable of objects with ``value`` and ``label`` keys. These labels affect read-only display
+        metadata only; they do not change validation choices or editable widgets.
+        """
+        return self.field_display_choices
+
+    @staticmethod
+    def serialize_display_choices(choices):
+        if isinstance(choices, Mapping):
+            choices = choices.items()
+
+        choice_data = []
+        for choice in choices:
+            if isinstance(choice, Mapping):
+                value = choice["value"]
+                label = choice["label"]
+            else:
+                value, label = choice
+            choice_data.append({"label": label, "value": value})
+
+        return choice_data
 
     def get_schema_operation_parameters(self, operation_id, parameters):
         expandable_fields = self.get_schema_expandable_fields()
@@ -424,6 +457,7 @@ class VuedaExpandableFieldsSerializerMixin:
             "max_digits",
             "decimal_places",
             "pk",
+            "display_choices",
         )
 
         def update_data(field_data):

@@ -122,7 +122,7 @@ describe("lib/widgets/WidgetReadOnly.vue", () => {
                 optionValue: "code",
                 options: [
                     { display: "Yes", code: "true" },
-                    { display: "No", code: "false" },
+                    { display: "No", code: "False" },
                 ],
             },
             ...mountOptions,
