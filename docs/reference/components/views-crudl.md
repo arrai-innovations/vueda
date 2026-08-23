@@ -64,14 +64,10 @@ const statusClasses = {
 
 const sorted = ref(["-updated", "mrr"]);
 
-// Each StickyBar demo binds its scroll-root to its own bounded, scrollable
-// panel so the bar pins to and reacts to the demo viewport instead of the page
-// (otherwise it would stick to the window and ride up over the site nav).
-const createViewport = ref(null);
-const updateViewport = ref(null);
-
 // One scenario per live demo. Route registration is global and first-match-wins, so demos
 // that need different responses for the same model take different app labels.
+const createScenario = customerScenario({ app: "showcasecreate" });
+const updateScenario = customerScenario({ app: "showcaseupdate" });
 const readScenario = customerScenario({ app: "showcaseread" });
 const destroyScenario = customerScenario({ app: "showcasedestroy" });
 
@@ -82,17 +78,6 @@ const destroyViewProps = {
         { count: 112, verboseNamePlural: "invoices" },
         { count: 8, verboseNamePlural: "attachments" },
     ],
-};
-
-const customerCreateFields = ["account", "domain", "owner", "tier", "mrr", "currency", "taxExempt", "notes"];
-const customerUpdateFields = ["account", "domain", "owner", "tier", "mrr", "currency"];
-const customerUpdateValues = {
-    account: "Northwind Logistics",
-    domain: "northwind-logistics.example",
-    owner: "mt",
-    tier: "enterprise",
-    mrr: "14028.50",
-    currency: "usd",
 };
 
 </script>
@@ -437,40 +422,31 @@ This ViewList is a static mockup. The live components implement the filter UX: `
 
 ## ViewCreate
 
-The create view pairs PageTitle with a sticky action bar that holds the primary submit action (pinned and always reachable during form entry) alongside secondary options like "Save and add another." In a real shell that bar teleports into the sticky stack beneath the title (see [Sticky Chrome](./sticky-chrome.md)); the demo below shows it as a standalone `StickyBar` bound to the demo panel. The form body renders a real {@api vue:component:FormModel} against seeded model metadata, so it shows the framework's actual default field layout (a single-column stack) rather than hand-built markup. Grouping fields into sections or a multi-column grid is a customization layered on top; see [Forms](/reference/components/forms).
+The create view is a page title, a sticky bar holding the submit action, and a form body
+rendered from the model's configured fields. The demo below is the live component.
 
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view create · blank form · pristine</header>
-  <div ref="createViewport" class="rounded-vueda-card hairline hairline-border bg-card overflow-y-auto max-h-[34rem]">
-    <ClientOnly>
-      <DemoTitleBar title="Create customer">
-        <template #actions>
-          <Button size="sm" emphasis="ghost">Cancel</Button>
-        </template>
-      </DemoTitleBar>
-    </ClientOnly>
-    <StickyBar :scroll-root="createViewport">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <Button tone="primary">
-            <FontAwesomeIcon :icon="faCheck" />
-            Create customer
-          </Button>
-          <Button emphasis="outline">Save and add another</Button>
-        </div>
-        <span class="text-xs text-muted-foreground">All required fields marked <span class="text-destructive">*</span></span>
-      </div>
-    </StickyBar>
-    <ClientOnly>
-      <DemoFormModel app="showcase" :fields="customerCreateFields" model="customer" view="create" view-theme="ViewCreate" />
-    </ClientOnly>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view create · blank form · live ViewCreate</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewCreate.vue')"
+    :app="createScenario.app"
+    :model="createScenario.model"
+    action="create"
+    :seed="createScenario.seed"
+    :api="createScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>StickyBar sits directly below PageTitle: primary submit is always reachable without scrolling to the bottom</span>
-    <span>form body: a real FormModel rendered against seeded model metadata; the gutter comes from the ViewCreate body theme slot</span>
-    <span>the default field layout is a single-column stack. Section grouping and multi-column grids are customizations.</span>
+    <span>fields: no field list is passed here. The form renders the model config's <code>submitFields</code>, which defaults to every non-pk field, and each widget is chosen from the field's serializer and model types</span>
+    <span>the default layout is a single-column stack. Section grouping and multi-column grids are customizations; see [Forms](/reference/components/forms)</span>
+    <span>submit bar: a {@api vue:component:StickyBar} in <code>zone="top"</code>, which teleports into the layout's sticky stack. The docs harness has no stack, so it renders in place here; [Sticky Chrome](./sticky-chrome.md) covers the pinned behavior</span>
+    <span>page actions: the view teleports a link per non-detail action into the title row, which is why List appears there and Create does not</span>
+    <span>submitting posts the submit fields to the model's list url, then routes to the new record's update screen (<code>redirect-after</code> chooses list, update, or read)</span>
+    <span>theme keys: {@api theme-key:ViewCreate}, {@api theme-key:StickyBar} · source: <code>ViewCreate.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
 ## ViewRead
 
@@ -510,39 +486,31 @@ column, and action buttons are the framework's actual output rather than an appr
 
 ## ViewUpdate
 
-The update view renders the same form as create, populated from the loaded record. The body below is a real {@api vue:component:FormModel} seeded with initial values. Two update-specific behaviors are view-level and are not shown by a standalone FormModel: per-field modified indicators (a primary-tinted dot and "Modified" badge in the label) and the form-level error Alert that renders after a failed save.
+The update view renders the same form as create, populated from the fetched record.
 
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · populated form · real FormModel</header>
-  <div ref="updateViewport" class="rounded-vueda-card hairline hairline-border bg-card overflow-y-auto max-h-[34rem]">
-    <ClientOnly>
-      <DemoTitleBar title="Edit Northwind Logistics">
-        <template #actions>
-          <Button size="sm" emphasis="ghost">View read-only</Button>
-        </template>
-      </DemoTitleBar>
-    </ClientOnly>
-    <StickyBar :scroll-root="updateViewport">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <Button tone="primary">
-            <FontAwesomeIcon :icon="faCheck" />
-            Save changes
-          </Button>
-          <Button emphasis="outline">Discard</Button>
-        </div>
-      </div>
-    </StickyBar>
-    <ClientOnly>
-      <DemoFormModel app="showcase" :fields="customerUpdateFields" :initial-values="customerUpdateValues" model="customer" view="update" view-theme="ViewUpdate" />
-    </ClientOnly>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · populated form · live ViewUpdate</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewUpdate.vue')"
+    :app="updateScenario.app"
+    :model="updateScenario.model"
+    pk="1"
+    action="update"
+    :seed="updateScenario.seed"
+    :api="updateScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>form body: a real FormModel seeded with initial values; the gutter comes from the ViewUpdate body theme slot</span>
-    <span>per-field modified indicators and the form-level error Alert are view-level behaviors, not shown by a standalone FormModel</span>
-    <span>labels, help text, required markers, and select options all come from the seeded field metadata</span>
+    <span>the record is fetched first: one request for the config's <code>fetchFields</code> plus its expands, and the form seeds its initial values from the response</span>
+    <span>edit any field and the sticky bar gains an unsaved-changes marker. It tracks the form context, not the individual input, so it clears again if you restore the original value</span>
+    <span>the action bar carries the record's other actions, taken from its <code>available_actions</code>, so update itself is absent and Destroy, Partial Update, and Retrieve are not</span>
+    <span>submitting sends the submit fields to the record's detail url and re-fetches it, so the screen shows what the server stored rather than what was typed</span>
+    <span>a rejected save renders a form-level Alert above the fields, separate from the per-field messages a 400 fills in</span>
+    <span>theme keys: {@api theme-key:ViewUpdate}, {@api theme-key:Alert} · source: <code>ViewUpdate.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
 ## ViewDestroy
 

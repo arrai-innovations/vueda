@@ -582,6 +582,32 @@ export function modelRoutes({
             },
         },
         {
+            // Create posts the submitted fields to the list url and answers 201 with the created
+            // record. The fixture rows are pristine per demo mount, so nothing is stored: the id
+            // is invented from the row count.
+            method: "POST",
+            path: new RegExp(`^/routes/${scope}/$`),
+            handler: ({ body }) => demoResponse(201, serialize({ ...(body || {}), [pkKey]: records.length + 1 })),
+        },
+        {
+            // Update and partial update answer with the record merged with what was sent, which is
+            // what lets the view redirect onto a detail screen that shows the new values.
+            method: "PUT",
+            path: new RegExp(`^/routes/${scope}/(?<pk>[^/]+)/$`),
+            handler: ({ params, body }) => {
+                const record = byPk(params.pk);
+                return record ? serialize({ ...record, ...(body || {}) }) : notFound(model, params.pk);
+            },
+        },
+        {
+            method: "PATCH",
+            path: new RegExp(`^/routes/${scope}/(?<pk>[^/]+)/$`),
+            handler: ({ params, body }) => {
+                const record = byPk(params.pk);
+                return record ? serialize({ ...record, ...(body || {}) }) : notFound(model, params.pk);
+            },
+        },
+        {
             // Bulk delete posts to the LIST url with a `{ pks }` body, and ActionForm sends
             // it twice: a `Dry-Run: true` pre-flight, then the real request. The server
             // answers 200 for the pre-flight and 204 only for an actual delete
