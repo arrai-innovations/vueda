@@ -27,7 +27,6 @@ import {
     faChevronDown,
     faChevronLeft,
     faChevronRight,
-    faClockRotateLeft,
     faEllipsis,
     faFileImport,
     faFilter,
@@ -45,6 +44,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { faBuilding, faEnvelope } from "@fortawesome/free-regular-svg-icons";
 import { ref } from "vue";
+import { customerScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
 
 const fields = [
     { name: "account", label: "Account" },
@@ -73,8 +73,11 @@ const sorted = ref(["-updated", "mrr"]);
 // panel so the bar pins to and reacts to the demo viewport instead of the page
 // (otherwise it would stick to the window and ride up over the site nav).
 const createViewport = ref(null);
-const readViewport = ref(null);
 const updateViewport = ref(null);
+
+// One scenario per live demo. Route registration is global and first-match-wins, so demos
+// that need different responses for the same model take different app labels.
+const readScenario = customerScenario({ app: "showcaseread" });
 
 const customerCreateFields = ["account", "domain", "owner", "tier", "mrr", "currency", "taxExempt", "notes"];
 const customerUpdateFields = ["account", "domain", "owner", "tier", "mrr", "currency"];
@@ -466,113 +469,62 @@ The create view pairs PageTitle with a sticky action bar that holds the primary 
 
 ## ViewRead
 
-The read view presents a single record in a non-editable layout. Inputs are replaced by label/value rows with a fixed-width label column. The sticky action bar swaps the submit button for transition actions (Edit, History, workflow steps); like the create view, it teleports into the sticky stack in a real shell (see [Sticky Chrome](./sticky-chrome.md)) and is shown here as a standalone `StickyBar`. A status badge appears in the title actions area.
+The read view presents a single record in a non-editable layout: a `FormModel` in `read`
+view, where every field renders through {@api vue:component:WidgetReadOnly} as a
+label/value row. Above it sits a sticky action bar of transition buttons, and the
+page-level actions teleport into the layout's PageTitle action zone.
 
+The demo below is the live component. It runs through the `ModelDemo` harness against the
+same seeded customer model the create and update demos use, so the row layout, label
+column, and action buttons are the framework's actual output rather than an approximation.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view read · single record · Northwind Logistics</header>
-  <div ref="readViewport" class="rounded-vueda-card hairline hairline-border bg-card overflow-y-auto max-h-[34rem]">
-    <ClientOnly>
-      <DemoTitleBar title="Northwind Logistics">
-        <template #actions>
-          <span class="inline-flex items-center rounded border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">Active</span>
-        </template>
-      </DemoTitleBar>
-    </ClientOnly>
-    <StickyBar :scroll-root="readViewport">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <Button tone="primary">
-            <FontAwesomeIcon :icon="faPen" />
-            Edit
-          </Button>
-        </div>
-        <div class="flex items-center gap-2">
-          <Button emphasis="outline">
-            <FontAwesomeIcon :icon="faClockRotateLeft" />
-            History
-          </Button>
-          <Button emphasis="outline">
-            <FontAwesomeIcon :icon="faEnvelope" />
-            Email
-          </Button>
-          <Button emphasis="outline">
-            <FontAwesomeIcon :icon="faArrowRight" />
-            Renew
-          </Button>
-          <Button size="icon" emphasis="outline" aria-label="More">
-            <FontAwesomeIcon :icon="faEllipsis" />
-          </Button>
-        </div>
-      </div>
-    </StickyBar>
-    <div class="px-6 py-5">
-      <div class="mb-6">
-        <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Profile</h3>
-          <span class="text-xs text-muted-foreground">created 2024-08-12</span>
-        </div>
-        <div class="divide-y divide-border">
-          <div class="grid grid-cols-[160px_1fr] gap-x-6 py-2.5 text-sm">
-            <span class="text-muted-foreground">Account name</span>
-            <span>Northwind Logistics</span>
-          </div>
-          <div class="grid grid-cols-[160px_1fr] gap-x-6 py-2.5 text-sm">
-            <span class="text-muted-foreground">Primary domain</span>
-            <a href="#" class="text-primary hover:underline">https://northwind.example</a>
-          </div>
-          <div class="grid grid-cols-[160px_1fr] gap-x-6 py-2.5 text-sm">
-            <span class="text-muted-foreground">Owner</span>
-            <span>Mara Tani</span>
-          </div>
-          <div class="grid grid-cols-[160px_1fr] gap-x-6 py-2.5 text-sm">
-            <span class="text-muted-foreground">Plan tier</span>
-            <span>Enterprise</span>
-          </div>
-        </div>
-      </div>
-      <div class="mb-6">
-        <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Billing</h3>
-          <span class="text-xs text-muted-foreground">last invoice 2026-04-01</span>
-        </div>
-        <div class="divide-y divide-border">
-          <div class="grid grid-cols-[160px_1fr] gap-x-6 py-2.5 text-sm">
-            <span class="text-muted-foreground">MRR</span>
-            <span class="font-mono">$14,028.50</span>
-          </div>
-          <div class="grid grid-cols-[160px_1fr] gap-x-6 py-2.5 text-sm">
-            <span class="text-muted-foreground">Currency</span>
-            <span>USD</span>
-          </div>
-          <div class="grid grid-cols-[160px_1fr] gap-x-6 py-2.5 text-sm">
-            <span class="text-muted-foreground">Tax-exempt</span>
-            <span class="text-muted-foreground">No</span>
-          </div>
-          <div class="grid grid-cols-[160px_1fr] gap-x-6 py-2.5 text-sm">
-            <span class="text-muted-foreground">Renewal date</span>
-            <span class="font-mono">2027-08-12</span>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="mb-3 border-b-hairline pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Notes</h3>
-        </div>
-        <div class="divide-y divide-border">
-          <div class="grid grid-cols-[160px_1fr] gap-x-6 py-2.5 text-sm">
-            <span class="text-muted-foreground">Internal note</span>
-            <span>Strong renewal signal — operations team expanded headcount in Q1 and added two new warehouse sites. Worth a check-in around mid-cycle. Last QBR: 2026-03-14.</span>
-          </div>
-        </div>
-      </div>
-    </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view read · single record · live ViewRead</header>
+  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
+    <ModelDemo
+      :view="() => import('@vueda/views/ViewRead.vue')"
+      :app="readScenario.app"
+      :model="readScenario.model"
+      pk="1"
+      :seed="readScenario.seed"
+      :api="readScenario.api"
+      page-title
+    />
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>read-only rows: fixed-width label column (160 px) + 1fr value; border-bottom separators</span>
-    <span>StickyBar: Edit is the primary action; secondary actions are context-specific transitions and history</span>
-    <span>status badge: rendered through PageActions, right-aligned in the title row</span>
+    <span>read rows: {@api theme-key:Field} in its <code>read</code> orientation — a <code>180px</code> label column, <code>1fr</code> value, and a bottom hairline per row</span>
+    <span>label type: 12 px / 500 / <code>--muted-foreground</code>, top-aligned against a value that may wrap to several lines</span>
+    <span>action bar: one {@api vue:component:LinkModelView} button per entry in the record's <code>available_actions</code>, with <code>update</code> promoted to the filled primary and <code>destroy</code> picking up the destructive tone</span>
+    <span>PageTitle: supplied here by the docs harness, as an integrator's layout would; the view contributes the title and teleports its non-detail actions into the title row</span>
+    <span>theme keys: {@api theme-key:ViewRead}, {@api theme-key:Field}, {@api theme-key:WidgetReadOnly} · source: <code>ViewRead.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
+
+::: info What the retired mockup showed
+This section used to carry a hand-authored mockup. Some of what it showed is not what the
+default read view renders, and those gaps are recorded here rather than lost:
+
+- **Grouped sections.** The mockup split the record into Profile / Billing / Notes bands,
+  each with an uppercase heading and a right-aligned meta line. `ViewRead` renders one flat
+  `FormModel`. Section grouping is a customization, not a default.
+- **Named transition buttons.** The mockup showed Edit, History, Email, and Renew plus an
+  overflow menu. The real bar is generated from the record's `available_actions`, so it
+  reads Update, Partial Update, and Destroy. History, Email, and Renew are project-defined
+  actions; the overflow menu does not exist at all.
+- **Action labels.** Button text is `startCase` applied to the DRF action name, so the
+  `partial_update` action reads "Partial Update" rather than a friendlier phrase.
+- **A status badge in the title row.** The mockup put an "Active" badge beside the title.
+  `PageActions` hosts action buttons; a status badge there is a consumer addition.
+- **Choice and boolean values.** The mockup rendered `Mara Tani`, `Enterprise`, `USD`, and
+  `No`. `WidgetReadOnly` resolves a foreign key through its `formatted_name` but does not
+  map a static `ChoiceField` value to its label, so the live demo shows the stored `mt`,
+  `enterprise`, `usd`, and `false`. This is a gap in `WidgetReadOnly`, not a deliberate
+  design decision.
+- **Row metrics.** The mockup used a 160 px label column with `divide-y` separators. The
+  real read orientation uses 180 px and a per-row bottom hairline.
+  :::
 
 ## ViewUpdate
 
@@ -615,6 +567,22 @@ The update view renders the same form as create, populated from the loaded recor
 The destroy view is a dedicated danger page, not a modal. Bulk-selected records are surfaced as a list of named items. A banner at the top quantifies the cascading impact. A type-to-confirm field prevents accidental submission. The destructive action remains disabled until the confirmation phrase is typed exactly.
 
 The view card takes on a destructive accent: border color is tinted toward `--destructive` and a matching box-shadow ring adds depth to reinforce the danger context.
+
+::: warning Mockup status
+This section is still a hand-authored mockup. `ViewDestroy` cannot be mounted yet: it
+renders `ModelActionForm`, which renders `ActionForm`, which injects `FormContextSymbol`
+and reads `formContext.state.anyError` without a guard. Neither `ViewDestroy` nor
+`ViewActivate` provides that context (only `ViewAction` calls `useForm`), so both fail on
+mount. Once the context is supplied this section becomes a live demo, and the mockup's
+divergences get recorded the way the read view's are above.
+
+Two are already visible from the source. The banner here is a hand-written pair of
+paragraphs with counts bolded inline; the real banner is a generated title plus a
+{@api vue:component:ConsequencesBullets} list built from the `linkedObjectCounts` prop.
+And the record list here is hand-built rows with a building icon and a `#1019`-style id;
+the real one comes from `ModelActionForm`, which fetches the selected records and renders
+each through `WidgetReadOnly`.
+:::
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view destroy · 3 records selected · destructive intent</header>

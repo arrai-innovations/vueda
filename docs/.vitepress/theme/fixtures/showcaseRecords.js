@@ -353,6 +353,30 @@ export const CUSTOMER_RECORDS = [
 const SEARCH_FIELDS = ["account", "domain", "notes"];
 
 /**
+ * Per-record actions a vueda server attaches to every serialized instance (see
+ * `vueda/core/serializers/fields.py`; `create` is excluded on an instance). The detail
+ * views read this off the record, not off the model config, so a record without it
+ * renders an empty action bar.
+ *
+ * @type {string[]}
+ */
+export const RECORD_AVAILABLE_ACTIONS = ["list", "retrieve", "update", "partial_update", "destroy"];
+
+/**
+ * Attach the fields a server adds to every serialized instance. `available_actions` and
+ * `valid_transitions` stay snake_case: `storeModelInfo` camelCases model info on fetch,
+ * but record payloads are pushed through untouched and read by their server names.
+ *
+ * @param {object} record
+ * @param {string[]} availableActions
+ * @param {object[]} validTransitions
+ * @returns {object}
+ */
+function withServerFields(record, availableActions, validTransitions) {
+    return { ...record, available_actions: availableActions, valid_transitions: validTransitions };
+}
+
+/**
  * Object-history entries for the `ViewHistoryList` demos, in the shape the
  * `object-history` endpoint returns. Newest first.
  *
@@ -418,6 +442,8 @@ export function seedCustomerModel(pinia, app = SHOWCASE_CUSTOMER.app) {
  *   Overrides the delete response; default is 204 with the rows left untouched, since
  *   each demo remounts against the pristine fixture anyway.
  * @param {object[]} [options.transitions] - Workflow transitions the model offers.
+ * @param {string[]} [options.availableActions] - Per-record `available_actions`.
+ * @param {object[]} [options.validTransitions] - Per-record `valid_transitions`.
  * @returns {{ app: string, model: string, seed: Function, api: object[] }}
  */
 export function customerScenario({
@@ -426,13 +452,15 @@ export function customerScenario({
     history = CUSTOMER_HISTORY,
     onDelete,
     transitions = [],
+    availableActions = RECORD_AVAILABLE_ACTIONS,
+    validTransitions = [],
 } = {}) {
     const model = SHOWCASE_CUSTOMER.model;
     return {
         app,
         model,
         seed: (pinia) => seedCustomerModel(pinia, app),
-        api: modelRoutes({ app, model, records, history, onDelete, transitions }),
+        api: modelRoutes({ app, model, records, history, onDelete, transitions, availableActions, validTransitions }),
     };
 }
 
@@ -450,26 +478,51 @@ export function customerScenario({
  * @param {object[]} [options.transitions] - Workflow transitions the model offers. An
  *   empty array is the answer for a model with no workflow, and is what keeps ViewList
  *   from logging an unmocked-endpoint warning on every mount.
+ * @param {string[]} [options.availableActions] - Per-record `available_actions`, which is
+ *   what the detail views read to decide which action buttons exist.
+ * @param {object[]} [options.validTransitions] - Per-record `valid_transitions`.
  * @param {string} [options.pkKey="id"] - Primary key field on each row.
  * @returns {import('./demoApi.js').DemoRoute[]}
  */
-export function modelRoutes({ app, model, records, history = [], onDelete, transitions = [], pkKey = "id" }) {
+export function modelRoutes({
+    app,
+    model,
+    records,
+    history = [],
+    onDelete,
+    transitions = [],
+    availableActions = RECORD_AVAILABLE_ACTIONS,
+    validTransitions = [],
+    pkKey = "id",
+}) {
     const scope = `${escapeForPattern(app.toLowerCase())}/${escapeForPattern(routePart(model))}`;
     const byPk = (pk) => records.find((record) => String(record[pkKey]) === String(pk));
+    const serialize = (record) => withServerFields(record, availableActions, validTransitions);
     return [
         {
             method: "GET",
             path: new RegExp(`^/routes/${scope}/$`),
-            handler: ({ query }) => paginate(applyQuery(records, query), query),
+            handler: ({ query }) => paginate(applyQuery(records, query).map(serialize), query),
         },
         {
             method: "GET",
             path: new RegExp(`^/routes/${scope}/(?<pk>[^/]+)/$`),
-            handler: ({ params }) => byPk(params.pk) ?? notFound(model, params.pk),
+            handler: ({ params }) => {
+                const record = byPk(params.pk);
+                return record ? serialize(record) : notFound(model, params.pk);
+            },
         },
         {
             method: "DELETE",
             path: new RegExp(`^/routes/${scope}/(?<pk>[^/]+)/$`),
+            handler: (context) => (onDelete ? onDelete(context) : demoResponse(204)),
+        },
+        {
+            // Bulk delete posts to the LIST url with a `{ pks }` body, and ActionForm
+            // sends the same request twice: once as a dry run (a `Dry-Run` header the
+            // demo has no reason to distinguish) and once for real. 204 answers both.
+            method: "DELETE",
+            path: new RegExp(`^/routes/${scope}/$`),
             handler: (context) => (onDelete ? onDelete(context) : demoResponse(204)),
         },
         {
@@ -604,6 +657,12 @@ function matchesLookup(value, lookup, target) {
         case "isnull":
             return (value === null || value === undefined) === (needle === "true");
         default:
+            // A comma-separated value on a bare `field=` param is Django's in-list shorthand,
+            // and is how `makeSearchParamsString` serializes an array param. ViewDestroy relies
+            // on it: it loads its selected records with `?id=1,2,3`.
+            if (needle.includes(",")) {
+                return needle.split(",").includes(text);
+            }
             // Booleans arrive as "true"/"false" strings; everything else compares as text.
             return typeof value === "boolean" ? String(value) === needle : text === needle;
     }

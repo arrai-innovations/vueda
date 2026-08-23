@@ -1,6 +1,7 @@
 <script setup>
 import { DEMO_LATENCY_MS } from "../fixtures/authUser.js";
 import { registerDemoRoutes } from "../fixtures/demoApi.js";
+import DemoPageChrome from "./DemoPageChrome.vue";
 import { bootDemoSubApp, installDefaultCrud, wrapDemoAction } from "./demoSubApp.js";
 import { onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 
@@ -54,6 +55,13 @@ const props = defineProps({
      * by views that call the user store directly rather than a model endpoint.
      */
     mocks: { type: Object, default: () => ({}) },
+    /**
+     * Wrap the view in `DemoPageChrome`, a stand-in for the integrator's layout. Views
+     * that contribute a title through `usePageTitle` or teleport buttons through
+     * `PageActions` need it: without a layout above them the title is dropped and the
+     * page actions render inline at the top of the view body.
+     */
+    pageTitle: { type: Boolean, default: false },
     /** Milliseconds every mocked response stalls, so loading states are visible. */
     latency: { type: Number, default: DEMO_LATENCY_MS },
     /**
@@ -106,6 +114,7 @@ onMounted(async () => {
             },
         },
         seed: props.seed,
+        chrome: props.pageTitle ? DemoPageChrome : undefined,
         setup: async ({ pinia }) => {
             if (!Object.keys(props.state).length && !Object.keys(props.mocks).length) {
                 return;

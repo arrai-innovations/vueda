@@ -59,6 +59,9 @@ export async function installDefaultCrud() {
  * @param {(context: { pinia: import('pinia').Pinia, router: import('vue-router').Router }) => void|Promise<void>} [options.setup] -
  *   Runs after the router is ready and the seed has applied, before mount. Use it to
  *   patch stores or swap in offline actions.
+ * @param {import('vue').Component} [options.chrome] - Optional component wrapping the view
+ *   inside the sub-app root, receiving it as its default slot. Use it to supply layout-level
+ *   context a view expects from its host (see `DemoPageChrome.vue`).
  * @param {boolean} [options.toasts=false] - Mount vueda's `Sonner` alongside the view.
  * @param {() => boolean} [options.isStale] - Called after every await; when it returns
  *   true the boot aborts because the host component unmounted mid-import.
@@ -72,6 +75,7 @@ export async function bootDemoSubApp({
     initialRoute,
     seed,
     setup,
+    chrome,
     toasts = false,
     isStale = () => false,
 }) {
@@ -100,7 +104,8 @@ export async function bootDemoSubApp({
 
     const app = createApp({
         render: () => {
-            const rendered = h(ViewComponent, viewProps);
+            const view = h(ViewComponent, viewProps);
+            const rendered = chrome ? h(chrome, null, { default: () => view }) : view;
             return SonnerComponent ? [rendered, h(SonnerComponent)] : rendered;
         },
     });
