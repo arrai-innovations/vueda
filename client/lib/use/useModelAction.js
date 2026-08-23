@@ -225,10 +225,15 @@ export function useModelAction(props) {
             return formData ? JSON.stringify(formData) : undefined;
         })();
 
+        // Destroy is a standard viewset method, not an extra action, so it has no action
+        // segment: the server routes bulk destroy to the list url and single destroy to the
+        // detail url (see `VuedaRouter.routes` in `vueda/core/routers.py`). Appending
+        // "destroy" would target a DynamicRoute that does not exist.
+        const actionSegment = isDestroy ? undefined : props.action;
         return {
             url: bulk.value
-                ? getListUrl({ app: props.app, model: props.model, action: props.action })
-                : getDetailUrl({ app: props.app, model: props.model, pk: pks.value[0], action: props.action }),
+                ? getListUrl({ app: props.app, model: props.model, action: actionSegment })
+                : getDetailUrl({ app: props.app, model: props.model, pk: pks.value[0], action: actionSegment }),
             options: {
                 method: isDestroy ? "DELETE" : props.requestMethod || "PUT",
                 headers,

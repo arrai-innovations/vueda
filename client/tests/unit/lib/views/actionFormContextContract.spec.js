@@ -12,6 +12,10 @@ import { nextTick, reactive } from "vue";
  * ModelActionForm, ModelActionForm.spec stubs ActionForm (and provides a context anyway),
  * and ActionForm.spec provides one too. The composition was the only untested arrangement,
  * and it was the broken one. These tests mount the real stack so that gap stays closed.
+ *
+ * The dry-run pre-flight lives here for the same reason: which request a mounted view
+ * actually issues is only observable with ModelActionForm, ActionForm, and useActionForm
+ * all real.
  */
 
 const mockedUseViewDestroy = vi.fn();
@@ -150,6 +154,23 @@ describe("lib/**/*.vue", () => {
             // A host-provided context must keep serving the fields below it, so the
             // establish-when-absent branch has to stay conditional. ViewAction relies on this.
             expect(wrapper.vm.$.provides[FormContextSymbol]).toBe(hostContext);
+        });
+
+        scopedIt("runs the dry-run pre-flight when the target pks come from a prop", async () => {
+            mountRealStack();
+            await nextTick();
+
+            // readyToDryRun is a state, not an edge. ViewDestroy passes `pk` straight
+            // through, so it is already true on the first evaluation and a change-only
+            // watch would never fire, silently skipping the pre-flight. The store fetches
+            // (model info, permitted transitions) share this mock, so match on the action
+            // request rather than the call count.
+            const preflights = mockedFetchHelper.mock.calls.filter(([, options]) => options?.method === "DELETE");
+            expect(preflights).toHaveLength(1);
+            const [url, options] = preflights[0];
+            expect(options.headers["Dry-Run"]).toBe("true");
+            // Bulk destroy targets the list route; "destroy" is not a DynamicRoute.
+            expect(url).toMatch(/\/routes\/showcase\/customer\/$/);
         });
 
         scopedIt("routes a server 400 onto the form rather than swallowing it", async () => {

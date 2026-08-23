@@ -530,6 +530,13 @@ export function modelRoutes({
                 if (onDelete) {
                     return onDelete(context);
                 }
+                // 404 an unknown pk rather than accepting any trailing segment. A DELETE that
+                // wrongly appends an action name ("/customer/destroy/") lands here looking
+                // like a detail delete for pk "destroy"; answering it 204 would hide the bad
+                // url the way it once hid the action-segment bug in `useModelAction`.
+                if (!byPk(context.params.pk)) {
+                    return notFound(model, context.params.pk);
+                }
                 return isDryRun(context) ? demoResponse(200) : demoResponse(204);
             },
         },

@@ -123,11 +123,28 @@ describe("lib/use/useModelAction.js", () => {
 
         const request = modelAction.buildRequest();
 
-        expect(getDetailUrl).toHaveBeenCalledWith({ app: "app", model: "person", pk: "9", action: "destroy" });
+        // No action segment: destroy is a standard viewset method routed on the detail url,
+        // not a DynamicRoute at /person/9/destroy/ (see VuedaRouter.routes on the server).
+        expect(getDetailUrl).toHaveBeenCalledWith({ app: "app", model: "person", pk: "9", action: undefined });
         expect(request).toMatchObject({
-            url: "/detail/9/destroy",
+            url: "/detail/9/",
             options: { method: "DELETE", body: undefined },
         });
+    });
+
+    scopedIt("builds a bulk destroy request against the plain list url", async () => {
+        const modelAction = await withSetup(() =>
+            useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: ["4", "7"] })),
+        );
+
+        const request = modelAction.buildRequest();
+
+        // Bulk destroy is DELETE on the list route with a { pks } body. Appending "destroy"
+        // would target a route the server does not generate.
+        expect(getListUrl).toHaveBeenCalledWith({ app: "app", model: "person", action: undefined });
+        expect(request.url).toBe("/list/");
+        expect(request.options.method).toBe("DELETE");
+        expect(JSON.parse(request.options.body)).toEqual({ pks: ["4", "7"] });
     });
 
     scopedIt("maps validation, confirmation, and generic failures", async () => {

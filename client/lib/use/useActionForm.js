@@ -228,6 +228,10 @@ export function useActionForm(formContext, props) {
         actionPromise?.cancel?.();
     });
 
+    // Immediate because readiness is a state, not an event. A shell whose target pks come
+    // from a prop rather than a fetch (ModelActionForm reading `pk` when `fetchState` has
+    // not populated) evaluates `readyToDryRun` as true on the very first pass, so a
+    // change-only watch never sees an edge and the pre-flight silently never runs.
     watch(
         () => props.readyToDryRun,
         async (newVal) => {
@@ -235,6 +239,7 @@ export function useActionForm(formContext, props) {
                 await handleConfirm(true);
             }
         },
+        { immediate: true },
     );
 
     return { combinedError, combinedErrored, combinedLoading, confirmation, handleConfirm, handleCancelClick };

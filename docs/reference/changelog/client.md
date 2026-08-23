@@ -18,6 +18,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - Added `useModelAction`, which owns model-action primary key derivation, default request construction, dry-run readiness, response classification, copy generation, and post-action redirects without creating a form context or rendering confirmation chrome.
     - `ModelActionForm` now renders the same public props, slots, and theme keys over `useModelAction`. `ViewActivate` and `ViewDestroy` use that shared runner instead of custom submit callbacks.
     - `ViewDestroy` dry-run pre-flight no longer routes through reactive-helpers' `bulkDelete`, so a server `200` dry-run response does not surface as a delete failure or clear the selected records before confirmation.
+    - Destroy actions target the standard viewset routes: bulk destroy sends `DELETE` to the model's list url and single destroy to its detail url, with no `destroy` path segment. Every other action keeps its segment, matching the dynamic routes the server generates for `@action` methods.
     - The shared action banner structure now lives in an internal banner component and shared theme primitive. Existing `ModelActionForm.banner*` and `ViewDestroy.banner*` theme keys remain the override surface.
       _No action required. Custom action buttons and custom action screens can import `@vueda/use/useModelAction.js` when they need the server action plumbing without the `ModelActionForm` confirmation page._
 
