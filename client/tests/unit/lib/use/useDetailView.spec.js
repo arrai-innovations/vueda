@@ -6,6 +6,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { createPinia, setActivePinia } from "pinia";
 import { nextTick, reactive, ref } from "vue";
 
 vi.mock("@vueda/use/useModelConfig.js", async () => {
@@ -33,6 +34,9 @@ describe("lib/use/useDetailView.js", () => {
     let props, formInitialValue, mockModelConfig, mockInstanceObject, mockFilteredActions;
 
     beforeEach(() => {
+        // The composables under test resolve their pinia stores during setup, so one has to exist.
+        setActivePinia(createPinia());
+
         props = reactive({
             app: "testApp",
             model: "testModel",

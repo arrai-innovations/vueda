@@ -2,6 +2,7 @@ import { useListInstance } from "@arrai-innovations/reactive-helpers";
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { useModelAction } from "@vueda/use/useModelAction.js";
 import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
+import { createPinia, setActivePinia } from "pinia";
 import { reactive } from "vue";
 
 /**
@@ -65,6 +66,9 @@ const remainingPks = (instanceList) => instanceList.state.objectsInOrder.map((ob
 
 describe("lib/use/useModelAction.js local state", () => {
     beforeEach(() => {
+        // The composables under test resolve their pinia stores during setup, so one has to exist.
+        setActivePinia(createPinia());
+
         setupDefaultListCrud();
         // The server answers a valid dry run 200 and a real bulk delete 204.
         global.fetch = vi.fn((url, options) =>
