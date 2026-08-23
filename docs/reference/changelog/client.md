@@ -19,6 +19,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - `ActionForm` mounted with no context now throws a message naming the missing provider instead of dereferencing undefined. A no-op stand-in was rejected deliberately: it would leave a server 400 with an empty validation summary and an enabled submit button, turning a loud failure into a silent one.
       _No action required. If you render `ActionForm` directly rather than through `ModelActionForm`, wrap it in a `useForm()` scope and provide the context under `FormContextSymbol`._
 
+- **Read-only widgets resolve static choice labels (WidgetReadOnly, ViewRead)**:
+    - `WidgetReadOnly` now accepts the same static choice props as editable choice widgets (`options`, `optionLabel`, and `optionValue`) and displays the matching option label in read-only forms. `ViewRead` now shows labels such as `Enterprise`, `USD`, and `No` instead of stored values such as `enterprise`, `usd`, and `false` when field metadata includes static choices. The read-only value slots now also receive `rawValue` for custom renderers that intentionally show stored values.
+      _No action required. If you intentionally display raw stored values in read views, use the widget slot's `rawValue` prop._
+
 - **Sonner toast descriptions, cancel buttons, and focus indicators follow the active color mode (Sonner)**:
     - Toast descriptions now use VUEDA's muted foreground token, cancel buttons use the secondary surface token, and close/action focus indicators use the VUEDA focus ring. This fixes low-contrast dark-mode descriptions and focus indicators that could disappear on dark surfaces.
       _Requires `@arrai-innovations/vue-sonner` >= 2.0.11. If you retone toast descriptions, set `--description-text` on `<Sonner>` instead of targeting `[data-description]`._

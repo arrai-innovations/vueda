@@ -75,6 +75,80 @@ describe("lib/widgets/WidgetReadOnly.vue", () => {
         expect(wrapper.find('[data-qa="link-model-view"]').exists()).toBe(false);
     });
 
+    scopedIt("renders the label for a static choice value", () => {
+        useWidget.mockReturnValueOnce({
+            state: reactive({ formModelName: "fm", combinedValue: "enterprise", combinedName: "tier" }),
+        });
+
+        const wrapper = mount(WidgetReadOnly, {
+            props: {
+                options: [
+                    { label: "Trial", value: "trial" },
+                    { label: "Enterprise", value: "enterprise" },
+                ],
+            },
+            ...mountOptions,
+        });
+
+        expect(wrapper.get('[data-qa="widget-read-only-value"]').text()).toBe("Enterprise");
+    });
+
+    scopedIt("passes mapped and raw values to the default slot", () => {
+        useWidget.mockReturnValueOnce({
+            state: reactive({ formModelName: "fm", combinedValue: "enterprise", combinedName: "tier" }),
+        });
+
+        const wrapper = mount(WidgetReadOnly, {
+            props: {
+                options: [{ label: "Enterprise", value: "enterprise" }],
+            },
+            slots: {
+                default: ({ rawValue, value }) => h("span", { "data-qa": "slot-value" }, `${value}/${rawValue}`),
+            },
+            ...mountOptions,
+        });
+
+        expect(wrapper.get('[data-qa="slot-value"]').text()).toBe("Enterprise/enterprise");
+    });
+
+    scopedIt("uses custom choice label and value keys with string-normalized matching", () => {
+        useWidget.mockReturnValueOnce({
+            state: reactive({ formModelName: "fm", combinedValue: false, combinedName: "taxExempt" }),
+        });
+
+        const wrapper = mount(WidgetReadOnly, {
+            props: {
+                optionLabel: "display",
+                optionValue: "code",
+                options: [
+                    { display: "Yes", code: "true" },
+                    { display: "No", code: "false" },
+                ],
+            },
+            ...mountOptions,
+        });
+
+        expect(wrapper.get('[data-qa="widget-read-only-value"]').text()).toBe("No");
+    });
+
+    scopedIt("renders joined labels for many static choice values", () => {
+        useWidget.mockReturnValueOnce({
+            state: reactive({ formModelName: "fm", combinedValue: ["usd", "eur"], combinedName: "currency" }),
+        });
+
+        const wrapper = mount(WidgetReadOnly, {
+            props: {
+                options: [
+                    { label: "USD", value: "usd" },
+                    { label: "EUR", value: "eur" },
+                ],
+            },
+            ...mountOptions,
+        });
+
+        expect(wrapper.get('[data-qa="widget-read-only-value"]').text()).toBe("USD, EUR");
+    });
+
     scopedIt("renders link when lookup mode and value available", () => {
         const lookup = reactive({
             object: { id: 1, formatted_name: "One" },
