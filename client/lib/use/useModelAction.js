@@ -1,16 +1,13 @@
 /**
  * @module use/useModelAction
- * @description Provides model-action target, copy, request, dry-run, and redirect plumbing without rendering a form.
+ * @description Provides model-action target, copy, execution, dry-run, and redirect plumbing without rendering a form.
  */
+import { useListInstance, useObjectInstance } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
-import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
-import { fetchHelper } from "@vueda/utils/fetchSupport.js";
-import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import startCase from "lodash-es/startCase.js";
-import { computed, toRef, unref } from "vue";
+import { computed, reactive, ref, toRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /**
@@ -24,6 +21,9 @@ import { useRoute, useRouter } from "vue-router";
  * @property {string} [actionErrorSummary] - Toast summary shown when the action fails.
  * @property {string} [confirmMessage] - Confirmation message shown to the user before submitting.
  * @property {{ objectsInOrder?: object[], objectsMap?: Map<string, object> }} [fetchState] - Selected-object fetch state.
+ * @property {import('@arrai-innovations/reactive-helpers').ListManager|import('@arrai-innovations/reactive-helpers').ListInstance} [instanceList] - List
+ *  instance that holds the selected objects. Bulk actions use it to reconcile displayed rows after a real destroy.
+ *  Omit it to use a private transport-only list.
  * @property {(values: object) => object} [transformSubmitDataFn] - Optional form-value transform.
  * @property {string} [requestMethod] - HTTP method used for non-destroy action requests.
  * @property {boolean} [enableDryRun] - Whether to perform dry-run validation.
@@ -37,12 +37,6 @@ import { useRoute, useRouter } from "vue-router";
  * @property {object} [formValues] - Form values to submit.
  * @property {boolean} [dryRun] - Whether this is a dry-run validation request.
  * @property {string} [acknowledgeWarnings] - Warning digest acknowledged by the user.
- */
-
-/**
- * @typedef {object} ModelActionRequest
- * @property {string} url - Request URL.
- * @property {object} options - Fetch options.
  */
 
 /**
@@ -71,8 +65,7 @@ import { useRoute, useRouter } from "vue-router";
  * @typedef {object} ModelActionContext
  * @property {import('@vueda/use/useModelConfig.js').ModelConfigState} modelConfig - Model metadata and view config.
  * @property {ModelActionRawState} state - Reactive action state.
- * @property {(options?: ModelActionRunOptions) => ModelActionRequest} buildRequest - Builds the request without sending it.
- * @property {(options?: ModelActionRunOptions) => Promise<any>} runAction - Sends the action request.
+ * @property {(options?: ModelActionRunOptions) => Promise<any>} runAction - Runs the action through the registered crud handlers.
  * @property {(result: any) => Promise<void>} redirectTo - Redirects after success or cancel.
  */
 
@@ -93,7 +86,7 @@ function normalizePks(value) {
 }
 
 /**
- * Provides target, request, copy, dry-run, and redirect plumbing for model actions.
+ * Provides target, execution, copy, dry-run, and redirect plumbing for model actions.
  * It does not create or consume a form context; form shells layer `useActionForm`
  * or `ActionForm` on top when they need submit UI and validation summaries.
  *
@@ -113,6 +106,24 @@ export function useModelAction(props) {
     const objectsMap = computed(() => props.fetchState?.objectsMap || new Map());
     const bulk = computed(() => pks.value.length > 1);
     const pkCount = computed(() => pks.value.length);
+
+    // Bulk actions need a list instance so destroy can reconcile selected rows. Use the caller's list when provided;
+    // otherwise create a private list only for transport. Single-object actions use an object instance owned here.
+    const pkKey = computed(() => modelConfig.info?.pk ?? "id");
+    const target = reactive({ app: toRef(props, "app"), model: toRef(props, "model") });
+    const fallbackInstanceList = props.instanceList
+        ? undefined
+        : useListInstance({ props: reactive({ target, pkKey, params: {} }) });
+    const instanceList = props.instanceList ?? fallbackInstanceList;
+    const instanceObject = useObjectInstance({
+        props: reactive({
+            target,
+            pk: computed(() => pks.value[0]),
+            pkKey,
+            params: {},
+        }),
+    });
+    const actionInstance = computed(() => (bulk.value ? instanceList : instanceObject));
 
     const modelVerboseName = computed(() =>
         bulk.value
@@ -171,9 +182,27 @@ export function useModelAction(props) {
         }
     });
 
+    // Dry-run readiness waits for both a target and an idle action instance. It also latches per target because the
+    // dry run itself toggles instance loading; without the latch the readiness watcher would retrigger.
+    const dryRunTarget = computed(() => pksAsString.value.join(","));
+    const dryRunRanFor = ref(null);
     const readyToDryRun = computed(
-        () => !!(props.app && props.model && props.action && props.enableDryRun !== false && pks.value.length > 0),
+        () =>
+            !!(
+                props.app &&
+                props.model &&
+                props.action &&
+                props.enableDryRun !== false &&
+                pks.value.length > 0 &&
+                !actionInstance.value?.state?.loading &&
+                dryRunRanFor.value !== dryRunTarget.value
+            ),
     );
+
+    // Keep the last real target for redirects because a successful bulk destroy may clear `pks` before redirecting.
+    const lastRunPks = ref([]);
+    const redirectPks = computed(() => (lastRunPks.value.length > 0 ? lastRunPks.value : pks.value));
+    const redirectBulk = computed(() => redirectPks.value.length > 1);
 
     const redirectTo = async (result) => {
         const returnPath = route.query?.returnPath;
@@ -188,10 +217,10 @@ export function useModelAction(props) {
             redirect = redirects.default;
         }
         if (typeof redirect === "function") {
-            redirect = redirect({ bulk: bulk.value, result });
+            redirect = redirect({ bulk: redirectBulk.value, result });
         }
 
-        if (bulk.value || redirect === "list") {
+        if (redirectBulk.value || redirect === "list") {
             await router.push({
                 name: LIST_VIEW_CRUD_NAME,
                 params: { app: props.app, model: props.model, action: "list" },
@@ -199,60 +228,60 @@ export function useModelAction(props) {
         } else {
             await router.push({
                 name: DETAIL_VIEW_CRUD_NAME,
-                params: { app: props.app, model: props.model, action: redirect, pk: pks.value[0] },
+                params: { app: props.app, model: props.model, action: redirect, pk: redirectPks.value[0] },
             });
         }
     };
 
-    const buildRequest = ({ formValues = {}, dryRun, acknowledgeWarnings } = {}) => {
+    /**
+     * Runs the action through the selected list or object CRUD handler.
+     *
+     * Destroy uses `bulkDelete` or `delete`; every other action uses `executeAction`. Dry runs keep local state so
+     * validation does not remove the rows or object being confirmed.
+     *
+     * @param {ModelActionRunOptions} [options={}] - The run options.
+     * @returns {Promise<any>} The handler's result.
+     * @throws {Error} The instance's stored error, when the action failed.
+     */
+    const runAction = async ({ formValues = {}, dryRun = false, acknowledgeWarnings } = {}) => {
+        const instance = actionInstance.value;
         const isDestroy = props.action === "destroy";
-        const headers = {
-            "X-CSRFToken": getCSRFValue(),
-            "Content-Type": "application/json",
+        const runPks = [...pks.value];
+        const shared = {
+            formData: props.transformSubmitDataFn ? props.transformSubmitDataFn(formValues) : undefined,
+            dryRun,
+            acknowledgeWarnings,
         };
         if (dryRun) {
-            headers["Dry-Run"] = "true";
+            // Drop readiness before the instance reports loading, so the watcher cannot start a duplicate dry run.
+            dryRunRanFor.value = dryRunTarget.value;
+        } else {
+            lastRunPks.value = runPks;
         }
-        if (acknowledgeWarnings) {
-            headers["Acknowledge-Warnings"] = acknowledgeWarnings;
+
+        let result;
+        if (bulk.value) {
+            result = isDestroy
+                ? await instance.bulkDelete({ ...shared, pks: runPks, keepObjects: dryRun })
+                : await instance.executeAction({
+                      ...shared,
+                      action: props.action,
+                      pks: runPks,
+                      requestMethod: props.requestMethod,
+                  });
+        } else {
+            result = isDestroy
+                ? await instance.delete({ ...shared, keepObject: dryRun })
+                : await instance.executeAction({ ...shared, action: props.action, requestMethod: props.requestMethod });
         }
 
-        const formData = props.transformSubmitDataFn ? props.transformSubmitDataFn(formValues) : undefined;
-        const body = (() => {
-            if (bulk.value) {
-                return JSON.stringify({ pks: unref(pks), ...(formData || {}) });
-            }
-            return formData ? JSON.stringify(formData) : undefined;
-        })();
-
-        // Destroy is a standard viewset method, not an extra action, so it has no action
-        // segment: the server routes bulk destroy to the list url and single destroy to the
-        // detail url (see `VuedaRouter.routes` in `vueda/core/routers.py`). Appending
-        // "destroy" would target a DynamicRoute that does not exist.
-        const actionSegment = isDestroy ? undefined : props.action;
-        return {
-            url: bulk.value
-                ? getListUrl({ app: props.app, model: props.model, action: actionSegment })
-                : getDetailUrl({ app: props.app, model: props.model, pk: pks.value[0], action: actionSegment }),
-            options: {
-                method: isDestroy ? "DELETE" : props.requestMethod || "PUT",
-                headers,
-                body,
-            },
-        };
-    };
-
-    const runAction = (options = {}) => {
-        const request = buildRequest(options);
-        return fetchHelper(request.url, request.options, "Failed to execute action", (message, response, data) => {
-            if (response.status === 400) {
-                return new FormValidationError(data, response);
-            }
-            if (response.status === 409) {
-                return new ConfirmationRequiredError(data, response);
-            }
-            return new FetchError(message, response, data);
-        });
+        if (instance.state.errored) {
+            const error = instance.state.error;
+            // The form layer owns action errors; clear the instance copy so it does not also render as fetch failure.
+            instance.clearError();
+            throw error;
+        }
+        return result;
     };
 
     return {
@@ -273,7 +302,6 @@ export function useModelAction(props) {
             bannerIconName,
             readyToDryRun,
         },
-        buildRequest,
         runAction,
         redirectTo,
     };

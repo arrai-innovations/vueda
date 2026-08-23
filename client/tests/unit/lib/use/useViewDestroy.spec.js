@@ -106,13 +106,22 @@ describe("lib/use/useViewDestroy.js", () => {
     scopedIt("handleDelete forwards dryRun flag to bulkDelete", async () => {
         const result = await withSetup(() => useViewDestroy(props));
         await result.handleDelete({ dryRun: true });
-        expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({ dryRun: true });
+        expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({
+            dryRun: true,
+            acknowledgeWarnings: undefined,
+            // A validation pass must not empty the list the operator is still confirming against.
+            keepObjects: true,
+        });
     });
 
     scopedIt("handleDelete forwards acknowledgeWarnings to bulkDelete", async () => {
         const result = await withSetup(() => useViewDestroy(props));
         await result.handleDelete({ dryRun: false, acknowledgeWarnings: "d1" });
-        expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({ dryRun: false, acknowledgeWarnings: "d1" });
+        expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({
+            dryRun: false,
+            acknowledgeWarnings: "d1",
+            keepObjects: false,
+        });
     });
 
     scopedIt("handleDelete clears the captured list error before rethrowing a ConfirmationRequiredError", async () => {

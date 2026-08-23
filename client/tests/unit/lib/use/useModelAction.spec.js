@@ -1,7 +1,7 @@
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { useModelAction } from "@vueda/use/useModelAction.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
-import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { FetchError } from "@vueda/utils/errors.js";
 import { reactive } from "vue";
 
 const mocks = vi.hoisted(() => {
@@ -9,48 +9,74 @@ const mocks = vi.hoisted(() => {
         info: { verboseName: "person", verboseNamePlural: "people" },
         config: { actionRedirects: { default: "detail" } },
     };
-    const getListUrl = vi.fn(({ action }) => `/list/${action || ""}`);
-    const getDetailUrl = vi.fn(({ pk, action }) => `/detail/${pk}/${action || ""}`);
-    const getCSRFValue = vi.fn(() => "csrf-token");
-    const fetchHelper = vi.fn((url, options, message, errorResolver) => {
-        if (fetchHelper.shouldReject) {
-            const response = fetchHelper.response || new Response(null, { status: 500 });
-            return Promise.reject(errorResolver(message, response, fetchHelper.responseData));
-        }
-        return Promise.resolve(fetchHelper.responseData);
-    });
-    const routerPush = vi.fn();
-    return { modelConfig, getListUrl, getDetailUrl, getCSRFValue, fetchHelper, routerPush, routeQuery: {} };
+    return {
+        modelConfig,
+        routerPush: vi.fn(),
+        routeQuery: {},
+        // Assigned in beforeEach; the composable calls these factories during setup.
+        fallbackList: null,
+        instanceObject: null,
+        useListInstanceCalls: vi.fn(),
+    };
 });
 
-const { modelConfig, getListUrl, getDetailUrl, getCSRFValue, fetchHelper, routerPush } = mocks;
+const { modelConfig, routerPush } = mocks;
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => mocks.modelConfig }));
-vi.mock("@vueda/utils/urls.js", () => ({ getListUrl: mocks.getListUrl, getDetailUrl: mocks.getDetailUrl }));
-vi.mock("@vueda/utils/csrf.js", () => ({ getCSRFValue: mocks.getCSRFValue }));
-vi.mock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper: mocks.fetchHelper }));
 vi.mock("vue-router", () => ({
     useRouter: () => ({ push: mocks.routerPush }),
     useRoute: () => ({ query: mocks.routeQuery }),
 }));
-
-function createFetchState(objectsInOrder = [{ id: 1 }, { id: 2 }]) {
+vi.mock("@arrai-innovations/reactive-helpers", async () => {
+    const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
     return {
+        ...actual,
+        useListInstance: (...args) => {
+            mocks.useListInstanceCalls(...args);
+            return mocks.fallbackList;
+        },
+        useObjectInstance: () => mocks.instanceObject,
+    };
+});
+
+/**
+ * A stand-in for a reactive-helpers instance: enough state for the composable's readiness gate and
+ * error hand-off, with the action verbs spied.
+ *
+ * @returns {object} The instance stub.
+ */
+function createInstanceStub() {
+    const state = reactive({ loading: false, errored: false, error: null });
+    const stub = {
+        state,
+        clearError: vi.fn(() => {
+            state.errored = false;
+            state.error = null;
+        }),
+        bulkDelete: vi.fn(() => Promise.resolve(true)),
+        delete: vi.fn(() => Promise.resolve(true)),
+        executeAction: vi.fn(() => Promise.resolve({ ok: true })),
+    };
+    return stub;
+}
+
+/**
+ * @param {object[]} [objectsInOrder] - The selected objects.
+ * @returns {object} A fetch-state stand-in.
+ */
+function createFetchState(objectsInOrder = [{ id: 1 }, { id: 2 }]) {
+    return reactive({
         objectsInOrder,
         objectsMap: new Map(objectsInOrder.map((obj) => [String(obj.id), obj])),
-    };
+    });
 }
 
 describe("lib/use/useModelAction.js", () => {
     beforeEach(() => {
         modelConfig.info = { verboseName: "person", verboseNamePlural: "people" };
         modelConfig.config = { actionRedirects: { default: "detail" } };
-        getListUrl.mockClear();
-        getDetailUrl.mockClear();
-        getCSRFValue.mockClear();
-        fetchHelper.mockClear();
-        fetchHelper.shouldReject = false;
-        fetchHelper.response = undefined;
-        fetchHelper.responseData = undefined;
+        mocks.fallbackList = createInstanceStub();
+        mocks.instanceObject = createInstanceStub();
+        mocks.useListInstanceCalls.mockClear();
         routerPush.mockClear();
         mocks.routeQuery = {};
     });
@@ -80,117 +106,216 @@ describe("lib/use/useModelAction.js", () => {
         expect(fromPk.state.bulk.value).toBe(false);
     });
 
-    scopedIt("builds and runs a bulk action request", async () => {
-        fetchHelper.responseData = { ok: true };
-        const transformSubmitDataFn = vi.fn(() => ({ reason: "stale" }));
-        const modelAction = await withSetup(() =>
-            useModelAction(
-                reactive({
-                    app: "app",
-                    model: "person",
-                    action: "archive",
-                    requestMethod: "PATCH",
-                    fetchState: createFetchState([{ id: 4 }, { id: 7 }]),
-                    transformSubmitDataFn,
-                }),
-            ),
-        );
-
-        await modelAction.runAction({ formValues: { raw: true }, dryRun: true, acknowledgeWarnings: "d1" });
-
-        expect(getListUrl).toHaveBeenCalledWith({ app: "app", model: "person", action: "archive" });
-        expect(fetchHelper).toHaveBeenCalledWith(
-            "/list/archive",
-            expect.objectContaining({ method: "PATCH" }),
-            "Failed to execute action",
-            expect.any(Function),
-        );
-        const options = fetchHelper.mock.calls[0][1];
-        expect(options.headers).toMatchObject({
-            "X-CSRFToken": "csrf-token",
-            "Content-Type": "application/json",
-            "Dry-Run": "true",
-            "Acknowledge-Warnings": "d1",
+    describe("Transport instances", () => {
+        scopedIt("creates a transport-only list when the caller supplies none", async () => {
+            await withSetup(() => useModelAction(reactive({ app: "app", model: "person", action: "archive" })));
+            expect(mocks.useListInstanceCalls).toHaveBeenCalledTimes(1);
         });
-        expect(JSON.parse(options.body)).toEqual({ pks: [4, 7], reason: "stale" });
-        expect(transformSubmitDataFn).toHaveBeenCalledWith({ raw: true });
-    });
 
-    scopedIt("builds a detail destroy request without routing through bulkDelete", async () => {
-        const modelAction = await withSetup(() =>
-            useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: "9" })),
-        );
-
-        const request = modelAction.buildRequest();
-
-        // No action segment: destroy is a standard viewset method routed on the detail url,
-        // not a DynamicRoute at /person/9/destroy/ (see VuedaRouter.routes on the server).
-        expect(getDetailUrl).toHaveBeenCalledWith({ app: "app", model: "person", pk: "9", action: undefined });
-        expect(request).toMatchObject({
-            url: "/detail/9/",
-            options: { method: "DELETE", body: undefined },
+        scopedIt("uses the caller's list instead of creating one", async () => {
+            const instanceList = createInstanceStub();
+            await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", instanceList })),
+            );
+            expect(mocks.useListInstanceCalls).not.toHaveBeenCalled();
         });
     });
 
-    scopedIt("builds a bulk destroy request against the plain list url", async () => {
-        const modelAction = await withSetup(() =>
-            useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: ["4", "7"] })),
-        );
+    describe("runAction", () => {
+        scopedIt("routes a bulk action through the list's executeAction", async () => {
+            const instanceList = createInstanceStub();
+            const transformSubmitDataFn = vi.fn(() => ({ reason: "stale" }));
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({
+                        app: "app",
+                        model: "person",
+                        action: "archive",
+                        requestMethod: "PATCH",
+                        instanceList,
+                        fetchState: createFetchState([{ id: 4 }, { id: 7 }]),
+                        transformSubmitDataFn,
+                    }),
+                ),
+            );
 
-        const request = modelAction.buildRequest();
+            const result = await modelAction.runAction({
+                formValues: { raw: true },
+                dryRun: true,
+                acknowledgeWarnings: "d1",
+            });
 
-        // Bulk destroy is DELETE on the list route with a { pks } body. Appending "destroy"
-        // would target a route the server does not generate.
-        expect(getListUrl).toHaveBeenCalledWith({ app: "app", model: "person", action: undefined });
-        expect(request.url).toBe("/list/");
-        expect(request.options.method).toBe("DELETE");
-        expect(JSON.parse(request.options.body)).toEqual({ pks: ["4", "7"] });
-    });
-
-    scopedIt("maps validation, confirmation, and generic failures", async () => {
-        const modelAction = await withSetup(() =>
-            useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "9" })),
-        );
-
-        fetchHelper.shouldReject = true;
-        fetchHelper.response = new Response(null, { status: 400 });
-        fetchHelper.responseData = { name: ["Required."] };
-        await expect(modelAction.runAction()).rejects.toBeInstanceOf(FormValidationError);
-
-        fetchHelper.response = new Response(null, { status: 409 });
-        fetchHelper.responseData = { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } };
-        await expect(modelAction.runAction()).rejects.toBeInstanceOf(ConfirmationRequiredError);
-
-        fetchHelper.response = new Response(null, { status: 500 });
-        fetchHelper.responseData = { detail: "nope" };
-        await expect(modelAction.runAction()).rejects.toBeInstanceOf(FetchError);
-    });
-
-    scopedIt("redirects through returnPath, list, and detail targets", async () => {
-        mocks.routeQuery = { returnPath: "/back" };
-        const returnPathAction = await withSetup(() =>
-            useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "9" })),
-        );
-        await returnPathAction.redirectTo("success");
-        expect(routerPush).toHaveBeenLastCalledWith("/back");
-
-        mocks.routeQuery = {};
-        const detailAction = await withSetup(() =>
-            useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "9" })),
-        );
-        await detailAction.redirectTo("success");
-        expect(routerPush).toHaveBeenLastCalledWith({
-            name: DETAIL_VIEW_CRUD_NAME,
-            params: { app: "app", model: "person", action: "detail", pk: "9" },
+            expect(instanceList.executeAction).toHaveBeenCalledWith({
+                action: "archive",
+                pks: [4, 7],
+                requestMethod: "PATCH",
+                formData: { reason: "stale" },
+                dryRun: true,
+                acknowledgeWarnings: "d1",
+            });
+            expect(transformSubmitDataFn).toHaveBeenCalledWith({ raw: true });
+            expect(result).toEqual({ ok: true });
         });
 
-        const bulkAction = await withSetup(() =>
-            useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: ["4", "7"] })),
-        );
-        await bulkAction.redirectTo("success");
-        expect(routerPush).toHaveBeenLastCalledWith({
-            name: LIST_VIEW_CRUD_NAME,
-            params: { app: "app", model: "person", action: "list" },
+        scopedIt("routes a single action through the object's executeAction", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "9" })),
+            );
+
+            await modelAction.runAction({ formValues: {} });
+
+            expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith({
+                action: "archive",
+                requestMethod: undefined,
+                formData: undefined,
+                dryRun: false,
+                acknowledgeWarnings: undefined,
+            });
+        });
+
+        scopedIt("routes a bulk destroy through bulkDelete, keeping rows only on a dry run", async () => {
+            const instanceList = createInstanceStub();
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({ app: "app", model: "person", action: "destroy", pk: ["4", "7"], instanceList }),
+                ),
+            );
+
+            await modelAction.runAction({ dryRun: true });
+            expect(instanceList.bulkDelete).toHaveBeenLastCalledWith(
+                expect.objectContaining({ pks: ["4", "7"], dryRun: true, keepObjects: true }),
+            );
+
+            await modelAction.runAction({});
+            expect(instanceList.bulkDelete).toHaveBeenLastCalledWith(
+                expect.objectContaining({ pks: ["4", "7"], dryRun: false, keepObjects: false }),
+            );
+            expect(instanceList.executeAction).not.toHaveBeenCalled();
+        });
+
+        scopedIt("routes a single destroy through the object's delete, keeping state only on a dry run", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: "9" })),
+            );
+
+            await modelAction.runAction({ dryRun: true });
+            expect(mocks.instanceObject.delete).toHaveBeenLastCalledWith(
+                expect.objectContaining({ dryRun: true, keepObject: true }),
+            );
+
+            await modelAction.runAction({});
+            expect(mocks.instanceObject.delete).toHaveBeenLastCalledWith(
+                expect.objectContaining({ dryRun: false, keepObject: false }),
+            );
+        });
+
+        scopedIt("rethrows the instance's stored error and clears it from the instance", async () => {
+            const failure = new FetchError("nope", new Response(null, { status: 500 }), {});
+            mocks.instanceObject.executeAction.mockImplementation(() => {
+                mocks.instanceObject.state.errored = true;
+                mocks.instanceObject.state.error = failure;
+                return Promise.resolve(null);
+            });
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "9" })),
+            );
+
+            await expect(modelAction.runAction({})).rejects.toBe(failure);
+            // The views hand the same state to the form as `fetchState`; left in place the error would
+            // also render as a fetch-failure banner beside whatever useActionForm reports.
+            expect(mocks.instanceObject.clearError).toHaveBeenCalled();
+        });
+    });
+
+    describe("readyToDryRun", () => {
+        scopedIt("waits for the instance to finish loading", async () => {
+            const instanceList = createInstanceStub();
+            instanceList.state.loading = true;
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({ app: "app", model: "person", action: "archive", pk: ["4", "7"], instanceList }),
+                ),
+            );
+
+            expect(modelAction.state.readyToDryRun.value).toBe(false);
+            instanceList.state.loading = false;
+            expect(modelAction.state.readyToDryRun.value).toBe(true);
+        });
+
+        scopedIt("latches per target so a pre-flight cannot retrigger itself", async () => {
+            const fetchState = createFetchState([{ id: 4 }]);
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", fetchState })),
+            );
+
+            expect(modelAction.state.readyToDryRun.value).toBe(true);
+            await modelAction.runAction({ dryRun: true });
+            expect(modelAction.state.readyToDryRun.value).toBe(false);
+
+            // A new selection is a new target, so it validates again.
+            fetchState.objectsInOrder = [{ id: 5 }];
+            expect(modelAction.state.readyToDryRun.value).toBe(true);
+        });
+
+        scopedIt("stays false when dry runs are disabled", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({ app: "app", model: "person", action: "archive", pk: "9", enableDryRun: false }),
+                ),
+            );
+            expect(modelAction.state.readyToDryRun.value).toBe(false);
+        });
+    });
+
+    describe("redirectTo", () => {
+        scopedIt("redirects through returnPath, list, and detail targets", async () => {
+            mocks.routeQuery = { returnPath: "/back" };
+            const returnPathAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "9" })),
+            );
+            await returnPathAction.redirectTo("success");
+            expect(routerPush).toHaveBeenLastCalledWith("/back");
+
+            mocks.routeQuery = {};
+            const detailAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "9" })),
+            );
+            await detailAction.redirectTo("success");
+            expect(routerPush).toHaveBeenLastCalledWith({
+                name: DETAIL_VIEW_CRUD_NAME,
+                params: { app: "app", model: "person", action: "detail", pk: "9" },
+            });
+
+            const bulkAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: ["4", "7"] })),
+            );
+            await bulkAction.redirectTo("success");
+            expect(routerPush).toHaveBeenLastCalledWith({
+                name: LIST_VIEW_CRUD_NAME,
+                params: { app: "app", model: "person", action: "list" },
+            });
+        });
+
+        scopedIt("still redirects to the list after a bulk destroy emptied it", async () => {
+            const instanceList = createInstanceStub();
+            const fetchState = createFetchState([{ id: 4 }, { id: 7 }]);
+            // A real bulk delete removes the deleted rows, so `pks` is empty by the time the redirect runs.
+            instanceList.bulkDelete.mockImplementation(() => {
+                fetchState.objectsInOrder = [];
+                fetchState.objectsMap = new Map();
+                return Promise.resolve(true);
+            });
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "destroy", instanceList, fetchState })),
+            );
+
+            await modelAction.runAction({});
+            await modelAction.redirectTo("success");
+
+            expect(routerPush).toHaveBeenLastCalledWith({
+                name: LIST_VIEW_CRUD_NAME,
+                params: { app: "app", model: "person", action: "list" },
+            });
         });
     });
 });

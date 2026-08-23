@@ -18,9 +18,10 @@ import { computed, inject, reactive, toRef } from "vue";
  * @property {import('@vueda/use/useModelConfig.js').ModelConfig} modelConfig - The model config for the current app/model.
  * @property {import('@arrai-innovations/reactive-helpers/use/useList.js').ListManager} instanceList - The list context of instances to destroy.
  * @property {(options: { dryRun?: boolean, acknowledgeWarnings?: string }) => Promise<void>} handleDelete - Attempts
- *  to delete the instance(s). Throws on failure, including a `ConfirmationRequiredError` when the server gates the
- *  delete behind warning acknowledgement (HTTP 409); pass the error's digest back via `acknowledgeWarnings` to
- *  proceed.
+ *  to delete the instance(s) through the list's registered `bulkDelete` handler. Throws on failure, including a
+ *  `ConfirmationRequiredError` when the server gates the delete behind warning acknowledgement (HTTP 409); pass the
+ *  error's digest back via `acknowledgeWarnings` to proceed. A `dryRun` validates only: the request carries the
+ *  `Dry-Run` header and the list keeps its rows, so the selection survives the pre-flight.
  */
 
 /**
@@ -64,7 +65,9 @@ export function useViewDestroy(props) {
     });
 
     const handleDelete = async ({ dryRun, acknowledgeWarnings }) => {
-        await instanceList.bulkDelete({ dryRun, acknowledgeWarnings });
+        // `keepObjects` on the dry run: a validation pass must not empty the list the operator is still confirming
+        // against. A real delete leaves it off, so reactive-helpers removes the deleted rows.
+        await instanceList.bulkDelete({ dryRun, acknowledgeWarnings, keepObjects: !!dryRun });
         if (instanceList.state.errored) {
             const error = instanceList.state.error;
             if (error instanceof ConfirmationRequiredError) {

@@ -14,11 +14,17 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Model actions run through the CRUD adapter layer (useModelAction, listCrud, objectCrud, ModelActionForm)**:
+    - `useModelAction` now dispatches actions through registered list and object CRUD handlers instead of constructing `fetch` requests itself. Bulk actions use the selected list's `bulkDelete` or `executeAction`; single-object actions use the object's `delete` or `executeAction`.
+    - Default list and object adapters now include `executeAction`. Delete adapters accept `formData` and treat dry-run `200` responses as success only during dry runs; real deletes still require `204`.
+    - `ModelActionForm` accepts an `instanceList` prop so host views can keep selected rows in sync after real bulk destroys. `useModelAction().buildRequest` is no longer returned.
+      _Requires `@arrai-innovations/reactive-helpers` >= 24.1.0 for the per-call `keepObjects` / `keepObject` options. Custom `bulkDelete` adapters should accept `formData` and treat a dry-run `200` as success. Code that called `useModelAction().buildRequest` should register an `executeAction` adapter instead._
+
 - **Model action plumbing is reusable outside confirmation forms (useModelAction, ModelActionForm, ViewDestroy, ViewActivate)**:
-    - Added `useModelAction`, which owns model-action primary key derivation, default request construction, dry-run readiness, response classification, copy generation, and post-action redirects without creating a form context or rendering confirmation chrome.
+    - Added `useModelAction`, which owns model-action primary key derivation, action execution, dry-run readiness, copy generation, and post-action redirects without creating a form context or rendering confirmation chrome.
     - `ModelActionForm` now renders the same public props, slots, and theme keys over `useModelAction`. `ViewActivate` and `ViewDestroy` use that shared runner instead of custom submit callbacks.
-    - `ViewDestroy` dry-run pre-flight no longer routes through reactive-helpers' `bulkDelete`, so a server `200` dry-run response does not surface as a delete failure or clear the selected records before confirmation.
-    - Destroy actions target the standard viewset routes: bulk destroy sends `DELETE` to the model's list url and single destroy to its detail url, with no `destroy` path segment. Every other action keeps its segment, matching the dynamic routes the server generates for `@action` methods.
+    - `ViewDestroy`'s dry-run pre-flight no longer surfaces the server's `200` dry-run response as a delete failure, and no longer clears the selected records before confirmation.
+    - Destroy actions target the standard viewset routes: bulk destroy sends `DELETE` to the model's list URL and single destroy to its detail URL, with no `destroy` path segment. Every other action keeps its segment, matching the dynamic routes the server generates for `@action` methods.
     - The shared action banner structure now lives in an internal banner component and shared theme primitive. Existing `ModelActionForm.banner*` and `ViewDestroy.banner*` theme keys remain the override surface.
       _No action required. Custom action buttons and custom action screens can import `@vueda/use/useModelAction.js` when they need the server action plumbing without the `ModelActionForm` confirmation page._
 

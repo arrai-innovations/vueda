@@ -1,28 +1,27 @@
+import { useListInstance } from "@arrai-innovations/reactive-helpers";
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { FormValidationError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
+import flushPromises from "flush-promises";
 import { createPinia, setActivePinia } from "pinia";
-import { nextTick, reactive } from "vue";
+import { reactive } from "vue";
 
 /**
- * ActionForm requires a form context and its two host views did not supply one.
+ * Mounts ViewDestroy over the real ModelActionForm and ActionForm.
  *
- * Every layer was covered in isolation and every layer passed: the view specs stub
- * ModelActionForm, ModelActionForm.spec stubs ActionForm (and provides a context anyway),
- * and ActionForm.spec provides one too. The composition was the only untested arrangement,
- * and it was the broken one. These tests mount the real stack so that gap stays closed.
- *
- * The dry-run pre-flight lives here for the same reason: which request a mounted view
- * actually issues is only observable with ModelActionForm, ActionForm, and useActionForm
- * all real.
+ * These tests cover provider wiring, dry-run routing, server-validation handling, and typed-confirm gating with the
+ * composed stack in place.
  */
 
 const mockedUseViewDestroy = vi.fn();
 vi.mock("@vueda/use/useViewDestroy.js", () => ({ useViewDestroy: mockedUseViewDestroy }));
 
-const mockedFetchHelper = vi.fn();
-vi.mock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper: mockedFetchHelper }));
+// Stub fetchHelper for background store reads. Action requests go through the real CRUD handlers and global fetch.
+const mockedFetchHelper = vi.hoisted(() => vi.fn());
+vi.mock("@vueda/utils/fetchSupport.js", async () => {
+    const actual = await vi.importActual("@vueda/utils/fetchSupport.js");
+    return { ...actual, fetchHelper: mockedFetchHelper };
+});
 
 const modelConfig = {
     info: { pk: "id", verboseName: "customer", verboseNamePlural: "customers" },
@@ -50,17 +49,33 @@ vi.mock("vue-router", () => ({
 }));
 
 let ViewDestroy;
+let mockedFetch;
 
 beforeEach(async () => {
     // WidgetReadOnly resolves lookup objects through the model stores.
     setActivePinia(createPinia());
     ViewDestroy = (await import("@vueda/views/ViewDestroy.vue")).default;
+    (await import("@vueda/utils/listCrud.js")).setupDefaultListCrud();
+    (await import("@vueda/utils/objectCrud.js")).setupDefaultObjectCrud();
     mockedUseViewDestroy.mockReset();
     mockedFetchHelper.mockReset();
     mockedFetchHelper.mockResolvedValue({});
+    mockedFetch = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+    global.fetch = mockedFetch;
     routerPush.mockReset();
     Object.values(toastMock).forEach((fn) => fn.mockReset());
 });
+
+/**
+ * Every action request `fetch` saw, as `{ url, options }`.
+ *
+ * @returns {{url: string, options: RequestInit}[]} The captured requests.
+ */
+function actionRequests() {
+    return mockedFetch.mock.calls
+        .map(([url, options]) => ({ url: String(url), options: options || {} }))
+        .filter(({ options }) => options.method === "DELETE");
+}
 
 /**
  * Mount ViewDestroy over the real ModelActionForm and ActionForm.
@@ -70,17 +85,21 @@ beforeEach(async () => {
  * @returns {import('@vue/test-utils').VueWrapper}
  */
 function mountRealStack({ props = {} } = {}) {
-    const state = reactive({
-        objectsInOrder: [{ id: 4 }, { id: 11 }],
-        objectsMap: new Map([
-            ["4", { id: 4, formatted_name: "Vellum Press" }],
-            ["11", { id: 11, formatted_name: "Pelham Transit Authority" }],
-        ]),
-        loading: false,
-        errored: false,
-        error: null,
+    // Use a real seeded list so destroy exercises the registered bulkDelete handler.
+    mockedUseViewDestroy.mockImplementation(() => {
+        const instanceList = useListInstance({
+            props: reactive({
+                target: { app: "showcase", model: "customer" },
+                pkKey: "id",
+                params: {},
+            }),
+        });
+        instanceList.pushObjects([
+            { id: 4, formatted_name: "Vellum Press" },
+            { id: 11, formatted_name: "Pelham Transit Authority" },
+        ]);
+        return { modelConfig, instanceList };
     });
-    mockedUseViewDestroy.mockReturnValue({ modelConfig, instanceList: { state } });
     return mount(ViewDestroy, {
         props: { app: "showcase", model: "customer", pk: ["4", "11"], ...props },
         attachTo: document.body,
@@ -142,10 +161,12 @@ describe("lib/**/*.vue", () => {
                 registerDependencyValues: vi.fn(() => "dependency-hook"),
                 unregisterDependencyValues: vi.fn(),
             };
-            mockedUseViewDestroy.mockReturnValue({
+            mockedUseViewDestroy.mockImplementation(() => ({
                 modelConfig,
-                instanceList: { state: reactive({ objectsInOrder: [], objectsMap: new Map() }) },
-            });
+                instanceList: useListInstance({
+                    props: reactive({ target: { app: "showcase", model: "customer" }, pkKey: "id", params: {} }),
+                }),
+            }));
             const wrapper = mount(ViewDestroy, {
                 props: { app: "showcase", model: "customer", pk: "4" },
                 global: { provide: { [FormContextSymbol]: hostContext } },
@@ -158,47 +179,41 @@ describe("lib/**/*.vue", () => {
 
         scopedIt("runs the dry-run pre-flight when the target pks come from a prop", async () => {
             mountRealStack();
-            await nextTick();
+            await flushPromises();
 
-            // readyToDryRun is a state, not an edge. ViewDestroy passes `pk` straight
-            // through, so it is already true on the first evaluation and a change-only
-            // watch would never fire, silently skipping the pre-flight. The store fetches
-            // (model info, permitted transitions) share this mock, so match on the action
-            // request rather than the call count.
-            const preflights = mockedFetchHelper.mock.calls.filter(([, options]) => options?.method === "DELETE");
+            // `readyToDryRun` may be true on first render when target PKs come from props.
+            const preflights = actionRequests();
             expect(preflights).toHaveLength(1);
-            const [url, options] = preflights[0];
-            expect(options.headers["Dry-Run"]).toBe("true");
+            expect(preflights[0].options.headers["Dry-Run"]).toBe("true");
             // Bulk destroy targets the list route; "destroy" is not a DynamicRoute.
-            expect(url).toMatch(/\/routes\/showcase\/customer\/$/);
+            expect(preflights[0].url).toMatch(/\/routes\/showcase\/customer\/$/);
         });
 
         scopedIt("routes a server 400 onto the form rather than swallowing it", async () => {
-            const error = new FormValidationError(
-                { pks: ["Two of these are already gone."] },
-                new Response(null, { status: 400 }),
+            mockedFetch.mockResolvedValue(
+                new Response(JSON.stringify({ pks: ["Two of these are already gone."] }), { status: 400 }),
             );
-            mockedFetchHelper.mockRejectedValue(error);
             const wrapper = mountRealStack({ props: { enableDryRun: false } });
 
             await wrapper.get('[data-qa="action-form-buttons"] button[type="submit"]').trigger("click");
-            await nextTick();
-            await nextTick();
+            await flushPromises();
 
-            // handleServerFormValidationError writes into the injected context; a no-op
-            // stand-in would leave the summary empty and the toast the only trace.
+            // Server field errors should land in the injected form context.
             expect(wrapper.find('[data-qa="action-form-validation"]').exists()).toBe(true);
             expect(wrapper.text()).toContain("Two of these are already gone.");
         });
 
         scopedIt("gates submit behind the typed-confirm phrase", async () => {
             const wrapper = mountRealStack({ props: { confirmText: "delete 2 customers" } });
+            // Let the dry-run pre-flight settle; while it is in flight the button is disabled for
+            // loading rather than for the typed-confirm gate under test.
+            await flushPromises();
 
             const submit = wrapper.get('[data-qa="action-form-buttons"] button[type="submit"]');
             expect(submit.attributes("disabled")).toBeDefined();
 
             await wrapper.get('[data-qa="typed-confirm-field-input"]').setValue("delete 2 customers");
-            await nextTick();
+            await flushPromises();
             expect(
                 wrapper.get('[data-qa="action-form-buttons"] button[type="submit"]').attributes("disabled"),
             ).toBeUndefined();

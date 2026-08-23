@@ -114,6 +114,7 @@ const theme = useTheme("ViewActivate", props);
                 :objects="instanceList.state.objects"
                 :pk="pk"
                 :fetch-state="instanceList.state"
+                :instance-list="instanceList"
                 request-method="PATCH"
                 tone="success"
                 v-bind="omit($attrs, ['class'])"

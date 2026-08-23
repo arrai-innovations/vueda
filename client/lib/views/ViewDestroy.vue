@@ -132,6 +132,7 @@ const computedBannerTitle = computed(() => {
                     tone="danger"
                     :confirm-text="confirmText"
                     :fetch-state="instanceList.state"
+                    :instance-list="instanceList"
                     v-bind="$attrs"
                 >
                     <template v-for="(_, slot) in slots" #[slot]="slotProps">

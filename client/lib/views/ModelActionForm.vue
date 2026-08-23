@@ -78,6 +78,14 @@ const props = defineProps({
         type: Object,
         default: undefined,
     },
+    /**
+     * reactive-helpers list instance holding the selected objects. Bulk actions use it so a real
+     * destroy reconciles the rows the caller is showing. Omit it to use a private transport-only list.
+     */
+    instanceList: {
+        type: Object,
+        default: undefined,
+    },
     /** Optional function to transform form values before they are sent in the request body. */
     transformSubmitDataFn: {
         type: Function,
