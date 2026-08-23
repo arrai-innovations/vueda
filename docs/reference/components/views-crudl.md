@@ -501,6 +501,7 @@ column, and action buttons are the framework's actual output rather than an appr
     />
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>static choices resolve to their labels: {@api vue:component:WidgetReadOnly} takes the field's <code>options</code> and shows the matching <code>label</code>, so the stored <code>enterprise</code> reads as "Enterprise"</span>
     <span>read rows: {@api theme-key:Field} in its <code>read</code> orientation — a <code>180px</code> label column, <code>1fr</code> value, and a bottom hairline per row</span>
     <span>label type: 12 px / 500 / <code>--muted-foreground</code>, top-aligned against a value that may wrap to several lines</span>
     <span>action bar: one {@api vue:component:LinkModelView} button per entry in the record's <code>available_actions</code>, with <code>update</code> promoted to the filled primary and <code>destroy</code> picking up the destructive tone</span>
@@ -525,11 +526,11 @@ default read view renders, and those gaps are recorded here rather than lost:
   `partial_update` action reads "Partial Update" rather than a friendlier phrase.
 - **A status badge in the title row.** The mockup put an "Active" badge beside the title.
   `PageActions` hosts action buttons; a status badge there is a consumer addition.
-- **Choice and boolean values.** The mockup rendered `Mara Tani`, `Enterprise`, `USD`, and
-  `No`. `WidgetReadOnly` resolves a foreign key through its `formatted_name` but does not
-  map a static `ChoiceField` value to its label, so the live demo shows the stored `mt`,
-  `enterprise`, `usd`, and `false`. This is a gap in `WidgetReadOnly`, not a deliberate
-  design decision.
+- **Boolean values.** The mockup rendered a tax-exempt record as `No`. `WidgetReadOnly`
+  prints the stored value, so the live demo reads `false`. Static choices no longer differ:
+  `WidgetReadOnly` gained `options` / `optionLabel` / `optionValue` and now resolves `mt`,
+  `enterprise`, and `usd` to `Mara Tani`, `Enterprise`, and `USD`, which is what the mockup
+  showed. Booleans carry no choices, so that one still stands apart.
 - **Row metrics.** The mockup used a 160 px label column with `divide-y` separators. The
   real read orientation uses 180 px and a per-row bottom hairline.
   :::
