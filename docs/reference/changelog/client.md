@@ -14,6 +14,13 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Model action plumbing is reusable outside confirmation forms (useModelAction, ModelActionForm, ViewDestroy, ViewActivate)**:
+    - Added `useModelAction`, which owns model-action primary key derivation, default request construction, dry-run readiness, response classification, copy generation, and post-action redirects without creating a form context or rendering confirmation chrome.
+    - `ModelActionForm` now renders the same public props, slots, and theme keys over `useModelAction`. `ViewActivate` and `ViewDestroy` use that shared runner instead of custom submit callbacks.
+    - `ViewDestroy` dry-run pre-flight no longer routes through reactive-helpers' `bulkDelete`, so a server `200` dry-run response does not surface as a delete failure or clear the selected records before confirmation.
+    - The shared action banner structure now lives in an internal banner component and shared theme primitive. Existing `ModelActionForm.banner*` and `ViewDestroy.banner*` theme keys remain the override surface.
+      _No action required. Custom action buttons and custom action screens can import `@vueda/use/useModelAction.js` when they need the server action plumbing without the `ModelActionForm` confirmation page._
+
 - **`ViewDestroy` and `ViewActivate` no longer fail to mount (ModelActionForm, ActionForm)**:
     - `ActionForm` injects a form context and uses it on every submit: `setAllTouched()`, `state.submittingValues` for the request body, and `handleServerFormValidationError()` to route a server 400's field errors back onto the fields. Its template also gates submit on `state.anyError`. Of the three views that reach it, only `ViewAction` established a context, so `ViewDestroy` and `ViewActivate` both threw on mount. `ModelActionForm` now establishes one when none is injected, and still defers to a context provided above it, so `ViewAction`'s own fields are unaffected.
     - `ActionForm` mounted with no context now throws a message naming the missing provider instead of dereferencing undefined. A no-op stand-in was rejected deliberately: it would leave a server 400 with an empty validation summary and an enabled submit button, turning a loud failure into a silent one.

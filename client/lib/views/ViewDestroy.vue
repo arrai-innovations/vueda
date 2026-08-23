@@ -7,6 +7,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import ModelActionForm from "@vueda/views/ModelActionForm.vue";
+import ActionBanner from "@vueda/views/_ActionBanner.vue";
 import isEmpty from "lodash-es/isEmpty.js";
 import { computed, useSlots } from "vue";
 
@@ -66,7 +67,7 @@ const props = defineProps({
     },
 });
 
-const { modelConfig, handleDelete, instanceList } = useViewDestroy(props);
+const { modelConfig, instanceList } = useViewDestroy(props);
 const slots = useSlots();
 const theme = useTheme("ViewDestroy", props);
 const icon = useIcons("ViewDestroy", props);
@@ -103,28 +104,23 @@ const computedBannerTitle = computed(() => {
         <div :class="theme('card')" data-tone="danger" data-qa="view-destroy-card">
             <!-- @slot [view-destroy-banner] Override the danger banner shown above the confirmation form. -->
             <slot name="view-destroy-banner" :linked-object-counts="linkedObjectCounts" :title="computedBannerTitle">
-                <div :class="theme('banner')" data-qa="view-destroy-banner">
-                    <div v-if="icon('triangleExclamation')" :class="theme('bannerIcon')" aria-hidden="true">
-                        <component
-                            :is="icon('triangleExclamation').component"
-                            v-bind="icon('triangleExclamation').props"
-                            aria-hidden="true"
-                        />
-                    </div>
-                    <div :class="theme('bannerBody')">
-                        <div :class="theme('bannerTitle')" data-qa="view-destroy-banner-title">
-                            {{ computedBannerTitle }}
-                        </div>
-                        <p
-                            v-if="linkedObjectCounts.length === 0"
-                            :class="theme('bannerDescription')"
-                            data-qa="view-destroy-banner-description"
-                        >
-                            This action cannot be undone.
-                        </p>
-                        <consequences-bullets v-else :items="cascadeItems" data-qa="view-destroy-cascade" />
-                    </div>
-                </div>
+                <action-banner
+                    :theme="theme"
+                    :icon="icon"
+                    icon-name="triangleExclamation"
+                    :title="computedBannerTitle"
+                    :description="linkedObjectCounts.length === 0 ? 'This action cannot be undone.' : undefined"
+                    description-theme-key="bannerDescription"
+                    banner-qa="view-destroy-banner"
+                    title-qa="view-destroy-banner-title"
+                    description-qa="view-destroy-banner-description"
+                >
+                    <consequences-bullets
+                        v-if="linkedObjectCounts.length > 0"
+                        :items="cascadeItems"
+                        data-qa="view-destroy-cascade"
+                    />
+                </action-banner>
             </slot>
             <div :class="theme('body')">
                 <model-action-form
@@ -135,7 +131,6 @@ const computedBannerTitle = computed(() => {
                     :bare="true"
                     tone="danger"
                     :confirm-text="confirmText"
-                    :run-action="handleDelete"
                     :fetch-state="instanceList.state"
                     v-bind="$attrs"
                 >

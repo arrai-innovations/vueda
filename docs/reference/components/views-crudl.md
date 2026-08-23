@@ -75,11 +75,8 @@ const updateViewport = ref(null);
 const readScenario = customerScenario({ app: "showcaseread" });
 const destroyScenario = customerScenario({ app: "showcasedestroy" });
 
-// enableDryRun is off because the dry-run pre-flight currently fails against a real server;
-// see the callout in the ViewDestroy section. The rest is the view's own default behavior.
 const destroyViewProps = {
     confirmText: "delete 3 customers",
-    enableDryRun: false,
     linkedObjectCounts: [
         { count: 26, verboseNamePlural: "contacts" },
         { count: 112, verboseNamePlural: "invoices" },
@@ -602,20 +599,6 @@ from the fetched instances, and an optional type-to-confirm phrase gates the sub
   </footer>
 </VuedaDemo>
 </ClientOnly>
-
-::: warning This demo disables the dry-run pre-flight
-`ModelActionForm` runs a dry-run request on mount so the server can reject early. Against a
-real backend that pre-flight currently fails: the server answers a dry-run destroy with
-`200` (`vueda/core/viewsets/__init__.py`), while `defaultObjectsDelete` accepts only `204`
-as success and raises a `FetchError` for anything else. `ViewDestroy` hands the resulting
-list state to `ActionForm` as `fetchState`, so the view mounts with a "Failed to delete
-object: 200" banner over an otherwise correct page.
-
-The demo passes `enableDryRun: false` so the page reads as intended rather than as the bug.
-Fixing the status handling then exposes a second one: reactive-helpers' `bulkDelete` empties
-its object list on any resolved delete, dry run included, so a successful pre-flight would
-clear the selected records before the operator confirms. The two need fixing together.
-:::
 
 ::: info What the retired mockup showed
 The hand-authored mockup this section used to carry differed from the default view in

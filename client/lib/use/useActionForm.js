@@ -21,7 +21,7 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
  * @typedef {object} ActionFormProps
  * @property {(options: { formValues: object, dryRun: boolean, acknowledgeWarnings?: string }) => Promise<any>} [runAction] - Executes
  *  the action. `acknowledgeWarnings` carries the warnings digest of a confirmed retry; implementations should forward
- *  it as the `Acknowledge-Warnings` header (see `ModelActionForm`'s `defaultRunAction`).
+ *  it as the `Acknowledge-Warnings` header (see `useModelAction`).
  * @property {string} [actionSuccessSummary] - Toast text on success.
  * @property {string} [actionErrorSummary] - Toast text on failure.
  * @property {{ errored: boolean, error: Error|null, loading: boolean|undefined }} [fetchState] - Data-fetch status.

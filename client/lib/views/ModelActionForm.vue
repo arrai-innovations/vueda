@@ -6,21 +6,14 @@ import FormField from "@vueda/form/form-model/FormField.vue";
 import "@vueda/theme/vueda-tailwind/views/ModelActionForm.theme.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
-import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useModelAction } from "@vueda/use/useModelAction.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
-import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
-import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
-import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
-import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import ActionForm from "@vueda/views/ActionForm.vue";
+import ActionBanner from "@vueda/views/_ActionBanner.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
-import startCase from "lodash-es/startCase.js";
-import { computed, inject, provide, ref, toRef, unref, useSlots } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { computed, inject, provide, ref, unref, useSlots } from "vue";
 
 /**
  * Wraps `ActionForm` to execute a named action (such as delete or a custom
@@ -54,6 +47,11 @@ const props = defineProps({
     action: {
         type: String,
         required: true,
+    },
+    /** Primary key or primary keys used when selected objects have not been fetched yet. */
+    pk: {
+        type: [String, Number, Array],
+        default: undefined,
     },
     /** Human-readable action name shown in confirmation and result messages; defaults to a title-cased version of `action`. */
     actionVerboseName: {
@@ -138,9 +136,6 @@ const props = defineProps({
     },
 });
 
-const router = useRouter();
-const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
-
 // The embedded ActionForm injects FormContextSymbol and useActionForm calls into it on
 // every submit: setAllTouched(), state.submittingValues for the request body, and
 // handleServerFormValidationError() to route a 400's field errors back onto the fields.
@@ -164,141 +159,25 @@ if (!injectedFormContext) {
     provide(FormContextSymbol, formContext);
 }
 
-const actionSuccessSummaryComputed = computed(() => {
-    if (props.actionSuccessSummary) {
-        return props.actionSuccessSummary;
-    }
-    return startCase(`${unref(computedActionVerboseNameLowerCase)} ${unref(modelVerboseName)} successful`);
-});
-const actionErrorSummaryComputed = computed(() => {
-    if (props.actionErrorSummary) {
-        return props.actionErrorSummary;
-    }
-    return `Failed to ${props.action} ${props.model} `;
-});
-
-const pks = computed(() => props.fetchState?.objectsInOrder?.map((obj) => obj.id));
-const pksAsString = computed(() => unref(pks)?.map((pk) => pk.toString()));
-const bulk = computed(() => unref(pks)?.length > 1);
-const pkCount = computed(() => unref(pks)?.length ?? 0);
-
-const modelVerboseName = computed(() =>
-    unref(bulk)
-        ? modelConfig.info?.verboseNamePlural || getLowerTitle(getPluralizedTitle(props.model))
-        : modelConfig.info?.verboseName || getLowerTitle(props.model),
-);
-
-const computedActionVerboseNameLowerCase = computed(() => {
-    return props.actionVerboseName?.length > 0 ? props.actionVerboseName : getLowerTitle(props.action);
-});
-
-const computedConfirmMessage = computed(
-    () =>
-        `Are you sure you want to ${unref(computedActionVerboseNameLowerCase)} the selected ${unref(modelVerboseName)}?`,
-);
-
-const computedBannerTitle = computed(() => {
-    if (props.bannerTitle) {
-        return props.bannerTitle;
-    }
-    return startCase(`${unref(computedActionVerboseNameLowerCase)} ${unref(modelVerboseName)}`);
-});
-
-const computedBannerDescription = computed(() => {
-    if (props.bannerDescription) {
-        return props.bannerDescription;
-    }
-    return "Review the selected records before continuing.";
-});
-
-const bannerIconName = computed(() => {
-    switch (props.tone) {
-        case "success":
-            return "circleCheck";
-        case "warning":
-        case "danger":
-            return "triangleExclamation";
-        default:
-            return "info";
-    }
-});
-
-const route = useRoute();
-const redirectTo = async (result) => {
-    const returnPath = route.query?.returnPath;
-    if (returnPath && typeof returnPath === "string") {
-        await router.push(returnPath);
-        return;
-    }
-
-    const redirects = modelConfig.config.actionRedirects || {};
-    let redirect = redirects[props.action];
-    if (redirect === undefined) {
-        redirect = redirects.default;
-    }
-    if (typeof redirect === "function") {
-        redirect = redirect({ bulk: unref(bulk), result });
-    }
-
-    if (unref(bulk) || redirect === "list") {
-        await router.push({
-            name: LIST_VIEW_CRUD_NAME,
-            params: { app: props.app, model: props.model, action: "list" },
-        });
-    } else {
-        await router.push({
-            name: DETAIL_VIEW_CRUD_NAME,
-            params: { app: props.app, model: props.model, action: redirect, pk: pks.value[0] },
-        });
-    }
-};
-const defaultRunAction = ({ formValues, dryRun, acknowledgeWarnings }) => {
-    const isDestroy = props.action === "destroy";
-    const headers = {
-        "X-CSRFToken": getCSRFValue(),
-        "Content-Type": "application/json",
-    };
-    if (dryRun) {
-        headers["Dry-Run"] = "true";
-    }
-    if (acknowledgeWarnings) {
-        headers["Acknowledge-Warnings"] = acknowledgeWarnings;
-    }
-    return fetchHelper(
-        unref(bulk)
-            ? getListUrl({ app: props.app, model: props.model, action: props.action })
-            : getDetailUrl({ app: props.app, model: props.model, pk: pks.value[0], action: props.action }),
-        {
-            method: isDestroy ? "DELETE" : props.requestMethod,
-            headers,
-            body: (() => {
-                const formData = props.transformSubmitDataFn ? props.transformSubmitDataFn(formValues) : undefined;
-
-                if (unref(bulk)) {
-                    return JSON.stringify({ pks: unref(pks), ...(formData || {}) });
-                }
-
-                return formData ? JSON.stringify(formData) : undefined;
-            })(),
-        },
-        "Failed to execute action",
-        (message, response, data) => {
-            if (response.status === 400) {
-                return new FormValidationError(data, response);
-            }
-            if (response.status === 409) {
-                return new ConfirmationRequiredError(data, response);
-            }
-            return new FetchError(message, response, data);
-        },
-    );
-};
+const modelAction = useModelAction(props);
+const {
+    pksAsString,
+    pkCount,
+    objectsMap,
+    modelVerboseName,
+    actionSuccessSummary: actionSuccessSummaryComputed,
+    actionErrorSummary: actionErrorSummaryComputed,
+    confirmMessage: computedConfirmMessage,
+    bannerTitle: computedBannerTitle,
+    bannerDescription: computedBannerDescription,
+    bannerIconName,
+    readyToDryRun: dryRun,
+} = modelAction.state;
+const redirectTo = modelAction.redirectTo;
+const defaultRunAction = modelAction.runAction;
 const theme = useTheme("ModelActionForm", props);
 const icon = useIcons("ModelActionForm", props);
 const slots = useSlots();
-const dryRun = computed(
-    () => !!(props.app && props.model && props.action && props.enableDryRun && pks.value.length > 0),
-);
 
 const typedConfirmInput = ref("");
 const typedConfirmMatch = computed(() => typedConfirmInput.value === props.confirmText);
@@ -353,31 +232,25 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
                     :pk-count="pkCount"
                     :model-verbose-name="modelVerboseName"
                 >
-                    <div :class="theme('banner')" data-qa="model-action-form-banner">
-                        <div v-if="icon(bannerIconName)" :class="theme('bannerIcon')" aria-hidden="true">
-                            <component
-                                :is="icon(bannerIconName).component"
-                                v-bind="icon(bannerIconName).props"
-                                aria-hidden="true"
-                            />
+                    <action-banner
+                        :theme="theme"
+                        :icon="icon"
+                        :icon-name="bannerIconName"
+                        :title="computedBannerTitle"
+                        :description="computedBannerDescription"
+                        banner-qa="model-action-form-banner"
+                        title-qa="model-action-form-banner-title"
+                        description-qa="model-action-form-banner-desc"
+                    >
+                        <!-- @slot [banner-meta] Optional mono meta strip rendered below the banner description (e.g. "action archive · scope 4 selected"). -->
+                        <div
+                            v-if="$slots['banner-meta']"
+                            :class="theme('bannerMeta')"
+                            data-qa="model-action-form-banner-meta"
+                        >
+                            <slot name="banner-meta" :tone="tone" :action="action" :pk-count="pkCount" />
                         </div>
-                        <div :class="theme('bannerBody')">
-                            <div :class="theme('bannerTitle')" data-qa="model-action-form-banner-title">
-                                {{ computedBannerTitle }}
-                            </div>
-                            <p :class="theme('bannerDesc')" data-qa="model-action-form-banner-desc">
-                                {{ computedBannerDescription }}
-                            </p>
-                            <!-- @slot [banner-meta] Optional mono meta strip rendered below the banner description (e.g. "action archive · scope 4 selected"). -->
-                            <div
-                                v-if="$slots['banner-meta']"
-                                :class="theme('bannerMeta')"
-                                data-qa="model-action-form-banner-meta"
-                            >
-                                <slot name="banner-meta" :tone="tone" :action="action" :pk-count="pkCount" />
-                            </div>
-                        </div>
-                    </div>
+                    </action-banner>
                 </slot>
                 <div :class="theme('body')" data-qa="model-action-form-body">
                     <div :class="theme('selectedObjects')" data-qa="action-form-selected-objects" data-tone="neutral">
@@ -385,7 +258,7 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
                         <slot
                             :loading="combinedLoading"
                             name="selected-objects"
-                            :objects="fetchState?.objectsMap"
+                            :objects="objectsMap"
                             :pks="pksAsString"
                             :theme="theme"
                         >
@@ -406,15 +279,20 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
                             </div>
                             <ul v-else :class="theme('list')" data-qa="action-form-list">
                                 <li
-                                    v-for="pk in pksAsString"
-                                    :key="pk"
+                                    v-for="targetPk in pksAsString"
+                                    :key="targetPk"
                                     :class="theme('listItem')"
                                     data-qa="action-form-list-item"
                                 >
-                                    <form-field :field-value="pk" :label="pk" :name="pk" :read-only="true">
+                                    <form-field
+                                        :field-value="targetPk"
+                                        :label="targetPk"
+                                        :name="targetPk"
+                                        :read-only="true"
+                                    >
                                         <widget-read-only
                                             :app="app"
-                                            :foreign-key-obj="fetchState.objectsMap.get(pk)"
+                                            :foreign-key-obj="objectsMap.get(targetPk)"
                                             :hidden="true"
                                             :invalid="false"
                                             :loading="combinedLoading"
@@ -428,7 +306,7 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
                                         </widget-read-only>
                                     </form-field>
                                     <span :class="theme('listItemPk')" data-qa="action-form-list-item-pk">
-                                        {{ pk }}
+                                        {{ targetPk }}
                                     </span>
                                 </li>
                             </ul>
@@ -442,12 +320,7 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
                     </div>
                     <!-- @slot [extra-fields] Additional FormField inputs rendered below the confirm prompt, inside the card body. -->
                     <div v-if="$slots['extra-fields']" :class="theme('extraFields')" data-qa="action-form-extra-fields">
-                        <slot
-                            name="extra-fields"
-                            :loading="combinedLoading"
-                            :pks="pksAsString"
-                            :objects="fetchState?.objectsMap"
-                        />
+                        <slot name="extra-fields" :loading="combinedLoading" :pks="pksAsString" :objects="objectsMap" />
                     </div>
                     <typed-confirm-field v-if="confirmText" v-model="typedConfirmInput" :expected-value="confirmText" />
                 </div>

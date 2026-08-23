@@ -17,6 +17,9 @@ import { nextTick, reactive } from "vue";
 const mockedUseViewDestroy = vi.fn();
 vi.mock("@vueda/use/useViewDestroy.js", () => ({ useViewDestroy: mockedUseViewDestroy }));
 
+const mockedFetchHelper = vi.fn();
+vi.mock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper: mockedFetchHelper }));
+
 const modelConfig = {
     info: { pk: "id", verboseName: "customer", verboseNamePlural: "customers" },
     config: { actionRedirects: { default: "update" }, fetchFields: ["account"], expand: [] },
@@ -49,6 +52,8 @@ beforeEach(async () => {
     setActivePinia(createPinia());
     ViewDestroy = (await import("@vueda/views/ViewDestroy.vue")).default;
     mockedUseViewDestroy.mockReset();
+    mockedFetchHelper.mockReset();
+    mockedFetchHelper.mockResolvedValue({});
     routerPush.mockReset();
     Object.values(toastMock).forEach((fn) => fn.mockReset());
 });
@@ -57,11 +62,10 @@ beforeEach(async () => {
  * Mount ViewDestroy over the real ModelActionForm and ActionForm.
  *
  * @param {object} [options]
- * @param {Function} [options.handleDelete] - Stands in for the delete request.
  * @param {object} [options.props] - Extra props for the view.
  * @returns {import('@vue/test-utils').VueWrapper}
  */
-function mountRealStack({ handleDelete = vi.fn(), props = {} } = {}) {
+function mountRealStack({ props = {} } = {}) {
     const state = reactive({
         objectsInOrder: [{ id: 4 }, { id: 11 }],
         objectsMap: new Map([
@@ -72,7 +76,7 @@ function mountRealStack({ handleDelete = vi.fn(), props = {} } = {}) {
         errored: false,
         error: null,
     });
-    mockedUseViewDestroy.mockReturnValue({ modelConfig, handleDelete, instanceList: { state } });
+    mockedUseViewDestroy.mockReturnValue({ modelConfig, instanceList: { state } });
     return mount(ViewDestroy, {
         props: { app: "showcase", model: "customer", pk: ["4", "11"], ...props },
         attachTo: document.body,
@@ -95,13 +99,47 @@ describe("lib/**/*.vue", () => {
             // Shaped enough for ActionForm to render against; identity is what is asserted.
             const hostContext = {
                 marker: "from-host",
-                state: reactive({ errors: {}, anyError: false, submittingValues: {} }),
+                state: reactive({
+                    errors: {},
+                    messages: {},
+                    required: {},
+                    valid: {},
+                    values: {},
+                    initialValues: {},
+                    touched: {},
+                    modified: {},
+                    ignored: {},
+                    dependencyValues: {},
+                    focused: null,
+                    anyError: false,
+                    submittingValues: {},
+                }),
                 setAllTouched: vi.fn(),
                 handleServerFormValidationError: vi.fn(),
+                updateError: vi.fn(),
+                deleteError: vi.fn(),
+                updateMessage: vi.fn(),
+                deleteMessage: vi.fn(),
+                updateValue: vi.fn(),
+                deleteValue: vi.fn(),
+                updateInitialValue: vi.fn(),
+                deleteInitialValue: vi.fn(),
+                setTouched: vi.fn(),
+                clearTouched: vi.fn(),
+                focus: vi.fn(),
+                blur: vi.fn(),
+                clearServerErrors: vi.fn(),
+                registerIsModifiedHook: vi.fn(() => "modified-hook"),
+                unregisterIsModifiedHook: vi.fn(),
+                registerIsRequiredHook: vi.fn(() => "required-hook"),
+                unregisterIsRequiredHook: vi.fn(),
+                registerIsValidHook: vi.fn(() => "valid-hook"),
+                unregisterIsValidHook: vi.fn(),
+                registerDependencyValues: vi.fn(() => "dependency-hook"),
+                unregisterDependencyValues: vi.fn(),
             };
             mockedUseViewDestroy.mockReturnValue({
                 modelConfig,
-                handleDelete: vi.fn(),
                 instanceList: { state: reactive({ objectsInOrder: [], objectsMap: new Map() }) },
             });
             const wrapper = mount(ViewDestroy, {
@@ -119,8 +157,8 @@ describe("lib/**/*.vue", () => {
                 { pks: ["Two of these are already gone."] },
                 new Response(null, { status: 400 }),
             );
-            const handleDelete = vi.fn().mockRejectedValue(error);
-            const wrapper = mountRealStack({ handleDelete });
+            mockedFetchHelper.mockRejectedValue(error);
+            const wrapper = mountRealStack({ props: { enableDryRun: false } });
 
             await wrapper.get('[data-qa="action-form-buttons"] button[type="submit"]').trigger("click");
             await nextTick();
