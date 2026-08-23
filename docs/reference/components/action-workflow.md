@@ -51,7 +51,6 @@ import {
 import {
     faBuilding,
     faFileLines,
-    faUser,
     faClock,
     faIdCard,
     faClone,
@@ -59,11 +58,17 @@ import {
     faEnvelope,
 } from "@fortawesome/free-regular-svg-icons";
 import { ref } from "vue";
+import { customerScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
 
 const selectedTransition = ref("send-for-review");
-const notifyEmail = ref(true);
-const forcePasswordReset = ref(false);
 const copyDiscounts = ref(true);
+
+// One scenario per live demo. Route registration is global and first-match-wins, so demos
+// that need different responses for the same model take different app labels.
+const activateScenario = customerScenario({
+    app: "showcaseactivate",
+    actions: [{ name: "activate", method: "PATCH" }],
+});
 </script>
 
 # Action & Workflow Views
@@ -304,75 +309,63 @@ Generic action confirmation view. An info-toned banner explains what the action 
 
 ## ViewActivate
 
-Same recipe as ViewAction with the banner switched to a success tone. Establishes the tone-tracking pattern: **info** for neutral confirmation, **success** for activate and restore, **warning** for irreversible non-destructive moves. The action name and record metadata appear in the banner's footer row.
+The activate view is `ModelActionForm` with `request-method="PATCH"` and `tone="success"`,
+which is what establishes the tone-tracking pattern: **info** for neutral confirmation,
+**success** for activate and restore, **warning** for irreversible non-destructive moves.
 
+The demo below is the live component, mounted through the `ModelDemo` harness against the
+seeded showcase customer model. Confirming it sends a real PATCH to the offline endpoint.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="activate" · 1 record · success-toned banner</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Reactivate user">
-      <template #button>
-        <Button size="sm" emphasis="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
-    <!-- success banner -->
-    <div class="flex gap-4 border-b border-success/30 bg-success/10 px-6 py-4">
-      <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5 shrink-0 text-success" />
-      <div>
-        <p class="font-semibold text-foreground">This user will regain access to their workspaces, sessions, and API keys.</p>
-        <p class="mt-1 text-sm text-muted-foreground">Pending invitations are unchanged. Sign-in is enabled immediately; the user receives an email if a contact address is on file.</p>
-        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span>action <strong class="text-foreground">activate</strong></span>
-          <span>last seen <strong class="text-foreground">2025-12-14</strong></span>
-          <span>workspaces restored <strong class="text-foreground">3</strong></span>
-        </div>
-      </div>
-    </div>
-    <!-- body -->
-    <div class="px-6 py-5">
-      <div class="mb-5">
-        <div class="mb-3 flex items-baseline border-b-hairline pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">User</h3>
-        </div>
-        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faUser" class="shrink-0 text-muted-foreground" />
-            <span>Jordan Reyes — jordan.reyes@example.com</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">deactivated 2026-01-08</span>
-          </div>
-        </div>
-      </div>
-      <div class="mb-5 border-l-4 border-border bg-muted/8 px-4 py-3">
-        <p class="text-sm font-semibold">Reactivate this user?</p>
-        <p class="mt-1 text-sm text-muted-foreground">The user will be able to sign in starting now. Their previous role assignments and group memberships are restored as they were on the day of deactivation.</p>
-      </div>
-      <div class="flex flex-col gap-3">
-        <div class="flex items-center gap-2">
-          <Checkbox id="act-notify" v-model="notifyEmail" />
-          <label for="act-notify" class="cursor-pointer select-none text-sm">Send notification email to the user</label>
-        </div>
-        <div class="flex items-center gap-2">
-          <Checkbox id="act-pwreset" v-model="forcePasswordReset" />
-          <label for="act-pwreset" class="cursor-pointer select-none text-sm">Force password reset on next sign-in</label>
-        </div>
-      </div>
-    </div>
-    <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
-      <Button emphasis="ghost">Cancel</Button>
-      <Button tone="primary">
-        <FontAwesomeIcon :icon="faCircleCheck" />
-        Reactivate user
-      </Button>
-      <span class="ml-auto text-xs text-muted-foreground">Audited as <strong class="text-foreground">user.activate</strong> on save</span>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="activate" · 1 record · live ViewActivate</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewActivate.vue')"
+    :app="activateScenario.app"
+    :model="activateScenario.model"
+    pk="1"
+    action="activate"
+    :seed="activateScenario.seed"
+    :api="activateScenario.api"
+    page-title
+    toasts
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>success banner: <code>bg-success/10 border-success/30</code>; reserve for actions that restore, enable, or create positive state</span>
-    <span>banner meta row carries contextual facts (last seen, workspaces affected) to reduce surprise after commit</span>
-    <span>extra Checkbox fields: inline checkbox rows, not full Field wrappers — appropriate when the options have no validation or description</span>
-    <span>audit hint in action strip: surfaces the event name that will appear in the history log</span>
+    <span>tone: <code>tone="success"</code> puts <code>data-tone="success"</code> on the card, which drives every tone-scoped class in one pass — a <code>border-success/50</code> edge with an 8 % success ring, a 6 % success banner fill, and a success-filled 36 px icon tile</span>
+    <span>banner text: both lines are generated. The title is the action name plus the model's verbose name; the description is the same default sentence every action gets. Override them with the <code>banner-title</code> and <code>banner-description</code> props</span>
+    <span>selected records: fetched by pk, then rendered through {@api vue:component:WidgetReadOnly}, which shows each record's <code>formatted_name</code> as a {@api vue:component:LinkModelView} link with the primary key as a trailing mono chip</span>
+    <span>prompt: a generated "Are you sure you want to ..." sentence in the left-bordered panel; the <code>confirm-message</code> prop replaces the wording and the slot of the same name replaces the whole panel</span>
+    <span>requests: the same PATCH goes to the detail action url twice, once on mount carrying <code>Dry-Run: true</code> and once on confirm. The server runs both and rolls the dry run back, so a pre-flight validates against real data without persisting</span>
+    <span>PageTitle: supplied here by the docs harness, as an integrator's layout would; the view contributes the title and teleports its "Go Back" button into the title row</span>
+    <span>theme keys: {@api theme-key:ViewActivate}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewActivate.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
+
+::: info What the retired mockup showed
+The hand-authored mockup this section used to carry differed from the default view in
+several ways, recorded here rather than lost:
+
+- **A banner meta row.** The mockup ended the banner with a row of contextual facts (action
+  name, last seen, workspaces restored). The banner has no meta row; it is a title, a
+  description, and nothing else.
+- **Written banner copy.** The mockup's two lines were prose about what activation does to
+  sessions and API keys. Both real lines are generated from the action and model names, so
+  a project that wants that copy passes `banner-title` and `banner-description`.
+- **Extra checkbox fields.** "Send notification email" and "Force password reset" were part
+  of the mockup. The default view renders no extra fields. The `extra-fields` slot is where
+  they belong: fields placed there join the form context, so their values reach the request
+  body.
+- **An audit hint.** The mockup's action strip ended with "Audited as `user.activate` on
+  save". The `actions-hint` slot exists for exactly that and is empty by default.
+- **Named buttons.** The mockup submitted with "Reactivate user" beside a check icon and
+  offered Cancel in both the title row and the action strip. The real buttons read "Yes,
+  continue" and "Cancel, go back" (override the `confirm-button` slot to change that), and
+  the only title-row button is the view's own "Go Back".
+- **The record row.** The mockup hand-built a row with a user icon, an email address, and a
+  deactivation date. The real chip carries the record's `formatted_name` and its primary
+  key.
+  :::
 
 ## ViewWorkflowTransition
 

@@ -455,6 +455,7 @@ export function seedCustomerModel(pinia, app = SHOWCASE_CUSTOMER.app) {
  * @param {object[]} [options.transitions] - Workflow transitions the model offers.
  * @param {string[]} [options.availableActions] - Per-record `available_actions`.
  * @param {object[]} [options.validTransitions] - Per-record `valid_transitions`.
+ * @param {object[]} [options.actions] - Model actions to answer; see `modelRoutes`.
  * @returns {{ app: string, model: string, seed: Function, api: object[] }}
  */
 export function customerScenario({
@@ -465,13 +466,24 @@ export function customerScenario({
     transitions = [],
     availableActions = RECORD_AVAILABLE_ACTIONS,
     validTransitions = [],
+    actions = [],
 } = {}) {
     const model = SHOWCASE_CUSTOMER.model;
     return {
         app,
         model,
         seed: (pinia) => seedCustomerModel(pinia, app),
-        api: modelRoutes({ app, model, records, history, onDelete, transitions, availableActions, validTransitions }),
+        api: modelRoutes({
+            app,
+            model,
+            records,
+            history,
+            onDelete,
+            transitions,
+            availableActions,
+            validTransitions,
+            actions,
+        }),
     };
 }
 
@@ -492,6 +504,8 @@ export function customerScenario({
  * @param {string[]} [options.availableActions] - Per-record `available_actions`, which is
  *   what the detail views read to decide which action buttons exist.
  * @param {object[]} [options.validTransitions] - Per-record `valid_transitions`.
+ * @param {DemoModelAction[]} [options.actions] - Model actions to answer, each at both of the
+ *   URLs `useModelAction` uses: the detail url for one record and the list url for several.
  * @param {string} [options.pkKey="id"] - Primary key field on each row.
  * @returns {import('./demoApi.js').DemoRoute[]}
  */
@@ -504,12 +518,14 @@ export function modelRoutes({
     transitions = [],
     availableActions = RECORD_AVAILABLE_ACTIONS,
     validTransitions = [],
+    actions = [],
     pkKey = "id",
 }) {
     const scope = `${escapeForPattern(app.toLowerCase())}/${escapeForPattern(routePart(model))}`;
     const byPk = (pk) => records.find((record) => String(record[pkKey]) === String(pk));
     const serialize = (record) => withServerFields(record, availableActions, validTransitions);
     return [
+        ...actions.flatMap((action) => actionRoutes({ scope, model, action, byPk })),
         {
             method: "GET",
             path: new RegExp(`^/routes/${scope}/$`),
@@ -563,6 +579,63 @@ export function modelRoutes({
             method: "GET",
             path: new RegExp(`^/routes/vueda\\.workflow/workflows/${scope}/permitted_transitions/$`),
             handler: () => transitions,
+        },
+    ];
+}
+
+/**
+ * One model action the demo answers.
+ *
+ * @typedef {object} DemoModelAction
+ * @property {string} name - Action name as it appears in the URL, e.g. "activate".
+ * @property {string} [method="PUT"] - HTTP method the view sends. `ViewActivate` sends PATCH.
+ * @property {(context: import('./demoApi.js').DemoRequestContext & { pks: string[] }) => any} [handler] -
+ *   Overrides the response.
+ */
+
+/**
+ * Build the detail and bulk endpoints for one model action.
+ *
+ * `useModelAction` sends a single record's action to the detail url and several to the list
+ * url with a `{ pks }` body, so both exist here. Both answer 200 with a `detail` string, which
+ * is what vueda's own actions return (`vueda/core/viewsets/__init__.py`, `activate`).
+ *
+ * The dry-run pre-flight is answered exactly like the real request, because the server answers
+ * it the same way: `@action` runs the body and rolls the transaction back
+ * (`vueda/core/decorators.py`), so a pre-flight is a real round-trip that leaves no trace,
+ * not a separate status code. Only `destroy` distinguishes the two (200 against 204).
+ *
+ * @param {object} options
+ * @param {string} options.scope - `app/model` url segment, already regex-escaped.
+ * @param {string} options.model - Model name, for the response text.
+ * @param {DemoModelAction} options.action - The action to answer.
+ * @param {(pk: string) => object|undefined} options.byPk - Record lookup, so an unknown pk 404s
+ *   rather than being accepted (see the delete endpoint's note).
+ * @returns {import('./demoApi.js').DemoRoute[]}
+ */
+function actionRoutes({ scope, model, action, byPk }) {
+    const { name, method = "PUT", handler } = action;
+    const part = escapeForPattern(routePart(name));
+    const ran = (pks) => demoResponse(200, { detail: `Ran ${name} on ${pks.length} ${model}.` });
+    return [
+        {
+            method,
+            path: new RegExp(`^/routes/${scope}/(?<pk>[^/]+)/${part}/$`),
+            handler: (context) => {
+                if (!byPk(context.params.pk)) {
+                    return notFound(model, context.params.pk);
+                }
+                const pks = [context.params.pk];
+                return handler ? handler({ ...context, pks }) : ran(pks);
+            },
+        },
+        {
+            method,
+            path: new RegExp(`^/routes/${scope}/${part}/$`),
+            handler: (context) => {
+                const pks = context.body?.pks ?? [];
+                return handler ? handler({ ...context, pks }) : ran(pks);
+            },
         },
     ];
 }
