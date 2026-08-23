@@ -46,6 +46,8 @@ const API_PREFIX = "/routes/";
  * @property {string} method - The uppercased HTTP method.
  * @property {{[name: string]: string}} params - Named capture groups from `path`.
  * @property {URLSearchParams} query - The request query string.
+ * @property {Headers} headers - The request headers, so a handler can branch on the ones
+ *   vueda sends (`Dry-Run`, `Acknowledge-Warnings`).
  * @property {any} body - The parsed JSON request body, or undefined.
  */
 
@@ -156,7 +158,14 @@ async function demoFetch(input, init = {}) {
 
     let result;
     try {
-        result = await route.handler({ url, method, params, query: parsed.searchParams, body });
+        result = await route.handler({
+            url,
+            method,
+            params,
+            query: parsed.searchParams,
+            headers: new Headers(init.headers ?? {}),
+            body,
+        });
     } catch (error) {
         // A handler that throws a DemoResponse is choosing a status; anything else is a
         // fixture bug and should read as a server fault rather than a silent success.

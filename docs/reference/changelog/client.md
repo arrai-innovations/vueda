@@ -14,6 +14,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **`ViewDestroy` and `ViewActivate` no longer fail to mount (ModelActionForm, ActionForm)**:
+    - `ActionForm` injects a form context and uses it on every submit: `setAllTouched()`, `state.submittingValues` for the request body, and `handleServerFormValidationError()` to route a server 400's field errors back onto the fields. Its template also gates submit on `state.anyError`. Of the three views that reach it, only `ViewAction` established a context, so `ViewDestroy` and `ViewActivate` both threw on mount. `ModelActionForm` now establishes one when none is injected, and still defers to a context provided above it, so `ViewAction`'s own fields are unaffected.
+    - `ActionForm` mounted with no context now throws a message naming the missing provider instead of dereferencing undefined. A no-op stand-in was rejected deliberately: it would leave a server 400 with an empty validation summary and an enabled submit button, turning a loud failure into a silent one.
+      _No action required. If you render `ActionForm` directly rather than through `ModelActionForm`, wrap it in a `useForm()` scope and provide the context under `FormContextSymbol`._
+
 - **Sonner toast descriptions, cancel buttons, and focus indicators follow the active color mode (Sonner)**:
     - Toast descriptions now use VUEDA's muted foreground token, cancel buttons use the secondary surface token, and close/action focus indicators use the VUEDA focus ring. This fixes low-contrast dark-mode descriptions and focus indicators that could disappear on dark surfaces.
       _Requires `@arrai-innovations/vue-sonner` >= 2.0.11. If you retone toast descriptions, set `--description-text` on `<Sonner>` instead of targeting `[data-description]`._

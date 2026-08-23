@@ -33,8 +33,8 @@ import {
 } from "@vueda/utils/constants.js";
 
 /**
- * Demo customer rows. Fictional throughout; emails follow the repo test convention
- * (`domain.invalid`) and phone-free by design.
+ * Demo customer rows. Fictional throughout; domains use `domain.invalid` per the repo test
+ * convention.
  *
  * @type {object[]}
  */
@@ -363,9 +363,15 @@ const SEARCH_FIELDS = ["account", "domain", "notes"];
 export const RECORD_AVAILABLE_ACTIONS = ["list", "retrieve", "update", "partial_update", "destroy"];
 
 /**
- * Attach the fields a server adds to every serialized instance. `available_actions` and
- * `valid_transitions` stay snake_case: `storeModelInfo` camelCases model info on fetch,
- * but record payloads are pushed through untouched and read by their server names.
+ * Attach the fields a server adds to every serialized instance.
+ *
+ * `formatted_name` is a `GeneratedField` on vueda's base model (`vueda/core/models.py`), so
+ * every row carries one; here it mirrors the account name. `WidgetReadOnly` prefers it over
+ * the raw value, which is what makes the selected-records list in a destroy or action
+ * confirmation read as names rather than primary keys.
+ *
+ * All three stay snake_case: `storeModelInfo` camelCases model info on fetch, but record
+ * payloads are pushed through untouched and read by their server names.
  *
  * @param {object} record
  * @param {string[]} availableActions
@@ -373,7 +379,12 @@ export const RECORD_AVAILABLE_ACTIONS = ["list", "retrieve", "update", "partial_
  * @returns {object}
  */
 function withServerFields(record, availableActions, validTransitions) {
-    return { ...record, available_actions: availableActions, valid_transitions: validTransitions };
+    return {
+        ...record,
+        formatted_name: record.account,
+        available_actions: availableActions,
+        valid_transitions: validTransitions,
+    };
 }
 
 /**
@@ -515,15 +526,26 @@ export function modelRoutes({
         {
             method: "DELETE",
             path: new RegExp(`^/routes/${scope}/(?<pk>[^/]+)/$`),
-            handler: (context) => (onDelete ? onDelete(context) : demoResponse(204)),
+            handler: (context) => {
+                if (onDelete) {
+                    return onDelete(context);
+                }
+                return isDryRun(context) ? demoResponse(200) : demoResponse(204);
+            },
         },
         {
-            // Bulk delete posts to the LIST url with a `{ pks }` body, and ActionForm
-            // sends the same request twice: once as a dry run (a `Dry-Run` header the
-            // demo has no reason to distinguish) and once for real. 204 answers both.
+            // Bulk delete posts to the LIST url with a `{ pks }` body, and ActionForm sends
+            // it twice: a `Dry-Run: true` pre-flight, then the real request. The server
+            // answers 200 for the pre-flight and 204 only for an actual delete
+            // (`vueda/core/viewsets/__init__.py`, `destroy`), so the two are distinct here.
             method: "DELETE",
             path: new RegExp(`^/routes/${scope}/$`),
-            handler: (context) => (onDelete ? onDelete(context) : demoResponse(204)),
+            handler: (context) => {
+                if (onDelete) {
+                    return onDelete(context);
+                }
+                return isDryRun(context) ? demoResponse(200) : demoResponse(204);
+            },
         },
         {
             method: "GET",
@@ -536,6 +558,14 @@ export function modelRoutes({
             handler: () => transitions,
         },
     ];
+}
+
+/**
+ * @param {import('./demoApi.js').DemoRequestContext} context
+ * @returns {boolean} True when the request is ActionForm's dry-run pre-flight.
+ */
+function isDryRun(context) {
+    return context.headers?.get("Dry-Run")?.toLowerCase() === "true";
 }
 
 /**

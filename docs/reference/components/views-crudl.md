@@ -12,11 +12,6 @@ import Button from "@vueda/controls/button/Button.vue";
 import Input from "@vueda/controls/input/Input.vue";
 import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
 import NativeSelectOption from "@vueda/controls/native-select/NativeSelectOption.vue";
-import Textarea from "@vueda/controls/textarea/Textarea.vue";
-import Field from "@vueda/shell/field/Field.vue";
-import FieldContent from "@vueda/shell/field/FieldContent.vue";
-import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
-import FieldLabel from "@vueda/shell/field/FieldLabel.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
     faAnglesLeft,
@@ -42,7 +37,7 @@ import {
     faTriangleExclamation,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { faBuilding, faEnvelope } from "@fortawesome/free-regular-svg-icons";
+import { faEnvelope } from "@fortawesome/free-regular-svg-icons";
 import { ref } from "vue";
 import { customerScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
 
@@ -78,6 +73,19 @@ const updateViewport = ref(null);
 // One scenario per live demo. Route registration is global and first-match-wins, so demos
 // that need different responses for the same model take different app labels.
 const readScenario = customerScenario({ app: "showcaseread" });
+const destroyScenario = customerScenario({ app: "showcasedestroy" });
+
+// enableDryRun is off because the dry-run pre-flight currently fails against a real server;
+// see the callout in the ViewDestroy section. The rest is the view's own default behavior.
+const destroyViewProps = {
+    confirmText: "delete 3 customers",
+    enableDryRun: false,
+    linkedObjectCounts: [
+        { count: 26, verboseNamePlural: "contacts" },
+        { count: 112, verboseNamePlural: "invoices" },
+        { count: 8, verboseNamePlural: "attachments" },
+    ],
+};
 
 const customerCreateFields = ["account", "domain", "owner", "tier", "mrr", "currency", "taxExempt", "notes"];
 const customerUpdateFields = ["account", "domain", "owner", "tier", "mrr", "currency"];
@@ -564,90 +572,70 @@ The update view renders the same form as create, populated from the loaded recor
 
 ## ViewDestroy
 
-The destroy view is a dedicated danger page, not a modal. Bulk-selected records are surfaced as a list of named items. A banner at the top quantifies the cascading impact. A type-to-confirm field prevents accidental submission. The destructive action remains disabled until the confirmation phrase is typed exactly.
+The destroy view is a dedicated danger page, not a modal, so it can be linked to, bookmarked,
+and made part of a multi-stage flow. `ViewDestroy` wraps a `ModelActionForm` in its own
+destructive-toned card: a banner quantifies the blast radius, the selected records are listed
+from the fetched instances, and an optional type-to-confirm phrase gates the submit button.
 
-The view card takes on a destructive accent: border color is tinted toward `--destructive` and a matching box-shadow ring adds depth to reinforce the danger context.
-
-::: warning Mockup status
-This section is still a hand-authored mockup. `ViewDestroy` cannot be mounted yet: it
-renders `ModelActionForm`, which renders `ActionForm`, which injects `FormContextSymbol`
-and reads `formContext.state.anyError` without a guard. Neither `ViewDestroy` nor
-`ViewActivate` provides that context (only `ViewAction` calls `useForm`), so both fail on
-mount. Once the context is supplied this section becomes a live demo, and the mockup's
-divergences get recorded the way the read view's are above.
-
-Two are already visible from the source. The banner here is a hand-written pair of
-paragraphs with counts bolded inline; the real banner is a generated title plus a
-{@api vue:component:ConsequencesBullets} list built from the `linkedObjectCounts` prop.
-And the record list here is hand-built rows with a building icon and a `#1019`-style id;
-the real one comes from `ModelActionForm`, which fetches the selected records and renders
-each through `WidgetReadOnly`.
-:::
-
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view destroy · 3 records selected · destructive intent</header>
-  <div class="rounded-vueda-card border bg-card overflow-clip" style="border-color: color-mix(in oklab, var(--destructive) 40%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 10%, transparent);">
-    <ClientOnly>
-      <DemoTitleBar title="Delete 3 customers">
-        <template #actions>
-          <Button size="sm" emphasis="ghost">Cancel</Button>
-        </template>
-      </DemoTitleBar>
-    </ClientOnly>
-    <div class="flex gap-4 border-b border-destructive/20 bg-destructive/5 px-6 py-4">
-      <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5 shrink-0 text-destructive" />
-      <div>
-        <p class="font-semibold text-destructive">This will permanently delete 3 customer records and all associated data.</p>
-        <p class="mt-1 text-sm text-muted-foreground"><strong class="text-foreground">26 contacts</strong>, <strong class="text-foreground">112 invoices</strong>, and <strong class="text-foreground">8 attachments</strong> linked to these customers will also be removed. Audit log entries will be retained for 90 days.</p>
-      </div>
-    </div>
-    <div class="px-6 py-5">
-      <div class="mb-5">
-        <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Records to delete</h3>
-          <span class="text-xs text-muted-foreground">3 of 3 selected</span>
-        </div>
-        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Pemberton &amp; Vale</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1019</span>
-          </div>
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Cordillera Botanicals</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1023</span>
-          </div>
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Foxglove &amp; Kettle</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1027</span>
-          </div>
-        </div>
-      </div>
-      <Field orientation="vertical" class="mb-5">
-        <FieldLabel for="vd-confirm">Type to confirm</FieldLabel>
-        <FieldContent>
-          <Input id="vd-confirm" placeholder="delete 3 customers" />
-          <FieldDescription>Type <code class="font-mono text-xs">delete 3 customers</code> exactly to enable the delete button.</FieldDescription>
-        </FieldContent>
-      </Field>
-      <div class="flex items-center justify-end gap-3 border-t-hairline pt-4">
-        <Button emphasis="ghost">Cancel</Button>
-        <Button tone="destructive" disabled aria-disabled="true">
-          <FontAwesomeIcon :icon="faTrash" />
-          Delete 3 customers permanently
-        </Button>
-      </div>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view destroy · 3 records selected · live ViewDestroy</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewDestroy.vue')"
+    :app="destroyScenario.app"
+    :model="destroyScenario.model"
+    :pk="['4', '11', '23']"
+    action="destroy"
+    :seed="destroyScenario.seed"
+    :api="destroyScenario.api"
+    :view-props="destroyViewProps"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>card accent: border-color and box-shadow tinted toward <code>--destructive</code> via <code>color-mix</code></span>
-    <span>banner: bg-destructive/5 tint + destructive icon; quantifies cascading deletes before the user commits</span>
-    <span>type-to-confirm: submit remains disabled until the phrase matches; guards against accidental bulk-delete</span>
-    <span>full view (not a modal): destroy can be linked to, bookmarked, and is sometimes a multi-stage flow</span>
+    <span>card: {@api theme-key:ViewDestroy} paints a <code>border-destructive/50</code> edge plus an 8 % destructive ring, and wraps the inner {@api theme-key:ModelActionForm} as <code>bare</code> so only this surface carries chrome</span>
+    <span>banner: destructive 6 %-mix fill behind a 36 px destructive icon tile; the title is generated from the record count and model verbose name</span>
+    <span>consequences: the <code>linkedObjectCounts</code> prop becomes a {@api vue:component:ConsequencesBullets} list. With none supplied the banner falls back to a single "This action cannot be undone." line</span>
+    <span>records: fetched by pk, then rendered through {@api vue:component:WidgetReadOnly}, which shows each row's <code>formatted_name</code> beside its primary key</span>
+    <span>type-to-confirm: {@api vue:component:TypedConfirmField} holds its own value and gates submit; it is not a form field, so the phrase never reaches the request body</span>
+    <span>theme keys: {@api theme-key:ViewDestroy}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewDestroy.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
+
+::: warning This demo disables the dry-run pre-flight
+`ModelActionForm` runs a dry-run request on mount so the server can reject early. Against a
+real backend that pre-flight currently fails: the server answers a dry-run destroy with
+`200` (`vueda/core/viewsets/__init__.py`), while `defaultObjectsDelete` accepts only `204`
+as success and raises a `FetchError` for anything else. `ViewDestroy` hands the resulting
+list state to `ActionForm` as `fetchState`, so the view mounts with a "Failed to delete
+object: 200" banner over an otherwise correct page.
+
+The demo passes `enableDryRun: false` so the page reads as intended rather than as the bug.
+Fixing the status handling then exposes a second one: reactive-helpers' `bulkDelete` empties
+its object list on any resolved delete, dry run included, so a successful pre-flight would
+clear the selected records before the operator confirms. The two need fixing together.
+:::
+
+::: info What the retired mockup showed
+The hand-authored mockup this section used to carry differed from the default view in
+several ways, recorded here rather than lost:
+
+- **Banner copy.** The mockup wrote two prose paragraphs with counts bolded inline. The real
+  banner is a generated title plus a `ConsequencesBullets` list, one line per linked type.
+  The mockup's "Audit log entries will be retained for 90 days" sentence has no equivalent.
+- **Record rows.** The mockup hand-built rows with a building icon and a `#1019`-style id.
+  The real list renders each fetched record through `WidgetReadOnly`, with no icon and the
+  bare primary key as a trailing mono chip.
+- **Confirm field placement.** The mockup put the type-to-confirm inside a `Field` with its
+  own label and description. `TypedConfirmField` is self-contained: a label with an inline
+  mono chip carrying the expected phrase, then a mono input.
+- **Its own action row.** The mockup ended with a hand-built Cancel / Delete pair, the
+  destructive one labelled "Delete 3 customers permanently". The real buttons come from
+  `ActionForm` and read "Yes, continue" and "Cancel, go back" unless a consumer overrides
+  the `confirm-button` slot.
+- **Card accent.** The mockup applied an inline `color-mix` border at 40 % and a 10 %
+  box-shadow ring. The theme uses `border-destructive/50` and an 8 % ring.
+  :::
 
 ## Customization surface
 
