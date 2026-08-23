@@ -8,16 +8,11 @@ type: reference
 <script setup>
 import PageTitle from "@vueda/shell/page-title/PageTitle.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import Input from "@vueda/controls/input/Input.vue";
 import Textarea from "@vueda/controls/textarea/Textarea.vue";
-import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import Field from "@vueda/shell/field/Field.vue";
 import FieldContent from "@vueda/shell/field/FieldContent.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
 import FieldLabel from "@vueda/shell/field/FieldLabel.vue";
-import Alert from "@vueda/feedback/alert/Alert.vue";
-import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
-import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import RadioGroup from "@vueda/controls/radio-group/RadioGroup.vue";
 import RadioGroupItem from "@vueda/controls/radio-group/RadioGroupItem.vue";
 import Table from "@vueda/grid/table/Table.vue";
@@ -30,14 +25,7 @@ import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
 import Kbd from "@vueda/display/kbd/Kbd.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
-    faBoxArchive,
     faArrowRight,
-    faTriangleExclamation,
-    faCircleCheck,
-    faCircleXmark,
-    faShieldHalved,
-    faArrowRotateRight,
-    faCreditCard,
     faFlagCheckered,
     faRotateLeft,
     faPen,
@@ -49,15 +37,13 @@ import {
     faCircleQuestion,
 } from "@fortawesome/free-solid-svg-icons";
 import {
-    faBuilding,
-    faFileLines,
     faClock,
     faIdCard,
-    faClone,
     faBell,
     faEnvelope,
 } from "@fortawesome/free-regular-svg-icons";
 import { ref } from "vue";
+import { demoResponse } from "../../.vitepress/theme/fixtures/demoApi.js";
 import { customerScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
 
 const selectedTransition = ref("send-for-review");
@@ -65,9 +51,28 @@ const copyDiscounts = ref(true);
 
 // One scenario per live demo. Route registration is global and first-match-wins, so demos
 // that need different responses for the same model take different app labels.
+const archiveScenario = customerScenario({ app: "showcaseaction", actions: [{ name: "archive" }] });
+const duplicateScenario = customerScenario({ app: "showcaseduplicate", actions: [{ name: "duplicate" }] });
 const activateScenario = customerScenario({
     app: "showcaseactivate",
     actions: [{ name: "activate", method: "PATCH" }],
+});
+// Rejects the pre-flight the way a server does when some records cannot take the action:
+// a 400 keyed by primary key. The confirmed request would succeed.
+const billScenario = customerScenario({
+    app: "showcasebill",
+    actions: [
+        {
+            name: "bill_now",
+            handler: ({ headers }) =>
+                headers?.get("Dry-Run")?.toLowerCase() === "true"
+                    ? demoResponse(400, {
+                          11: ["No payment method on file."],
+                          23: ["Subscription is paused; resume it before billing."],
+                      })
+                    : demoResponse(200, { detail: "Billed 3 customers." }),
+        },
+    ],
 });
 </script>
 
@@ -79,233 +84,115 @@ Banner tone follows action sentiment: `info` for neutral confirmations, `success
 
 ## ViewAction
 
-Generic action confirmation view. An info-toned banner explains what the action does; the selected objects are listed below it; and a prompt panel restates the question in plain language before the actions strip. Extra action-specific fields sit between the object list and the prompt when present.
+The generic action confirmation view: a tone-tracked banner, the records the action targets, a
+prompt panel restating the question, then the actions strip. It is the one action view that does
+not fetch anything. `ViewDestroy` and `ViewActivate` load their records and hand
+`ModelActionForm` a fetch state; `ViewAction` passes the primary keys straight through, which is
+why the rows below read as bare keys.
 
+`ViewAction` also owns a form context of its own, seeded with one entry per primary key. That is
+what gives per-record server messages somewhere to land, as the third demo shows.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="archive" · 4 records selected · default info tone</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Archive 4 customers">
-      <template #button>
-        <Button size="sm" emphasis="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
-    <!-- info banner -->
-    <div class="flex gap-4 border-b border-info/25 bg-info/8 px-6 py-4">
-      <FontAwesomeIcon :icon="faBoxArchive" class="mt-0.5 shrink-0 text-info" />
-      <div>
-        <p class="font-semibold text-foreground">Archived customers move out of the active list and stop receiving renewal reminders.</p>
-        <p class="mt-1 text-sm text-muted-foreground">Their records, contacts, and historical invoices stay accessible; you can restore at any time from the Archived view. Active subscriptions are <em>not</em> cancelled by this action — handle those separately.</p>
-        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span>action <strong class="text-foreground">archive</strong></span>
-          <span>scope <strong class="text-foreground">4 selected</strong></span>
-          <span>side-effects <strong class="text-foreground">none</strong></span>
-        </div>
-      </div>
-    </div>
-    <!-- body -->
-    <div class="px-6 py-5">
-      <div class="mb-4">
-        <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Records to archive</h3>
-          <span class="text-xs text-muted-foreground">4 of 4 selected</span>
-        </div>
-        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Pemberton &amp; Vale</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1019</span>
-          </div>
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Cordillera Botanicals</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1023</span>
-          </div>
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Foxglove &amp; Kettle</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1027</span>
-          </div>
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Quay &amp; Tide Outfitters</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1031</span>
-          </div>
-        </div>
-      </div>
-      <div class="border-l-4 border-border bg-muted/8 px-4 py-3">
-        <p class="text-sm font-semibold">Are you sure you want to archive these 4 customers?</p>
-        <p class="mt-1 text-sm text-muted-foreground">This action is reversible — admins can restore records from <em>Customers → Archived</em>. Renewal reminders will stop within 5 minutes.</p>
-      </div>
-    </div>
-    <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
-      <Button emphasis="ghost">Cancel</Button>
-      <Button tone="primary">
-        <FontAwesomeIcon :icon="faBoxArchive" />
-        Archive 4 customers
-      </Button>
-      <span class="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-        <FontAwesomeIcon :icon="faCircleQuestion" />
-        Reversible — restore any time from <strong class="text-foreground">Archived</strong>
-      </span>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="archive" · 4 records · default info tone · live ViewAction</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewAction.vue')"
+    :app="archiveScenario.app"
+    :model="archiveScenario.model"
+    :pk="['4', '11', '23', '1']"
+    action="archive"
+    :seed="archiveScenario.seed"
+    :api="archiveScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>banner: <code>bg-info/8 border-info/25</code> strip; grounds the action before the buttons</span>
-    <span>banner meta row: action · scope · side-effects — always populate what you know</span>
-    <span>object list: <code>divide-y divide-border rounded-vueda-control hairline hairline-border</code> with icon + label + pk</span>
-    <span>prompt panel: <code>border-l-4 border-border bg-muted/8</code> left-rule treatment</span>
-    <span>actions strip: <code>border-t-hairline</code>; hint text pushed right with <code>ml-auto</code></span>
+    <span>tone: nothing was passed, so the card carries <code>data-tone="info"</code> — a neutral border with an 8 % ring, a 6 % info banner fill, and an info-filled icon tile</span>
+    <span>banner text: generated from the action name and the model's verbose name, as on every model action; <code>banner-title</code> and <code>banner-description</code> replace them</span>
+    <span>records: each chip shows the primary key twice, as its label and as the trailing mono chip. There is nothing else to show: no fetch means no <code>formatted_name</code>. Pass <code>fetch-state</code> to render names instead</span>
+    <span>requests: one PUT to the list action url with a <code>{ pks }</code> body, sent twice — the <code>Dry-Run: true</code> pre-flight on mount, then the real request on confirm</span>
+    <span>theme keys: {@api theme-key:ViewAction}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewAction.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
+An action with input fills the `extra-fields` slot. The demo below is the real view with that one
+slot supplied by a docs-only wrapper; everything rendered is the framework's own output. Type
+into Reason and submit to see the request body, then clear it and submit again to see the
+validation summary.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="duplicate" · 1 record · single-object variant with extra fields</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Duplicate quote">
-      <template #button>
-        <Button size="sm" emphasis="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
-    <!-- info banner -->
-    <div class="flex gap-4 border-b border-info/25 bg-info/8 px-6 py-4">
-      <FontAwesomeIcon :icon="faClone" class="mt-0.5 shrink-0 text-info" />
-      <div>
-        <p class="font-semibold text-foreground">Create a copy of this quote with status <em>Draft</em> and today's issue date.</p>
-        <p class="mt-1 text-sm text-muted-foreground">Line items, customer, and notes are copied. Signatures, invoices, and audit history are not.</p>
-      </div>
-    </div>
-    <!-- body -->
-    <div class="px-6 py-5">
-      <div class="mb-5">
-        <div class="mb-3 flex items-baseline border-b-hairline pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Source</h3>
-        </div>
-        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faFileLines" class="shrink-0 text-muted-foreground" />
-            <span>Q-2026-0418 — Northwind Logistics · annual renewal</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">$14,028.50</span>
-          </div>
-        </div>
-      </div>
-      <div class="flex flex-col gap-4 mb-5">
-        <Field orientation="vertical">
-          <FieldLabel for="dup-name">New quote name</FieldLabel>
-          <FieldContent>
-            <Input id="dup-name" :model-value="'Copy of Q-2026-0418'" />
-          </FieldContent>
-        </Field>
-        <Field orientation="vertical">
-          <FieldLabel for="dup-customer">Assign to customer</FieldLabel>
-          <FieldContent>
-            <Input id="dup-customer" :model-value="'Northwind Logistics'" />
-          </FieldContent>
-        </Field>
-        <div class="flex items-center gap-2">
-          <Checkbox id="dup-discounts" v-model="copyDiscounts" />
-          <label for="dup-discounts" class="cursor-pointer select-none text-sm">Copy line-item discounts</label>
-        </div>
-      </div>
-    </div>
-    <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
-      <Button emphasis="ghost">Cancel</Button>
-      <Button tone="primary">
-        <FontAwesomeIcon :icon="faClone" />
-        Duplicate quote
-      </Button>
-      <span class="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Kbd>⌘</Kbd>
-        <Kbd>↵</Kbd>
-        to confirm
-      </span>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="duplicate" · 1 record · extra fields · live ViewAction</header>
+  <ModelDemo
+    :view="() => import('../../.vitepress/theme/components/DemoActionFields.vue')"
+    :app="duplicateScenario.app"
+    :model="duplicateScenario.model"
+    pk="1"
+    action="duplicate"
+    :seed="duplicateScenario.seed"
+    :api="duplicateScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>single-object variant: "Source" heading instead of "Records to archive N" — same panel chrome, different semantics</span>
-    <span>extra fields: action-specific inputs appear between the object list and the actions strip; reuse Field + Input + Checkbox from the forms family</span>
-    <span>keyboard hint: <code>Kbd</code> rendered inline in the hint area</span>
+    <span>slot: {@api theme-key:ModelActionForm.extraFields} stacks the rows below the prompt panel at the standard 12 px form gap, so they line up with the field column of a full form</span>
+    <span>request body: field values reach the server only through <code>transform-submit-data-fn</code>. With it, confirming sends <code>{"reason": "...", "copy_notes": false}</code>; without it the action sends no body at all, because the form's own shape is one entry per primary key rather than a request body</span>
+    <span><code>has-input</code>: not a default. Without it {@api vue:component:ActionForm} submits without validating, and a required field left empty still goes to the server</span>
+    <span>required by default: {@api js:function:@arrai-innovations/vueda/use/useField#useField} treats an unset <code>required</code> as <code>true</code>, so an optional field in this slot needs <code>:required="false"</code> or it renders an asterisk</span>
+    <span>one gap worth knowing: a required field the user never touched does not block submit. The submit path touches the paths already in the form values, and a pristine field has none</span>
+    <span>single record: the action goes to the detail url (<code>/routes/:app/:model/:pk/duplicate/</code>); several records go to the list url with a <code>{ pks }</code> body</span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
+The dry-run pre-flight is a real request, so it can fail. Here the offline endpoint rejects the
+pre-flight with per-record messages, which is what a server returns when some of the selected
+records cannot take the action.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="bill-now" · 3 records · dry-run failed · warning tone</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Bill now (3 subscriptions)">
-      <template #button>
-        <Button size="sm" emphasis="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
-    <!-- warning banner -->
-    <div class="flex gap-4 border-b border-warning/25 bg-warning/10 px-6 py-4">
-      <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5 shrink-0 text-warning" />
-      <div>
-        <p class="font-semibold text-foreground">Dry-run found 2 problems. Fix or exclude affected subscriptions before billing.</p>
-        <p class="mt-1 text-sm text-muted-foreground">Bill-now triggers a real charge against connected payment methods. Only subscriptions in <em>Active</em> state with a current payment method can be billed off-cycle.</p>
-      </div>
-    </div>
-    <!-- body -->
-    <div class="px-6 pt-5 pb-3">
-      <Alert variant="destructive" class="mb-5">
-        <FontAwesomeIcon :icon="faCircleXmark" />
-        <AlertTitle>Cannot run action — 2 of 3 records are ineligible</AlertTitle>
-        <AlertDescription>
-          <p>These problems were found during dry-run. Resolve them and try again, or untick the affected rows.</p>
-          <ul class="mt-2 list-none space-y-1 text-sm">
-            <li><span class="font-semibold">subscription #4421</span> — No active payment method on file. Update billing details before charging.</li>
-            <li><span class="font-semibold">subscription #4438</span> — State is <code class="font-mono text-xs">paused</code>. Resume the subscription first.</li>
-          </ul>
-        </AlertDescription>
-      </Alert>
-      <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
-        <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Records</h3>
-        <span class="text-xs text-muted-foreground">3 selected · 1 will run</span>
-      </div>
-      <div class="divide-y rounded-vueda-control hairline hairline-border" style="border-color: var(--border)">
-        <!-- eligible row -->
-        <div class="flex items-center gap-3 px-3 py-2.5 text-sm" style="border-color: color-mix(in oklab, var(--success) 35%, var(--border))">
-          <FontAwesomeIcon :icon="faCircleCheck" class="shrink-0 text-success" />
-          <span>Sub #4402 — Acme Coffee Roasters · monthly</span>
-          <span class="ml-auto font-mono text-xs text-muted-foreground">$220.00</span>
-        </div>
-        <!-- ineligible rows -->
-        <div class="flex items-center gap-3 px-3 py-2.5 text-sm" style="border-color: color-mix(in oklab, var(--destructive) 40%, var(--border)); background: color-mix(in oklab, var(--destructive) 4%, var(--card))">
-          <FontAwesomeIcon :icon="faCircleXmark" class="shrink-0 text-destructive" />
-          <span>Sub #4421 — Hightower Mfg. · quarterly</span>
-          <span class="ml-auto font-mono text-xs text-muted-foreground">no payment method</span>
-        </div>
-        <div class="flex items-center gap-3 px-3 py-2.5 text-sm" style="border-color: color-mix(in oklab, var(--destructive) 40%, var(--border)); background: color-mix(in oklab, var(--destructive) 4%, var(--card))">
-          <FontAwesomeIcon :icon="faCircleXmark" class="shrink-0 text-destructive" />
-          <span>Sub #4438 — Stoneridge Architects · annual</span>
-          <span class="ml-auto font-mono text-xs text-muted-foreground">paused</span>
-        </div>
-      </div>
-    </div>
-    <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
-      <Button emphasis="ghost">Cancel</Button>
-      <Button emphasis="outline">
-        <FontAwesomeIcon :icon="faArrowRotateRight" />
-        Re-run dry-run
-      </Button>
-      <Button tone="primary" disabled aria-disabled="true">
-        <FontAwesomeIcon :icon="faCreditCard" />
-        Bill now
-      </Button>
-      <span class="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-        <FontAwesomeIcon :icon="faShieldHalved" />
-        Disabled until validation passes
-      </span>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="bill_now" · 3 records · pre-flight rejected · warning tone</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewAction.vue')"
+    :app="billScenario.app"
+    :model="billScenario.model"
+    :pk="['4', '11', '23']"
+    action="bill_now"
+    :seed="billScenario.seed"
+    :api="billScenario.api"
+    :view-props="{ tone: 'warning' }"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>warning banner: <code>bg-warning/10 border-warning/25</code>; use when the action is real-world-irreversible but not destructive (billing, sending, publishing)</span>
-    <span>dry-run errors: Alert variant="destructive" in the body — distinct from the banner, which describes the action; Alert describes what's broken</span>
-    <span>row-level eligibility: <code>color-mix(in oklab, var(--success/destructive) ..., var(--border/card))</code> for border and bg tint; avoids Tailwind class collisions on dynamic values</span>
-    <span>primary action disabled until validation passes — the submit guard is a form-level concern, not just UX decoration</span>
+    <span>tone: <code>tone="warning"</code> reaches {@api vue:component:ModelActionForm} as a fall-through attribute and swaps the card edge, banner fill, and icon tile together</span>
+    <span>pre-flight: sent on mount with <code>Dry-Run: true</code>. A 400 becomes a <code>FormValidationError</code> and is routed onto the form context rather than toasted, which is why it lands silently rather than as a failure banner</span>
+    <span>where the messages land: keyed by primary key, so each one appears twice — in {@api theme-key:ActionForm.validation}'s summary at the bottom, and beside the matching record chip above. The form context seeded per primary key is what makes the second one possible</span>
+    <span>the banner does not react: its text is generated from the action and model names. A summary of what the pre-flight found belongs in the validation alert, which writes itself</span>
+    <span>theme keys: {@api theme-key:ActionForm.validation}, {@api theme-key:ModelActionForm} · source: <code>ActionForm.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
+
+::: info What the retired mockups showed
+Three hand-authored mockups used to stand here. What they showed that the default view does not:
+
+- **Written banner copy, per action.** Each mockup opened with two sentences describing exactly
+  what that action would do and what it would leave alone. Every real banner is a generated title
+  plus one fixed sentence. Projects that want the prose pass `banner-title` and
+  `banner-description`.
+- **A banner that reported the dry run.** The bill-now mockup's banner read "Dry-run found 2
+  problems". No banner reads the pre-flight. The findings render in the validation alert below the
+  prompt instead, which the third demo shows.
+- **Record rows with detail.** The mockups listed accounts with icons, owners, amounts, and
+  per-record exclude checkboxes. `ViewAction` renders primary keys, because it fetches nothing.
+- **Named buttons and hints.** "Archive 4 customers", a `Kbd` shortcut hint, and an audit note in
+  the actions strip. The real strip is "Yes, continue" and "Cancel, go back", with an empty
+  `actions-hint` slot where the note would go.
+- **Cancel in the title row.** The mockups put a Cancel button beside the page title. The real
+  view teleports one "Go Back" button there.
+- **Field styling.** The duplicate mockup styled its inputs by hand. The real slot content is
+  ordinary `FormField` rows, so they inherit the form family's label, help, and error treatment.
+  :::
 
 ## ViewActivate
 

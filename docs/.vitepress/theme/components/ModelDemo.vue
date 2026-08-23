@@ -33,8 +33,12 @@ const props = defineProps({
     app: { type: String, required: true },
     /** Django model name. Forwarded to the view and used to build the initial route. */
     model: { type: String, required: true },
-    /** Primary key for detail views. Omit for list-shaped views. */
-    pk: { type: [String, Number], default: undefined },
+    /**
+     * Primary key for detail views, or an array of them for an action targeting several records.
+     * Omit for list-shaped views. The view receives the array as-is; the demo route, which has a
+     * single `:pk` segment, receives it comma-joined.
+     */
+    pk: { type: [String, Number, Array], default: undefined },
     /** Route `action` param, e.g. "list", "read", "destroy". Defaults from `pk`. */
     action: { type: String, default: undefined },
     /** Extra props merged over the app / model / pk trio the harness supplies. */
@@ -94,23 +98,29 @@ onMounted(async () => {
     unregisterApi = registerDemoRoutes(props.api, { latency: props.latency });
 
     const action = props.action ?? (props.pk === undefined ? "list" : "read");
+    const viewPk = Array.isArray(props.pk)
+        ? props.pk.map(String)
+        : props.pk === undefined
+          ? undefined
+          : String(props.pk);
+    const routePk = Array.isArray(viewPk) ? viewPk.join(",") : viewPk;
     const app = await bootDemoSubApp({
         mountPoint: mountPoint.value,
         view: props.view,
         viewProps: {
             app: props.app,
             model: props.model,
-            ...(props.pk === undefined ? {} : { pk: String(props.pk) }),
+            ...(viewPk === undefined ? {} : { pk: viewPk }),
             ...props.viewProps,
         },
         routes: ROUTES,
         initialRoute: {
-            name: props.pk === undefined ? "actionrouter.listview" : "actionrouter.detailview",
+            name: viewPk === undefined ? "actionrouter.listview" : "actionrouter.detailview",
             params: {
                 app: props.app,
                 model: props.model,
                 action,
-                ...(props.pk === undefined ? {} : { pk: String(props.pk) }),
+                ...(routePk === undefined ? {} : { pk: routePk }),
             },
         },
         seed: props.seed,
