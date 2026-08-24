@@ -95,10 +95,10 @@ what gives per-record server messages somewhere to land, as the third demo shows
     page-title
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>tone: nothing was passed, so the card carries <code>data-tone="info"</code> — a neutral border with an 8 % ring, a 6 % info banner fill, and an info-filled icon tile</span>
+    <span>tone: nothing was passed, so the card carries <code>data-tone="info"</code>: a neutral border with an 8 % ring, a 6 % info banner fill, and an info-filled icon tile</span>
     <span>banner text: generated from the action name and the model's verbose name, as on every model action; <code>banner-title</code> and <code>banner-description</code> replace them</span>
     <span>records: each chip shows the primary key twice, as its label and as the trailing mono chip. There is nothing else to show: no fetch means no <code>formatted_name</code>. Pass <code>fetch-state</code> to render names instead</span>
-    <span>requests: one PUT to the list action url with a <code>{ pks }</code> body, sent twice — the <code>Dry-Run: true</code> pre-flight on mount, then the real request on confirm</span>
+    <span>requests: one PUT to the list action url with a <code>{ pks }</code> body, sent twice: the <code>Dry-Run: true</code> pre-flight on mount, then the real request on confirm</span>
     <span>theme keys: {@api theme-key:ViewAction}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewAction.vue</code></span>
   </footer>
 </VuedaDemo>
@@ -124,7 +124,7 @@ into Reason and submit, then clear it and submit again to see the validation sum
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>slot: {@api theme-key:ModelActionForm.extraFields} stacks the rows below the prompt panel at the standard 12 px form gap, so they line up with the field column of a full form</span>
     <span>fields: ordinary {@api vue:component:FormField} rows, so they inherit the form family's label, help, and error treatment, and their errors join the same validation summary a server 400 fills</span>
-    <span>plumbing: the wrapper also passes what an action with input currently needs to validate its fields and send their values. Those opt-ins are being reworked, so treat the wrapper as the demo's scaffolding rather than the shape to copy</span>
+    <span>input contract: the wrapper passes <code>has-input</code> and <code>transform-submit-data-fn</code> so slotted fields join validation and request-body construction. Use the same props when an action collects extra fields through <code>extra-fields</code></span>
     <span>single record: the action goes to the detail url (<code>/routes/:app/:model/:pk/duplicate/</code>); several records go to the list url with a <code>{ pks }</code> body</span>
   </footer>
 </VuedaDemo>
@@ -151,7 +151,7 @@ records cannot take the action.
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>tone: <code>tone="warning"</code> reaches {@api vue:component:ModelActionForm} as a fall-through attribute and swaps the card edge, banner fill, and icon tile together</span>
     <span>pre-flight: sent on mount with <code>Dry-Run: true</code>. A 400 becomes a <code>FormValidationError</code> and is routed onto the form context rather than toasted, which is why it lands silently rather than as a failure banner</span>
-    <span>where the messages land: keyed by primary key, so each one appears twice — in {@api theme-key:ActionForm.validation}'s summary at the bottom, and beside the matching record chip above. The form context seeded per primary key is what makes the second one possible</span>
+    <span>where the messages land: keyed by primary key, so each one appears twice: in {@api theme-key:ActionForm.validation}'s summary at the bottom, and beside the matching record chip above. The form context seeded per primary key is what makes the second one possible</span>
     <span>the banner does not react: its text is generated from the action and model names. A summary of what the pre-flight found belongs in the validation alert, which writes itself</span>
     <span>theme keys: {@api theme-key:ActionForm.validation}, {@api theme-key:ModelActionForm} · source: <code>ActionForm.vue</code></span>
   </footer>
@@ -182,7 +182,7 @@ seeded showcase customer model. Confirming it sends a real PATCH to the offline 
     toasts
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>tone: <code>tone="success"</code> puts <code>data-tone="success"</code> on the card, which drives every tone-scoped class in one pass — a <code>border-success/50</code> edge with an 8 % success ring, a 6 % success banner fill, and a success-filled 36 px icon tile</span>
+    <span>tone: <code>tone="success"</code> puts <code>data-tone="success"</code> on the card, which drives every tone-scoped class in one pass: a <code>border-success/50</code> edge with an 8 % success ring, a 6 % success banner fill, and a success-filled 36 px icon tile</span>
     <span>banner text: both lines are generated. The title is the action name plus the model's verbose name; the description is the same default sentence every action gets. Override them with the <code>banner-title</code> and <code>banner-description</code> props</span>
     <span>selected records: fetched by pk, then rendered through {@api vue:component:WidgetReadOnly}, which shows each record's <code>formatted_name</code> as a {@api vue:component:LinkModelView} link with the primary key as a trailing mono chip</span>
     <span>prompt: a generated "Are you sure you want to ..." sentence in the left-bordered panel; the <code>confirm-message</code> prop replaces the wording and the slot of the same name replaces the whole panel</span>

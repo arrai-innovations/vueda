@@ -19,22 +19,21 @@ stores, theme behavior, build integration, dependency expectations, and migratio
       _No action required for component usage. If you create these composables outside a component, call them while the intended Pinia instance is active._
 
 - **Model actions run through the CRUD adapter layer (useModelAction, listCrud, objectCrud, ModelActionForm)**:
-    - `useModelAction` now dispatches actions through registered list and object CRUD handlers instead of constructing `fetch` requests itself. Bulk actions use the selected list's `bulkDelete` or `executeAction`; single-object actions use the object's `delete` or `executeAction`.
+    - `useModelAction` provides model-action primary key derivation, action execution, dry-run readiness, copy generation, and post-action redirects without rendering a confirmation form.
+    - Model action execution dispatches through registered list and object CRUD handlers. Bulk actions use the selected list's `bulkDelete` or `executeAction`; single-object actions use the object's `delete` or `executeAction`.
     - Default list and object adapters now include `executeAction`. Delete adapters accept `formData` and treat dry-run `200` responses as success only during dry runs; real deletes still require `204`.
     - `ModelActionForm` accepts an `instanceList` prop so host views can keep selected rows in sync after real bulk destroys. `useModelAction().buildRequest` is no longer returned.
       _Requires `@arrai-innovations/reactive-helpers` >= 24.1.0 for the per-call `keepObjects` / `keepObject` options. Custom `bulkDelete` adapters should accept `formData` and treat a dry-run `200` as success. Code that called `useModelAction().buildRequest` should register an `executeAction` adapter instead._
 
 - **Model action plumbing is reusable outside confirmation forms (useModelAction, ModelActionForm, ViewDestroy, ViewActivate)**:
-    - Added `useModelAction`, which owns model-action primary key derivation, action execution, dry-run readiness, copy generation, and post-action redirects without creating a form context or rendering confirmation chrome.
-    - `ModelActionForm` now renders the same public props, slots, and theme keys over `useModelAction`. `ViewActivate` and `ViewDestroy` use that shared runner instead of custom submit callbacks.
-    - `ViewDestroy`'s dry-run pre-flight no longer surfaces the server's `200` dry-run response as a delete failure, and no longer clears the selected records before confirmation.
+    - `ModelActionForm` keeps the same public props, slots, and theme keys while delegating action execution to `useModelAction`.
+    - `ViewDestroy` dry-run pre-flights accept the server's `200` dry-run response and keep selected records visible until confirmation.
     - Destroy actions target the standard viewset routes: bulk destroy sends `DELETE` to the model's list URL and single destroy to its detail URL, with no `destroy` path segment. Every other action keeps its segment, matching the dynamic routes the server generates for `@action` methods.
-    - The shared action banner structure now lives in an internal banner component and shared theme primitive. Existing `ModelActionForm.banner*` and `ViewDestroy.banner*` theme keys remain the override surface.
-      _No action required. Custom action buttons and custom action screens can import `@vueda/use/useModelAction.js` when they need the server action plumbing without the `ModelActionForm` confirmation page._
+      _No action required. Custom action buttons and custom action screens can import `@vueda/use/useModelAction.js` when they need server action plumbing without the `ModelActionForm` confirmation page._
 
 - **`ViewDestroy` and `ViewActivate` no longer fail to mount (ModelActionForm, ActionForm)**:
-    - `ActionForm` injects a form context and uses it on every submit: `setAllTouched()`, `state.submittingValues` for the request body, and `handleServerFormValidationError()` to route a server 400's field errors back onto the fields. Its template also gates submit on `state.anyError`. Of the three views that reach it, only `ViewAction` established a context, so `ViewDestroy` and `ViewActivate` both threw on mount. `ModelActionForm` now establishes one when none is injected, and still defers to a context provided above it, so `ViewAction`'s own fields are unaffected.
-    - `ActionForm` mounted with no context now throws a message naming the missing provider instead of dereferencing undefined. A no-op stand-in was rejected deliberately: it would leave a server 400 with an empty validation summary and an enabled submit button, turning a loud failure into a silent one.
+    - `ModelActionForm` establishes a form context when none is injected, so `ViewDestroy` and `ViewActivate` can submit, route server 400 field errors, and render validation state through `ActionForm`.
+    - `ActionForm` mounted without a form context throws an explicit error naming the missing provider.
       _No action required. If you render `ActionForm` directly rather than through `ModelActionForm`, wrap it in a `useForm()` scope and provide the context under `FormContextSymbol`._
 
 - **Read-only widgets resolve static choice labels (WidgetReadOnly, ViewRead)**:

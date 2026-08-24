@@ -283,10 +283,8 @@ export function defaultObjectPatch({ target, pk, partialObject, params }) {
  * @param args.pk {string} - The primary key of the object to delete.
  * @param args.deleteArgs {object} - The arguments to be passed to the delete function.
  * @param [args.formData] {object} - Extra fields submitted alongside the delete, sent as the request body.
- * @param [args.dryRun] {boolean} - When true, sends the request in dry-run mode. The server answers a valid dry run
- *  `200`, so that status is a success here only while `dryRun` is set; a `200` on a real delete stays a fault.
- * @param [args.acknowledgeWarnings] {string} - Warnings digest from a prior 409, sent as the `Acknowledge-Warnings`
- *  header so the server lets the gated delete proceed.
+ * @param [args.dryRun] {boolean} - Dry-run requests treat a server `200` as success; real deletes still require `204`.
+ * @param [args.acknowledgeWarnings] {string} - Warning digest from a prior 409, sent as `Acknowledge-Warnings`.
  * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
  */
 export function defaultObjectDelete({ target, pk, deleteArgs, formData, dryRun, acknowledgeWarnings }) {
@@ -322,8 +320,7 @@ export function defaultObjectDelete({ target, pk, deleteArgs, formData, dryRun, 
  * @param [args.requestMethod] {string} - The HTTP method for the request. Defaults to `"PUT"`.
  * @param [args.formData] {object} - Form values submitted with the action, sent as the request body.
  * @param [args.dryRun] {boolean} - When true, sends the request in dry-run mode.
- * @param [args.acknowledgeWarnings] {string} - Warnings digest from a prior 409, sent as the `Acknowledge-Warnings`
- *  header so the server lets the gated action proceed.
+ * @param [args.acknowledgeWarnings] {string} - Warning digest from a prior 409, sent as `Acknowledge-Warnings`.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<object|string|undefined>} - A cancellable promise.
  */
 export function defaultObjectExecuteAction({

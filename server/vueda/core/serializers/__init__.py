@@ -362,6 +362,7 @@ class VuedaExpandableFieldsSerializerMixin:
 
     @staticmethod
     def serialize_display_choices(choices):
+        """Return model-info ``display_choices`` entries from a display-choice declaration."""
         if isinstance(choices, Mapping):
             choices = choices.items()
 

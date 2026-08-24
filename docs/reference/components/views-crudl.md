@@ -187,7 +187,7 @@ column, and action buttons are the framework's actual output rather than an appr
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>static choices resolve to their labels: {@api vue:component:WidgetReadOnly} takes the field's <code>options</code> and shows the matching <code>label</code>, so the stored <code>enterprise</code> reads as "Enterprise"</span>
-    <span>read rows: {@api theme-key:Field} in its <code>read</code> orientation — a <code>180px</code> label column, <code>1fr</code> value, and a bottom hairline per row</span>
+    <span>read rows: {@api theme-key:Field} in its <code>read</code> orientation: a <code>180px</code> label column, <code>1fr</code> value, and a bottom hairline per row</span>
     <span>label type: 12 px / 500 / <code>--muted-foreground</code>, top-aligned against a value that may wrap to several lines</span>
     <span>action bar: one {@api vue:component:LinkModelView} button per entry in the record's <code>available_actions</code>, with <code>update</code> promoted to the filled primary and <code>destroy</code> picking up the destructive tone</span>
     <span>PageTitle: supplied here by the docs harness, as an integrator's layout would; the view contributes the title and teleports its non-detail actions into the title row</span>
