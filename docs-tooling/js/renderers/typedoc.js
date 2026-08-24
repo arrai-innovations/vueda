@@ -1,6 +1,7 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
 import { buildTypedocPathMap } from "../utils/path-map.js";
 import {
+    formatMembers,
     formatSource,
     linkToPath,
     normalizeTitle,
@@ -58,6 +59,13 @@ function renderSignatures(node, index, filePath) {
         const paramTable = renderTable(["Name", "Type", "Required", "Description"], paramRows);
         if (paramTable) {
             lines.push(renderHeading(3, "Parameters"), "", paramTable, "");
+        }
+        for (const param of signature.parameters || []) {
+            const memberRows = formatMembers(param.members || []);
+            const memberTable = renderTable(["Name", "Type", "Required", "Default", "Description"], memberRows);
+            if (memberTable) {
+                lines.push(renderHeading(4, `${param.name} Properties`), "", memberTable, "");
+            }
         }
 
         if (signature.returns?.name) {
