@@ -97,7 +97,7 @@ export function getTheme() {
 /**
  * Set the default theme. Wholesale replace.
  *
- * @param newTheme {import('@vueda/use/useTheme.js').ThemeObject} - The new default theme.
+ * @param {import('@vueda/use/useTheme.js').ThemeObject} newTheme - The new default theme.
  */
 export function setTheme(newTheme) {
     defaultTheme.value = cloneDeep(newTheme);
@@ -111,7 +111,7 @@ export function setTheme(newTheme) {
  * self-registration after its chunk resolves (`patchTheme({ Button: { ... } })`,
  * which overwrites the loader stub with real data).
  *
- * @param partialTheme {import('@vueda/use/useTheme.js').ThemeObject} - The partial theme to patch the default theme with.
+ * @param {import('@vueda/use/useTheme.js').ThemeObject} partialTheme - The partial theme to patch the default theme with.
  */
 export function patchTheme(partialTheme) {
     const next = { ...defaultTheme.value };
