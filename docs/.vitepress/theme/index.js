@@ -1,6 +1,8 @@
 import AuthDemo from "./components/AuthDemo.vue";
 import DemoCard from "./components/DemoCard.vue";
 import DemoFormModel from "./components/DemoFormModel.vue";
+import DemoRouterLink from "./components/DemoRouterLink.vue";
+import DemoTitleBar from "./components/DemoTitleBar.vue";
 import ForceState from "./components/ForceState.vue";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
 import StateLabel from "./components/StateLabel.vue";
@@ -60,6 +62,11 @@ const theme = createArraiTheme({
         app.component("AuthDemo", AuthDemo);
         app.component("DemoCard", DemoCard);
         app.component("DemoFormModel", DemoFormModel);
+        app.component("DemoTitleBar", DemoTitleBar);
+        // Components that render <router-link> directly need the name resolvable; VitePress
+        // registers no such component. Both spellings, since either can appear in a template.
+        app.component("router-link", DemoRouterLink);
+        app.component("RouterLink", DemoRouterLink);
         app.component("GlossaryTerm", GlossaryTerm);
         app.component("ForceState", ForceState);
         app.component("StateLabel", StateLabel);

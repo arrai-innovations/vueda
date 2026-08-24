@@ -9,7 +9,8 @@
     "preview": "vitepress preview"
   },
   "dependencies": {
-    "@arrai-innovations/reactive-helpers": "^21.1.0",
+    "@arrai-innovations/reactive-helpers": "^24.0.0",
+    "@arrai-innovations/vue-sonner": "^2.0.11",
     "@arrai-innovations/vueda": "workspace:*",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/free-brands-svg-icons": "^7.2.0",
@@ -18,11 +19,10 @@
     "@fortawesome/vue-fontawesome": "^3.2.0",
     "lodash-es": "^4.17.21",
     "pinia": "^3.0.1",
-    "reka-ui": "^2.9.5",
-    "vue-sonner": "npm:@arrai-innovations/vue-sonner@^2.0.10"
+    "reka-ui": "^2.9.5"
   },
   "devDependencies": {
-    "@arrai-innovations/vitepress-theme": "^1.0.1",
+    "@arrai-innovations/vitepress-theme": "^1.0.2",
     "@tailwindcss/vite": "^4.2.1",
     "@vue/compiler-sfc": "^3.5.13",
     "sirv": "^3.0.2",

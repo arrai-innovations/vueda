@@ -572,3 +572,61 @@ class TestModelInfoExcludeFieldsSerializerMixin:
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert sorted(response.data["model_fields"].keys()) == ["available_actions", "formatted_name", "id"]
+
+
+@pytest.mark.django_db
+class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
+    """ExcludeFieldsSerializer is registered with register_serializer() and no ViewSet. vueda_core.E009
+    reports this as unsupported on the grounds that ExcludeFieldsSerializerMixin never receives a view in
+    its context. This exercises every /info/ metadata section against such a registration to record whether
+    that claim still holds."""
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaExcludeFieldsTestData()
+
+    @pytest.fixture(autouse=True)
+    def isolated_registry(self):
+        """The registry is a module global, and a viewset-less ExcludeFieldsSerializer registration left
+        behind here makes check_exclude_fields_serializer_usage() report vueda_core.E009 in other test
+        modules that read the registry without resetting it."""
+        info.registration.get_empty_registry()
+        yield
+        info.registration.get_empty_registry()
+
+    def test_every_metadata_section_does_not_crash(self, test_data, api_client):
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        info.register_serializer(err_serializers.ExcludeFieldsSerializer)
+
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("erring", "noexpandablefieldsdata")),
+            format="json",
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                    "model_actions",
+                    "model_expands",
+                    "model_fields",
+                    "model_filtering",
+                    "model_ordering",
+                    "model_permissions",
+                ],
+            },
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        # The viewset-backed sections have nothing to report without a ViewSet.
+        assert response.data["model_actions"] == []
+        assert response.data["model_ordering"] == []
+        assert response.data["model_filtering"] == {}
+        # The serializer-backed sections still resolve.
+        assert sorted(response.data["model_fields"].keys()) == ["available_actions", "formatted_name", "id"]
+        assert response.data["model_expands"] == []
+        assert sorted(perm["codename"] for perm in response.data["model_permissions"]) == [
+            "create_noexpandablefieldsdata",
+            "delete_noexpandablefieldsdata",
+            "list_noexpandablefieldsdata",
+            "read_noexpandablefieldsdata",
+            "update_noexpandablefieldsdata",
+        ]

@@ -7,6 +7,12 @@ type: reference
 
 <script setup>
 import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
+import Pagination from "@vueda/navigation/pagination/Pagination.vue";
+import PaginationBar from "@vueda/navigation/pagination/PaginationBar.vue";
+import PaginationContent from "@vueda/navigation/pagination/PaginationContent.vue";
+import PaginationMeta from "@vueda/navigation/pagination/PaginationMeta.vue";
+import PaginationNext from "@vueda/navigation/pagination/PaginationNext.vue";
+import PaginationPrevious from "@vueda/navigation/pagination/PaginationPrevious.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Input from "@vueda/controls/input/Input.vue";
 import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
@@ -16,12 +22,13 @@ import Field from "@vueda/shell/field/Field.vue";
 import FieldContent from "@vueda/shell/field/FieldContent.vue";
 import FieldLabel from "@vueda/shell/field/FieldLabel.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { faCheck, faFilter, faChevronDown, faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faChevronDown, faFilter } from "@fortawesome/free-solid-svg-icons";
 import { ref } from "vue";
 
 // The live StickyBar demo binds its scroll-root to its own bounded, scrollable
 // panel so the bar pins to and reacts to the demo viewport instead of the page
 // (otherwise it would stick to the window and ride up over the site nav).
+const stackPage = ref(1);
 const stickyViewport = ref(null);
 </script>
 
@@ -47,15 +54,20 @@ This page is the visual and behavioral contract for that family. For where it si
 Within a zone, bars form an ordered **stack**. Each bar is an independent sticky element with its own reveal behavior, so the title can stay pinned while a toolbar beneath it hides and reveals on its own. There is no height math across the layout boundary: the provider measures the visible bars and gives each one its sticky offset (the cumulative height of the visible bars between it and the edge), then hides a bar with a transform that also compacts the survivors. The relevant detail for a re-skin is that **nothing in a zone needs a hand-set `top` offset**: the stack computes it.
 
 ::: info Demo status
-The provider is **window-scroll-only by design** (no `scrollRoot`, and it warns when an ancestor sets a non-visible `overflow` that would break window-relative sticky). That makes its reveal-and-compact behavior impossible to show faithfully inside a bounded documentation card without the bars pinning over the site nav. The provider and stack below are therefore **static illustrations**; the one live, interactive demo on this page is the standalone `StickyBar`. To see the full stack in motion, wire `StickyStackProvider` into a running shell (see [Integration](#integration)).
+The provider is **window-scroll-only by design** (no `scrollRoot`, and it warns when an ancestor sets a non-visible `overflow` that would break window-relative sticky). That makes its reveal-and-compact behavior impossible to show faithfully inside a bounded documentation card without the bars pinning over the site nav. So what is illustrated below is only the **stacking and reveal model**: the zone order, the offsets, and which bar hides when. The bars themselves are live components, a real `PageTitle` at the top and a real `PaginationBar` at the bottom, so their chrome is the default theme's own and cannot drift from it. To see the stack actually move, wire `StickyStackProvider` into a running shell (see [Integration](#integration)).
 :::
 
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">stack model · static illustration · top zone has two bars, bottom zone has one</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">stack model · static layout, live bars · top zone has two, bottom zone has one</header>
   <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <div class="flex items-center justify-between gap-3 border-b-hairline px-4 py-3">
-      <span class="text-[22px] font-semibold leading-none">Customers</span>
-      <span class="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-primary">order 0 · reveal always</span>
+    <div class="relative border-b-hairline">
+      <ClientOnly>
+        <DemoTitleBar title="Customers">
+          <template #actions>
+            <span class="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-primary">order 0 · reveal always</span>
+          </template>
+        </DemoTitleBar>
+      </ClientOnly>
     </div>
     <div class="flex items-center justify-between gap-3 border-b-hairline bg-muted/30 px-4 py-2">
       <Button size="sm" emphasis="outline">
@@ -70,19 +82,21 @@ The provider is **window-scroll-only by design** (no `scrollRoot`, and it warns 
       <span>As it scrolls down, the toolbar (scroll-up) slides up behind the pinned title; the title (always) stays.</span>
       <span>The pagination footer pins to the bottom of the viewport the whole time.</span>
     </div>
-    <div class="flex items-center justify-between gap-3 border-t-hairline bg-muted/30 px-4 py-2">
-      <span class="flex items-center gap-1">
-        <Button size="icon-sm" emphasis="outline" aria-label="Previous page"><FontAwesomeIcon :icon="faChevronLeft" /></Button>
-        <span class="px-2 text-xs font-medium text-foreground">Page 1 of 36</span>
-        <Button size="icon-sm" emphasis="outline" aria-label="Next page"><FontAwesomeIcon :icon="faChevronRight" /></Button>
-      </span>
-      <span class="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">bottom zone · order 0 · reveal always</span>
-    </div>
+    <PaginationBar>
+      <Pagination v-model:page="stackPage" :total="900" :items-per-page="25">
+        <PaginationContent>
+          <PaginationPrevious />
+          <PaginationNext />
+        </PaginationContent>
+      </Pagination>
+      <PaginationMeta>page {{ stackPage }} of 36 · bottom zone · order 0 · reveal always</PaginationMeta>
+    </PaginationBar>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>top zone: page title (always) + filter toolbar (scroll-up), stacked by order</span>
     <span>bottom zone: pagination footer (always)</span>
     <span>each bar reveals on its own schedule; the provider computes every sticky offset from measured heights</span>
+    <span>the bars themselves are live: a real <code>PageTitle</code> at the top and a real <code>PaginationBar</code> at the bottom, so only their stacking is illustrated</span>
   </footer>
 </VuedaDemo>
 

@@ -33,6 +33,18 @@ export const LOGGED_IN = {
     pendingFlow: null,
 };
 
+/**
+ * storeUser state preset: authenticated with a TOTP device enrolled. ViewRecoveryCodes
+ * gates its whole body on `loggedInUser.totp_devices` being non-empty, so the codes
+ * panel only renders against this preset; plain LOGGED_IN shows its set-up-first path.
+ */
+export const MFA_ENROLLED = {
+    loggedIn: true,
+    loggedInUser: { ...DEMO_USER, totp_devices: [{ id: 1, name: "1Password", confirmed: true }] },
+    initialized: true,
+    pendingFlow: null,
+};
+
 /** storeUser state preset: credentials accepted, a second factor is now required. */
 export const MFA_PENDING = {
     loggedIn: false,
@@ -56,12 +68,29 @@ export const RECOVERY_CODES = [
     "xb9c-uea4-vhk2",
 ];
 
-/** TOTP setup payload, mirroring setupTOTPDevice (the view renders the QR and secret). */
+/**
+ * setupTOTPDevice response. `ViewSetupDevice.doAfterSuccess` reads
+ * `response.meta.totp_svg_data_uri` and `response.meta.totp_secret`, so the
+ * envelope shape matters as much as the values.
+ */
 export const TOTP_SETUP = {
-    secret: "JBSWY3DPEHPK3PXP",
-    // 1x1 transparent PNG stand-in; the real endpoint returns a server-rendered QR.
-    qr_code:
-        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+    meta: {
+        totp_secret: "JBSWY3DPEHPK3PXP",
+        // Inline SVG stand-in for the server-rendered QR: a bordered placeholder at the
+        // same square aspect the real code occupies, so the demo shows the view's actual
+        // image sizing rather than collapsing to a broken-image box.
+        totp_svg_data_uri:
+            "data:image/svg+xml;utf8," +
+            encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">' +
+                    '<rect width="64" height="64" fill="#fff"/>' +
+                    '<rect x="4" y="4" width="16" height="16" fill="#000"/>' +
+                    '<rect x="44" y="4" width="16" height="16" fill="#000"/>' +
+                    '<rect x="4" y="44" width="16" height="16" fill="#000"/>' +
+                    '<rect x="28" y="28" width="8" height="8" fill="#000"/>' +
+                    "</svg>",
+            ),
+    },
 };
 
 /**

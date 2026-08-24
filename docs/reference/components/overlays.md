@@ -85,6 +85,7 @@ import {
   faEnvelope,
   faFileExport,
   faFileLines,
+  faFloppyDisk,
   faFolderOpen,
   faLayerGroup,
   faListCheck,
@@ -460,51 +461,56 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
       <span>disabled: muted text · pointer-events-none</span>
     </template>
   </DemoCard>
-  <DemoCard title="open panel anatomy — item state matrix · static" class="lg:col-span-3">
-    <div class="flex flex-wrap gap-8 items-start">
-      <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline p-1 w-52 shrink-0 text-sm">
-        <div class="px-2 py-1.5 text-sm font-medium">INV-2026-0418-A1</div>
-        <div class="bg-border -mx-1 my-1 h-px"></div>
-        <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
-          <FontAwesomeIcon :icon="faFileLines" class="size-4 shrink-0 text-muted-foreground" />
-          Open
-          <DropdownMenuShortcut :keys="['↵']" />
-        </div>
-        <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm bg-accent text-accent-foreground">
-          <FontAwesomeIcon :icon="faPen" class="size-4 shrink-0" />
-          Edit
-          <DropdownMenuShortcut :keys="['⌘', 'E']" />
-        </div>
-        <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
-          <FontAwesomeIcon :icon="faCopy" class="size-4 shrink-0 text-muted-foreground" />
-          Duplicate
-          <DropdownMenuShortcut :keys="['⌘', 'D']" />
-        </div>
-        <div class="bg-border -mx-1 my-1 h-px"></div>
-        <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive">
-          <FontAwesomeIcon :icon="faTrash" class="size-4 shrink-0 text-destructive" />
-          Archive
-          <DropdownMenuShortcut :keys="['⌘', '⌫']" />
-        </div>
-        <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive bg-destructive/10">
-          <FontAwesomeIcon :icon="faTrash" class="size-4 shrink-0 text-destructive" />
-          Archive
-          <DropdownMenuShortcut :keys="['⌘', '⌫']" />
-        </div>
-        <div class="bg-border -mx-1 my-1 h-px"></div>
-        <div class="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm opacity-50 pointer-events-none">
-          <FontAwesomeIcon :icon="faPrint" class="size-4 shrink-0 text-muted-foreground" />
-          Print
-          <DropdownMenuShortcut :keys="['⌘', 'P']" />
-        </div>
-      </div>
+  <DemoCard title="open panel anatomy" description=" (item state matrix, live)" class="lg:col-span-3">
+    <div class="flex justify-center py-2 pb-64">
+      <ClientOnly>
+        <DropdownMenu :open="true">
+          <DropdownMenuTrigger as-child>
+            <Button emphasis="outline">INV-2026-0418-A1</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent class="w-56" force-mount side="bottom" align="center" :side-offset="6" :avoid-collisions="false" @escape-key-down.prevent @pointer-down-outside.prevent @focus-outside.prevent @interact-outside.prevent>
+            <DropdownMenuLabel>INV-2026-0418-A1</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <FontAwesomeIcon :icon="faFileLines" />
+              Open
+              <DropdownMenuShortcut :keys="['↵']" />
+            </DropdownMenuItem>
+            <ForceState state="focus" as="block">
+              <DropdownMenuItem>
+                <FontAwesomeIcon :icon="faPen" />
+                Edit
+                <DropdownMenuShortcut :keys="['⌘', 'E']" />
+              </DropdownMenuItem>
+            </ForceState>
+            <DropdownMenuItem disabled>
+              <FontAwesomeIcon :icon="faCopy" />
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive">
+              <FontAwesomeIcon :icon="faTrash" />
+              Archive
+              <DropdownMenuShortcut :keys="['⌘', '⌫']" />
+            </DropdownMenuItem>
+            <ForceState state="focus" as="block">
+              <DropdownMenuItem variant="destructive">
+                <FontAwesomeIcon :icon="faTrash" />
+                Archive
+                <DropdownMenuShortcut :keys="['⌘', '⌫']" />
+              </DropdownMenuItem>
+            </ForceState>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </ClientOnly>
     </div>
     <template #footer>
-      <span>icon at rest: <code>text-muted-foreground</code></span>
-      <span>highlighted: <code>bg-accent text-accent-foreground</code> · icon inherits accent</span>
-      <span>destructive at rest: foreground tint only · icon <code>text-destructive</code></span>
-      <span>destructive focused: adds <code>bg-destructive/10</code></span>
-      <span>disabled: <code>opacity-50 pointer-events-none</code></span>
+      <span>every row is a real <code>DropdownMenuItem</code> in a real force-mounted panel, so this matrix cannot drift from <code>DropdownMenuItem.root</code></span>
+      <span>rows 2 and 5 sit in a <code>ForceState</code> wrapper; the others are at rest</span>
+      <span>disabled and destructive are the real <code>disabled</code> and <code>variant</code> props, which set <code>data-disabled</code> and <code>data-variant</code> for the theme to key off</span>
+      <span>highlight is <code>focus:bg-accent</code>, driven by real DOM focus, so only one row could be highlighted for real; the docs shim paints the rest</span>
+      <span>the panel is floating-ui positioned and cannot sit in grid flow, so the card reserves height below the trigger for it</span>
+      <span>side and collision avoidance are pinned so the panel always lands in that reserved space instead of flipping above the trigger</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -955,32 +961,63 @@ Theme key: {@api theme-key:TooltipContent}. Token surface: {@api css-token:foreg
       <span>max-width: caller-supplied via <code>class</code></span>
     </template>
   </DemoCard>
-  <DemoCard title="surface anatomy — inverted tokens · arrow · kbd · static" class="sm:col-span-2 lg:col-span-3">
-    <div class="flex flex-wrap gap-8 items-start pt-2">
-      <div class="flex flex-col items-center">
-        <span class="text-[10px] uppercase tracking-wide text-muted-foreground self-start mb-2">plain label</span>
-        <div data-slot="tooltip-content" class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs whitespace-nowrap">Customer tax ID on file</div>
-        <div class="size-2.5 bg-foreground rotate-45 rounded-[2px] -mt-[4px]"></div>
+  <DemoCard title="surface anatomy" description=" (inverted tokens, arrow, kbd, live)" class="sm:col-span-2 lg:col-span-3">
+    <div class="grid gap-6 pt-2 sm:grid-cols-3">
+      <div class="flex flex-col items-center pb-16">
+        <StateLabel>plain label</StateLabel>
+        <ClientOnly>
+          <TooltipProvider>
+            <Tooltip :open="true">
+              <TooltipTrigger as-child>
+                <Button emphasis="ghost" size="icon" aria-label="Customer tax info">
+                  <FontAwesomeIcon :icon="faCircleInfo" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent force-mount side="bottom" :side-offset="8">Customer tax ID on file</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </ClientOnly>
       </div>
-      <div class="flex flex-col items-center">
-        <span class="text-[10px] uppercase tracking-wide text-muted-foreground self-start mb-2">with keyboard shortcut</span>
-        <div data-slot="tooltip-content" class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs inline-flex items-center whitespace-nowrap">
-          Save invoice
-          <Kbd class="ml-1.5">⌘S</Kbd>
-        </div>
-        <div class="size-2.5 bg-foreground rotate-45 rounded-[2px] -mt-[4px]"></div>
+      <div class="flex flex-col items-center pb-16">
+        <StateLabel>with keyboard shortcut</StateLabel>
+        <ClientOnly>
+          <TooltipProvider>
+            <Tooltip :open="true">
+              <TooltipTrigger as-child>
+                <Button emphasis="ghost" size="icon" aria-label="Save invoice">
+                  <FontAwesomeIcon :icon="faFloppyDisk" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent force-mount side="bottom" :side-offset="8">
+                Save invoice
+                <Kbd class="ml-1.5">⌘S</Kbd>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </ClientOnly>
       </div>
-      <div class="flex flex-col items-center">
-        <span class="text-[10px] uppercase tracking-wide text-muted-foreground self-start mb-2">long content</span>
-        <div data-slot="tooltip-content" class="bg-foreground text-background rounded-vueda-control px-3 py-1.5 text-xs max-w-[220px] text-center text-balance">Customer hasn't responded in 14 days. Consider escalating to collections review.</div>
-        <div class="size-2.5 bg-foreground rotate-45 rounded-[2px] -mt-[4px]"></div>
+      <div class="flex flex-col items-center pb-16">
+        <StateLabel>long content</StateLabel>
+        <ClientOnly>
+          <TooltipProvider>
+            <Tooltip :open="true">
+              <TooltipTrigger as-child>
+                <Button emphasis="ghost" size="icon" aria-label="Collections status">
+                  <FontAwesomeIcon :icon="faTriangleExclamation" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent force-mount side="bottom" :side-offset="8" class="max-w-[220px]">Customer has not responded in 14 days. Consider escalating to collections review.</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </ClientOnly>
       </div>
     </div>
     <template #footer>
-      <span>surface: <code>bg-foreground text-background</code> · inverts the shared overlay palette</span>
-      <span>radius: same <code>--vueda-control-radius</code> as all overlays</span>
-      <span>arrow: rotated square · <code>size-2.5 rotate-45 rounded-[2px]</code> · same fill as surface</span>
-      <span><code>Kbd</code>: tooltip contrast variant against the inverted surface</span>
+      <span>surface: <code>bg-foreground text-background</code>, inverting the shared overlay palette; radius is the same <code>--vueda-control-radius</code> as every other overlay</span>
+      <span>arrow: a real <code>TooltipArrow</code> from <code>TooltipContent.arrow</code>, a rotated square filled from the surface and pulled behind the panel edge</span>
+      <span><code>Kbd</code> re-tones itself from a <code>[data-slot=tooltip-content]</code> descendant selector, so the contrast variant needs no prop</span>
+      <span>the panel is <code>w-fit</code> with <code>text-balance</code>; the long cell adds only a <code>max-w</code>, and the theme handles the wrapping</span>
+      <span>each tooltip is force-mounted with a pinned side, so the three sit in their columns' reserved space instead of following a pointer</span>
     </template>
   </DemoCard>
 </VuedaDemo>
