@@ -278,8 +278,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
                 HTTP_DRY_RUN="true",
             )
         assert response.status_code == status.HTTP_200_OK, response_body(response)
-        assert response.data[customer_order.pk]["new_state"]["code"] == "packed"
-        assert response.data[another_order.pk]["new_state"]["code"] == "packed"
+        assert response.data[str(customer_order.pk)]["new_state"]["code"] == "packed"
+        assert response.data[str(another_order.pk)]["new_state"]["code"] == "packed"
         customer_order.refresh_from_db()
         another_order.refresh_from_db()
         assert customer_order.workflow_state.code == "new"
@@ -357,8 +357,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert another_order.workflow_state.code == "packed"
         called_times = 2
         assert lock_spy.call_count == called_times
-        assert response.data[customer_order.pk]["new_state"]["code"] == "packed"
-        assert response.data[another_order.pk]["new_state"]["code"] == "packed"
+        assert response.data[str(customer_order.pk)]["new_state"]["code"] == "packed"
+        assert response.data[str(another_order.pk)]["new_state"]["code"] == "packed"
 
     def test_execute_transition_bulk_returns_validation_error_when_locked(
         self, api_client, workflow_user, customer_order, another_order
@@ -479,10 +479,16 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         assert gated.data["warnings"] == {
-            "non_field_errors": [
-                f"Order {express_order.order_number} ships express; Pack Order needs a fulfillment double-check.",
-                f"Order {another_express_order.order_number} ships express; Pack Order needs a fulfillment double-check.",
-            ]
+            str(express_order.pk): {
+                "non_field_errors": [
+                    f"Order {express_order.order_number} ships express; Pack Order needs a fulfillment double-check."
+                ]
+            },
+            str(another_express_order.pk): {
+                "non_field_errors": [
+                    f"Order {another_express_order.order_number} ships express; Pack Order needs a fulfillment double-check."
+                ]
+            },
         }
         express_order.refresh_from_db()
         another_express_order.refresh_from_db()
@@ -523,10 +529,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         self, api_client, workflow_user, express_order, another_express_order
     ):
         # object_ids is client-supplied JSON and may mix numeric and string types for the same
-        # request (e.g. [5, "12"]). Warnings are merged into one aggregate {field: [messages]}
-        # mapping keyed by field name, never by object_ids, so a mixed-type batch gates (409) the
-        # same as any other and never reaches compute_warnings_digest's sort_keys comparison with
-        # a request-supplied value in key position.
+        # request (e.g. [5, "12"]). Warnings are keyed by the resolved instance's own pk (always
+        # str), not the raw request value.
         api_client.force_authenticate(workflow_user)
         bulk_url = reverse(
             "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
@@ -553,6 +557,36 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert express_order.workflow_state.code == "packed"
         assert another_express_order.workflow_state.code == "packed"
 
+    def test_execute_transition_bulk_digest_is_stable_across_object_id_types(
+        self, api_client, workflow_user, express_order, another_express_order
+    ):
+        # The same logical batch, submitted once with int object_ids and once with string
+        # object_ids, must gate with the same digest. Keying warnings by the raw request value
+        # would sort int keys numerically and string keys lexicographically, changing the digest
+        # for identical warning content depending on which JSON type the client happened to send.
+        api_client.force_authenticate(workflow_user)
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+
+        int_ids_response = api_client.patch(
+            bulk_url,
+            {"transition_code": "pack_order", "object_ids": [express_order.pk, another_express_order.pk]},
+            format="json",
+        )
+        str_ids_response = api_client.patch(
+            bulk_url,
+            {
+                "transition_code": "pack_order",
+                "object_ids": [str(another_express_order.pk), str(express_order.pk)],
+            },
+            format="json",
+        )
+
+        assert int_ids_response.status_code == HTTPStatus.CONFLICT, response_body(int_ids_response)
+        assert str_ids_response.status_code == HTTPStatus.CONFLICT, response_body(str_ids_response)
+        assert int_ids_response.data["digest"] == str_ids_response.data["digest"]
+
     def test_execute_transition_bulk_aggregates_pre_check_errors_for_every_failing_instance(
         self, api_client, workflow_user, customer_order, another_order
     ):
@@ -578,8 +612,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         message = "Transition 'pack_order' not available from state 'shipped'"
-        assert response.data[customer_order.pk] == [message]
-        assert response.data[another_order.pk] == [message]
+        assert response.data[str(customer_order.pk)] == [message]
+        assert response.data[str(another_order.pk)] == [message]
         customer_order.refresh_from_db()
         another_order.refresh_from_db()
         assert customer_order.workflow_state.code == "shipped"
