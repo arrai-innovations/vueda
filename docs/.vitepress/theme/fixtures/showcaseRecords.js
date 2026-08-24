@@ -22,6 +22,7 @@
  */
 import { demoResponse } from "./demoApi.js";
 import { SHOWCASE_CUSTOMER, customerModelInfo } from "./showcaseCustomer.js";
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import {
@@ -461,9 +462,14 @@ export const CUSTOMER_HISTORY = [
  * @param {string} [app] - App label to register under; defaults to the showcase app.
  * @returns {void}
  */
-export function seedCustomerModel(pinia, app = SHOWCASE_CUSTOMER.app) {
+export function seedCustomerModel(pinia, app = SHOWCASE_CUSTOMER.app, viewConfigs = null) {
     const info = app === SHOWCASE_CUSTOMER.app ? customerModelInfo : { ...customerModelInfo, appLabel: app };
     storeModelInfo(pinia).infos[getAppModelDotName({ app, model: SHOWCASE_CUSTOMER.model })] = info;
+    if (viewConfigs) {
+        // The same call an integrator makes at bootstrap to narrow a view: config overrides are
+        // merged over what is derived from model info (`storeModelConfig.setConfig`).
+        storeModelConfig(pinia).setConfig({ app, model: SHOWCASE_CUSTOMER.model }, null, viewConfigs);
+    }
 }
 
 /**
@@ -481,6 +487,8 @@ export function seedCustomerModel(pinia, app = SHOWCASE_CUSTOMER.app) {
  * @param {string[]} [options.availableActions] - Per-record `available_actions`.
  * @param {object[]} [options.validTransitions] - Per-record `valid_transitions`.
  * @param {object[]} [options.actions] - Model actions to answer; see `modelRoutes`.
+ * @param {{[view: string]: object}} [options.viewConfigs] - Per-view model config overrides, applied
+ *   through `storeModelConfig.setConfig` the way an integrator narrows a view at bootstrap.
  * @returns {{ app: string, model: string, seed: Function, api: object[] }}
  */
 export function customerScenario({
@@ -492,12 +500,13 @@ export function customerScenario({
     availableActions = RECORD_AVAILABLE_ACTIONS,
     validTransitions = [],
     actions = [],
+    viewConfigs = null,
 } = {}) {
     const model = SHOWCASE_CUSTOMER.model;
     return {
         app,
         model,
-        seed: (pinia) => seedCustomerModel(pinia, app),
+        seed: (pinia) => seedCustomerModel(pinia, app, viewConfigs),
         api: modelRoutes({
             app,
             model,

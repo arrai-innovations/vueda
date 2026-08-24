@@ -6,66 +6,20 @@ type: reference
 ---
 
 <script setup>
-import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
-import ObjectsGrid from "@vueda/objects-grid/ObjectsGrid.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import Input from "@vueda/controls/input/Input.vue";
-import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
-import NativeSelectOption from "@vueda/controls/native-select/NativeSelectOption.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
-    faAnglesLeft,
-    faAnglesRight,
-    faArrowRight,
     faArrowUpFromBracket,
-    faCheck,
-    faChevronDown,
-    faChevronLeft,
-    faChevronRight,
-    faEllipsis,
-    faFileImport,
-    faFilter,
-    faGripVertical,
-    faMagnifyingGlass,
-    faPen,
     faPlus,
-    faSort,
-    faSortDown,
-    faTableColumns,
-    faTag,
-    faTrash,
-    faTriangleExclamation,
-    faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { faEnvelope } from "@fortawesome/free-regular-svg-icons";
-import { ref } from "vue";
 import { customerScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
-
-const fields = [
-    { name: "account", label: "Account" },
-    { name: "owner", label: "Owner" },
-    { name: "status", label: "Status" },
-    { name: "updated", label: "Updated" },
-    { name: "mrr", label: "MRR" },
-    { name: "actions", label: "" },
-];
-
-const accounts = [
-    { id: 1, account: "Northwind Logistics", owner: "Mara Tani", status: "Active", statusTone: "primary", updated: "2026-04-26 14:08", mrr: "$14,028.50", initials: "NL" },
-    { id: 2, account: "Acme Coffee Roasters", owner: "Jordan Reyes", status: "Renewed", statusTone: "warning", updated: "2026-04-26 09:42", mrr: "$2,440.00", initials: "AC" },
-    { id: 3, account: "Hightower Mfg.", owner: "Priya Subramanian", status: "At risk", statusTone: "primary", updated: "2026-04-25 17:15", mrr: "$8,915.20", initials: "HM" },
-    { id: 4, account: "Pemberton & Vale", owner: "Linnea Borg", status: "Trial", statusTone: null, updated: "2026-04-25 11:02", mrr: "$612.00", initials: "PV" },
-];
-
-const statusClasses = {
-    primary: "border-primary/30 bg-primary/10 text-primary",
-    warning: "border-warning/40 bg-warning/10 text-warning",
-};
-
-const sorted = ref(["-updated", "mrr"]);
 
 // One scenario per live demo. Route registration is global and first-match-wins, so demos
 // that need different responses for the same model take different app labels.
+const listScenario = customerScenario({
+    app: "showcaselist",
+    viewConfigs: { list: { displayFields: ["account", "owner", "tier", "mrr", "currency"] } },
+});
 const createScenario = customerScenario({ app: "showcasecreate" });
 const updateScenario = customerScenario({ app: "showcaseupdate" });
 const readScenario = customerScenario({ app: "showcaseread" });
@@ -140,285 +94,43 @@ Theme keys: {@api theme-key:PageTitle}.
 
 ## Sticky action bars
 
-The create, read, and update views below pair PageTitle with a scroll-aware action bar that keeps the primary submit or transition controls reachable on long forms. That bar is {@api vue:component:StickyBar}, and in a real shell each view teleports it into the framework-owned sticky stack (via `StickyChrome` / `StickyStackProvider`) so it stacks beneath the pinned title and reveals on its own schedule. The demos on this page show the bar with a standalone `StickyBar` bound to the demo panel, which is visually identical but self-contained.
+The create, read, and update views pair PageTitle with a scroll-aware action bar that keeps the primary submit or transition controls reachable on long forms. That bar is {@api vue:component:StickyBar}, and each view teleports it into the framework-owned sticky stack (via `StickyChrome` / `StickyStackProvider`) so it stacks beneath the pinned title and reveals on its own schedule. The docs harness stands in for a layout but hosts no sticky stack, so in the demos below each bar renders in place instead of pinning: the stack would take the browser window as its scroll container and float the bar over this page.
 
 The bar primitive, the stack model, reveal strategies, and the integration contract are documented on their own page: [Sticky Chrome](./sticky-chrome.md).
 
 ## ViewList
 
-The list view is the entry point for every {@term CRUDL} resource. PageTitle anchors the top with primary create actions. An under-actions bar provides search, column control, and filter and sort entry points. The search and column buttons stay anchored right at all times. The `Filters` control on the left opens an add-filter menu listing the fields not yet applied; picking one slides the popover to that field's filter form in place (no modal, no second surface), and a back affordance returns to the list to add another. Active filters and sorts render as a sticky constraints band below: click a filter chip to edit it (reopening the same form anchored to the chip), the ✕ to remove a chip, or a group's `Clear filters` / `Clear sort` to clear that axis. When rows are selected, a bulk-actions strip appears. {@api vue:component:ObjectsGrid} fills the card body flush, and a pagination footer follows.
+The list view is the entry point for every {@term CRUDL} resource: a title row with the create
+action, an under-actions bar holding search and the filter and sort entry points, a constraints
+band for whatever is currently applied, {@api vue:component:ObjectsGrid} filling the card body,
+and a pagination footer.
 
-::: info Mockup status
-This ViewList is a static mockup. The live components implement the filter UX: `FilterGroup` orchestrates the add-filter `FilterMenu` (its trigger teleports into the toolbar) and the active-filter `FilterChip`s, each editing through a shared `FilterFieldForm`. The toolbar `Sort` trigger is now live too: `SortControl` opens an add-field menu of the not-yet-sorted columns (a popover on desktop, a full-screen dialog on mobile), and `ViewList` renders it next to `Filters` whenever the model has sortable fields. Active filters and sorts share one sticky constraints band below the toolbar: filter chips (primary-tinted) and sort chips (neutral). Sort editing lives on the chips: click to toggle direction, the trailing control removes, and (with more than one sort) each chip shows a grip handle and priority ordinal, and can be dragged by the handle to reorder. Each group has its own clear control (`Clear filters` / `Clear sort`), shown only with more than one chip. Column headers are not interactive; sorting is driven entirely from the `Sort` control and the sort chips, so the data surface stays free of sort affordances. The pagination footer is live too: `PaginationFooter` renders the range read-out, the rows-per-page selector (its `All` entry loads every page), and the navigation cluster; the selected page size persists per model. The panels below are static illustrations of the add menus and chip states; the live `SortControl` / `SortGroup` / `FilterGroup` are the source of truth, and this mockup trails them where they have moved ahead. See [Pagination](./pagination.md) for the footer's own reference.
-:::
+The demo below is the live component against 28 offline records. Search, filter, sort, select
+rows, and page through it; every control is the real one.
 
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-    <span class="font-semibold uppercase tracking-wide">view list · 4 rows · 1 selected · 3 active filters · 2 sorts (updated desc, mrr asc)</span>
-    <span class="font-mono">sorted: {{ sorted.join(", ") }}</span>
-  </header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <ClientOnly>
-      <DemoTitleBar title="Customers">
-        <template #actions>
-          <Button size="sm" emphasis="outline">
-            <FontAwesomeIcon :icon="faArrowUpFromBracket" />
-            Export
-          </Button>
-          <Button size="sm" emphasis="outline">
-            <FontAwesomeIcon :icon="faFileImport" />
-            Import
-          </Button>
-          <Button size="sm" tone="primary">
-            <FontAwesomeIcon :icon="faPlus" />
-            New customer
-          </Button>
-        </template>
-      </DemoTitleBar>
-    </ClientOnly>
-    <div class="flex items-center justify-between gap-2 border-b-hairline px-4 py-2">
-      <div class="flex items-center gap-2">
-        <Button size="sm" emphasis="outline" aria-haspopup="menu">
-          <FontAwesomeIcon :icon="faFilter" />
-          Filters
-          <span class="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">3</span>
-          <FontAwesomeIcon :icon="faChevronDown" class="size-2.5 text-muted-foreground" />
-        </Button>
-        <Button size="sm" emphasis="outline" aria-haspopup="dialog">
-          <FontAwesomeIcon :icon="faSort" />
-          Sort
-          <span class="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">2</span>
-          <FontAwesomeIcon :icon="faChevronDown" class="size-2.5 text-muted-foreground" />
-        </Button>
-      </div>
-      <div class="flex items-center gap-2">
-        <div class="relative">
-          <span class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-muted-foreground"><FontAwesomeIcon :icon="faMagnifyingGlass" class="size-3" /></span>
-          <Input class="w-48 pl-7" type="search" placeholder="Search customers…" />
-        </div>
-        <Button size="icon-sm" emphasis="outline" aria-label="Columns">
-          <FontAwesomeIcon :icon="faTableColumns" />
-        </Button>
-        <Button size="icon-sm" emphasis="outline" aria-label="More">
-          <FontAwesomeIcon :icon="faEllipsis" />
-        </Button>
-      </div>
-    </div>
-    <div class="flex flex-wrap items-center gap-2 border-b-hairline bg-muted/30 px-4 py-2">
-      <span class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filters</span>
-      <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
-        <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: Status">Status: Active</button>
-        <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
-        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: Status"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-      </span>
-      <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
-        <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: Owner">Owner: Mara Tani</button>
-        <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
-        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: Owner"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-      </span>
-      <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
-        <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: MRR">MRR: ≥ $1,000</button>
-        <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
-        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-      </span>
-      <Button size="sm" emphasis="ghost" class="text-xs">Clear filters</Button>
-      <span class="h-5 w-px self-center bg-border" aria-hidden="true"></span>
-      <span class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sort</span>
-      <span class="inline-flex items-center rounded-full border border-border bg-card text-xs font-semibold text-foreground">
-        <span class="drag-handle inline-flex items-center gap-0.5 rounded-l-full cursor-grab select-none py-1 pl-2 pr-1 text-[10px] text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-2.5 opacity-70" /><span class="font-mono tabular-nums">1</span></span>
-        <button type="button" class="inline-flex items-center gap-1.5 py-1 pl-1.5 pr-2 hover:bg-accent" aria-label="Toggle sort: Updated (descending)">Updated<FontAwesomeIcon :icon="faSortDown" class="size-2.5 text-muted-foreground" /></button>
-        <span class="h-4 w-px bg-border" aria-hidden="true"></span>
-        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-1 opacity-70 hover:bg-accent hover:opacity-100" aria-label="Remove sort: Updated"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-      </span>
-      <span class="inline-flex items-center rounded-full border border-border bg-card text-xs font-semibold text-foreground">
-        <span class="drag-handle inline-flex items-center gap-0.5 rounded-l-full cursor-grab select-none py-1 pl-2 pr-1 text-[10px] text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-2.5 opacity-70" /><span class="font-mono tabular-nums">2</span></span>
-        <button type="button" class="inline-flex items-center gap-1.5 py-1 pl-1.5 pr-2 hover:bg-accent" aria-label="Toggle sort: MRR (ascending)">MRR<FontAwesomeIcon :icon="faSortDown" class="size-2.5 rotate-180 text-muted-foreground" /></button>
-        <span class="h-4 w-px bg-border" aria-hidden="true"></span>
-        <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-1 opacity-70 hover:bg-accent hover:opacity-100" aria-label="Remove sort: MRR"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-      </span>
-      <Button size="sm" emphasis="ghost" class="text-xs">Clear sort</Button>
-    </div>
-    <div class="flex items-center gap-4 border-b-hairline bg-muted/50 px-4 py-2 text-sm">
-      <span class="flex items-center gap-2 font-medium">
-        <FontAwesomeIcon :icon="faCheck" class="text-primary" />
-        <strong>1</strong> selected
-      </span>
-      <div class="flex items-center gap-1">
-        <Button size="sm" emphasis="ghost">
-          <FontAwesomeIcon :icon="faEnvelope" />
-          Email
-        </Button>
-        <Button size="sm" emphasis="ghost">
-          <FontAwesomeIcon :icon="faTag" />
-          Tag
-        </Button>
-        <Button size="sm" emphasis="ghost">
-          <FontAwesomeIcon :icon="faArrowRight" />
-          Reassign
-        </Button>
-        <Button size="sm" emphasis="ghost">
-          <FontAwesomeIcon :icon="faTrash" />
-          Delete
-        </Button>
-      </div>
-    </div>
-    <ClientOnly>
-      <ObjectsGrid :objects-in-order="accounts" :fields="fields" table-breakpoint="xs" :field-props="{ statusClasses }">
-        <template #[`field(account)`]="{ obj, formatted }">
-          <span class="inline-flex min-w-0 items-center gap-2">
-            <span class="inline-flex size-6 shrink-0 items-center justify-center rounded-sm border border-border bg-muted font-mono text-[10px] font-semibold text-muted-foreground">{{ obj.initials }}</span>
-            <span class="truncate">{{ formatted }}</span>
-          </span>
-        </template>
-        <template #[`field(status)`]="{ obj, statusClasses }">
-          <span :class="['inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', statusClasses[obj.statusTone] ?? 'border-border bg-muted text-muted-foreground']">{{ obj.status }}</span>
-        </template>
-        <template #[`field(actions)`]>
-          <span class="inline-flex gap-1">
-            <Button size="icon-sm" emphasis="ghost" aria-label="Edit"><FontAwesomeIcon :icon="faPen" /></Button>
-            <Button size="icon-sm" emphasis="ghost" aria-label="More"><FontAwesomeIcon :icon="faEllipsis" /></Button>
-          </span>
-        </template>
-      </ObjectsGrid>
-    </ClientOnly>
-    <div class="flex flex-wrap items-center justify-between gap-3 border-t-hairline px-4 py-2 text-xs text-muted-foreground">
-      <div class="flex items-center gap-4">
-        <span class="font-mono tabular-nums">Showing <strong class="text-foreground">1 to 4</strong> of <strong class="text-foreground">142</strong></span>
-        <span class="flex items-center gap-1.5">
-          Rows per page:
-          <NativeSelect class="w-auto">
-            <NativeSelectOption value="25">25</NativeSelectOption>
-            <NativeSelectOption value="50">50</NativeSelectOption>
-            <NativeSelectOption value="100">100</NativeSelectOption>
-            <NativeSelectOption value="200">200</NativeSelectOption>
-            <NativeSelectOption value="all">All</NativeSelectOption>
-          </NativeSelect>
-        </span>
-      </div>
-      <nav class="flex items-center gap-1" aria-label="Pagination">
-        <Button size="icon-sm" emphasis="outline" aria-label="First page" disabled>
-          <FontAwesomeIcon :icon="faAnglesLeft" />
-        </Button>
-        <Button size="icon-sm" emphasis="outline" aria-label="Previous page" disabled>
-          <FontAwesomeIcon :icon="faChevronLeft" />
-        </Button>
-        <span class="px-2 font-mono text-xs font-medium tabular-nums text-foreground">Page 1 of 36</span>
-        <Button size="icon-sm" emphasis="outline" aria-label="Next page">
-          <FontAwesomeIcon :icon="faChevronRight" />
-        </Button>
-        <Button size="icon-sm" emphasis="outline" aria-label="Last page">
-          <FontAwesomeIcon :icon="faAnglesRight" />
-        </Button>
-      </nav>
-    </div>
-  </div>
-  <div class="flex flex-col gap-2">
-    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filters [3] → add-filter flow · the popover swaps content in place (no modal, no second surface)</header>
-    <div class="flex flex-wrap items-start gap-6">
-      <div class="flex flex-col gap-1.5">
-        <span class="text-[11px] font-medium text-muted-foreground">1 · pick a field (lists only the fields not yet applied)</span>
-        <div class="w-60 rounded-vueda-control overlay-hairline bg-popover p-1 text-popover-foreground">
-          <div class="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Add filter</div>
-          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Account<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
-          <button type="button" class="flex w-full items-center gap-2 rounded-sm bg-accent px-2 py-1.5 text-sm text-accent-foreground">Plan tier<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3" /></button>
-          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Created<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
-          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Renewal date<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
-          <button type="button" class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Tax-exempt<FontAwesomeIcon :icon="faChevronRight" class="ml-auto size-3 text-muted-foreground" /></button>
-        </div>
-      </div>
-      <div class="flex flex-col gap-1.5">
-        <span class="text-[11px] font-medium text-muted-foreground">2 · set the value · ‹ returns to the list to add another</span>
-        <div class="w-60 rounded-vueda-control overlay-hairline bg-popover p-1 text-popover-foreground">
-          <button type="button" class="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"><FontAwesomeIcon :icon="faChevronLeft" class="size-3" />Add filter</button>
-          <div class="bg-border -mx-1 my-1 h-px"></div>
-          <div class="px-2 pb-1 pt-0.5">
-            <h3 class="mb-2 text-sm font-semibold">Filter by Plan tier</h3>
-            <div class="flex h-7 items-center justify-between rounded-vueda-control border border-input bg-background px-2 text-sm text-foreground">Enterprise<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></div>
-            <div class="mt-2 flex justify-end"><Button size="sm" tone="primary">Apply</Button></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="flex flex-col gap-2">
-    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sort → the trigger opens an add-field menu · picking a field appends a chip · editing lives on the chips in the band above</header>
-    <div class="flex flex-wrap items-start gap-6">
-      <div class="flex flex-col gap-1.5">
-        <span class="text-[11px] font-medium text-muted-foreground">chip anatomy · grip + mono ordinal show only with more than one sort · the label toggles direction · ✕ removes</span>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="inline-flex items-center rounded-full border border-border bg-card text-xs font-semibold text-foreground">
-            <span class="drag-handle inline-flex items-center gap-0.5 rounded-l-full cursor-grab select-none py-1 pl-2 pr-1 text-[10px] text-muted-foreground" aria-hidden="true"><FontAwesomeIcon :icon="faGripVertical" class="size-2.5 opacity-70" /><span class="font-mono tabular-nums">1</span></span>
-            <button type="button" class="inline-flex items-center gap-1.5 py-1 pl-1.5 pr-2 hover:bg-accent" aria-label="Toggle sort: Updated (descending)">Updated<FontAwesomeIcon :icon="faSortDown" class="size-2.5 text-muted-foreground" /></button>
-            <span class="h-4 w-px bg-border" aria-hidden="true"></span>
-            <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-1 opacity-70 hover:bg-accent hover:opacity-100" aria-label="Remove sort: Updated"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-          </span>
-          <span class="text-[11px] text-muted-foreground">→ with a single sort the grip and ordinal drop:</span>
-          <span class="inline-flex items-center rounded-full border border-border bg-card text-xs font-semibold text-foreground">
-            <button type="button" class="inline-flex items-center gap-1.5 rounded-l-full py-1 pl-2.5 pr-2 hover:bg-accent" aria-label="Toggle sort: Updated (descending)">Updated<FontAwesomeIcon :icon="faSortDown" class="size-2.5 text-muted-foreground" /></button>
-            <span class="h-4 w-px bg-border" aria-hidden="true"></span>
-            <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-1 opacity-70 hover:bg-accent hover:opacity-100" aria-label="Remove sort: Updated"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-          </span>
-        </div>
-      </div>
-      <div class="flex flex-col gap-1.5">
-        <span class="text-[11px] font-medium text-muted-foreground">Add sort menu · lists only fields not already sorted · clicking one appends a chip · popover on desktop, full-screen dialog on mobile</span>
-        <div class="w-60 rounded-vueda-control overlay-hairline bg-popover p-1 text-popover-foreground">
-          <div class="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Add sort</div>
-          <button type="button" class="flex w-full items-center rounded-sm bg-accent px-2 py-1.5 text-sm text-accent-foreground">Account</button>
-          <button type="button" class="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Owner</button>
-          <button type="button" class="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">Status</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="flex flex-col gap-2">
-    <header class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Error state · the server rejects a filter value (HTTP 400, keyed by field) — no separate banner</header>
-    <div class="flex flex-wrap items-start gap-6">
-      <div class="flex flex-col gap-1.5">
-        <span class="text-[11px] font-medium text-muted-foreground">errored chip · destructive tint flags which filter is invalid</span>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">
-            <button type="button" class="inline-flex items-center rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-primary/15" aria-label="Edit filter: Status">Status: Active</button>
-            <span class="h-3.5 w-px bg-primary/30" aria-hidden="true"></span>
-            <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-primary/15 hover:opacity-100" aria-label="Remove filter: Status"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-          </span>
-          <span class="inline-flex items-center rounded-full border border-destructive/40 bg-destructive/10 text-xs font-semibold text-destructive">
-            <button type="button" class="inline-flex items-center gap-1.5 rounded-l-full py-0.5 pl-2.5 pr-2 hover:bg-destructive/15" aria-label="Edit filter: Plan tier (invalid value)"><FontAwesomeIcon :icon="faTriangleExclamation" class="size-2.5" />Plan tier: 24</button>
-            <span class="h-3.5 w-px bg-destructive/30" aria-hidden="true"></span>
-            <button type="button" class="inline-flex items-center rounded-r-full px-1.5 py-0.5 opacity-70 hover:bg-destructive/15 hover:opacity-100" aria-label="Remove filter: Plan tier"><FontAwesomeIcon :icon="faXmark" class="size-2.5" /></button>
-          </span>
-        </div>
-      </div>
-      <div class="flex flex-col gap-1.5">
-        <span class="text-[11px] font-medium text-muted-foreground">click the errored chip · same form, chip container · the server message renders inline</span>
-        <div class="w-60 rounded-vueda-control overlay-hairline bg-popover p-1 text-popover-foreground">
-          <div class="px-2 pb-1 pt-1.5">
-            <h3 class="mb-2 text-sm font-semibold">Filter by Plan tier</h3>
-            <div class="flex h-7 items-center justify-between rounded-vueda-control border border-destructive bg-background px-2 text-sm text-foreground" aria-invalid="true">24<FontAwesomeIcon :icon="faChevronDown" class="size-3 text-muted-foreground" /></div>
-            <p class="mt-1 text-xs text-destructive">Select a valid choice. 24 is not one of the available choices.</p>
-            <div class="mt-2 flex items-center justify-between">
-              <Button size="sm" tone="destructive" emphasis="ghost" class="text-xs">Remove</Button>
-              <Button size="sm" tone="primary">Apply</Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view list · 28 records · live ViewList</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewList.vue')"
+    :app="listScenario.app"
+    :model="listScenario.model"
+    action="list"
+    :seed="listScenario.seed"
+    :api="listScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>under-actions: search and column controls anchored right; the Filters and Sort controls sit left</span>
-    <span>Sort: opens the add-field menu of fields not already sorted (popover on desktop, full-screen dialog on mobile); clicking one appends a sort chip</span>
-    <span>sort chips: click to toggle direction, ✕ to remove; with more than one sort, drag a chip by its grip handle to reorder. Each group's Clear sort shows only with more than one chip</span>
-    <span>Filters: opens the add-filter menu of not-yet-applied fields</span>
-    <span>add-filter flow: pick a field, the popover slides to that field's form in place; ‹ returns to the list; one anchored surface, no modal</span>
-    <span>filter chips: one per active filter; click the label to edit (reopens the same form anchored to the chip), ✕ to remove, Clear filters resets every filter</span>
-    <span>constraints band: tinted, sticky, and present only when active filters or sorts exist</span>
-    <span>errors (HTTP 400, keyed by field): the offending chip turns destructive and its form shows the server message inline; no separate error banner</span>
-    <span>bulk-actions strip: transient, appears only when rows are selected</span>
-    <span>ObjectsGrid: flush inside the card — no nested border or card-in-card radius</span>
-    <span>pagination footer: range read-out (Showing X to Y of N), rows-per-page selector (All loads every page), Page N of M; the selected page size persists per model</span>
+    <span>columns: the model config's <code>displayFields</code>, which defaults to every non-pk field. This demo narrows it to five through <code>storeModelConfig.setConfig(target, null, { list: { displayFields: [...] } })</code>, the same call an app makes at bootstrap</span>
+    <span>cell values: list columns render through the column adapters (text, date-time, and model link), which print the stored value. The label resolution in the read view above comes from {@api vue:component:WidgetReadOnly}, which the grid does not use, so <code>enterprise</code> stays <code>enterprise</code> here</span>
+    <span>toolbar: the Filters and Sort triggers teleport into the under-actions bar while their popovers stay anchored to it. Each add menu lists only what is not applied yet, so a field leaves the menu once it has a chip</span>
+    <span>constraints band: filter and sort chips share one band below the toolbar, primary-tinted for filters and neutral for sorts. Sorting is driven entirely from there; the column headers carry no sort affordance</span>
+    <span>selection: ticking a row reveals the bulk-actions strip, with the selection count and the model's bulk actions. It replaces the toolbar contents rather than stacking below it</span>
+    <span>pagination: the range read-out, the rows-per-page selector (its <code>All</code> entry loads every page in one pass), and the navigation cluster. The chosen page size is remembered per model</span>
+    <span>theme keys: {@api theme-key:ViewList}, {@api theme-key:ObjectsGrid}, {@api theme-key:FilterChip} · source: <code>ViewList.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
 ## ViewCreate
 
