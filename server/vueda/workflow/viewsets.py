@@ -33,6 +33,26 @@ from vueda.workflow.serializers import WorkflowSerializer
 PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
+def _merge_transition_warnings(warnings_by_instance):
+    """
+    Merge each instance's ``get_transition_warnings`` mapping into one aggregate
+    ``{field: [messages]}`` warning set, so a bulk transition gates once with a single digest
+    instead of once per instance. Duplicate messages (the common case: every instance in the batch
+    trips the same rule) collapse to a single entry per field, keeping the aggregate -- and its
+    digest -- stable regardless of batch size. Aggregating this way also means a bulk request's
+    `object_ids` never become digest keys, so mixed int/string ids in one request can't crash
+    ``compute_warnings_digest``'s ``sort_keys`` comparison the way a per-object mapping would.
+    """
+    merged = {}
+    for warnings in warnings_by_instance:
+        for field, messages in warnings.items():
+            existing = merged.setdefault(field, [])
+            for message in messages:
+                if message not in existing:
+                    existing.append(message)
+    return merged
+
+
 class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = WorkflowSerializer
     filterset_class = WorkflowFilterSet
@@ -222,30 +242,24 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 raise VuedaValidationError({"object_ids": ["Must be a list of primary keys."]})
 
             model_class = self.get_workflow().content_type.model_class()
-
-            id_instances = [
-                (str(instance.pk), instance)
-                for instance in (get_object_or_404(model_class, pk=object_id) for object_id in object_ids)
-            ]
+            id_instances = [(object_id, get_object_or_404(model_class, pk=object_id)) for object_id in object_ids]
 
             # Warnings are collected across every instance before any write, so a bulk transition
             # gates once with one aggregate digest instead of once per instance. Authorization
             # errors are aggregated the same way the write loop below aggregates them, so a bad
             # object_id in the batch is reported the same way whether it fails here or later.
             errors = {}
-            warnings_by_object_id = {}
+            warnings_by_instance = []
             for oid, instance in id_instances:
                 try:
                     transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
                 except VuedaValidationError as e:
                     errors[oid] = e.detail
                 else:
-                    warnings = instance.get_transition_warnings(transition, resolved_user)
-                    if warnings:
-                        warnings_by_object_id[oid] = warnings
+                    warnings_by_instance.append(instance.get_transition_warnings(transition, resolved_user))
             if errors:
                 raise VuedaValidationError(errors)
-            gate_warnings(request, warnings_by_object_id)
+            gate_warnings(request, _merge_transition_warnings(warnings_by_instance))
 
             response_data = {}
             with transaction.atomic():

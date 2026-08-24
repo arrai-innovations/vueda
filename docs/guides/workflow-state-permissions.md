@@ -141,7 +141,7 @@ Verify failure cases:
 - Executing a transition without proper permissions returns `400` with a permission error message.
 - Lock acquisition failure returns `400` with `"This object cannot be updated right now. Please try again."`.
 
-Verify the warning-confirmation gate: when a model overrides `get_transition_warnings`, executing a transition with unacknowledged warnings returns `409` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` before anything is written, and resubmitting with the `Acknowledge-Warnings` header set to that `digest` lets the transition proceed. The gate runs before the row lock, for both the single-object and bulk (`object_ids`) request forms; a bulk request gates once with one digest over all instances (`{object_id: {field: [messages]}}`), and none of them transition until the batch is acknowledged.
+Verify the warning-confirmation gate: when a model overrides `get_transition_warnings`, executing a transition with unacknowledged warnings returns `409` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` before anything is written, and resubmitting with the `Acknowledge-Warnings` header set to that `digest` lets the transition proceed. The gate runs before the row lock, for both the single-object and bulk (`object_ids`) request forms; a bulk request merges every instance's warnings into the same aggregate `{field: [messages]}` mapping the single-object case uses and gates once with one digest over that mapping, and none of the batch's instances transition until it is acknowledged.
 
 ## Endpoint Checks and Expected Errors
 
