@@ -269,7 +269,7 @@ Because `confirm=True` gates before the body runs, any body-level validation err
 
 **Client: actions and deletes confirm turnkey.** `useActionForm` handles the 409 the same way `useObjectForm` does: `ModelActionForm`'s `defaultRunAction` and `defaultObjectsDelete` raise `ConfirmationRequiredError`, the `confirmation` controller prompts, and a confirmed action reruns once with the `Acknowledge-Warnings` header set. Unlike object forms, `ActionForm` mounts the `FormConfirmDialog` itself, so `ViewAction`, `ViewDestroy`, and custom shells built on `ActionForm` need no extra markup. Only callers that use `useActionForm` without the `ActionForm` shell must render a dialog bound to the returned `confirmation` controller (or override its `onSubmissionWarningsRequireConfirmation` hook); without one, warned actions fail closed as cancelled with a console warning.
 
-**Client: workflow transitions confirm the same way.** `storeWorkflow.executeTransition` maps a 409 to `ConfirmationRequiredError` and accepts an `acknowledgeWarnings` argument that it sends as the `Acknowledge-Warnings` header on a confirmed retry. `ViewWorkflowTransition` renders its own `FormConfirmDialog` bound to a `useConfirmationController` instance: a warned transition opens the dialog, confirming retries once with the digest acknowledged (a changed warning set re-prompts), and cancelling leaves the transition unapplied and the view on the same page.
+**Client: workflow transitions confirm the same way.** `storeWorkflow.executeTransition` maps a 409 to `ConfirmationRequiredError` and accepts an `acknowledgeWarnings` argument that it sends as the `Acknowledge-Warnings` header on a confirmed retry.
 
 ## Verification Checklist
 
@@ -282,7 +282,7 @@ With the validation pipeline wired, verify these behaviors:
 - Local validation errors (required fields left empty, custom validate failures) block submission with a "Pre-save Validation Failed" toast.
 - A serializer that returns `get_warnings()` produces a 409 that opens the confirmation dialog; confirming saves, cancelling does not.
 - A viewset `get_warnings(action, objs)` override, a `gate_warnings` call in a custom action body, or `@action(confirm=True)` produces the same 409 confirm flow on delete, activate/deactivate, and action views (the dialog comes from `ActionForm`, no extra markup needed).
-- A `get_transition_warnings` override produces the same 409 confirm flow on `ViewWorkflowTransition`, for both a single transition and a bulk transition (one aggregate digest, no partial writes before acknowledgement).
+- A `get_transition_warnings` override produces the same 409 confirmation flow, for both a single transition and a bulk transition (one aggregate digest, no partial writes before acknowledgement).
 - Structured non-field error objects render through `FormMessage`'s default slot override (or, without an override, as `name: value` fallback lines).
 - The first-error scroll navigates to `non_field_errors` first, then to the first displayed field with an error.
 

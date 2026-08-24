@@ -1,18 +1,15 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
-import FormConfirmDialog from "@vueda/form/confirm/FormConfirmDialog.vue";
 import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
 import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import "@vueda/theme/vueda-tailwind/views/ViewWorkflowTransition.theme.js";
-import { useConfirmationController } from "@vueda/use/useConfirmationController.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getAppModelDotName, memoizedStartCase } from "@vueda/utils/case.js";
-import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import { computed, inject, ref, toRef, watch } from "vue";
@@ -21,10 +18,7 @@ import { toast } from "vue-sonner";
 
 /**
  * View that lists the available workflow transitions for one or more model instances and allows
- * the user to select and execute a transition. Mounts its own `FormConfirmDialog` bound to a
- * `useConfirmationController` instance, so a transition the server gates behind advisory warnings
- * (HTTP 409) prompts the user before applying; confirming retries once with the warnings
- * acknowledged, cancelling leaves the transition unapplied.
+ * the user to select and execute a transition.
  */
 defineOptions({
     inheritAttrs: false,
@@ -72,12 +66,6 @@ const titleStr = computed(() => {
 usePageTitle(() => ({ title: titleStr.value, loading: workflow.loading }));
 
 const selectedAction = ref(null);
-
-const confirmation = useConfirmationController({
-    noConsumerWarning:
-        "ViewWorkflowTransition: a transition returned warnings that require confirmation, but no dialog is " +
-        "bound to the confirmation controller; treating it as cancelled.",
-});
 
 const transitionsForPk = (pk) => {
     const entry = workflow.objectTransitions?.[appModelKey.value]?.[pk];
@@ -132,52 +120,13 @@ watch(
     { immediate: true },
 );
 
-// Performs one transition attempt. On a ConfirmationRequiredError (server 409: valid but
-// unacknowledged warnings) it asks the confirmation controller and, if the user confirms, retries
-// once with the warnings digest acknowledged; a changed warning set yields a new digest and
-// re-prompts, so this recurses until a clean run, a real error, or a cancel. Resolves to whether
-// the transition was applied (false on cancel, leaving the transition unapplied).
-const performTransition = async (acknowledgeWarnings) => {
-    try {
-        if (acknowledgeWarnings) {
-            await workflow.executeTransition(
-                props.app,
-                props.model,
-                props.pk,
-                selectedAction.value,
-                router,
-                undefined,
-                false,
-                acknowledgeWarnings,
-            );
-        } else {
-            await workflow.executeTransition(props.app, props.model, props.pk, selectedAction.value, router);
-        }
-        return true;
-    } catch (error) {
-        if (error instanceof ConfirmationRequiredError && error.digest != null) {
-            const confirmed = await confirmation.request(error.messages);
-            if (confirmed) {
-                return await performTransition(error.digest);
-            }
-            return false;
-        }
-        throw error;
-    }
-};
-
 const handleSubmit = async () => {
     try {
         if (!selectedAction.value || typeof selectedAction.value !== "string") {
             throw new Error("ViewWorkflowTransition: selected transition code is missing or invalid.");
         }
-        if (!props.pk) {
-            return;
-        }
-        const applied = await performTransition();
-        if (!applied) {
-            // Cancelled at the confirmation dialog: not a failure, leave the transition unapplied.
-            return;
+        if (props.pk) {
+            await workflow.executeTransition(props.app, props.model, props.pk, selectedAction.value, router);
         }
         toast.success("transition succeeded");
         router.back();
@@ -260,7 +209,5 @@ const handleSubmit = async () => {
                 </div>
             </div>
         </div>
-        <!-- Resolves submit-time warning confirmations (HTTP 409); without it warned transitions would be cancelled. -->
-        <form-confirm-dialog :controller="confirmation" />
     </div>
 </template>

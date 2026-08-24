@@ -1,6 +1,5 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import { defineComponent, h } from "vue";
 
 var provideStore, mockedProvide, mockedInject;
@@ -199,112 +198,6 @@ describe("lib/views/ViewWorkflowTransition.vue", () => {
         await wrapper.vm.handleSubmit();
         expect(toastMock.error).toHaveBeenCalledWith("transition failed");
         expect(routerBack).not.toHaveBeenCalled();
-    });
-
-    describe("warning confirmation", () => {
-        // The alert-dialog primitives teleport and gate on `open`; stub them to passthroughs (as
-        // FormConfirmDialog.spec.js does) so these tests can find and click the dialog's buttons
-        // directly within the mounted tree.
-        const passthrough = { template: "<div><slot /></div>" };
-        const buttonStub = { template: "<button @click=\"$emit('click')\"><slot /></button>", emits: ["click"] };
-        const alertDialogStubs = {
-            AlertDialog: passthrough,
-            AlertDialogContent: passthrough,
-            AlertDialogHeader: passthrough,
-            AlertDialogTitle: passthrough,
-            AlertDialogDescription: passthrough,
-            AlertDialogFooter: passthrough,
-            AlertDialogCancel: buttonStub,
-            AlertDialogAction: buttonStub,
-        };
-        const mountView = (props) => mount(ViewWorkflowTransition, { props, global: { stubs: alertDialogStubs } });
-
-        const confirmationError = (digest, messages) =>
-            new ConfirmationRequiredError({ confirmation_required: true, digest, warnings: messages }, { status: 409 });
-
-        scopedIt("shows the confirmation dialog on a 409 and retries with the digest once confirmed", async () => {
-            mockedInject.mockReturnValueOnce({});
-            executeTransition
-                .mockRejectedValueOnce(confirmationError("digest-abc", { non_field_errors: ["Will notify customer."] }))
-                .mockResolvedValueOnce({});
-            const wrapper = mountView({ app: "a", model: "m", pk: "1" });
-            wrapper.vm.selectedAction = "a";
-
-            const submitPromise = wrapper.vm.handleSubmit();
-            await vue.nextTick();
-            await vue.nextTick();
-
-            const dialog = wrapper.find('[data-qa="form-confirm-dialog"]');
-            expect(dialog.exists()).toBe(true);
-            expect(wrapper.text()).toContain("Will notify customer.");
-
-            await wrapper.find('[data-qa="form-confirm-action"]').trigger("click");
-            await submitPromise;
-
-            expect(executeTransition).toHaveBeenCalledTimes(2);
-            expect(executeTransition).toHaveBeenNthCalledWith(1, "a", "m", "1", "a", expect.any(Object));
-            expect(executeTransition).toHaveBeenNthCalledWith(
-                2,
-                "a",
-                "m",
-                "1",
-                "a",
-                expect.any(Object),
-                undefined,
-                false,
-                "digest-abc",
-            );
-            expect(toastMock.success).toHaveBeenCalledWith("transition succeeded");
-            expect(routerBack).toHaveBeenCalled();
-        });
-
-        scopedIt("cancelling the confirmation dialog leaves the transition unapplied", async () => {
-            mockedInject.mockReturnValueOnce({});
-            executeTransition.mockRejectedValueOnce(
-                confirmationError("digest-abc", { non_field_errors: ["Will notify customer."] }),
-            );
-            const wrapper = mountView({ app: "a", model: "m", pk: "1" });
-            wrapper.vm.selectedAction = "a";
-
-            const submitPromise = wrapper.vm.handleSubmit();
-            await vue.nextTick();
-            await vue.nextTick();
-
-            await wrapper.find('[data-qa="form-confirm-cancel"]').trigger("click");
-            await submitPromise;
-
-            expect(executeTransition).toHaveBeenCalledTimes(1);
-            expect(toastMock.success).not.toHaveBeenCalled();
-            expect(toastMock.error).not.toHaveBeenCalled();
-            expect(routerBack).not.toHaveBeenCalled();
-        });
-
-        scopedIt("re-prompts when the acknowledged retry reports a changed warning set", async () => {
-            mockedInject.mockReturnValueOnce({});
-            executeTransition
-                .mockRejectedValueOnce(confirmationError("digest-abc", { non_field_errors: ["First warning."] }))
-                .mockRejectedValueOnce(confirmationError("digest-xyz", { non_field_errors: ["Second warning."] }))
-                .mockResolvedValueOnce({});
-            const wrapper = mountView({ app: "a", model: "m", pk: "1" });
-            wrapper.vm.selectedAction = "a";
-
-            const submitPromise = wrapper.vm.handleSubmit();
-            await vue.nextTick();
-            await vue.nextTick();
-            expect(wrapper.text()).toContain("First warning.");
-
-            await wrapper.find('[data-qa="form-confirm-action"]').trigger("click");
-            await vue.nextTick();
-            await vue.nextTick();
-            expect(wrapper.text()).toContain("Second warning.");
-
-            await wrapper.find('[data-qa="form-confirm-action"]').trigger("click");
-            await submitPromise;
-
-            expect(executeTransition).toHaveBeenCalledTimes(3);
-            expect(toastMock.success).toHaveBeenCalledWith("transition succeeded");
-            expect(routerBack).toHaveBeenCalled();
-        });
     });
 
     describe("card list", () => {

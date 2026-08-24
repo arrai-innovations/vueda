@@ -14,10 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
-- **Warning confirmation for workflow transitions (`storeWorkflow`, `ViewWorkflowTransition`)**:
-    - `storeWorkflow.executeTransition` now maps a `409 Conflict` response to a `ConfirmationRequiredError`instead of a generic `WorkflowError`, and accepts an `acknowledgeWarnings` argument (its final parameter) that is sent as the `Acknowledge-Warnings` request header on a confirmed retry.
-    - `ViewWorkflowTransition` renders a `FormConfirmDialog` bound to a `useConfirmationController` instance. When executing a transition returns unacknowledged warnings, the dialog shows them; confirming retries once with the digest acknowledged, and a changed warning set (a stale digest) re-prompts with the current warnings. Cancelling leaves the transition unapplied and the view on the same page.
-      _No action required. If you call `storeWorkflow.executeTransition` directly instead of through `ViewWorkflowTransition`, catch `ConfirmationRequiredError` and pass its `digest` back as `acknowledgeWarnings` to proceed._
+- **Warning confirmation for workflow transitions (`storeWorkflow`)**:
+    - `storeWorkflow.executeTransition` now maps a `409 Conflict` response to a `ConfirmationRequiredError` instead of a generic `WorkflowError`, and accepts an `acknowledgeWarnings` argument (its final parameter) that is sent as the `Acknowledge-Warnings` request header on a confirmed retry.
+      _No action required. Catch `ConfirmationRequiredError` on a `409` from `executeTransition` and pass its `digest` back as `acknowledgeWarnings` to proceed._
 - **Breaking: `useObjectsWorkflowTransitions` is removed (`DetailView`, `useDetailView`)**:
     - `useDetailView` now reads `valid_transitions` off the object payload it already fetches, instead of issuing a second per-object request through `useObjectsWorkflowTransitions`/`storeWorkflow`. The model info's `fields` map only exposes `valid_transitions` for models with a workflow, so the request is skipped entirely for models without one.
       _If you imported `@vueda/use/useObjectsWorkflowTransitions.js` directly, read `valid_transitions` off the fetched object instead (as `useDetailView`'s `actions.availableTransitions` now does). `ViewWorkflowTransition` and `storeWorkflow` are unaffected._
