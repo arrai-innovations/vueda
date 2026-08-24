@@ -239,6 +239,58 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(options.headers["Dry-Run"]).toBe("true");
     });
 
+    scopedIt("executeTransition adds Acknowledge-Warnings header when acknowledging warnings", async () => {
+        mockedFetchHelper.mockResolvedValue({
+            new_state: { code: "closed", name: "Closed" },
+            new_transitions: [],
+        });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+        store.objectStates[key] = { 1: {} };
+        store.objectTransitions[key] = { 1: {} };
+
+        await store.executeTransition("app", "model", "1", "close", undefined, undefined, false, "digest123");
+
+        const options = mockedFetchHelper.mock.calls[0][1];
+        expect(options.headers["Acknowledge-Warnings"]).toBe("digest123");
+    });
+
+    scopedIt("executeTransition omits Acknowledge-Warnings header when not acknowledging", async () => {
+        mockedFetchHelper.mockResolvedValue({
+            new_state: { code: "closed", name: "Closed" },
+            new_transitions: [],
+        });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+        store.objectStates[key] = { 1: {} };
+        store.objectTransitions[key] = { 1: {} };
+
+        await store.executeTransition("app", "model", "1", "close");
+
+        const options = mockedFetchHelper.mock.calls[0][1];
+        expect(options.headers["Acknowledge-Warnings"]).toBeUndefined();
+    });
+
+    scopedIt("executeTransition maps a 409 response to ConfirmationRequiredError", async () => {
+        mockedFetchHelper.mockRejectedValue(new Error("boom"));
+        const store = storeWorkflow();
+
+        await store.executeTransition("app", "model", "1", "close").catch(() => {});
+
+        const errorResolver = mockedFetchHelper.mock.calls[0][6];
+        const responseData = {
+            confirmation_required: true,
+            digest: "abc123",
+            warnings: { non_field_errors: ["This transition has consequences."] },
+        };
+
+        const error = errorResolver({ status: 409 }, responseData);
+
+        expect(error.name).toBe("ConfirmationRequiredError");
+        expect(error.digest).toBe("abc123");
+        expect(error.messages).toEqual({ non_field_errors: ["This transition has consequences."] });
+    });
+
     scopedIt("executeTransition still supports legacy nested state code mapping", async () => {
         mockedFetchHelper.mockResolvedValue({
             new_state: { state: { code: "closed" } },

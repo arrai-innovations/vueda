@@ -161,6 +161,58 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         assert object_state.state.code == "packed"
         assert history_id is not None
 
+    def test_get_transition_warnings_returns_empty_for_free_shipping(self, customer_order, workflow_user):
+        cancel_transition = Transition.objects.get(
+            workflow=customer_order.workflow,
+            code="cancel_order",
+        )
+
+        assert customer_order.get_transition_warnings(cancel_transition, workflow_user) == {}
+
+    def test_get_transition_warnings_flags_express_shipping(self, customer_order, workflow_user):
+        customer_order.shipping_method = "express"
+        cancel_transition = Transition.objects.get(
+            workflow=customer_order.workflow,
+            code="cancel_order",
+        )
+
+        warnings = customer_order.get_transition_warnings(cancel_transition, workflow_user)
+
+        assert warnings == {
+            "non_field_errors": [
+                f"Order {customer_order.order_number} ships express; Cancel Order needs a fulfillment double-check."
+            ]
+        }
+
+    def test_check_transition_returns_transition_and_resolved_user_without_writing(self, customer_order, workflow_user):
+        transition, resolved_user = customer_order.check_transition("pack_order", user=workflow_user)
+
+        assert transition.code == "pack_order"
+        assert resolved_user == workflow_user
+        # no write happened
+        assert customer_order.object_state.state.code == "new"
+
+    def test_check_transition_permission_denied(self, customer_order, unauthorized_user):
+        shipped_state = State.objects.get(code="shipped", workflow__code="order_fulfillment")
+        object_state = customer_order.object_state
+        object_state.state = shipped_state
+        object_state.save()
+
+        with pytest.raises(DRFPermissionDenied):
+            customer_order.check_transition("return_order", user=unauthorized_user)
+
+        object_state.refresh_from_db()
+        assert object_state.state == shipped_state
+
+    def test_apply_checked_transition_writes_the_already_checked_transition(self, customer_order, workflow_user):
+        transition, resolved_user = customer_order.check_transition("pack_order", user=workflow_user)
+
+        target_state, history_id = customer_order.apply_checked_transition(transition, resolved_user)
+
+        assert target_state.code == "packed"
+        assert customer_order.object_state.state.code == "packed"
+        assert history_id is not None
+
     def test_fast_transition_succeeds(self, customer_order):
         customer_order.fast_transition("pack_order")
 

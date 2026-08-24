@@ -170,6 +170,17 @@ class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryModel):
     class Meta(VuedaHistoryModel.Meta):
         permissions = [("fulfill_orders", "Can fulfill orders")]
 
+    def get_transition_warnings(self, transition, user=None):
+        # Express orders need a fulfillment double-check before any state change; exercised by
+        # TestWorkflowViewSet's warning-confirmation tests.
+        if self.shipping_method == "express":
+            return {
+                "non_field_errors": [
+                    f"Order {self.order_number} ships express; {transition.name} needs a fulfillment double-check."
+                ]
+            }
+        return {}
+
     @classmethod
     def get_next_order_number(cls):
         # This is a poor way to do this, but is sufficient for testing.

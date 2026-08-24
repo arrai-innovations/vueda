@@ -18,6 +18,7 @@ from rest_framework.response import Response
 
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.exceptions import gate_warnings
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
@@ -30,6 +31,26 @@ from vueda.workflow.serializers import WorkflowSerializer
 
 
 PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
+
+
+def _merge_transition_warnings(warnings_by_instance):
+    """
+    Merge each instance's ``get_transition_warnings`` mapping into one aggregate
+    ``{field: [messages]}`` warning set, so a bulk transition gates once with a single digest
+    instead of once per instance. Duplicate messages (the common case: every instance in the batch
+    trips the same rule) collapse to a single entry per field, keeping the aggregate -- and its
+    digest -- stable regardless of batch size. Aggregating this way also means a bulk request's
+    `object_ids` never become digest keys, so mixed int/string ids in one request can't crash
+    ``compute_warnings_digest``'s ``sort_keys`` comparison the way a per-object mapping would.
+    """
+    merged = {}
+    for warnings in warnings_by_instance:
+        for field, messages in warnings.items():
+            existing = merged.setdefault(field, [])
+            for message in messages:
+                if message not in existing:
+                    existing.append(message)
+    return merged
 
 
 class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -210,6 +231,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         transition_code = request.data.get("transition_code")
         if object_id:
             instance = self.get_object()
+            transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
+            gate_warnings(request, instance.get_transition_warnings(transition, resolved_user))
             with transaction.atomic():
                 response_data = self._apply_transition_to_instance(instance, transition_code, request)
             return Response(response_data)
@@ -217,20 +240,50 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             object_ids = request.data.get("object_ids", [])
             if not isinstance(object_ids, list):
                 raise VuedaValidationError({"object_ids": ["Must be a list of primary keys."]})
+
+            model_class = self.get_workflow().content_type.model_class()
+            id_instances = [(object_id, get_object_or_404(model_class, pk=object_id)) for object_id in object_ids]
+
+            # Warnings are collected across every instance before any write, so a bulk transition
+            # gates once with one aggregate digest instead of once per instance. Authorization
+            # errors are aggregated the same way the write loop below aggregates them, so a bad
+            # object_id in the batch is reported the same way whether it fails here or later.
+            errors = {}
+            warnings_by_instance = []
+            for oid, instance in id_instances:
+                try:
+                    transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
+                except VuedaValidationError as e:
+                    errors[oid] = e.detail
+                else:
+                    warnings_by_instance.append(instance.get_transition_warnings(transition, resolved_user))
+            if errors:
+                raise VuedaValidationError(errors)
+            gate_warnings(request, _merge_transition_warnings(warnings_by_instance))
+
             response_data = {}
-            error = {}
             with transaction.atomic():
-                for object_id in object_ids:
-                    instance = get_object_or_404(self.get_workflow().content_type.model_class(), pk=object_id)
+                for oid, instance in id_instances:
                     try:
-                        response_data[object_id] = self._apply_transition_to_instance(
-                            instance, transition_code, request
-                        )
+                        response_data[oid] = self._apply_transition_to_instance(instance, transition_code, request)
                     except VuedaValidationError as e:
-                        error[object_id] = e.detail
-            if error:
-                raise VuedaValidationError(error)
+                        errors[oid] = e.detail
+            if errors:
+                raise VuedaValidationError(errors)
             return Response(response_data)
+
+    @staticmethod
+    def _check_transition_for_instance(instance, transition_code, request):
+        """
+        Validate (permission and availability) that ``transition_code`` can be applied to
+        ``instance`` by the requesting user, without writing anything. Raises the same
+        ``VuedaValidationError`` shape ``_apply_transition_to_instance`` raises for these failures,
+        since this only moves that check earlier (before the warnings gate), it does not change it.
+        """
+        try:
+            return instance.check_transition(transition_code, request.user)
+        except (PermissionDenied, InvalidTransitionError) as e:
+            raise VuedaValidationError(str(e))
 
     def _apply_transition_to_instance(self, instance, transition_code, request):
         if not request.dry_run:
@@ -241,13 +294,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 raise VuedaValidationError("This object cannot be updated right now. Please try again.")
             instance = locked_instance
 
-        # apply_transition does the permission checks
-        try:
-            state, current_history_id = instance.apply_transition(
-                transition_code, user=request.user, dry_run=request.dry_run
-            )
-        except (PermissionDenied, InvalidTransitionError) as e:
-            raise VuedaValidationError(str(e))
+        transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
+        state, current_history_id = instance.apply_checked_transition(transition, resolved_user, request.dry_run)
 
         data = {
             "new_state": {

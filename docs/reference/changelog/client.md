@@ -28,6 +28,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - Existing variants and the default are unchanged, and the new tones compose with `numeric`. Re-toning `--info`, `--success`, or `--warning` now shifts these badges and `Alert` together.
       _Replace open-coded tone pills with `variant="info" | "success" | "warning"`. A badge presents status the application or server supplied; it is not an authorization signal._
 
+- **Warning confirmation for workflow transitions (`storeWorkflow`)**:
+    - `storeWorkflow.executeTransition` now maps a `409 Conflict` response to a `ConfirmationRequiredError` instead of a generic `WorkflowError`, and accepts an `acknowledgeWarnings` argument (its final parameter) that is sent as the `Acknowledge-Warnings` request header on a confirmed retry.
+      _No action required. Catch `ConfirmationRequiredError` on a `409` from `executeTransition` and pass its `digest` back as `acknowledgeWarnings` to proceed._
 - **Breaking: `useObjectsWorkflowTransitions` is removed (`DetailView`, `useDetailView`)**:
     - `useDetailView` now reads `valid_transitions` off the object payload it already fetches, instead of issuing a second per-object request through `useObjectsWorkflowTransitions`/`storeWorkflow`. The model info's `fields` map only exposes `valid_transitions` for models with a workflow, so the request is skipped entirely for models without one.
       _If you imported `@vueda/use/useObjectsWorkflowTransitions.js` directly, read `valid_transitions` off the fetched object instead (as `useDetailView`'s `actions.availableTransitions` now does). `ViewWorkflowTransition` and `storeWorkflow` are unaffected._
