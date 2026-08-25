@@ -14,6 +14,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Auth forms expose their supported programmatic update surface (AuthForm, AuthorizingForm, ViewSignIn)**:
+    - `AuthForm`, `AuthorizingForm`, and `ViewSignIn` now emit `form-context` on mount. The existing `form-object` event remains a readonly ref for observing current values, while `form-context.updateValue(name, value)` provides controlled programmatic updates.
+    - `ViewTwoFactorAuth` now uses the form context when its recovery-code toggle changes the selected method, avoiding Vue readonly-state warnings.
+      _Replace direct assignments through `form-object` with the corresponding form-context mutation method._
+
 - **Model metadata composables stay scoped to their app's Pinia instance (useModelInfo, useModelConfig, useModelChoices, useLookupContext)**:
     - These composables now resolve their stores during setup, so pages that host multiple Vue apps keep model metadata requests scoped to the app that created the composable.
       _No action required for component usage. If you create these composables outside a component, call them while the intended Pinia instance is active._

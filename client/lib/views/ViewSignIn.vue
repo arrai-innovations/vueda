@@ -29,6 +29,12 @@ const formProps = reactive({
         password: "",
     },
 });
+const emit = defineEmits([
+    /** Emitted on mount with a readonly ref to the reactive form values object. */
+    "form-object",
+    /** Emitted on mount with the form context. Use its methods for programmatic form updates. */
+    "form-context",
+]);
 const userStore = storeUser();
 
 const handleSubmit = ({ formValues }) => {
@@ -59,6 +65,8 @@ const forwardedSlots = computed(() => Object.keys(slots).filter((name) => !HANDL
         :form-props="formProps"
         action-error-summary="Sign In Failed"
         :on-submission-success-handler="onSubmissionSuccess"
+        @form-object="emit('form-object', $event)"
+        @form-context="emit('form-context', $event)"
     >
         <template #action-form-inner>
             <!-- Replaces the entire email field row, including its label. -->

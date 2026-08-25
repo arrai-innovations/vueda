@@ -52,10 +52,11 @@ describe("lib/views/AuthForm.vue", () => {
         storeUser.mockClear();
     });
 
-    scopedIt("emits form-object on mount and renders ActionForm", () => {
+    scopedIt("emits form-object and form-context on mount and renders ActionForm", () => {
         const wrapper = mountAuthForm();
         const emitArg = wrapper.emitted("form-object")[0][0];
         expect(emitArg.value).toBe(formContext.state.values);
+        expect(wrapper.emitted("form-context")[0][0]).toBe(formContext);
         expect(wrapper.find('[data-qa="action-form"]').exists()).toBe(true);
         const title = wrapper.find('[data-qa="auth-form-title"]');
         expect(title.find("h1").text()).toBe("Sign In");
