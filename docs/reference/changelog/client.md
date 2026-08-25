@@ -373,6 +373,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - Clearing the search box in an open, API-backed `WidgetCombobox` after selecting a value now reloads the full result list. Previously, clearing the search box left the list pinned to just the selected option until a different search term was typed.
       _No action required._
 
+- **Tabular inline columns show their field labels again (FieldSetTabularInline)**:
+    - `FieldSetTabularInline` forwards a `header(fieldName)` slot to `ObjectsGrid` for every editable field, and its default content was empty, so table columns and card rows rendered unlabeled even when the field descriptors carried labels. The default now renders the field descriptor's `label` in both layouts, matching the `ObjectsGrid` header defaults (in card layout the label keeps the card header class and the `data-card-header` attribute). A supplied `header(fieldName)` slot still replaces the label entirely, and the synthetic item-action column stays unlabeled.
+      _No action required. If you added a `header(fieldName)` slot only to restore a missing label, you can drop it._
+
 ## Public Baseline
 
 Earlier VUEDA client versions existed for internal or private use. The v3 prerelease series is the first
