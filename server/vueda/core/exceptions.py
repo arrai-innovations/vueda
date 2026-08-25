@@ -134,13 +134,23 @@ def gate_warnings(request, warnings):
     """
     Withhold a write behind an explicit confirmation when ``warnings`` is non-empty.
 
-    ``warnings`` is an aggregate ``{field: [messages]}`` mapping of advisory warnings (use
-    ``"non_field_errors"`` for warnings not tied to a field). When it is falsy this returns
-    immediately. Otherwise the digest from ``compute_warnings_digest`` is compared against the
-    request's ``Acknowledge-Warnings`` header: a match means the client has already shown these
-    exact warnings to the user and they confirmed, so the caller may proceed; anything else raises
-    ``ConfirmationRequired`` (HTTP 409 with the warnings and digest), and the client re-submits
-    with the digest once the user confirms.
+    ``warnings`` must be one of two shapes, chosen by whether the write affects one object or
+    many: an aggregate ``{field: [messages]}`` mapping for a single object, or a per-object
+    ``{object_id: {field: [messages]}}`` mapping, one entry per warned object keyed by ``str(pk)``,
+    for a write affecting more than one object. Use ``"non_field_errors"`` for a warning not tied
+    to a field; a warning with no object to attribute it to at all (a write with no natural object,
+    or one affecting a single object) still should returns the aggregate shape, e.g.
+    ``{"non_field_errors": [...]}``. This gate only checks ``warnings`` for truthiness and digests
+    it as opaque JSON — it does not itself validate the shape — but a caller that returns anything
+    else is opting out of the default warnings rendering and must supply its own client-side
+    rendering to interpret it.
+
+    When ``warnings`` is falsy this returns immediately. Otherwise the digest from
+    ``compute_warnings_digest`` is compared against the request's ``Acknowledge-Warnings`` header:
+    a match means the client has already shown these exact warnings to the user and they
+    confirmed, so the caller may proceed; anything else raises ``ConfirmationRequired`` (HTTP 409
+    with the warnings and digest), and the client re-submits with the digest once the user
+    confirms.
 
     Call this from a custom action body after ``serializer.is_valid(raise_exception=True)`` (so
     blocking validation errors surface as a 400 before the 409) and before any write or side

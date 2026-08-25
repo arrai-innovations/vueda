@@ -74,7 +74,8 @@ class WarningConfirmationMixin:
       bulk/list saves are not surfaced.
     - ``destroy``, ``activate``, and ``deactivate`` (single and bulk): the viewset-level
       ``get_warnings(action, objs)`` hook, called by ``VuedaViewSet.destroy`` and
-      ``DeactivateActionViewSetMixin``.
+      ``DeactivateActionViewSetMixin``. The hook should return the aggregate shape for a
+      single-object request or the per-object shape for a bulk request; see its docstring.
     """
 
     def get_warnings(self, action, objs):
@@ -82,9 +83,19 @@ class WarningConfirmationMixin:
         Viewset-level warnings hook for actions that write without a per-object serializer.
 
         ``action`` is the action name string (``"destroy"``, ``"activate"``, or ``"deactivate"``)
-        and ``objs`` is an iterable or queryset of the affected instances. Return the aggregate
-        ``{field: [messages]}`` warnings dict (the same shape the serializer-level
-        ``get_warnings()`` returns; use ``"non_field_errors"`` for warnings not tied to a field).
+        and ``objs`` is the affected instances: a one-element tuple for a single-object request, or
+        a queryset for a bulk request:
+
+        - A single-object request returns the aggregate ``{field: [messages]}`` shape (the same
+          shape the serializer-level ``get_warnings()`` returns; use ``"non_field_errors"`` for a
+          warning not tied to a field).
+        - A bulk request returns the per-object ``{object_id: {field: [messages]}}`` shape
+          instead, one entry per warned object keyed by ``str(pk)``, so the client can attribute
+          each warning back to its object.
+
+        This mirrors ``get_transition_warnings``, which enforces the same split for workflow
+        transitions.
+
         The default returns ``{}``, meaning no confirmation is required.
         """
         return {}
