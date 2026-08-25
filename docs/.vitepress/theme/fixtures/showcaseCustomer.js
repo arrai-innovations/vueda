@@ -8,9 +8,10 @@
  *
  * Seeding `storeModelInfo.infos[<key>]` directly lets `storeModelConfig.getConfig`
  * resolve fully offline (no backend, no router): `fetchModelInfo` short-circuits on
- * the cached entry and the config is built from it. See the data-adapter seam note
- * (`docs/temp/view-data-adapter-seam.md`) for why the full views still need a live
- * backend while a standalone FormModel does not.
+ * the cached entry and the config is built from it. This module covers metadata only.
+ * The full views also need record data, which `ModelDemo` supplies by mocking the
+ * `/routes/` endpoints; see `demoApi.js` for the seam and `showcaseRecords.js` for the
+ * rows and endpoint builders that pair with the metadata here.
  *
  * Every field here renders a self-contained widget (text, url, static-choice
  * select, decimal, toggle, textarea). No relation/lookup fields are used, so
@@ -160,10 +161,159 @@ export const customerModelInfo = {
             helpText: "Visible to your team only.",
         },
     },
-    actions: [],
-    expand: [],
-    ordering: [],
-    filtering: {},
+    // DRF action names, matching what `vueda/info/serializers.py` emits: everything
+    // except `list` and `create` is a detail action, and `destroy` is the bulk one.
+    // `storeModelConfig` derives `routeActions`, `actions`, and `actionDetails` from
+    // this list, which is what ViewList reads to decide which toolbar buttons exist.
+    actions: [
+        { name: "create", description: "create showcase.customer", detail: false, bulk: false, methodNames: ["post"] },
+        {
+            name: "destroy",
+            description: "destroy showcase.customer",
+            detail: true,
+            bulk: true,
+            methodNames: ["delete"],
+        },
+        { name: "list", description: "list showcase.customer", detail: false, bulk: false, methodNames: ["get"] },
+        {
+            name: "partial_update",
+            description: "partial_update showcase.customer",
+            detail: true,
+            bulk: false,
+            methodNames: ["patch"],
+        },
+        {
+            name: "retrieve",
+            description: "retrieve showcase.customer",
+            detail: true,
+            bulk: false,
+            methodNames: ["get"],
+        },
+        { name: "update", description: "update showcase.customer", detail: true, bulk: false, methodNames: ["put"] },
+    ],
+    // `ViewHistoryList` builds its columns from the `history` expand's field map, not from
+    // `fields`: `modelConfig.info.expand.find(e => e.name === "history").f` (see
+    // `client/lib/views/ViewHistoryList.vue`). Without this entry the grid renders no columns
+    // at all. `field`, `old`, and `new` are supplied by the view itself.
+    expand: [
+        {
+            name: "history",
+            f: Object.fromEntries(
+                [
+                    ["history_id", "Revision"],
+                    ["history_date", "When"],
+                    ["history_change_reason", "Reason"],
+                    ["history_type", "Type"],
+                    ["history_user", "Who"],
+                    ["history_relation", "Relation"],
+                ].map(([name, label]) => [
+                    name,
+                    {
+                        name,
+                        label,
+                        typeDb: "CharField",
+                        typeModel: "CharField",
+                        typeSerializer: "CharField",
+                        many: false,
+                        readOnly: true,
+                        required: false,
+                    },
+                ]),
+            ),
+        },
+    ],
+    // Becomes `config.sortables` / `sortablesDetails`, which is what populates the
+    // SortControl add menu. `notes` is deliberately absent: a long free-text column is
+    // not something the server offers as an ordering field.
+    ordering: [
+        { name: "account", type: "alpha" },
+        { name: "owner", type: "alpha" },
+        { name: "tier", type: "alpha" },
+        { name: "mrr", type: "numeric" },
+        { name: "currency", type: "alpha" },
+        { name: "taxExempt", type: "boolean" },
+    ],
+    // Becomes `config.filterables` / `filterableDetails`, which is what populates the
+    // FilterMenu. Keys are the query-param field names the list endpoint receives.
+    filtering: {
+        account: {
+            label: "Account name",
+            fieldClass: "CharFilter",
+            inputType: "text",
+            typeDb: "CharField",
+            typeModel: "CharField",
+            typeFilter: "CharField",
+            hidden: false,
+            required: false,
+            lookupExprs: ["icontains", "exact", "istartswith"],
+            errorMessages: {},
+        },
+        owner: {
+            label: "Owner",
+            fieldClass: "ChoiceFilter",
+            inputType: "select",
+            typeDb: "CharField",
+            typeModel: "CharField",
+            typeFilter: "ChoiceField",
+            hidden: false,
+            required: false,
+            choices: ownerChoices,
+            lookupExprs: ["exact", "in"],
+            errorMessages: {},
+        },
+        tier: {
+            label: "Plan tier",
+            fieldClass: "ChoiceFilter",
+            inputType: "select",
+            typeDb: "CharField",
+            typeModel: "CharField",
+            typeFilter: "ChoiceField",
+            hidden: false,
+            required: false,
+            choices: tierChoices,
+            lookupExprs: ["exact", "in"],
+            errorMessages: {},
+        },
+        mrr: {
+            label: "MRR",
+            fieldClass: "NumberFilter",
+            inputType: "number",
+            typeDb: "DecimalField",
+            typeModel: "DecimalField",
+            typeFilter: "DecimalField",
+            hidden: false,
+            required: false,
+            maxDigits: 10,
+            decimalPlaces: 2,
+            lookupExprs: ["exact", "gte", "lte"],
+            errorMessages: {},
+        },
+        currency: {
+            label: "Currency",
+            fieldClass: "ChoiceFilter",
+            inputType: "select",
+            typeDb: "CharField",
+            typeModel: "CharField",
+            typeFilter: "ChoiceField",
+            hidden: false,
+            required: false,
+            choices: currencyChoices,
+            lookupExprs: ["exact", "in"],
+            errorMessages: {},
+        },
+        taxExempt: {
+            label: "Tax-exempt",
+            fieldClass: "BooleanFilter",
+            inputType: "checkbox",
+            typeDb: "BooleanField",
+            typeModel: "BooleanField",
+            typeFilter: "NullBooleanField",
+            hidden: false,
+            required: false,
+            lookupExprs: ["exact"],
+            errorMessages: {},
+        },
+    },
     permissions: [],
 };
 

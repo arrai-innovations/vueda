@@ -44,8 +44,13 @@ export function useModelInfo(app, model, isActive) {
     if (!isActive) {
         isActive = useIsActive();
     }
+    // Resolve the stores here, while the composable still runs inside its component's setup.
+    // Pinia's active instance is a module global that every `app.use(pinia)` overwrites, and the
+    // watcher below runs as a flush job with no current component to inject from, so resolving it
+    // there would pick whichever app booted last. The docs site puts several isolated apps, each
+    // with its own seeded pinia, on one page.
+    const modelInfoStore = storeModelInfo();
     const userStore = storeUser();
-    let modelInfoStore = null;
     const internalState = reactive({
         app,
         model,
@@ -90,9 +95,6 @@ export function useModelInfo(app, model, isActive) {
             if (!app || !model) {
                 returnObject.info = {};
                 return;
-            }
-            if (!modelInfoStore) {
-                modelInfoStore = storeModelInfo();
             }
             // we don't need to check if app and model have changed, vue does that checking for us
             //  on immutable primitive values

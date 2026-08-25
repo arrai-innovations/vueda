@@ -81,6 +81,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {number} [maxDigits] - The maximum number of digits allowed for the field (for decimals).
  * @property {number} [decimalPlaces] - The number of decimal places allowed for the field (for decimals).
  * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the field has choices. If it does, it's an array of label/value pairs.
+ * @property {LabelValuePair[]} [displayChoices] - Read-only display labels for stored values. Does not affect editable choices.
  * @property {boolean} [pk] - Indicates whether the field is a primary key.
  * @property {boolean} [hidden] - Indicates whether the field is hidden in the UI.
  * @property {string[]} [lookupExprs] - Array of lookup expressions for filtering.

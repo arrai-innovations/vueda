@@ -21,6 +21,33 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - `storeModelConfig`'s `genericConfigs` and `specificConfigs` are integrator input and are left alone. Choice lists seeded through `storeModelChoices.setChoices` or `setFilterChoices` are cleared along with fetched ones, because the store cannot tell them apart. `storeTheme`, `storeDarkMode`, `storeCollapseNav`, `storeListPreference`, and `setUsingVuedaWorkflow` are unaffected.
       _No action required. If your application seeds `storeModelChoices` through `setChoices` or `setFilterChoices`, reseed it after a change of user (watch `storeUser().identityGeneration`). If you catch errors from `fetchModelInfo`, `getConfig`, the `storeWorkflow` fetches, or `fetchChoices`, treat `AuthScopeInvalidatedError` as "retry if you still need this" rather than as a failure to report._
 
+- **Model metadata composables stay scoped to their app's Pinia instance (useModelInfo, useModelConfig, useModelChoices, useLookupContext)**:
+    - These composables now resolve their stores during setup, so pages that host multiple Vue apps keep model metadata requests scoped to the app that created the composable.
+      _No action required for component usage. If you create these composables outside a component, call them while the intended Pinia instance is active._
+
+- **Model actions run through the CRUD adapter layer (useModelAction, listCrud, objectCrud, ModelActionForm)**:
+    - `useModelAction` provides model-action primary key derivation, action execution, dry-run readiness, copy generation, and post-action redirects without rendering a confirmation form.
+    - Model action execution dispatches through registered list and object CRUD handlers. Bulk actions use the selected list's `bulkDelete` or `executeAction`; single-object actions use the object's `delete` or `executeAction`.
+    - Default list and object adapters now include `executeAction`. Delete adapters accept `formData` and treat dry-run `200` responses as success only during dry runs; real deletes still require `204`.
+    - `ModelActionForm` accepts an `instanceList` prop so host views can keep selected rows in sync after real bulk destroys. `useModelAction().buildRequest` is no longer returned.
+      _Requires `@arrai-innovations/reactive-helpers` >= 24.1.0 for the per-call `keepObjects` / `keepObject` options. Custom `bulkDelete` adapters should accept `formData` and treat a dry-run `200` as success. Code that called `useModelAction().buildRequest` should register an `executeAction` adapter instead._
+
+- **Model action plumbing is reusable outside confirmation forms (useModelAction, ModelActionForm, ViewDestroy, ViewActivate)**:
+    - `ModelActionForm` keeps the same public props, slots, and theme keys while delegating action execution to `useModelAction`.
+    - `ViewDestroy` dry-run pre-flights accept the server's `200` dry-run response and keep selected records visible until confirmation.
+    - Destroy actions target the standard viewset routes: bulk destroy sends `DELETE` to the model's list URL and single destroy to its detail URL, with no `destroy` path segment. Every other action keeps its segment, matching the dynamic routes the server generates for `@action` methods.
+      _No action required. Custom action buttons and custom action screens can import `@vueda/use/useModelAction.js` when they need server action plumbing without the `ModelActionForm` confirmation page._
+
+- **`ViewDestroy` and `ViewActivate` no longer fail to mount (ModelActionForm, ActionForm)**:
+    - `ModelActionForm` establishes a form context when none is injected, so `ViewDestroy` and `ViewActivate` can submit, route server 400 field errors, and render validation state through `ActionForm`.
+    - `ActionForm` mounted without a form context throws an explicit error naming the missing provider.
+      _No action required. If you render `ActionForm` directly rather than through `ModelActionForm`, wrap it in a `useForm()` scope and provide the context under `FormContextSymbol`._
+
+- **Read-only widgets resolve static choice labels (WidgetReadOnly, ViewRead)**:
+    - `WidgetReadOnly` now accepts the same static choice props as editable choice widgets (`options`, `optionLabel`, and `optionValue`) and displays the matching option label in read-only forms. `ViewRead` now shows labels such as `Enterprise`, `USD`, and `No` instead of stored values such as `enterprise`, `usd`, and `false` when field metadata includes static choices. The read-only value slots now also receive `rawValue` for custom renderers that intentionally show stored values.
+    - Read-only forms now pass model-info `display_choices` metadata to `WidgetReadOnly` ahead of editable `choices`. This lets the server label stored values for read-only display without changing the editable widget type. `ChoiceField` backed by `BooleanField` also maps to the radio widget for integrations that use native Django boolean choices.
+      _No action required. If you intentionally display raw stored values in read views, use the widget slot's `rawValue` prop._
+
 - **Sonner toast descriptions, cancel buttons, and focus indicators follow the active color mode (Sonner)**:
     - Toast descriptions now use VUEDA's muted foreground token, cancel buttons use the secondary surface token, and close/action focus indicators use the VUEDA focus ring. This fixes low-contrast dark-mode descriptions and focus indicators that could disappear on dark surfaces.
       _Requires `@arrai-innovations/vue-sonner` >= 2.0.11. If you retone toast descriptions, set `--description-text` on `<Sonner>` instead of targeting `[data-description]`._
