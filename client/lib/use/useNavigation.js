@@ -5,6 +5,7 @@
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
+import { storeUser } from "@vueda/stores/storeUser.js";
 import { computed, reactive, watch } from "vue";
 
 /**
@@ -58,6 +59,7 @@ export function useNavigation(userConfig) {
     // fetching many model info and configs, so useModelInfo and useModelConfig would have excessive overhead
     const modelConfigStore = storeModelConfig();
     const modelInfoStore = storeModelInfo();
+    const userStore = storeUser();
 
     const loadingError = useLoadingError();
     const navigationData = reactive(
@@ -142,8 +144,10 @@ export function useNavigation(userConfig) {
     });
 
     watch(
-        userConfig,
-        async (newConfig) => {
+        // the stores drop their caches when the authenticated user changes, so rebuild the navigation
+        // from what the new user is permitted to see
+        [() => userStore.identityGeneration, userConfig],
+        async ([, newConfig]) => {
             navigationData.loading = true;
             try {
                 const navItems = await buildNavigation(newConfig);

@@ -16,6 +16,11 @@ vi.mock("@vueda/stores/storeModelConfig.js", () => ({
     storeModelConfig: () => modelConfigStore,
 }));
 
+const userStoreMock = reactive({ identityGeneration: 0 });
+vi.mock("@vueda/stores/storeUser.js", () => ({
+    storeUser: vi.fn(() => userStoreMock),
+}));
+
 const loadingError = {
     loading: ref(false),
     error: ref(null),
@@ -32,6 +37,7 @@ describe("lib/use/useNavigation.js", () => {
         useNavigation = (await import("@vueda/use/useNavigation.js")).useNavigation;
         fetchModelInfo.mockReset();
         getConfig.mockReset();
+        userStoreMock.identityGeneration = 0;
     });
 
     scopedIt("builds navigation from config and custom routes", async () => {
@@ -114,6 +120,34 @@ describe("lib/use/useNavigation.js", () => {
         ]);
         expect(consoleSpy).toHaveBeenCalled();
         consoleSpy.mockRestore();
+    });
+
+    scopedIt("rebuilds navigation when the authenticated user changes", async () => {
+        fetchModelInfo.mockResolvedValue({});
+        getConfig.mockResolvedValue({});
+
+        const userConfig = reactive({
+            apps: [
+                {
+                    name: "Blog",
+                    link: "/blog",
+                    models: [{ name: "Post", link: "/blog/post", actions: ["list"] }],
+                },
+            ],
+            customRoutes: [],
+        });
+
+        useNavigation(userConfig);
+        await flushPromises();
+        expect(fetchModelInfo).toHaveBeenCalledTimes(1);
+
+        // the stores dropped their caches at the identity boundary, so the menu has to be rebuilt from
+        // what the new user is permitted to see
+        userStoreMock.identityGeneration = 1;
+        await flushPromises();
+
+        expect(fetchModelInfo).toHaveBeenCalledTimes(2);
+        expect(getConfig).toHaveBeenCalledTimes(2);
     });
 
     scopedIt("updates navigation when customRoutes change", async () => {
