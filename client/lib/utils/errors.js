@@ -256,3 +256,32 @@ export class ListFilterError extends Error {
         this.erroredFilters = Object.keys(data);
     }
 }
+/**
+ * Error used to abandon an in-flight authorization-dependent request whose response arrived after
+ * the authenticated user changed. The response was fetched under a different principal, so it is
+ * discarded instead of being cached, and the awaiting caller is rejected rather than handed
+ * `undefined`.
+ *
+ * This error means "the request was abandoned, retry if you still need the data". It is not a
+ * transport or permission failure, so consumers should neither surface it to the user nor cache it.
+ *
+ * @extends {Error}
+ */
+export class AuthScopeInvalidatedError extends Error {
+    /**
+     * Creates an instance of AuthScopeInvalidatedError.
+     *
+     * @param {string} messagePrefix - Identifies the action that abandoned the request.
+     * @param {string} [key] - The cache key the abandoned response would have been written to.
+     */
+    constructor(messagePrefix, key) {
+        super(`${messagePrefix}: abandoned${key ? ` "${key}"` : ""} because the authenticated user changed`);
+        this.name = "AuthScopeInvalidatedError";
+        /**
+         * The cache key the abandoned response would have been written to.
+         *
+         * @type {string|undefined}
+         */
+        this.key = key;
+    }
+}

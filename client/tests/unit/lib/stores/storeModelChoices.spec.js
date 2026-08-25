@@ -4,15 +4,17 @@ import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { PAGE_SIZE_PARAM } from "@vueda/utils/constants.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { createPinia, setActivePinia } from "pinia";
+import { toRef } from "vue";
 
 describe("lib/stores/storeModelChoices.js", () => {
-    let fetchHelperMock, storeModule, store;
+    let fetchHelperMock, storeModule, store, AuthScopeInvalidatedError;
 
     beforeEach(async () => {
         setActivePinia(createPinia());
         fetchHelperMock = vi.fn();
         vi.doMock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper: fetchHelperMock }));
         storeModule = await import("@vueda/stores/storeModelChoices.js");
+        ({ AuthScopeInvalidatedError } = await import("@vueda/utils/errors.js"));
         store = storeModule.storeModelChoices();
     });
 
@@ -95,5 +97,60 @@ describe("lib/stores/storeModelChoices.js", () => {
         expect(result).toEqual(data);
         expect(store.filterChoices[key].field).toEqual(data);
         expect(store.filterPromises[key].field).toBeUndefined();
+    });
+    describe("clearAuthScoped", () => {
+        scopedIt("empties choices, filterChoices, and both promise maps", async () => {
+            const key = getAppModelDotName({ app: "blog", model: "post" });
+            store.setChoices("blog", "post", "status", ["draft"]);
+            store.setFilterChoices("blog", "post", "author", [1]);
+            store.promises[key] = { status: Promise.resolve([]) };
+            store.filterPromises[key] = { author: Promise.resolve([]) };
+
+            store.clearAuthScoped();
+
+            expect(store.choices).toEqual({});
+            expect(store.filterChoices).toEqual({});
+            expect(store.promises).toEqual({});
+            expect(store.filterPromises).toEqual({});
+        });
+
+        scopedIt("deletes leaves before buckets so a reference held by a consumer stays live", async () => {
+            const key = getAppModelDotName({ app: "blog", model: "post" });
+            fetchHelperMock.mockResolvedValue(["draft"]);
+            await store.fetchChoices("blog", "post", "status");
+
+            // this is the handle useModelChoices keeps: toRef(choiceProps[key], fieldName)
+            const held = toRef(store.choices[key], "status");
+            expect(held.value).toEqual(["draft"]);
+
+            store.clearAuthScoped();
+            expect(held.value).toBeUndefined();
+
+            fetchHelperMock.mockResolvedValue(["published"]);
+            await store.fetchChoices("blog", "post", "status");
+            expect(store.choices[key].status).toEqual(["published"]);
+        });
+
+        scopedIt("discards choices that arrive after the clear and lets the next call refetch", async () => {
+            const key = getAppModelDotName({ app: "blog", model: "post" });
+            let resolveFetch;
+            fetchHelperMock.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveFetch = resolve;
+                }),
+            );
+
+            const inFlight = store.fetchChoices("blog", "post", "status");
+            store.clearAuthScoped();
+            resolveFetch(["draft"]);
+
+            await expect(inFlight).rejects.toThrow(AuthScopeInvalidatedError);
+            expect(store.choices).toEqual({});
+
+            fetchHelperMock.mockResolvedValueOnce(["published"]);
+            await store.fetchChoices("blog", "post", "status");
+            expect(fetchHelperMock).toHaveBeenCalledTimes(2);
+            expect(store.choices[key].status).toEqual(["published"]);
+        });
     });
 });
