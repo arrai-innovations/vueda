@@ -12,6 +12,9 @@ Package READMEs:
 - [Client](./client/README.md)
 - [Copier Templates](./templates/README.md)
 
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening an issue or pull
+request.
+
 <!--prettier-ignore-start-->
 <!--TOC-->
 
