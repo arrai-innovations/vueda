@@ -4,7 +4,6 @@ from typing import ClassVar
 import pytest
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import override_settings
 from rest_framework.exceptions import ValidationError
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -42,15 +41,14 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
         info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
         info.register_serializer(store_serializers.OrderItemSerializer)
 
-    @override_settings(
-        REST_FLEX_FIELDS={
+    def test_limits_depth_to_default(self, settings, api_client, test_data):
+        settings.REST_FLEX_FIELDS = {
             "EXPAND_PARAM": "e",
             "FIELDS_PARAM": "f",
             "OMIT_PARAM": "om",
             "MAXIMUM_EXPANSION_DEPTH": 2,
-        },
-    )
-    def test_limits_depth_to_default(self, api_client, test_data):
+        }
+
         serializer = store_serializers.CustomerOrderSerializer()
         valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
             serializer, 0, 10
@@ -578,6 +576,29 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         assert obj.period_end == date(2024, 2, 29)
         assert obj.employee == employee
 
+    @pytest.mark.parametrize("action", ["partial", "date", "ate"])
+    def test_action_name_matching_a_write_action_substring_excludes_nothing(self, employee, action):
+        """An extra action whose name is a substring of create, update, or partial_update must not inherit
+        that action's exclusions. TimesheetSerializerExclude excludes employee on update and supervisor on
+        create, so neither may become read_only for an unrelated action."""
+        t = Timesheet.objects.create(
+            period_start=date(2024, 2, 15),
+            period_end=date(2024, 2, 29),
+            employee=employee,
+        )
+
+        request = FakeRequest(method="GET")
+        context = {
+            "request": request,
+            "view": FakeView(request, TimesheetSerializerExclude, action, queryset=Timesheet.objects.filter(pk=t.id)),
+        }
+        serializer = TimesheetSerializerExclude(instance=t, context=context)
+
+        extra_kwargs = serializer.get_extra_kwargs()
+
+        assert "read_only" not in extra_kwargs.get("employee", {}), extra_kwargs
+        assert "read_only" not in extra_kwargs.get("supervisor", {}), extra_kwargs
+
 
 @pytest.mark.django_db
 class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -866,3 +887,41 @@ class TestSchemaExpandableFieldsAndFields:
 
         fields_param = parameters_by_name[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]
         assert "number_of_ordered_products" in fields_param["schema"]["items"]["enum"]
+
+
+class TestFieldDisplayChoices:
+    def test_get_field_model_info_applies_serializer_display_choices(self):
+        from vueda.info.serializers import ModelInfoSerializer
+
+        class _ProductSerializer(store_serializers.ProductSerializer):
+            field_display_choices: ClassVar[dict] = {
+                "disabled": {
+                    True: "Disabled",
+                    False: "Enabled",
+                    None: "Unknown",
+                },
+            }
+
+        fields = ModelInfoSerializer().get_model_fields_data(_ProductSerializer)
+        fields = _ProductSerializer().get_field_model_info(fields)
+
+        assert fields["disabled"]["choices"] is False
+        assert fields["disabled"]["display_choices"] == [
+            {"label": "Disabled", "value": True},
+            {"label": "Enabled", "value": False},
+            {"label": "Unknown", "value": None},
+        ]
+
+    def test_schema_fields_drop_display_choices(self):
+        class _ProductSerializer(store_serializers.ProductSerializer):
+            field_display_choices: ClassVar[dict] = {
+                "disabled": {
+                    True: "Disabled",
+                    False: "Enabled",
+                    None: "Unknown",
+                },
+            }
+
+        fields = _ProductSerializer().get_schema_fields()
+
+        assert "display_choices" not in fields["disabled"]

@@ -333,6 +333,10 @@ export const choiceFieldMappings = {
         },
     },
     ChoiceField: {
+        BooleanField: {
+            widget: availableWidgets.WidgetRadioGroup,
+            manyWidget: availableWidgets.WidgetRadioGroup,
+        },
         CharField: {
             widget: availableWidgets.WidgetSelectDropdown,
             fieldProps: { validation: "text" },

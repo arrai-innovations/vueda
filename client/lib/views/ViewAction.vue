@@ -100,7 +100,7 @@ const theme = useTheme("ViewAction", props);
             </slot>
         </page-actions>
         <slot :action="action" :app="app" :form-context="formContext" :model="model" :pk="pk">
-            <model-action-form :action="action" :app="app" :model="model" v-bind="omit($attrs, ['class'])">
+            <model-action-form :action="action" :app="app" :model="model" :pk="pk" v-bind="omit($attrs, ['class'])">
                 <template v-for="(_, slot) in omit(slots, ['before-list'])" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>

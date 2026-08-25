@@ -1,12 +1,11 @@
 /**
  * @module utils/listCrud
- * @description VUEDA-specific list CRUD adaptors for single-page, all-page, and bulk-delete operations.
+ * @description VUEDA-specific list CRUD adaptors for single-page, all-page, bulk-delete, and execute-action operations.
  */
 import { CancellablePromise, cancellableFetch, deepUnref, setListCrud } from "@arrai-innovations/reactive-helpers";
 import { PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
-import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { ConfirmationRequiredError, FetchError, FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
-import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { FetchError, ListFilterError } from "@vueda/utils/errors.js";
+import { actionRequestHeaders, getJsonOrText, readActionResponse } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
@@ -221,58 +220,85 @@ export function allPagePaginatedListCrudAdaptor({
  *    action?: string,
  * }} args.target - The arguments for the CRUD operation.
  * @param {string[]} args.pks - The PKs of the objects to delete.
- * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
+ * @param {object} [args.formData] - Extra fields submitted alongside the delete, merged into the request body.
+ * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode. The server answers a valid dry run
+ *  `200`, so that status is a success here only while `dryRun` is set; a `200` on a real delete stays a fault.
  * @param {string} [args.acknowledgeWarnings] - Warnings digest from a prior 409, sent as the
  *  `Acknowledge-Warnings` header so the server lets the gated delete proceed.
  * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<void>} - A cancellable promise.
  */
-export function defaultObjectsDelete({ target, pks, dryRun, acknowledgeWarnings }) {
+export function defaultObjectsDelete({ target, pks, formData, dryRun, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const url = getListUrl({ app, model, action });
-    const headers = {
-        "X-CSRFToken": getCSRFValue(),
-        "Content-Type": "application/json",
-    };
-    if (dryRun) {
-        headers["Dry-Run"] = "true";
-    }
-    if (acknowledgeWarnings) {
-        headers["Acknowledge-Warnings"] = acknowledgeWarnings;
-    }
     return cancellableFetch(
         url,
         {
             method: "DELETE",
             credentials: "include",
-            headers,
+            headers: actionRequestHeaders({ dryRun, acknowledgeWarnings }),
             // VUEDA's bulk functionality customization of destroy always take pks, regardless of the name of the pk key
             // reactive-helpers provides the pkKey in our args, but we ignore it.
-            body: JSON.stringify({ pks }),
+            body: JSON.stringify({ pks, ...(formData || {}) }),
         },
-        async (response) => {
-            const responseData = await getJsonOrText(response);
-            if (response.status === 204) {
-                return;
-            }
-            if (response.status === 400) {
-                throw new FormValidationError(responseData, response);
-            }
-            if (response.status === 409) {
-                throw new ConfirmationRequiredError(responseData, response);
-            }
-            throw new FetchError("Failed to delete object", response, responseData);
-        },
+        async (response) =>
+            readActionResponse(response, {
+                messagePrefix: "Failed to delete object",
+                successStatuses: dryRun ? new Set([200, 204]) : new Set([204]),
+            }),
     );
 }
 
 /**
- * Installs the default list CRUD adaptor (single-page paginated list and bulk delete).
+ * The VUEDA specific implementation for reactive-helper's list executeAction crud function. Sends a named action to
+ * the model's list action url with the targeted pks in the body.
+ *
+ * @param {object} args - The arguments object.
+ * @param {{
+ *    app: string,
+ *    model: string,
+ * }} args.target - The arguments for the CRUD operation.
+ * @param {string[]} args.pks - The PKs of the objects to act on.
+ * @param {string} args.action - The action name, used as the url's action segment.
+ * @param {string} [args.requestMethod] - The HTTP method for the request. Defaults to `"PUT"`.
+ * @param {object} [args.formData] - Form values submitted with the action, merged into the request body.
+ * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
+ * @param {string} [args.acknowledgeWarnings] - Warnings digest from a prior 409, sent as the
+ *  `Acknowledge-Warnings` header so the server lets the gated action proceed.
+ * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<object|string|undefined>} - A cancellable promise.
+ */
+export function defaultListExecuteAction({
+    target,
+    pks,
+    action,
+    requestMethod = "PUT",
+    formData,
+    dryRun,
+    acknowledgeWarnings,
+}) {
+    // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+    const { app, model } = target;
+    const url = getListUrl({ app, model, action });
+    return cancellableFetch(
+        url,
+        {
+            method: requestMethod,
+            credentials: "include",
+            headers: actionRequestHeaders({ dryRun, acknowledgeWarnings }),
+            body: JSON.stringify({ pks, ...(formData || {}) }),
+        },
+        async (response) => readActionResponse(response, { messagePrefix: "Failed to execute action" }),
+    );
+}
+
+/**
+ * Installs the default list CRUD adaptors (single-page paginated list, bulk delete, and executeAction).
  */
 export function setupDefaultListCrud() {
     setListCrud({
         list: singlePagePaginatedListCrudAdaptor,
         bulkDelete: defaultObjectsDelete,
+        executeAction: defaultListExecuteAction,
         args: {
             resultsKey: "results", // all of our current APIs use this key
         },

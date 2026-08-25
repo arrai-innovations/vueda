@@ -140,3 +140,6 @@ pre-commit:
                 for file in {staged_files}; do
                   circleci config validate "$file"
                 done
+        circleci-orb-versions:
+            glob: ".circleci/*.yml"
+            run: python "$(git rev-parse --show-toplevel)/scripts/check_circleci_orb_versions.py"

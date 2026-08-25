@@ -1,8 +1,8 @@
 version: 2.1
 
 orbs:
-    pytest: arrai/pytest@9.1.1
-    utils: arrai/utils@1.22.0
+    pytest: arrai/pytest@11.0.0
+    utils: arrai/utils@1.23.3
 
 parameters:
     run-docs-workflows:
@@ -246,7 +246,7 @@ workflows:
                       branches:
                           ignore:
                               - main
-            - pytest/pytest:
+            - pytest/pytest_fixed_ip:
                   name: docs-tooling-test-py
                   context: arrai-global
                   executor: python311

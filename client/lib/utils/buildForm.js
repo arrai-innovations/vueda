@@ -252,12 +252,15 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         es.run(() => {
             widget = computed(() => {
                 const fieldLevelThemeOverride = getFieldLevelThemeOverride(fieldName, true);
+                const readOnly = getIsReadOnly(fieldName, detailObject.readOnly);
                 const baseProps = {
                     ...getWidgetProps(detailObject),
                     ...(deepUnref(modelConfig.config?.widgetProps?.[fieldName]) || {}),
                     ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                 };
-                if (detailObject.choices === true) {
+                if (readOnly && detailObject.displayChoices) {
+                    baseProps.options = detailObject.displayChoices;
+                } else if (detailObject.choices === true) {
                     if (isExpandedField) {
                         const { expandDetail, expandFieldName } = field;
                         baseProps.fieldApp = expandDetail.appLabel;
@@ -276,7 +279,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     baseProps.options = detailObject.choices;
                 }
                 baseProps.themeOverride = fieldLevelThemeOverride;
-                baseProps.readOnly = getIsReadOnly(fieldName, detailObject.readOnly);
+                baseProps.readOnly = readOnly;
                 return baseProps;
             });
         });
