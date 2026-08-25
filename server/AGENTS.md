@@ -25,7 +25,7 @@
 
 -   **Line length**: 120 chars (ruff enforced)
 -   **Imports**: Force single-line (isort), known first-party: vueda, tests
--   **Types**: Python 3.11+ with Django 5.2/6.0, no strict typing enforced
+-   **Types**: Python 3.11+ with Django 5.2/6.0/6.1, no strict typing enforced
 -   **Naming**: snake_case variables/functions, PascalCase classes, use DRF/Django conventions
 -   **Models**: Inherit from VuedaModel/ActivatableBaseModel, use custom managers
 -   **Serializers**: Extend VuedaSerializer with flex-fields and validation mixins
