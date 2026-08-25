@@ -24,11 +24,16 @@ class ThingViewSet(VuedaViewSet):
 
     def get_warnings(self, action, objs):
         # Viewset-level warnings: destroying a thing that still has a positive count is unusual.
-        if action == "destroy":
-            flagged = sorted(obj.name for obj in objs if obj.count > 0)
-            if flagged:
-                return {"non_field_errors": [f"{name} still has a positive count." for name in flagged]}
-        return {}
+        # A bulk destroy attributes each warning back to its object id; a single-object destroy
+        # returns the aggregate shape directly, mirroring get_transition_warnings.
+        if action != "destroy":
+            return {}
+        flagged = [obj for obj in objs if obj.count > 0]
+        if not flagged:
+            return {}
+        if len(objs) == 1:
+            return {"non_field_errors": [f"{obj.name} still has a positive count." for obj in flagged]}
+        return {str(obj.pk): {"non_field_errors": [f"{obj.name} still has a positive count."]} for obj in flagged}
 
     @action(detail=True, methods=["post"], confirm=True)
     def reset_count(self, request, pk=None):
@@ -71,8 +76,14 @@ class GadgetViewSet(DeactivateActionViewSetMixin, VuedaViewSet):
 
     def get_warnings(self, action, objs):
         # Viewset-level warnings: toggling a critical gadget deserves a second look.
-        if action in ("activate", "deactivate"):
-            flagged = sorted(obj.name for obj in objs if obj.name.startswith("critical"))
-            if flagged:
-                return {"non_field_errors": [f"{name} is critical." for name in flagged]}
-        return {}
+        # A bulk activate/deactivate attributes each warning back to its object id; a
+        # single-object request returns the aggregate shape directly, mirroring
+        # get_transition_warnings.
+        if action not in ("activate", "deactivate"):
+            return {}
+        flagged = [obj for obj in objs if obj.name.startswith("critical")]
+        if not flagged:
+            return {}
+        if len(objs) == 1:
+            return {"non_field_errors": [f"{obj.name} is critical." for obj in flagged]}
+        return {str(obj.pk): {"non_field_errors": [f"{obj.name} is critical."]} for obj in flagged}

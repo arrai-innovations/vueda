@@ -245,7 +245,8 @@ class TestDestroyWarnings:
         gated = client.delete(LIST_URL, data=payload, format="json")
         assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
         assert gated.data["warnings"] == {
-            "non_field_errors": ["alpha still has a positive count.", "beta still has a positive count."]
+            str(alpha.pk): {"non_field_errors": ["alpha still has a positive count."]},
+            str(beta.pk): {"non_field_errors": ["beta still has a positive count."]},
         }
         assert Thing.objects.count() == len(payload["pks"])  # unchanged
 
@@ -293,7 +294,8 @@ class TestDeactivateActivateWarnings:
         gated = client.patch(BULK_DEACTIVATE_URL, data=payload, format="json")
         assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
         assert gated.data["warnings"] == {
-            "non_field_errors": ["critical-alpha is critical.", "critical-beta is critical."]
+            str(alpha.pk): {"non_field_errors": ["critical-alpha is critical."]},
+            str(beta.pk): {"non_field_errors": ["critical-beta is critical."]},
         }
         assert Gadget.objects.filter(is_active=True).count() == len(payload["pks"])  # unchanged
 
