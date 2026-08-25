@@ -211,14 +211,15 @@ watch(
                     >
                         <!-- @slot [header(fieldName)] Override the header label cell for a specific column. -->
                         <slot :name="`header(${fieldObj.name})`" v-bind="headerSlotProps">
-                            <div :class="headerSlotProps.class" :data-card-header="headerSlotProps['data-card-header']">
-                                <!--                            <widget-label-context-by-props-->
-                                <!--                                :field-set-tabular-inline="fieldSetTabularInline"-->
-                                <!--                                :field-value-path="`${fieldSetTabularInline.fieldSetContext.state.name}[${headerSlotProps.rowIndex || '0'}].${headerSlotProps.field.fieldName}`"-->
-                                <!--                                :row-index="headerSlotProps.rowIndex"-->
-                                <!--                                v-bind="headerSlotProps"-->
-                                <!--                            />-->
+                            <!-- Mirrors the ObjectsGrid header defaults: card layout carries the header class and data-card-header, table layout does not. -->
+                            <div
+                                v-if="headerSlotProps.isCardLayout"
+                                :class="headerSlotProps.class"
+                                :data-card-header="headerSlotProps.dataCardHeader"
+                            >
+                                {{ headerSlotProps.field?.label }}
                             </div>
+                            <template v-else>{{ headerSlotProps.field?.label }}</template>
                         </slot>
                     </template>
                     <template #[`field(item-action-bar)`]="objectGridFieldSlotProps">
