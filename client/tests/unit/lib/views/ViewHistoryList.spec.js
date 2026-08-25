@@ -217,6 +217,19 @@ describe("lib/views/ViewHistoryList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt("reports a real zero to the pagination footer instead of falling back to one", async () => {
+            mockedInject.mockReturnValueOnce({});
+            // A record with no revisions: the server answers with a page of nothing, not with a
+            // missing paginateInfo, so the footer has to read the zero rather than substitute 1.
+            mockInstanceList.state.paginateInfo = { perPage: 25, totalRecords: 0 };
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            const footer = wrapper.findComponent({ name: "PaginationFooterStub" });
+            expect(footer.props("totalRecords")).toBe(0);
+            expect(footer.props("rows")).toBe(25);
+            wrapper.unmount();
+        });
+
         scopedIt("renders the grid (not the empty state) while history is loading", async () => {
             mockedInject.mockReturnValueOnce({});
             mockInstanceList.state.loading = true;
