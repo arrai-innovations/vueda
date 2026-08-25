@@ -15,13 +15,19 @@ import { reactive } from "vue";
  * consumer it fails closed: it warns on the console and resolves `false` (cancel) instead of
  * waiting on a dialog that will never render, which would leave the submit pending forever.
  *
+ * @typedef {{ [field: string]: string[] }} FieldWarnings - Warnings keyed by field
+ *  (`non_field_errors` for messages not tied to a field).
+ * @typedef {FieldWarnings | { [objectId: string]: FieldWarnings }} WarningsMapping - Either the
+ *  flat `FieldWarnings` shape, or keyed by object id with each value a
+ *  `FieldWarnings` mapping for that object.
+ *
  * @typedef {object} ConfirmationController
  * @property {boolean} open - Whether the confirmation dialog should be shown.
- * @property {{[path: string]: string[]}} messages - Warnings to display, keyed by field path.
+ * @property {WarningsMapping} messages - Warnings to display.
  * @property {number} consumers - Number of registered consumers able to resolve a request.
  * @property {() => void} register - Announce a consumer that renders the dialog and will call `confirm()`/`cancel()`.
  * @property {() => void} unregister - Remove a previously registered consumer.
- * @property {(messages: {[path: string]: string[]}) => Promise<boolean>} request - Open the dialog and
+ * @property {(messages: WarningsMapping) => Promise<boolean>} request - Open the dialog and
  *  resolve to the user's choice (true = confirm, false = cancel). Resolves `false` immediately when
  *  no consumer is registered.
  * @property {() => void} confirm - Resolve the pending request with `true`.

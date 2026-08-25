@@ -157,6 +157,19 @@ describe("lib/views/ViewAction.vue", () => {
             expect(formArg.initialValues.value).toEqual({ id1: null, id2: null });
             expect(mockedUseTheme).toHaveBeenCalledWith("ViewAction", expect.any(Object));
         });
+
+        scopedIt("forwards a warning-entry slot through to ModelActionForm", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewAction, {
+                props: { app: "app", model: "person", action: "do" },
+                slots: {
+                    "warning-entry": '<span data-qa="custom-warning-entry">entry</span>',
+                },
+            });
+
+            const af = wrapper.find('[data-qa="model-action-form"]');
+            expect(af.find('[data-slot="warning-entry"] [data-qa="custom-warning-entry"]').exists()).toBe(true);
+        });
     });
 
     describe("Navigation", () => {

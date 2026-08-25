@@ -87,18 +87,35 @@ const FeedbackSpinnerStub = defineComponent({
 });
 
 // Mirrors the real dialog's consumer registration so the controller's fail-closed guard stays off
-// and confirm/cancel can be driven through the controller in tests.
+// and confirm/cancel can be driven through the controller in tests. Also mirrors the real
+// dialog's `warnings` scoped slot (`{ warnings }`), so ActionForm's `form-confirm-dialog-warnings`
+// forwarding can be exercised the same way it works against the real FormConfirmDialog. When
+// ActionForm doesn't supply a `#warnings` template at all (no `form-confirm-dialog-warnings` slot
+// given), `slots.warnings` is undefined here too, mirroring how the real FormConfirmDialog's own
+// default rendering shows through in that case.
 const FormConfirmDialogStub = defineComponent({
     name: "FormConfirmDialogStub",
     props: ["controller"],
-    setup(props) {
+    setup(props, { slots }) {
         onMounted(() => props.controller.register?.());
         onBeforeUnmount(() => props.controller.unregister?.());
         return () =>
-            h("div", {
-                "data-qa": "form-confirm-dialog",
-                "data-open": String(props.controller.open),
-            });
+            h(
+                "div",
+                {
+                    "data-qa": "form-confirm-dialog",
+                    "data-open": String(props.controller.open),
+                },
+                [
+                    h(
+                        "div",
+                        { "data-qa": "form-confirm-dialog-warnings-slot" },
+                        slots.warnings
+                            ? slots.warnings({ warnings: props.controller.messages })
+                            : h("div", { "data-qa": "form-confirm-dialog-default-warnings" }),
+                    ),
+                ],
+            );
     },
 });
 
@@ -457,6 +474,45 @@ describe("lib/views/ActionForm.vue", () => {
             expect(toastMock.error).not.toHaveBeenCalled();
             expect(redirectTo).not.toHaveBeenCalled();
             expect(wrapper.get('[data-qa="error-display"]').attributes("data-errored")).toBe("false");
+        });
+
+        scopedIt(
+            "falls through to FormConfirmDialog's own default rendering when no form-confirm-dialog-warnings slot is provided",
+            async () => {
+                const error = new ConfirmationRequiredError(
+                    { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } },
+                    {},
+                );
+                const runAction = vi.fn(() => Promise.reject(error));
+                const { wrapper } = mountActionForm({ runAction });
+
+                await wrapper.find("form").trigger("submit.prevent");
+                await flushPromises();
+
+                expect(wrapper.find('[data-qa="form-confirm-dialog-default-warnings"]').exists()).toBe(true);
+            },
+        );
+
+        scopedIt("forwards the controller's warnings mapping to the form-confirm-dialog-warnings slot", async () => {
+            const error = new ConfirmationRequiredError(
+                { confirmation_required: true, digest: "d1", warnings: { count: ["A negative count is unusual."] } },
+                {},
+            );
+            const runAction = vi.fn(() => Promise.reject(error));
+            const { wrapper } = mountActionForm({
+                runAction,
+                slots: {
+                    "form-confirm-dialog-warnings": `<template #form-confirm-dialog-warnings="{ warnings }">
+                        <div data-qa="custom-warnings">{{ JSON.stringify(warnings) }}</div>
+                    </template>`,
+                },
+            });
+
+            await wrapper.find("form").trigger("submit.prevent");
+            await flushPromises();
+
+            const custom = wrapper.get('[data-qa="custom-warnings"]');
+            expect(JSON.parse(custom.text())).toEqual({ count: ["A negative count is unusual."] });
         });
     });
 

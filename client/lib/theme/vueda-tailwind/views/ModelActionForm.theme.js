@@ -194,5 +194,18 @@ patchTheme({
         nonFieldErrorBlock: {
             class: "",
         },
+        /** One warned object's group inside the confirmation dialog's per-object warnings view (see {@api theme-key:ActionForm.validation} for the analogous per-field alert). A left rule in the warning tone separates each object's messages from the next, echoing {@api theme-key:ModelActionForm.message}'s primary-toned rule for the confirm prompt. */
+        confirmWarningGroup: {
+            class: [
+                "flex flex-col gap-1",
+                "rounded-vueda-control bg-muted/25",
+                "border-l-2 border-warning/60",
+                "px-3 py-2",
+            ],
+        },
+        /** Label row above a warned object's messages, rendering the object's own display link via {@api vue:component:WidgetReadOnly}. The messages themselves render via {@api vue:component:FieldWarningsList}. */
+        confirmWarningLabel: {
+            class: ["text-[12px] font-medium text-foreground"],
+        },
     },
 });
