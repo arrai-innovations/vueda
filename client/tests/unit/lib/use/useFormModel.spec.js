@@ -651,6 +651,62 @@ describe("lib/use/useFormModel.js", () => {
             // default widgetProps should include the collapsed choices array
             expect(state.widgetProps.status.options).toEqual(props.fieldDetails.status.choices);
         });
+        scopedIt("uses displayChoices as read-only widget options", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+            const props = makeBaseProps({
+                fields: ["submitted"],
+                fieldDetails: {
+                    submitted: {
+                        name: "submitted",
+                        typeSerializer: "BooleanField",
+                        typeModel: "BooleanField",
+                        many: false,
+                        choices: false,
+                        displayChoices: [
+                            { value: true, label: "Submitted" },
+                            { value: false, label: "-" },
+                        ],
+                        readOnly: true,
+                    },
+                },
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
+            await flushPromises();
+
+            expect(state.widgetProps.submitted.options).toEqual(props.fieldDetails.submitted.displayChoices);
+        });
+        scopedIt("maps ChoiceField BooleanField choices to radio widget", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+            const props = makeBaseProps({
+                fields: ["approved"],
+                fieldDetails: {
+                    approved: {
+                        name: "approved",
+                        typeSerializer: "ChoiceField",
+                        typeModel: "BooleanField",
+                        many: false,
+                        choices: [
+                            { value: true, label: "Yes" },
+                            { value: false, label: "No" },
+                        ],
+                        readOnly: false,
+                    },
+                },
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
+            await flushPromises();
+
+            expect(state.widgetComponents.approved).toStrictEqual(availableWidgets.WidgetRadioGroup);
+        });
         scopedIt("maps GeneratedField using typeDb mapping", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
             const { availableFields } = await import("@vueda/utils/formLookups.js");

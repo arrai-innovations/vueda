@@ -78,7 +78,11 @@ export function useModelConfig(app, model, view) {
         const loadingError = useLoadingError();
         const isActive = useIsActive();
         const modelInfo = useModelInfo(app, model, isActive);
-        let modelConfigStore = null;
+        // Resolve the store here, while the composable still runs inside its component's setup.
+        // Pinia's active instance is a module global that every `app.use(pinia)` overwrites, so a
+        // store resolved later, from a callback with no current component to inject from, would come
+        // from whichever app booted last. The docs site puts several isolated apps on one page.
+        const modelConfigStore = storeModelConfig();
         const proxyLoadingError = useProxyLoadingError([loadingError, modelInfo]);
         const returnObject = reactive({
             app,
@@ -126,9 +130,6 @@ export function useModelConfig(app, model, view) {
                 }
                 // we don't need to check if app and model have changed, vue does that checking for us
                 //  on immutable primitive values
-                if (!modelConfigStore) {
-                    modelConfigStore = storeModelConfig();
-                }
                 // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
                 if (app && model) {
                     loadingError.clearError();

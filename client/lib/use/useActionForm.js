@@ -21,7 +21,7 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
  * @typedef {object} ActionFormProps
  * @property {(options: { formValues: object, dryRun: boolean, acknowledgeWarnings?: string }) => Promise<any>} [runAction] - Executes
  *  the action. `acknowledgeWarnings` carries the warnings digest of a confirmed retry; implementations should forward
- *  it as the `Acknowledge-Warnings` header (see `ModelActionForm`'s `defaultRunAction`).
+ *  it as the `Acknowledge-Warnings` header (see `useModelAction`).
  * @property {string} [actionSuccessSummary] - Toast text on success.
  * @property {string} [actionErrorSummary] - Toast text on failure.
  * @property {{ errored: boolean, error: Error|null, loading: boolean|undefined }} [fetchState] - Data-fetch status.
@@ -93,6 +93,10 @@ export function useActionForm(formContext, props) {
     const combinedLoading = computed(() => loadingCombine(props.fetchState?.loading, localActionState.loading));
 
     let actionPromise = null;
+    // Set when the shell tears down mid-flight. reactive-helpers resolves a cancelled run rather than rejecting
+    // it (`false`, or `null` for `executeAction`, with no stored error), so without this a cancelled action would
+    // read as a success and toast on its way out.
+    let actionCancelled = false;
 
     const confirmation = useConfirmationController({
         noConsumerWarning:
@@ -152,6 +156,9 @@ export function useActionForm(formContext, props) {
         try {
             actionPromise = props.runAction(runArgs);
             const response = await actionPromise;
+            if (actionCancelled) {
+                return;
+            }
             if (props.actionState?.errored) {
                 await handleActionError(props.actionState.error, runArgs, dryRun);
                 return;
@@ -170,6 +177,9 @@ export function useActionForm(formContext, props) {
                 }
             }
         } catch (error) {
+            if (actionCancelled) {
+                return;
+            }
             await handleActionError(error, runArgs, dryRun);
         } finally {
             actionPromise = null;
@@ -221,13 +231,20 @@ export function useActionForm(formContext, props) {
         }
     };
 
-    onDeactivated(() => {
-        actionPromise?.cancel?.();
-    });
-    onUnmounted(() => {
-        actionPromise?.cancel?.();
-    });
+    const cancelInFlightAction = () => {
+        if (!actionPromise) {
+            return;
+        }
+        actionCancelled = true;
+        actionPromise.cancel?.();
+    };
+    onDeactivated(cancelInFlightAction);
+    onUnmounted(cancelInFlightAction);
 
+    // Immediate because readiness is a state, not an event. A shell whose target pks come
+    // from a prop rather than a fetch (ModelActionForm reading `pk` when `fetchState` has
+    // not populated) evaluates `readyToDryRun` as true on the very first pass, so a
+    // change-only watch never sees an edge and the pre-flight silently never runs.
     watch(
         () => props.readyToDryRun,
         async (newVal) => {
@@ -235,6 +252,7 @@ export function useActionForm(formContext, props) {
                 await handleConfirm(true);
             }
         },
+        { immediate: true },
     );
 
     return { combinedError, combinedErrored, combinedLoading, confirmation, handleConfirm, handleCancelClick };

@@ -1,4 +1,5 @@
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
+import { mount } from "@vue/test-utils";
 import { useActionForm } from "@vueda/use/useActionForm.js";
 import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
@@ -223,6 +224,40 @@ describe("lib/use/useActionForm.js", () => {
                 dryRun: false,
                 acknowledgeWarnings: "d1",
             });
+        });
+    });
+
+    describe("Teardown", () => {
+        scopedIt("ignores a run that settles after the shell tore down", async () => {
+            const formContext = createFormContext();
+            let settleRun;
+            const runPromise = new Promise((resolve) => {
+                settleRun = resolve;
+            });
+            runPromise.cancel = vi.fn();
+            const runAction = vi.fn(() => runPromise);
+            const redirectTo = vi.fn();
+            const props = reactive({ runAction, redirectTo });
+            let actionForm;
+            const wrapper = mount({
+                setup() {
+                    actionForm = useActionForm(formContext, props);
+                    return () => null;
+                },
+            });
+
+            const submitPromise = actionForm.handleConfirm();
+            await flushPromises();
+            wrapper.unmount();
+            // reactive-helpers resolves a cancelled run rather than rejecting it (`false`, or `null`
+            // for executeAction, with no stored error), so the outcome alone cannot tell the two
+            // apart and an unguarded teardown would toast success on its way out.
+            settleRun(false);
+            await submitPromise;
+
+            expect(runPromise.cancel).toHaveBeenCalled();
+            expect(toastMock.success).not.toHaveBeenCalled();
+            expect(redirectTo).not.toHaveBeenCalled();
         });
     });
 });

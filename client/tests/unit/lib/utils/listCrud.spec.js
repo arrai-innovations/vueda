@@ -9,9 +9,13 @@ vi.mock("@vueda/utils/urls.js", () => ({
 }));
 
 const getJsonOrText = vi.fn();
-vi.mock("@vueda/utils/fetchSupport.js", () => ({
-    getJsonOrText,
-}));
+// Only `getJsonOrText` is stubbed: the paging adaptors below feed it hand-rolled response objects, while
+// `actionRequestHeaders` and `readActionResponse` stay real so the action handlers are tested against the
+// classification they actually ship with.
+vi.mock("@vueda/utils/fetchSupport.js", async () => {
+    const actual = await vi.importActual("@vueda/utils/fetchSupport.js");
+    return { ...actual, getJsonOrText };
+});
 
 const getCSRFValue = vi.fn(() => "csrf");
 vi.mock("@vueda/utils/csrf.js", () => ({
@@ -164,76 +168,200 @@ describe("lib/utils/listCrud.js", () => {
         expect(clearObjects).toHaveBeenCalledOnce();
     });
 
-    scopedIt("defaultObjectsDelete uses cancellableFetch with csrf", async () => {
-        const { defaultObjectsDelete } = listCrud;
-        const target = { app: "blog", model: "post" };
-        getListUrl.mockReturnValue("/list");
-        const response = { status: 204 };
-        cancellableFetch.mockImplementation((url, options, transform) => {
-            expect(url).toBe("/list");
-            expect(options).toMatchObject({
+    describe("defaultObjectsDelete", () => {
+        /**
+         * @param {Response} response - The response the fetch resolves.
+         * @returns {object[]} The url and options `cancellableFetch` was called with.
+         */
+        function captureDelete(response) {
+            const captured = [];
+            cancellableFetch.mockImplementation((url, options, transform) => {
+                captured.push({ url, options });
+                return Promise.resolve(transform(response));
+            });
+            return captured;
+        }
+
+        scopedIt("sends the pks to the list url with csrf", async () => {
+            getListUrl.mockReturnValue("/list");
+            const captured = captureDelete(new Response(null, { status: 204 }));
+
+            await listCrud.defaultObjectsDelete({ target: { app: "blog", model: "post" }, pks: ["1", "2"] });
+
+            expect(captured[0].url).toBe("/list");
+            expect(captured[0].options).toMatchObject({
                 method: "DELETE",
                 credentials: "include",
                 headers: { "X-CSRFToken": "csrf", "Content-Type": "application/json" },
-                body: JSON.stringify({ pks: ["1", "2"] }),
             });
-            return Promise.resolve(transform(response));
+            expect(JSON.parse(captured[0].options.body)).toEqual({ pks: ["1", "2"] });
         });
-        await defaultObjectsDelete({ target, pks: ["1", "2"] });
-        expect(cancellableFetch).toHaveBeenCalled();
+
+        scopedIt("merges extra form fields into the body", async () => {
+            getListUrl.mockReturnValue("/list");
+            const captured = captureDelete(new Response(null, { status: 204 }));
+
+            await listCrud.defaultObjectsDelete({
+                target: { app: "blog", model: "post" },
+                pks: ["1"],
+                formData: { reason: "spam" },
+            });
+
+            expect(JSON.parse(captured[0].options.body)).toEqual({ pks: ["1"], reason: "spam" });
+        });
+
+        scopedIt("sets Dry-Run header when requested", async () => {
+            getListUrl.mockReturnValue("/list");
+            const captured = captureDelete(new Response(null, { status: 204 }));
+
+            await listCrud.defaultObjectsDelete({
+                target: { app: "blog", model: "post" },
+                pks: ["1", "2"],
+                dryRun: true,
+            });
+
+            expect(captured[0].options.headers["Dry-Run"]).toBe("true");
+        });
+
+        scopedIt("accepts the server's dry-run 200", async () => {
+            getListUrl.mockReturnValue("/list");
+            captureDelete(new Response(JSON.stringify({ warnings: {} }), { status: 200 }));
+
+            await expect(
+                listCrud.defaultObjectsDelete({ target: { app: "blog", model: "post" }, pks: ["1"], dryRun: true }),
+            ).resolves.toEqual({ warnings: {} });
+        });
+
+        scopedIt("treats a 200 on a real delete as a failure", async () => {
+            const { FetchError } = await import("@vueda/utils/errors.js");
+            getListUrl.mockReturnValue("/list");
+            captureDelete(new Response(JSON.stringify({}), { status: 200 }));
+
+            // Only a 204 confirms a delete happened. A 200 here means the server answered something else,
+            // which must not read as success just because the status is in the 2xx range.
+            await expect(
+                listCrud.defaultObjectsDelete({ target: { app: "blog", model: "post" }, pks: ["1"] }),
+            ).rejects.toBeInstanceOf(FetchError);
+        });
+
+        scopedIt("sets Acknowledge-Warnings header when a digest is acknowledged", async () => {
+            getListUrl.mockReturnValue("/list");
+            const captured = captureDelete(new Response(null, { status: 204 }));
+
+            await listCrud.defaultObjectsDelete({
+                target: { app: "blog", model: "post" },
+                pks: ["1", "2"],
+                acknowledgeWarnings: "d1",
+            });
+
+            expect(captured[0].options.headers["Acknowledge-Warnings"]).toBe("d1");
+        });
+
+        scopedIt("omits Acknowledge-Warnings header when no digest is acknowledged", async () => {
+            getListUrl.mockReturnValue("/list");
+            const captured = captureDelete(new Response(null, { status: 204 }));
+
+            await listCrud.defaultObjectsDelete({ target: { app: "blog", model: "post" }, pks: ["1", "2"] });
+
+            expect(captured[0].options.headers["Acknowledge-Warnings"]).toBeUndefined();
+        });
+
+        scopedIt("throws FormValidationError on 400", async () => {
+            const { FormValidationError } = await import("@vueda/utils/errors.js");
+            getListUrl.mockReturnValue("/list");
+            captureDelete(new Response(JSON.stringify({ name: ["Required."] }), { status: 400 }));
+
+            await expect(
+                listCrud.defaultObjectsDelete({ target: { app: "blog", model: "post" }, pks: ["1"] }),
+            ).rejects.toBeInstanceOf(FormValidationError);
+        });
+
+        scopedIt("throws ConfirmationRequiredError on 409", async () => {
+            const { ConfirmationRequiredError } = await import("@vueda/utils/errors.js");
+            getListUrl.mockReturnValue("/list");
+            const responseData = { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } };
+            captureDelete(new Response(JSON.stringify(responseData), { status: 409 }));
+
+            const error = await listCrud
+                .defaultObjectsDelete({ target: { app: "blog", model: "post" }, pks: ["1", "2"] })
+                .catch((e) => e);
+
+            expect(error).toBeInstanceOf(ConfirmationRequiredError);
+            expect(error.digest).toBe("d1");
+            expect(error.messages).toEqual({ count: ["unusual"] });
+        });
     });
 
-    scopedIt("defaultObjectsDelete sets Dry-Run header when requested", async () => {
-        const { defaultObjectsDelete } = listCrud;
-        const target = { app: "blog", model: "post" };
-        getListUrl.mockReturnValue("/list");
-        const response = { status: 204 };
-        cancellableFetch.mockImplementation((url, options, transform) => {
-            expect(options.headers["Dry-Run"]).toBe("true");
-            return Promise.resolve(transform(response));
+    describe("defaultListExecuteAction", () => {
+        scopedIt("sends the action to the list action url with the pks", async () => {
+            getListUrl.mockReturnValue("/list/archive/");
+            let captured;
+            cancellableFetch.mockImplementation((url, options, transform) => {
+                captured = { url, options };
+                return Promise.resolve(transform(new Response(JSON.stringify({ archived: 2 }), { status: 200 })));
+            });
+
+            const result = await listCrud.defaultListExecuteAction({
+                target: { app: "blog", model: "post" },
+                pks: ["1", "2"],
+                action: "archive",
+                requestMethod: "PATCH",
+                formData: { reason: "stale" },
+                dryRun: true,
+                acknowledgeWarnings: "d1",
+            });
+
+            expect(getListUrl).toHaveBeenCalledWith({ app: "blog", model: "post", action: "archive" });
+            expect(captured.options).toMatchObject({ method: "PATCH", credentials: "include" });
+            expect(captured.options.headers).toMatchObject({ "Dry-Run": "true", "Acknowledge-Warnings": "d1" });
+            expect(JSON.parse(captured.options.body)).toEqual({ pks: ["1", "2"], reason: "stale" });
+            expect(result).toEqual({ archived: 2 });
         });
-        await defaultObjectsDelete({ target, pks: ["1", "2"], dryRun: true });
-        expect(cancellableFetch).toHaveBeenCalled();
+
+        scopedIt("defaults to PUT", async () => {
+            getListUrl.mockReturnValue("/list/archive/");
+            let captured;
+            cancellableFetch.mockImplementation((url, options, transform) => {
+                captured = { url, options };
+                return Promise.resolve(transform(new Response(null, { status: 204 })));
+            });
+
+            await listCrud.defaultListExecuteAction({
+                target: { app: "blog", model: "post" },
+                pks: ["1"],
+                action: "archive",
+            });
+
+            expect(captured.options.method).toBe("PUT");
+        });
+
+        scopedIt("throws ConfirmationRequiredError on 409", async () => {
+            const { ConfirmationRequiredError } = await import("@vueda/utils/errors.js");
+            getListUrl.mockReturnValue("/list/archive/");
+            const responseData = { confirmation_required: true, digest: "d2", warnings: { count: ["unusual"] } };
+            cancellableFetch.mockImplementation((url, options, transform) =>
+                transform(new Response(JSON.stringify(responseData), { status: 409 })),
+            );
+
+            await expect(
+                listCrud.defaultListExecuteAction({
+                    target: { app: "blog", model: "post" },
+                    pks: ["1"],
+                    action: "archive",
+                }),
+            ).rejects.toBeInstanceOf(ConfirmationRequiredError);
+        });
     });
 
-    scopedIt("defaultObjectsDelete sets Acknowledge-Warnings header when a digest is acknowledged", async () => {
-        const { defaultObjectsDelete } = listCrud;
-        const target = { app: "blog", model: "post" };
-        getListUrl.mockReturnValue("/list");
-        const response = { status: 204 };
-        cancellableFetch.mockImplementation((url, options, transform) => {
-            expect(options.headers["Acknowledge-Warnings"]).toBe("d1");
-            return Promise.resolve(transform(response));
-        });
-        await defaultObjectsDelete({ target, pks: ["1", "2"], acknowledgeWarnings: "d1" });
-        expect(cancellableFetch).toHaveBeenCalled();
-    });
+    describe("setupDefaultListCrud", () => {
+        scopedIt("registers list, bulkDelete, and executeAction", async () => {
+            const rh = await import("@arrai-innovations/reactive-helpers");
 
-    scopedIt("defaultObjectsDelete omits Acknowledge-Warnings header when no digest is acknowledged", async () => {
-        const { defaultObjectsDelete } = listCrud;
-        const target = { app: "blog", model: "post" };
-        getListUrl.mockReturnValue("/list");
-        const response = { status: 204 };
-        cancellableFetch.mockImplementation((url, options, transform) => {
-            expect(options.headers["Acknowledge-Warnings"]).toBeUndefined();
-            return Promise.resolve(transform(response));
-        });
-        await defaultObjectsDelete({ target, pks: ["1", "2"] });
-        expect(cancellableFetch).toHaveBeenCalled();
-    });
+            listCrud.setupDefaultListCrud();
 
-    scopedIt("defaultObjectsDelete throws ConfirmationRequiredError on 409", async () => {
-        const { ConfirmationRequiredError } = await import("@vueda/utils/errors.js");
-        const { defaultObjectsDelete } = listCrud;
-        const target = { app: "blog", model: "post" };
-        getListUrl.mockReturnValue("/list");
-        const response = { status: 409 };
-        const responseData = { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } };
-        getJsonOrText.mockResolvedValue(responseData);
-        cancellableFetch.mockImplementation((url, options, transform) => transform(response));
-        const error = await defaultObjectsDelete({ target, pks: ["1", "2"] }).catch((e) => e);
-        expect(error).toBeInstanceOf(ConfirmationRequiredError);
-        expect(error.digest).toBe("d1");
-        expect(error.messages).toEqual({ count: ["unusual"] });
+            expect(rh.defaultListCrud.list).toBe(listCrud.singlePagePaginatedListCrudAdaptor);
+            expect(rh.defaultListCrud.bulkDelete).toBe(listCrud.defaultObjectsDelete);
+            expect(rh.defaultListCrud.executeAction).toBe(listCrud.defaultListExecuteAction);
+        });
     });
 });

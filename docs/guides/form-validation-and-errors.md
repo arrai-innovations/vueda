@@ -277,7 +277,7 @@ Because `confirm=True` gates before the body runs, any body-level validation err
 
 **Author warnings from pre-write state only.** A warning is a consent question, so it must be computable from the submitted input plus the current database state, before the write; every gate raises before anything is written. A condition you can only discover by performing the write (a protected foreign key, a constraint violation) is an error that aborts the transaction, not a warning. One write path is not gated: bulk/list-serializer create and update saves.
 
-**Client: actions and deletes confirm turnkey.** `useActionForm` handles the 409 the same way `useObjectForm` does: `ModelActionForm`'s `defaultRunAction` and `defaultObjectsDelete` raise `ConfirmationRequiredError`, the `confirmation` controller prompts, and a confirmed action reruns once with the `Acknowledge-Warnings` header set. Unlike object forms, `ActionForm` mounts the `FormConfirmDialog` itself, so `ViewAction`, `ViewDestroy`, and custom shells built on `ActionForm` need no extra markup for the confirm/cancel flow to work; rendering the warnings themselves is still the consumer's responsibility (see below). Only callers that use `useActionForm` without the `ActionForm` shell must render a dialog bound to the returned `confirmation` controller (or override its `onSubmissionWarningsRequireConfirmation` hook); without one, warned actions fail closed as cancelled with a console warning.
+**Client: actions and deletes confirm turnkey.** `useActionForm` handles the 409 the same way `useObjectForm` does: `useModelAction` through `ModelActionForm`, and `defaultObjectsDelete` for direct bulk-delete adapters, raise `ConfirmationRequiredError`; the `confirmation` controller prompts, and a confirmed action reruns once with the `Acknowledge-Warnings` header set. Unlike object forms, `ActionForm` mounts the `FormConfirmDialog` itself, so `ViewAction`, `ViewDestroy`, and custom shells built on `ActionForm` need no extra markup for the confirm/cancel flow to work; rendering the warnings themselves is still the consumer's responsibility (see below). Only callers that use `useActionForm` without the `ActionForm` shell must render a dialog bound to the returned `confirmation` controller (or override its `onSubmissionWarningsRequireConfirmation` hook); without one, warned actions fail closed as cancelled with a console warning.
 
 **Client: workflow transitions confirm the same way.** `storeWorkflow.executeTransition` maps a 409 to `ConfirmationRequiredError` and accepts an `acknowledgeWarnings` argument that it sends as the `Acknowledge-Warnings` header on a confirmed retry.
 
@@ -355,9 +355,6 @@ With the validation pipeline wired, verify these behaviors:
     - {@api vue:component:ActionForm}
     - {@api vue:component:ModelActionForm}
     - {@api vue:component:FormConfirmDialog}
-    - {@api vue:component:FieldWarningsList}
-    - {@api vue:component:ViewCreate}
-    - {@api vue:component:ViewUpdate}
     - {@api vue:component:FormMessage}
     - {@api vue:component:FieldMessage}
     - {@api vue:component:FieldDescription}

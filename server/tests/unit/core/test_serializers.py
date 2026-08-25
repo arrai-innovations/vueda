@@ -866,3 +866,41 @@ class TestSchemaExpandableFieldsAndFields:
 
         fields_param = parameters_by_name[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]
         assert "number_of_ordered_products" in fields_param["schema"]["items"]["enum"]
+
+
+class TestFieldDisplayChoices:
+    def test_get_field_model_info_applies_serializer_display_choices(self):
+        from vueda.info.serializers import ModelInfoSerializer
+
+        class _ProductSerializer(store_serializers.ProductSerializer):
+            field_display_choices: ClassVar[dict] = {
+                "disabled": {
+                    True: "Disabled",
+                    False: "Enabled",
+                    None: "Unknown",
+                },
+            }
+
+        fields = ModelInfoSerializer().get_model_fields_data(_ProductSerializer)
+        fields = _ProductSerializer().get_field_model_info(fields)
+
+        assert fields["disabled"]["choices"] is False
+        assert fields["disabled"]["display_choices"] == [
+            {"label": "Disabled", "value": True},
+            {"label": "Enabled", "value": False},
+            {"label": "Unknown", "value": None},
+        ]
+
+    def test_schema_fields_drop_display_choices(self):
+        class _ProductSerializer(store_serializers.ProductSerializer):
+            field_display_choices: ClassVar[dict] = {
+                "disabled": {
+                    True: "Disabled",
+                    False: "Enabled",
+                    None: "Unknown",
+                },
+            }
+
+        fields = _ProductSerializer().get_schema_fields()
+
+        assert "display_choices" not in fields["disabled"]

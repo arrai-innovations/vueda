@@ -1,7 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
-import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { FetchError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { defineComponent, h } from "vue";
 
@@ -145,23 +145,33 @@ vi.mock("vue-router", () => ({
     useRoute: () => ({ query: routeQuery }),
 }));
 
-const getListUrl = vi.fn(({ action }) => `/list-url/${action || ""}`);
-const getDetailUrl = vi.fn(({ pk, action }) => `/detail-url/${pk}/${action || ""}`);
-vi.mock("@vueda/utils/urls.js", () => ({ getListUrl, getDetailUrl }));
+/**
+ * A stand-in for a reactive-helpers instance, with the action verbs spied.
+ *
+ * @returns {object} The instance stub.
+ */
+function createInstanceStub() {
+    const state = { loading: false, errored: false, error: null };
+    return {
+        state,
+        clearError: vi.fn(),
+        bulkDelete: vi.fn(() => Promise.resolve(true)),
+        delete: vi.fn(() => Promise.resolve(true)),
+        executeAction: vi.fn(() => Promise.resolve({ ok: true })),
+    };
+}
 
-const getCSRFValue = vi.fn(() => "token");
-vi.mock("@vueda/utils/csrf.js", () => ({ getCSRFValue }));
-
-const fetchHelper = vi.fn((url, options, message, errorResolver) => {
-    if (fetchHelper.shouldReject) {
-        const response = fetchHelper.response || new Response(null, { status: 500 });
-        const data = fetchHelper.responseData;
-        const error = errorResolver(message, response, data);
-        return Promise.reject(error);
-    }
-    return Promise.resolve(fetchHelper.responseData);
+// `useModelAction` builds its own transport instances; stub the factories so this spec observes which
+// verb the component's action reaches, not the HTTP the handlers would send.
+const instanceStubs = { fallbackList: null, instanceObject: null };
+vi.mock("@arrai-innovations/reactive-helpers", async () => {
+    const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
+    return {
+        ...actual,
+        useListInstance: () => instanceStubs.fallbackList,
+        useObjectInstance: () => instanceStubs.instanceObject,
+    };
 });
-vi.mock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper }));
 
 vi.mock("@vueda/views/ActionForm.vue", () => ({ default: ActionFormStub }));
 vi.mock("@vueda/display/loading/LoadingSpinnerInline.vue", () => ({ default: LoadingSpinnerInlineStub }));
@@ -202,6 +212,7 @@ function mountModelActionForm(options = {}) {
             requestMethod: options.requestMethod,
             enableDryRun: options.enableDryRun,
             confirmText: options.confirmText,
+            instanceList: options.instanceList,
         },
         slots: options.slots,
         global: {
@@ -219,13 +230,8 @@ describe("lib/views/ModelActionForm.vue", () => {
         mockedUseTheme.mockClear();
         Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
-        getListUrl.mockClear();
-        getDetailUrl.mockClear();
-        getCSRFValue.mockClear();
-        fetchHelper.mockClear();
-        fetchHelper.shouldReject = false;
-        fetchHelper.responseData = undefined;
-        fetchHelper.response = undefined;
+        instanceStubs.fallbackList = createInstanceStub();
+        instanceStubs.instanceObject = createInstanceStub();
         routeQuery = {};
         modelConfig.info = { verboseName: "Person", verboseNamePlural: "People" };
         modelConfig.config = { actionRedirects: { default: "detail" } };
@@ -310,112 +316,91 @@ describe("lib/views/ModelActionForm.vue", () => {
         });
     });
 
-    describe("defaultRunAction", () => {
-        scopedIt("constructs bulk destroy request", async () => {
-            fetchHelper.responseData = { ok: true };
+    describe("Action routing", () => {
+        scopedIt("runs a bulk action through the supplied list", async () => {
+            const instanceList = createInstanceStub();
             const { wrapper } = mountModelActionForm({
                 fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] },
                 requestMethod: "PATCH",
+                instanceList,
             });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await runAction({});
-            expect(getListUrl).toHaveBeenCalledWith({ app: "app", model: "person", action: "activate" });
-            expect(fetchHelper).toHaveBeenCalledWith(
-                "/list-url/activate",
-                expect.objectContaining({ method: "PATCH" }),
-                "Failed to execute action",
-                expect.any(Function),
+
+            const result = await runAction({});
+
+            expect(instanceList.executeAction).toHaveBeenCalledWith(
+                expect.objectContaining({ action: "activate", pks: [1, 2], requestMethod: "PATCH" }),
             );
-            const body = JSON.parse(fetchHelper.mock.calls[0][1].body);
-            expect(body.pks).toEqual([1, 2]);
+            expect(result).toEqual({ ok: true });
         });
 
-        scopedIt("constructs detail request for single object", async () => {
-            fetchHelper.responseData = { ok: true };
+        scopedIt("falls back to a transport-only list when the caller supplies none", async () => {
+            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] } });
+            const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
+
+            await runAction({});
+
+            expect(instanceStubs.fallbackList.executeAction).toHaveBeenCalled();
+        });
+
+        scopedIt("runs a single-object action through the object instance", async () => {
             const { wrapper } = mountModelActionForm({
                 fetchState: { objectsInOrder: [{ id: 5 }] },
                 requestMethod: "POST",
             });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
+
             await runAction({});
-            expect(getDetailUrl).toHaveBeenCalledWith({ app: "app", model: "person", pk: 5, action: "activate" });
-            const opts = fetchHelper.mock.calls[0][1];
-            expect(opts.method).toBe("POST");
-            expect(opts.body).toBeUndefined();
+
+            expect(instanceStubs.instanceObject.executeAction).toHaveBeenCalledWith(
+                expect.objectContaining({ action: "activate", requestMethod: "POST" }),
+            );
         });
 
-        scopedIt("includes transformed submit data", async () => {
-            fetchHelper.responseData = { ok: true };
+        scopedIt("passes transformed submit data through as the request body", async () => {
             const transformSubmitDataFn = vi.fn(() => ({ custom: true }));
+            const instanceList = createInstanceStub();
             const { wrapper } = mountModelActionForm({
                 fetchState: { objectsInOrder: [{ id: 9 }, { id: 10 }] },
                 transformSubmitDataFn,
+                instanceList,
             });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
+
             await runAction({});
-            const body = JSON.parse(fetchHelper.mock.calls[0][1].body);
-            expect(body).toEqual({ pks: [9, 10], custom: true });
+
+            expect(instanceList.executeAction).toHaveBeenCalledWith(
+                expect.objectContaining({ formData: { custom: true } }),
+            );
             expect(transformSubmitDataFn).toHaveBeenCalled();
         });
 
-        scopedIt("returns FormValidationError for 400 responses", async () => {
-            fetchHelper.shouldReject = true;
-            fetchHelper.response = new Response(JSON.stringify({ field: ["bad"] }), { status: 400 });
-            fetchHelper.responseData = { field: ["bad"] };
+        scopedIt("rethrows an error the instance stored", async () => {
+            const failure = new FetchError("nope", new Response(null, { status: 500 }), {});
+            instanceStubs.instanceObject.executeAction.mockImplementation(() => {
+                instanceStubs.instanceObject.state.errored = true;
+                instanceStubs.instanceObject.state.error = failure;
+                return Promise.resolve(null);
+            });
             const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await expect(runAction({})).rejects.toBeInstanceOf(FormValidationError);
+
+            await expect(runAction({})).rejects.toBe(failure);
+            expect(instanceStubs.instanceObject.clearError).toHaveBeenCalled();
         });
 
-        scopedIt("returns ConfirmationRequiredError for 409 responses", async () => {
-            fetchHelper.shouldReject = true;
-            const responseData = { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } };
-            fetchHelper.response = new Response(JSON.stringify(responseData), { status: 409 });
-            fetchHelper.responseData = responseData;
-            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
-            const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            const error = await runAction({}).catch((e) => e);
-            expect(error).toBeInstanceOf(ConfirmationRequiredError);
-            expect(error.digest).toBe("d1");
-            expect(error.messages).toEqual({ count: ["unusual"] });
-        });
-
-        scopedIt("returns FetchError for other failures", async () => {
-            fetchHelper.shouldReject = true;
-            fetchHelper.response = new Response(null, { status: 500 });
-            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
-            const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await expect(runAction({})).rejects.toBeInstanceOf(FetchError);
-        });
-
-        scopedIt("adds Dry-Run header when performing dry run", async () => {
-            fetchHelper.responseData = { ok: true };
+        scopedIt("forwards the dry-run flag and an acknowledged warnings digest", async () => {
             const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 11 }] } });
 
             await wrapper.vm.defaultRunAction({ dryRun: true, formValues: {} });
-
-            const options = fetchHelper.mock.calls[0][1];
-            expect(options.headers["Dry-Run"]).toBe("true");
-        });
-
-        scopedIt("adds Acknowledge-Warnings header when a digest is acknowledged", async () => {
-            fetchHelper.responseData = { ok: true };
-            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 11 }] } });
+            expect(instanceStubs.instanceObject.executeAction).toHaveBeenLastCalledWith(
+                expect.objectContaining({ dryRun: true, acknowledgeWarnings: undefined }),
+            );
 
             await wrapper.vm.defaultRunAction({ formValues: {}, acknowledgeWarnings: "d1" });
-
-            const options = fetchHelper.mock.calls[0][1];
-            expect(options.headers["Acknowledge-Warnings"]).toBe("d1");
-        });
-
-        scopedIt("omits Acknowledge-Warnings header when no digest is acknowledged", async () => {
-            fetchHelper.responseData = { ok: true };
-            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 11 }] } });
-
-            await wrapper.vm.defaultRunAction({ formValues: {} });
-
-            const options = fetchHelper.mock.calls[0][1];
-            expect(options.headers["Acknowledge-Warnings"]).toBeUndefined();
+            expect(instanceStubs.instanceObject.executeAction).toHaveBeenLastCalledWith(
+                expect.objectContaining({ dryRun: false, acknowledgeWarnings: "d1" }),
+            );
         });
     });
 
