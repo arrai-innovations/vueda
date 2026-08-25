@@ -38,7 +38,8 @@ const warnings = computed(() => {
 });
 
 const onOpenChange = (open) => {
-    // Dismissing via Escape or the overlay is treated as a cancel.
+    // AlertDialogContent prevents outside interaction, so Escape is the only gesture (besides the
+    // Cancel button) that can report the dialog closed here; treat it as a cancel.
     if (!open) {
         props.controller.cancel();
     }

@@ -61,7 +61,7 @@ describe("lib/form/confirm/FormConfirmDialog.vue", () => {
         expect(controller.cancel).not.toHaveBeenCalled();
     });
 
-    scopedIt("resolves cancel when the dialog closes (Escape, overlay, or the Cancel button)", async () => {
+    scopedIt("calls controller.cancel when Reka reports the dialog closed", async () => {
         const controller = makeController({ messages: { count: ["unusual"] } });
         const wrapper = mount(FormConfirmDialog, { props: { controller }, global: { stubs } });
 
