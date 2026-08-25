@@ -14,6 +14,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Auth forms expose their supported programmatic update surface (AuthForm, AuthorizingForm, ViewSignIn)**:
+    - `AuthForm`, `AuthorizingForm`, and `ViewSignIn` now emit `form-context` on mount. The existing `form-object` event remains a readonly ref for observing current values, while `form-context.updateValue(name, value)` provides controlled programmatic updates.
+    - `ViewTwoFactorAuth` now uses the form context when its recovery-code toggle changes the selected method, avoiding Vue readonly-state warnings.
+      _Replace direct assignments through `form-object` with the corresponding form-context mutation method._
+
 - **Sonner toast descriptions, cancel buttons, and focus indicators follow the active color mode (Sonner)**:
     - Toast descriptions now use VUEDA's muted foreground token, cancel buttons use the secondary surface token, and close/action focus indicators use the VUEDA focus ring. This fixes low-contrast dark-mode descriptions and focus indicators that could disappear on dark surfaces.
       _Requires `@arrai-innovations/vue-sonner` >= 2.0.11. If you retone toast descriptions, set `--description-text` on `<Sonner>` instead of targeting `[data-description]`._

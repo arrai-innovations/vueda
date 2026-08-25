@@ -19,7 +19,7 @@ The form state system lives entirely on the client. The server owns data integri
 
 ## Form Context State Shape
 
-The form context, created by `useForm`, is a single reactive object with six state groups. All downstream consumers; field components, submit wrappers, feedback renderers; read from and mutate through this shared state.
+The form context, created by `useForm`, is a single reactive object with six state groups. It exposes `state` through Vue's `readonly()` so downstream consumers can observe shared form state without assigning into it directly. Field components, submit wrappers, and custom controls mutate that state through form-context methods such as `updateValue`, `deleteValue`, and `clearErrors`.
 
 **Values and initial values.** `state.values` holds the current field values. `state.initialValues` holds the baseline values used for reset and modification tracking. Both are mutated in-place using `assignReactiveObject`; they are never replaced with new objects, because doing so would break existing reactive references held by field components. When `initialValues` changes on the props passed to `useForm`, the form automatically resets: `state.values` is deep-cloned from the new initial values, and all errors, messages, touched, and focus state are cleared.
 
@@ -33,7 +33,7 @@ The separation between errors and messages is the mechanism that makes VUEDA's {
 
 **Ignored fields.** `state.ignored` is a path-keyed boolean map. Ignored fields are excluded from `state.submittingValues`, which is a computed property that omits ignored paths and compacts arrays when ignored items are array elements (bracket-keyed paths like `items[2]`). Ignored fields are also excluded from the modification check and from non-server error gating during submission.
 
-**Mutation methods** on the form context require non-empty path names; calling any mutation method without a name throws `"No name provided"`. This is a hard runtime invariant; it catches wiring errors where a field component mounts without a `name` prop.
+**Mutation methods** are the supported write boundary. `updateValue(name, value)` and `deleteValue(name)` change current values; corresponding methods manage initial values, validation feedback, touched state, and focus. These methods require non-empty path names; calling a named mutation method without a name throws `"No name provided"`. This is a hard runtime invariant that catches wiring errors where a field component mounts without a `name` prop.
 
 ## Field Context Responsibilities
 
