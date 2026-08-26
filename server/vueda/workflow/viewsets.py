@@ -82,7 +82,16 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         return super().dispatch(request, *args, **kwargs)
 
     def check_permissions(self, request):
-        # you need Workflow read permission to get / list / action the workflow, at minimum
+        # permitted_transitions reports an empty transition set for a model with no configured
+        # workflow, so a user reading that model doesn't need workflow read permission to reach
+        # that response. Every other action requires a workflow, so it always requires
+        # read_workflow, at minimum.
+        if self.action == "permitted_transitions":
+            try:
+                self.get_workflow()
+            except Http404:
+                return super().check_permissions(request)
+
         if not request.user.has_perm("vueda_workflow.read_workflow"):
             raise PermissionDenied("You do not have permission to perform this action.")
         return super().check_permissions(request)

@@ -147,11 +147,13 @@ Verify the warning-confirmation gate: when a model overrides `get_transition_war
 
 **`object-state`** returns `403` when the user lacks object `read_*` permission for the target instance. The permission codename uses `PERMISSION_NAMES_MAPPING["read"]` when configured.
 
-**`permitted_transitions`** returns an empty list when the workflow does not exist for the given `app_label/model` pair. It returns `403` when the user lacks `vueda_workflow.read_workflow` or workflow-level permissions.
+**`permitted_transitions`** returns an empty list when the workflow does not exist for the given `app_label/model` pair, without requiring `vueda_workflow.read_workflow`; it still requires the user to hold the target model's `read` permission. When a workflow exists for the pair, it returns `403` when the user lacks `vueda_workflow.read_workflow` or workflow-level permissions.
 
 **`execute_transition`** returns `400` for all execution failures (permission denied, invalid transition, lock failure), in validation-style format rather than HTTP authorization-style. It returns `409` instead when `get_transition_warnings` reports unacknowledged warnings; that check runs after the `400` checks and before any write, so blocking failures still take precedence over the warning gate.
 
 All workflow endpoints require `vueda_workflow.read_workflow` at the viewset permission-check phase. This check runs before any object-specific or transition-specific logic. Test that users without this base permission receive a `403` response on all workflow endpoints.
+
+`permitted_transitions` is the one exception: when the target model has no configured workflow, the viewset skips the `read_workflow` gate and falls through to the target model's own `read` permission check, so the endpoint can report "no transitions" to any user who can read the model. This exception does not apply once a workflow is configured for the model; `read_workflow` is required from that point on.
 
 ## Known Limitations and Gaps
 

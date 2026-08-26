@@ -121,6 +121,8 @@ public-facing documentation baseline.
     - Submitting non-mapping data to `UserSerializer` on create — for example, a bare primary key sent through a writable nested or expanded user field — now returns the base serializer's standard "Expected a dictionary" DRF validation error instead of raising an unhandled `AttributeError`.
 - **Sparse field requests and `formatted_name`**:
     - Requests scoped to a subset of fields via `FIELDS_PARAM`/`OMIT_PARAM` no longer reject `formatted_name` as an invalid submitted field. `formatted_name` is a virtual, model-computed field and is now always accepted regardless of the requested field subset.
+- **`permitted_transitions` for models without a workflow**:
+    - `WorkflowViewSet.permitted_transitions` no longer requires `vueda_workflow.read_workflow` when the requested `app_label/model` pair has no configured workflow. A user who can read that model now gets `200` with an empty transition list instead of `403`. `read_workflow` is still required whenever a workflow is configured for the model, and every other workflow endpoint is unchanged.
 
 ## v3.0.0a0 (2026-05-27)
 
