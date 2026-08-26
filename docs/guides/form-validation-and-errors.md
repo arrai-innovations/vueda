@@ -289,8 +289,6 @@ Because `confirm=True` gates before the body runs, any body-level validation err
 
 **Client: rendering warnings is the consuming view's job, not `FormConfirmDialog`'s.** `FormConfirmDialog`'s default `warnings` slot content has no opinion about the mapping's shape: it flattens every value into a plain list of messages, whether the mapping is field-keyed, or object-id-keyed. It never resolves a field name or an object id into anything meaningful — a view that wants shape-aware rendering overrides the `warnings` slot itself.
 
-This default is already correct, not just a fallback, for the aggregate shape a targetless action returns. `gate_warnings(request, {"non_field_errors": ["This customer has an overdue balance."]})` needs no view override at all: `FormConfirmDialog` flattens that mapping's one value into the same one-item message list, so it renders properly with zero customization. The components below exist to make bulk and field-labeled warnings legible — grouping by object, labeling by field.
-
 {@api vue:component:FieldWarningsList} renders the one shape every warnings source above produces for a single object: `{field: [messages]}`, with `non_field_errors` first as a plain, unlabeled list, then each other field either inline (`field: message`) for a single message or as its own sub-header plus list for more than one. It has no notion of object identity; it only ever renders one object's field-keyed warnings.
 
 - `ViewCreate` and `ViewUpdate` are always single-object, so they override `FormConfirmDialog`'s `warnings` slot to render `FieldWarningsList` directly:

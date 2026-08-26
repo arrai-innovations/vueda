@@ -364,8 +364,7 @@ const resolveWarningGroups = (warnings) => {
             shape, so this renders both identically: each group's display name resolves via the same
             WidgetReadOnly link used by the selected-objects list above (omitted for the single,
             unkeyed group), and each group's own field-messages mapping renders via
-            `FieldWarningsList`, the same component ActionForm renders by default for a
-            single-object action's warnings. The `warning-entry` slot forwards to every group's
+            `FieldWarningsList. The `warning-entry` slot forwards to every group's
             `FieldWarningsList`, with `pk` added to its scope (`undefined` for the single, unkeyed
             group) so a consumer can tell which warned object it's rendering for.
         -->
