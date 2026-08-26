@@ -5,7 +5,6 @@ from types import SimpleNamespace
 
 import pytest
 from celery.exceptions import Ignore
-from django.test import override_settings
 from django.utils import timezone
 
 from vueda.vdq.celery import setup_periodic_tasks
@@ -349,8 +348,10 @@ def test_send_message_email_invokes_send_email(monkeypatch, email_queue_item):
     assert calls == [email_queue_item.pk]
 
 
-@override_settings(TWILIO_ACCOUNT_SID="sid", TWILIO_WEBHOOK_URL="")
-def test_setup_periodic_tasks_adds_status_check(monkeypatch):
+def test_setup_periodic_tasks_adds_status_check(settings, monkeypatch):
+    settings.TWILIO_ACCOUNT_SID = "sid"
+    settings.TWILIO_WEBHOOK_URL = ""
+
     dummy_twilio = SimpleNamespace()
     monkeypatch.setitem(sys.modules, "twilio", dummy_twilio)
 

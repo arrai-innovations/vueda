@@ -264,6 +264,39 @@ The key differences from CRUDL forms:
 
 Validation in hand-authored forms uses the same `FormField` props as CRUDL forms: `required`, `maxLength`, `minLength`, and `patternRegex` (available when `validation="text"` is set). Server-side validation errors are mapped by field name; if the server returns `{ "email": ["This field is required."] }`, the error surfaces on the `FormField` with `name="email"`.
 
+### Update Form Values Programmatically
+
+`AuthForm`, `AuthorizingForm`, and `ViewSignIn` emit two form-related events on mount. The `form-object` event provides a readonly ref for observing current values. The `form-context` event provides the form context, including the supported `updateValue(name, value)` mutation method.
+
+Capture the form context when a custom control needs to fill or replace field values:
+
+```vue
+<script setup>
+import ViewSignIn from "@vueda/views/ViewSignIn.vue";
+
+let formContext = null;
+
+const handleFormContext = (context) => {
+    formContext = context;
+};
+
+const fillCredentials = () => {
+    formContext?.updateValue("email", "demo@example.com");
+    formContext?.updateValue("password", "example-password");
+};
+</script>
+
+<template>
+    <ViewSignIn @form-context="handleFormContext">
+        <template #suffix>
+            <button type="button" @click="fillCredentials">Use demo credentials</button>
+        </template>
+    </ViewSignIn>
+</template>
+```
+
+Do not assign properties through the ref emitted by `form-object`. Its value comes from the form context's readonly state and Vue will reject the write.
+
 ## Verification Checklist
 
 After building auth views, verify the following:

@@ -14,6 +14,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Auth forms expose their supported programmatic update surface (AuthForm, AuthorizingForm, ViewSignIn)**:
+    - `AuthForm`, `AuthorizingForm`, and `ViewSignIn` now emit `form-context` on mount. The existing `form-object` event remains a readonly ref for observing current values, while `form-context.updateValue(name, value)` provides controlled programmatic updates.
+    - `ViewTwoFactorAuth` now uses the form context when its recovery-code toggle changes the selected method, avoiding Vue readonly-state warnings.
+      _Replace direct assignments through `form-object` with the corresponding form-context mutation method._
+
 - **Model metadata composables stay scoped to their app's Pinia instance (useModelInfo, useModelConfig, useModelChoices, useLookupContext)**:
     - These composables now resolve their stores during setup, so pages that host multiple Vue apps keep model metadata requests scoped to the app that created the composable.
       _No action required for component usage. If you create these composables outside a component, call them while the intended Pinia instance is active._
@@ -372,6 +377,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - Selecting an option in an API-backed `WidgetCombobox` left the search box showing the raw value instead of the label. An API-backed `WidgetCombobox` now starts with a blank search box every time it opens and lists the full result set, while a static-mode combobox still pre-fills the search box with the selected option on open.
     - Clearing the search box in an open, API-backed `WidgetCombobox` after selecting a value now reloads the full result list. Previously, clearing the search box left the list pinned to just the selected option until a different search term was typed.
       _No action required._
+
+- **Tabular inline columns show their field labels again (FieldSetTabularInline)**:
+    - `FieldSetTabularInline` forwards a `header(fieldName)` slot to `ObjectsGrid` for every editable field, and its default content was empty, so table columns and card rows rendered unlabeled even when the field descriptors carried labels. The default now renders the field descriptor's `label` in both layouts, matching the `ObjectsGrid` header defaults (in card layout the label keeps the card header class and the `data-card-header` attribute). A supplied `header(fieldName)` slot still replaces the label entirely, and the synthetic item-action column stays unlabeled.
+      _No action required. If you added a `header(fieldName)` slot only to restore a missing label, you can drop it._
 
 ## Public Baseline
 

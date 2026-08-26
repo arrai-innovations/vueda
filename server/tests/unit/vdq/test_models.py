@@ -160,9 +160,10 @@ def test_queue_item_on_transition_retry_resets_task(monkeypatch, sender, receive
     assert queue_item.result == ""
 
 
-@override_settings(VDQ_MAX_FILES_AGE_IN_SECONDS=0)
 @pytest.mark.django_db
-def test_queue_item_on_transition_done_triggers_file_cleanup(monkeypatch, sender, receiver, email_queue_item):
+def test_queue_item_on_transition_done_triggers_file_cleanup(settings, monkeypatch, sender, receiver, email_queue_item):
+    settings.VDQ_MAX_FILES_AGE_IN_SECONDS = 0
+
     email_queue_item.fast_transition("send")
     email_queue_item.fast_transition("await")
     email_queue_item.fast_transition("succeed")
@@ -179,9 +180,10 @@ def test_queue_item_on_transition_done_triggers_file_cleanup(monkeypatch, sender
     assert delete_calls == [True]
 
 
-@override_settings(VDQ_MAX_FILES_AGE_IN_SECONDS=0)
 @pytest.mark.django_db
-def test_queue_item_on_transition_dry_run_skips_file_cleanup(monkeypatch, sender, receiver, email_queue_item):
+def test_queue_item_on_transition_dry_run_skips_file_cleanup(settings, monkeypatch, sender, receiver, email_queue_item):
+    settings.VDQ_MAX_FILES_AGE_IN_SECONDS = 0
+
     email_queue_item.fast_transition("send")
     email_queue_item.fast_transition("await")
     email_queue_item.fast_transition("succeed")

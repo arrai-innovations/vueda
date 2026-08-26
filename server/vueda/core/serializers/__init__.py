@@ -207,12 +207,13 @@ class ExcludeFieldsSerializerMixin:
         kwargs = super().get_extra_kwargs()
         action = self.context["view"].action
         for exclude_actions in [["create"], ["update", "partial_update"]]:
-            for exclude_action in exclude_actions:
-                exclude_for = getattr(self.Meta, f"exclude_{exclude_actions[0]}_fields", None)
-                if action in exclude_action and exclude_for:
-                    for field in exclude_for:
-                        kwargs.setdefault(field, {})
-                        kwargs[field]["read_only"] = True
+            # Membership in the action list, not containment in one action's name: an extra action named
+            # "partial" is not a partial_update, and must not inherit its exclusions.
+            exclude_for = getattr(self.Meta, f"exclude_{exclude_actions[0]}_fields", None)
+            if action in exclude_actions and exclude_for:
+                for field in exclude_for:
+                    kwargs.setdefault(field, {})
+                    kwargs[field]["read_only"] = True
         return kwargs
 
 
