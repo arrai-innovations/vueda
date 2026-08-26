@@ -14,6 +14,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
+import omit from "lodash-es/omit.js";
 import { computed, onMounted, provide, readonly, toRef, useSlots } from "vue";
 
 /**
@@ -289,7 +290,10 @@ onMounted(() => {
                     :widget-props="instance.computedWidgetProps"
                     v-bind="instance.combinedFormProps"
                 >
-                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                    <template
+                        v-for="(_, slot) in omit(slots, ['form-confirm-dialog-warnings', 'warning-entry'])"
+                        #[slot]="slotProps"
+                    >
                         <slot :name="slot" v-bind="slotProps || {}" />
                     </template>
                 </form-model>
