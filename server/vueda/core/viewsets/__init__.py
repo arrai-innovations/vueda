@@ -72,33 +72,45 @@ class WarningConfirmationMixin:
       ``perform_create``/``perform_update``. A serializer without ``get_warnings`` (including a
       ``ListSerializer`` wrapping a Vueda serializer, i.e. bulk writes) is skipped, so warnings on
       bulk/list saves are not surfaced.
-    - ``destroy``, ``activate``, and ``deactivate`` (single and bulk): the viewset-level
-      ``get_warnings(action, objs)`` hook, called by ``VuedaViewSet.destroy`` and
-      ``DeactivateActionViewSetMixin``. The hook should return the aggregate shape for a
-      single-object request or the per-object shape for a bulk request; see its docstring.
+    - ``destroy``, ``activate``, and ``deactivate`` (single and bulk): ``get_warnings_for_object``
+      for a single object, and ``get_warnings`` for a bulk request; called by
+      ``VuedaViewSet.destroy`` and ``DeactivateActionViewSetMixin``. See their docstrings.
     """
 
-    def get_warnings(self, action, objs):
+    def get_warnings_for_object(self, action, obj):
         """
-        Viewset-level warnings hook for actions that write without a per-object serializer.
+        Single-object warnings hook for actions that write without a per-object serializer.
 
         ``action`` is the action name string (``"destroy"``, ``"activate"``, or ``"deactivate"``)
-        and ``objs`` is the affected instances: a one-element tuple for a single-object request, or
-        a queryset for a bulk request:
+        and ``obj`` is the single affected instance. Return the aggregate ``{field: [messages]}``
+        shape (the same shape the serializer-level ``get_warnings()`` returns; use
+        ``"non_field_errors"`` for a warning not tied to a field).
 
-        - A single-object request returns the aggregate ``{field: [messages]}`` shape (the same
-          shape the serializer-level ``get_warnings()`` returns; use ``"non_field_errors"`` for a
-          warning not tied to a field).
-        - A bulk request returns the per-object ``{object_id: {field: [messages]}}`` shape
-          instead, one entry per warned object keyed by ``str(pk)``, so the client can attribute
-          each warning back to its object.
-
-        This mirrors ``get_transition_warnings``, which enforces the same split for workflow
-        transitions.
+        Called directly for a single-object request. The default ``get_warnings`` below also calls
+        this once per instance for a bulk request, keying each result by object id, so overriding
+        this hook alone gates both the single-object and bulk forms of ``action`` with the same
+        rule -- override ``get_warnings`` instead only if bulk needs different or bulk-optimized
+        logic.
 
         The default returns ``{}``, meaning no confirmation is required.
         """
         return {}
+
+    def get_warnings(self, action, objs):
+        """
+        Bulk warnings hook for actions that write without a per-object serializer.
+
+        ``action`` is the action name string (``"destroy"``, ``"activate"``, or ``"deactivate"``)
+        and ``objs`` is a queryset of the affected instances for a bulk request. Return the
+        per-object ``{object_id: {field: [messages]}}`` shape, one entry per warned object keyed
+        by ``str(pk)``, so the client can attribute each warning back to its object.
+
+        The default calls ``get_warnings_for_object(action, obj)`` once per instance in ``objs``
+        and keys each non-empty result by ``str(obj.pk)``. Override ``get_warnings_for_object``
+        instead unless bulk needs its own logic (for example a single bulk-optimized query rather
+        than one check per instance).
+        """
+        return {str(obj.pk): warnings for obj in objs if (warnings := self.get_warnings_for_object(action, obj))}
 
     def _gate_warnings(self, serializer):
         get_warnings = getattr(serializer, "get_warnings", None)
@@ -541,7 +553,7 @@ class DeactivateActionViewSetMixin:
     """
     A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
 
-    Both actions consult the viewset-level ``get_warnings(action, objs)`` hook (provided by
+    Both actions consult ``get_warnings_for_object``/``get_warnings`` (provided by
     ``WarningConfirmationMixin``, so any ``VuedaViewSet``) after validation and before the write,
     gating the write behind a 409 confirmation when warnings are reported.
     """
@@ -557,7 +569,7 @@ class DeactivateActionViewSetMixin:
                 )
             if not instance.is_active:
                 raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
-            gate_warnings(request, self.get_warnings("deactivate", (instance,)))
+            gate_warnings(request, self.get_warnings_for_object("deactivate", instance))
             instance.is_active = False
             instance.save()
             return Response(
@@ -607,7 +619,7 @@ class DeactivateActionViewSetMixin:
             if instance.is_active:
                 raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already activated"]})
 
-            gate_warnings(request, self.get_warnings("activate", (instance,)))
+            gate_warnings(request, self.get_warnings_for_object("activate", instance))
             instance.is_active = True
             instance.save()
             return Response(
@@ -659,9 +671,10 @@ class VuedaViewSet(
     - Row-level and workflow-aware list filtering (``ListRowLevelViewSetMixin``)
     - Bulk delete with dry-run support
     - Override ``destroy_validation`` to add pre-delete business rules.
-    - Override ``get_warnings(action, objs)`` (from ``WarningConfirmationMixin``) to gate
+    - Override ``get_warnings_for_object`` (from ``WarningConfirmationMixin``) to gate
       single and bulk ``destroy`` (and ``activate``/``deactivate`` when
-      ``DeactivateActionViewSetMixin`` is mixed in) behind a 409 confirmation.
+      ``DeactivateActionViewSetMixin`` is mixed in) behind a 409 confirmation with the same rule
+      for both; override ``get_warnings`` instead if bulk needs its own logic.
     """
 
     detail_args = ["pk"]
@@ -703,7 +716,7 @@ class VuedaViewSet(
         if pk:
             instance = self.get_object()
             self.destroy_validation((instance,))
-            gate_warnings(request, self.get_warnings("destroy", (instance,)))
+            gate_warnings(request, self.get_warnings_for_object("destroy", instance))
             if dry_run:
                 return Response(status=status.HTTP_200_OK)
             self.perform_destroy(instance)

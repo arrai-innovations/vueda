@@ -139,7 +139,7 @@ def gate_warnings(request, warnings):
     ``{object_id: {field: [messages]}}`` mapping, one entry per warned object keyed by ``str(pk)``,
     for a write affecting more than one object. Use ``"non_field_errors"`` for a warning not tied
     to a field; a warning with no object to attribute it to at all (a write with no natural object,
-    or one affecting a single object) still should returns the aggregate shape, e.g.
+    or one affecting a single object) still uses the aggregate shape, e.g.
     ``{"non_field_errors": [...]}``. This gate only checks ``warnings`` for truthiness and digests
     it as opaque JSON — it does not itself validate the shape — but a caller that returns anything
     else is opting out of the default warnings rendering and must supply its own client-side

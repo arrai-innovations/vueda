@@ -22,18 +22,14 @@ class ThingViewSet(VuedaViewSet):
         if errors:
             raise VuedaValidationError(errors)
 
-    def get_warnings(self, action, objs):
+    def get_warnings_for_object(self, action, obj):
         # Viewset-level warnings: destroying a thing that still has a positive count is unusual.
-        # A bulk destroy attributes each warning back to its object id; a single-object destroy
-        # returns the aggregate shape directly, mirroring get_transition_warnings.
-        if action != "destroy":
-            return {}
-        flagged = [obj for obj in objs if obj.count > 0]
-        if not flagged:
-            return {}
-        if len(objs) == 1:
-            return {"non_field_errors": [f"{obj.name} still has a positive count." for obj in flagged]}
-        return {str(obj.pk): {"non_field_errors": [f"{obj.name} still has a positive count."]} for obj in flagged}
+        # This single-object hook is reused for both single-object and bulk destroy: the default
+        # get_warnings(action, objs) calls it once per object in a bulk request and keys each
+        # result by object id, so the same rule applies whether one object or many are destroyed.
+        if action == "destroy" and obj.count > 0:
+            return {"non_field_errors": [f"{obj.name} still has a positive count."]}
+        return {}
 
     @action(detail=True, methods=["post"], confirm=True)
     def reset_count(self, request, pk=None):
@@ -74,16 +70,10 @@ class GadgetViewSet(DeactivateActionViewSetMixin, VuedaViewSet):
     serializer_class = my_serializers.GadgetSerializer
     permission_classes = (AllowAny,)
 
-    def get_warnings(self, action, objs):
-        # Viewset-level warnings: toggling a critical gadget deserves a second look.
-        # A bulk activate/deactivate attributes each warning back to its object id; a
-        # single-object request returns the aggregate shape directly, mirroring
-        # get_transition_warnings.
-        if action not in ("activate", "deactivate"):
-            return {}
-        flagged = [obj for obj in objs if obj.name.startswith("critical")]
-        if not flagged:
-            return {}
-        if len(objs) == 1:
-            return {"non_field_errors": [f"{obj.name} is critical." for obj in flagged]}
-        return {str(obj.pk): {"non_field_errors": [f"{obj.name} is critical."]} for obj in flagged}
+    def get_warnings_for_object(self, action, obj):
+        # Viewset-level warnings: toggling a critical gadget deserves a second look. Reused for
+        # both single-object and bulk activate/deactivate; see
+        # ThingViewSet.get_warnings_for_object.
+        if action in ("activate", "deactivate") and obj.name.startswith("critical"):
+            return {"non_field_errors": [f"{obj.name} is critical."]}
+        return {}
