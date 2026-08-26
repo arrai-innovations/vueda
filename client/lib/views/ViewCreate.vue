@@ -13,6 +13,7 @@ import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewCreate } from "@vueda/use/useViewCreate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
+import omit from "lodash-es/omit.js";
 import { onMounted, toRef } from "vue";
 
 /**
@@ -164,7 +165,10 @@ onMounted(() => {
                     :view="'create'"
                     :widget-props="props.widgetProps"
                 >
-                    <template v-for="(_, slot) in $slots" #[slot]="slotProps">
+                    <template
+                        v-for="(_, slot) in omit($slots, ['form-confirm-dialog-warnings', 'warning-entry'])"
+                        #[slot]="slotProps"
+                    >
                         <slot :name="slot" v-bind="slotProps || {}" />
                     </template>
                 </form-model>
