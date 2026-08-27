@@ -613,4 +613,93 @@ describe("TypeDocNormalizer", () => {
         expect(typeNode.members[1].type.name).toBe("SpotName[]");
         expect(typeNode.typeDefinition).toBeUndefined();
     });
+
+    it("captures reflected object members on function parameters", async () => {
+        const normalizer = new TypeDocNormalizer();
+        const payload = {
+            name: "vueda",
+            children: [
+                {
+                    id: 1,
+                    name: "actions",
+                    kind: 2,
+                    children: [
+                        {
+                            id: 2,
+                            name: "runAction",
+                            kind: 64,
+                            comment: { summary: [{ kind: "text", text: "Run an action." }] },
+                            signatures: [
+                                {
+                                    id: 3,
+                                    name: "runAction",
+                                    parameters: [
+                                        {
+                                            id: 4,
+                                            name: "options",
+                                            flags: {},
+                                            comment: {
+                                                summary: [{ kind: "text", text: "Action options." }],
+                                            },
+                                            type: {
+                                                type: "reflection",
+                                                declaration: {
+                                                    id: 5,
+                                                    kind: 65536,
+                                                    children: [
+                                                        {
+                                                            id: 6,
+                                                            name: "dryRun",
+                                                            kind: 1024,
+                                                            comment: {
+                                                                summary: [
+                                                                    {
+                                                                        kind: "text",
+                                                                        text: "Validate without writing.",
+                                                                    },
+                                                                ],
+                                                            },
+                                                            type: { type: "intrinsic", name: "boolean" },
+                                                        },
+                                                        {
+                                                            id: 7,
+                                                            name: "digest",
+                                                            kind: 1024,
+                                                            flags: { isOptional: true },
+                                                            type: { type: "intrinsic", name: "string" },
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                        },
+                                    ],
+                                    type: { type: "intrinsic", name: "void" },
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const output = normalizer.normalize(payload);
+        await assertCanonical(output);
+
+        const fnNode = output.nodes.find((n) => n.name === "runAction");
+        const members = fnNode.signatures[0].parameters[0].members;
+        expect(members).toHaveLength(2);
+        expect(fnNode.signatures[0].parameters[0].description).toBe("Action options.");
+        expect(members[0]).toMatchObject({
+            name: "dryRun",
+            kind: "property",
+            type: { name: "boolean" },
+            description: "Validate without writing.",
+        });
+        expect(members[1]).toMatchObject({
+            name: "digest",
+            kind: "property",
+            type: { name: "string" },
+            required: false,
+        });
+    });
 });

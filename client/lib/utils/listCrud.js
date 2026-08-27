@@ -14,7 +14,7 @@ import pLimit from "p-limit";
 /**
  * Make a search params string from the given search params object.
  *
- * @param searchParams {object} - The search params object.
+ * @param {object} searchParams - The search params object.
  * @returns {string} - The search params string.
  */
 export const makeSearchParamsString = (searchParams) => {
@@ -106,16 +106,16 @@ export function singlePagePaginatedListCrudAdaptor({
 /**
  * The VUEDA specific implementation for reactive-helper's list crud function, for all pages.
  *
- * @param args {object} - The arguments object.
- * @param args.target {{
+ * @param {object} args - The arguments object.
+ * @param {{
  *     app: string,
  *     model: string,
  *     pk?: string,
  *     action?: string,
  *     resultsKey?: string,
- * }} - VUEDA specific arguments for the CRUD operation. `resultsKey` is the response key holding the array of
+ * }} args.target - VUEDA specific arguments for the CRUD operation. `resultsKey` is the response key holding the array of
  *  objects (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
- * @param args.params {{ [p]: number }} - The querystring parameters for the list operation.
+ * @param {{ [p]: number }} args.params - The querystring parameters for the list operation.
  * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
  * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
  * @param {import('vue').Ref<boolean>} args.isCancelled - Reactive flag indicating the request was cancelled.

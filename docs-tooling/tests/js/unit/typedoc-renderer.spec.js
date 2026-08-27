@@ -538,6 +538,80 @@ describe("renderTypeDocBundle with linked parameter type", () => {
     });
 });
 
+const payloadWithObjectParameter = {
+    name: "vueda",
+    children: [
+        {
+            id: 1,
+            name: "actions",
+            kind: 2,
+            children: [
+                {
+                    id: 2,
+                    name: "runAction",
+                    kind: 64,
+                    comment: { summary: [{ kind: "text", text: "Run an action." }] },
+                    signatures: [
+                        {
+                            id: 3,
+                            name: "runAction",
+                            parameters: [
+                                {
+                                    id: 4,
+                                    name: "options",
+                                    flags: {},
+                                    comment: { summary: [{ kind: "text", text: "Action options." }] },
+                                    type: {
+                                        type: "reflection",
+                                        declaration: {
+                                            id: 5,
+                                            kind: 65536,
+                                            children: [
+                                                {
+                                                    id: 6,
+                                                    name: "dryRun",
+                                                    kind: 1024,
+                                                    comment: {
+                                                        summary: [
+                                                            {
+                                                                kind: "text",
+                                                                text: "Validate without writing.",
+                                                            },
+                                                        ],
+                                                    },
+                                                    type: { type: "intrinsic", name: "boolean" },
+                                                },
+                                            ],
+                                        },
+                                    },
+                                },
+                            ],
+                            type: { type: "intrinsic", name: "void" },
+                        },
+                    ],
+                    sources: [{ fileName: "client/lib/actions.js", line: 20 }],
+                },
+            ],
+        },
+    ],
+};
+
+describe("renderTypeDocBundle with reflected object parameters", () => {
+    function buildOutputsWithObjectParameter() {
+        const bundle = new TypeDocNormalizer().normalize(payloadWithObjectParameter);
+        return renderTypeDocBundle(bundle);
+    }
+
+    it("renders parameter object properties below the parameter table", () => {
+        const outputs = buildOutputsWithObjectParameter();
+        const page = outputs.get("js/actions/functions/runAction.md");
+        expect(page).toBeDefined();
+        expect(page).toContain("#### options Properties");
+        expect(page).toContain("| dryRun | `boolean` |");
+        expect(page).toContain("Validate without writing.");
+    });
+});
+
 const payloadWithProperty = {
     name: "vueda",
     children: [

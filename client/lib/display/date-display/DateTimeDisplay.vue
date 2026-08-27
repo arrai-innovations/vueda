@@ -101,8 +101,8 @@ const absolute = computed(() => {
 updateRelative();
 
 /**
- * @param value {DateTime}
- * @param format {string|Object}
+ * @param {DateTime} value
+ * @param {string|Object} format
  * @returns {string}
  */
 const toLocaleStringORToFormat = (value, format) => {
