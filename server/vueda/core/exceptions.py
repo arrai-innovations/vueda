@@ -134,16 +134,17 @@ def gate_warnings(request, warnings):
     """
     Withhold a write behind an explicit confirmation when ``warnings`` is non-empty.
 
-    ``warnings`` must be one of two shapes, chosen by whether the write affects one object or
-    many: an aggregate ``{field: [messages]}`` mapping for a single object, or a per-object
-    ``{object_id: {field: [messages]}}`` mapping, one entry per warned object keyed by ``str(pk)``,
-    for a write affecting more than one object. Use ``"non_field_errors"`` for a warning not tied
-    to a field; a warning with no object to attribute it to at all (a write with no natural object,
-    or one affecting a single object) still uses the aggregate shape, e.g.
-    ``{"non_field_errors": [...]}``. This gate only checks ``warnings`` for truthiness and digests
-    it as opaque JSON — it does not itself validate the shape — but a caller that returns anything
-    else is opting out of the default warnings rendering and must supply its own client-side
-    rendering to interpret it.
+    ``warnings`` must be one of two shapes, chosen by the request path: the aggregate
+    ``{field: [messages]}`` mapping for a single-object (detail) request, or no natural object to
+    attribute a warning to at all, or the per-object ``{object_id: {field: [messages]}}`` mapping,
+    one entry per warned object keyed by ``str(pk)``, for a bulk request. Use
+    ``"non_field_errors"`` for a warning not tied to a field.
+
+    This gate only checks ``warnings`` for truthiness and digests it as opaque JSON — it does not
+    itself validate the shape — but a custom caller that returns the aggregate shape for a bulk
+    request breaks ``ModelActionForm``'s client-side object attribution: it groups a bulk action's
+    warnings into one display group per object id, and only falls back to a single unkeyed group
+    for a single-object action.
 
     When ``warnings`` is falsy this returns immediately. Otherwise the digest from
     ``compute_warnings_digest`` is compared against the request's ``Acknowledge-Warnings`` header:
