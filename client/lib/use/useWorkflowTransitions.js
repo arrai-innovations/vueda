@@ -3,9 +3,11 @@
  * @description Fetches and reactively tracks the available workflow transitions for a given app and model.
  */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { storeUser } from "@vueda/stores/storeUser.js";
 import { getUsingVuedaWorkflow, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
+import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
 import { reactive, readonly, ref, toRef, watch } from "vue";
 
 /**
@@ -50,11 +52,13 @@ export function useWorkflowTransitions(app, model, isActive) {
         isActive = useIsActive();
     }
     const workflowStore = storeWorkflow();
+    const userStore = storeUser();
     const internalState = reactive({
         app,
         model,
         lastSetKey: ref(null),
         lastFetchedKey: ref(null),
+        lastIdentityGeneration: ref(userStore.identityGeneration),
         workflowTransitions: toRef(workflowStore, "workflowTransitions"),
     });
     const returnObject = reactive(
@@ -67,8 +71,21 @@ export function useWorkflowTransitions(app, model, isActive) {
         },
     );
     watch(
-        [isActive, toRef(internalState, "app"), toRef(internalState, "model")],
-        ([isActive, app, model]) => {
+        [
+            isActive,
+            toRef(internalState, "app"),
+            toRef(internalState, "model"),
+            // the store drops its cache when the authenticated user changes, so refetch under the new one
+            () => userStore.identityGeneration,
+        ],
+        ([isActive, app, model, identityGeneration]) => {
+            if (identityGeneration !== internalState.lastIdentityGeneration) {
+                // the transitions fetched for the previous user are gone, so neither key still describes
+                // anything this instance holds
+                internalState.lastIdentityGeneration = identityGeneration;
+                internalState.lastFetchedKey = null;
+                internalState.lastSetKey = null;
+            }
             if (!isActive) {
                 return;
             }
@@ -85,6 +102,10 @@ export function useWorkflowTransitions(app, model, isActive) {
                         internalState.lastFetchedKey = key;
                     })
                     .catch((e) => {
+                        if (e instanceof AuthScopeInvalidatedError) {
+                            // the authenticated user changed mid-fetch; the identity watch refetches
+                            return;
+                        }
                         loadingError.setError(e);
                     })
                     .finally(() => {

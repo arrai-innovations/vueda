@@ -38,6 +38,11 @@ vi.mock("@arrai-innovations/reactive-helpers", async () => {
     };
 });
 
+const userStoreMock = reactive({ identityGeneration: 0 });
+vi.mock("@vueda/stores/storeUser.js", () => ({
+    storeUser: vi.fn(() => userStoreMock),
+}));
+
 vi.mock("@vueda/use/useIsActive.js", () => ({
     useIsActive: vi.fn(() => ref(true)),
 }));
@@ -51,6 +56,7 @@ describe("lib/use/useModelChoices.js", () => {
         vi.clearAllMocks();
         storeMock.choices = reactive({});
         storeMock.filterChoices = reactive({});
+        userStoreMock.identityGeneration = 0;
     });
 
     afterEach(() => {
@@ -169,6 +175,32 @@ describe("lib/use/useModelChoices.js", () => {
         await flushPromises();
 
         expect(storeMock.fetchChoices).toHaveBeenCalledTimes(1); // still 1
+    });
+
+    scopedIt("refetches choices when the authenticated user changes", async () => {
+        const app = ref("blog");
+        const model = ref("article");
+        const intendToFetch = ref(true);
+
+        const fields = reactive({
+            status: { app, model, intendToFetch },
+        });
+
+        storeMock.choices["blog.article"] = { status: ["draft"] };
+        storeMock.fetchChoices.mockResolvedValue();
+
+        scope.run(() => {
+            useModelChoices(fields);
+        });
+
+        await flushPromises();
+        expect(storeMock.fetchChoices).toHaveBeenCalledTimes(1);
+
+        // the store dropped its cache at the identity boundary, so the composable has to ask again
+        userStoreMock.identityGeneration = 1;
+        await flushPromises();
+
+        expect(storeMock.fetchChoices).toHaveBeenCalledTimes(2);
     });
 
     scopedIt("handles an error from fetchChoices", async () => {

@@ -2,7 +2,7 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import { createPinia, setActivePinia } from "pinia";
 
-let storeWorkflowModule, storeWorkflow, mockedFetchHelper;
+let storeWorkflowModule, storeWorkflow, mockedFetchHelper, AuthScopeInvalidatedError;
 
 describe("lib/stores/storeWorkflow.js", () => {
     beforeEach(async () => {
@@ -17,6 +17,7 @@ describe("lib/stores/storeWorkflow.js", () => {
         });
         storeWorkflowModule = await import("@vueda/stores/storeWorkflow.js");
         storeWorkflow = storeWorkflowModule.storeWorkflow;
+        ({ AuthScopeInvalidatedError } = await import("@vueda/utils/errors.js"));
     });
 
     afterEach(() => {
@@ -314,5 +315,91 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(store.objectTransitions[key]).toEqual({});
         expect(store.promises.objectTransitions[key]).toEqual({});
         expect(store.errors.objectTransitions[key]).toEqual({});
+    });
+    describe("clearAuthScoped", () => {
+        const seedEverything = async (store) => {
+            mockedFetchHelper.mockResolvedValue([{ code: "one", name: "One" }]);
+            await store.fetchWorkflowTransition("app", "model");
+            mockedFetchHelper.mockResolvedValue([{ code: "draft", name: "Draft" }]);
+            await store.fetchModelStates("app", "model");
+            mockedFetchHelper.mockResolvedValue({ state: { code: "draft" } });
+            await store.fetchObjectState("app", "model", "1");
+            mockedFetchHelper.mockResolvedValue({ transitions: [] });
+            await store.fetchObjectTransitions("app", "model", "1");
+            mockedFetchHelper.mockResolvedValue({ history: [] });
+            await store.fetchObjectHistory("app", "model", "1");
+        };
+
+        scopedIt("empties every cache along with the error and promise maps", async () => {
+            const store = storeWorkflow();
+            const key = getAppModelDotName({ app: "app", model: "model" });
+            await seedEverything(store);
+            store.errors.workflowTransitions["other.model"] = new Error("cached");
+            store.errors.objectStates[key]["2"] = new Error("cached");
+            store.promises.modelStates["other.model"] = Promise.resolve([]);
+
+            expect(store.workflowTransitions[key]).toBeDefined();
+            expect(store.objectStates[key]["1"]).toBeDefined();
+
+            store.clearAuthScoped();
+
+            expect(store.workflowTransitions).toEqual({});
+            expect(store.modelStates).toEqual({});
+            expect(store.objectStates).toEqual({});
+            expect(store.objectTransitions).toEqual({});
+            expect(store.objectHistories).toEqual({});
+            for (const bucket of [
+                "workflowTransitions",
+                "modelStates",
+                "objectStates",
+                "objectTransitions",
+                "objectHistories",
+            ]) {
+                expect(store.errors[bucket]).toEqual({});
+                expect(store.promises[bucket]).toEqual({});
+            }
+            // integrator configuration, not user data
+            expect(storeWorkflowModule.getUsingVuedaWorkflow()).toBe(true);
+        });
+
+        scopedIt("writes nothing when an object-transitions response arrives after the clear", async () => {
+            const store = storeWorkflow();
+            let resolveFetch;
+            mockedFetchHelper.mockReturnValue(
+                new Promise((resolve) => {
+                    resolveFetch = resolve;
+                }),
+            );
+
+            const inFlight = store.fetchObjectTransitions("app", "model", "1");
+            store.clearAuthScoped();
+            resolveFetch({ transitions: [{ code: "one", name: "One" }] });
+
+            await expect(inFlight).rejects.toThrow(AuthScopeInvalidatedError);
+            expect(store.objectTransitions).toEqual({});
+        });
+
+        scopedIt("does not cache a transitions error that arrives after the clear", async () => {
+            const store = storeWorkflow();
+            const key = getAppModelDotName({ app: "app", model: "model" });
+            let rejectFetch;
+            mockedFetchHelper.mockReturnValueOnce(
+                new Promise((resolve, reject) => {
+                    rejectFetch = reject;
+                }),
+            );
+
+            const inFlight = store.fetchWorkflowTransition("app", "model");
+            store.clearAuthScoped();
+            rejectFetch(new Error("Forbidden"));
+
+            await expect(inFlight).rejects.toThrow("Forbidden");
+            expect(store.errors.workflowTransitions[key]).toBeUndefined();
+
+            mockedFetchHelper.mockResolvedValueOnce([{ code: "one", name: "One" }]);
+            await store.fetchWorkflowTransition("app", "model");
+            expect(mockedFetchHelper).toHaveBeenCalledTimes(2);
+            expect(store.workflowTransitions[key]).toEqual([{ code: "one", name: "One" }]);
+        });
     });
 });

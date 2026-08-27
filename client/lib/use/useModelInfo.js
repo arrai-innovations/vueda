@@ -4,8 +4,10 @@
  */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
+import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
+import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
 import { reactive, readonly, ref, toRef, watch } from "vue";
 
 /**
@@ -42,12 +44,13 @@ export function useModelInfo(app, model, isActive) {
     if (!isActive) {
         isActive = useIsActive();
     }
-    // Resolve the store here, while the composable still runs inside its component's setup.
+    // Resolve the stores here, while the composable still runs inside its component's setup.
     // Pinia's active instance is a module global that every `app.use(pinia)` overwrites, and the
     // watcher below runs as a flush job with no current component to inject from, so resolving it
     // there would pick whichever app booted last. The docs site puts several isolated apps, each
     // with its own seeded pinia, on one page.
     const modelInfoStore = storeModelInfo();
+    const userStore = storeUser();
     const internalState = reactive({
         app,
         model,
@@ -76,9 +79,15 @@ export function useModelInfo(app, model, isActive) {
         },
     );
 
-    // update originalInfo when app, model, or isActive changes
+    // update originalInfo when app, model, isActive, or the authenticated user changes
     watch(
-        [isActive, toRef(internalState, "app"), toRef(internalState, "model")],
+        [
+            isActive,
+            toRef(internalState, "app"),
+            toRef(internalState, "model"),
+            // the store drops its cache when the authenticated user changes, so refetch under the new one
+            () => userStore.identityGeneration,
+        ],
         ([newActive, app, model]) => {
             if (!newActive) {
                 return; // we'll pick up again when the component is active
@@ -102,6 +111,10 @@ export function useModelInfo(app, model, isActive) {
                         returnObject.info = toRef(modelInfoStore.infos, getAppModelDotName(args));
                     })
                     .catch((e) => {
+                        if (e instanceof AuthScopeInvalidatedError) {
+                            // the authenticated user changed mid-fetch; the identity watch refetches
+                            return;
+                        }
                         loadingError.setError(e);
                     })
                     .finally(() => {

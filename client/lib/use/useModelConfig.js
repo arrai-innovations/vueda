@@ -4,10 +4,12 @@
  */
 import { useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
+import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
+import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
 import { effectScope, reactive, readonly, ref, toRef, watch } from "vue";
 
 /**
@@ -78,11 +80,12 @@ export function useModelConfig(app, model, view) {
         const loadingError = useLoadingError();
         const isActive = useIsActive();
         const modelInfo = useModelInfo(app, model, isActive);
-        // Resolve the store here, while the composable still runs inside its component's setup.
+        // Resolve the stores here, while the composable still runs inside its component's setup.
         // Pinia's active instance is a module global that every `app.use(pinia)` overwrites, so a
         // store resolved later, from a callback with no current component to inject from, would come
         // from whichever app booted last. The docs site puts several isolated apps on one page.
         const modelConfigStore = storeModelConfig();
+        const userStore = storeUser();
         const proxyLoadingError = useProxyLoadingError([loadingError, modelInfo]);
         const returnObject = reactive({
             app,
@@ -123,7 +126,14 @@ export function useModelConfig(app, model, view) {
         });
 
         watch(
-            [isActive, toRef(returnObject, "app"), toRef(returnObject, "model"), toRef(returnObject, "view")],
+            [
+                isActive,
+                toRef(returnObject, "app"),
+                toRef(returnObject, "model"),
+                toRef(returnObject, "view"),
+                // the store drops its built configs when the authenticated user changes, so rebuild
+                () => userStore.identityGeneration,
+            ],
             ([active, app, model, view]) => {
                 if (!active) {
                     return; // we'll pick up again when the component is active
@@ -145,6 +155,10 @@ export function useModelConfig(app, model, view) {
                             returnObject.config = toRef(modelConfigStore.builtConfigs, key);
                         })
                         .catch((e) => {
+                            if (e instanceof AuthScopeInvalidatedError) {
+                                // the authenticated user changed mid-build; the identity watch rebuilds
+                                return;
+                            }
                             loadingError.setError(e);
                             console.error("useModelConfig: error fetching config", e);
                         })

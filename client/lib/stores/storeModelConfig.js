@@ -2,8 +2,10 @@
  * @module stores/storeModelConfig
  * @description Pinia store for building, caching, and retrieving merged client-side model configurations from generic and view-specific overrides.
  */
+import { trimReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
+import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import merge from "lodash-es/merge.js";
@@ -419,8 +421,37 @@ export const storeModelConfig = defineStore("modelConfig", {
         specificConfigs: {}, // view-specific config overrides
         builtConfigs: {}, // a cache of merged configs, both generic and specific
         initialized: {}, // a cache of promises for getConfig
+        /**
+         * Incremented by `clearAuthScoped`. Builds capture it before awaiting and discard their
+         * result if it changed while the build was in flight.
+         *
+         * @type {number}
+         */
+        authScopeGeneration: 0,
     }),
     actions: {
+        /**
+         * Drops the built configs, because they are derived from permission-filtered model info.
+         *
+         * `genericConfigs` and `specificConfigs` are integrator input, not server data, so they
+         * survive. In-flight builds are cancelled first, the same way `setConfig` cancels the builds
+         * its overrides invalidate; this is that cancellation generalized from one model to all of
+         * them.
+         *
+         * Keys are deleted in place so `toRef` handles consumers hold into `builtConfigs` keep
+         * reading the live container. Never replace a container here (that is what `$reset` does,
+         * and it detaches every held handle).
+         *
+         * @returns {void}
+         */
+        clearAuthScoped() {
+            this.authScopeGeneration += 1;
+            for (const key of Object.keys(this.initialized)) {
+                this.initialized[key]?.cancel?.();
+            }
+            trimReactiveObject(this.initialized, {});
+            trimReactiveObject(this.builtConfigs, {});
+        },
         /**
          * Stores generic and view-specific model config overrides.
          * @param {{app: string, model: string}} params - The app and model identifiers.
@@ -483,6 +514,7 @@ export const storeModelConfig = defineStore("modelConfig", {
             const genericKey = getAppModelDotName(args);
             const specificKey = view ? getAppModelViewDotName(args) : null;
             const builtKey = specificKey || genericKey;
+            const generation = this.authScopeGeneration;
             // if we have a cached builtConfig, return it
             if (builtKey in this.builtConfigs) {
                 return Promise.resolve(this.builtConfigs[builtKey]);
@@ -507,6 +539,12 @@ export const storeModelConfig = defineStore("modelConfig", {
                     promiseCancel = modelInfoPromise.cancel.bind(modelInfoPromise);
                 }
                 const modelInfo = await modelInfoPromise;
+                if (this.authScopeGeneration !== generation) {
+                    // the authenticated user changed while this build was in flight: the model info it
+                    // is built from was filtered for the previous principal, so nothing is cached and
+                    // the caller is rejected rather than handed a config built for someone else.
+                    throw new AuthScopeInvalidatedError("storeModelConfig.getConfig", builtKey);
+                }
                 const [defaultGenericConfig, defaultSpecificConfigs] = getDefaultFromModelInfo(modelInfo);
                 const defaultSpecificConfig = defaultSpecificConfigs[view] || {};
 

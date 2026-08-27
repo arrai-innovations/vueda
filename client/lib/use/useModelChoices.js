@@ -4,8 +4,10 @@
  */
 import { keyDiff, useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
+import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
+import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
 import pLimit from "p-limit";
 import { computed, effectScope, reactive, readonly, toRef, unref, watch } from "vue";
 
@@ -55,11 +57,12 @@ export function useModelChoices(fields, isActive) {
     if (!isActive) {
         isActive = es.run(() => useIsActive());
     }
-    // Resolve the store here, while the composable still runs inside its component's setup.
+    // Resolve the stores here, while the composable still runs inside its component's setup.
     // Pinia's active instance is a module global that every `app.use(pinia)` overwrites, so a
     // store resolved later, from a callback with no current component to inject from, would come
     // from whichever app booted last. The docs site puts several isolated apps on one page.
     const modelChoicesStore = storeModelChoices();
+    const userStore = storeUser();
     const internalState = reactive({
         /** @type {ChoicesOptions} */
         fields,
@@ -91,6 +94,9 @@ export function useModelChoices(fields, isActive) {
                     () => unref(internalState.fields[fieldName]?.intendToFetch),
                     () => unref(internalState.fields[fieldName]?.isFilter),
                     isActive,
+                    // the store drops its cache when the authenticated user changes, so refetch under
+                    // the new one
+                    () => userStore.identityGeneration,
                 ],
                 async ([app, model, intendToFetch, isFilter, isActive]) => {
                     if (!isActive) {
@@ -113,7 +119,10 @@ export function useModelChoices(fields, isActive) {
                                 await limit(() => fetchFn(app, model, fieldName));
                                 returnObject.choices[fieldName] = toRef(choiceProps[key], fieldName);
                             } catch (e) {
-                                myLE.setError(e);
+                                if (!(e instanceof AuthScopeInvalidatedError)) {
+                                    // the authenticated user changed mid-fetch; the identity watch refetches
+                                    myLE.setError(e);
+                                }
                             } finally {
                                 myLE.clearLoading();
                             }

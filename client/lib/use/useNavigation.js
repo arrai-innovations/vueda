@@ -5,6 +5,7 @@
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
+import { storeUser } from "@vueda/stores/storeUser.js";
 import { computed, reactive, watch } from "vue";
 
 /**
@@ -58,6 +59,7 @@ export function useNavigation(userConfig) {
     // fetching many model info and configs, so useModelInfo and useModelConfig would have excessive overhead
     const modelConfigStore = storeModelConfig();
     const modelInfoStore = storeModelInfo();
+    const userStore = storeUser();
 
     const loadingError = useLoadingError();
     const navigationData = reactive(
@@ -142,17 +144,29 @@ export function useNavigation(userConfig) {
     });
 
     watch(
-        userConfig,
-        async (newConfig) => {
+        // the stores drop their caches when the authenticated user changes, so rebuild the navigation
+        // from what the new user is permitted to see
+        [() => userStore.identityGeneration, userConfig],
+        async ([, newConfig], _oldValue, onCleanup) => {
+            let invalidated = false;
+            onCleanup(() => {
+                invalidated = true;
+            });
             navigationData.loading = true;
             try {
                 const navItems = await buildNavigation(newConfig);
-                navigationData.navigation = [...navItems, ...customRoutes.value];
-                navigationData.error = null;
+                if (!invalidated) {
+                    navigationData.navigation = [...navItems, ...customRoutes.value];
+                    navigationData.error = null;
+                }
             } catch (e) {
-                navigationData.error = e;
+                if (!invalidated) {
+                    navigationData.error = e;
+                }
             } finally {
-                navigationData.loading = false;
+                if (!invalidated) {
+                    navigationData.loading = false;
+                }
             }
         },
         { immediate: true, deep: true },

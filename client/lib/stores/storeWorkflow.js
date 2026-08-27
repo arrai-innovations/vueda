@@ -2,11 +2,16 @@
  * @module stores/storeWorkflow
  * @description Pinia store for fetching and caching workflow states, available transitions, history, and executing transitions for model objects.
  */
-import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { assignReactiveObject, trimReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import {
+    AuthScopeInvalidatedError,
+    ConfirmationRequiredError,
+    FetchError,
+    FormValidationError,
+} from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
@@ -35,6 +40,24 @@ const ensureWorkflowObjectBucket = (store, key, bucket) => {
     if (!store.errors[bucket][key]) {
         store.errors[bucket][key] = {};
     }
+};
+
+/**
+ * Empty a two-level store container in place, leaves first.
+ *
+ * A consumer can hold a `toRef` handle into the inner object (for example the per-object state map
+ * for one `app.model`), so the leaf keys are deleted before the key that holds the inner object.
+ * Neither container is ever replaced.
+ *
+ * @param {{[key: string]: object}} container
+ * @returns {void}
+ * @private
+ */
+const clearNestedContainer = (container) => {
+    for (const key of Object.keys(container)) {
+        trimReactiveObject(container[key], {});
+    }
+    trimReactiveObject(container, {});
 };
 
 /**
@@ -264,9 +287,40 @@ export const storeWorkflow = defineStore("workflow", {
             objectHistories: {},
             modelStates: {},
             workflowTransitions: {},
+            /**
+             * Incremented by `clearAuthScoped`. Fetches capture it before issuing and discard their
+             * response if it changed while the request was in flight.
+             *
+             * @type {number}
+             */
+            authScopeGeneration: 0,
         };
     },
     actions: {
+        /**
+         * Drops every cached workflow response, because permitted transitions, states, and history
+         * are all filtered for the authenticated user.
+         *
+         * The module-level `usingVuedaWorkflow` flag is integrator configuration, not user data, so
+         * it is untouched. Keys are deleted in place, deepest level first, so `toRef` handles
+         * consumers hold keep reading the live containers. Never replace a container here (that is
+         * what `$reset` does, and it detaches every held handle).
+         *
+         * @returns {void}
+         */
+        clearAuthScoped() {
+            this.authScopeGeneration += 1;
+            for (const bucket of ["objectStates", "objectTransitions", "objectHistories"]) {
+                clearNestedContainer(this[bucket]);
+                clearNestedContainer(this.errors[bucket]);
+                clearNestedContainer(this.promises[bucket]);
+            }
+            for (const bucket of ["modelStates", "workflowTransitions"]) {
+                trimReactiveObject(this[bucket], {});
+                trimReactiveObject(this.errors[bucket], {});
+                trimReactiveObject(this.promises[bucket], {});
+            }
+        },
         fetchWorkflowTransition(app, model) {
             if (!app || !model) {
                 return Promise.reject(
@@ -278,6 +332,8 @@ export const storeWorkflow = defineStore("workflow", {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
+            const generation = this.authScopeGeneration;
+            const isCurrentAuthScope = () => this.authScopeGeneration === generation;
             const existing = this.workflowTransitions[key];
             const cachedError = this.errors.workflowTransitions[key];
 
@@ -300,6 +356,11 @@ export const storeWorkflow = defineStore("workflow", {
                     "marker",
                 )
                     .then((data) => {
+                        if (!isCurrentAuthScope()) {
+                            // the authenticated user changed while this was in flight: this response was
+                            // filtered for the previous principal, so it must not be cached or returned.
+                            throw new AuthScopeInvalidatedError("storeWorkflow.fetchWorkflowTransition", key);
+                        }
                         if (data !== "marker") {
                             if (!data.length) {
                                 this.workflowTransitions[key] = [];
@@ -310,11 +371,17 @@ export const storeWorkflow = defineStore("workflow", {
                         }
                     })
                     .catch((e) => {
-                        this.errors.workflowTransitions[key] = e;
+                        if (isCurrentAuthScope()) {
+                            this.errors.workflowTransitions[key] = e;
+                        }
                         throw e;
                     })
                     .finally(() => {
-                        delete this.promises.workflowTransitions[key];
+                        if (isCurrentAuthScope()) {
+                            // a changed generation means `clearAuthScoped` already removed this entry,
+                            // and anything now at this key belongs to a newer fetch.
+                            delete this.promises.workflowTransitions[key];
+                        }
                     });
             }
             /** @type {Promise<WorkflowTransition[]>} */
@@ -328,6 +395,8 @@ export const storeWorkflow = defineStore("workflow", {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
+            const generation = this.authScopeGeneration;
+            const isCurrentAuthScope = () => this.authScopeGeneration === generation;
             const existing = this.modelStates[key];
             const cachedError = this.errors.modelStates[key];
 
@@ -349,17 +418,26 @@ export const storeWorkflow = defineStore("workflow", {
                     "marker",
                 )
                     .then((data) => {
+                        if (!isCurrentAuthScope()) {
+                            // the authenticated user changed while this was in flight: this response was
+                            // filtered for the previous principal, so it must not be cached or returned.
+                            throw new AuthScopeInvalidatedError("storeWorkflow.fetchModelStates", key);
+                        }
                         if (data !== "marker") {
                             this.modelStates[key] = data;
                             return this.modelStates[key];
                         }
                     })
                     .catch((e) => {
-                        this.errors.modelStates[key] = e;
+                        if (isCurrentAuthScope()) {
+                            this.errors.modelStates[key] = e;
+                        }
                         throw e;
                     })
                     .finally(() => {
-                        delete this.promises.modelStates[key];
+                        if (isCurrentAuthScope()) {
+                            delete this.promises.modelStates[key];
+                        }
                     });
             }
             return this.promises.modelStates[key];
@@ -374,6 +452,8 @@ export const storeWorkflow = defineStore("workflow", {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
+            const generation = this.authScopeGeneration;
+            const isCurrentAuthScope = () => this.authScopeGeneration === generation;
             ensureWorkflowObjectBucket(this, key, "objectStates");
             const existing = this.objectStates[key][objectPk];
             const cachedError = this.errors.objectStates[key]?.[objectPk];
@@ -399,14 +479,25 @@ export const storeWorkflow = defineStore("workflow", {
                         if (data === "Object does not have a workflow.") {
                             return result;
                         }
+                        if (!isCurrentAuthScope()) {
+                            // the authenticated user changed while this was in flight: this response was
+                            // filtered for the previous principal, so it must not be cached or returned.
+                            throw new AuthScopeInvalidatedError("storeWorkflow.fetchObjectState", `${key}.${objectPk}`);
+                        }
                         this.objectStates[key][objectPk] = data;
                     })
                     .catch((e) => {
-                        this.errors.objectStates[key][objectPk] = e;
+                        if (isCurrentAuthScope()) {
+                            this.errors.objectStates[key][objectPk] = e;
+                        }
                         throw e;
                     })
                     .finally(() => {
-                        delete this.promises.objectStates[key][objectPk];
+                        if (isCurrentAuthScope()) {
+                            // a changed generation means `clearAuthScoped` already removed the bucket
+                            // this entry lived in.
+                            delete this.promises.objectStates[key][objectPk];
+                        }
                     });
             }
             return this.promises.objectStates[key][objectPk];
@@ -422,6 +513,8 @@ export const storeWorkflow = defineStore("workflow", {
             }
 
             const key = getAppModelDotName({ app, model });
+            const generation = this.authScopeGeneration;
+            const isCurrentAuthScope = () => this.authScopeGeneration === generation;
             ensureWorkflowObjectBucket(this, key, "objectTransitions");
             const existing = this.objectTransitions[key][objectPk];
             const cachedError = this.errors.objectTransitions[key]?.[objectPk];
@@ -447,14 +540,28 @@ export const storeWorkflow = defineStore("workflow", {
                         if (data === "Object does not have a workflow.") {
                             return result;
                         }
+                        if (!isCurrentAuthScope()) {
+                            // the authenticated user changed while this was in flight: this response was
+                            // filtered for the previous principal, so it must not be cached or returned.
+                            throw new AuthScopeInvalidatedError(
+                                "storeWorkflow.fetchObjectTransitions",
+                                `${key}.${objectPk}`,
+                            );
+                        }
                         this.objectTransitions[key][objectPk] = data;
                     })
                     .catch((e) => {
-                        this.errors.objectTransitions[key][objectPk] = e;
+                        if (isCurrentAuthScope()) {
+                            this.errors.objectTransitions[key][objectPk] = e;
+                        }
                         throw e;
                     })
                     .finally(() => {
-                        delete this.promises.objectTransitions[key][objectPk];
+                        if (isCurrentAuthScope()) {
+                            // a changed generation means `clearAuthScoped` already removed the bucket
+                            // this entry lived in.
+                            delete this.promises.objectTransitions[key][objectPk];
+                        }
                     });
             }
             return this.promises.objectTransitions[key][objectPk];
@@ -469,6 +576,8 @@ export const storeWorkflow = defineStore("workflow", {
                 return Promise.resolve([]);
             }
             const key = getAppModelDotName({ app, model });
+            const generation = this.authScopeGeneration;
+            const isCurrentAuthScope = () => this.authScopeGeneration === generation;
             ensureWorkflowObjectBucket(this, key, "objectHistories");
             const existing = this.objectHistories[key][objectPk];
             const cachedError = this.errors.objectHistories[key]?.[objectPk];
@@ -496,14 +605,28 @@ export const storeWorkflow = defineStore("workflow", {
                         if (data === "Object does not have a workflow.") {
                             return result;
                         }
+                        if (!isCurrentAuthScope()) {
+                            // the authenticated user changed while this was in flight: this response was
+                            // filtered for the previous principal, so it must not be cached or returned.
+                            throw new AuthScopeInvalidatedError(
+                                "storeWorkflow.fetchObjectHistory",
+                                `${key}.${objectPk}`,
+                            );
+                        }
                         this.objectHistories[key][objectPk] = data;
                     })
                     .catch((e) => {
-                        this.errors.objectHistories[key][objectPk] = e;
+                        if (isCurrentAuthScope()) {
+                            this.errors.objectHistories[key][objectPk] = e;
+                        }
                         throw e;
                     })
                     .finally(() => {
-                        delete this.promises.objectHistories[key][objectPk];
+                        if (isCurrentAuthScope()) {
+                            // a changed generation means `clearAuthScoped` already removed the bucket
+                            // this entry lived in.
+                            delete this.promises.objectHistories[key][objectPk];
+                        }
                     });
             }
             return this.promises.objectHistories[key][objectPk];

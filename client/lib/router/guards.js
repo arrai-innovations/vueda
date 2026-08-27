@@ -8,6 +8,7 @@ import { ModelInfoError, storeModelInfo } from "@vueda/stores/storeModelInfo.js"
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
+import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 
 /**
@@ -284,7 +285,9 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
  * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
  * @param {import('vue-router').Router} router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
- * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} True if model info exists and action allowed, or redirect route.
+ * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded|undefined>} True if model info
+ *  exists and the action is allowed, a redirect route, or `undefined` to abandon the navigation because the
+ *  authenticated user changed while the metadata was being fetched.
  */
 export async function requireModelInfo(instance, redirectTo, to, router, pinia) {
     try {
@@ -308,6 +311,13 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
             return resolveRedirect(redirectTo, router);
         }
     } catch (e) {
+        if (e instanceof AuthScopeInvalidatedError) {
+            // The authenticated user changed while this navigation was resolving, so the metadata it
+            // needed was discarded rather than cached. Abandon this navigation silently: whatever
+            // reacted to the new user (a redirect to the login page, a fresh navigation) decides where
+            // the application goes, and there is nothing to tell the user about.
+            return undefined;
+        }
         if (e instanceof ModelInfoError) {
             toast.error("Model Not Found");
             return resolveRedirect(redirectTo, router);

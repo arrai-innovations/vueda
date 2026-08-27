@@ -8,6 +8,8 @@ vi.mock("@vueda/utils/csrf.js", () => ({ getCSRFValue }));
 const fetchHelper = vi.fn();
 vi.mock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper }));
 vi.mock("@vueda/utils/connectionHostname.js", () => ({ httpOrHttpsHostname: "http://host" }));
+const clearAuthScopedStores = vi.fn();
+vi.mock("@vueda/stores/authScope.js", () => ({ clearAuthScopedStores }));
 
 describe("lib/stores/storeUser.js", () => {
     let storeUser;
@@ -607,6 +609,103 @@ describe("lib/stores/storeUser.js", () => {
 
             expect(store.error).toBeNull();
             expect(store.errored).toBe(false);
+        });
+    });
+    describe("Authentication boundary", () => {
+        const whoIsSequence = (...users) => {
+            getUrl.mockReturnValue("/current/");
+            for (const user of users) {
+                fetchHelper.mockResolvedValueOnce(user);
+            }
+        };
+
+        scopedIt("does not clear on the first who-is response", async () => {
+            whoIsSequence({ id: 1 });
+            const store = storeUser();
+
+            await store.fetchCurrentUser();
+
+            expect(clearAuthScopedStores).not.toHaveBeenCalled();
+            expect(store.principalId).toBe(1);
+            expect(store.identityGeneration).toBe(0);
+        });
+
+        scopedIt("does not clear when the same user is refreshed", async () => {
+            // the reauthenticate and activateTOTPDevice shapes: same principal, other fields changed
+            whoIsSequence(
+                { id: 1, recently_logged_in: false, totp_devices: [] },
+                { id: 1, recently_logged_in: true, totp_devices: ["device"] },
+            );
+            const store = storeUser();
+
+            await store.fetchCurrentUser();
+            await store.fetchCurrentUser();
+
+            expect(clearAuthScopedStores).not.toHaveBeenCalled();
+            expect(store.identityGeneration).toBe(0);
+        });
+
+        scopedIt("clears when an anonymous session becomes a user", async () => {
+            whoIsSequence({}, { id: 1 });
+            const store = storeUser();
+
+            await store.fetchCurrentUser();
+            expect(store.principalId).toBeNull();
+            await store.fetchCurrentUser();
+
+            expect(clearAuthScopedStores).toHaveBeenCalledTimes(1);
+            expect(store.principalId).toBe(1);
+            expect(store.identityGeneration).toBe(1);
+        });
+
+        scopedIt("clears when a user logs out", async () => {
+            whoIsSequence({ id: 1 }, {});
+            const store = storeUser();
+
+            await store.fetchCurrentUser();
+            await store.fetchCurrentUser();
+
+            expect(clearAuthScopedStores).toHaveBeenCalledTimes(1);
+            expect(store.principalId).toBeNull();
+            expect(store.identityGeneration).toBe(1);
+        });
+
+        scopedIt("clears twice when the same user logs out and back in", async () => {
+            whoIsSequence({ id: 1 }, {}, { id: 1 });
+            const store = storeUser();
+
+            await store.fetchCurrentUser();
+            await store.fetchCurrentUser();
+            await store.fetchCurrentUser();
+
+            // the anonymous state in between is always observed, so the comparison is on the value and
+            // not on "a login happened"
+            expect(clearAuthScopedStores).toHaveBeenCalledTimes(2);
+            expect(store.identityGeneration).toBe(2);
+        });
+
+        scopedIt("clears when a different user logs in", async () => {
+            whoIsSequence({ id: 1 }, { id: 2 });
+            const store = storeUser();
+
+            await store.fetchCurrentUser();
+            await store.fetchCurrentUser();
+
+            expect(clearAuthScopedStores).toHaveBeenCalledTimes(1);
+            expect(store.principalId).toBe(2);
+        });
+
+        scopedIt("leaves the principal alone when who-is itself fails", async () => {
+            getUrl.mockReturnValue("/current/");
+            fetchHelper.mockResolvedValueOnce({ id: 1 });
+            fetchHelper.mockRejectedValueOnce(new Error("network"));
+            const store = storeUser();
+
+            await store.fetchCurrentUser();
+            await expect(store.fetchCurrentUser()).rejects.toThrow("network");
+
+            expect(clearAuthScopedStores).not.toHaveBeenCalled();
+            expect(store.principalId).toBe(1);
         });
     });
 });

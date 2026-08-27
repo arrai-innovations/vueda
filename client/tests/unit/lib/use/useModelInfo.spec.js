@@ -39,6 +39,11 @@ vi.mock("@arrai-innovations/reactive-helpers", async () => {
     };
 });
 
+const userStoreMock = reactive({ identityGeneration: 0 });
+vi.mock("@vueda/stores/storeUser.js", () => ({
+    storeUser: vi.fn(() => userStoreMock),
+}));
+
 vi.mock("@vueda/use/useIsActive.js", () => ({
     useIsActive: vi.fn(() => ref(true)),
 }));
@@ -61,6 +66,7 @@ describe("lib/use/useModelInfo.js", () => {
         modelInfoStoreFnMocks.storeModelInfo.mockReturnValue(modelInfoStoreMock);
         app.value = "myApp";
         model.value = "myModel";
+        userStoreMock.identityGeneration = 0;
         es.stop();
     });
 
@@ -185,6 +191,23 @@ describe("lib/use/useModelInfo.js", () => {
         expect(modelInfoStoreMock.fetchModelInfo).not.toHaveBeenCalled();
         expect(result.info).toEqual({});
     });
+    scopedIt("refetches model info when the authenticated user changes", async () => {
+        const isActive = ref(true);
+        modelInfoStoreMock.fetchModelInfo.mockResolvedValue({});
+
+        es.run(() => {
+            useModelInfo(app, model, isActive);
+        });
+        await flushPromises();
+        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(1);
+
+        // the store dropped its cache at the identity boundary, so the composable has to ask again
+        userStoreMock.identityGeneration = 1;
+        await flushPromises();
+
+        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(2);
+    });
+
     scopedIt("does not fetch and clears info if model is falsey", async () => {
         const app = ref("someApp");
         const model = ref(null);
