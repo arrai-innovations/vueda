@@ -23,6 +23,18 @@ from django.db.backends.postgresql.psycopg_any import IsolationLevel
 
 _T = TypeVar("_T")
 
+# ``isolation_level`` is a psycopg enum, so it is only meaningful for the postgres family of
+# backends. Other backends either ignore it or reject it outright; sqlite raises
+# ``TypeError: isolation_level must be str or None`` on connect.
+_POSTGRES_ENGINES = frozenset(
+    {
+        "django.db.backends.postgresql",
+        "django.contrib.gis.db.backends.postgis",
+        "timescale.db.backends.postgresql",
+        "timescale.db.backends.postgis",
+    }
+)
+
 
 class EnvLike(Protocol):  # pragma: no cover
     def __call__(self, key: str, default: Any = ...) -> Any: ...
@@ -445,7 +457,8 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     return_dict["DATABASES"]["default"]["ATOMIC_REQUESTS"] = True
     if "OPTIONS" not in return_dict["DATABASES"]["default"]:
         return_dict["DATABASES"]["default"]["OPTIONS"] = {}
-    return_dict["DATABASES"]["default"]["OPTIONS"]["isolation_level"] = IsolationLevel.REPEATABLE_READ
+    if return_dict["DATABASES"]["default"].get("ENGINE") in _POSTGRES_ENGINES:
+        return_dict["DATABASES"]["default"]["OPTIONS"]["isolation_level"] = IsolationLevel.REPEATABLE_READ
     # non-zero has been known to cause issues with some databases with timeouts
     return_dict["DATABASES"]["default"]["CONN_MAX_AGE"] = 0
     return_dict["INSTALLED_APPS"] = (

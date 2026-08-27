@@ -1,8 +1,11 @@
+import sqlite3
 from pathlib import Path
 
 import django
 import pytest
 from django.core.exceptions import ImproperlyConfigured
+from django.db.backends.postgresql.psycopg_any import IsolationLevel
+from django.db.backends.sqlite3.base import DatabaseWrapper
 
 from vueda.core.config import TomlEnv
 from vueda.core.config import load_toml
@@ -64,3 +67,27 @@ def test_use_mailers_respects_email_backend_override_or_rejects_by_django_versio
 
     assert defaults["MAILERS"]["default"]["BACKEND"] == "anymail.backends.mailgun.EmailBackend"
     assert defaults["ANYMAIL_MAILGUN_API_KEY"] == "key"
+
+
+def test_isolation_level_is_set_for_postgres():
+    defaults = get_defaults(_env(DATABASE_URL="postgres://vueda@localhost:5432/vueda"))
+
+    assert defaults["DATABASES"]["default"]["ENGINE"] == "django.db.backends.postgresql"
+    assert defaults["DATABASES"]["default"]["OPTIONS"]["isolation_level"] == IsolationLevel.REPEATABLE_READ
+
+
+def test_isolation_level_is_omitted_for_sqlite():
+    # isolation_level is a psycopg enum; sqlite3.connect rejects it with
+    # "isolation_level must be str or None", which broke every management command run against
+    # the sqlite settings used for documentation builds.
+    defaults = get_defaults(_env(DATABASE_URL="sqlite:///db.sqlite3"))
+
+    assert defaults["DATABASES"]["default"]["ENGINE"] == "django.db.backends.sqlite3"
+    assert "isolation_level" not in defaults["DATABASES"]["default"]["OPTIONS"]
+
+
+def test_sqlite_connection_params_are_accepted_by_the_driver(tmp_path):
+    defaults = get_defaults(_env(DATABASE_URL=f"sqlite:///{tmp_path / 'db.sqlite3'}"))
+
+    connection = DatabaseWrapper({**defaults["DATABASES"]["default"], "TIME_ZONE": None})
+    sqlite3.connect(**connection.get_connection_params()).close()
